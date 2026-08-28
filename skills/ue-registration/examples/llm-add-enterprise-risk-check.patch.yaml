@@ -1,0 +1,21 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: ProcedurePatch
+metadata:
+  name: llm-add-enterprise-risk-check
+  source:
+    type: llm
+    ref: simulation-run/example-registration-001
+  status: candidate
+spec:
+  base:
+    skill: ue-registration
+    procedure: initial-registration
+  operations:
+  - op: insert_action_after
+    point: after-authentication
+    action:
+      id: enterprise-risk-check
+      ref: customer.registration.risk_check
+      inputs:
+        ueRef: {fromContext: subject.ueRef}
+        registrationType: {fromContext: request.registrationType}

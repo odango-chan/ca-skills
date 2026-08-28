@@ -1,0 +1,65 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: PredicateDefinitions
+metadata:
+  skill: ue-registration
+predicates:
+  ue.identity.resolved:
+    valueType: boolean
+    rules:
+    - equals: true
+      result: PASS
+    - equals: false
+      result: FAIL
+    noValue: UNKNOWN
+    invalid: UNKNOWN
+    otherwise: UNKNOWN
+  ue.authentication.succeeded:
+    valueType: boolean
+    rules:
+    - equals: true
+      result: PASS
+    - equals: false
+      result: FAIL
+    noValue: UNKNOWN
+    invalid: UNKNOWN
+    otherwise: UNKNOWN
+  ue.security_context.established:
+    valueType: boolean
+    rules:
+    - equals: true
+      result: PASS
+    - equals: false
+      result: FAIL
+    noValue: UNKNOWN
+    invalid: UNKNOWN
+    otherwise: UNKNOWN
+  ue.registration_context.ready:
+    valueType: boolean
+    rules:
+    - equals: true
+      result: PASS
+    - equals: false
+      result: FAIL
+    noValue: UNKNOWN
+    invalid: UNKNOWN
+    otherwise: UNKNOWN
+  ue.registered:
+    valueType: boolean
+    rules:
+    - equals: true
+      result: PASS
+    - equals: false
+      result: FAIL
+    noValue: UNKNOWN
+    invalid: UNKNOWN
+    otherwise: UNKNOWN
+  ue.registration_context.consistent:
+    valueType: boolean
+    rules:
+    - equals: true
+      result: PASS
+    - equals: false
+      result: FAIL
+    noValue: UNKNOWN
+    invalid: UNKNOWN
+    otherwise: UNKNOWN

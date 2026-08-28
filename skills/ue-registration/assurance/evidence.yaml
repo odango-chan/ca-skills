@@ -1,0 +1,45 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: EvidenceRules
+metadata:
+  skill: ue-registration
+predicates:
+  ue.identity.resolved:
+    freshness:
+      maxAge: 10s
+    preferredEvidence:
+    - source: runtime_state
+    - source: signaling_observation
+  ue.authentication.succeeded:
+    freshness:
+      maxAge: 10s
+    preferredEvidence:
+    - source: runtime_state
+    - source: signaling_observation
+  ue.security_context.established:
+    freshness:
+      maxAge: 10s
+    preferredEvidence:
+    - source: runtime_state
+    - source: signaling_observation
+  ue.registration_context.ready:
+    freshness:
+      maxAge: 10s
+    preferredEvidence:
+    - source: runtime_state
+    - source: signaling_observation
+  ue.registered:
+    freshness:
+      maxAge: 5s
+    preferredEvidence:
+    - source: runtime_state
+    - source: signaling_observation
+    activeObservation:
+      ref: ue.registration.query
+  ue.registration_context.consistent:
+    freshness:
+      maxAge: 5s
+    preferredEvidence:
+    - source: runtime_state
+    - source: signaling_observation
+    activeObservation:
+      ref: ue.registration.query

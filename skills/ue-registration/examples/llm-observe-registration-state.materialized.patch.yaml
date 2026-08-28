@@ -1,0 +1,20 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: ProcedurePatch
+metadata:
+  name: llm-candidate-patch
+  source:
+    type: llm
+    ref: simulation-planner
+  status: candidate
+spec:
+  base:
+    skill: ue-registration
+    procedure: initial-registration
+  operations:
+  - op: insert_action_after
+    point: after-authentication
+    action:
+      id: observe-registration-state
+      ref: ue.registration.query
+      inputs:
+        ueRef: {fromContext: subject.ueRef}

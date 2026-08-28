@@ -1,0 +1,12 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: ProcedurePatchProposal
+metadata: {}
+decision: APPLY_PATCH
+operations:
+- op: insert_action_after
+  point: after-authentication
+  action:
+    id: observe-registration-state
+    ref: ue.registration.query
+    inputs:
+      ueRef: {fromContext: subject.ueRef}

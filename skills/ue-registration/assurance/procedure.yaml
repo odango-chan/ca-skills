@@ -1,0 +1,180 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: ProcedureSet
+metadata:
+  skill: ue-registration
+spec:
+  procedures:
+  - name: registration-already-satisfied
+    goal: ue.ensure_registered
+    entry: verify-registration
+    applicability:
+      predicates:
+        ue.registered: PASS
+    nodes:
+    - id: verify-registration
+      type: verify
+      predicates:
+      - ue.registered
+      - ue.registration_context.consistent
+      'on':
+        PASS: {next: done}
+        FAIL: {next: failed}
+        UNKNOWN: {next: unresolved}
+    - id: done
+      type: terminal
+      result: SUCCEEDED
+    - id: failed
+      type: terminal
+      result: FAILED
+    - id: unresolved
+      type: terminal
+      result: UNRESOLVED
+
+  - name: initial-registration
+    goal: ue.ensure_registered
+    entry: resolve-identity
+    applicability:
+      predicates:
+        ue.registered: FAIL
+    standardRefs:
+    - organization: 3GPP
+      specification: TS 23.502
+      note: Initial Registration related flow; fixture is not a conformance claim
+    customization:
+      patchPoints:
+      - id: after-authentication
+        anchor:
+          node: verify-authentication
+          outcome: PASS
+        allowedOperations:
+        - insert_action_after
+        actionContract:
+          allowedEffects:
+          - read_only
+          outcomeRouting:
+            SUCCEEDED: {continue: true}
+            FAILED: {next: failed}
+            UNKNOWN: {next: unresolved}
+            DENIED: {next: failed}
+    nodes:
+    - id: resolve-identity
+      type: action
+      ref: ue.identity.resolve
+      inputs:
+        ueRef: {fromContext: subject.ueRef}
+      'on':
+        SUCCEEDED: {next: verify-identity}
+        FAILED: {next: failed}
+        UNKNOWN: {next: unresolved}
+        DENIED: {next: failed}
+
+    - id: verify-identity
+      type: verify
+      predicates:
+      - ue.identity.resolved
+      'on':
+        PASS: {next: authenticate}
+        FAIL: {next: failed}
+        UNKNOWN: {next: unresolved}
+
+    - id: authenticate
+      type: action
+      ref: ue.authentication.execute
+      inputs:
+        ueRef: {fromContext: subject.ueRef}
+        registrationType: {fromContext: request.registrationType}
+      'on':
+        COMMITTED: {next: verify-authentication}
+        NOT_COMMITTED: {next: failed}
+        OUTCOME_UNKNOWN: {next: safe-stopped}
+        FAILED: {next: failed}
+        DENIED: {next: failed}
+
+    - id: verify-authentication
+      type: verify
+      predicates:
+      - ue.authentication.succeeded
+      'on':
+        PASS: {next: establish-security}
+        FAIL: {next: failed}
+        UNKNOWN: {next: unresolved}
+
+    - id: establish-security
+      type: action
+      ref: ue.security.establish
+      inputs:
+        ueRef: {fromContext: subject.ueRef}
+        registrationType: {fromContext: request.registrationType}
+      'on':
+        COMMITTED: {next: verify-security}
+        NOT_COMMITTED: {next: failed}
+        OUTCOME_UNKNOWN: {next: safe-stopped}
+        FAILED: {next: failed}
+        DENIED: {next: failed}
+
+    - id: verify-security
+      type: verify
+      predicates:
+      - ue.security_context.established
+      'on':
+        PASS: {next: prepare-context}
+        FAIL: {next: failed}
+        UNKNOWN: {next: unresolved}
+
+    - id: prepare-context
+      type: action
+      ref: ue.registration_context.prepare
+      inputs:
+        ueRef: {fromContext: subject.ueRef}
+        registrationType: {fromContext: request.registrationType}
+      'on':
+        COMMITTED: {next: verify-context}
+        NOT_COMMITTED: {next: failed}
+        OUTCOME_UNKNOWN: {next: safe-stopped}
+        FAILED: {next: failed}
+        DENIED: {next: failed}
+
+    - id: verify-context
+      type: verify
+      predicates:
+      - ue.registration_context.ready
+      'on':
+        PASS: {next: finalize-registration}
+        FAIL: {next: failed}
+        UNKNOWN: {next: unresolved}
+
+    - id: finalize-registration
+      type: action
+      ref: ue.registration.finalize
+      inputs:
+        ueRef: {fromContext: subject.ueRef}
+        registrationType: {fromContext: request.registrationType}
+      'on':
+        COMMITTED: {next: verify-registration}
+        NOT_COMMITTED: {next: failed}
+        OUTCOME_UNKNOWN: {next: safe-stopped}
+        FAILED: {next: failed}
+        DENIED: {next: failed}
+
+    - id: verify-registration
+      type: verify
+      predicates:
+      - ue.registered
+      - ue.registration_context.consistent
+      'on':
+        PASS: {next: done}
+        FAIL: {next: failed}
+        UNKNOWN: {next: unresolved}
+
+    - id: done
+      type: terminal
+      result: SUCCEEDED
+    - id: failed
+      type: terminal
+      result: FAILED
+    - id: unresolved
+      type: terminal
+      result: UNRESOLVED
+    - id: safe-stopped
+      type: terminal
+      result: SAFE_STOPPED

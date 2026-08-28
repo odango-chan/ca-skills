@@ -1,0 +1,21 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: ProcedurePatch
+metadata:
+  name: customer-add-compliance-check
+  source:
+    type: user
+    ref: web-editor/operator-a
+  status: draft
+spec:
+  base:
+    skill: ue-registration
+    procedure: initial-registration
+  operations:
+  - op: insert_action_after
+    point: after-authentication
+    action:
+      id: operator-compliance-check
+      ref: customer.registration.compliance_check
+      inputs:
+        ueRef: {fromContext: subject.ueRef}
+        registrationType: {fromContext: request.registrationType}

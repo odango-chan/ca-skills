@@ -1,0 +1,12 @@
+mockPredicates:
+  verify-identity:
+    ue.identity.resolved: PASS
+  verify-authentication:
+    ue.authentication.succeeded: PASS
+  verify-security:
+    ue.security_context.established: PASS
+  verify-context:
+    ue.registration_context.ready: PASS
+  verify-registration:
+    ue.registered: PASS
+    ue.registration_context.consistent: PASS

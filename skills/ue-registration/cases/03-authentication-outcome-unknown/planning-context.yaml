@@ -1,0 +1,21 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: PlanningContext
+metadata:
+  operationId: reg-03-auth-unknown
+  version: 1
+subject:
+  ueRef: ran-ue-0003
+request:
+  registrationType: initial
+facts:
+  ue.registered:
+    value: FAIL
+availableResources:
+- {ref: ue.identity.resolve, kind: capability, version: v1, effect: read_only, invocable: true}
+- {ref: ue.authentication.execute, kind: capability, version: v1, effect: mutation, invocable: true}
+- {ref: ue.security.establish, kind: capability, version: v1, effect: mutation, invocable: true}
+- {ref: ue.registration_context.prepare, kind: capability, version: v1, effect: mutation, invocable: true}
+- {ref: ue.registration.finalize, kind: capability, version: v1, effect: mutation, invocable: true}
+- {ref: ue.registration.query, kind: capability, version: v1, effect: read_only, invocable: true}
+constraints:
+  maxActions: 8
