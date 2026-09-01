@@ -1,0 +1,84 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: file-transfer-request.schema.yaml
+title: FiveGcFileTransferRequest
+type: object
+required:
+- operation
+- transferId
+properties:
+  operation:
+    type: string
+    enum: [prepare_transfer, release_group]
+  transferId:
+    type: string
+    minLength: 1
+  urgency:
+    type: string
+    enum: [normal, urgent]
+    description: Canonical urgency derived from the original user intent before deterministic execution.
+  senderImsi:
+    type: string
+    pattern: '^[0-9]{15}$'
+  receiverImsis:
+    type: array
+    minItems: 1
+    uniqueItems: true
+    items:
+      type: string
+      pattern: '^[0-9]{15}$'
+  members:
+    type: array
+    minItems: 2
+    description: Authoritative member IMSI/IP pairs from the gateway; must contain the sender and every receiver exactly once.
+    items:
+      type: object
+      required: [imsi, ip]
+      properties:
+        imsi:
+          type: string
+          pattern: '^[0-9]{15}$'
+        ip:
+          type: string
+          format: ipv4
+      additionalProperties: false
+  sst:
+    const: 1
+  sd:
+    const: '000000'
+  upfId:
+    const: upf-1
+  durationSeconds:
+    const: 3600
+  fiveQi:
+    const: 8
+  groupId:
+    type: string
+    pattern: '^vg-[0-9]{8}-[0-9]{3}$'
+  outcome:
+    type: string
+    enum: [completed, cancelled]
+allOf:
+- if:
+    properties:
+      operation: {const: prepare_transfer}
+    required: [operation]
+  then:
+    required:
+    - urgency
+    - senderImsi
+    - receiverImsis
+    - members
+    - sst
+    - sd
+    - upfId
+    - durationSeconds
+    - fiveQi
+- if:
+    properties:
+      operation: {const: release_group}
+    required: [operation]
+  then:
+    required:
+    - groupId
+    - outcome
+additionalProperties: false
