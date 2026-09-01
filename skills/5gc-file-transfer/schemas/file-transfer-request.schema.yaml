@@ -25,26 +25,10 @@ properties:
     minItems: 1
     maxItems: 16
     uniqueItems: true
-    description: Bounded canonical receiver set used by participant Observation scopes.
+    description: Bounded canonical receiver set. Current participant endpoint addresses are resolved by governed execution rather than supplied by the routing Agent.
     items:
       type: string
       pattern: '^[0-9]{15}$'
-  members:
-    type: array
-    minItems: 2
-    maxItems: 17
-    description: Authoritative member IMSI/IP pairs from the gateway; must contain the sender and every receiver exactly once.
-    items:
-      type: object
-      required: [imsi, ip]
-      properties:
-        imsi:
-          type: string
-          pattern: '^[0-9]{15}$'
-        ip:
-          type: string
-          format: ipv4
-      additionalProperties: false
   groupId:
     type: string
     pattern: '^vg-[0-9]{8}-[0-9]{3}$'
@@ -61,7 +45,6 @@ allOf:
     - urgency
     - senderImsi
     - receiverImsis
-    - members
 - if:
     properties:
       operation: {const: release_group}
