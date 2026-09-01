@@ -1,0 +1,6 @@
+requestId: wifi-task-001
+senderId: '001019876543210'
+receiverIds:
+- '001019876543211'
+- '001019876543212'
+urgency: urgent
