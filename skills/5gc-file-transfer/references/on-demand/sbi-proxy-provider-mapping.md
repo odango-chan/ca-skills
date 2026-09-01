@@ -48,9 +48,51 @@ receivers, in canonical order
 
 `sst=1` and `sd="000000"` are current Skill proof-policy constants, not Agent request fields. They are part of the scoped Observation requirement.
 
-Again, the provider returns one typed collection Observation. Procedure control flow only sees the Predicate result; provider-specific query fan-out stays behind ObservationBinding.
+The provider returns one typed collection Observation. Procedure control flow only sees the Predicate result; provider-specific proof fan-out stays behind `ObservationBinding`.
 
-## 3. Edge cache
+## 3. Participant endpoint resolution
+
+Current UE endpoint addresses are runtime network state, not identity-routing context. They must not be copied from a static roster or produced by the LLM.
+
+The Procedure therefore contains an explicit governed read-only Capability:
+
+```text
+transfer.participants.resolve_endpoints
+```
+
+Canonical input:
+
+```text
+senderImsi
+receiverImsis
+```
+
+Canonical output:
+
+```text
+members:
+  - imsi: <sender>
+    ip: <current UE IPv4>
+  - imsi: <receiver-1>
+    ip: <current UE IPv4>
+  ...
+```
+
+The member set is bounded by the request schema, ordered canonically as sender followed by receivers, and must contain exactly one endpoint for every requested participant. A missing, duplicate, malformed, or ambiguous endpoint does not produce a partial member list.
+
+The concrete provider may resolve this from authoritative SMF/session state, Service Fabric state, or another certified read source. If a fresh previously materialized session Observation already contains the required endpoint data, the provider may reuse it internally, but the semantic read step remains explicit in the RunPlan and trajectory.
+
+This Capability is intentionally different from the verify-only query operations removed from the Procedure. Its output is an operational input to a later mutation:
+
+```text
+transfer.participants.resolve_endpoints
+  -> output.members
+  -> virtual_group.assign_members
+```
+
+A read `UNKNOWN` or failure stops the preparation path before member assignment. It does not authorize the Agent or Provider to guess an address.
+
+## 4. Edge cache
 
 Capability:
 
@@ -70,7 +112,7 @@ One Procedure action produces at most one normal dispatch. If dispatch outcome i
 
 The legacy tool set does not currently expose an explicit cache reconciliation API. The Provider therefore needs either an idempotent ensure contract with independently observable state or a dedicated reconciliation implementation before this path can be certified for ambiguous transport outcomes.
 
-## 4. Virtual Group create
+## 5. Virtual Group create
 
 Capability:
 
@@ -112,7 +154,7 @@ VG was created but the response was lost
 
 Before production certification, the Provider needs a correlation-aware create/query contract, for example create/query-by-transferId, or an equivalent independently provable reconciliation mechanism.
 
-## 5. Assign members
+## 6. Assign members
 
 Capability:
 
@@ -125,17 +167,23 @@ Current mapping:
 ```text
 vg_assign_members(
   group_id=<facts.virtual_group.id>,
-  members_info=<canonical members JSON>
+  members_info=<resolved endpoint set JSON>
 )
 ```
 
-`members` must use the gateway-provided IMSI/IP pairs exactly after request validation. The static phone roster from the old prompt is not a Runtime Truth Source.
+The Procedure binds `members` from the successful output of `transfer.participants.resolve_endpoints`, not from the Agent request:
 
-Ambiguous mutation results enter `virtual_group.reconcile_members` rather than replaying `vg_assign_members` immediately.
+```text
+resolve-member-endpoints.output.members
+```
+
+This keeps current UE addresses tied to governed execution-time state. The static identity roster is never a Runtime Truth Source for endpoint addresses.
+
+Ambiguous mutation results enter `virtual_group.reconcile_members` rather than replaying `vg_assign_members` immediately. Reconciliation reuses the already-resolved canonical member set from the same run; it does not silently re-resolve a potentially different address set after the mutation outcome became ambiguous.
 
 A committed canonical result may update the reusable `virtual_group.snapshot` Observation.
 
-## 6. Virtual Group Observation
+## 7. Virtual Group Observation
 
 Canonical Observation:
 
@@ -153,7 +201,7 @@ This mapping belongs to `ObservationBinding`; `virtual_group.status` is not a st
 
 `vg_list()` may be used internally by an Observation/Reconciliation provider when necessary to resolve correlation. It should not be exposed as a planning action unless a governed business Procedure genuinely requires that operation.
 
-## 7. QoS boost
+## 8. QoS boost
 
 Capability:
 
@@ -181,7 +229,7 @@ as a typed Observation. Runtime may reuse that Observation during final verifica
 
 An ambiguous result enters `transfer.qos.reconcile`. If the Provider cannot independently determine the state, the execution remains unresolved rather than re-dispatching the boost.
 
-## 8. Virtual Group release
+## 9. Virtual Group release
 
 Capability:
 
@@ -207,13 +255,16 @@ A committed release result may contribute an updated `virtual_group.snapshot` in
 
 A transport-level ambiguous result is different from `not found`: it enters `virtual_group.reconcile_release` and must not cause another release dispatch in the same Procedure.
 
-## 9. Input ownership rule
+## 10. Input ownership rule
 
-Keep request semantics, deterministic Skill policy, and deployment binding separate:
+Keep four input classes separate:
 
 ```text
 Gateway / routing request
-  -> operation, transferId, urgency, canonical participants and member addresses
+  -> operation, transferId, urgency, canonical participant identities
+
+Governed execution-time read
+  -> current dynamic operational data needed by later actions, such as UE endpoint addresses
 
 Skill policy
   -> fixed slice proof scope, duration and QoS defaults
@@ -222,23 +273,25 @@ Runtime / deployment binding
   -> concrete Provider/UPF/endpoints and credentials
 ```
 
+A dynamic network value should not be pushed upward into the Agent request merely because a later Tool needs it. If it is genuine operational dataflow, represent a stable read-only Capability and pass its typed output to the later action.
+
 Then keep business action and proof acquisition separate:
 
 ```text
 Capability
   -> ProviderBinding
-  -> mutation / governed business action
+  -> governed business read or mutation
 
 Observation
   -> ObservationBinding
-  -> read/reuse/normalize canonical proof input
+  -> proof acquisition / reuse / normalization
 ```
 
 A concrete legacy Tool may participate in either family, but that does not make its Tool name or deployment arguments part of stable Skill request semantics.
 
-## 10. Tools intentionally excluded from business authority
+## 11. Tools intentionally excluded from business authority
 
-The following legacy operations do not belong to this Skill's governed business-action envelope:
+The following legacy operations do not belong to this Skill's governed business-action envelope merely because they exist:
 
 ```text
 vg_activate
@@ -252,6 +305,6 @@ message/spawn/cron/web
 wifi_*
 ```
 
-Read-only NF/status operations may still appear behind an authorized ObservationBinding. That does not make them directly callable Procedure resources.
+Read-only operations may appear behind an authorized ObservationBinding when they exist only to prove a Predicate, or behind a narrowly defined read-only Capability when their output is genuine governed business dataflow such as endpoint resolution.
 
-If a future file-transfer flow genuinely needs a new business operation, expand the Capability Contract and Procedure explicitly rather than adding a broad Tool whitelist to `SKILL.md`.
+If a future file-transfer flow genuinely needs a new operation, expand the Capability Contract and Procedure explicitly rather than adding a broad Tool whitelist to `SKILL.md`.
