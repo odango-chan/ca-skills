@@ -3,14 +3,15 @@ kind: ProcedureSet
 metadata:
   skill: core5g-file-transfer
 spec:
+  selectionPolicy: exactlyOne
   procedures:
   - name: prepare-file-transfer-normal
     goal: file_transfer.orchestrate
     entry: verify-registration
     applicability:
-      predicates:
-        transfer.operation.prepare: PASS
-        transfer.intent.urgent: FAIL
+      when: >
+        request.operation == "prepare_transfer" &&
+        request.urgency == "normal"
     nodes:
     - id: verify-registration
       type: verify
@@ -128,9 +129,9 @@ spec:
     goal: file_transfer.orchestrate
     entry: verify-registration
     applicability:
-      predicates:
-        transfer.operation.prepare: PASS
-        transfer.intent.urgent: PASS
+      when: >
+        request.operation == "prepare_transfer" &&
+        request.urgency == "urgent"
     nodes:
     - id: verify-registration
       type: verify
@@ -138,7 +139,7 @@ spec:
       - transfer.participants.registered
       'on':
         PASS: {next: verify-sessions}
-        FAIL: {next: failed}
+        FAIL: {next: unresolved}
         UNKNOWN: {next: unresolved}
     - id: verify-sessions
       type: verify
@@ -270,8 +271,7 @@ spec:
     goal: file_transfer.orchestrate
     entry: release-vg
     applicability:
-      predicates:
-        transfer.operation.release: PASS
+      when: request.operation == "release_group"
     nodes:
     - id: release-vg
       type: action
