@@ -1,0 +1,65 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: PredicateDefinitions
+metadata:
+  skill: core5g-file-transfer
+predicates:
+  transfer.operation.prepare:
+    valueType: boolean
+    rules:
+    - equals: true
+      result: PASS
+    - equals: false
+      result: FAIL
+    noValue: UNKNOWN
+    invalid: UNKNOWN
+    otherwise: UNKNOWN
+  transfer.operation.release:
+    valueType: boolean
+    rules:
+    - equals: true
+      result: PASS
+    - equals: false
+      result: FAIL
+    noValue: UNKNOWN
+    invalid: UNKNOWN
+    otherwise: UNKNOWN
+  transfer.intent.urgent:
+    valueType: boolean
+    rules:
+    - equals: true
+      result: PASS
+    - equals: false
+      result: FAIL
+    noValue: UNKNOWN
+    invalid: UNKNOWN
+    otherwise: UNKNOWN
+  transfer.participants.registered:
+    valueType: boolean
+    rules:
+    - equals: true
+      result: PASS
+    - equals: false
+      result: FAIL
+    noValue: UNKNOWN
+    invalid: UNKNOWN
+    otherwise: UNKNOWN
+  transfer.participants.pdu_sessions_active:
+    valueType: boolean
+    rules:
+    - equals: true
+      result: PASS
+    - equals: false
+      result: FAIL
+    noValue: UNKNOWN
+    invalid: UNKNOWN
+    otherwise: UNKNOWN
+  file_transfer.request.satisfied:
+    valueType: boolean
+    rules:
+    - equals: true
+      result: PASS
+    - equals: false
+      result: FAIL
+    noValue: UNKNOWN
+    invalid: UNKNOWN
+    otherwise: UNKNOWN
