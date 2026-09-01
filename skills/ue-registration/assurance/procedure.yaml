@@ -111,6 +111,13 @@ spec:
         OUTCOME_UNKNOWN: {next: safe-stopped}
         FAILED: {next: failed}
         DENIED: {next: failed}
+    - id: verify-registration
+      type: verify
+      predicates: [ue.registered]
+      'on':
+        PASS: {next: verify-registration-context}
+        FAIL: {next: failed}
+        UNKNOWN: {next: unresolved}
     - id: done
       type: terminal
       result: SUCCEEDED
