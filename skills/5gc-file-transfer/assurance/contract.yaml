@@ -9,6 +9,7 @@ spec:
     requestSchema: schemas/file-transfer-request.schema.yaml
   allowedResources:
     capabilities:
+    - transfer.participants.resolve_endpoints
     - edge.cache.ensure
     - edge.cache.reconcile
     - virtual_group.create
