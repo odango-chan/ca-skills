@@ -139,7 +139,7 @@ spec:
       - transfer.participants.registered
       'on':
         PASS: {next: verify-sessions}
-        FAIL: {next: unresolved}
+        FAIL: {next: failed}
         UNKNOWN: {next: unresolved}
     - id: verify-sessions
       type: verify
