@@ -1,0 +1,25 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillContract
+metadata:
+  name: 5gc-intent
+spec:
+  skillType: executable
+  goal: 5gc.intent.resolve_execution_target
+  inputs:
+    requestSchema: schemas/5gc-intent-request.schema.yaml
+  context:
+    requiredFacts:
+    - 5gc.execution_target.resolved
+  allowedResources:
+    capabilities: []
+    localTools: []
+  requirements:
+  - predicate: 5gc.execution_target.resolved
+    expect: PASS
+    satisfiable: true
+  postconditions:
+  - predicate: 5gc.execution_target.resolved
+    expect: PASS
+  planning:
+    maxActions: 1
+    allowDynamicProcedure: false
