@@ -13,10 +13,6 @@ spec:
   allowedResources:
     capabilities: []
     localTools: []
-  requirements:
-  - predicate: core5g.execution_target.resolved
-    expect: PASS
-    satisfiable: true
   postconditions:
   - predicate: core5g.execution_target.resolved
     expect: PASS
