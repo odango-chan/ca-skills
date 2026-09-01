@@ -28,8 +28,8 @@ predicates:
         scope: >
           {
             "participantImsis": [request.senderImsi] + request.receiverImsis,
-            "sst": request.sst,
-            "sd": request.sd
+            "sst": 1,
+            "sd": "000000"
           }
         freshness: 5s
     evaluator:
