@@ -65,6 +65,36 @@ predicates.yaml
 
 There is intentionally no standalone `evidence.yaml` in the target model.
 
+## Model-context authoring rule
+
+`SKILL.md` is a **thin model-visible semantic layer**, not a prose copy of the machine contracts.
+
+Keep content in `SKILL.md` only when it materially changes one of these model decisions:
+
+```text
+when to select the Skill
+what business/domain semantics mean
+what must be normalized or disambiguated
+what structured result the Agent must produce
+```
+
+Do not repeat Runtime-owned mechanics such as Procedure graphs, budgets, UNKNOWN/reconcile handling, Predicate evaluation, Observation acquisition, Provider Binding, qualification checks, or sandbox rules when those semantics already exist in machine contracts or Runtime documentation.
+
+`references/preload/` is also model context and should be rare. Put a reference there only when its content must influence essentially every invocation. Architecture explanations, provider mappings, Predicate internals, and migration notes belong in `references/on-demand/` or repository documentation instead.
+
+The target is:
+
+```text
+SKILL.md
+  -> concise semantic guidance
+
+assurance/
+  -> deterministic machine truth
+
+references/on-demand/
+  -> detail when the Agent actually needs it
+```
+
 ## Agentic routing vs. governed execution
 
 The target architecture does not force every Skill into deterministic Procedure execution.
@@ -92,6 +122,16 @@ Target Admission validates the proposed Skill/Variant/entrypoint, target request
 Routing quality belongs primarily to Agent/Benchmark evaluation. Admission safety and business execution reliability belong to Runtime/Assurance evaluation.
 
 `core5g-intent` is the reference routing Skill and intentionally has **no `assurance/` directory**. It outputs `schemas/execution-target-candidate.schema.yaml`. `core5g-file-transfer` and `wifi-file-transfer` are assurance-enabled executable Skills.
+
+Routing candidates distinguish:
+
+```text
+RESOLVED
+NEEDS_CONTEXT
+NEEDS_EXTENSION
+```
+
+`NEEDS_CONTEXT` covers missing or ambiguous canonicalization input such as an unresolved person/device alias. Demo identity data belongs in examples/fixtures; production routing should use the live identity context supplied with the request.
 
 ## Procedure selection vs. Predicate proof
 
