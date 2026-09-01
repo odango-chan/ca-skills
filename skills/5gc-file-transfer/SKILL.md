@@ -1,5 +1,5 @@
 ---
-name: 5gc-file-transfer
+name: core5g-file-transfer
 description: Prepare and release governed 5GC network resources for SBI-proxy gateway file transfers; verify participant registration and PDU sessions, prepare the edge cache and virtual group, and request QoS boost only for canonical urgent intents.
 ---
 
@@ -18,7 +18,7 @@ Use this Skill for normalized gateway requests corresponding to:
 - `[TASK: 5GC-FILE-TRANSFER]` -> `prepare_transfer`;
 - `[TASK: 5GC-VG-RELEASE]` -> `release_group`.
 
-`[TASK: 5GC-INTENT]` belongs to the separate `5gc-intent` Skill. Keeping generic 5GC intent handling separate prevents broad intent authority from leaking into the file-transfer execution envelope.
+`[TASK: 5GC-INTENT]` belongs to the separate `core5g-intent` Skill. Keeping generic 5GC intent handling separate prevents broad intent authority from leaking into the file-transfer execution envelope.
 
 ## Responsibility boundary
 
