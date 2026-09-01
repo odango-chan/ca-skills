@@ -1,0 +1,25 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: PredicateDefinitions
+metadata:
+  skill: wifi-file-transfer
+predicates:
+  transfer.intent.urgent:
+    valueType: boolean
+    rules:
+    - equals: true
+      result: PASS
+    - equals: false
+      result: FAIL
+    noValue: UNKNOWN
+    invalid: UNKNOWN
+    otherwise: UNKNOWN
+  wifi_transfer.request.satisfied:
+    valueType: boolean
+    rules:
+    - equals: true
+      result: PASS
+    - equals: false
+      result: FAIL
+    noValue: UNKNOWN
+    invalid: UNKNOWN
+    otherwise: UNKNOWN
