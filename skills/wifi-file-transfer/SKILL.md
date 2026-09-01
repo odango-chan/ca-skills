@@ -86,6 +86,8 @@ The normalization and execution model is preloaded from `references/preload/orch
 
 The migration mapping from the current `wifiboost` Tools to stable Capability semantics is documented in `references/on-demand/wifiboost-provider-mapping.md`.
 
+The target typed-Evidence / CEL Predicate model used by this Skill is documented in `references/on-demand/predicate-evaluation.md`.
+
 Procedure structure, authority, budgets, UNKNOWN handling, and Provider Binding remain machine-contract concerns rather than prompt instructions.
 
 ## Short examples
