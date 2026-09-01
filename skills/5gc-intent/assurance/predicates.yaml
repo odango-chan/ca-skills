@@ -4,12 +4,8 @@ metadata:
   skill: core5g-intent
 predicates:
   core5g.execution_target.resolved:
-    valueType: boolean
-    rules:
-    - equals: true
-      result: PASS
-    - equals: false
-      result: FAIL
-    noValue: UNKNOWN
-    invalid: UNKNOWN
-    otherwise: UNKNOWN
+    evaluator:
+      type: cel
+      expression: facts["core5g.execution_target.resolved"] == true
+      passReasonCode: EXECUTION_TARGET_RESOLVED
+      failReasonCode: EXECUTION_TARGET_NOT_RESOLVED
