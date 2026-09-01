@@ -1,0 +1,9 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: registration-request.schema.yaml
+title: RegistrationRequest
+type: object
+required: [registrationType]
+properties:
+  registrationType:
+    const: initial
+additionalProperties: false

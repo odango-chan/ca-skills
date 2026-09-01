@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: ue-registration
+  name: 05-action-denied
+spec:
+  classes: [action_denied]
+  purpose: 验证当前 Registration Action 被授权边界拒绝时立即终止，后续阶段不得执行。

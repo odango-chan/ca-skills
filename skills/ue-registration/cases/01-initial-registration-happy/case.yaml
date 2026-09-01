@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: ue-registration
+  name: 01-initial-registration-happy
+spec:
+  classes: [happy_path]
+  purpose: 验证未注册 UE 按身份、鉴权、安全、上下文和最终注册验证顺序完成 Initial Registration。

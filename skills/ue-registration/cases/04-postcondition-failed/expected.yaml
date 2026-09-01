@@ -1,0 +1,11 @@
+expected:
+  procedure: registration-already-satisfied
+  planningStatus: READY_AFTER_REQUIREMENT
+  terminal: FAILED
+  postconditions:
+  - {predicate: ue.registered, expect: PASS, actual: PASS}
+  - {predicate: ue.registration_context.consistent, expect: PASS, actual: FAIL}
+  trace:
+    match: exact
+    ordered:
+    - {nodeId: verify-registration, outcome: FAIL}

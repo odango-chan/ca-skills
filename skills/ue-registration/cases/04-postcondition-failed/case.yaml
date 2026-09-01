@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: ue-registration
+  name: 04-postcondition-failed
+spec:
+  classes: [postcondition_failed]
+  purpose: 验证 UE 表面已注册但网络侧注册上下文不一致时，最终业务 Oracle 明确失败。

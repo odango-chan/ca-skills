@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: ue-registration
+  name: 03-authentication-outcome-unknown
+spec:
+  classes: [outcome_unknown_safe_stopped]
+  purpose: 验证鉴权 mutation 结果未知且没有冻结 Recovery 时安全停止，并禁止盲目重试。

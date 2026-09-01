@@ -1,0 +1,35 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillContract
+metadata:
+  name: ue-registration
+spec:
+  skillType: executable
+  goal: ue.ensure_registered
+  inputs:
+    requestSchema: schemas/registration-request.schema.yaml
+  context:
+    requiredFacts:
+    - ue.registered
+  allowedResources:
+    capabilities:
+    - ue.identity.resolve
+    - ue.authentication.execute
+    - ue.security.establish
+    - ue.registration_context.prepare
+    - ue.registration.finalize
+    localTools: []
+  requirements:
+  - predicate: ue.registered
+    expect: PASS
+    satisfiable: true
+  - predicate: ue.registration_context.consistent
+    expect: PASS
+    satisfiable: true
+  postconditions:
+  - predicate: ue.registered
+    expect: PASS
+  - predicate: ue.registration_context.consistent
+    expect: PASS
+  planning:
+    maxActions: 8
+    allowDynamicProcedure: false

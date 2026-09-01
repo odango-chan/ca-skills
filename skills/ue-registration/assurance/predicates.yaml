@@ -1,0 +1,77 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: PredicateSet
+metadata:
+  skill: ue-registration
+predicates:
+  ue.identity.resolved:
+    valueType: boolean
+    observations:
+    - id: identity-state
+      binding:
+        kind: ObservationBinding
+        ref: ue.identity.resolved
+        source: runtime_state
+      path: value
+    evaluator:
+      language: CEL
+      expression: observations["identity-state"].value == true
+  ue.authentication.succeeded:
+    valueType: boolean
+    observations:
+    - id: authentication-state
+      binding:
+        kind: ObservationBinding
+        ref: ue.authentication.succeeded
+        source: runtime_state
+      path: value
+    evaluator:
+      language: CEL
+      expression: observations["authentication-state"].value == true
+  ue.security_context.established:
+    valueType: boolean
+    observations:
+    - id: security-state
+      binding:
+        kind: ObservationBinding
+        ref: ue.security_context.established
+        source: runtime_state
+      path: value
+    evaluator:
+      language: CEL
+      expression: observations["security-state"].value == true
+  ue.registration_context.ready:
+    valueType: boolean
+    observations:
+    - id: context-state
+      binding:
+        kind: ObservationBinding
+        ref: ue.registration_context.ready
+        source: runtime_state
+      path: value
+    evaluator:
+      language: CEL
+      expression: observations["context-state"].value == true
+  ue.registered:
+    valueType: boolean
+    observations:
+    - id: registered-state
+      binding:
+        kind: ObservationBinding
+        ref: ue.registered
+        source: runtime_state
+      path: value
+    evaluator:
+      language: CEL
+      expression: observations["registered-state"].value == true
+  ue.registration_context.consistent:
+    valueType: boolean
+    observations:
+    - id: consistency-state
+      binding:
+        kind: ObservationBinding
+        ref: ue.registration_context.consistent
+        source: runtime_state
+      path: value
+    evaluator:
+      language: CEL
+      expression: observations["consistency-state"].value == true
