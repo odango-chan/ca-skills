@@ -58,31 +58,33 @@ The normalized value is frozen for the run. The Procedure does not re-interpret 
 ## Execution principles
 
 1. `prepare_transfer` and `release_group` use governed deterministic Procedures. The model does not assemble an ad-hoc Tool-call sequence at execution time.
-2. Participant registration and PDU Session checks are `verify` checkpoints. Runtime materializes the required typed participant Observations through `ObservationBinding`; the Procedure does not contain separate query actions merely to feed verification.
-3. Dynamic participant count is not a model loop. The Observation provider may deterministically fan out over the canonical participant set while Runtime still receives one typed collection Observation.
-4. Concrete `nf_udm_*`, `edge_cache_*`, `vg_*`, and `pcf_*` Tool names are Provider/Binding details, not stable Procedure semantics.
-5. `virtual_group.activate` is outside this Skill. The gateway decides activation after receiver confirmation.
-6. QoS boost exists only on the `urgent` deterministic path and may be dispatched at most once.
-7. A mutation returning `OUTCOME_UNKNOWN` must never be blindly replayed. The Procedure enters its governed reconciliation path when one exists, otherwise it stops safely.
-8. `already released` and `not found` are normalized by the release Capability/Provider as successful release semantics; the model never parses those strings.
-9. Gateway-specific text rendering such as `vg-YYYYMMDD-NNN` belongs to the output adapter. Runtime and Skill logic use structured `groupId` values.
-10. Gateway-provided IMSI/IP membership is authoritative after request normalization and Schema validation. A static phone roster must not override live gateway data.
-11. Success means the final request predicate is proven, not merely that the last Tool returned a success-looking string.
+2. Procedure selection is deterministic CEL over the canonical request in `assurance/procedure.yaml`; normal, urgent, and release paths are selected directly from `request.operation` / `request.urgency`, not through synthetic request-only Predicates.
+3. The ProcedureSet uses `selectionPolicy: exactlyOne`; zero or multiple matching Procedures fail closed.
+4. Participant registration and PDU Session checks are `verify` checkpoints. Runtime materializes the required typed participant Observations through `ObservationBinding`; the Procedure does not contain separate query actions merely to feed verification.
+5. Dynamic participant count is not a model loop. The Observation provider may deterministically fan out over the canonical participant set while Runtime still receives one typed collection Observation.
+6. Concrete `nf_udm_*`, `edge_cache_*`, `vg_*`, and `pcf_*` Tool names are Provider/Binding details, not stable Procedure semantics.
+7. `virtual_group.activate` is outside this Skill. The gateway decides activation after the receiver-confirmation phase.
+8. QoS boost exists only on the `urgent` deterministic path and may be dispatched at most once.
+9. A mutation returning `OUTCOME_UNKNOWN` must never be blindly replayed. The Procedure enters its governed reconciliation path when one exists, otherwise it stops safely.
+10. `already released` and `not found` are normalized by the release Capability/Provider as successful release semantics; the model never parses those strings.
+11. Gateway-specific text rendering such as `vg-YYYYMMDD-NNN` belongs to the output adapter. Runtime and Skill logic use structured `groupId` values.
+12. Gateway-provided IMSI/IP membership is authoritative after request normalization and Schema validation. A static phone roster must not override live gateway data.
+13. Success means the final request predicate is proven, not merely that the last Tool returned a success-looking string.
 
-## Execution assurance extension
+## Execution Assurance Extension
 
-This Skill adds an optional machine-readable assurance layer alongside the standard Skill surface:
+This Skill keeps deterministic execution contracts under the optional generic assurance extension:
 
 ```text
 assurance/
 ├── contract.yaml    -> authority and goal envelope
-├── procedure.yaml   -> governed deterministic execution flow
-└── predicates.yaml  -> Observation requirements and Predicate evaluators
+├── procedure.yaml   -> deterministic flow and Procedure applicability
+└── predicates.yaml  -> proof Observation requirements and Predicate evaluators
 ```
 
-The `assurance/` directory describes execution assurance for a dual-engine Agent architecture. It is not a ConnectionAgent-specific namespace and does not replace `SKILL.md`.
+There is no standalone `evidence.yaml` in the target model.
 
-There is no standalone `evidence.yaml` in the target model. Concrete Evidence is assembled at runtime from the Observation requirements declared beside each Predicate.
+`applicability.when` selects a Procedure from already-known canonical context. Named Predicates are reserved for conditions that must actually be proven by execution assurance, such as participant readiness and the final transfer postcondition.
 
 ## References
 
@@ -96,6 +98,6 @@ Procedure structure, predicates, budgets, UNKNOWN handling, recovery semantics, 
 
 ## Short examples
 
-- Normal transfer: verify all participants -> prepare edge cache -> create virtual group -> assign members -> verify the goal. No QoS boost is dispatched.
-- Urgent transfer: the same governed path, followed by at most one QoS boost before final verification.
-- Virtual-group release: dispatch one governed release mutation; if its outcome becomes ambiguous, reconcile or stop safely rather than replaying release.
+- Normal transfer: applicability selects the normal Procedure -> verify all participants -> prepare edge cache -> create virtual group -> assign members -> verify the goal. No QoS boost is dispatched.
+- Urgent transfer: applicability selects the urgent Procedure -> the same governed preparation path -> one QoS boost -> verify the goal.
+- Virtual-group release: applicability selects the release Procedure -> dispatch one governed release mutation; if its outcome becomes ambiguous, reconcile or stop safely rather than replaying release.
