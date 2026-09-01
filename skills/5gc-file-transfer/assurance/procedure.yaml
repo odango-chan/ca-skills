@@ -26,9 +26,20 @@ spec:
       predicates:
       - transfer.participants.pdu_sessions_active
       'on':
-        PASS: {next: ensure-edge-cache}
+        PASS: {next: resolve-member-endpoints}
         FAIL: {next: failed}
         UNKNOWN: {next: unresolved}
+    - id: resolve-member-endpoints
+      type: action
+      ref: transfer.participants.resolve_endpoints
+      inputs:
+        senderImsi: {fromContext: request.senderImsi}
+        receiverImsis: {fromContext: request.receiverImsis}
+      'on':
+        SUCCEEDED: {next: ensure-edge-cache}
+        FAILED: {next: failed}
+        UNKNOWN: {next: unresolved}
+        DENIED: {next: failed}
     - id: ensure-edge-cache
       type: action
       ref: edge.cache.ensure
@@ -81,7 +92,10 @@ spec:
       inputs:
         transferId: {fromContext: request.transferId}
         groupId: {fromContext: facts.virtual_group.id}
-        members: {fromContext: request.members}
+        members:
+          fromOutput:
+            node: resolve-member-endpoints
+            path: output.members
       'on':
         COMMITTED: {next: verify-goal}
         NOT_COMMITTED: {next: failed}
@@ -94,7 +108,10 @@ spec:
       inputs:
         transferId: {fromContext: request.transferId}
         groupId: {fromContext: facts.virtual_group.id}
-        members: {fromContext: request.members}
+        members:
+          fromOutput:
+            node: resolve-member-endpoints
+            path: output.members
       'on':
         COMMITTED: {next: verify-goal}
         NOT_COMMITTED: {next: assign-members}
@@ -143,9 +160,20 @@ spec:
       predicates:
       - transfer.participants.pdu_sessions_active
       'on':
-        PASS: {next: ensure-edge-cache}
+        PASS: {next: resolve-member-endpoints}
         FAIL: {next: failed}
         UNKNOWN: {next: unresolved}
+    - id: resolve-member-endpoints
+      type: action
+      ref: transfer.participants.resolve_endpoints
+      inputs:
+        senderImsi: {fromContext: request.senderImsi}
+        receiverImsis: {fromContext: request.receiverImsis}
+      'on':
+        SUCCEEDED: {next: ensure-edge-cache}
+        FAILED: {next: failed}
+        UNKNOWN: {next: unresolved}
+        DENIED: {next: failed}
     - id: ensure-edge-cache
       type: action
       ref: edge.cache.ensure
@@ -198,7 +226,10 @@ spec:
       inputs:
         transferId: {fromContext: request.transferId}
         groupId: {fromContext: facts.virtual_group.id}
-        members: {fromContext: request.members}
+        members:
+          fromOutput:
+            node: resolve-member-endpoints
+            path: output.members
       'on':
         COMMITTED: {next: qos-boost}
         NOT_COMMITTED: {next: failed}
@@ -211,7 +242,10 @@ spec:
       inputs:
         transferId: {fromContext: request.transferId}
         groupId: {fromContext: facts.virtual_group.id}
-        members: {fromContext: request.members}
+        members:
+          fromOutput:
+            node: resolve-member-endpoints
+            path: output.members
       'on':
         COMMITTED: {next: qos-boost}
         NOT_COMMITTED: {next: assign-members}
