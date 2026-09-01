@@ -1,0 +1,22 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: wifi-transfer-evaluation-input.schema.yaml
+title: WifiTransferEvaluationInput
+type: object
+required: [urgency, transferState, boostState]
+properties:
+  urgency:
+    type: string
+    enum: [normal, urgent]
+  transferState:
+    type: string
+    enum: [CREATED, FAILED, UNKNOWN]
+  boostState:
+    type: string
+    enum: [COMMITTED, NOT_REQUIRED, FAILED, UNKNOWN]
+  observationIds:
+    type: array
+    uniqueItems: true
+    items:
+      type: string
+      minLength: 1
+additionalProperties: false
