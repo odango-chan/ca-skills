@@ -36,7 +36,4 @@ Return an `ExecutionTargetCandidate` matching `schemas/execution-target-candidat
 
 A `RESOLVED` candidate proposes a Skill, optional Variant/entrypoint, and canonical target request. It is still only a proposal: Runtime admission decides whether it may execute.
 
-## References
-
-- `references/preload/intent-routing-model.md` -> routing and normalization details.
-- `examples/` -> representative routing inputs and demo identity context.
+Representative inputs and demo identity context are under `examples/`.
