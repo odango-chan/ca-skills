@@ -1,0 +1,12 @@
+# Demo-only identity context for gateway examples.
+# Production routing should use the live roster supplied by the active gateway/session.
+roster:
+- imsi: '001019876543210'
+  ip: 10.45.0.2
+- name: Leo
+  aliases:
+  - Phone 2
+  imsi: '001019876543211'
+  ip: 10.45.0.4
+- imsi: '001019876543212'
+  ip: 10.45.0.6
