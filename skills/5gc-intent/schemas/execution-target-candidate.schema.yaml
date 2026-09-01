@@ -1,0 +1,63 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: execution-target-candidate.schema.yaml
+title: ExecutionTargetCandidate
+type: object
+required:
+- requestId
+- status
+properties:
+  requestId:
+    type: string
+    minLength: 1
+    description: Correlation key copied from the normalized intent request.
+  status:
+    type: string
+    enum:
+    - RESOLVED
+    - NEEDS_EXTENSION
+  target:
+    type: object
+    required:
+    - skill
+    properties:
+      skill:
+        type: string
+        minLength: 1
+        description: Semantic Skill identity proposed by the Agent. Runtime admission resolves it to an available governed artifact.
+      variant:
+        type: string
+        minLength: 1
+        description: Optional semantic or compiled variant selector when the Agent intentionally selects a known variant.
+      entrypoint:
+        type: string
+        minLength: 1
+        description: Optional target entrypoint when the selected Skill exposes more than one governed entrypoint.
+    additionalProperties: false
+  request:
+    type: object
+    description: Canonical request proposed for the selected target. Runtime admission validates it against the admitted target Skill input schema before execution.
+    additionalProperties: true
+  reasonCode:
+    type: string
+    minLength: 1
+    description: Stable routing result code, especially when no governed target can satisfy the intent.
+allOf:
+- if:
+    properties:
+      status:
+        const: RESOLVED
+  then:
+    required:
+    - target
+    - request
+- if:
+    properties:
+      status:
+        const: NEEDS_EXTENSION
+  then:
+    required:
+    - reasonCode
+    not:
+      required:
+      - target
+additionalProperties: false
