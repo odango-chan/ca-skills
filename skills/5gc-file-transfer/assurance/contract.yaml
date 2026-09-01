@@ -25,7 +25,7 @@ spec:
   - predicate: file_transfer.request.satisfied
     expect: PASS
   planning:
-    maxActions: 12
+    maxActions: 13
     allowDynamicProcedure: false
   failureSemantics:
     outcomeUnknown:
