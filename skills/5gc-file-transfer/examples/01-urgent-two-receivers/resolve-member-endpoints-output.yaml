@@ -1,5 +1,7 @@
-# Demo-only output fixture for transfer.participants.resolve_endpoints.
-# These addresses are execution-time provider data, not routing identity context.
+# Demo-only canonical output for transfer.participants.resolve_endpoints.
+# In the current fixture-backed demo this is derived from
+# examples/fixtures/demo-endpoints.yaml. Production Provider implementations may
+# obtain the same canonical result through governed scripts/tools or native NF APIs.
 outcome: SUCCEEDED
 output:
   members:
