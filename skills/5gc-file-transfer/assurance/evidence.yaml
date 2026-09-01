@@ -1,0 +1,45 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: EvidenceRules
+metadata:
+  skill: 5gc-file-transfer
+predicates:
+  transfer.operation.prepare:
+    freshness:
+      maxAge: 1h
+    preferredEvidence:
+    - source: request
+  transfer.operation.release:
+    freshness:
+      maxAge: 1h
+    preferredEvidence:
+    - source: request
+  transfer.intent.urgent:
+    freshness:
+      maxAge: 1h
+    preferredEvidence:
+    - source: request
+  transfer.participants.registered:
+    freshness:
+      maxAge: 5s
+    preferredEvidence:
+    - source: runtime_state
+    - source: nf_observation
+    activeObservation:
+      ref: transfer.participants.registration.query
+  transfer.participants.pdu_sessions_active:
+    freshness:
+      maxAge: 5s
+    preferredEvidence:
+    - source: runtime_state
+    - source: nf_observation
+    activeObservation:
+      ref: transfer.participants.session.query
+  file_transfer.request.satisfied:
+    freshness:
+      maxAge: 5s
+    preferredEvidence:
+    - source: runtime_state
+    - source: operation_history
+    - source: nf_observation
+    activeObservation:
+      ref: virtual_group.status
