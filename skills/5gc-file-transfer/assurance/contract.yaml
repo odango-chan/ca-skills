@@ -25,6 +25,7 @@ spec:
     - virtual_group.reconcile_create
     - virtual_group.assign_members
     - virtual_group.reconcile_members
+    - virtual_group.status
     - transfer.qos.boost
     - transfer.qos.reconcile
     - virtual_group.release
