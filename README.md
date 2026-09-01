@@ -9,31 +9,30 @@ This repository owns Skill packages that can be compiled, qualified, and consume
 This repository owns:
 
 - `SKILL.md`;
-- Skill-local `assurance/` assets;
+- Skill-local `contract.yaml`, `procedure.yaml`, and `predicates.yaml`;
 - vendor/qualification `cases/` when they belong to the Skill source package;
 - `references/`;
-- Skill-local `scripts/` and their metadata;
-- Skill examples and documentation.
+- optional Skill-local `scripts/` and their metadata;
+- Skill-local schemas, examples, and documentation.
 
 This repository does not own:
 
 - Skill Compiler / ProcedurePatch apply / SkillProfile resolution -> `connectionagent-skill-platform`;
 - LLM / Agent loop / model adapters -> `connectionagent-agent`;
-- Procedure execution / Session / Event / Evidence / Reconcile -> `connectionagent-runtime`;
+- Procedure execution / Evidence Gate / Observation resolution / Reconcile -> `connectionagent-runtime`;
+- Observation acquisition/binding for a deployment -> Runtime/deployment Registry;
 - 5GC simulated world / fault injection -> `connectionagent-sandbox`;
 - production UI -> `connectionagent-web`.
 
-## Package layout
+## Target package layout
 
 ```text
 skills/
 └── <skill-package>/
     ├── SKILL.md
-    ├── assurance/
-    │   ├── contract.yaml
-    │   ├── procedure.yaml
-    │   ├── evidence.yaml
-    │   └── predicates.yaml
+    ├── contract.yaml
+    ├── procedure.yaml
+    ├── predicates.yaml
     ├── cases/
     ├── references/
     ├── schemas/
@@ -41,37 +40,78 @@ skills/
     └── examples/
 ```
 
-The target assurance model keeps four concerns separate:
+The three machine-facing root files answer three different questions:
 
 ```text
-procedure.yaml   -> where a Predicate is required
+contract.yaml
+  -> What may this Skill do?
 
-evidence.yaml    -> what typed Observations are required and how they may be acquired
+procedure.yaml
+  -> How does governed execution flow?
 
-predicates.yaml   -> how the prepared evaluation context is judged
-
-scripts/*.py      -> only genuinely complex deterministic Predicate logic or local computation
+predicates.yaml
+  -> What must be observed, and how is correctness judged?
 ```
+
+There is intentionally no standalone `evidence.yaml` in the target model. Observation requirements live beside the Predicate evaluator that consumes them:
+
+```yaml
+wifi_transfer.request.satisfied:
+  observations:
+    transfer:
+      ref: wifi.transfer.snapshot
+      freshness: 5s
+    qosBoost:
+      ref: wifi.qos.boost_state
+      freshness: 5s
+      when: request.urgency == "urgent"
+  evaluator:
+    type: cel
+    expression: ...
+```
+
+The Skill declares **what Observation semantics it requires**. It does not declare how a particular deployment obtains them. Runtime/deployment `ObservationBinding` resolves a canonical Observation such as `wifi.transfer.snapshot` from runtime state, signaling, a Provider query, replay data, or an earlier governed action result.
+
+This keeps Observation acquisition out of business Procedure authoring and prevents Provider-specific read paths from becoming stable Skill semantics.
+
+## Predicate evaluators
 
 Target Predicate authoring uses two evaluator forms:
 
-- **CEL** for small, auditable boolean judgement, including collection aggregation;
-- **Python** for richer deterministic branching, correlation, semantic conflict handling, and diagnostics.
+- **CEL** for small, auditable deterministic boolean judgement, including collection aggregation;
+- **Python** for genuinely complex deterministic branching, correlation, semantic conflict handling, or richer diagnostics.
 
-Missing, stale, invalid, or unavailable required Observations are handled by the Runtime Evidence Gate and produce `UNKNOWN` before normal CEL evaluation. Skill-local Python evaluators remain `local_compute` with denied network access and must not hide Tool dispatch or workflow execution.
+The Runtime Evidence Gate materializes the required typed Observations before evaluator execution. Missing, stale, invalid, or unavailable required Observations produce `UNKNOWN`. CEL normally returns a boolean (`true -> PASS`, `false -> FAIL`); Python may also return semantic `UNKNOWN` when complete evidence is internally contradictory.
+
+Skill-local Python evaluators remain `local_compute` with denied network access. They must not acquire Observations, dispatch Tools/Capabilities, or hide workflow execution.
+
+## Canonical Observation model
+
+Canonical Observation IDs and schemas belong to a shared `ObservationCatalog`. Examples include:
+
+```text
+transfer.participants.registration
+transfer.participants.session
+virtual_group.snapshot
+transfer.qos.boost_state
+wifi.transfer.snapshot
+wifi.qos.boost_state
+```
+
+A deployment maps these semantic Observation IDs to concrete acquisition mechanisms through `ObservationBinding`. This is intentionally analogous to Capability -> Provider Binding while remaining a read/evidence concern rather than a Procedure action.
 
 The package directory is a repository path. The canonical Skill identity is the schema-valid `name` declared by the package and frozen into the build artifact.
 
 ## Migration rule
 
-Official Skills are migrated from `connectionagent-skill-platform/skills/` into this repository using an additive-first process:
+Official Skills are migrated from `connectionagent-skill-platform/skills/` into this repository using a target-state process:
 
 1. establish the target Skill source package here;
 2. refactor Skill Platform and Runtime contracts to consume the target package model;
 3. qualify the independent Skill source against the new contracts;
 4. remove superseded official/fixture assets from old locations.
 
-The current gateway-oriented branch is intentionally authored toward the target Predicate/Evidence model rather than preserving the legacy scalar Predicate authoring contract.
+The current gateway-oriented branch intentionally targets the refactored package and Predicate model rather than preserving the legacy `assurance/` directory, standalone EvidenceRules, or scalar Predicate authoring contract.
 
 ## Current gateway-oriented Skills
 
