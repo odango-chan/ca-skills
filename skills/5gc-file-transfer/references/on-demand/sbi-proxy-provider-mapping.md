@@ -92,6 +92,8 @@ transfer.participants.resolve_endpoints
 
 A read `UNKNOWN` or failure stops the preparation path before member assignment. It does not authorize the Agent or Provider to guess an address.
 
+Because this is an explicit Procedure Action rather than hidden proof acquisition, it consumes the business action budget. The current Skill contract accounts for the added step with `maxActions: 13`.
+
 ## 4. Edge cache
 
 Capability:
