@@ -1,0 +1,26 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: ProcedureSet
+metadata:
+  skill: 5gc-intent
+spec:
+  procedures:
+  - name: validate-execution-target-resolution
+    goal: 5gc.intent.resolve_execution_target
+    entry: check-target
+    nodes:
+    - id: check-target
+      type: decision
+      predicate: 5gc.execution_target.resolved
+      'on':
+        PASS: {next: done}
+        FAIL: {next: needs-extension}
+        UNKNOWN: {next: unresolved}
+    - id: done
+      type: terminal
+      result: SUCCEEDED
+    - id: needs-extension
+      type: terminal
+      result: FAILED
+    - id: unresolved
+      type: terminal
+      result: UNRESOLVED
