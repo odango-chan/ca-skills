@@ -1,0 +1,8 @@
+expected:
+  procedure: ensure-registration
+  planningStatus: READY
+  terminal: UNRESOLVED
+  trace:
+    match: exact
+    ordered:
+    - {nodeId: verify-current-registration, outcome: UNKNOWN}

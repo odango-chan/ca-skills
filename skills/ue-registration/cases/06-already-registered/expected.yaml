@@ -1,0 +1,9 @@
+expected:
+  procedure: ensure-registration
+  planningStatus: READY
+  terminal: SUCCEEDED
+  trace:
+    match: exact
+    ordered:
+    - {nodeId: verify-current-registration, outcome: PASS}
+    - {nodeId: verify-registration-context, outcome: PASS}

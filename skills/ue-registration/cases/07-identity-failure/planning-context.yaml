@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: PlanningContext
+metadata: {operationId: reg-07-identity-failure, version: 1}
+subject: {ueRef: ran-ue-0007}
+request: {registrationType: initial}
+facts: {}
+availableResources: [{ref: ue.identity.resolve, kind: capability, version: v1, effect: read_only, invocable: true}]
+constraints: {maxActions: 8}

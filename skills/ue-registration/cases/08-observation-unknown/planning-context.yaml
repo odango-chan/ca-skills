@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: PlanningContext
+metadata: {operationId: reg-08-observation-unknown, version: 1}
+subject: {ueRef: ran-ue-0008}
+request: {registrationType: initial}
+facts: {}
+availableResources: []
+constraints: {maxActions: 8}

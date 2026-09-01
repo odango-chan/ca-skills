@@ -1,0 +1,65 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: PredicateSet
+metadata:
+  skill: ue-registration
+predicates:
+  ue.identity.resolved:
+    observations:
+      identity:
+        ref: ue.identity.snapshot
+        scope: >
+          {"ueRef": subject.ueRef}
+        freshness: 5s
+    evaluator:
+      type: cel
+      expression: observations.identity.resolutionState == "RESOLVED"
+  ue.authentication.succeeded:
+    observations:
+      authentication:
+        ref: ue.authentication.snapshot
+        scope: >
+          {"ueRef": subject.ueRef}
+        freshness: 5s
+    evaluator:
+      type: cel
+      expression: observations.authentication.authenticationState == "SUCCEEDED"
+  ue.security_context.established:
+    observations:
+      security:
+        ref: ue.security_context.snapshot
+        scope: >
+          {"ueRef": subject.ueRef}
+        freshness: 5s
+    evaluator:
+      type: cel
+      expression: observations.security.securityContextState == "ESTABLISHED"
+  ue.registration_context.ready:
+    observations:
+      registrationContext:
+        ref: ue.registration_context.snapshot
+        scope: >
+          {"ueRef": subject.ueRef}
+        freshness: 5s
+    evaluator:
+      type: cel
+      expression: observations.registrationContext.contextState == "READY"
+  ue.registered:
+    observations:
+      registration:
+        ref: ue.registration.snapshot
+        scope: >
+          {"ueRef": subject.ueRef}
+        freshness: 5s
+    evaluator:
+      type: cel
+      expression: observations.registration.registrationState == "REGISTERED"
+  ue.registration_context.consistent:
+    observations:
+      registrationContext:
+        ref: ue.registration_context.snapshot
+        scope: >
+          {"ueRef": subject.ueRef}
+        freshness: 5s
+    evaluator:
+      type: cel
+      expression: observations.registrationContext.consistency == "CONSISTENT"

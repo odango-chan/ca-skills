@@ -1,0 +1,6 @@
+mockOutcomes:
+  resolve-identity: SUCCEEDED
+  authenticate: COMMITTED
+  establish-security: COMMITTED
+  prepare-context: COMMITTED
+  finalize-registration: COMMITTED

@@ -1,0 +1,18 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: PlanningContext
+metadata:
+  operationId: reg-01-happy
+  version: 1
+subject:
+  ueRef: ran-ue-0001
+request:
+  registrationType: initial
+facts: {}
+availableResources:
+- {ref: ue.identity.resolve, kind: capability, version: v1, effect: read_only, invocable: true}
+- {ref: ue.authentication.execute, kind: capability, version: v1, effect: mutation, invocable: true}
+- {ref: ue.security.establish, kind: capability, version: v1, effect: mutation, invocable: true}
+- {ref: ue.registration_context.prepare, kind: capability, version: v1, effect: mutation, invocable: true}
+- {ref: ue.registration.finalize, kind: capability, version: v1, effect: mutation, invocable: true}
+constraints:
+  maxActions: 8

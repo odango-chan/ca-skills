@@ -1,0 +1,12 @@
+expected:
+  procedure: ensure-registration
+  planningStatus: READY
+  terminal: FAILED
+  postconditions:
+  - {predicate: ue.registered, expect: PASS, actual: PASS}
+  - {predicate: ue.registration_context.consistent, expect: PASS, actual: FAIL}
+  trace:
+    match: exact
+    ordered:
+    - {nodeId: verify-current-registration, outcome: PASS}
+    - {nodeId: verify-registration-context, outcome: FAIL}

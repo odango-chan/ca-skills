@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: ue-registration
+  name: 02-resource-unavailable
+spec:
+  classes: [resource_unavailable]
+  purpose: 验证 Initial Registration 缺少必需 Capability 时规划阻断，不生成不可执行 Procedure。

@@ -1,0 +1,11 @@
+expected:
+  procedure: ensure-registration
+  planningStatus: READY
+  terminal: FAILED
+  trace:
+    match: exact
+    ordered:
+    - {nodeId: verify-current-registration, outcome: FAIL}
+    - {nodeId: resolve-identity, outcome: SUCCEEDED}
+    - {nodeId: verify-identity, outcome: PASS}
+    - {nodeId: authenticate, outcome: FAILED}

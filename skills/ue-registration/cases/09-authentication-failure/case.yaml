@@ -1,0 +1,6 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata: {skill: ue-registration, name: 09-authentication-failure}
+spec:
+  classes: [authentication_failure]
+  purpose: 鉴权 Capability 失败时终止，不进入安全上下文建立。

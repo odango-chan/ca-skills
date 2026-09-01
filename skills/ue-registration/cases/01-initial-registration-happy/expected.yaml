@@ -1,0 +1,22 @@
+expected:
+  procedure: ensure-registration
+  planningStatus: READY
+  terminal: SUCCEEDED
+  postconditions:
+  - {predicate: ue.registered, expect: PASS, actual: PASS}
+  - {predicate: ue.registration_context.consistent, expect: PASS, actual: PASS}
+  trace:
+    match: exact
+    ordered:
+    - {nodeId: verify-current-registration, outcome: FAIL}
+    - {nodeId: resolve-identity, outcome: SUCCEEDED}
+    - {nodeId: verify-identity, outcome: PASS}
+    - {nodeId: authenticate, outcome: COMMITTED}
+    - {nodeId: verify-authentication, outcome: PASS}
+    - {nodeId: establish-security, outcome: COMMITTED}
+    - {nodeId: verify-security, outcome: PASS}
+    - {nodeId: prepare-context, outcome: COMMITTED}
+    - {nodeId: verify-context, outcome: PASS}
+    - {nodeId: finalize-registration, outcome: COMMITTED}
+    - {nodeId: verify-registration, outcome: PASS}
+    - {nodeId: verify-registration-context, outcome: PASS}
