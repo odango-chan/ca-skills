@@ -41,7 +41,24 @@ skills/
     └── examples/
 ```
 
-`evidence.yaml` declares what must be observed and how evidence may be acquired. `predicates.yaml` declares how normalized evidence becomes deterministic `PASS` / `FAIL` / `UNKNOWN` results. Complex script-backed Predicate evaluation is being explored without changing this separation.
+The target assurance model keeps four concerns separate:
+
+```text
+procedure.yaml   -> where a Predicate is required
+
+evidence.yaml    -> what typed Observations are required and how they may be acquired
+
+predicates.yaml   -> how the prepared evaluation context is judged
+
+scripts/*.py      -> only genuinely complex deterministic Predicate logic or local computation
+```
+
+Target Predicate authoring uses two evaluator forms:
+
+- **CEL** for small, auditable boolean judgement, including collection aggregation;
+- **Python** for richer deterministic branching, correlation, semantic conflict handling, and diagnostics.
+
+Missing, stale, invalid, or unavailable required Observations are handled by the Runtime Evidence Gate and produce `UNKNOWN` before normal CEL evaluation. Skill-local Python evaluators remain `local_compute` with denied network access and must not hide Tool dispatch or workflow execution.
 
 The package directory is a repository path. The canonical Skill identity is the schema-valid `name` declared by the package and frozen into the build artifact.
 
@@ -49,9 +66,12 @@ The package directory is a repository path. The canonical Skill identity is the 
 
 Official Skills are migrated from `connectionagent-skill-platform/skills/` into this repository using an additive-first process:
 
-1. establish the equivalent Skill source package here and validate it;
-2. make Skill Platform integration/qualification consume the independent Skill source;
-3. remove the official Skill from Skill Platform, leaving only the minimum compiler/schema fixtures required by that repository.
+1. establish the target Skill source package here;
+2. refactor Skill Platform and Runtime contracts to consume the target package model;
+3. qualify the independent Skill source against the new contracts;
+4. remove superseded official/fixture assets from old locations.
+
+The current gateway-oriented branch is intentionally authored toward the target Predicate/Evidence model rather than preserving the legacy scalar Predicate authoring contract.
 
 ## Current gateway-oriented Skills
 
