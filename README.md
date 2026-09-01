@@ -30,11 +30,18 @@ skills/
 └── <skill-package>/
     ├── SKILL.md
     ├── assurance/
+    │   ├── contract.yaml
+    │   ├── procedure.yaml
+    │   ├── evidence.yaml
+    │   └── predicates.yaml
     ├── cases/
     ├── references/
+    ├── schemas/
     ├── scripts/
     └── examples/
 ```
+
+`evidence.yaml` declares what must be observed and how evidence may be acquired. `predicates.yaml` declares how normalized evidence becomes deterministic `PASS` / `FAIL` / `UNKNOWN` results. Complex script-backed Predicate evaluation is being explored without changing this separation.
 
 The package directory is a repository path. The canonical Skill identity is the schema-valid `name` declared by the package and frozen into the build artifact.
 
