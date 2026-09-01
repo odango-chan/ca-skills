@@ -1,5 +1,0 @@
-apiVersion: connectionagent.io/v1alpha1
-kind: EvidenceRules
-metadata:
-  skill: core5g-intent
-predicates: {}
