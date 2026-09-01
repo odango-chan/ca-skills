@@ -12,7 +12,7 @@ There is no standalone `evidence.yaml` and no legacy scalar `valueType + rules` 
 
 ## PredicateSet owns proof requirements
 
-Each Predicate may declare the canonical typed Observations it needs beside the evaluator that consumes them.
+Each Predicate declares the canonical typed Observations it needs beside the evaluator that consumes them.
 
 Example:
 
@@ -21,9 +21,18 @@ file_transfer.request.satisfied:
   observations:
     virtualGroup:
       ref: virtual_group.snapshot
+      scope: >
+        {
+          "transferId": request.transferId,
+          "groupId": request.operation == "release_group"
+            ? request.groupId
+            : facts["virtual_group.id"]
+        }
       freshness: 5s
     qosBoost:
       ref: transfer.qos.boost_state
+      scope: >
+        {"transferId": request.transferId}
       freshness: 5s
       when: request.operation == "prepare_transfer" && request.urgency == "urgent"
   evaluator:
@@ -33,11 +42,18 @@ file_transfer.request.satisfied:
 
 The alias (`virtualGroup`, `qosBoost`) becomes a typed field under `PredicateEvaluationContext.observations`.
 
-The Skill specifies semantic requirements such as Observation ID, freshness, and a request-dependent `when` condition. It does **not** specify the concrete acquisition path.
+The requirement expresses:
+
+- `ref`: what semantic Observation is needed;
+- `scope`: which canonical object or collection must be observed;
+- `freshness`: how recent the proof must be;
+- `when`: when this requirement applies.
+
+`scope` belongs to **what to observe**. It is not a Provider binding and must not contain Tool names or endpoints.
 
 ## Observation acquisition
 
-Runtime/deployment `ObservationBinding` maps canonical Observation IDs to concrete sources such as:
+Runtime/deployment `ObservationBinding` maps `Observation ID + scope` to concrete sources such as:
 
 - existing governed action results;
 - runtime state;
@@ -45,11 +61,21 @@ Runtime/deployment `ObservationBinding` maps canonical Observation IDs to concre
 - replay data;
 - deployment-specific read/query Providers.
 
-The Runtime Evidence Gate resolves the active requirements, materializes the observations, checks schema/freshness, and preserves provenance metadata.
+The Runtime Evidence Gate resolves active requirements, evaluates scope, materializes observations, checks schema/freshness, and preserves provenance metadata.
 
-Missing, stale, invalid, or unavailable required Observations produce `UNKNOWN` before normal evaluator execution.
+Missing, stale, invalid, unavailable, or budget-exhausted required Observations produce `UNKNOWN` before normal evaluator execution.
 
-This is why participant registration and PDU Session checks are now direct `verify` nodes in `procedure.yaml`: the Procedure does not need separate query actions merely to feed a Predicate.
+This is why participant registration and PDU Session checks are direct `verify` nodes in `procedure.yaml`: the Procedure does not need separate query actions merely to feed a Predicate.
+
+## Bounded participant observation
+
+Participant Observation scopes are derived from the canonical request:
+
+```text
+participantImsis = [senderImsi] + receiverImsis
+```
+
+`receiverImsis` is bounded by the request schema, so provider-side fan-out has a known maximum cardinality. Observation acquisition remains independently budgeted and visible in Runtime trajectory events even though it is not a business Procedure action.
 
 ## CEL predicates
 
@@ -97,13 +123,13 @@ observations
 evidence
 ```
 
-Here `observations` contains business values and `evidence` contains provenance/audit metadata for those values.
+`observations` contains business values. `evidence` contains scope/provenance/audit metadata for those values.
 
 The script performs deterministic local computation only. It cannot acquire Observations, dispatch Tools/Capabilities, retry mutations, or modify Runtime Context.
 
 ## Design rule
 
-Use CEL while the judgement is still easy to audit as one expression.
+Use CEL while the judgement is easy to audit as one expression.
 
 Use Python when semantic branching, correlation, conflict handling, or diagnostic output would make CEL materially less clear.
 
