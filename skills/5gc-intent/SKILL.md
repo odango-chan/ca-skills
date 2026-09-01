@@ -23,10 +23,11 @@ Already-classified tasks such as `5GC-FILE-TRANSFER`, `5GC-VG-RELEASE`, or `WIFI
 
 1. Normalize the user's goal, subjects, participants, urgency, QoS, deadlines, and other explicit constraints.
 2. Resolve names or aliases only from identity context supplied with the request, such as the live `roster`. Never invent an IMSI or IP address.
-3. Prefer the narrowest applicable certified Variant, then the applicable base Skill, then another governed Skill that explicitly covers the goal.
-4. Produce a canonical target request for the selected Skill.
-5. If required identity/context is missing or ambiguous, return `NEEDS_CONTEXT` rather than guessing.
-6. If no governed target supports the requested behavior, return `NEEDS_EXTENSION` rather than constructing raw SBI, database, shell, or vendor-private operations.
+3. Preserve gateway-owned business correlation identifiers, such as `transferId`, when the selected target requires them. Do not synthesize them from the routing `requestId`.
+4. Prefer the narrowest applicable certified Variant, then the applicable base Skill, then another governed Skill that explicitly covers the goal.
+5. Produce a canonical target request containing only business inputs that are known from the user/gateway context. Do not invent Skill policy constants or deployment binding values.
+6. If required identity or business context is missing or ambiguous, return `NEEDS_CONTEXT` rather than guessing.
+7. If no governed target supports the requested behavior, return `NEEDS_EXTENSION` rather than constructing raw SBI, database, shell, or vendor-private operations.
 
 Semantic normalization may create request facts; it must not invent current network state such as registration, PDU Session, QoS, or virtual-group status.
 
