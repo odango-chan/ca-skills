@@ -1,14 +1,17 @@
 # Predicate Evaluation
 
-This Skill uses the target three-file machine model:
+This Skill uses the target **Execution Assurance Extension**:
 
 ```text
-contract.yaml
-procedure.yaml
-predicates.yaml
+assurance/
+├── contract.yaml
+├── procedure.yaml
+└── predicates.yaml
 ```
 
-`predicates.yaml` contains both canonical Observation requirements and the evaluator that consumes them. There is no standalone `evidence.yaml` and no legacy scalar `valueType + rules` authoring shape.
+The extension is generic to a dual-engine Agent architecture. It is not a ConnectionAgent-specific namespace and does not replace the standard `SKILL.md` surface.
+
+`assurance/predicates.yaml` contains both canonical Observation requirements and the evaluator that consumes them. There is no standalone `evidence.yaml` and no legacy scalar `valueType + rules` authoring shape.
 
 ## CEL is sufficient here
 
@@ -75,4 +78,4 @@ false -> FAIL
 
 Iteration, simple branching, enum comparison, and urgency-dependent boolean conditions are not sufficient reasons to introduce a script. Python is reserved for predicates whose semantic branching, cross-object correlation, conflict handling, or diagnostic output would make CEL difficult to audit.
 
-This Skill demonstrates the lightweight end of the target authoring model: one `PredicateSet`, scoped typed Observations, CEL, and no custom evaluator script.
+This Skill demonstrates the lightweight end of the target assurance authoring model: one `PredicateSet`, scoped typed Observations, CEL, and no custom evaluator script.
