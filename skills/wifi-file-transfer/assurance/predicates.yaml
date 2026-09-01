@@ -4,22 +4,18 @@ metadata:
   skill: wifi-file-transfer
 predicates:
   transfer.intent.urgent:
-    valueType: boolean
-    rules:
-    - equals: true
-      result: PASS
-    - equals: false
-      result: FAIL
-    noValue: UNKNOWN
-    invalid: UNKNOWN
-    otherwise: UNKNOWN
+    evaluator:
+      type: cel
+      expression: request.urgency == "urgent"
+      passReasonCode: TRANSFER_URGENT
+      failReasonCode: TRANSFER_NOT_URGENT
+
   wifi_transfer.request.satisfied:
-    valueType: boolean
-    rules:
-    - equals: true
-      result: PASS
-    - equals: false
-      result: FAIL
-    noValue: UNKNOWN
-    invalid: UNKNOWN
-    otherwise: UNKNOWN
+    evaluator:
+      type: cel
+      expression: >
+        observations.transfer.state == "CREATED" &&
+        (request.urgency == "normal" ||
+         observations.qosBoost.state == "COMMITTED")
+      passReasonCode: WIFI_TRANSFER_REQUEST_SATISFIED
+      failReasonCode: WIFI_TRANSFER_REQUEST_NOT_SATISFIED
