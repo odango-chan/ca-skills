@@ -8,7 +8,7 @@ procedure.yaml
 predicates.yaml
 ```
 
-`predicates.yaml` contains both the canonical Observation requirements and the evaluator that consumes them. There is no standalone `evidence.yaml` and no legacy scalar `valueType + rules` authoring shape.
+`predicates.yaml` contains both canonical Observation requirements and the evaluator that consumes them. There is no standalone `evidence.yaml` and no legacy scalar `valueType + rules` authoring shape.
 
 ## CEL is sufficient here
 
@@ -22,36 +22,47 @@ request.urgency == "urgent"
 
 It needs no environment Observation declaration.
 
-`wifi_transfer.request.satisfied` declares the typed inputs beside its CEL evaluator:
+`wifi_transfer.request.satisfied` declares scoped typed inputs beside its CEL evaluator:
 
 ```yaml
 observations:
   transfer:
     ref: wifi.transfer.snapshot
+    scope: >
+      {
+        "requestId": request.requestId,
+        "transferId": facts["wifi_transfer.id"]
+      }
     freshness: 5s
   qosBoost:
     ref: wifi.qos.boost_state
+    scope: >
+      {"transferId": facts["wifi_transfer.id"]}
     freshness: 5s
     when: request.urgency == "urgent"
 ```
 
-and evaluates:
+The evaluator then checks the prepared canonical values. `qosBoost` is required only for urgent requests.
 
-```text
-observations.transfer.state == "CREATED" &&
-(request.urgency == "normal" ||
- observations.qosBoost.state == "COMMITTED")
-```
+## Scope is not acquisition
 
-The `qosBoost` Observation is required only for urgent requests.
+`scope` answers which transfer must be observed. It does not select `wifi_status` or any concrete Provider query.
 
-## Evidence Gate and ObservationBinding
+Runtime/deployment `ObservationBinding` maps `wifi.transfer.snapshot + scope` and `wifi.qos.boost_state + scope` to an available source such as:
 
-The Skill declares **what canonical Observation is required**, not which Tool should be called to obtain it.
+- a fresh action result;
+- runtime state;
+- signaling;
+- replay data;
+- a read-only deployment-specific status query.
 
-Runtime/deployment `ObservationBinding` may satisfy `wifi.transfer.snapshot` or `wifi.qos.boost_state` from an earlier governed action result, runtime state, signaling, replay data, or a read-only deployment-specific query.
+That acquisition mechanism can change without changing this Skill.
 
-The Runtime Evidence Gate determines active Observation requirements, materializes them through those bindings, checks schema/freshness, preserves provenance, and returns `UNKNOWN` when required evidence cannot be established.
+## Evidence Gate
+
+The Runtime Evidence Gate determines active requirements, evaluates scope, materializes typed Observations, checks schema/freshness, preserves provenance, and returns `UNKNOWN` when required proof cannot be established.
+
+Observation acquisition is separately bounded and traced even though it is not a business Procedure action.
 
 CEL therefore evaluates a prepared typed context and normally returns:
 
@@ -64,4 +75,4 @@ false -> FAIL
 
 Iteration, simple branching, enum comparison, and urgency-dependent boolean conditions are not sufficient reasons to introduce a script. Python is reserved for predicates whose semantic branching, cross-object correlation, conflict handling, or diagnostic output would make CEL difficult to audit.
 
-This Skill demonstrates the lightweight end of the target authoring model: one `PredicateSet`, typed Observations, CEL, and no custom evaluator script.
+This Skill demonstrates the lightweight end of the target authoring model: one `PredicateSet`, scoped typed Observations, CEL, and no custom evaluator script.
