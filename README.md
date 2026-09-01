@@ -48,7 +48,7 @@ assurance/
 └── predicates.yaml
 ```
 
-`assurance/` is an optional **Execution Assurance Extension** for dual-engine Agent architectures. It is not a ConnectionAgent-specific namespace. A standard Skill can exist without it; an assurance-enabled Skill adds deterministic authority, execution, recovery, and proof contracts.
+`assurance/` is an optional **Execution Assurance Extension** for dual-engine Agent architectures. A standard Skill can exist without it; an assurance-enabled Skill adds deterministic authority, execution, recovery, and proof contracts.
 
 The three assurance files answer different questions:
 
@@ -117,7 +117,7 @@ ExecutionTargetCandidate
   -> deterministic RunPlan / Procedure execution
 ```
 
-Target Admission validates the proposed Skill/Variant/entrypoint, target request schema, eligibility, authority and environment requirements. An LLM may propose the wrong target, but it cannot make that target executable merely by asserting that it is valid.
+Target Admission validates the proposed Skill/Variant/entrypoint, target business request schema, eligibility, authority and environment requirements. An LLM may propose the wrong target, but it cannot make that target executable merely by asserting that it is valid.
 
 Routing quality belongs primarily to Agent/Benchmark evaluation. Admission safety and business execution reliability belong to Runtime/Assurance evaluation.
 
@@ -131,7 +131,69 @@ NEEDS_CONTEXT
 NEEDS_EXTENSION
 ```
 
-`NEEDS_CONTEXT` covers missing or ambiguous canonicalization input such as an unresolved person/device alias. Demo identity data belongs in examples/fixtures; production routing should use the live identity context supplied with the request.
+`NEEDS_CONTEXT` covers missing or ambiguous external business/canonicalization input such as an unresolved person/device alias. Demo identity data belongs in examples/fixtures; production routing should use the live identity context supplied with the request.
+
+Identity context is deliberately identity-only. Current UE IP, PDU Session state, QoS state, and similar dynamic network values are not routing-model inputs.
+
+## Input ownership and execution-time dataflow
+
+Do not expand a Candidate request merely because a later concrete Tool needs more arguments.
+
+Keep four input classes separate:
+
+```text
+Candidate request
+  -> external business inputs and canonical identities
+
+read-only Capability + prior Action output
+  -> dynamic operational data required by later business Actions
+
+Procedure / Predicate
+  -> deterministic Skill policy and literals
+
+ProviderBinding / deployment
+  -> concrete environment values
+```
+
+For the 5GC file-transfer example:
+
+```text
+transferId / senderImsi / receiverImsis
+  -> Candidate request
+
+current participant IP addresses
+  -> transfer.participants.resolve_endpoints
+  -> output.members
+
+fixed duration=3600 / 5QI=8 / slice proof scope
+  -> Skill policy
+
+concrete upf-1
+  -> ProviderBinding
+```
+
+A read whose output is direct operational input to a later mutation is a legitimate governed read-only Capability in the Procedure. A read that exists only to prove a Predicate belongs behind `ObservationBinding` and should not be a verify-only query Action.
+
+```text
+Capability
+  -> ProviderBinding
+  -> governed business read or mutation
+
+Observation + scope
+  -> ObservationBinding
+  -> proof input
+```
+
+Field-level prior-output authoring is expressed with `fromOutput`, for example:
+
+```yaml
+members:
+  fromOutput:
+    node: resolve-member-endpoints
+    path: output.members
+```
+
+The target Compiler must validate producer/consumer control-flow ordering, output path existence, schema compatibility, bounds, and immutable reuse across reconcile paths. The current shared Runtime does not yet fully implement this field-level prior-output binding, so target Skills using it are authoring/golden fixtures until the coordinated Runtime refactor lands; they must not pass production execution qualification prematurely.
 
 ## Procedure selection vs. Predicate proof
 
@@ -189,11 +251,6 @@ The Skill declares **what Observation semantics it requires**:
 
 It does not declare how a deployment obtains the Observation. Runtime/deployment `ObservationBinding` resolves a canonical Observation from runtime state, signaling, a read-only Provider query, replay data, or an earlier governed action result.
 
-```text
-Capability -> ProviderBinding -> governed business action
-Observation + scope -> ObservationBinding -> proof input
-```
-
 Canonical Observation contracts belong to a shared `ObservationCatalog` and define both scope and value schemas.
 
 ## Predicate inputs
@@ -247,7 +304,7 @@ The current gateway-oriented branch intentionally targets the refactored model r
 ## Current gateway-oriented Skills
 
 - `core5g-intent` -> `[TASK: 5GC-INTENT]`; Agentic routing Skill, no `assurance/`, outputs an `ExecutionTargetCandidate`;
-- `core5g-file-transfer` -> `[TASK: 5GC-FILE-TRANSFER]` and `[TASK: 5GC-VG-RELEASE]`; assurance-enabled executable Skill;
+- `core5g-file-transfer` -> `[TASK: 5GC-FILE-TRANSFER]` and `[TASK: 5GC-VG-RELEASE]`; assurance-enabled executable Skill target fixture;
 - `wifi-file-transfer` -> `[TASK: WIFI-TRANSFER]`; assurance-enabled executable Skill.
 
 Gateway task markers are external protocol identifiers. They do not need to equal the internal Skill name.
