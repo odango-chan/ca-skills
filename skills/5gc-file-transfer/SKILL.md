@@ -1,81 +1,81 @@
 ---
 name: 5gc-file-transfer
-description: 为 SBI-proxy gateway 驱动的大文件传输准备和释放 5GC 网络资源；验证参与 UE 的注册与 PDU Session 状态，准备 edge cache、Virtual Group 和按需 QoS boost，不处理文件内容和用户交互。
+description: Prepare and release governed 5GC network resources for SBI-proxy gateway file transfers; verify participant registration and PDU sessions, prepare the edge cache and virtual group, and request QoS boost only for canonical urgent intents.
 ---
 
 # 5GC File Transfer
 
-## 目标
+## Goal
 
-为 gateway 驱动的大文件传输准备所需的 5GC 网络资源，并在传输结束或取消后释放 Virtual Group。
+Prepare the 5GC network resources required by a gateway-driven large-file transfer, and release the corresponding virtual group when the transfer completes or is cancelled.
 
-本 Skill 只负责核心网编排，不负责文件传输业务本身。
+This Skill owns only core-network orchestration. It does not own the file-transfer application lifecycle.
 
-## 使用时机
+## When to use
 
-用于 gateway 归一化后的以下两类请求：
+Use this Skill for normalized gateway requests corresponding to:
 
-- `prepare_transfer`：对应 `[TASK: 5GC-FILE-TRANSFER]`；
-- `release_group`：对应 `[TASK: 5GC-VG-RELEASE]`。
+- `[TASK: 5GC-FILE-TRANSFER]` -> `prepare_transfer`;
+- `[TASK: 5GC-VG-RELEASE]` -> `release_group`.
 
-`[TASK: 5GC-INTENT]` 不属于本 Skill。通用 5GC 意图应由独立 Skill 处理，避免把通用 SBI 权限并入文件传输能力边界。
+`[TASK: 5GC-INTENT]` belongs to the separate `5gc-intent` Skill. Keeping generic 5GC intent handling separate prevents broad intent authority from leaking into the file-transfer execution envelope.
 
-## 职责边界
+## Responsibility boundary
 
-Gateway 负责：
+The gateway owns:
 
-- 收集接收方确认；
-- 文件上传、绑定和下载；
-- 用户可见消息；
-- 决定何时激活或结束传输；
-- 将原始 gateway task 归一化为本 Skill 的结构化请求。
+- receiver consent and confirmation;
+- file upload, binding, and download;
+- all user-visible messages;
+- the decision to activate or end a transfer;
+- parsing the gateway task and building the normalized request surface.
 
-本 Skill 负责：
+This Skill owns:
 
-- 证明 sender 与全部 receiver 已注册；
-- 证明 sender 与全部 receiver 具备活动 PDU Session；
-- 准备 edge cache；
-- 创建 Virtual Group；
-- 绑定成员 IMSI/IP；
-- 仅在原始意图明确表达紧迫性时申请 QoS boost；
-- 在 release 请求中释放指定 Virtual Group。
+- proving that the sender and every receiver are registered;
+- proving that the sender and every receiver have an active PDU session;
+- preparing the edge cache;
+- creating a virtual group;
+- assigning canonical IMSI/IP membership;
+- requesting a QoS boost only when urgency has been positively established;
+- releasing the specified virtual group for a release request.
 
-本 Skill 不读取或写入文件字节，不向用户发送消息，不启动或停止网元进程，不修改订阅数据库，不调用 Wi-Fi 能力。
+This Skill does not read or write file bytes, message users, start or stop network processes, modify subscriber databases, or invoke Wi-Fi capabilities.
 
-## 意图归一化
+## Intent normalization
 
-`prepare_transfer` 在进入确定性 Procedure 前，必须把原始用户意图归一化为：
+Before deterministic execution starts, a `prepare_transfer` request must contain canonical urgency:
 
-- `urgent`：明确包含 ASAP、urgent、quickly、hurry、fast 或其它语言中的等价紧迫表达；
-- `normal`：普通传输请求。
+- `urgent`: the original user intent explicitly expresses urgency, such as ASAP, urgent, quickly, hurry, fast, or an equivalent expression in another language;
+- `normal`: no explicit urgency was established.
 
-“大文件”本身不等于 `urgent`。
+A large file is not automatically urgent.
 
-归一化后的 `urgency` 是本次执行的结构化输入。Procedure 不在执行中重新解析自然语言。
+The normalized value is frozen for the run. The Procedure does not re-interpret natural language during execution.
 
-## 处理原则
+## Execution principles
 
-1. FILE_TRANSFER 和 VG_RELEASE 均使用已治理的确定性 Procedure，不由模型临时拼装 Tool 调用序列。
-2. 动态 receiver 数量不由模型维护循环。`transfer.participants.*` 观察能力接收规范化成员集合，由 Provider 对成员进行确定性逐项取证。
-3. 具体 `nf_udm_*`、`edge_cache_*`、`vg_*`、`pcf_*` Tool 名称属于 Provider/Binding，不写入 Procedure 作为稳定语义。
-4. `virtual_group.activate` 不属于本 Skill；是否激活由 gateway 根据用户确认决定。
-5. QoS boost 仅允许在 `urgency=urgent` 的确定性路径出现，且预算最多一次。
-6. 具有副作用的动作返回 `OUTCOME_UNKNOWN` 时不得盲目重试；必须先进入对应 reconcile 路径或安全停止。
-7. `vg_release` 的“已释放/不存在”由 Capability outcome normalization 归一为成功语义，不要求模型解释字符串。
-8. gateway 要求的 `vg-YYYYMMDD-NNN` 文本格式属于输出适配层；Runtime/Skill 使用结构化 `groupId`。
-9. Gateway 提供的成员 IMSI/IP 在请求归一化和 Schema 校验通过后视为本次请求的权威输入；Skill 不根据内置手机表覆盖动态值。
-10. 成功不是“最后一个 Tool 返回成功”，而是 `file_transfer.request.satisfied` 得到可信证据确认。
+1. `prepare_transfer` and `release_group` use governed deterministic Procedures. The model does not assemble an ad-hoc Tool-call sequence at execution time.
+2. Dynamic receiver count is not a model loop. `transfer.participants.*` observation capabilities accept the canonical participant set and the Provider performs deterministic per-member observation.
+3. Concrete `nf_udm_*`, `edge_cache_*`, `vg_*`, and `pcf_*` Tool names are Provider/Binding details, not stable Procedure semantics.
+4. `virtual_group.activate` is outside this Skill. The gateway decides activation after receiver confirmation.
+5. QoS boost exists only on the `urgent` deterministic path and may be dispatched at most once.
+6. A mutation returning `OUTCOME_UNKNOWN` must never be blindly replayed. The Procedure enters its governed reconciliation path when one exists, otherwise it stops safely.
+7. `already released` and `not found` are normalized by the release Capability/Provider as successful release semantics; the model never parses those strings.
+8. Gateway-specific text rendering such as `vg-YYYYMMDD-NNN` belongs to the output adapter. Runtime and Skill logic use structured `groupId` values.
+9. Gateway-provided IMSI/IP membership is authoritative after request normalization and Schema validation. A static phone roster must not override live gateway data.
+10. Success means the final request predicate is proven, not merely that the last Tool returned a success-looking string.
 
-## 参考资料
+## References
 
-核心编排模型由 `references/preload/orchestration-model.md` 随 Skill 加载。
+The core orchestration model is preloaded from `references/preload/orchestration-model.md`.
 
-当前 SBI-proxy 环境中 Capability 与旧 NF/VG/PCF Tool 的迁移映射见 `references/on-demand/sbi-proxy-provider-mapping.md`。该文件只用于 Provider 实现和迁移说明，不是 Runtime 的 Binding Truth Source。
+The migration mapping between stable Capabilities and the current SBI-proxy NF/VG/PCF Tools is documented in `references/on-demand/sbi-proxy-provider-mapping.md`. That document is implementation guidance, not the Runtime Binding Truth Source.
 
-Procedure、Predicate、预算、UNKNOWN 和恢复语义以 `assurance/`、Runtime Capability Contract 与 Provider Binding 为准。
+Procedure structure, predicates, budgets, UNKNOWN handling, and recovery semantics are defined by `assurance/`, Runtime Capability Contracts, and Provider Bindings.
 
-## 简短示例
+## Short examples
 
-- 普通传输：验证全部参与 UE → edge cache → create VG → assign members → 验证目标，不执行 QoS boost。
-- 紧急传输：与普通路径相同，但成员绑定成功后最多执行一次 QoS boost。
-- VG release：只执行受治理的 release；若 mutation outcome 不确定，进入 reconcile，不重放 release。
+- Normal transfer: verify all participants -> prepare edge cache -> create virtual group -> assign members -> verify the goal. No QoS boost is dispatched.
+- Urgent transfer: the same governed path, followed by at most one QoS boost before final verification.
+- Virtual-group release: dispatch one governed release mutation; if its outcome becomes ambiguous, reconcile or stop safely rather than replaying release.
