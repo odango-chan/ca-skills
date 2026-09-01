@@ -1,6 +1,14 @@
 # Predicate Evaluation
 
-This Skill uses the target Predicate model and intentionally does not preserve the legacy scalar `valueType + rules` authoring shape.
+This Skill uses the target three-file machine model:
+
+```text
+contract.yaml
+procedure.yaml
+predicates.yaml
+```
+
+`predicates.yaml` contains both the canonical Observation requirements and the evaluator that consumes them. There is no standalone `evidence.yaml` and no legacy scalar `valueType + rules` authoring shape.
 
 ## CEL is sufficient here
 
@@ -12,9 +20,22 @@ Both Wi-Fi predicates are simple enough to remain CEL expressions.
 request.urgency == "urgent"
 ```
 
-It therefore needs no environment Evidence.
+It needs no environment Observation declaration.
 
-`wifi_transfer.request.satisfied` evaluates typed observations:
+`wifi_transfer.request.satisfied` declares the typed inputs beside its CEL evaluator:
+
+```yaml
+observations:
+  transfer:
+    ref: wifi.transfer.snapshot
+    freshness: 5s
+  qosBoost:
+    ref: wifi.qos.boost_state
+    freshness: 5s
+    when: request.urgency == "urgent"
+```
+
+and evaluates:
 
 ```text
 observations.transfer.state == "CREATED" &&
@@ -22,13 +43,17 @@ observations.transfer.state == "CREATED" &&
  observations.qosBoost.state == "COMMITTED")
 ```
 
-The `qosBoost` observation is conditionally required only when `request.urgency == "urgent"`.
+The `qosBoost` Observation is required only for urgent requests.
 
-## Evidence Gate
+## Evidence Gate and ObservationBinding
 
-The Runtime Evidence Gate is responsible for determining which observations are required for this evaluation, acquiring or reusing them, checking schema/freshness, and returning `UNKNOWN` when required evidence cannot be established.
+The Skill declares **what canonical Observation is required**, not which Tool should be called to obtain it.
 
-CEL therefore operates only on a complete typed evaluation context and returns a boolean result:
+Runtime/deployment `ObservationBinding` may satisfy `wifi.transfer.snapshot` or `wifi.qos.boost_state` from an earlier governed action result, runtime state, signaling, replay data, or a read-only deployment-specific query.
+
+The Runtime Evidence Gate determines active Observation requirements, materializes them through those bindings, checks schema/freshness, preserves provenance, and returns `UNKNOWN` when required evidence cannot be established.
+
+CEL therefore evaluates a prepared typed context and normally returns:
 
 ```text
 true  -> PASS
@@ -37,8 +62,6 @@ false -> FAIL
 
 ## Why there is no Python evaluator
 
-The previous Python prototype was removed intentionally.
-
 Iteration, simple branching, enum comparison, and urgency-dependent boolean conditions are not sufficient reasons to introduce a script. Python is reserved for predicates whose semantic branching, cross-object correlation, conflict handling, or diagnostic output would make CEL difficult to audit.
 
-This Skill is meant to demonstrate the lightweight end of the target authoring model: typed Evidence plus CEL, with no custom evaluator script.
+This Skill demonstrates the lightweight end of the target authoring model: one `PredicateSet`, typed Observations, CEL, and no custom evaluator script.
