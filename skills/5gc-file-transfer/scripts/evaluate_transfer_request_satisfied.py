@@ -37,13 +37,13 @@ def main(input: Dict[str, Any]) -> Dict[str, Any]:
                 "result": "PASS",
                 "reasonCode": "VIRTUAL_GROUP_RELEASED",
                 "summary": "The virtual group is released or no longer present.",
-                "observationsUsed": evidence_used,
+                "evidenceUsed": evidence_used,
             }
         return {
             "result": "FAIL",
             "reasonCode": "VIRTUAL_GROUP_STILL_PRESENT",
             "summary": "The virtual group is still present after a release request.",
-            "observationsUsed": evidence_used,
+            "evidenceUsed": evidence_used,
             "details": {"groupState": group_state},
         }
 
@@ -53,7 +53,7 @@ def main(input: Dict[str, Any]) -> Dict[str, Any]:
             "result": "FAIL",
             "reasonCode": "VIRTUAL_GROUP_NOT_PREPARED",
             "summary": "The virtual group is not in a prepared state.",
-            "observationsUsed": evidence_used,
+            "evidenceUsed": evidence_used,
             "details": {"groupState": group_state},
         }
 
@@ -62,7 +62,7 @@ def main(input: Dict[str, Any]) -> Dict[str, Any]:
             "result": "FAIL",
             "reasonCode": "VIRTUAL_GROUP_MEMBERS_NOT_ASSIGNED",
             "summary": "The virtual group does not contain the required members.",
-            "observationsUsed": evidence_used,
+            "evidenceUsed": evidence_used,
         }
 
     if request["urgency"] == "urgent":
@@ -74,14 +74,14 @@ def main(input: Dict[str, Any]) -> Dict[str, Any]:
                 "result": "UNKNOWN",
                 "reasonCode": "QOS_BOOST_EVIDENCE_MISSING",
                 "summary": "Urgent transfer readiness cannot be judged without QoS boost evidence.",
-                "observationsUsed": evidence_used,
+                "evidenceUsed": evidence_used,
             }
         if qos_boost["state"] != "COMMITTED":
             return {
                 "result": "FAIL",
                 "reasonCode": "QOS_BOOST_NOT_COMMITTED",
                 "summary": "Urgent transfer preparation requires a committed QoS boost.",
-                "observationsUsed": evidence_used,
+                "evidenceUsed": evidence_used,
                 "details": {"qosBoostState": qos_boost["state"]},
             }
 
@@ -89,5 +89,5 @@ def main(input: Dict[str, Any]) -> Dict[str, Any]:
         "result": "PASS",
         "reasonCode": "TRANSFER_REQUEST_SATISFIED",
         "summary": "The requested transfer network preparation is satisfied.",
-        "observationsUsed": evidence_used,
+        "evidenceUsed": evidence_used,
     }
