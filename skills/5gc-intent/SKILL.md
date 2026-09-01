@@ -110,7 +110,7 @@ no matching governed target -> NEEDS_EXTENSION
 
 A future version may support bounded run-scoped capability planning through the formal Agent `PlanDelta` / Runtime `RunPlanRevision` path. That capability must be added explicitly; it must not be simulated by broadening this Skill's Tool whitelist.
 
-## Execution assurance extension
+## Execution Assurance Extension
 
 This Skill includes an optional machine-readable assurance layer:
 
@@ -122,6 +122,8 @@ assurance/
 ```
 
 The directory describes execution assurance for a dual-engine Agent architecture rather than a ConnectionAgent-specific package format. `SKILL.md` remains the standard model-facing Skill surface; `assurance/` supplies the deterministic engine with authority, flow, and proof contracts.
+
+The named Predicate `core5g.execution_target.resolved` is intentionally retained because it is a real proof condition: Runtime must verify an admitted canonical fact before the Procedure can terminate successfully. This differs from transfer `operation` or `urgency` values used only to choose between already-defined Procedures; pure Procedure selectors belong directly in `assurance/procedure.yaml` as `applicability.when` CEL.
 
 ## References
 
