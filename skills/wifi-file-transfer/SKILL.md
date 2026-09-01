@@ -40,7 +40,10 @@ This Skill owns:
 - canonicalizing receiver identities to stable 15-digit IDs before execution;
 - canonicalizing urgency to `normal` or `urgent`;
 - creating the Wi-Fi transfer exactly once per governed run;
-- requesting at most one QoS boost on the urgent path.
+- requesting at most one QoS boost on the urgent path;
+- requiring proof of the final transfer state through canonical Observations.
+
+The Skill does not select a concrete status/query Tool for verification. Runtime `ObservationBinding` resolves canonical Wi-Fi transfer and QoS observations for the active deployment.
 
 ## Receiver canonicalization
 
@@ -76,19 +79,31 @@ The Procedure never re-reads the original natural-language intent during executi
 3. `wifi.qos.boost` exists only on the urgent deterministic path and is dispatched at most once.
 4. Successful legacy strings such as `created`, `recommended`, `already`, or `ok` are normalized by the Provider; the model does not parse them.
 5. A mutation that becomes `OUTCOME_UNKNOWN` is never blindly replayed. With the current legacy Tool surface, the governed behavior is safe stop unless the Provider can independently reconcile the mutation.
-6. `wifi.status` is read-only evidence and may support final-state verification or future reconciliation.
+6. Final verification requests canonical `wifi.transfer.snapshot` and, only for urgent requests, `wifi.qos.boost_state`. Runtime may satisfy those requirements from existing action results, runtime state, signaling, replay data, or a deployment-specific observation query.
 7. The Skill never invokes filesystem, shell, process-management, messaging, 5GC NF/VG/PCF, cron, spawn, or web capabilities.
 8. Success means the final Wi-Fi transfer request predicate is proven, not merely that a Tool returned a success-looking string.
+
+## Machine contracts
+
+The target package keeps three root machine files:
+
+```text
+contract.yaml    -> authority and goal envelope
+procedure.yaml   -> governed execution flow
+predicates.yaml  -> Observation requirements and Predicate evaluators
+```
+
+There is no standalone `evidence.yaml` in the target model.
 
 ## References
 
 The normalization and execution model is preloaded from `references/preload/orchestration-model.md`.
 
-The migration mapping from the current `wifiboost` Tools to stable Capability semantics is documented in `references/on-demand/wifiboost-provider-mapping.md`.
+The migration mapping from current `wifiboost` Tools to stable Capability/Observation semantics is documented in `references/on-demand/wifiboost-provider-mapping.md`.
 
-The target typed-Evidence / CEL Predicate model used by this Skill is documented in `references/on-demand/predicate-evaluation.md`.
+The target typed-Observation / CEL Predicate model used by this Skill is documented in `references/on-demand/predicate-evaluation.md`.
 
-Procedure structure, authority, budgets, UNKNOWN handling, and Provider Binding remain machine-contract concerns rather than prompt instructions.
+Procedure structure, authority, budgets, UNKNOWN handling, Capability Binding, and Observation Binding remain machine-contract concerns rather than prompt instructions.
 
 ## Short examples
 
