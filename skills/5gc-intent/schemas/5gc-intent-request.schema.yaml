@@ -14,6 +14,10 @@ properties:
     type: string
     minLength: 1
     description: Original user intent carried by the gateway task.
+  transferId:
+    type: string
+    minLength: 1
+    description: Optional gateway-owned file-transfer lifecycle identifier. Preserve it when the routed target requires transfer correlation; do not synthesize it from requestId.
   senderImsi:
     type: string
     pattern: '^[0-9]{15}$'
