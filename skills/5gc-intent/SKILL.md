@@ -1,5 +1,5 @@
 ---
-name: 5gc-intent
+name: core5g-intent
 description: Interpret generic gateway 5GC intents and resolve them to the best governed ConnectionAgent execution target, preferring certified Skills and Variants over ad-hoc network operations.
 ---
 
@@ -43,7 +43,7 @@ Examples:
 
 ```text
 large-file transfer
-  -> 5gc-file-transfer
+  -> core5g-file-transfer
 
 ensure PDU Session QoS
   -> ensure-session-qos
@@ -89,7 +89,7 @@ Normalization does not create authoritative network facts. Current network state
 After this Skill resolves a target:
 
 ```text
-5gc-intent
+core5g-intent
   -> ExecutionTarget
   -> Runtime admission
   -> RunPlan compile
