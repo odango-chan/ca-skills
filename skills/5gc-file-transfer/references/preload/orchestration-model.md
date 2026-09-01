@@ -1,10 +1,10 @@
 # 5GC File Transfer Orchestration Model
 
-## 1. 请求已经过归一化
+## 1. The request is normalized before execution
 
-本 Skill 不直接执行 gateway 的原始 `[TASK: ...]` 文本。
+This Skill does not execute the raw gateway `[TASK: ...]` message directly.
 
-进入 Runtime 前，Gateway/Agent Adapter 将其归一化为 `file-transfer-request.schema.yaml`：
+Before Runtime admission, the Gateway/Agent Adapter normalizes the message into `file-transfer-request.schema.yaml`:
 
 ```text
 raw gateway task
@@ -14,13 +14,13 @@ raw gateway task
   -> deterministic Procedure selection
 ```
 
-其中 `urgency` 只允许 `normal` 或 `urgent`。Procedure 执行期间不再次解释自然语言。
+`urgency` is restricted to `normal` or `urgent`. Natural language is not re-interpreted during Procedure execution.
 
-## 2. 两种业务操作
+## 2. Supported operations
 
-### prepare_transfer
+### `prepare_transfer`
 
-目标是准备文件传输需要的网络资源：
+The goal is to prepare the network resources required by the transfer:
 
 ```text
 participants registered
@@ -32,24 +32,24 @@ participants registered
   -> goal verification
 ```
 
-Virtual Group 的激活不属于本 Skill，由 gateway 在接收方确认完成后决定。
+Virtual-group activation is intentionally outside this Skill. The gateway decides activation after the receiver-confirmation phase.
 
-### release_group
+### `release_group`
 
-目标是让目标 Virtual Group 进入 released/not-present 语义状态。
+The goal is to make the target virtual group semantically released or absent.
 
-`already released` 和 `not found` 由 Capability/Provider 归一为成功结果，不由模型匹配返回字符串。
+`already released` and `not found` are normalized by the Capability/Provider to successful release semantics. The model does not match human-readable result strings.
 
-## 3. 动态成员不是模型循环
+## 3. Dynamic participants are not a model loop
 
-`receiverImsis` 数量是动态的，但模型不负责维护 `for each receiver` 控制流。
+`receiverImsis` is dynamic, but the model does not maintain a `for each receiver` execution loop.
 
-P0 采用集合观察能力：
+P0 uses aggregate observation Capabilities:
 
-- `transfer.participants.registration.query`
-- `transfer.participants.session.query`
+- `transfer.participants.registration.query`;
+- `transfer.participants.session.query`.
 
-Provider 必须对规范化成员集合进行确定性逐项查询，并形成聚合 Evidence：
+The Provider must deterministically query every member of the normalized participant set and produce aggregate Evidence:
 
 ```text
 all members PASS    -> aggregate PASS
@@ -57,25 +57,25 @@ any member FAIL     -> aggregate FAIL
 otherwise           -> aggregate UNKNOWN
 ```
 
-成员查询顺序应稳定：sender first，随后按 canonical `receiverImsis` 顺序执行，便于重放和审计。
+The observation order must be stable: sender first, then receivers in canonical `receiverImsis` order. This keeps replay and audit deterministic.
 
-后续如果 Procedure DSL 正式支持 bounded collection expansion，可以把这部分从 Provider-level deterministic expansion 提升为编译期 Procedure expansion；在此之前不新增非标准 Runtime node type。
+If the Procedure DSL later gains governed bounded collection expansion, this behavior can move from Provider-side deterministic expansion to compile-time Procedure expansion. Until then, no non-standard Runtime node type is introduced for receiver iteration.
 
-## 4. create 结果的数据流
+## 4. Data flow from virtual-group creation
 
-`virtual_group.create` 的 canonical result 必须产生结构化 `groupId`，并通过 Context Contribution / Fact Normalization 形成：
+`virtual_group.create` must return a structured canonical `groupId` and contribute it through Context/Fact normalization as:
 
 ```text
 facts.virtual_group.id
 ```
 
-`virtual_group.assign_members` 从该 Fact 获取 `groupId`，不从 Tool 的人类可读字符串中反向解析。
+`virtual_group.assign_members` consumes that fact. It must never recover the group identifier by parsing a human-readable Tool result.
 
-Gateway 如需 `vg-YYYYMMDD-NNN` 文本格式，由输出 Adapter 使用结构化 `groupId` 渲染。
+If the gateway requires a `vg-YYYYMMDD-NNN` representation, the output adapter renders it from structured `groupId`.
 
-## 5. UNKNOWN
+## 5. UNKNOWN handling
 
-所有 mutation 都遵守 Runtime 的统一 UNKNOWN 语义：
+Every mutation follows the Runtime UNKNOWN model:
 
 ```text
 mutation OUTCOME_UNKNOWN
@@ -83,12 +83,12 @@ mutation OUTCOME_UNKNOWN
   -> COMMITTED / NOT_COMMITTED / UNRESOLVED
 ```
 
-非幂等 mutation 不得从 UNKNOWN 直接回到原动作。
+A non-idempotent mutation never jumps directly from UNKNOWN back to the original mutation node.
 
-QoS boost 和 VG release 都保留“最多一次业务 mutation dispatch”的旧语义：即使 reconcile 证明 `NOT_COMMITTED`，当前 Procedure 也不再次 dispatch 原 mutation，而是失败或安全停止。
+QoS boost and virtual-group release preserve the old at-most-once business-dispatch rule. Even if reconciliation proves `NOT_COMMITTED`, the current governed Procedure does not dispatch the original boost or release mutation again; it fails or stops safely according to the frozen graph.
 
-## 6. Generic 5GC intent 不在本 Skill
+## 6. Generic 5GC intent is a separate Skill
 
-`[TASK: 5GC-INTENT]` 具有远大于文件传输的能力范围，不应与本 Skill 共用同一 `allowedResources`。
+`[TASK: 5GC-INTENT]` has a much broader semantic scope than file transfer and must not share this Skill's execution envelope.
 
-通用 5GC Intent 应单独定义 Skill/Contract，在明确其 Capability Envelope、Authority 和 Qualification Case 后再进入正式资产仓。
+Generic 5GC intent handling belongs to the separate `5gc-intent` Skill, which owns intent interpretation and governed execution-target selection without inheriting raw SBI authority.
