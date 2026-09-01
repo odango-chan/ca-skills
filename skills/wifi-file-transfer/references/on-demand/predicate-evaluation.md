@@ -11,19 +11,30 @@ assurance/
 
 The extension is generic to a dual-engine Agent architecture. It is not a ConnectionAgent-specific namespace and does not replace the standard `SKILL.md` surface.
 
-`assurance/predicates.yaml` contains both canonical Observation requirements and the evaluator that consumes them. There is no standalone `evidence.yaml` and no legacy scalar `valueType + rules` authoring shape.
+`assurance/predicates.yaml` contains canonical Observation requirements beside the evaluator that consumes them. There is no standalone `evidence.yaml` and no legacy scalar `valueType + rules` authoring shape.
 
-## CEL is sufficient here
+## Procedure selection is direct CEL
 
-Both Wi-Fi predicates are simple enough to remain CEL expressions.
+Normal vs. urgent is not modeled as a named Predicate. It is already known from the canonical request and belongs directly to Procedure applicability:
 
-`transfer.intent.urgent` depends only on the normalized request:
+```yaml
+spec:
+  selectionPolicy: exactlyOne
+  procedures:
+  - name: create-wifi-transfer-normal
+    applicability:
+      when: request.urgency == "normal"
 
-```text
-request.urgency == "urgent"
+  - name: create-wifi-transfer-urgent
+    applicability:
+      when: request.urgency == "urgent"
 ```
 
-It needs no environment Observation declaration.
+`applicability.when` does not run the Evidence Gate or acquire Observations. It only selects the deterministic Procedure from already-admitted context.
+
+`selectionPolicy: exactlyOne` requires exactly one Procedure to match before execution. Zero or multiple matches fail closed.
+
+## CEL is sufficient for the proof Predicate
 
 `wifi_transfer.request.satisfied` declares scoped typed inputs beside its CEL evaluator:
 
@@ -46,6 +57,8 @@ observations:
 ```
 
 The evaluator then checks the prepared canonical values. `qosBoost` is required only for urgent requests.
+
+A named Predicate is used here because the final transfer state must be proven as an execution postcondition, not because CEL itself requires a Predicate wrapper.
 
 ## Scope is not acquisition
 
@@ -78,4 +91,4 @@ false -> FAIL
 
 Iteration, simple branching, enum comparison, and urgency-dependent boolean conditions are not sufficient reasons to introduce a script. Python is reserved for predicates whose semantic branching, cross-object correlation, conflict handling, or diagnostic output would make CEL difficult to audit.
 
-This Skill demonstrates the lightweight end of the target assurance authoring model: one `PredicateSet`, scoped typed Observations, CEL, and no custom evaluator script.
+This Skill demonstrates the lightweight end of the target assurance authoring model: direct Procedure applicability CEL, one proof Predicate, scoped typed Observations, CEL, and no custom evaluator script.
