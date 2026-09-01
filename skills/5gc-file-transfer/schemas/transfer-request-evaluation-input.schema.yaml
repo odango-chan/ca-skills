@@ -1,0 +1,29 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: transfer-request-evaluation-input.schema.yaml
+title: TransferRequestEvaluationInput
+type: object
+required: [operation, urgency, groupState, membersAssigned, qosBoostState]
+properties:
+  operation:
+    type: string
+    enum: [prepare_transfer, release_group]
+  urgency:
+    type: string
+    enum: [normal, urgent]
+  groupState:
+    type: string
+    enum: [CREATED, MEMBERS_ASSIGNED, RELEASED, NOT_FOUND, UNKNOWN]
+  membersAssigned:
+    oneOf:
+    - type: boolean
+    - type: 'null'
+  qosBoostState:
+    type: string
+    enum: [COMMITTED, NOT_REQUIRED, FAILED, UNKNOWN]
+  observationIds:
+    type: array
+    uniqueItems: true
+    items:
+      type: string
+      minLength: 1
+additionalProperties: false
