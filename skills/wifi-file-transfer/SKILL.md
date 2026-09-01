@@ -75,28 +75,30 @@ The Procedure never re-reads the original natural-language intent during executi
 ## Execution principles
 
 1. The model performs semantic normalization only. The transfer workflow itself is deterministic.
-2. `wifi.transfer.create` is dispatched at most once in a run.
-3. `wifi.qos.boost` exists only on the urgent deterministic path and is dispatched at most once.
-4. Successful legacy strings such as `created`, `recommended`, `already`, or `ok` are normalized by the Provider; the model does not parse them.
-5. A mutation that becomes `OUTCOME_UNKNOWN` is never blindly replayed. With the current legacy Tool surface, the governed behavior is safe stop unless the Provider can independently reconcile the mutation.
-6. Final verification requests canonical `wifi.transfer.snapshot` and, only for urgent requests, `wifi.qos.boost_state`. Runtime may satisfy those requirements from existing action results, runtime state, signaling, replay data, or a deployment-specific observation query.
-7. The Skill never invokes filesystem, shell, process-management, messaging, 5GC NF/VG/PCF, cron, spawn, or web capabilities.
-8. Success means the final Wi-Fi transfer request predicate is proven, not merely that a Tool returned a success-looking string.
+2. Normal vs. urgent Procedure selection is direct CEL over `request.urgency` in `assurance/procedure.yaml`; it is not modeled as a synthetic Predicate.
+3. The ProcedureSet uses `selectionPolicy: exactlyOne`; zero or multiple matching Procedures fail closed.
+4. `wifi.transfer.create` is dispatched at most once in a run.
+5. `wifi.qos.boost` exists only on the urgent deterministic path and is dispatched at most once.
+6. Successful legacy strings such as `created`, `recommended`, `already`, or `ok` are normalized by the Provider; the model does not parse them.
+7. A mutation that becomes `OUTCOME_UNKNOWN` is never blindly replayed. With the current legacy Tool surface, the governed behavior is safe stop unless the Provider can independently reconcile the mutation.
+8. Final verification requests canonical `wifi.transfer.snapshot` and, only for urgent requests, `wifi.qos.boost_state`. Runtime may satisfy those requirements from existing action results, runtime state, signaling, replay data, or a deployment-specific observation query.
+9. The Skill never invokes filesystem, shell, process-management, messaging, 5GC NF/VG/PCF, cron, spawn, or web capabilities.
+10. Success means the final Wi-Fi transfer request predicate is proven, not merely that a Tool returned a success-looking string.
 
-## Execution assurance extension
+## Execution Assurance Extension
 
 This Skill adds an optional machine-readable assurance layer alongside the standard Skill surface:
 
 ```text
 assurance/
 ├── contract.yaml    -> authority and goal envelope
-├── procedure.yaml   -> governed deterministic execution flow
-└── predicates.yaml  -> Observation requirements and Predicate evaluators
+├── procedure.yaml   -> deterministic flow and Procedure applicability
+└── predicates.yaml  -> proof Observation requirements and Predicate evaluators
 ```
 
 The `assurance/` directory describes execution assurance for a dual-engine Agent architecture. It is not a ConnectionAgent-specific namespace and does not replace `SKILL.md`.
 
-There is no standalone `evidence.yaml` in the target model. Concrete Evidence is assembled at runtime from the Observation requirements declared beside each Predicate.
+There is no standalone `evidence.yaml` in the target model. `applicability.when` selects a Procedure from already-known canonical context; named Predicates are reserved for conditions that execution assurance must actually prove.
 
 ## References
 
@@ -110,6 +112,6 @@ Procedure structure, authority, budgets, UNKNOWN handling, Capability Binding, a
 
 ## Short examples
 
-- `Send this to Leo`: canonicalize Leo to one receiver ID -> create transfer -> verify.
-- `Send this to everyone as fast as possible`: canonicalize every non-sender roster member -> urgent path -> create transfer -> one QoS boost -> verify.
+- `Send this to Leo`: canonicalize Leo to one receiver ID -> normal applicability -> create transfer -> verify.
+- `Send this to everyone as fast as possible`: canonicalize every non-sender roster member -> urgent applicability -> create transfer -> one QoS boost -> verify.
 - Ambiguous receiver alias: do not create the transfer until the receiver identity is resolved.
