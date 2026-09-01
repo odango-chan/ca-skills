@@ -2,14 +2,14 @@
 
 `connectionagent-skills` is the repository for official ConnectionAgent **Skill source assets**.
 
-This repository owns Skill packages that can be compiled, qualified, and consumed by the Skill Platform. It does not implement the Skill Platform, Agent loop, Runtime, Sandbox, or Web application.
+The repository keeps standard Skill-facing content separate from an optional machine-readable **Execution Assurance Extension**. The assurance model is intentionally not named after ConnectionAgent: the same pattern can be reused by other Agent runtimes that combine an LLM/Agent engine with a deterministic execution/verification engine.
 
 ## Repository boundary
 
 This repository owns:
 
 - `SKILL.md`;
-- Skill-local `contract.yaml`, `procedure.yaml`, and `predicates.yaml`;
+- optional Skill-local `assurance/` contracts;
 - vendor/qualification `cases/` when they belong to the Skill source package;
 - `references/`;
 - optional Skill-local `scripts/` and their metadata;
@@ -19,7 +19,7 @@ This repository does not own:
 
 - Skill Compiler / ProcedurePatch apply / SkillProfile resolution -> `connectionagent-skill-platform`;
 - LLM / Agent loop / model adapters -> `connectionagent-agent`;
-- Procedure execution / Evidence Gate / Observation resolution / Reconcile -> `connectionagent-runtime`;
+- deterministic Procedure execution / Evidence Gate / Observation resolution / Reconcile -> `connectionagent-runtime`;
 - Observation acquisition/binding for a deployment -> Runtime/deployment Registry;
 - 5GC simulated world / fault injection -> `connectionagent-sandbox`;
 - production UI -> `connectionagent-web`.
@@ -30,9 +30,10 @@ This repository does not own:
 skills/
 └── <skill-package>/
     ├── SKILL.md
-    ├── contract.yaml
-    ├── procedure.yaml
-    ├── predicates.yaml
+    ├── assurance/
+    │   ├── contract.yaml
+    │   ├── procedure.yaml
+    │   └── predicates.yaml
     ├── cases/
     ├── references/
     ├── schemas/
@@ -40,18 +41,22 @@ skills/
     └── examples/
 ```
 
-The three machine-facing root files answer three different questions:
+`assurance/` is an optional extension layer. A normal Skill can exist without it. A Skill that needs deterministic governed execution can add the extension without changing the meaning of `SKILL.md`.
+
+The three assurance files answer three different questions:
 
 ```text
-contract.yaml
-  -> What may this Skill do?
+assurance/contract.yaml
+  -> What may this Skill do, and what must ultimately hold?
 
-procedure.yaml
-  -> How does governed execution flow?
+assurance/procedure.yaml
+  -> How does governed deterministic execution flow?
 
-predicates.yaml
+assurance/predicates.yaml
   -> What must be observed, and how is correctness judged?
 ```
+
+The directory name means **execution assurance**, not merely post-execution verification. It covers the authority envelope, deterministic Procedure, proof requirements, and failure semantics needed by the reliable execution engine.
 
 There is intentionally no standalone `evidence.yaml` in the target model. Observation requirements live beside the Predicate evaluator that consumes them:
 
@@ -84,9 +89,29 @@ The Skill declares **what Observation semantics it requires**:
 - `freshness` -> how fresh the proof must be;
 - `when` -> when the requirement is active.
 
-It does not declare how a particular deployment obtains the Observation. Runtime/deployment `ObservationBinding` resolves a canonical Observation from runtime state, signaling, a read-only Provider query, replay data, or an earlier governed action result.
+It does not declare how a deployment obtains the Observation. Runtime/deployment `ObservationBinding` resolves a canonical Observation from runtime state, signaling, a read-only Provider query, replay data, or an earlier governed action result.
 
 This keeps Observation acquisition out of business Procedure authoring and prevents Provider-specific read paths from becoming stable Skill semantics.
+
+## Dual-engine model
+
+The package boundary is intentionally compatible with a dual-engine architecture:
+
+```text
+Standard Skill surface
+  SKILL.md / references / examples
+        ↓
+Agent / LLM engine
+  interpretation / selection / bounded planning
+
+Execution Assurance Extension
+  assurance/*.yaml
+        ↓
+Deterministic engine / Harness Runtime
+  admission / execution / verification / reconcile
+```
+
+The assurance extension therefore describes a reliability/execution pattern rather than a ConnectionAgent-specific runtime namespace.
 
 ## Predicate evaluators
 
@@ -118,22 +143,20 @@ wifi.transfer.snapshot
 wifi.qos.boost_state
 ```
 
-A deployment maps these semantic Observation IDs to concrete acquisition mechanisms through `ObservationBinding`. This is intentionally analogous to Capability -> Provider Binding while remaining a proof/evidence concern rather than a Procedure action.
+A deployment maps semantic Observation IDs to concrete acquisition mechanisms through `ObservationBinding`. This is analogous to Capability -> Provider Binding while remaining a proof/evidence concern rather than a Procedure business action.
 
 Collection scopes must be bounded. Gateway-oriented request schemas therefore cap receiver cardinality so an Observation provider cannot hide unbounded fan-out behind a single `verify` checkpoint.
-
-The package directory is a repository path. The canonical Skill identity is the schema-valid `name` declared by the package and frozen into the build artifact.
 
 ## Migration rule
 
 Official Skills are migrated from `connectionagent-skill-platform/skills/` into this repository using a target-state process:
 
 1. establish the target Skill source package here;
-2. refactor Skill Platform and Runtime contracts to consume the target package model;
+2. refactor Skill Platform and Runtime contracts to consume the target assurance model;
 3. qualify the independent Skill source against the new contracts;
 4. remove superseded official/fixture assets from old locations.
 
-The current gateway-oriented branch intentionally targets the refactored package and Predicate model rather than preserving the legacy `assurance/` directory, standalone EvidenceRules, or scalar Predicate authoring contract.
+The current gateway-oriented branch intentionally targets the refactored `assurance/` extension with a combined `PredicateSet`. It does not preserve the old standalone `EvidenceRules` or scalar Predicate authoring contract.
 
 ## Current gateway-oriented Skills
 
