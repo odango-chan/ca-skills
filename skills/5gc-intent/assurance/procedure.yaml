@@ -1,16 +1,16 @@
 apiVersion: connectionagent.io/v1alpha1
 kind: ProcedureSet
 metadata:
-  skill: 5gc-intent
+  skill: core5g-intent
 spec:
   procedures:
   - name: validate-execution-target-resolution
-    goal: 5gc.intent.resolve_execution_target
+    goal: core5g.intent.resolve_execution_target
     entry: check-target
     nodes:
     - id: check-target
       type: decision
-      predicate: 5gc.execution_target.resolved
+      predicate: core5g.execution_target.resolved
       'on':
         PASS: {next: done}
         FAIL: {next: needs-extension}
