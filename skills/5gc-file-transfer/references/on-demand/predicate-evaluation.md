@@ -1,12 +1,15 @@
 # Predicate Evaluation
 
-This Skill is authored against the target three-file machine model:
+This Skill uses the target **Execution Assurance Extension**:
 
 ```text
-contract.yaml   -> authority and goal envelope
-procedure.yaml  -> execution flow
-predicates.yaml -> Observation requirements + evaluator
+assurance/
+├── contract.yaml   -> authority and goal envelope
+├── procedure.yaml  -> governed execution flow
+└── predicates.yaml -> Observation requirements + evaluator
 ```
+
+The extension is intentionally generic to dual-engine Agent runtimes. It is not a ConnectionAgent-specific namespace and does not replace the standard `SKILL.md` surface.
 
 There is no standalone `evidence.yaml` and no legacy scalar `valueType + rules` authoring shape.
 
@@ -65,7 +68,7 @@ The Runtime Evidence Gate resolves active requirements, evaluates scope, materia
 
 Missing, stale, invalid, unavailable, or budget-exhausted required Observations produce `UNKNOWN` before normal evaluator execution.
 
-This is why participant registration and PDU Session checks are direct `verify` nodes in `procedure.yaml`: the Procedure does not need separate query actions merely to feed a Predicate.
+This is why participant registration and PDU Session checks are direct `verify` nodes in `assurance/procedure.yaml`: the Procedure does not need separate query actions merely to feed a Predicate.
 
 ## Bounded participant observation
 
