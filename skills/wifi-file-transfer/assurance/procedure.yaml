@@ -3,13 +3,13 @@ kind: ProcedureSet
 metadata:
   skill: wifi-file-transfer
 spec:
+  selectionPolicy: exactlyOne
   procedures:
   - name: create-wifi-transfer-normal
     goal: wifi_file_transfer.orchestrate
     entry: create-transfer
     applicability:
-      predicates:
-        transfer.intent.urgent: FAIL
+      when: request.urgency == "normal"
     nodes:
     - id: create-transfer
       type: action
@@ -49,8 +49,7 @@ spec:
     goal: wifi_file_transfer.orchestrate
     entry: create-transfer
     applicability:
-      predicates:
-        transfer.intent.urgent: PASS
+      when: request.urgency == "urgent"
     nodes:
     - id: create-transfer
       type: action
