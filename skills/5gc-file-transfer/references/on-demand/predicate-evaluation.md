@@ -13,7 +13,40 @@ The extension is intentionally generic to dual-engine Agent runtimes. It is not 
 
 There is no standalone `evidence.yaml` and no legacy scalar `valueType + rules` authoring shape.
 
+## Procedure applicability is not a Predicate
+
+Procedure selection uses CEL directly in `assurance/procedure.yaml`:
+
+```yaml
+spec:
+  selectionPolicy: exactlyOne
+  procedures:
+  - name: prepare-file-transfer-normal
+    applicability:
+      when: >
+        request.operation == "prepare_transfer" &&
+        request.urgency == "normal"
+```
+
+`applicability.when` is a deterministic selector over already-admitted context. It does not create a named Predicate, does not run the Evidence Gate, and does not acquire Observations.
+
+The selector environment is intentionally narrow:
+
+```text
+request
+subject
+initial/admitted facts
+```
+
+It must not depend on action-produced facts, `observations`, Evidence records, Provider results that have not happened yet, or Tool calls.
+
+`selectionPolicy: exactlyOne` means all Procedure applicability expressions are evaluated before execution and exactly one Procedure must match. Zero or multiple matches fail closed.
+
+This keeps values such as `request.operation` and `request.urgency` where they belong: Procedure selection rather than proof semantics.
+
 ## PredicateSet owns proof requirements
+
+Named Predicates are reserved for conditions that the assurance engine must prove, reuse, or expose as verification results. They are referenced by `verify`, `decision`, or contract conditions such as pre/postconditions.
 
 Each Predicate declares the canonical typed Observations it needs beside the evaluator that consumes them.
 
@@ -82,15 +115,7 @@ participantImsis = [senderImsi] + receiverImsis
 
 ## CEL predicates
 
-CEL is used when the judgement remains a small, directly auditable boolean expression.
-
-Request-only predicates require no Observation declaration:
-
-```text
-transfer.operation.prepare
-transfer.operation.release
-transfer.intent.urgent
-```
+CEL is used when the proof judgement remains a small, directly auditable boolean expression.
 
 Participant registration uses collection aggregation:
 
@@ -103,6 +128,8 @@ observations.participants.all(p,
 PDU Session readiness uses the same pattern over the typed participant-session Observation.
 
 Collection iteration alone is not a reason to introduce Python.
+
+A Predicate may still read `request`, `subject`, or `facts` when those values are part of the proof context. The distinction is semantic: a named Predicate represents something that must be proven, not merely a branch selector.
 
 ## Python predicate
 
@@ -132,8 +159,10 @@ The script performs deterministic local computation only. It cannot acquire Obse
 
 ## Design rule
 
-Use CEL while the judgement is easy to audit as one expression.
+Use `applicability.when` for deterministic Procedure selection from already-known canonical context.
 
-Use Python when semantic branching, correlation, conflict handling, or diagnostic output would make CEL materially less clear.
+Use a named Predicate when the condition is part of execution assurance: it must be verified, reused as a proof result, or enforced as a contract condition.
+
+Use CEL while the proof judgement is easy to audit as one expression. Use Python when semantic branching, correlation, conflict handling, or diagnostic output would make CEL materially less clear.
 
 Keep acquisition outside both evaluator forms. Evaluators judge prepared canonical data; `ObservationBinding` decides how a deployment obtains that data.
