@@ -72,6 +72,8 @@ The core orchestration model is preloaded from `references/preload/orchestration
 
 The migration mapping between stable Capabilities and the current SBI-proxy NF/VG/PCF Tools is documented in `references/on-demand/sbi-proxy-provider-mapping.md`. That document is implementation guidance, not the Runtime Binding Truth Source.
 
+The target typed-Evidence / CEL / Python Predicate split used by this Skill is documented in `references/on-demand/predicate-evaluation.md`.
+
 Procedure structure, predicates, budgets, UNKNOWN handling, and recovery semantics are defined by `assurance/`, Runtime Capability Contracts, and Provider Bindings.
 
 ## Short examples
