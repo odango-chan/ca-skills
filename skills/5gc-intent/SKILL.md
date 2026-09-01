@@ -110,6 +110,19 @@ no matching governed target -> NEEDS_EXTENSION
 
 A future version may support bounded run-scoped capability planning through the formal Agent `PlanDelta` / Runtime `RunPlanRevision` path. That capability must be added explicitly; it must not be simulated by broadening this Skill's Tool whitelist.
 
+## Execution assurance extension
+
+This Skill includes an optional machine-readable assurance layer:
+
+```text
+assurance/
+├── contract.yaml
+├── procedure.yaml
+└── predicates.yaml
+```
+
+The directory describes execution assurance for a dual-engine Agent architecture rather than a ConnectionAgent-specific package format. `SKILL.md` remains the standard model-facing Skill surface; `assurance/` supplies the deterministic engine with authority, flow, and proof contracts.
+
 ## References
 
 The routing and normalization model is preloaded from `references/preload/intent-routing-model.md`.
