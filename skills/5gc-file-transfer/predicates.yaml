@@ -28,6 +28,10 @@ predicates:
     observations:
       participants:
         ref: transfer.participants.registration
+        scope: >
+          {
+            "participantImsis": [request.senderImsi] + request.receiverImsis
+          }
         freshness: 5s
     evaluator:
       type: cel
@@ -42,6 +46,12 @@ predicates:
     observations:
       participants:
         ref: transfer.participants.session
+        scope: >
+          {
+            "participantImsis": [request.senderImsi] + request.receiverImsis,
+            "sst": request.sst,
+            "sd": request.sd
+          }
         freshness: 5s
     evaluator:
       type: cel
@@ -56,9 +66,18 @@ predicates:
     observations:
       virtualGroup:
         ref: virtual_group.snapshot
+        scope: >
+          {
+            "transferId": request.transferId,
+            "groupId": request.operation == "release_group"
+              ? request.groupId
+              : facts["virtual_group.id"]
+          }
         freshness: 5s
       qosBoost:
         ref: transfer.qos.boost_state
+        scope: >
+          {"transferId": request.transferId}
         freshness: 5s
         when: request.operation == "prepare_transfer" && request.urgency == "urgent"
     evaluator:
