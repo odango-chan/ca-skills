@@ -60,9 +60,16 @@ wifi_transfer.request.satisfied:
   observations:
     transfer:
       ref: wifi.transfer.snapshot
+      scope: >
+        {
+          "requestId": request.requestId,
+          "transferId": facts["wifi_transfer.id"]
+        }
       freshness: 5s
     qosBoost:
       ref: wifi.qos.boost_state
+      scope: >
+        {"transferId": facts["wifi_transfer.id"]}
       freshness: 5s
       when: request.urgency == "urgent"
   evaluator:
@@ -70,7 +77,14 @@ wifi_transfer.request.satisfied:
     expression: ...
 ```
 
-The Skill declares **what Observation semantics it requires**. It does not declare how a particular deployment obtains them. Runtime/deployment `ObservationBinding` resolves a canonical Observation such as `wifi.transfer.snapshot` from runtime state, signaling, a Provider query, replay data, or an earlier governed action result.
+The Skill declares **what Observation semantics it requires**:
+
+- `ref` -> what canonical Observation;
+- `scope` -> which object or bounded collection to observe;
+- `freshness` -> how fresh the proof must be;
+- `when` -> when the requirement is active.
+
+It does not declare how a particular deployment obtains the Observation. Runtime/deployment `ObservationBinding` resolves a canonical Observation from runtime state, signaling, a read-only Provider query, replay data, or an earlier governed action result.
 
 This keeps Observation acquisition out of business Procedure authoring and prevents Provider-specific read paths from becoming stable Skill semantics.
 
@@ -81,13 +95,19 @@ Target Predicate authoring uses two evaluator forms:
 - **CEL** for small, auditable deterministic boolean judgement, including collection aggregation;
 - **Python** for genuinely complex deterministic branching, correlation, semantic conflict handling, or richer diagnostics.
 
-The Runtime Evidence Gate materializes the required typed Observations before evaluator execution. Missing, stale, invalid, or unavailable required Observations produce `UNKNOWN`. CEL normally returns a boolean (`true -> PASS`, `false -> FAIL`); Python may also return semantic `UNKNOWN` when complete evidence is internally contradictory.
+The Runtime Evidence Gate materializes the required typed Observations before evaluator execution. Missing, stale, invalid, unavailable, or budget-exhausted required Observations produce `UNKNOWN`. CEL normally returns a boolean (`true -> PASS`, `false -> FAIL`); Python may also return semantic `UNKNOWN` when complete evidence is internally contradictory.
 
 Skill-local Python evaluators remain `local_compute` with denied network access. They must not acquire Observations, dispatch Tools/Capabilities, or hide workflow execution.
 
 ## Canonical Observation model
 
-Canonical Observation IDs and schemas belong to a shared `ObservationCatalog`. Examples include:
+Canonical Observation contracts belong to a shared `ObservationCatalog`. Each contract defines both:
+
+```text
+scope schema -> canonical value schema
+```
+
+Examples include:
 
 ```text
 transfer.participants.registration
@@ -98,7 +118,9 @@ wifi.transfer.snapshot
 wifi.qos.boost_state
 ```
 
-A deployment maps these semantic Observation IDs to concrete acquisition mechanisms through `ObservationBinding`. This is intentionally analogous to Capability -> Provider Binding while remaining a read/evidence concern rather than a Procedure action.
+A deployment maps these semantic Observation IDs to concrete acquisition mechanisms through `ObservationBinding`. This is intentionally analogous to Capability -> Provider Binding while remaining a proof/evidence concern rather than a Procedure action.
+
+Collection scopes must be bounded. Gateway-oriented request schemas therefore cap receiver cardinality so an Observation provider cannot hide unbounded fan-out behind a single `verify` checkpoint.
 
 The package directory is a repository path. The canonical Skill identity is the schema-valid `name` declared by the package and frozen into the build artifact.
 
