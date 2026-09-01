@@ -7,23 +7,23 @@ predicates:
     freshness:
       maxAge: 1h
     preferredEvidence:
-    - source: request
+    - source: runtime_state
   transfer.operation.release:
     freshness:
       maxAge: 1h
     preferredEvidence:
-    - source: request
+    - source: runtime_state
   transfer.intent.urgent:
     freshness:
       maxAge: 1h
     preferredEvidence:
-    - source: request
+    - source: runtime_state
   transfer.participants.registered:
     freshness:
       maxAge: 5s
     preferredEvidence:
     - source: runtime_state
-    - source: nf_observation
+    - source: signaling_observation
     activeObservation:
       ref: transfer.participants.registration.query
   transfer.participants.pdu_sessions_active:
@@ -31,7 +31,7 @@ predicates:
       maxAge: 5s
     preferredEvidence:
     - source: runtime_state
-    - source: nf_observation
+    - source: signaling_observation
     activeObservation:
       ref: transfer.participants.session.query
   file_transfer.request.satisfied:
@@ -39,7 +39,6 @@ predicates:
       maxAge: 5s
     preferredEvidence:
     - source: runtime_state
-    - source: operation_history
-    - source: nf_observation
+    - source: signaling_observation
     activeObservation:
       ref: virtual_group.status
