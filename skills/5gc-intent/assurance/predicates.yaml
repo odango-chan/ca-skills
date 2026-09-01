@@ -1,0 +1,15 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: PredicateDefinitions
+metadata:
+  skill: core5g-intent
+predicates:
+  core5g.execution_target.resolved:
+    valueType: boolean
+    rules:
+    - equals: true
+      result: PASS
+    - equals: false
+      result: FAIL
+    noValue: UNKNOWN
+    invalid: UNKNOWN
+    otherwise: UNKNOWN
