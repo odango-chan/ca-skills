@@ -25,7 +25,7 @@ properties:
   roster:
     type: array
     maxItems: 32
-    description: Live identity context available to the routing Skill. It is used only to resolve user/device references into canonical identifiers; it is not authoritative network-state evidence.
+    description: Live identity context available to the routing Skill. It resolves user/device references into canonical identifiers only; current network endpoint addresses are not routing context.
     items:
       type: object
       required:
@@ -34,9 +34,6 @@ properties:
         imsi:
           type: string
           pattern: '^[0-9]{15}$'
-        ip:
-          type: string
-          format: ipv4
         name:
           type: string
           minLength: 1
