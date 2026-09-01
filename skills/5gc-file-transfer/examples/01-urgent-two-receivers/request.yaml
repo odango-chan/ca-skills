@@ -12,8 +12,3 @@ members:
   ip: 10.45.0.4
 - imsi: '001019876543212'
   ip: 10.45.0.6
-sst: 1
-sd: '000000'
-upfId: upf-1
-durationSeconds: 3600
-fiveQi: 8
