@@ -1,18 +1,18 @@
-# SBI-proxy Provider Mapping
+# SBI-proxy Provider and Observation Mapping
 
-This document records the migration mapping from the legacy prompt-driven Skill to stable ConnectionAgent Capability semantics.
+This document records the migration mapping from the legacy prompt-driven Skill to stable ConnectionAgent Capability and Observation semantics.
 
-It is not the Runtime Binding Truth Source. Production binding belongs to Runtime/deployment configuration.
+It is not a Runtime Binding Truth Source. Production `ProviderBinding` and `ObservationBinding` belong to Runtime/deployment configuration.
 
-## 1. Participant registration observation
+## 1. Participant registration Observation
 
-Capability:
+Canonical Observation:
 
 ```text
-transfer.participants.registration.query
+transfer.participants.registration
 ```
 
-Current SBI-proxy implementation mapping:
+Current SBI-proxy acquisition mapping:
 
 ```text
 sender
@@ -22,19 +22,21 @@ receivers, in canonical order
   -> nf_udm_get_am_data(imsi=<receiver>)
 ```
 
-The Provider must issue one NF query per member and aggregate the individual observations into `transfer.participants.registered`.
+The Observation provider deterministically queries each canonical participant and normalizes the result into one typed participant-registration collection.
+
+This is not a Procedure action in the target Skill. A `verify` checkpoint requires the Observation and Runtime obtains it through `ObservationBinding`.
 
 No member may be silently skipped because another member already failed.
 
-## 2. Participant PDU Session observation
+## 2. Participant PDU Session Observation
 
-Capability:
+Canonical Observation:
 
 ```text
-transfer.participants.session.query
+transfer.participants.session
 ```
 
-Current mapping:
+Current acquisition mapping:
 
 ```text
 sender
@@ -44,7 +46,7 @@ receivers, in canonical order
   -> nf_udm_get_sm_data(imsi=<receiver>, sst=1, sd="000000")
 ```
 
-Again, one NF query is required per member. The aggregate predicate is `transfer.participants.pdu_sessions_active`.
+Again, the provider returns one typed collection Observation. Procedure control flow only sees the Predicate result; provider-specific query fan-out stays behind ObservationBinding.
 
 ## 3. Edge cache
 
@@ -91,6 +93,8 @@ The canonical result must expose a structured `groupId` and contribute:
 facts.virtual_group.id
 ```
 
+It may also contribute a fresh `virtual_group.snapshot` Observation when the returned state is sufficient and trustworthy; final verification may still require a later observation according to Runtime policy.
+
 ### Reliability gap
 
 The current Tool cannot reliably distinguish these two states after a lost response:
@@ -123,23 +127,25 @@ vg_assign_members(
 
 Ambiguous mutation results enter `virtual_group.reconcile_members` rather than replaying `vg_assign_members` immediately.
 
-## 6. Virtual Group status
+A committed canonical result may update the reusable `virtual_group.snapshot` Observation.
 
-Capability:
+## 6. Virtual Group Observation
+
+Canonical Observation:
 
 ```text
-virtual_group.status
+virtual_group.snapshot
 ```
 
-Current mapping:
+One current acquisition mechanism is:
 
 ```text
 vg_status(group_id=<groupId>)
 ```
 
-This is read-only evidence used to verify the final request state and to support reconciliation.
+This mapping belongs to `ObservationBinding`; `virtual_group.status` is not a stable business Procedure action merely because status must be checked.
 
-`vg_list()` may be used by a Provider implementation only when necessary to resolve a correlation lookup; it should not be exposed as a separate planning action unless required by a governed Procedure.
+`vg_list()` may be used internally by an Observation/Reconciliation provider when necessary to resolve correlation. It should not be exposed as a planning action unless a governed business Procedure genuinely requires that operation.
 
 ## 7. QoS boost
 
@@ -158,6 +164,14 @@ pcf_qos_boost(transfer_id=<transferId>)
 The Provider normalizes legacy results containing `scheduled`, `boosted`, or `accepted` to committed success.
 
 The Procedure contains this action only in the `urgent` variant and dispatches it at most once. It never performs a restore operation.
+
+The canonical action result may contribute:
+
+```text
+transfer.qos.boost_state
+```
+
+as a typed Observation. Runtime may reuse that Observation during final verification if it satisfies freshness/provenance policy. If stronger or newer proof is required, ObservationBinding may resolve another source.
 
 An ambiguous result enters `transfer.qos.reconcile`. If the Provider cannot independently determine the state, the execution remains unresolved rather than re-dispatching the boost.
 
@@ -183,11 +197,29 @@ already released  -> COMMITTED
 not found         -> COMMITTED
 ```
 
+A committed release result may contribute an updated `virtual_group.snapshot` indicating `RELEASED` or `NOT_FOUND`.
+
 A transport-level ambiguous result is different from `not found`: it enters `virtual_group.reconcile_release` and must not cause another release dispatch in the same Procedure.
 
-## 9. Tools intentionally excluded
+## 9. Binding rule
 
-The following legacy capabilities do not belong to this Skill's execution envelope:
+Keep the two binding families separate:
+
+```text
+Capability
+  -> ProviderBinding
+  -> mutation / governed business action
+
+Observation
+  -> ObservationBinding
+  -> read/reuse/normalize canonical proof input
+```
+
+A concrete legacy Tool may participate in either family, but that does not make its Tool name part of stable Skill semantics.
+
+## 10. Tools intentionally excluded from business authority
+
+The following legacy operations do not belong to this Skill's governed business-action envelope:
 
 ```text
 vg_activate
@@ -201,4 +233,6 @@ message/spawn/cron/web
 wifi_*
 ```
 
-If a future file-transfer flow genuinely needs one of them, expand the Capability Contract and Procedure explicitly rather than adding a broad Tool whitelist to `SKILL.md`.
+Read-only NF/status operations may still appear behind an authorized ObservationBinding. That does not make them directly callable Procedure resources.
+
+If a future file-transfer flow genuinely needs a new business operation, expand the Capability Contract and Procedure explicitly rather than adding a broad Tool whitelist to `SKILL.md`.
