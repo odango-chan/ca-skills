@@ -1,0 +1,10 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: EvidenceRules
+metadata:
+  skill: 5gc-intent
+predicates:
+  5gc.execution_target.resolved:
+    freshness:
+      maxAge: 1m
+    preferredEvidence:
+    - source: runtime_state
