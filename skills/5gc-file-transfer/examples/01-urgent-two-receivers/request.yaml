@@ -1,0 +1,19 @@
+operation: prepare_transfer
+transferId: tr-1a2b3c4d
+urgency: urgent
+senderImsi: '001019876543210'
+receiverImsis:
+- '001019876543211'
+- '001019876543212'
+members:
+- imsi: '001019876543210'
+  ip: 10.45.0.2
+- imsi: '001019876543211'
+  ip: 10.45.0.4
+- imsi: '001019876543212'
+  ip: 10.45.0.6
+sst: 1
+sd: '000000'
+upfId: upf-1
+durationSeconds: 3600
+fiveQi: 8
