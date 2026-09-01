@@ -94,6 +94,8 @@ A read `UNKNOWN` or failure stops the preparation path before member assignment.
 
 Because this is an explicit Procedure Action rather than hidden proof acquisition, it consumes the business action budget. The current Skill contract accounts for the added step with `maxActions: 13`.
 
+The authoring Procedure uses field-level `fromOutput` for this handoff. Current shared Runtime does not yet fully implement that field-level prior-output binding. Until the coordinated Runtime refactor lands, this Skill is a target authoring/golden fixture and must not be treated as production-qualified execution merely because the authoring YAML is valid.
+
 ## 4. Edge cache
 
 Capability:
