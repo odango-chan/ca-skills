@@ -46,6 +46,8 @@ receivers, in canonical order
   -> nf_udm_get_sm_data(imsi=<receiver>, sst=1, sd="000000")
 ```
 
+`sst=1` and `sd="000000"` are current Skill proof-policy constants, not Agent request fields. They are part of the scoped Observation requirement.
+
 Again, the provider returns one typed collection Observation. Procedure control flow only sees the Predicate result; provider-specific query fan-out stays behind ObservationBinding.
 
 ## 3. Edge cache
@@ -56,11 +58,13 @@ Capability:
 edge.cache.ensure
 ```
 
-Current mapping:
+Current deployment mapping:
 
 ```text
 edge_cache_create(upf_id="upf-1")
 ```
+
+`upf-1` is a deployment/ProviderBinding choice. The canonical file-transfer request and Procedure do not ask the Agent to select an UPF merely to satisfy the concrete legacy Tool signature.
 
 One Procedure action produces at most one normal dispatch. If dispatch outcome is unknown, Runtime enters `edge.cache.reconcile`; it does not blindly invoke `edge_cache_create` again.
 
@@ -84,6 +88,8 @@ vg_create(
   qos_5qi=8
 )
 ```
+
+`duration=3600` and `qos_5qi=8` are current deterministic Skill policy and are materialized as Procedure literals. They are not semantic values the routing Agent must invent or copy into the target request.
 
 The canonical Capability input also contains `transferId` as the correlation/idempotency key even though the legacy Tool does not currently accept it.
 
@@ -201,9 +207,22 @@ A committed release result may contribute an updated `virtual_group.snapshot` in
 
 A transport-level ambiguous result is different from `not found`: it enters `virtual_group.reconcile_release` and must not cause another release dispatch in the same Procedure.
 
-## 9. Binding rule
+## 9. Input ownership rule
 
-Keep the two binding families separate:
+Keep request semantics, deterministic Skill policy, and deployment binding separate:
+
+```text
+Gateway / routing request
+  -> operation, transferId, urgency, canonical participants and member addresses
+
+Skill policy
+  -> fixed slice proof scope, duration and QoS defaults
+
+Runtime / deployment binding
+  -> concrete Provider/UPF/endpoints and credentials
+```
+
+Then keep business action and proof acquisition separate:
 
 ```text
 Capability
@@ -215,7 +234,7 @@ Observation
   -> read/reuse/normalize canonical proof input
 ```
 
-A concrete legacy Tool may participate in either family, but that does not make its Tool name part of stable Skill semantics.
+A concrete legacy Tool may participate in either family, but that does not make its Tool name or deployment arguments part of stable Skill request semantics.
 
 ## 10. Tools intentionally excluded from business authority
 
