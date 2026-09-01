@@ -1,0 +1,11 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: PredicateSet
+metadata:
+  skill: core5g-intent
+predicates:
+  core5g.execution_target.resolved:
+    evaluator:
+      type: cel
+      expression: facts["core5g.execution_target.resolved"] == true
+      passReasonCode: EXECUTION_TARGET_RESOLVED
+      failReasonCode: EXECUTION_TARGET_NOT_RESOLVED
