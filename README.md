@@ -2,7 +2,7 @@
 
 `connectionagent-skills` is the repository for official ConnectionAgent **Skill source assets**.
 
-This repository owns Skill packages that can be compiled, qualified, and consumed by the Skill Platform. It does not implement the Skill Platform, Agent loop, Runtime, Sandbox, or Web application.
+This repository owns Skill packages that can be consumed by the Agent and, when they carry the optional Execution Assurance Extension, compiled and qualified for deterministic governed execution.
 
 ## Repository boundary
 
@@ -19,29 +19,36 @@ This repository does not own:
 
 - Skill Compiler / ProcedurePatch apply / SkillProfile resolution -> `connectionagent-skill-platform`;
 - LLM / Agent loop / model adapters -> `connectionagent-agent`;
-- Procedure execution / Evidence Gate / Observation resolution / Reconcile -> `connectionagent-runtime`;
+- Target Admission / Procedure execution / Evidence Gate / Observation resolution / Reconcile -> `connectionagent-runtime`;
 - Observation acquisition/binding for a deployment -> Runtime/deployment Registry;
 - 5GC simulated world / fault injection -> `connectionagent-sandbox`;
 - production UI -> `connectionagent-web`.
 
-## Target package layout
+## Package model
+
+A standard Agentic Skill may be lightweight:
 
 ```text
 skills/
 └── <skill-package>/
     ├── SKILL.md
-    ├── assurance/
-    │   ├── contract.yaml
-    │   ├── procedure.yaml
-    │   └── predicates.yaml
-    ├── cases/
     ├── references/
     ├── schemas/
     ├── scripts/
-    └── examples/
+    ├── examples/
+    └── cases/
 ```
 
-`assurance/` is an optional **Execution Assurance Extension** for dual-engine Agent architectures. It is not a ConnectionAgent-specific namespace. A standard Skill can exist without it; an assurance-enabled Skill adds deterministic execution and proof contracts.
+A Skill that crosses into governed side-effect execution may add:
+
+```text
+assurance/
+├── contract.yaml
+├── procedure.yaml
+└── predicates.yaml
+```
+
+`assurance/` is an optional **Execution Assurance Extension** for dual-engine Agent architectures. It is not a ConnectionAgent-specific namespace. A standard Skill can exist without it; an assurance-enabled Skill adds deterministic authority, execution, recovery, and proof contracts.
 
 The three assurance files answer different questions:
 
@@ -57,6 +64,34 @@ predicates.yaml
 ```
 
 There is intentionally no standalone `evidence.yaml` in the target model.
+
+## Agentic routing vs. governed execution
+
+The target architecture does not force every Skill into deterministic Procedure execution.
+
+A routing/interpretation Skill may remain Agentic:
+
+```text
+natural-language intent
+  -> Agentic routing Skill
+  -> ExecutionTargetCandidate
+```
+
+The candidate then crosses a deterministic trust boundary:
+
+```text
+ExecutionTargetCandidate
+  -> Target Admission
+  -> admitted ExecutionTarget
+  -> assurance-enabled executable Skill
+  -> deterministic RunPlan / Procedure execution
+```
+
+Target Admission validates the proposed Skill/Variant/entrypoint, target request schema, eligibility, authority and environment requirements. An LLM may propose the wrong target, but it cannot make that target executable merely by asserting that it is valid.
+
+Routing quality belongs primarily to Agent/Benchmark evaluation. Admission safety and business execution reliability belong to Runtime/Assurance evaluation.
+
+`core5g-intent` is the reference routing Skill and intentionally has **no `assurance/` directory**. It outputs `schemas/execution-target-candidate.schema.yaml`. `core5g-file-transfer` and `wifi-file-transfer` are assurance-enabled executable Skills.
 
 ## Procedure selection vs. Predicate proof
 
@@ -163,15 +198,16 @@ Official Skills are migrated from `connectionagent-skill-platform/skills/` into 
 
 1. establish the target Skill source package here;
 2. refactor Skill Platform and Runtime contracts to consume the target package model;
-3. qualify the independent Skill source against the new contracts;
-4. remove superseded official/fixture assets from old locations.
+3. qualify assurance-enabled Skill sources against the new execution contracts;
+4. evaluate Agentic routing Skills with routing/selection benchmarks and validate their candidate schemas;
+5. remove superseded official/fixture assets from old locations.
 
-The current gateway-oriented branch intentionally targets the refactored assurance model rather than preserving legacy standalone EvidenceRules or scalar Predicate authoring.
+The current gateway-oriented branch intentionally targets the refactored model rather than preserving legacy standalone EvidenceRules or scalar Predicate authoring.
 
 ## Current gateway-oriented Skills
 
-- `core5g-intent` -> generic `[TASK: 5GC-INTENT]` routing;
-- `core5g-file-transfer` -> `[TASK: 5GC-FILE-TRANSFER]` and `[TASK: 5GC-VG-RELEASE]`;
-- `wifi-file-transfer` -> `[TASK: WIFI-TRANSFER]`.
+- `core5g-intent` -> `[TASK: 5GC-INTENT]`; Agentic routing Skill, no `assurance/`, outputs an `ExecutionTargetCandidate`;
+- `core5g-file-transfer` -> `[TASK: 5GC-FILE-TRANSFER]` and `[TASK: 5GC-VG-RELEASE]`; assurance-enabled executable Skill;
+- `wifi-file-transfer` -> `[TASK: WIFI-TRANSFER]`; assurance-enabled executable Skill.
 
 Gateway task markers are external protocol identifiers. They do not need to equal the internal Skill name.
