@@ -32,13 +32,15 @@ The gateway owns:
 
 This Skill owns:
 
-- proving that the sender and every receiver are registered;
-- proving that the sender and every receiver have an active PDU session;
+- requiring proof that the sender and every receiver are registered;
+- requiring proof that the sender and every receiver have an active PDU session;
 - preparing the edge cache;
 - creating a virtual group;
 - assigning canonical IMSI/IP membership;
 - requesting a QoS boost only when urgency has been positively established;
 - releasing the specified virtual group for a release request.
+
+This Skill does not choose how registration/session/state observations are acquired. Runtime `ObservationBinding` resolves those canonical Observation requirements for the active deployment.
 
 This Skill does not read or write file bytes, message users, start or stop network processes, modify subscriber databases, or invoke Wi-Fi capabilities.
 
@@ -56,25 +58,38 @@ The normalized value is frozen for the run. The Procedure does not re-interpret 
 ## Execution principles
 
 1. `prepare_transfer` and `release_group` use governed deterministic Procedures. The model does not assemble an ad-hoc Tool-call sequence at execution time.
-2. Dynamic receiver count is not a model loop. `transfer.participants.*` observation capabilities accept the canonical participant set and the Provider performs deterministic per-member observation.
-3. Concrete `nf_udm_*`, `edge_cache_*`, `vg_*`, and `pcf_*` Tool names are Provider/Binding details, not stable Procedure semantics.
-4. `virtual_group.activate` is outside this Skill. The gateway decides activation after receiver confirmation.
-5. QoS boost exists only on the `urgent` deterministic path and may be dispatched at most once.
-6. A mutation returning `OUTCOME_UNKNOWN` must never be blindly replayed. The Procedure enters its governed reconciliation path when one exists, otherwise it stops safely.
-7. `already released` and `not found` are normalized by the release Capability/Provider as successful release semantics; the model never parses those strings.
-8. Gateway-specific text rendering such as `vg-YYYYMMDD-NNN` belongs to the output adapter. Runtime and Skill logic use structured `groupId` values.
-9. Gateway-provided IMSI/IP membership is authoritative after request normalization and Schema validation. A static phone roster must not override live gateway data.
-10. Success means the final request predicate is proven, not merely that the last Tool returned a success-looking string.
+2. Participant registration and PDU Session checks are `verify` checkpoints. Runtime materializes the required typed participant Observations through `ObservationBinding`; the Procedure does not contain separate query actions merely to feed verification.
+3. Dynamic participant count is not a model loop. The Observation provider may deterministically fan out over the canonical participant set while Runtime still receives one typed collection Observation.
+4. Concrete `nf_udm_*`, `edge_cache_*`, `vg_*`, and `pcf_*` Tool names are Provider/Binding details, not stable Procedure semantics.
+5. `virtual_group.activate` is outside this Skill. The gateway decides activation after receiver confirmation.
+6. QoS boost exists only on the `urgent` deterministic path and may be dispatched at most once.
+7. A mutation returning `OUTCOME_UNKNOWN` must never be blindly replayed. The Procedure enters its governed reconciliation path when one exists, otherwise it stops safely.
+8. `already released` and `not found` are normalized by the release Capability/Provider as successful release semantics; the model never parses those strings.
+9. Gateway-specific text rendering such as `vg-YYYYMMDD-NNN` belongs to the output adapter. Runtime and Skill logic use structured `groupId` values.
+10. Gateway-provided IMSI/IP membership is authoritative after request normalization and Schema validation. A static phone roster must not override live gateway data.
+11. Success means the final request predicate is proven, not merely that the last Tool returned a success-looking string.
+
+## Machine contracts
+
+The target package keeps three root machine files:
+
+```text
+contract.yaml    -> authority and goal envelope
+procedure.yaml   -> governed execution flow
+predicates.yaml  -> Observation requirements and Predicate evaluators
+```
+
+There is no standalone `evidence.yaml` in the target model.
 
 ## References
 
 The core orchestration model is preloaded from `references/preload/orchestration-model.md`.
 
-The migration mapping between stable Capabilities and the current SBI-proxy NF/VG/PCF Tools is documented in `references/on-demand/sbi-proxy-provider-mapping.md`. That document is implementation guidance, not the Runtime Binding Truth Source.
+The migration mapping between stable Capabilities/Observations and the current SBI-proxy NF/VG/PCF Tools is documented in `references/on-demand/sbi-proxy-provider-mapping.md`. That document is implementation guidance, not the Runtime Binding Truth Source.
 
-The target typed-Evidence / CEL / Python Predicate split used by this Skill is documented in `references/on-demand/predicate-evaluation.md`.
+The target typed-Observation / CEL / Python Predicate split used by this Skill is documented in `references/on-demand/predicate-evaluation.md`.
 
-Procedure structure, predicates, budgets, UNKNOWN handling, and recovery semantics are defined by `assurance/`, Runtime Capability Contracts, and Provider Bindings.
+Procedure structure, predicates, budgets, UNKNOWN handling, recovery semantics, Capability Binding, and Observation Binding remain machine-contract concerns rather than prompt instructions.
 
 ## Short examples
 
