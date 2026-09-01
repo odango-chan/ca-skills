@@ -1,0 +1,21 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: 5gc-intent-request.schema.yaml
+title: Core5GIntentRequest
+type: object
+required:
+- requestId
+- intent
+properties:
+  requestId:
+    type: string
+    minLength: 1
+    description: Stable gateway correlation key for the intent-resolution request.
+  intent:
+    type: string
+    minLength: 1
+    description: Original user intent carried by the gateway task.
+  senderImsi:
+    type: string
+    pattern: '^[0-9]{15}$'
+    description: Canonical sender/subject IMSI when the gateway can resolve it before intent routing.
+additionalProperties: false
