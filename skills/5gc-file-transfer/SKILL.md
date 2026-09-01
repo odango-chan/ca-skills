@@ -69,17 +69,20 @@ The normalized value is frozen for the run. The Procedure does not re-interpret 
 10. Gateway-provided IMSI/IP membership is authoritative after request normalization and Schema validation. A static phone roster must not override live gateway data.
 11. Success means the final request predicate is proven, not merely that the last Tool returned a success-looking string.
 
-## Machine contracts
+## Execution assurance extension
 
-The target package keeps three root machine files:
+This Skill adds an optional machine-readable assurance layer alongside the standard Skill surface:
 
 ```text
-contract.yaml    -> authority and goal envelope
-procedure.yaml   -> governed execution flow
-predicates.yaml  -> Observation requirements and Predicate evaluators
+assurance/
+├── contract.yaml    -> authority and goal envelope
+├── procedure.yaml   -> governed deterministic execution flow
+└── predicates.yaml  -> Observation requirements and Predicate evaluators
 ```
 
-There is no standalone `evidence.yaml` in the target model.
+The `assurance/` directory describes execution assurance for a dual-engine Agent architecture. It is not a ConnectionAgent-specific namespace and does not replace `SKILL.md`.
+
+There is no standalone `evidence.yaml` in the target model. Concrete Evidence is assembled at runtime from the Observation requirements declared beside each Predicate.
 
 ## References
 
