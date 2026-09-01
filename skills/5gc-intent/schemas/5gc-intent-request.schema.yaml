@@ -17,5 +17,31 @@ properties:
   senderImsi:
     type: string
     pattern: '^[0-9]{15}$'
-    description: Canonical sender/subject IMSI when the gateway can resolve it before intent routing.
+    description: Canonical sender/subject IMSI when already resolved by the gateway.
+  roster:
+    type: array
+    maxItems: 32
+    description: Live identity context available to the routing Skill. It is used only to resolve user/device references into canonical identifiers; it is not authoritative network-state evidence.
+    items:
+      type: object
+      required:
+      - imsi
+      properties:
+        imsi:
+          type: string
+          pattern: '^[0-9]{15}$'
+        ip:
+          type: string
+          format: ipv4
+        name:
+          type: string
+          minLength: 1
+        aliases:
+          type: array
+          maxItems: 16
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+      additionalProperties: false
 additionalProperties: false
