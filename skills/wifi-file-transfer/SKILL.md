@@ -42,8 +42,7 @@ If urgency is uncertain, use `normal`.
 
 Once receiver IDs and urgency are canonical, hand execution to the governed assurance entrypoint. Do not assemble Wi-Fi Tool calls from prose.
 
-## References
+## On-demand references
 
-- `references/preload/orchestration-model.md` -> normalization and orchestration model.
 - `references/on-demand/wifiboost-provider-mapping.md` -> current provider migration mapping.
-- `references/on-demand/predicate-evaluation.md` -> target Predicate/Observation evaluation details.
+- `references/on-demand/predicate-evaluation.md` -> Predicate/Observation evaluation details.
