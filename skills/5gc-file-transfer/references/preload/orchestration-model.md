@@ -91,4 +91,4 @@ QoS boost and virtual-group release preserve the old at-most-once business-dispa
 
 `[TASK: 5GC-INTENT]` has a much broader semantic scope than file transfer and must not share this Skill's execution envelope.
 
-Generic 5GC intent handling belongs to the separate `5gc-intent` Skill, which owns intent interpretation and governed execution-target selection without inheriting raw SBI authority.
+Generic 5GC intent handling belongs to the separate `core5g-intent` Skill, which owns intent interpretation and governed execution-target selection without inheriting raw SBI authority.
