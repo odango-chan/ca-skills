@@ -83,17 +83,20 @@ The Procedure never re-reads the original natural-language intent during executi
 7. The Skill never invokes filesystem, shell, process-management, messaging, 5GC NF/VG/PCF, cron, spawn, or web capabilities.
 8. Success means the final Wi-Fi transfer request predicate is proven, not merely that a Tool returned a success-looking string.
 
-## Machine contracts
+## Execution assurance extension
 
-The target package keeps three root machine files:
+This Skill adds an optional machine-readable assurance layer alongside the standard Skill surface:
 
 ```text
-contract.yaml    -> authority and goal envelope
-procedure.yaml   -> governed execution flow
-predicates.yaml  -> Observation requirements and Predicate evaluators
+assurance/
+├── contract.yaml    -> authority and goal envelope
+├── procedure.yaml   -> governed deterministic execution flow
+└── predicates.yaml  -> Observation requirements and Predicate evaluators
 ```
 
-There is no standalone `evidence.yaml` in the target model.
+The `assurance/` directory describes execution assurance for a dual-engine Agent architecture. It is not a ConnectionAgent-specific namespace and does not replace `SKILL.md`.
+
+There is no standalone `evidence.yaml` in the target model. Concrete Evidence is assembled at runtime from the Observation requirements declared beside each Predicate.
 
 ## References
 
