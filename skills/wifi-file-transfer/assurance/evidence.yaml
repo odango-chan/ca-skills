@@ -3,16 +3,23 @@ kind: EvidenceRules
 metadata:
   skill: wifi-file-transfer
 predicates:
-  transfer.intent.urgent:
-    freshness:
-      maxAge: 1h
-    preferredEvidence:
-    - source: runtime_state
   wifi_transfer.request.satisfied:
+    requiredObservations:
+      transfer:
+        ref: wifi.transfer.snapshot
+      qosBoost:
+        ref: wifi.qos.boost_state
+        when: request.urgency == "urgent"
     freshness:
       maxAge: 5s
-    preferredEvidence:
-    - source: runtime_state
-    - source: signaling_observation
-    activeObservation:
-      ref: wifi.transfer.status
+    acquisition:
+      transfer:
+        preferred:
+        - source: runtime_state
+        - source: signaling_observation
+        activeObservation:
+          ref: wifi.transfer.status
+      qosBoost:
+        preferred:
+        - source: tool_result
+          ref: wifi.qos.boost
