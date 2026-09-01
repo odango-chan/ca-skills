@@ -1,7 +1,7 @@
 apiVersion: connectionagent.io/v1alpha1
 kind: ProcedureSet
 metadata:
-  skill: 5gc-file-transfer
+  skill: core5g-file-transfer
 spec:
   procedures:
   - name: prepare-file-transfer-normal
