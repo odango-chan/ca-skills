@@ -3,13 +3,6 @@ kind: PredicateSet
 metadata:
   skill: wifi-file-transfer
 predicates:
-  transfer.intent.urgent:
-    evaluator:
-      type: cel
-      expression: request.urgency == "urgent"
-      passReasonCode: TRANSFER_URGENT
-      failReasonCode: TRANSFER_NOT_URGENT
-
   wifi_transfer.request.satisfied:
     observations:
       transfer:
