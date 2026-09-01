@@ -22,8 +22,8 @@ Do not use it for generic `[TASK: 5GC-INTENT]` routing or Wi-Fi transfer tasks.
 
 ## Business semantics
 
-- A `prepare_transfer` request must already contain canonical sender/receiver IMSIs and the IMSI/IP membership required for the transfer.
-- Treat gateway-supplied canonical membership as authoritative for the run. Do not replace it with a static roster.
+- A `prepare_transfer` request must already contain canonical sender/receiver IMSIs. Current UE endpoint addresses are runtime network state and are not routing-model inputs.
+- Governed execution resolves the current participant endpoint set before assigning virtual-group members. Do not copy IP addresses from a static identity roster.
 - `urgent` means the source intent explicitly asks for accelerated completion, such as urgent, ASAP, hurry, or an equivalent expression. A large file by itself is not urgent.
 - Receiver consent, file upload/download, user-visible messages, and the decision to activate a virtual group remain gateway responsibilities.
 - `virtual_group.activate` is therefore outside this Skill.
