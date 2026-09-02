@@ -25,9 +25,3 @@ description: 在满足目标 UE 数据连接前置条件后查询指定城市天
 需要理解 Weather Tool 的输入、输出或调用前置时，按需读取 `references/on-demand/weather-service-semantics.md`。
 
 Procedure、Predicate、动作预算和恢复语义以 `assurance/` 下的机器契约与 Runtime contract 为准；Reference 不维护第二套执行状态机。
-
-## 简短示例
-
-- `user_plane.connectivity.available=PASS`：直接查询天气并验证业务结果。
-- Connectivity 为 `FAIL`：先满足连接前置，再查询天气。
-- Connectivity 为 `UNKNOWN`：先观察；若写操作结果未知，先调和而不是重试。
