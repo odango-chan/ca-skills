@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: download-object-by-deadline
+  name: 14-precondition-unknown
+spec:
+  classes: [precondition_unknown]
+  purpose: precondition UNKNOWN，规划阻断。

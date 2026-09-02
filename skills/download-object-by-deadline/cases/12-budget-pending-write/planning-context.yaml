@@ -1,0 +1,41 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: PlanningContext
+metadata:
+  operationId: dl-12
+  version: 1
+subject:
+  ueRef: imsi-001010000000001
+request:
+  ueRef: imsi-001010000000001
+  objectRef: obj-report-2026
+  direction: downlink
+  deadline: "2026-08-13T23:59:59Z"
+  sizeBytes: 104857600
+facts:
+  ue.registered:
+    value: PASS
+  object.size.known:
+    value: PASS
+  file_transfer.completed:
+    value: PASS
+  file_transfer.deadline_met:
+    value: PASS
+  bytes_remaining:
+    value: 104857600
+  seconds_remaining:
+    value: 600
+  minimum_payload_bitrate_bps:
+    value: 1398102
+availableResources:
+- {ref: object.metadata.query, kind: capability, version: v1, effect: read_only, invocable: true}
+- {ref: user_plane.capacity.estimate, kind: capability, version: v1, effect: read_only, invocable: true}
+- {ref: qos.requirement.resolve, kind: capability, version: v1, effect: read_only, invocable: true}
+- {ref: pdu_session.create, kind: capability, version: v1, effect: mutation, invocable: true}
+- {ref: pdu_session.modify_qos, kind: capability, version: v1, effect: mutation, invocable: true}
+- {ref: pdu_session.query, kind: capability, version: v1, effect: read_only, invocable: true}
+- {ref: pdu_session.reconcile, kind: capability, version: v1, effect: mutation, invocable: true}
+- {ref: user_plane.probe, kind: capability, version: v1, effect: read_only, invocable: true}
+- {ref: file.download, kind: capability, version: v1, effect: mutation, invocable: true}
+- {ref: file.download.status, kind: capability, version: v1, effect: read_only, invocable: true}
+- {ref: skill.derive-transfer-requirement, kind: tool, version: sha256:0000000000000000000000000000000000000000000000000000000000000000, effect: local_compute, invocable: true}
+constraints: {maxActions: 1}

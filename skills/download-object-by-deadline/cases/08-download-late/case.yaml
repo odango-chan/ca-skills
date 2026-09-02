@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: download-object-by-deadline
+  name: 08-download-late
+spec:
+  classes: [postcondition_failed]
+  purpose: 下载完成但超过截止时间，deadline_met FAIL。

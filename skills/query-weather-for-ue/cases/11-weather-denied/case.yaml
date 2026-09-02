@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: query-weather-for-ue
+  name: 11-weather-denied
+spec:
+  classes: [action_denied]
+  purpose: 验证天气 Capability 被策略拒绝时直接失败，不伪造结果或自动重试。

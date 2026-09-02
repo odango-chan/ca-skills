@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: query-weather-for-ue
+  name: 15-action-budget-exhausted
+spec:
+  classes: [budget_exhausted]
+  purpose: 验证待决写已确认未提交后，下一次写会超预算时确定性失败。

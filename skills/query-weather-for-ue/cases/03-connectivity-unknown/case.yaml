@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: query-weather-for-ue
+  name: 03-connectivity-unknown
+spec:
+  classes: [requirement_observation]
+  purpose: 验证连接状态未知时先探测，不依据猜测直接执行写操作。

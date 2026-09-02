@@ -1,0 +1,48 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillContract
+metadata:
+  name: download-object-by-deadline
+spec:
+  skillType: executable
+  goal: file.download_by_deadline
+  inputs:
+    requestSchema: schemas/download-request.schema.yaml
+  context:
+    requiredFacts:
+    - ue.registered
+    - object.size.known
+  allowedResources:
+    capabilities:
+    - object.metadata.query
+    - user_plane.capacity.estimate
+    - qos.requirement.resolve
+    - pdu_session.create
+    - pdu_session.modify_qos
+    - pdu_session.query
+    - pdu_session.reconcile
+    - user_plane.probe
+    - file.download
+    - file.download.status
+    localTools:
+    - skill.derive-transfer-requirement
+  preconditions:
+  - predicate: ue.registered
+    expect: PASS
+  requirements:
+  - predicate: file_transfer.completed
+    expect: PASS
+    satisfiable: true
+  - predicate: file_transfer.deadline_met
+    expect: PASS
+    satisfiable: true
+  postconditions:
+  - predicate: file_transfer.completed
+    expect: PASS
+  - predicate: file_transfer.deadline_met
+    expect: PASS
+  planning:
+    maxActions: 12
+    allowDynamicProcedure: true
+  failureSemantics:
+    outcomeUnknown:
+      requireReconcile: true

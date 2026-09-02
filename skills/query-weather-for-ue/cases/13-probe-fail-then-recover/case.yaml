@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: query-weather-for-ue
+  name: 13-probe-fail-then-recover
+spec:
+  classes: [probe_recovery]
+  purpose: 验证探测确认连接不可用后，受控建立连接并完成后置验证。

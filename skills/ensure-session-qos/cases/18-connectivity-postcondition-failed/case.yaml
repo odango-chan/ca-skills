@@ -1,0 +1,6 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata: {skill: ensure-session-qos, name: 18-connectivity-postcondition-failed}
+spec:
+  classes: [connectivity_postcondition_failed]
+  purpose: 验证 Session 和 QoS 已满足但用户面不可用时只执行最终验证并失败，不越界调用连接恢复动作。

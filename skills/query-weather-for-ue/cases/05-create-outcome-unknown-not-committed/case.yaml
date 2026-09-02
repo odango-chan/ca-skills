@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: query-weather-for-ue
+  name: 05-create-outcome-unknown-not-committed
+spec:
+  classes: [outcome_unknown_not_committed]
+  purpose: 验证调和确认未提交后，才允许受预算约束地重新执行写操作。

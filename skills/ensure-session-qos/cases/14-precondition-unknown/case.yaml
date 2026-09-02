@@ -1,0 +1,6 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata: {skill: ensure-session-qos, name: 14-precondition-unknown}
+spec:
+  classes: [precondition_unknown]
+  purpose: UE 注册状态未知时阻断而不猜测或写入。

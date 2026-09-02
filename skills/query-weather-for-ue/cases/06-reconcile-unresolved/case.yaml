@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: query-weather-for-ue
+  name: 06-reconcile-unresolved
+spec:
+  classes: [outcome_unknown_unresolved]
+  purpose: 验证调和仍无法确定时保留待决写状态并终止为未解决。

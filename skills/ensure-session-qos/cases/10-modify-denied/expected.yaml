@@ -1,0 +1,14 @@
+expected:
+  procedure: modify-existing-session-qos
+  planningStatus: READY_AFTER_REQUIREMENT
+  terminal: FAILED
+  errorCode: ACTION_DENIED
+  reasonCode: AUTHORITY_DENIED
+  postconditions:
+  - {predicate: pdu_session.established, expect: PASS, actual: NOT_EVALUATED}
+  - {predicate: pdu_session.qos.satisfied, expect: PASS, actual: NOT_EVALUATED}
+  - {predicate: user_plane.connectivity.available, expect: PASS, actual: NOT_EVALUATED}
+  trace:
+    match: exact
+    ordered:
+    - {nodeId: modify-session-qos, outcome: DENIED}

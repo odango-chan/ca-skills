@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: download-object-by-deadline
+  name: 06-qos-admission-denied
+spec:
+  classes: [action_denied]
+  purpose: QoS 准入拒绝，Operation 以 ACTION_DENIED 失败。

@@ -1,0 +1,3 @@
+mockPredicates:
+  verify-connectivity:
+    user_plane.connectivity.available: FAIL

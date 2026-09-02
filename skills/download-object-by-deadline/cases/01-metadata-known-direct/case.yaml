@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: download-object-by-deadline
+  name: 01-metadata-known-direct
+spec:
+  classes: [happy_path]
+  purpose: 可信 Metadata 可用且当前能力足够时，直接下载并在截止时间前完成。

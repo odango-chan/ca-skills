@@ -1,0 +1,6 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata: {skill: ensure-session-qos, name: 04-observe-absent-then-create}
+spec:
+  classes: [requirement_observation_absent]
+  purpose: Session 状态未知时先查询，观察为不存在后再创建。

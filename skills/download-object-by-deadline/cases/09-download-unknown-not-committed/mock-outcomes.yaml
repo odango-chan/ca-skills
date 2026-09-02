@@ -1,0 +1,3 @@
+mockOutcomes:
+  download-object: [OUTCOME_UNKNOWN, COMMITTED]
+  reconcile-download: NOT_COMMITTED

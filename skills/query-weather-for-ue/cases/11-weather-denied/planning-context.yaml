@@ -1,0 +1,40 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: PlanningContext
+metadata:
+  operationId: op-11-weather-denied
+  version: 1
+subject:
+  supi: imsi-001010000000001
+  pduSessionId: 10
+request:
+  city: Tokyo
+  unit: celsius
+facts:
+  ue.registered:
+    value: PASS
+  user_plane.connectivity.available:
+    value: PASS
+availableResources:
+- ref: pdu_session.ensure
+  kind: capability
+  version: v1
+  effect: mutation
+  invocable: true
+- ref: pdu_session.reconcile
+  kind: capability
+  version: v1
+  effect: mutation
+  invocable: true
+- ref: user_plane.probe
+  kind: capability
+  version: v1
+  effect: read_only
+  invocable: true
+- ref: external.weather.query
+  kind: capability
+  version: v1
+  effect: read_only
+  invocable: true
+  blockedBy: []
+constraints:
+  maxActions: 8

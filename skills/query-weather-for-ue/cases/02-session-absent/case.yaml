@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: query-weather-for-ue
+  name: 02-session-absent
+spec:
+  classes: [requirement_recovery]
+  purpose: 验证连接需求未满足时先建立连接、验证解锁，再查询天气。

@@ -1,0 +1,155 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: ProcedureSet
+metadata:
+  skill: download-object-by-deadline
+spec:
+  selectionPolicy: exactlyOne
+  procedures:
+  - name: download-direct
+    goal: file.download_by_deadline
+    entry: download-object
+    applicability:
+      when: has(request.sizeBytes) && request.sizeBytes > 0
+    nodes:
+    - id: download-object
+      type: action
+      ref: file.download
+      inputs:
+        objectRef: {fromContext: request.objectRef}
+        ueRef: {fromContext: subject.ueRef}
+        direction: {literal: downlink}
+      'on':
+        COMMITTED: {next: verify-transfer}
+        NOT_COMMITTED: {next: failed}
+        OUTCOME_UNKNOWN: {next: reconcile-download}
+        FAILED: {next: failed}
+        DENIED: {next: failed}
+    - id: reconcile-download
+      type: action
+      ref: pdu_session.reconcile
+      'on':
+        COMMITTED: {next: verify-transfer}
+        NOT_COMMITTED: {next: download-object}
+        UNRESOLVED: {next: unresolved}
+        FAILED: {next: safe-stopped}
+        DENIED: {next: safe-stopped}
+    - id: verify-transfer
+      type: verify
+      predicates:
+      - file_transfer.completed
+      - file_transfer.deadline_met
+      'on':
+        PASS: {next: done}
+        FAIL: {next: failed}
+        UNKNOWN: {next: unresolved}
+    - id: done
+      type: terminal
+      result: SUCCEEDED
+    - id: failed
+      type: terminal
+      result: FAILED
+    - id: unresolved
+      type: terminal
+      result: UNRESOLVED
+    - id: safe-stopped
+      type: terminal
+      result: SAFE_STOPPED
+  - name: observe-then-download
+    goal: file.download_by_deadline
+    entry: observe-object
+    applicability:
+      when: '!has(request.sizeBytes) || request.sizeBytes <= 0'
+    nodes:
+    - id: observe-object
+      type: action
+      ref: object.metadata.query
+      inputs:
+        objectRef: {fromContext: request.objectRef}
+      'on':
+        SUCCEEDED: {next: verify-size-known}
+        FAILED: {next: size-unobservable}
+        UNKNOWN: {next: size-unobservable}
+        DENIED: {next: size-unobservable}
+    - id: verify-size-known
+      type: verify
+      predicates:
+      - object.size.known
+      'on':
+        PASS: {next: derive-requirement}
+        FAIL: {next: size-unobservable}
+        UNKNOWN: {next: size-unobservable}
+    - id: derive-requirement
+      type: action
+      ref: {kind: tool, value: skill.derive-transfer-requirement}
+      inputs:
+        bytesRemaining: {fromContext: facts.bytes_remaining}
+        secondsRemaining: {fromContext: facts.seconds_remaining}
+      'on':
+        SUCCEEDED: {next: resolve-qos}
+        FAILED: {next: failed}
+        DENIED: {next: failed}
+    - id: resolve-qos
+      type: action
+      ref: qos.requirement.resolve
+      inputs:
+        ueRef: {fromContext: subject.ueRef}
+        minimumPayloadBitrateBps: {fromContext: facts.minimum_payload_bitrate_bps}
+      'on':
+        SUCCEEDED: {next: verify-qos-accepted}
+        FAILED: {next: failed}
+        UNKNOWN: {next: unresolved}
+        DENIED: {next: failed}
+    - id: verify-qos-accepted
+      type: verify
+      predicates:
+      - file_transfer.completed
+      'on':
+        PASS: {next: download-object}
+        FAIL: {next: failed}
+        UNKNOWN: {next: unresolved}
+    - id: download-object
+      type: action
+      ref: file.download
+      inputs:
+        objectRef: {fromContext: request.objectRef}
+        ueRef: {fromContext: subject.ueRef}
+        direction: {literal: downlink}
+      'on':
+        COMMITTED: {next: verify-transfer}
+        NOT_COMMITTED: {next: failed}
+        OUTCOME_UNKNOWN: {next: reconcile-download}
+        FAILED: {next: failed}
+        DENIED: {next: failed}
+    - id: reconcile-download
+      type: action
+      ref: pdu_session.reconcile
+      'on':
+        COMMITTED: {next: verify-transfer}
+        NOT_COMMITTED: {next: download-object}
+        UNRESOLVED: {next: unresolved}
+        FAILED: {next: safe-stopped}
+        DENIED: {next: safe-stopped}
+    - id: verify-transfer
+      type: verify
+      predicates:
+      - file_transfer.completed
+      - file_transfer.deadline_met
+      'on':
+        PASS: {next: done}
+        FAIL: {next: failed}
+        UNKNOWN: {next: unresolved}
+    - id: done
+      type: terminal
+      result: SUCCEEDED
+    - id: failed
+      type: terminal
+      result: FAILED
+    - id: unresolved
+      type: terminal
+      result: UNRESOLVED
+    - id: safe-stopped
+      type: terminal
+      result: SAFE_STOPPED
+    - id: size-unobservable
+      type: terminal
+      result: PLANNING_BLOCKED

@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: download-object-by-deadline
+  name: 07-download-unknown-committed
+spec:
+  classes: [outcome_unknown_committed]
+  purpose: 下载 OUTCOME_UNKNOWN 后 reconcile COMMITTED，按期完成。

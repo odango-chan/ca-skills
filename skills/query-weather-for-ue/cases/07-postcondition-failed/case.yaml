@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: query-weather-for-ue
+  name: 07-postcondition-failed
+spec:
+  classes: [postcondition_failed]
+  purpose: 验证动作成功不等于 Skill 成功，后置条件失败必须进入失败终点。

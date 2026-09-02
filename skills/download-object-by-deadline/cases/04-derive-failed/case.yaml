@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: download-object-by-deadline
+  name: 04-derive-failed
+spec:
+  classes: [local_compute_failed]
+  purpose: 派生脚本失败，Operation 以本地计算失败终止。

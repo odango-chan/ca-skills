@@ -1,0 +1,4 @@
+mockOutcomes:
+  ensure-connectivity: COMMITTED
+  query-weather: SUCCEEDED
+  normalize-weather: SUCCEEDED

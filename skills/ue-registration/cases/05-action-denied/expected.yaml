@@ -5,7 +5,7 @@ expected:
   errorCode: ACTION_DENIED
   reasonCode: AUTHORITY_DENIED
   postconditions:
-  - {predicate: ue.registered, expect: PASS, actual: NOT_EVALUATED}
+  - {predicate: ue.registered, expect: PASS, actual: FAIL}
   - {predicate: ue.registration_context.consistent, expect: PASS, actual: NOT_EVALUATED}
   trace:
     match: exact

@@ -1,0 +1,13 @@
+expected:
+  procedure: download-direct
+  planningStatus: READY
+  terminal: SUCCEEDED
+  postconditions:
+  - {predicate: file_transfer.completed, expect: PASS, actual: PASS}
+  - {predicate: file_transfer.deadline_met, expect: PASS, actual: PASS}
+  trace:
+    match: exact
+    ordered:
+    - {nodeId: download-object, outcome: OUTCOME_UNKNOWN}
+    - {nodeId: reconcile-download, outcome: COMMITTED}
+    - {nodeId: verify-transfer, outcome: PASS}

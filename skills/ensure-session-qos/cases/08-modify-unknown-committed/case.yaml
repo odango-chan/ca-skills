@@ -1,0 +1,6 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata: {skill: ensure-session-qos, name: 08-modify-unknown-committed}
+spec:
+  classes: [modification_unknown_committed]
+  purpose: QoS 修改结果未知时调和确认已提交后再验证。

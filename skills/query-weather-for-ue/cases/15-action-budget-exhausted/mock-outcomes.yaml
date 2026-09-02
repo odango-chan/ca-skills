@@ -1,0 +1,3 @@
+mockOutcomes:
+  ensure-connectivity: OUTCOME_UNKNOWN
+  reconcile-connectivity: NOT_COMMITTED

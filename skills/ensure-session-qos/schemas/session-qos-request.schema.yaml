@@ -1,0 +1,22 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: session-qos-request.schema.yaml
+title: Session QoS request
+type: object
+required: [dnn, sst, fiveQi]
+properties:
+  dnn:
+    type: string
+    minLength: 1
+    maxLength: 100
+  sst:
+    type: integer
+    minimum: 0
+    maximum: 255
+  sd:
+    type: string
+    pattern: '^[0-9A-Fa-f]{6}$'
+  fiveQi:
+    type: integer
+    minimum: 1
+    maximum: 255
+additionalProperties: false

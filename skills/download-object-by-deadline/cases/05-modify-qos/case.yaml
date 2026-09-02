@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: download-object-by-deadline
+  name: 05-modify-qos
+spec:
+  classes: [happy_path]
+  purpose: QoS 需求被解析并准入后下载按期完成。

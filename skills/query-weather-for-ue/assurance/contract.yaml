@@ -1,0 +1,37 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillContract
+metadata:
+  name: query-weather-for-ue
+spec:
+  skillType: executable
+  goal: weather.query_for_ue
+  inputs:
+    requestSchema: schemas/weather-request.schema.yaml
+  context:
+    requiredFacts:
+    - ue.registered
+    - user_plane.connectivity.available
+  allowedResources:
+    capabilities:
+    - pdu_session.ensure
+    - pdu_session.reconcile
+    - user_plane.probe
+    - external.weather.query
+    localTools:
+    - skill.normalize-weather-result
+  requirements:
+  - predicate: user_plane.connectivity.available
+    expect: PASS
+    satisfiable: true
+  postconditions:
+  - predicate: service.weather.query.succeeded
+    expect: PASS
+  planning:
+    maxActions: 8
+    allowDynamicProcedure: true
+  failureSemantics:
+    outcomeUnknown:
+      requireReconcile: true
+  preconditions:
+  - predicate: ue.registered
+    expect: PASS

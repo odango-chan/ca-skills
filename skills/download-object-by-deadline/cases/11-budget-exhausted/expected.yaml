@@ -1,0 +1,11 @@
+expected:
+  procedure: download-direct
+  planningStatus: READY
+  terminal: FAILED
+  postconditions:
+  - {predicate: file_transfer.completed, expect: PASS, actual: NOT_EVALUATED}
+  - {predicate: file_transfer.deadline_met, expect: PASS, actual: NOT_EVALUATED}
+  trace:
+    match: exact
+    ordered:
+    - {nodeId: download-object, outcome: NOT_COMMITTED}

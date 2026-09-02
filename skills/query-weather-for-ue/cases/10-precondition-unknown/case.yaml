@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: query-weather-for-ue
+  name: 10-precondition-unknown
+spec:
+  classes: [precondition_unknown]
+  purpose: 验证 P0 无 Evidence Runtime 时，未知前置条件必须阻断而不是猜测成立。

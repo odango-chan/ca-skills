@@ -2,6 +2,9 @@ expected:
   procedure: ensure-registration
   planningStatus: READY
   terminal: SUCCEEDED
+  postconditions:
+  - {predicate: ue.registered, expect: PASS, actual: PASS}
+  - {predicate: ue.registration_context.consistent, expect: PASS, actual: PASS}
   trace:
     match: exact
     ordered:

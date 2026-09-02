@@ -1,0 +1,17 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: WeatherResult
+type: object
+required:
+- city
+- temperature
+- condition
+properties:
+  city:
+    type: string
+    minLength: 1
+  temperature:
+    type: number
+  condition:
+    type: string
+    minLength: 1
+additionalProperties: false

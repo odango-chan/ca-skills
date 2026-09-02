@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: download-object-by-deadline
+  name: 13-precondition-unsatisfied
+spec:
+  classes: [precondition_unsatisfied]
+  purpose: precondition 明确不满足，规划阻断。

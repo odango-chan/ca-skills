@@ -1,0 +1,6 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata: {skill: ensure-session-qos, name: 07-create-unknown-not-committed}
+spec:
+  classes: [outcome_unknown_not_committed]
+  purpose: 调和确认创建未提交后才重试原写操作。

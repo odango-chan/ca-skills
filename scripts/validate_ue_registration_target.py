@@ -12,14 +12,13 @@ import sys
 import yaml
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[1] / "skills" / "ue-registration"
 ASSURANCE = ROOT / "assurance"
 CASES = ROOT / "cases"
 
 
 def load(path):
-    with path.open() as stream:
-        return yaml.safe_load(stream)
+    return yaml.safe_load(path.read_text())
 
 
 def fail(message):

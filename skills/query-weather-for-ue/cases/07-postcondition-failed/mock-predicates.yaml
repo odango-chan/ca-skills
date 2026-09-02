@@ -1,0 +1,5 @@
+mockPredicates:
+  verify-connectivity:
+    user_plane.connectivity.available: PASS
+  verify-weather-result:
+    service.weather.query.succeeded: FAIL
