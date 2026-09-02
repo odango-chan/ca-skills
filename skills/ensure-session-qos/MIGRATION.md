@@ -10,9 +10,10 @@ This directory is the target authoring source for `ensure-session-qos`.
 - M2 Target Golden: DONE as a working-tree source Golden. All 18 qualification
   cases are present, the procedure graph is closed, and Platform compile
   coverage is complete. This is not production qualification.
-- M3 Compiler Compatibility: VALID in the current Platform working tree; the
-  result is not yet published as an immutable cross-repository pin.
-- M4 Runtime Compatibility: PARTIAL in the current working trees. A real
+- M3 Compiler Compatibility: CORE PUBLISHED at Platform `fba3010`; target
+  admission and compile support are immutable, while deployment qualification
+  remains open.
+- M4 Runtime Compatibility: CORE PUBLISHED at Runtime `dbb2195`. A real
   Platform-generated Runtime Bundle preview was loaded and its four target
   predicates were evaluated through Runtime's catalog-admitted evaluator with
   a deterministic fixture source. Production deployment bindings and

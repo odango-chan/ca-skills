@@ -25,8 +25,8 @@
 
 ## M2 status
 
-M3 compiler compatibility is locally VALID, but the result is not yet an
-immutable cross-repository pin. M4 local Runtime compatibility has a real
+M3 compiler compatibility is CORE PUBLISHED at Platform `fba3010`. M4 Runtime
+compatibility is CORE PUBLISHED at Runtime `dbb2195` and has a real
 Platform-generated Bundle smoke (`runtimeBundleDigest`
 `sha256:f3774c43da2275a80262a625fd7695fd2b643393ab53cb90bc8b60bc05403cad`)
 and all three target predicates evaluate PASS against a normalized fixture

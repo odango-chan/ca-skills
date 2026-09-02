@@ -20,8 +20,8 @@ only canonical observation references, scopes, freshness, and deterministic
 predicate interpretation. The local transfer-requirement script remains
 network-free local computation.
 
-M3 compiler compatibility is locally VALID, but the result is not yet an
-immutable cross-repository pin. M4 local Runtime compatibility has a real
+M3 compiler compatibility is CORE PUBLISHED at Platform `fba3010`. M4 Runtime
+compatibility is CORE PUBLISHED at Runtime `dbb2195` and has a real
 Platform-generated Bundle smoke (`runtimeBundleDigest`
 `sha256:dbc775c77ff7832c3834accc2928d0ef329a0d07572519634d1daa33c1257f41`)
 and all three target predicates evaluate PASS against a normalized fixture

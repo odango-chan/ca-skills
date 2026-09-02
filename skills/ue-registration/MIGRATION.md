@@ -65,14 +65,13 @@ interaction (for example SUCI/SUPI resolution).
 - M0 Inventory: DONE
 - M1 Target Authoring: DONE
 - M2 Target Golden: DONE after the source graph and case closure in this branch
-- M3 Compiler: PARTIAL in the current Platform working tree (`selectionPolicy`,
-  `applicability.when`, legacy `evidence.yaml` omission, and `PredicateSet`
-  admission); not yet published as an immutable cross-repository pin
-- M4 Runtime Observation/Execution support: PARTIAL in the current Runtime working
-  tree (PredicateSet loading, ObservationCatalog contract/schema, deployment-owned
-  ObservationSource, Runtime freshness comparison, and CEL evaluation); UE catalog
-  publication, production acquisition/provenance, qualification, and immutable
-  pinning remain open
+- M3 Compiler: CORE PUBLISHED at Platform `fba3010` (external source loading,
+  target admission, `applicability.when`, `PredicateSet`, and reference/output
+  validation); deployment qualification remains open
+- M4 Runtime Observation/Execution support: CORE PUBLISHED at Runtime `dbb2195`
+  (PredicateSet/catalog admission, deployment-owned binding, freshness, and CEL
+  evaluation); UE catalog publication, production acquisition/provenance,
+  qualification, and deployment binding remain open
 - Target deterministic SQ2 qualification: PASS for all 8 executable cases through
   Platform's real Mock Runtime (`TestMigratedUERegistrationTargetMockQualification`).
   The resource-unavailable case is planning-blocked and does not start Mock
