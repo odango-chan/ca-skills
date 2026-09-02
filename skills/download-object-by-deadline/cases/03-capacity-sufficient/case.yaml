@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: download-object-by-deadline
+  name: 03-capacity-sufficient
+spec:
+  classes: [happy_path]
+  purpose: 当前能力足够时经元数据观察与派生后下载按期完成。

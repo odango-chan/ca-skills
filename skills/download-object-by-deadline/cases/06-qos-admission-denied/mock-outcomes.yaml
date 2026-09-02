@@ -1,0 +1,4 @@
+mockOutcomes:
+  observe-object: SUCCEEDED
+  derive-requirement: SUCCEEDED
+  resolve-qos: DENIED

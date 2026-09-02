@@ -1,0 +1,6 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata: {skill: ensure-session-qos, name: 06-create-unknown-committed}
+spec:
+  classes: [outcome_unknown_committed]
+  purpose: 创建结果未知时先调和，确认已提交后再验证目标。

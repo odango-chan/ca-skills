@@ -1,0 +1,16 @@
+expected:
+  procedure: ensure-registration
+  planningStatus: READY
+  terminal: FAILED
+  errorCode: ACTION_DENIED
+  reasonCode: AUTHORITY_DENIED
+  postconditions:
+  - {predicate: ue.registered, expect: PASS, actual: FAIL}
+  - {predicate: ue.registration_context.consistent, expect: PASS, actual: NOT_EVALUATED}
+  trace:
+    match: exact
+    ordered:
+    - {nodeId: verify-current-registration, outcome: FAIL}
+    - {nodeId: resolve-identity, outcome: SUCCEEDED}
+    - {nodeId: verify-identity, outcome: PASS}
+    - {nodeId: authenticate, outcome: DENIED}

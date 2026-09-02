@@ -1,0 +1,6 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata: {skill: ensure-session-qos, name: 17-observation-unknown}
+spec:
+  classes: [observation_unknown]
+  purpose: 查询成功但 Session observation 仍未知时停止，不根据猜测写入。

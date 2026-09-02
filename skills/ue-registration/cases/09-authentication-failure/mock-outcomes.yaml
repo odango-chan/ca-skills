@@ -1,0 +1,3 @@
+mockOutcomes:
+  resolve-identity: SUCCEEDED
+  authenticate: FAILED

@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: query-weather-for-ue
+  name: 12-normalization-failed
+spec:
+  classes: [local_compute_failed]
+  purpose: 验证原始天气结果无法规范化时 Skill 失败，缺字段不得用默认值掩盖。

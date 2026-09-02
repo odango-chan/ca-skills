@@ -1,0 +1,32 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: PredicateSet
+metadata:
+  skill: query-weather-for-ue
+predicates:
+  ue.registered:
+    observations:
+      registration:
+        ref: ue.registration.snapshot
+        scope: '{"ueRef": subject.ueRef}'
+        freshness: 30s
+    evaluator:
+      type: cel
+      expression: observations.registration.registrationState == "REGISTERED"
+  user_plane.connectivity.available:
+    observations:
+      connectivity:
+        ref: user.plane.connectivity.snapshot
+        scope: '{"ueRef": subject.ueRef, "pduSessionId": subject.pduSessionId}'
+        freshness: 5s
+    evaluator:
+      type: cel
+      expression: observations.connectivity.available == true
+  service.weather.query.succeeded:
+    observations:
+      weather:
+        ref: weather.result.snapshot
+        scope: '{"ueRef": subject.ueRef}'
+        freshness: 5s
+    evaluator:
+      type: cel
+      expression: observations.weather.succeeded == true

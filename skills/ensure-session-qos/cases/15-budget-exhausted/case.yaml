@@ -1,0 +1,6 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata: {skill: ensure-session-qos, name: 15-budget-exhausted}
+spec:
+  classes: [budget_exhausted]
+  purpose: 调和确认未提交后，重试写操作将超预算时失败。

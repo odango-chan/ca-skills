@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: query-weather-for-ue
+  name: 08-resource-unavailable
+spec:
+  classes: [resource_unavailable]
+  purpose: 验证连接恢复所需 Capability 缺失时规划被确定性阻断。

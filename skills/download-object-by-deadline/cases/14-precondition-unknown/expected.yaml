@@ -1,0 +1,5 @@
+expected:
+  procedure: null
+  planningStatus: PLANNING_BLOCKED
+  terminal: null
+  postconditions: []

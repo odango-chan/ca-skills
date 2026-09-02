@@ -1,0 +1,8 @@
+mockPredicates:
+  verify-size-known:
+    object.size.known: PASS
+  verify-qos-accepted:
+    file_transfer.completed: PASS
+  verify-transfer:
+    file_transfer.completed: PASS
+    file_transfer.deadline_met: PASS

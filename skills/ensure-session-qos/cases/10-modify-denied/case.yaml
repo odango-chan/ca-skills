@@ -1,0 +1,6 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata: {skill: ensure-session-qos, name: 10-modify-denied}
+spec:
+  classes: [action_denied]
+  purpose: QoS 修改被拒绝时明确失败且不伪造后置成功。

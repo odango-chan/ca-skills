@@ -1,0 +1,6 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata: {skill: ensure-session-qos, name: 09-reconcile-unresolved}
+spec:
+  classes: [outcome_unknown_unresolved]
+  purpose: 写结果无法调和时安全结束为 UNRESOLVED。

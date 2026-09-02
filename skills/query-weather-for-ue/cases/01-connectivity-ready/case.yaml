@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: query-weather-for-ue
+  name: 01-connectivity-ready
+spec:
+  classes: [happy_path]
+  purpose: 验证连接已就绪时选择直接查询过程，并在独立后置验证通过后成功。

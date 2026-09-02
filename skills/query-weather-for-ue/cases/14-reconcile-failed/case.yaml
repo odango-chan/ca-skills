@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: query-weather-for-ue
+  name: 14-reconcile-failed
+spec:
+  classes: [reconcile_failed]
+  purpose: 验证调和调用失败不能清除待决写，必须进入安全停止。

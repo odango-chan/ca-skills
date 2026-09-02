@@ -1,0 +1,6 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata: {skill: ensure-session-qos, name: 02-create-committed}
+spec:
+  classes: [session_create]
+  purpose: 无 Session 时创建并在独立后置验证通过后成功。

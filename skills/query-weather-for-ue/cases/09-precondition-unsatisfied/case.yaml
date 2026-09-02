@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: query-weather-for-ue
+  name: 09-precondition-unsatisfied
+spec:
+  classes: [precondition_unsatisfied]
+  purpose: 验证 UE 明确未注册时不选择 Procedure，也不启动 Mock 执行。

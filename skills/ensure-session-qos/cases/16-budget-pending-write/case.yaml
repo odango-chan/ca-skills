@@ -1,0 +1,6 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata: {skill: ensure-session-qos, name: 16-budget-pending-write}
+spec:
+  classes: [budget_exhausted_with_pending_write]
+  purpose: 创建结果未知且无预算执行调和时带 pending write 安全停止。

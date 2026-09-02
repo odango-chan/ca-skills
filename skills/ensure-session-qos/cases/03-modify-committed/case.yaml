@@ -1,0 +1,6 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata: {skill: ensure-session-qos, name: 03-modify-committed}
+spec:
+  classes: [session_modify]
+  purpose: 已有 Session 但 QoS 不满足时选择修改路径。

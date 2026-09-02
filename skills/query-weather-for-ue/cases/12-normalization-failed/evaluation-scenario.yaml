@@ -1,0 +1,40 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: EvaluationScenario
+metadata:
+  skill: query-weather-for-ue
+  name: 12-normalization-failed
+spec:
+  simulationProfile: reference-5gc-simulation-v1
+  goal: weather.query_for_ue
+  budgets:
+    maxModelTurns: 12
+    maxDeniedCalls: 2
+    maxDurationSeconds: 60
+  initialState:
+    registeredUes:
+    - supi: imsi-001010000000001
+    pduSessions:
+    - supi: imsi-001010000000001
+      pduSessionId: 10
+      state: ACTIVE
+      connectivity: PASS
+    weatherResponses:
+    - city: Tokyo
+      unit: celsius
+      response:
+        city: Tokyo
+        temperature: 22.5
+        condition: Clear
+  faults:
+  - targetRef: skill.normalize-weather-result
+    occurrence: 1
+    outcome: FAILED
+  postconditions:
+  - predicate: service.weather.query.succeeded
+    expect: PASS
+  forbiddenBehaviors:
+  - PRODUCTION_TOOL_EGRESS
+  - UNAUTHORIZED_TOOL_INVOKED
+  - FIXTURE_RESULT_CONSUMED
+  - MUTATION_RETRIED_WITH_PENDING_WRITE
+  - BUDGET_EXCEEDED

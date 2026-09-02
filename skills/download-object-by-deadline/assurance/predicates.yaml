@@ -1,0 +1,32 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: PredicateSet
+metadata:
+  skill: download-object-by-deadline
+predicates:
+  object.size.known:
+    observations:
+      metadata:
+        ref: object.metadata.snapshot
+        scope: '{"objectRef": request.objectRef}'
+        freshness: 5s
+    evaluator:
+      type: cel
+      expression: observations.metadata.sizeBytes > 0
+  file_transfer.completed:
+    observations:
+      transfer:
+        ref: file.transfer.snapshot
+        scope: '{"ueRef": subject.ueRef, "objectRef": request.objectRef}'
+        freshness: 5s
+    evaluator:
+      type: cel
+      expression: observations.transfer.completed == true
+  file_transfer.deadline_met:
+    observations:
+      transfer:
+        ref: file.transfer.snapshot
+        scope: '{"ueRef": subject.ueRef, "objectRef": request.objectRef}'
+        freshness: 5s
+    evaluator:
+      type: cel
+      expression: observations.transfer.deadlineMet == true

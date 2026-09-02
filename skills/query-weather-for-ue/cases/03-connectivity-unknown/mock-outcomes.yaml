@@ -1,0 +1,4 @@
+mockOutcomes:
+  probe-connectivity: SUCCEEDED
+  query-weather: SUCCEEDED
+  normalize-weather: SUCCEEDED

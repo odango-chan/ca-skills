@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: download-object-by-deadline
+  name: 02-size-unknown-unobservable
+spec:
+  classes: [resource_unavailable]
+  purpose: 文件大小未知且 Metadata 无法观察，规划阻断，不猜测大小。

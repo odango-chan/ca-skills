@@ -1,0 +1,46 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillContract
+metadata:
+  name: ensure-session-qos
+spec:
+  skillType: executable
+  goal: pdu_session.ensure_qos
+  inputs:
+    requestSchema: schemas/session-qos-request.schema.yaml
+  context:
+    requiredFacts:
+    - ue.registered
+    - pdu_session.established
+    - pdu_session.qos.satisfied
+    - user_plane.connectivity.available
+  allowedResources:
+    capabilities:
+    - pdu_session.create
+    - pdu_session.modify_qos
+    - pdu_session.query
+    - pdu_session.reconcile
+    - user_plane.probe
+    localTools: []
+  preconditions:
+  - predicate: ue.registered
+    expect: PASS
+  requirements:
+  - predicate: pdu_session.established
+    expect: PASS
+    satisfiable: true
+  - predicate: pdu_session.qos.satisfied
+    expect: PASS
+    satisfiable: true
+  postconditions:
+  - predicate: pdu_session.established
+    expect: PASS
+  - predicate: pdu_session.qos.satisfied
+    expect: PASS
+  - predicate: user_plane.connectivity.available
+    expect: PASS
+  planning:
+    maxActions: 8
+    allowDynamicProcedure: true
+  failureSemantics:
+    outcomeUnknown:
+      requireReconcile: true

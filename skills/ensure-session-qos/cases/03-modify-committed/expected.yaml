@@ -1,0 +1,13 @@
+expected:
+  procedure: modify-existing-session-qos
+  planningStatus: READY_AFTER_REQUIREMENT
+  terminal: SUCCEEDED
+  postconditions:
+  - {predicate: pdu_session.established, expect: PASS, actual: PASS}
+  - {predicate: pdu_session.qos.satisfied, expect: PASS, actual: PASS}
+  - {predicate: user_plane.connectivity.available, expect: PASS, actual: PASS}
+  trace:
+    match: exact
+    ordered:
+    - {nodeId: modify-session-qos, outcome: COMMITTED}
+    - {nodeId: verify-session-goal, outcome: PASS}

@@ -1,0 +1,6 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata: {skill: ensure-session-qos, name: 05-observe-existing-then-modify}
+spec:
+  classes: [requirement_observation_modify]
+  purpose: Session 状态未知时先查询，观察为已存在但 QoS 不满足后修改。

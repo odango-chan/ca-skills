@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: download-object-by-deadline
+  name: 10-reconcile-unresolved
+spec:
+  classes: [outcome_unknown_unresolved]
+  purpose: reconcile UNRESOLVED，保留 pending 安全停止。

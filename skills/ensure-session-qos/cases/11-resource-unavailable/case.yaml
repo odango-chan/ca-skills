@@ -1,0 +1,6 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata: {skill: ensure-session-qos, name: 11-resource-unavailable}
+spec:
+  classes: [resource_unavailable]
+  purpose: 当前状态需要修改但 Capability 缺失时阻断规划。

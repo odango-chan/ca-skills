@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: download-object-by-deadline
+  name: 11-budget-exhausted
+spec:
+  classes: [budget_exhausted]
+  purpose: 无 pending 时 action budget 耗尽，Operation FAILED。

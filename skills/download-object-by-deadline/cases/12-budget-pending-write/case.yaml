@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: download-object-by-deadline
+  name: 12-budget-pending-write
+spec:
+  classes: [budget_exhausted_with_pending_write]
+  purpose: 有 pending write 时 budget 耗尽，SAFE_STOPPED。

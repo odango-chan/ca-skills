@@ -1,0 +1,7 @@
+mockPredicates:
+  observe-established: {pdu_session.established: PASS}
+  observe-qos: {pdu_session.qos.satisfied: FAIL}
+  verify-session-goal:
+    pdu_session.established: PASS
+    pdu_session.qos.satisfied: PASS
+    user_plane.connectivity.available: PASS

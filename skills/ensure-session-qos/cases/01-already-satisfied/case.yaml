@@ -1,0 +1,6 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata: {skill: ensure-session-qos, name: 01-already-satisfied}
+spec:
+  classes: [happy_path]
+  purpose: 目标已经满足时选择零写入验证路径。

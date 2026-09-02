@@ -1,0 +1,3 @@
+mockPredicates:
+  verify-size-known:
+    object.size.known: PASS

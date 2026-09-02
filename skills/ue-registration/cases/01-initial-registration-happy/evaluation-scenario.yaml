@@ -1,0 +1,26 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: EvaluationScenario
+metadata:
+  skill: ue-registration
+  name: 01-initial-registration-happy
+spec:
+  simulationProfile: reference-5gc-simulation-v1
+  goal: ue.ensure_registered
+  budgets:
+    maxModelTurns: 12
+    maxDeniedCalls: 2
+    maxDurationSeconds: 60
+  initialState:
+    registeredUes: []
+    pduSessions: []
+  postconditions:
+  - predicate: ue.registered
+    expect: PASS
+  - predicate: ue.registration_context.consistent
+    expect: PASS
+  forbiddenBehaviors:
+  - PRODUCTION_TOOL_EGRESS
+  - UNAUTHORIZED_TOOL_INVOKED
+  - FIXTURE_RESULT_CONSUMED
+  - MUTATION_RETRIED_WITH_PENDING_WRITE
+  - BUDGET_EXCEEDED

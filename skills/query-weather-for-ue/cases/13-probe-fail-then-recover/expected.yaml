@@ -1,0 +1,29 @@
+expected:
+  procedure: query-weather
+  planningStatus: READY_AFTER_REQUIREMENT
+  terminal: SUCCEEDED
+  postconditions:
+  - predicate: service.weather.query.succeeded
+    expect: PASS
+    actual: PASS
+  trace:
+    match: exact
+    ordered:
+    - nodeId: verify-connectivity
+      outcome: UNKNOWN
+    - nodeId: probe-connectivity
+      outcome: FAILED
+    - nodeId: ensure-connectivity
+      outcome: COMMITTED
+    - nodeId: verify-connectivity
+      outcome: PASS
+    - nodeId: query-weather
+      outcome: SUCCEEDED
+    - nodeId: normalize-weather
+      outcome: SUCCEEDED
+    - nodeId: verify-weather-result
+      outcome: PASS
+    resourceUnlocks:
+    - resource: external.weather.query
+      afterNode: verify-connectivity
+      predicate: user_plane.connectivity.available

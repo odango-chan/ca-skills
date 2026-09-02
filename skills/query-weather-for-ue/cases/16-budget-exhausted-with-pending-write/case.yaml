@@ -1,0 +1,8 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: query-weather-for-ue
+  name: 16-budget-exhausted-with-pending-write
+spec:
+  classes: [budget_exhausted_with_pending_write]
+  purpose: 验证不确定写后连调和都无法进入预算时，保留 pending write 并安全停止。

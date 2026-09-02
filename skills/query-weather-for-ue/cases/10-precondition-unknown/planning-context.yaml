@@ -1,0 +1,26 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: PlanningContext
+metadata:
+  operationId: op-10-precondition-unknown
+  version: 1
+subject:
+  supi: imsi-001010000000001
+  pduSessionId: 10
+request:
+  city: Tokyo
+  unit: celsius
+facts:
+  ue.registered:
+    value: UNKNOWN
+  user_plane.connectivity.available:
+    value: UNKNOWN
+availableResources:
+- ref: external.weather.query
+  kind: capability
+  version: v1
+  effect: read_only
+  invocable: false
+  blockedBy:
+  - user_plane.connectivity.available
+constraints:
+  maxActions: 8

@@ -1,0 +1,6 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata: {skill: ensure-session-qos, name: 12-postcondition-failed}
+spec:
+  classes: [postcondition_failed]
+  purpose: 创建 COMMITTED 但 QoS 后置条件失败时不得成功。

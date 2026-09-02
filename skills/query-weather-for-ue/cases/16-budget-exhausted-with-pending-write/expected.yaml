@@ -1,0 +1,17 @@
+expected:
+  procedure: query-weather
+  planningStatus: READY_AFTER_REQUIREMENT
+  terminal: SAFE_STOPPED
+  errorCode: ACTION_BUDGET_EXHAUSTED_WITH_PENDING_WRITE
+  postconditions:
+  - predicate: service.weather.query.succeeded
+    expect: PASS
+    actual: NOT_EVALUATED
+  trace:
+    match: exact
+    ordered:
+    - nodeId: verify-connectivity
+      outcome: FAIL
+    - nodeId: ensure-connectivity
+      outcome: OUTCOME_UNKNOWN
+    forbiddenImmediateRetryAfterUnknown: true

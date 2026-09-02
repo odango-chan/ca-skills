@@ -1,0 +1,6 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata: {skill: ensure-session-qos, name: 13-precondition-unsatisfied}
+spec:
+  classes: [precondition_unsatisfied]
+  purpose: UE 未注册时在 Selector 前拒绝执行。

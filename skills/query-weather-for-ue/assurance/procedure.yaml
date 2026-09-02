@@ -1,0 +1,125 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: ProcedureSet
+metadata:
+  skill: query-weather-for-ue
+spec:
+  selectionPolicy: exactlyOne
+  procedures:
+  - name: query-weather
+    goal: weather.query_for_ue
+    entry: verify-connectivity
+    nodes:
+    - id: verify-connectivity
+      type: verify
+      predicates:
+      - user_plane.connectivity.available
+      'on':
+        PASS:
+          next: query-weather
+        FAIL:
+          next: ensure-connectivity
+        UNKNOWN:
+          next: probe-connectivity
+    - id: probe-connectivity
+      type: action
+      ref: user_plane.probe
+      inputs:
+        supi:
+          fromContext: subject.supi
+        pduSessionId:
+          fromContext: subject.pduSessionId
+      'on':
+        UNKNOWN:
+          next: unresolved
+        DENIED:
+          next: failed
+        SUCCEEDED:
+          next: verify-connectivity
+        FAILED:
+          next: ensure-connectivity
+    - id: ensure-connectivity
+      type: action
+      ref: pdu_session.ensure
+      inputs:
+        supi:
+          fromContext: subject.supi
+        pduSessionId:
+          fromContext: subject.pduSessionId
+      'on':
+        COMMITTED:
+          next: verify-connectivity
+        NOT_COMMITTED:
+          next: failed
+        OUTCOME_UNKNOWN:
+          next: reconcile-connectivity
+        FAILED:
+          next: failed
+        DENIED:
+          next: failed
+    - id: reconcile-connectivity
+      type: action
+      ref: pdu_session.reconcile
+      'on':
+        COMMITTED:
+          next: verify-connectivity
+        NOT_COMMITTED:
+          next: ensure-connectivity
+        UNRESOLVED:
+          next: unresolved
+        FAILED:
+          next: safe-stopped
+        DENIED:
+          next: safe-stopped
+    - id: query-weather
+      type: action
+      ref: external.weather.query
+      inputs:
+        city:
+          fromContext: request.city
+        unit:
+          fromContext: request.unit
+      'on':
+        SUCCEEDED:
+          next: normalize-weather
+        FAILED:
+          next: failed
+        DENIED:
+          next: failed
+    - id: normalize-weather
+      type: action
+      ref:
+        kind: tool
+        value: skill.normalize-weather-result
+      inputFrom:
+        node: query-weather
+        path: output
+      'on':
+        SUCCEEDED:
+          next: verify-weather-result
+        FAILED:
+          next: failed
+        DENIED:
+          next: failed
+    - id: verify-weather-result
+      type: verify
+      predicates:
+      - service.weather.query.succeeded
+      'on':
+        PASS:
+          next: done
+        FAIL:
+          next: failed
+        UNKNOWN:
+          next: unresolved
+    - id: done
+      type: terminal
+      result: SUCCEEDED
+    - id: failed
+      type: terminal
+      result: FAILED
+    - id: unresolved
+      type: terminal
+      result: UNRESOLVED
+    - id: safe-stopped
+      type: terminal
+      result: SAFE_STOPPED
