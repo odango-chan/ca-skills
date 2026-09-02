@@ -15,21 +15,12 @@ description: 在满足目标 UE 数据连接前置条件后查询指定城市天
 
 ## 处理原则
 
-1. `ue.registered` 是执行前置；`FAIL` 时不执行，`UNKNOWN` 时不根据猜测继续写操作。
-2. 不把“PDU Session 存在”或单次 Session 动作成功等同于“用户面连接可用”。
-3. `user_plane.connectivity.available=PASS` 时可直接查询天气。
-4. Connectivity 为 `FAIL` 时，可使用本 Skill 已声明的连接收敛能力恢复前置条件。
-5. Connectivity 为 `UNKNOWN` 时优先补齐观察证据，不根据推测直接执行写操作。
-6. 具有副作用的连接动作返回 `OUTCOME_UNKNOWN` 时必须先调和，不得盲目重试。
-7. Weather Tool 可发现但调用前置未满足时，不得直接调用。
-8. Weather action 和本地结果规范化完成后，仍需独立验证 `service.weather.query.succeeded`。
-9. 原始天气结果缺少必需字段、字符串为空或温度非法时明确失败，不注入默认业务值。
-10. 当前没有可用且合规的 Capability / Tool 时，不生成不可执行 Procedure。
-11. 本 Skill 不直接访问 SMF、UPF 私有接口，也不在脚本中隐藏连接控制流程。
+1. 目标 UE 必须具备可信的注册状态，且天气查询依赖目标 UE 用户面连接。
+2. PDU Session 存在并不等于用户面连接可用；不要猜测网络状态。
+3. 天气结果不完整、为空或字段非法时明确失败，不伪造业务值。
+4. 当前没有可用且合规的天气能力时，不生成不可执行请求。
 
 ## 参考资料
-
-“Session 存在”和“连接可用”的区别由 `references/preload/connectivity-model.md` 随 `load_skill` 一次装配，无需额外调用 `read_reference`。
 
 需要理解 Weather Tool 的输入、输出或调用前置时，按需读取 `references/on-demand/weather-service-semantics.md`。
 
