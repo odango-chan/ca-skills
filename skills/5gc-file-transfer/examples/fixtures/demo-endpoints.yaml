@@ -1,0 +1,9 @@
+# Demo-only Provider state for transfer.participants.resolve_endpoints.
+# This is runtime execution data, not Agent routing identity context.
+# A FixtureProvider can read this mapping today; later Provider implementations
+# may replace it with a script/tool query or a native NF integration without
+# changing the Skill or Capability contract.
+endpoints:
+  '001019876543210': 10.45.0.2
+  '001019876543211': 10.45.0.4
+  '001019876543212': 10.45.0.6

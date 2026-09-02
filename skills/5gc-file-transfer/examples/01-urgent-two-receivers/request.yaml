@@ -1,0 +1,7 @@
+operation: prepare_transfer
+transferId: tr-1a2b3c4d
+urgency: urgent
+senderImsi: '001019876543210'
+receiverImsis:
+- '001019876543211'
+- '001019876543212'

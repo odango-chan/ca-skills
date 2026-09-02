@@ -1,0 +1,48 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: 5gc-intent-request.schema.yaml
+title: Core5GIntentRequest
+type: object
+required:
+- requestId
+- intent
+properties:
+  requestId:
+    type: string
+    minLength: 1
+    description: Stable gateway correlation key for the intent-resolution request.
+  intent:
+    type: string
+    minLength: 1
+    description: Original user intent carried by the gateway task.
+  transferId:
+    type: string
+    minLength: 1
+    description: Optional gateway-owned file-transfer lifecycle identifier. Preserve it when the routed target requires transfer correlation; do not synthesize it from requestId.
+  senderImsi:
+    type: string
+    pattern: '^[0-9]{15}$'
+    description: Canonical sender/subject IMSI when already resolved by the gateway.
+  roster:
+    type: array
+    maxItems: 32
+    description: Live identity context available to the routing Skill. It resolves user/device references into canonical identifiers only; current network endpoint addresses are not routing context.
+    items:
+      type: object
+      required:
+      - imsi
+      properties:
+        imsi:
+          type: string
+          pattern: '^[0-9]{15}$'
+        name:
+          type: string
+          minLength: 1
+        aliases:
+          type: array
+          maxItems: 16
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+      additionalProperties: false
+additionalProperties: false

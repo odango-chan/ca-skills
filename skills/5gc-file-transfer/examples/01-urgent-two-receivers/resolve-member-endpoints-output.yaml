@@ -1,0 +1,13 @@
+# Demo-only canonical output for transfer.participants.resolve_endpoints.
+# In the current fixture-backed demo this is derived from
+# examples/fixtures/demo-endpoints.yaml. Production Provider implementations may
+# obtain the same canonical result through governed scripts/tools or native NF APIs.
+outcome: SUCCEEDED
+output:
+  members:
+  - imsi: '001019876543210'
+    ip: 10.45.0.2
+  - imsi: '001019876543211'
+    ip: 10.45.0.4
+  - imsi: '001019876543212'
+    ip: 10.45.0.6

@@ -1,0 +1,64 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: PredicateSet
+metadata:
+  skill: core5g-file-transfer
+predicates:
+  transfer.participants.registered:
+    observations:
+      participants:
+        ref: transfer.participants.registration
+        scope: >
+          {
+            "participantImsis": [request.senderImsi] + request.receiverImsis
+          }
+        freshness: 5s
+    evaluator:
+      type: cel
+      expression: >
+        observations.participants.all(p,
+          p.registrationState == "REGISTERED"
+        )
+      passReasonCode: ALL_PARTICIPANTS_REGISTERED
+      failReasonCode: PARTICIPANT_NOT_REGISTERED
+
+  transfer.participants.pdu_sessions_active:
+    observations:
+      participants:
+        ref: transfer.participants.session
+        scope: >
+          {
+            "participantImsis": [request.senderImsi] + request.receiverImsis,
+            "sst": 1,
+            "sd": "000000"
+          }
+        freshness: 5s
+    evaluator:
+      type: cel
+      expression: >
+        observations.participants.all(p,
+          p.sessionState == "ACTIVE"
+        )
+      passReasonCode: ALL_PARTICIPANT_SESSIONS_ACTIVE
+      failReasonCode: PARTICIPANT_SESSION_INACTIVE
+
+  file_transfer.request.satisfied:
+    observations:
+      virtualGroup:
+        ref: virtual_group.snapshot
+        scope: >
+          {
+            "transferId": request.transferId,
+            "groupId": request.operation == "release_group"
+              ? request.groupId
+              : facts["virtual_group.id"]
+          }
+        freshness: 5s
+      qosBoost:
+        ref: transfer.qos.boost_state
+        scope: >
+          {"transferId": request.transferId}
+        freshness: 5s
+        when: request.operation == "prepare_transfer" && request.urgency == "urgent"
+    evaluator:
+      type: script
+      ref: skill.evaluate-transfer-request-satisfied
