@@ -75,8 +75,17 @@ procedures:
           condition:
             from: query-weather.output.condition
         'on':
+          SUCCEEDED: persist-weather-result
+          FAILED: failed
+      persist-weather-result:
+        tool: skill.normalize-weather-result
+        with:
+          input:
+            from: query-weather.output
+        'on':
           SUCCEEDED: verify-weather-result
           FAILED: failed
+          DENIED: failed
       verify-weather-result:
         verify: service.weather.query.succeeded
         'on':
