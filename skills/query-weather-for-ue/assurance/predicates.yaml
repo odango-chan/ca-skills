@@ -24,9 +24,9 @@ predicates:
   service.weather.query.succeeded:
     observations:
       weather:
-        ref: user.plane.connectivity.snapshot
-        scope: '{"ueRef": subject.ueRef, "pduSessionId": subject.pduSessionId}'
+        ref: weather.result.snapshot
+        scope: '{"ueRef": subject.ueRef}'
         freshness: 5s
     evaluator:
       type: cel
-      expression: observations.weather.available == true
+      expression: observations.weather.succeeded == true
