@@ -1,257 +1,326 @@
-apiVersion: connectionagent.io/v1alpha1
-kind: ProcedureSet
-metadata:
-  skill: ensure-session-qos
-spec:
-  selectionPolicy: exactlyOne
-  procedures:
-  - name: session-qos-already-satisfied
-    goal: pdu_session.ensure_qos
-    entry: verify-session-goal
+procedures:
+  session-qos-already-satisfied:
+    start: verify-session-goal
+    nodes:
+      verify-session-goal:
+        verify: pdu_session.established
+        'on':
+          PASS: verify-session-goal-2
+          FAIL: failed
+          UNKNOWN: unresolved
+      verify-session-goal-2:
+        verify: pdu_session.qos.satisfied
+        'on':
+          PASS: verify-session-goal-3
+          FAIL: failed
+          UNKNOWN: unresolved
+      verify-session-goal-3:
+        verify: user_plane.connectivity.available
+        'on':
+          PASS: done
+          FAIL: failed
+          UNKNOWN: unresolved
+      done:
+        terminal: SUCCEEDED
+      failed:
+        terminal: FAILED
+      unresolved:
+        terminal: UNRESOLVED
     applicability:
       predicates:
         pdu_session.established: PASS
         pdu_session.qos.satisfied: PASS
+  create-session-with-qos:
+    inputs:
+      supi:
+        type: string
+        from: context.subject.supi
+      pdusessionid:
+        type: string
+        from: context.subject.pduSessionId
+      dnn:
+        type: string
+        from: context.request.dnn
+      sst:
+        type: integer
+        from: context.request.sst
+      sd:
+        type: string
+        from: context.request.sd
+      fiveqi:
+        type: integer
+        from: context.request.fiveQi
+    start: create-session
     nodes:
-    - id: verify-session-goal
-      type: verify
-      predicates:
-      - pdu_session.established
-      - pdu_session.qos.satisfied
-      - user_plane.connectivity.available
-      'on':
-        PASS: {next: done}
-        FAIL: {next: failed}
-        UNKNOWN: {next: unresolved}
-    - id: done
-      type: terminal
-      result: SUCCEEDED
-    - id: failed
-      type: terminal
-      result: FAILED
-    - id: unresolved
-      type: terminal
-      result: UNRESOLVED
-  - name: create-session-with-qos
-    goal: pdu_session.ensure_qos
-    entry: create-session
+      create-session:
+        call: pdu_session.create
+        with:
+          supi:
+            from: input.supi
+          pduSessionId:
+            from: input.pdusessionid
+          dnn:
+            from: input.dnn
+          sst:
+            from: input.sst
+          sd:
+            from: input.sd
+          fiveQi:
+            from: input.fiveqi
+        'on':
+          COMMITTED: verify-session-goal
+          NOT_COMMITTED: failed
+          OUTCOME_UNKNOWN: reconcile-create
+          FAILED: failed
+          DENIED: failed
+      reconcile-create:
+        call: pdu_session.reconcile
+        'on':
+          COMMITTED: verify-session-goal
+          NOT_COMMITTED: create-session
+          UNRESOLVED: unresolved
+          FAILED: safe-stopped
+          DENIED: safe-stopped
+      verify-session-goal:
+        verify: pdu_session.established
+        'on':
+          PASS: verify-session-goal-2
+          FAIL: failed
+          UNKNOWN: unresolved
+      verify-session-goal-2:
+        verify: pdu_session.qos.satisfied
+        'on':
+          PASS: verify-session-goal-3
+          FAIL: failed
+          UNKNOWN: unresolved
+      verify-session-goal-3:
+        verify: user_plane.connectivity.available
+        'on':
+          PASS: done
+          FAIL: failed
+          UNKNOWN: unresolved
+      done:
+        terminal: SUCCEEDED
+      failed:
+        terminal: FAILED
+      unresolved:
+        terminal: UNRESOLVED
+      safe-stopped:
+        terminal: SAFE_STOPPED
     applicability:
       predicates:
         pdu_session.established: FAIL
-    standardRefs:
-    - organization: 3GPP
-      specification: TS 23.502
-      note: PDU Session Establishment related flow; fixture is not a conformance claim
+  modify-existing-session-qos:
+    inputs:
+      supi:
+        type: string
+        from: context.subject.supi
+      pdusessionid:
+        type: string
+        from: context.subject.pduSessionId
+      dnn:
+        type: string
+        from: context.request.dnn
+      sst:
+        type: string
+        from: context.request.sst
+      sd:
+        type: string
+        from: context.request.sd
+      fiveqi:
+        type: string
+        from: context.request.fiveQi
+    start: modify-session-qos
     nodes:
-    - id: create-session
-      type: action
-      ref: pdu_session.create
-      inputs:
-        supi: {fromContext: subject.supi}
-        pduSessionId: {fromContext: subject.pduSessionId}
-        dnn: {fromContext: request.dnn}
-        sst: {fromContext: request.sst}
-        sd: {fromContext: request.sd}
-        fiveQi: {fromContext: request.fiveQi}
-      'on':
-        COMMITTED: {next: verify-session-goal}
-        NOT_COMMITTED: {next: failed}
-        OUTCOME_UNKNOWN: {next: reconcile-create}
-        FAILED: {next: failed}
-        DENIED: {next: failed}
-    - id: reconcile-create
-      type: action
-      ref: pdu_session.reconcile
-      'on':
-        COMMITTED: {next: verify-session-goal}
-        NOT_COMMITTED: {next: create-session}
-        UNRESOLVED: {next: unresolved}
-        FAILED: {next: safe-stopped}
-        DENIED: {next: safe-stopped}
-    - id: verify-session-goal
-      type: verify
-      predicates:
-      - pdu_session.established
-      - pdu_session.qos.satisfied
-      - user_plane.connectivity.available
-      'on':
-        PASS: {next: done}
-        FAIL: {next: failed}
-        UNKNOWN: {next: unresolved}
-    - id: done
-      type: terminal
-      result: SUCCEEDED
-    - id: failed
-      type: terminal
-      result: FAILED
-    - id: unresolved
-      type: terminal
-      result: UNRESOLVED
-    - id: safe-stopped
-      type: terminal
-      result: SAFE_STOPPED
-  - name: modify-existing-session-qos
-    goal: pdu_session.ensure_qos
-    entry: modify-session-qos
+      modify-session-qos:
+        call: pdu_session.modify_qos
+        with:
+          supi:
+            from: input.supi
+          pduSessionId:
+            from: input.pdusessionid
+          dnn:
+            from: input.dnn
+          sst:
+            from: input.sst
+          sd:
+            from: input.sd
+          fiveQi:
+            from: input.fiveqi
+        'on':
+          COMMITTED: verify-session-goal
+          NOT_COMMITTED: failed
+          OUTCOME_UNKNOWN: reconcile-modify
+          FAILED: failed
+          DENIED: failed
+      reconcile-modify:
+        call: pdu_session.reconcile
+        'on':
+          COMMITTED: verify-session-goal
+          NOT_COMMITTED: modify-session-qos
+          UNRESOLVED: unresolved
+          FAILED: safe-stopped
+          DENIED: safe-stopped
+      verify-session-goal:
+        verify: pdu_session.established
+        'on':
+          PASS: verify-session-goal-2
+          FAIL: failed
+          UNKNOWN: unresolved
+      verify-session-goal-2:
+        verify: pdu_session.qos.satisfied
+        'on':
+          PASS: verify-session-goal-3
+          FAIL: failed
+          UNKNOWN: unresolved
+      verify-session-goal-3:
+        verify: user_plane.connectivity.available
+        'on':
+          PASS: done
+          FAIL: failed
+          UNKNOWN: unresolved
+      done:
+        terminal: SUCCEEDED
+      failed:
+        terminal: FAILED
+      unresolved:
+        terminal: UNRESOLVED
+      safe-stopped:
+        terminal: SAFE_STOPPED
     applicability:
       predicates:
         pdu_session.established: PASS
         pdu_session.qos.satisfied: FAIL
-    standardRefs:
-    - organization: 3GPP
-      specification: TS 23.502
-      note: PDU Session Modification related flow; fixture is not a conformance claim
+  observe-session-then-converge:
+    inputs:
+      supi:
+        type: string
+        from: context.subject.supi
+      pdusessionid:
+        type: string
+        from: context.subject.pduSessionId
+      dnn:
+        type: string
+        from: context.request.dnn
+      sst:
+        type: string
+        from: context.request.sst
+      sd:
+        type: string
+        from: context.request.sd
+      fiveqi:
+        type: string
+        from: context.request.fiveQi
+    start: query-session
     nodes:
-    - id: modify-session-qos
-      type: action
-      ref: pdu_session.modify_qos
-      inputs:
-        supi: {fromContext: subject.supi}
-        pduSessionId: {fromContext: subject.pduSessionId}
-        dnn: {fromContext: request.dnn}
-        sst: {fromContext: request.sst}
-        sd: {fromContext: request.sd}
-        fiveQi: {fromContext: request.fiveQi}
-      'on':
-        COMMITTED: {next: verify-session-goal}
-        NOT_COMMITTED: {next: failed}
-        OUTCOME_UNKNOWN: {next: reconcile-modify}
-        FAILED: {next: failed}
-        DENIED: {next: failed}
-    - id: reconcile-modify
-      type: action
-      ref: pdu_session.reconcile
-      'on':
-        COMMITTED: {next: verify-session-goal}
-        NOT_COMMITTED: {next: modify-session-qos}
-        UNRESOLVED: {next: unresolved}
-        FAILED: {next: safe-stopped}
-        DENIED: {next: safe-stopped}
-    - id: verify-session-goal
-      type: verify
-      predicates:
-      - pdu_session.established
-      - pdu_session.qos.satisfied
-      - user_plane.connectivity.available
-      'on':
-        PASS: {next: done}
-        FAIL: {next: failed}
-        UNKNOWN: {next: unresolved}
-    - id: done
-      type: terminal
-      result: SUCCEEDED
-    - id: failed
-      type: terminal
-      result: FAILED
-    - id: unresolved
-      type: terminal
-      result: UNRESOLVED
-    - id: safe-stopped
-      type: terminal
-      result: SAFE_STOPPED
-  - name: observe-session-then-converge
-    goal: pdu_session.ensure_qos
-    entry: query-session
+      query-session:
+        call: pdu_session.query
+        with:
+          supi:
+            from: input.supi
+          pduSessionId:
+            from: input.pdusessionid
+        'on':
+          SUCCEEDED: observe-established
+          FAILED: failed
+          UNKNOWN: unresolved
+          DENIED: failed
+      observe-established:
+        verify: pdu_session.established
+        'on':
+          PASS: observe-qos
+          FAIL: create-session
+          UNKNOWN: unresolved
+      observe-qos:
+        verify: pdu_session.qos.satisfied
+        'on':
+          PASS: verify-session-goal
+          FAIL: modify-session-qos
+          UNKNOWN: unresolved
+      create-session:
+        call: pdu_session.create
+        with:
+          supi:
+            from: input.supi
+          pduSessionId:
+            from: input.pdusessionid
+          dnn:
+            from: input.dnn
+          sst:
+            from: input.sst
+          sd:
+            from: input.sd
+          fiveQi:
+            from: input.fiveqi
+        'on':
+          COMMITTED: verify-session-goal
+          NOT_COMMITTED: failed
+          OUTCOME_UNKNOWN: reconcile-create
+          FAILED: failed
+          DENIED: failed
+      reconcile-create:
+        call: pdu_session.reconcile
+        'on':
+          COMMITTED: verify-session-goal
+          NOT_COMMITTED: create-session
+          UNRESOLVED: unresolved
+          FAILED: safe-stopped
+          DENIED: safe-stopped
+      modify-session-qos:
+        call: pdu_session.modify_qos
+        with:
+          supi:
+            from: input.supi
+          pduSessionId:
+            from: input.pdusessionid
+          dnn:
+            from: input.dnn
+          sst:
+            from: input.sst
+          sd:
+            from: input.sd
+          fiveQi:
+            from: input.fiveqi
+        'on':
+          COMMITTED: verify-session-goal
+          NOT_COMMITTED: failed
+          OUTCOME_UNKNOWN: reconcile-modify
+          FAILED: failed
+          DENIED: failed
+      reconcile-modify:
+        call: pdu_session.reconcile
+        'on':
+          COMMITTED: verify-session-goal
+          NOT_COMMITTED: modify-session-qos
+          UNRESOLVED: unresolved
+          FAILED: safe-stopped
+          DENIED: safe-stopped
+      verify-session-goal:
+        verify: pdu_session.established
+        'on':
+          PASS: verify-session-goal-2
+          FAIL: failed
+          UNKNOWN: unresolved
+      verify-session-goal-2:
+        verify: pdu_session.qos.satisfied
+        'on':
+          PASS: verify-session-goal-3
+          FAIL: failed
+          UNKNOWN: unresolved
+      verify-session-goal-3:
+        verify: user_plane.connectivity.available
+        'on':
+          PASS: done
+          FAIL: failed
+          UNKNOWN: unresolved
+      done:
+        terminal: SUCCEEDED
+      failed:
+        terminal: FAILED
+      unresolved:
+        terminal: UNRESOLVED
+      safe-stopped:
+        terminal: SAFE_STOPPED
     applicability:
       predicates:
         pdu_session.established: UNKNOWN
-    nodes:
-    - id: query-session
-      type: action
-      ref: pdu_session.query
-      inputs:
-        supi: {fromContext: subject.supi}
-        pduSessionId: {fromContext: subject.pduSessionId}
-      'on':
-        SUCCEEDED: {next: observe-established}
-        FAILED: {next: failed}
-        UNKNOWN: {next: unresolved}
-        DENIED: {next: failed}
-    - id: observe-established
-      type: verify
-      predicates:
-      - pdu_session.established
-      'on':
-        PASS: {next: observe-qos}
-        FAIL: {next: create-session}
-        UNKNOWN: {next: unresolved}
-    - id: observe-qos
-      type: verify
-      predicates:
-      - pdu_session.qos.satisfied
-      'on':
-        PASS: {next: verify-session-goal}
-        FAIL: {next: modify-session-qos}
-        UNKNOWN: {next: unresolved}
-    - id: create-session
-      type: action
-      ref: pdu_session.create
-      inputs:
-        supi: {fromContext: subject.supi}
-        pduSessionId: {fromContext: subject.pduSessionId}
-        dnn: {fromContext: request.dnn}
-        sst: {fromContext: request.sst}
-        sd: {fromContext: request.sd}
-        fiveQi: {fromContext: request.fiveQi}
-      'on':
-        COMMITTED: {next: verify-session-goal}
-        NOT_COMMITTED: {next: failed}
-        OUTCOME_UNKNOWN: {next: reconcile-create}
-        FAILED: {next: failed}
-        DENIED: {next: failed}
-    - id: reconcile-create
-      type: action
-      ref: pdu_session.reconcile
-      'on':
-        COMMITTED: {next: verify-session-goal}
-        NOT_COMMITTED: {next: create-session}
-        UNRESOLVED: {next: unresolved}
-        FAILED: {next: safe-stopped}
-        DENIED: {next: safe-stopped}
-    - id: modify-session-qos
-      type: action
-      ref: pdu_session.modify_qos
-      inputs:
-        supi: {fromContext: subject.supi}
-        pduSessionId: {fromContext: subject.pduSessionId}
-        dnn: {fromContext: request.dnn}
-        sst: {fromContext: request.sst}
-        sd: {fromContext: request.sd}
-        fiveQi: {fromContext: request.fiveQi}
-      'on':
-        COMMITTED: {next: verify-session-goal}
-        NOT_COMMITTED: {next: failed}
-        OUTCOME_UNKNOWN: {next: reconcile-modify}
-        FAILED: {next: failed}
-        DENIED: {next: failed}
-    - id: reconcile-modify
-      type: action
-      ref: pdu_session.reconcile
-      'on':
-        COMMITTED: {next: verify-session-goal}
-        NOT_COMMITTED: {next: modify-session-qos}
-        UNRESOLVED: {next: unresolved}
-        FAILED: {next: safe-stopped}
-        DENIED: {next: safe-stopped}
-    - id: verify-session-goal
-      type: verify
-      predicates:
-      - pdu_session.established
-      - pdu_session.qos.satisfied
-      - user_plane.connectivity.available
-      'on':
-        PASS: {next: done}
-        FAIL: {next: failed}
-        UNKNOWN: {next: unresolved}
-    - id: done
-      type: terminal
-      result: SUCCEEDED
-    - id: failed
-      type: terminal
-      result: FAILED
-    - id: unresolved
-      type: terminal
-      result: UNRESOLVED
-    - id: safe-stopped
-      type: terminal
-      result: SAFE_STOPPED

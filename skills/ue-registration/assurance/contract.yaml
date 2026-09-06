@@ -5,6 +5,7 @@ metadata:
 spec:
   skillType: executable
   goal: ue.ensure_registered
+  entryProcedure: ensure-registration
   inputs:
     requestSchema: schemas/registration-request.schema.yaml
   allowedResources:

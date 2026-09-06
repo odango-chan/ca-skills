@@ -1,155 +1,168 @@
-apiVersion: connectionagent.io/v1alpha1
-kind: ProcedureSet
-metadata:
-  skill: download-object-by-deadline
-spec:
-  selectionPolicy: exactlyOne
-  procedures:
-  - name: download-direct
-    goal: file.download_by_deadline
-    entry: download-object
+procedures:
+  download-direct:
+    inputs:
+      objectref:
+        type: string
+        from: context.request.objectRef
+      ueref:
+        type: string
+        from: context.subject.ueRef
+    start: download-object
+    nodes:
+      download-object:
+        call: file.download
+        with:
+          objectRef:
+            from: input.objectref
+          ueRef:
+            from: input.ueref
+          direction:
+            value: downlink
+        'on':
+          COMMITTED: verify-transfer
+          NOT_COMMITTED: failed
+          OUTCOME_UNKNOWN: reconcile-download
+          FAILED: failed
+          DENIED: failed
+      reconcile-download:
+        call: pdu_session.reconcile
+        'on':
+          COMMITTED: verify-transfer
+          NOT_COMMITTED: download-object
+          UNRESOLVED: unresolved
+          FAILED: safe-stopped
+          DENIED: safe-stopped
+      verify-transfer:
+        verify: file_transfer.completed
+        'on':
+          PASS: verify-transfer-2
+          FAIL: failed
+          UNKNOWN: unresolved
+      verify-transfer-2:
+        verify: file_transfer.deadline_met
+        'on':
+          PASS: done
+          FAIL: failed
+          UNKNOWN: unresolved
+      done:
+        terminal: SUCCEEDED
+      failed:
+        terminal: FAILED
+      unresolved:
+        terminal: UNRESOLVED
+      safe-stopped:
+        terminal: SAFE_STOPPED
     applicability:
       when: has(request.sizeBytes) && request.sizeBytes > 0
+  observe-then-download:
+    inputs:
+      objectref:
+        type: string
+        from: context.request.objectRef
+      bytesremaining:
+        type: string
+        from: context.facts.bytes_remaining
+      secondsremaining:
+        type: string
+        from: context.facts.seconds_remaining
+      ueref:
+        type: string
+        from: context.subject.ueRef
+      minimumpayloadbitratebps:
+        type: string
+        from: context.facts.minimum_payload_bitrate_bps
+    start: observe-object
     nodes:
-    - id: download-object
-      type: action
-      ref: file.download
-      inputs:
-        objectRef: {fromContext: request.objectRef}
-        ueRef: {fromContext: subject.ueRef}
-        direction: {literal: downlink}
-      'on':
-        COMMITTED: {next: verify-transfer}
-        NOT_COMMITTED: {next: failed}
-        OUTCOME_UNKNOWN: {next: reconcile-download}
-        FAILED: {next: failed}
-        DENIED: {next: failed}
-    - id: reconcile-download
-      type: action
-      ref: pdu_session.reconcile
-      'on':
-        COMMITTED: {next: verify-transfer}
-        NOT_COMMITTED: {next: download-object}
-        UNRESOLVED: {next: unresolved}
-        FAILED: {next: safe-stopped}
-        DENIED: {next: safe-stopped}
-    - id: verify-transfer
-      type: verify
-      predicates:
-      - file_transfer.completed
-      - file_transfer.deadline_met
-      'on':
-        PASS: {next: done}
-        FAIL: {next: failed}
-        UNKNOWN: {next: unresolved}
-    - id: done
-      type: terminal
-      result: SUCCEEDED
-    - id: failed
-      type: terminal
-      result: FAILED
-    - id: unresolved
-      type: terminal
-      result: UNRESOLVED
-    - id: safe-stopped
-      type: terminal
-      result: SAFE_STOPPED
-  - name: observe-then-download
-    goal: file.download_by_deadline
-    entry: observe-object
+      observe-object:
+        call: object.metadata.query
+        with:
+          objectRef:
+            from: input.objectref
+        'on':
+          SUCCEEDED: verify-size-known
+          FAILED: size-unobservable
+          UNKNOWN: size-unobservable
+          DENIED: size-unobservable
+      verify-size-known:
+        verify: object.size.known
+        'on':
+          PASS: derive-requirement
+          FAIL: size-unobservable
+          UNKNOWN: size-unobservable
+      derive-requirement:
+        script: scripts/derive_transfer_requirement.py
+        with:
+          bytesRemaining:
+            from: input.bytesremaining
+          secondsRemaining:
+            from: input.secondsremaining
+        'on':
+          SUCCEEDED: resolve-qos
+          FAILED: failed
+          DENIED: failed
+      resolve-qos:
+        call: qos.requirement.resolve
+        with:
+          ueRef:
+            from: input.ueref
+          minimumPayloadBitrateBps:
+            from: input.minimumpayloadbitratebps
+        'on':
+          SUCCEEDED: verify-qos-accepted
+          FAILED: failed
+          UNKNOWN: unresolved
+          DENIED: failed
+      verify-qos-accepted:
+        verify: file_transfer.completed
+        'on':
+          PASS: download-object
+          FAIL: failed
+          UNKNOWN: unresolved
+      download-object:
+        call: file.download
+        with:
+          objectRef:
+            from: input.objectref
+          ueRef:
+            from: input.ueref
+          direction:
+            value: downlink
+        'on':
+          COMMITTED: verify-transfer
+          NOT_COMMITTED: failed
+          OUTCOME_UNKNOWN: reconcile-download
+          FAILED: failed
+          DENIED: failed
+      reconcile-download:
+        call: pdu_session.reconcile
+        'on':
+          COMMITTED: verify-transfer
+          NOT_COMMITTED: download-object
+          UNRESOLVED: unresolved
+          FAILED: safe-stopped
+          DENIED: safe-stopped
+      verify-transfer:
+        verify: file_transfer.completed
+        'on':
+          PASS: verify-transfer-2
+          FAIL: failed
+          UNKNOWN: unresolved
+      verify-transfer-2:
+        verify: file_transfer.deadline_met
+        'on':
+          PASS: done
+          FAIL: failed
+          UNKNOWN: unresolved
+      done:
+        terminal: SUCCEEDED
+      failed:
+        terminal: FAILED
+      unresolved:
+        terminal: UNRESOLVED
+      safe-stopped:
+        terminal: SAFE_STOPPED
+      size-unobservable:
+        terminal: PLANNING_BLOCKED
     applicability:
-      when: '!has(request.sizeBytes) || request.sizeBytes <= 0'
-    nodes:
-    - id: observe-object
-      type: action
-      ref: object.metadata.query
-      inputs:
-        objectRef: {fromContext: request.objectRef}
-      'on':
-        SUCCEEDED: {next: verify-size-known}
-        FAILED: {next: size-unobservable}
-        UNKNOWN: {next: size-unobservable}
-        DENIED: {next: size-unobservable}
-    - id: verify-size-known
-      type: verify
-      predicates:
-      - object.size.known
-      'on':
-        PASS: {next: derive-requirement}
-        FAIL: {next: size-unobservable}
-        UNKNOWN: {next: size-unobservable}
-    - id: derive-requirement
-      type: action
-      ref: {kind: tool, value: skill.derive-transfer-requirement}
-      inputs:
-        bytesRemaining: {fromContext: facts.bytes_remaining}
-        secondsRemaining: {fromContext: facts.seconds_remaining}
-      'on':
-        SUCCEEDED: {next: resolve-qos}
-        FAILED: {next: failed}
-        DENIED: {next: failed}
-    - id: resolve-qos
-      type: action
-      ref: qos.requirement.resolve
-      inputs:
-        ueRef: {fromContext: subject.ueRef}
-        minimumPayloadBitrateBps: {fromContext: facts.minimum_payload_bitrate_bps}
-      'on':
-        SUCCEEDED: {next: verify-qos-accepted}
-        FAILED: {next: failed}
-        UNKNOWN: {next: unresolved}
-        DENIED: {next: failed}
-    - id: verify-qos-accepted
-      type: verify
-      predicates:
-      - file_transfer.completed
-      'on':
-        PASS: {next: download-object}
-        FAIL: {next: failed}
-        UNKNOWN: {next: unresolved}
-    - id: download-object
-      type: action
-      ref: file.download
-      inputs:
-        objectRef: {fromContext: request.objectRef}
-        ueRef: {fromContext: subject.ueRef}
-        direction: {literal: downlink}
-      'on':
-        COMMITTED: {next: verify-transfer}
-        NOT_COMMITTED: {next: failed}
-        OUTCOME_UNKNOWN: {next: reconcile-download}
-        FAILED: {next: failed}
-        DENIED: {next: failed}
-    - id: reconcile-download
-      type: action
-      ref: pdu_session.reconcile
-      'on':
-        COMMITTED: {next: verify-transfer}
-        NOT_COMMITTED: {next: download-object}
-        UNRESOLVED: {next: unresolved}
-        FAILED: {next: safe-stopped}
-        DENIED: {next: safe-stopped}
-    - id: verify-transfer
-      type: verify
-      predicates:
-      - file_transfer.completed
-      - file_transfer.deadline_met
-      'on':
-        PASS: {next: done}
-        FAIL: {next: failed}
-        UNKNOWN: {next: unresolved}
-    - id: done
-      type: terminal
-      result: SUCCEEDED
-    - id: failed
-      type: terminal
-      result: FAILED
-    - id: unresolved
-      type: terminal
-      result: UNRESOLVED
-    - id: safe-stopped
-      type: terminal
-      result: SAFE_STOPPED
-    - id: size-unobservable
-      type: terminal
-      result: PLANNING_BLOCKED
+      when: "!has(request.sizeBytes) || request.sizeBytes <= 0"
+

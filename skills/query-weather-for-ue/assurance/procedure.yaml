@@ -1,125 +1,91 @@
-apiVersion: connectionagent.io/v1alpha1
-kind: ProcedureSet
-metadata:
-  skill: query-weather-for-ue
-spec:
-  selectionPolicy: exactlyOne
-  procedures:
-  - name: query-weather
-    goal: weather.query_for_ue
-    entry: verify-connectivity
+procedures:
+  query-weather:
+    inputs:
+      supi:
+        type: string
+        from: context.subject.supi
+      pdusessionid:
+        type: string
+        from: context.subject.pduSessionId
+      city:
+        type: string
+        from: context.request.city
+      unit:
+        type: string
+        from: context.request.unit
+    start: verify-connectivity
     nodes:
-    - id: verify-connectivity
-      type: verify
-      predicates:
-      - user_plane.connectivity.available
-      'on':
-        PASS:
-          next: query-weather
-        FAIL:
-          next: ensure-connectivity
-        UNKNOWN:
-          next: probe-connectivity
-    - id: probe-connectivity
-      type: action
-      ref: user_plane.probe
-      inputs:
-        supi:
-          fromContext: subject.supi
-        pduSessionId:
-          fromContext: subject.pduSessionId
-      'on':
-        UNKNOWN:
-          next: unresolved
-        DENIED:
-          next: failed
-        SUCCEEDED:
-          next: verify-connectivity
-        FAILED:
-          next: ensure-connectivity
-    - id: ensure-connectivity
-      type: action
-      ref: pdu_session.ensure
-      inputs:
-        supi:
-          fromContext: subject.supi
-        pduSessionId:
-          fromContext: subject.pduSessionId
-      'on':
-        COMMITTED:
-          next: verify-connectivity
-        NOT_COMMITTED:
-          next: failed
-        OUTCOME_UNKNOWN:
-          next: reconcile-connectivity
-        FAILED:
-          next: failed
-        DENIED:
-          next: failed
-    - id: reconcile-connectivity
-      type: action
-      ref: pdu_session.reconcile
-      'on':
-        COMMITTED:
-          next: verify-connectivity
-        NOT_COMMITTED:
-          next: ensure-connectivity
-        UNRESOLVED:
-          next: unresolved
-        FAILED:
-          next: safe-stopped
-        DENIED:
-          next: safe-stopped
-    - id: query-weather
-      type: action
-      ref: external.weather.query
-      inputs:
-        city:
-          fromContext: request.city
-        unit:
-          fromContext: request.unit
-      'on':
-        SUCCEEDED:
-          next: normalize-weather
-        FAILED:
-          next: failed
-        DENIED:
-          next: failed
-    - id: normalize-weather
-      type: action
-      ref:
-        kind: tool
-        value: skill.normalize-weather-result
-      inputFrom:
-        node: query-weather
-        path: output
-      'on':
-        SUCCEEDED:
-          next: verify-weather-result
-        FAILED:
-          next: failed
-        DENIED:
-          next: failed
-    - id: verify-weather-result
-      type: verify
-      predicates:
-      - service.weather.query.succeeded
-      'on':
-        PASS:
-          next: done
-        FAIL:
-          next: failed
-        UNKNOWN:
-          next: unresolved
-    - id: done
-      type: terminal
-      result: SUCCEEDED
-    - id: failed
-      type: terminal
-      result: FAILED
-    - id: unresolved
-      type: terminal
-      result: UNRESOLVED
-    - id: safe-stopped
-      type: terminal
-      result: SAFE_STOPPED
+      verify-connectivity:
+        verify: user_plane.connectivity.available
+        'on':
+          PASS: query-weather
+          FAIL: ensure-connectivity
+          UNKNOWN: probe-connectivity
+      probe-connectivity:
+        call: user_plane.probe
+        with:
+          supi:
+            from: input.supi
+          pduSessionId:
+            from: input.pdusessionid
+        'on':
+          UNKNOWN: unresolved
+          DENIED: failed
+          SUCCEEDED: verify-connectivity
+          FAILED: ensure-connectivity
+      ensure-connectivity:
+        call: pdu_session.ensure
+        with:
+          supi:
+            from: input.supi
+          pduSessionId:
+            from: input.pdusessionid
+        'on':
+          COMMITTED: verify-connectivity
+          NOT_COMMITTED: failed
+          OUTCOME_UNKNOWN: reconcile-connectivity
+          FAILED: failed
+          DENIED: failed
+      reconcile-connectivity:
+        call: pdu_session.reconcile
+        'on':
+          COMMITTED: verify-connectivity
+          NOT_COMMITTED: ensure-connectivity
+          UNRESOLVED: unresolved
+          FAILED: safe-stopped
+          DENIED: safe-stopped
+      query-weather:
+        call: external.weather.query
+        with:
+          city:
+            from: input.city
+          unit:
+            from: input.unit
+        'on':
+          SUCCEEDED: normalize-weather
+          FAILED: failed
+          DENIED: failed
+      normalize-weather:
+        script: scripts/normalize_weather_result.py
+        with:
+          input:
+            from: query-weather.output
+        'on':
+          SUCCEEDED: verify-weather-result
+          FAILED: failed
+          DENIED: failed
+      verify-weather-result:
+        verify: service.weather.query.succeeded
+        'on':
+          PASS: done
+          FAIL: failed
+          UNKNOWN: unresolved
+      done:
+        terminal: SUCCEEDED
+      failed:
+        terminal: FAILED
+      unresolved:
+        terminal: UNRESOLVED
+      safe-stopped:
+        terminal: SAFE_STOPPED
+
