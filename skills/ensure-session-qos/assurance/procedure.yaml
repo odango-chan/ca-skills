@@ -36,7 +36,7 @@ procedures:
         type: string
         from: context.subject.supi
       pdusessionid:
-        type: string
+        type: integer
         from: context.subject.pduSessionId
       dnn:
         type: string
@@ -116,7 +116,7 @@ procedures:
         type: string
         from: context.subject.supi
       pdusessionid:
-        type: string
+        type: integer
         from: context.subject.pduSessionId
       dnn:
         type: string
@@ -197,7 +197,7 @@ procedures:
         type: string
         from: context.subject.supi
       pdusessionid:
-        type: string
+        type: integer
         from: context.subject.pduSessionId
       dnn:
         type: string

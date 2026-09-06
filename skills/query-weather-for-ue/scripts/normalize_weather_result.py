@@ -9,20 +9,12 @@
 # ///
 
 
-from math import isfinite
-from typing import TypedDict
+class ExternalWeatherRawResultV1(dict):
+    pass
 
 
-class ExternalWeatherRawResultV1(TypedDict):
-    city: str
-    temperature: float
-    condition: str
-
-
-class WeatherResult(TypedDict):
-    city: str
-    temperature: float
-    condition: str
+class WeatherResult(dict):
+    pass
 
 
 def main(input: ExternalWeatherRawResultV1) -> WeatherResult:
@@ -34,7 +26,7 @@ def main(input: ExternalWeatherRawResultV1) -> WeatherResult:
         raise ValueError("city must not be empty")
     if not condition:
         raise ValueError("condition must not be empty")
-    if not isfinite(temperature):
+    if temperature != temperature or temperature == float("inf") or temperature == float("-inf"):
         raise ValueError("temperature must be finite")
 
     return {

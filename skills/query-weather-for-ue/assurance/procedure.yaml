@@ -5,7 +5,7 @@ procedures:
         type: string
         from: context.subject.supi
       pdusessionid:
-        type: string
+        type: integer
         from: context.subject.pduSessionId
       city:
         type: string
@@ -68,12 +68,15 @@ procedures:
       normalize-weather:
         script: scripts/normalize_weather_result.py
         with:
-          input:
-            from: query-weather.output
+          city:
+            from: query-weather.output.city
+          temperature:
+            from: query-weather.output.temperature
+          condition:
+            from: query-weather.output.condition
         'on':
           SUCCEEDED: verify-weather-result
           FAILED: failed
-          DENIED: failed
       verify-weather-result:
         verify: service.weather.query.succeeded
         'on':
@@ -88,4 +91,3 @@ procedures:
         terminal: UNRESOLVED
       safe-stopped:
         terminal: SAFE_STOPPED
-
