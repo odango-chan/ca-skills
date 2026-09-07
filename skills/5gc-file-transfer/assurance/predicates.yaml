@@ -56,5 +56,7 @@ predicates:
         freshness: 5s
         when: request.operation == "prepare_transfer" && request.urgency == "urgent"
     evaluator:
-      type: script
-      ref: skill.evaluate-transfer-request-satisfied
+      type: cel
+      expression: >
+        (request.operation == "release_group" && (observations.virtualGroup.state == "RELEASED" || observations.virtualGroup.state == "NOT_FOUND")) ||
+        (request.operation == "prepare_transfer" && (observations.virtualGroup.state == "CREATED" || observations.virtualGroup.state == "MEMBERS_ASSIGNED") && observations.virtualGroup.membersAssigned == true && (request.urgency != "urgent" || observations.qosBoost.state == "COMMITTED"))

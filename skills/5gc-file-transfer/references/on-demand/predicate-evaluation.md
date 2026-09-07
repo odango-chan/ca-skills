@@ -72,8 +72,10 @@ file_transfer.request.satisfied:
       freshness: 5s
       when: request.operation == "prepare_transfer" && request.urgency == "urgent"
   evaluator:
-    type: script
-    ref: skill.evaluate-transfer-request-satisfied
+    type: cel
+    expression: >
+      (request.operation == "release_group" && (observations.virtualGroup.state == "RELEASED" || observations.virtualGroup.state == "NOT_FOUND")) ||
+      (request.operation == "prepare_transfer" && (observations.virtualGroup.state == "CREATED" || observations.virtualGroup.state == "MEMBERS_ASSIGNED") && observations.virtualGroup.membersAssigned == true && (request.urgency != "urgent" || observations.qosBoost.state == "COMMITTED"))
 ```
 
 The alias (`virtualGroup`, `qosBoost`) becomes a typed field under `PredicateEvaluationContext.observations`.
@@ -131,31 +133,22 @@ Collection iteration alone is not a reason to introduce Python.
 
 A Predicate may still read `request`, `subject`, or `facts` when those values are part of the proof context. The distinction is semantic: a named Predicate represents something that must be proven, not merely a branch selector.
 
-## Python predicate
+## Complex predicate decision (Option A - CEL-only)
 
-`file_transfer.request.satisfied` remains a Python evaluator because it combines:
+`file_transfer.request.satisfied` combines prepare vs release semantics, virtual-group state, member-assignment and urgency-dependent QoS. This was evaluated as the concrete design test for Option A vs Option B:
 
-- prepare vs. release operation semantics;
-- virtual-group state;
-- member-assignment state;
-- urgency-dependent QoS requirements;
-- stable diagnostic reason codes.
+- **Option A (CEL-only + Script node):** keep PredicateSet CEL-only; complex deterministic transformation -> Script node -> typed output -> Verify.
+- **Option B (CEL+ governed Script evaluator):** extend PredicateSet to `evaluator.type: script` reusing the governed local Script substrate.
 
-The script is `scripts/evaluate_transfer_request_satisfied.py`.
+The decision is **Option A - CEL-only**:
 
-It consumes the same target `PredicateEvaluationContext` used by CEL:
+- Predicate interpretation is a reusable domain assertion (`PASS/FAIL/UNKNOWN`), not a rich typed computation. The only meaningful result is whether the requested transfer preparation/release is satisfied.
+- CEL auditability outweighs Python expressiveness here. The branching (`operation`, `state`, `membersAssigned`, `urgency`) is a boolean composition that remains readable as one CEL expression (see example above). Diagnostic `reasonCode` granularity is not required for the Procedure gate; richer diagnostics belong to Run/Event facts, not predicate identity.
+- Keeping PredicateSet small avoids a second execution authority (`Predicate Script Executor`) and preserves one governed local-compute substrate (Procedure Script). Error semantics remain clear: `FAIL` vs `UNKNOWN` (missing/stale observation) vs evaluator failure, without hiding workflow control flow inside a predicate script.
+- Reuse is achieved via a single named predicate referenced by all three procedures (`prepare-normal`, `prepare-urgent`, `release`); no duplication of a Script node per procedure is needed.
+- Determinism contract (interpreter version, digest, sandbox) is already defined for Procedure Scripts and is not duplicated for predicates.
 
-```text
-request
-subject
-facts
-observations
-evidence
-```
-
-`observations` contains business values. `evidence` contains scope/provenance/audit metadata for those values.
-
-The script performs deterministic local computation only. It cannot acquire Observations, dispatch Tools/Capabilities, retry mutations, or modify Runtime Context.
+If a future predicate requires substantial transformation/normalization/aggregation producing meaningful typed data beyond `PASS/FAIL/UNKNOWN`, it belongs as a Procedure Script with `Verify` of its typed output, per the `Script: what derived information do I compute?` vs `Predicate: given these observations, is assertion X true?` distinction.
 
 ## Design rule
 
@@ -163,6 +156,6 @@ Use `applicability.when` for deterministic Procedure selection from already-know
 
 Use a named Predicate when the condition is part of execution assurance: it must be verified, reused as a proof result, or enforced as a contract condition.
 
-Use CEL while the proof judgement is easy to audit as one expression. Use Python when semantic branching, correlation, conflict handling, or diagnostic output would make CEL materially less clear.
+Use CEL while the proof judgement is easy to audit as one expression. If semantic branching would make CEL materially less clear and the logic is a reusable assertion, a governed Script evaluator could be considered, but the current architecture retains CEL-only to keep the Predicate model small.
 
-Keep acquisition outside both evaluator forms. Evaluators judge prepared canonical data; `ObservationBinding` decides how a deployment obtains that data.
+Keep acquisition outside the evaluator. Evaluators judge prepared canonical data; `ObservationBinding` decides how a deployment obtains that data. Predicate evaluation remains deterministic and governed: it never invokes Providers, calls MCP/tools, accesses network, mutates environment, hides workflow control flow, performs reconciliation, or acquires observations itself. The Runtime receives already-bound Observation values and evaluates them locally.
