@@ -74,28 +74,30 @@ Platform compiler、Planning、mock fixture runner、Service Case 展示和场�
 - PR5-1..PR5-9 与 pr4-8 gates PASS；check-generate PASS；参考 Skill SQ0/SQ1/SQ2
   PASS；m5-q4 PASS；Runtime 全量测试 PASS。
 
-### file-transfer 准入评估
+### file-transfer 准入评估（PR6 预检最终模型）
 
 | 项 | wifi-file-transfer | 5gc-file-transfer |
 | --- | --- | --- |
-| vNext Procedure compile | PASS（2 procedures） | 仅 Procedure 语法 OK，Package 被 Predicate 阻塞 |
-| Predicate registry | `wifi_transfer.request.satisfied`（CEL）已注册 | `transfer.participants.*`（CEL）已注册；`file_transfer.request.satisfied` 使用 `evaluator.type: script` |
-| Case coverage | 8 cases 覆盖 happy_path / outcome_unknown_safe_stopped / postcondition_failed / action_denied / resource_unavailable / observation_unknown / qos_unknown | 11 cases 已建（未覆盖门禁，因 Package 阻塞） |
-| 受控 Script | 无 | `evaluate_transfer_request_satisfied.py` 有 connectionagent-tool 头（governed），但作为 Predicate evaluator 引用 |
-| Provider assumptions | `wifi.transfer.create` / `wifi.qos.boost` 已在 Platform registry（`wifi_transfer_create.yaml` / `wifi_qos_boost.yaml`） | `virtual_group.*` / `transfer_qos.*` / `transfer_participants.*` / `edge_cache.*` registry 项已建（未最终验证 schema 闭包） |
-| 资格状态 | 仍为 migration target，**未**列为 production-qualified | 仍为 migration target，**未**列为 production-qualified |
+| vNext Procedure compile | PASS（2 procedures） | PASS（3 procedures: prepare-normal/urgent, release） |
+| PredicateSet schema | CEL + Script discriminated evaluator（`predicate-set.schema.yaml` oneOf） | 同左 |
+| Predicate registry | `wifi_transfer.request.satisfied`（CEL）已注册 | `transfer.participants.*`（CEL）已注册；`file_transfer.request.satisfied` 使用 `evaluator.type: script` + `ref: skill.evaluate-transfer-request-satisfied` |
+| Evaluator 实现 | CEL 直接布尔审计 | Script 复用 governed `LocalPythonScriptExecutor`（与 Procedure Script 同一基座，无第二执行器）；输入 `request/subject/facts/observations/evidence`，输出 `PASS/FAIL/UNKNOWN` + `reasonCode`，执行失败与 `FAIL` 分离 |
+| Case coverage | 8 cases 覆盖 happy_path / outcome_unknown_safe_stopped / postcondition_failed / action_denied / resource_unavailable / observation_unknown / qos_unknown | 11 cases 已建并新增覆盖：normal prepare / urgent prepare / missing QoS / release / NOT_FOUND release / contradictory state -> UNKNOWN / output validation / timeout-failure 不转 FAIL |
+| 受控 Script | 无（simple predicate 保持 CEL） | `scripts/evaluate_transfer_request_satisfied.py`（`local_compute` + `network: denied` + `timeout: 1s` + `PredicateEvaluationResult` 输出）已纳入 Runtime Bundle 闭包与 digest |
+| Provider assumptions | `wifi.transfer.create` / `wifi.qos.boost` 已在 Platform registry | `virtual_group.*` / `transfer_qos.*` / `transfer_participants.*` / `edge_cache.*` registry 项已建（待最终 schema 闭包验证） |
+| Procedure 图 | 保持 `verify: file_transfer.request.satisfied` 单验证节点，无 proof-only Script 节点污染 | 同左：Procedure = flow，Predicate = proof，Script 仅在 Predicate evaluator 内执行，不新增 workflow 节点 |
+| 资格状态 | migration target，编译与 Case 闭包就绪，未 production-qualified（需 Provider/Sandbox 真实 SQ2） | migration target，CEL+Script 双 evaluator 编译通过，未 production-qualified（需 Provider/Sandbox 真实 SQ2） |
 
-### 5gc-file-transfer 阻塞依赖
+### 5gc-file-transfer Predicate 模型（已冻结 PR6）
 
-`file_transfer.request.satisfied` 声明 `evaluator.type: script` + `ref:
-skill.evaluate-transfer-request-satisfied`。当前 canonical `predicate-set.schema.yaml`
-只支持 CEL evaluator（`{type: cel, expression}`），compiler/observation profile
-没有 script-based predicate 求值。这是 runtime/observation-profile 层特性，本阶段按
-任务约束记录为依赖、不做 fake 绕过，也不把 5gc-file-transfer 标为可准入。
+`file_transfer.request.satisfied` 已恢复为受治理的 Script-backed Predicate，验证最终双 evaluator 模型：
+
+- 简单谓词（`transfer.participants.registered`、`pdu_sessions_active` 等）保持 CEL 可审计形式；
+- 复杂谓词（`file_transfer.request.satisfied` 跨 operation/虚拟组状态/membersAssigned/urgency/QoS）由 `scripts/evaluate_transfer_request_satisfied.py` 实现，语义清晰且 Procedure 图不被污染；
+- `predicate-set.schema.yaml` 扩展为 `oneOf: cel | script`，compiler 校验 script 存在性、admission、网络拒绝、输入输出契约与 digest，fail closed；
+- Runtime 的 `ObservationPredicateEvaluator` 通过同一 `LocalPythonScriptExecutor` 执行 Predicate Script，Evidence Gate 先于 evaluator 产生 `UNKNOWN`，Script 仅在证据完备时可返回语义 `UNKNOWN`，执行失败（timeout/policy/output_invalid）单独报错不转 `FAIL`；
+- 该恢复仅为领域断言“本次 file-transfer 请求是否满足”，不产生工作流副作用。
 
 ### 结论
 
-Skills 包目录、examples 分类、单文件 Case 收敛与 authoring 工具已完成并通过仓内
-门禁。`5gc-file-transfer` 的准入被上述 script-predicate 依赖阻塞；`wifi-file-transfer`
-编译与 Case 覆盖就绪但未生产资格化。新 composition promotion 仍需最终 governance
-BOM 更新（不在本仓执行）。
+本仓的 Skill/Case 收敛、Procedure/Predicate authoring 模型、PredicateSet 双 evaluator 契约、受治理 Script 基座复用、以及 `5gc-file-transfer` / `wifi-file-transfer` 的谓词分工已冻结为 PR6 前最终态。后续仅需 Provider/Sandbox 的真实 SQ2 与跨仓 composition 晋升，不再重新开放 Predicate evaluator 语义。

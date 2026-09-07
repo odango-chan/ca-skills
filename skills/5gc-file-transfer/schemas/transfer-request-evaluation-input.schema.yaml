@@ -1,0 +1,69 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: transfer-request-evaluation-input.schema.yaml
+title: TransferRequestPredicateEvaluationContext
+type: object
+required: [predicate, evaluationTime, request, observations, evidence]
+properties:
+  predicate:
+    const: file_transfer.request.satisfied
+  evaluationTime:
+    type: string
+    format: date-time
+  request:
+    type: object
+    required: [operation, urgency]
+    properties:
+      operation:
+        type: string
+        enum: [prepare_transfer, release_group]
+      urgency:
+        type: string
+        enum: [normal, urgent]
+    additionalProperties: true
+  subject:
+    type: object
+  facts:
+    type: object
+  observations:
+    type: object
+    required: [virtualGroup]
+    properties:
+      virtualGroup:
+        type: object
+        required: [state, membersAssigned]
+        properties:
+          state:
+            type: string
+            enum: [CREATED, MEMBERS_ASSIGNED, RELEASED, NOT_FOUND, FAILED]
+          membersAssigned:
+            oneOf:
+            - type: boolean
+            - type: 'null'
+        additionalProperties: true
+      qosBoost:
+        type: object
+        required: [state]
+        properties:
+          state:
+            type: string
+            enum: [COMMITTED, FAILED]
+        additionalProperties: true
+    additionalProperties: false
+  evidence:
+    type: object
+    additionalProperties:
+      type: object
+      properties:
+        observedAt:
+          type: string
+          format: date-time
+        source:
+          type: string
+        refs:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+      additionalProperties: true
+additionalProperties: false

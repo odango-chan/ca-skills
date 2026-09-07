@@ -275,14 +275,40 @@ A Predicate may compare request/fact values with Observations. The design only r
 
 ## Predicate evaluators
 
-Target Predicate authoring uses two evaluator forms:
+Target Predicate authoring uses a discriminated evaluator model:
 
-- **CEL** for small, auditable deterministic boolean judgement, including collection aggregation;
-- **Python** for genuinely complex deterministic branching, correlation, semantic conflict handling, or richer diagnostics.
+```yaml
+evaluator:
+  type: cel
+  expression: observations.session.state == "ACTIVE"
+```
+or
+```yaml
+evaluator:
+  type: script
+  ref: skill.evaluate-transfer-request-satisfied
+```
 
-The Runtime Evidence Gate materializes required typed Observations before evaluator execution. Missing, stale, invalid, unavailable, or budget-exhausted required Observations produce `UNKNOWN`. CEL normally returns a boolean (`true -> PASS`, `false -> FAIL`); Python may also return semantic `UNKNOWN` when complete evidence is internally contradictory.
+- **CEL** for small, auditable deterministic boolean judgement, including collection aggregation; must remain readable at a glance.
+- **Script (governed Python)** for genuinely complex deterministic branching, cross-Observation correlation, non-trivial aggregation, semantic conflict handling, intermediate variables, or richer diagnostics. Rule of thumb: when the expression begins to look like business logic rather than an assertion, use Script.
 
-Skill-local Python evaluators remain `local_compute` with denied network access. They must not acquire Observations, dispatch Tools/Capabilities, or hide workflow execution.
+The Runtime Evidence Gate materializes required typed Observations before evaluator execution. Missing, stale, invalid, unavailable, or budget-exhausted required Observations produce `UNKNOWN` before the evaluator runs. This `UNKNOWN` is evidence-gate uncertainty, not an evaluator crash. A Script evaluator may additionally return semantic `UNKNOWN` only when all required inputs were successfully materialized but the evidence is internally contradictory under domain semantics.
+
+Result semantics are typed:
+
+```text
+PASS / FAIL / UNKNOWN  <- domain judgement
+EVALUATOR_EXECUTION_FAILED / TIMEOUT / POLICY_REJECTED / OUTPUT_INVALID <- infrastructure failure, not FAIL
+```
+
+Evaluator execution failure must never be silently converted into `FAIL`.
+
+Skill-local Python evaluators remain `local_compute` with denied network access and reuse the existing governed local-compute substrate (`LocalPythonScriptExecutor`). There is no second executor: Procedure Script and Predicate Script share one execution authority with different semantic adapters.
+
+- `Procedure Script`: "What data/result do I compute?" (typed computation)
+- `Predicate Script`: "Given already-materialized evidence, is assertion X PASS/FAIL/UNKNOWN?" (deterministic judgement)
+
+Both are deterministic, governed, digest-pinned, and sandboxed. Predicate Scripts may receive only already-materialized inputs (`request/subject/facts/observations/evidence` metadata) and must not invoke Providers/MCP/tools, access network, acquire Observations, mutate state, or alter Procedure flow.
 
 Collection scopes must be bounded. Gateway-oriented request schemas cap receiver cardinality so an Observation provider cannot hide unbounded fan-out behind one `verify` checkpoint.
 
