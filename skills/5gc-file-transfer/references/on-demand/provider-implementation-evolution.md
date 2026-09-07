@@ -28,7 +28,7 @@ The Provider implementation may evolve without changing `SKILL.md`, `assurance/p
 For the current deterministic demo, endpoint state is declared in:
 
 ```text
-examples/fixtures/demo-endpoints.yaml
+references/samples/fixtures/demo-endpoints.yaml
 ```
 
 A fixture-backed Provider performs a bounded lookup by IMSI and returns the canonical Capability result.

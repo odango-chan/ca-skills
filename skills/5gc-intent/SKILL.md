@@ -38,4 +38,4 @@ Return an `ExecutionTargetCandidate` matching `schemas/execution-target-candidat
 
 A `RESOLVED` candidate proposes a Skill, optional Variant/entrypoint, and canonical target request. It is still only a proposal: Runtime admission decides whether it may execute.
 
-Representative inputs and demo identity context are under `examples/`.
+Representative inputs and demo identity context are under `references/samples/`.

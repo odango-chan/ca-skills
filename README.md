@@ -13,7 +13,7 @@ This repository owns:
 - vendor/qualification `cases/` when they belong to the Skill source package;
 - `references/`;
 - optional Skill-local `scripts/` and their metadata;
-- Skill-local schemas, examples, and documentation.
+- Skill-local schemas and explanatory samples under `references/`.
 
 This repository does not own:
 
@@ -35,7 +35,6 @@ skills/
     ├── references/
     ├── schemas/
     ├── scripts/
-    ├── examples/
     └── cases/
 ```
 
@@ -131,7 +130,7 @@ NEEDS_CONTEXT
 NEEDS_EXTENSION
 ```
 
-`NEEDS_CONTEXT` covers missing or ambiguous external business/canonicalization input such as an unresolved person/device alias. Demo identity data belongs in examples/fixtures; production routing should use the live identity context supplied with the request.
+`NEEDS_CONTEXT` covers missing or ambiguous external business/canonicalization input such as an unresolved person/device alias. Demo identity data belongs in references/samples/fixtures; production routing should use the live identity context supplied with the request.
 
 Identity context is deliberately identity-only. Current UE IP, PDU Session state, QoS state, and similar dynamic network values are not routing-model inputs.
 

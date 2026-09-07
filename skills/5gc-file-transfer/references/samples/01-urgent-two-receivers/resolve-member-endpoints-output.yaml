@@ -1,6 +1,6 @@
 # Demo-only canonical output for transfer.participants.resolve_endpoints.
 # In the current fixture-backed demo this is derived from
-# examples/fixtures/demo-endpoints.yaml. Production Provider implementations may
+# references/samples/fixtures/demo-endpoints.yaml. Production Provider implementations may
 # obtain the same canonical result through governed scripts/tools or native NF APIs.
 outcome: SUCCEEDED
 output:
