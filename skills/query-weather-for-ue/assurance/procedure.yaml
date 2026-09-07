@@ -81,7 +81,7 @@ procedures:
         tool: skill.normalize-weather-result
         with:
           input:
-            from: query-weather.output
+            from: normalize-weather.output
         'on':
           SUCCEEDED: verify-weather-result
           FAILED: failed
