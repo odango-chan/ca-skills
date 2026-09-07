@@ -1,0 +1,48 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: wifi-file-transfer
+  name: 03-create-unknown
+spec:
+  classes:
+  - outcome_unknown_safe_stopped
+  purpose: 创建结果未知时保留待决写并安全停止，不盲重试。
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: op-03-create-unknown
+      version: 1
+    subject:
+      senderId: 001019876543210
+    request:
+      requestId: wifi-source-001
+      senderId: 001019876543210
+      receiverIds:
+      - 001019876543211
+      urgency: normal
+    facts: {}
+    availableResources:
+    - ref: wifi.transfer.create
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: wifi.qos.boost
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    constraints:
+      maxActions: 3
+  expect:
+    procedure: create-wifi-transfer-normal
+    planningStatus: READY
+    terminal: SAFE_STOPPED
+    postconditions:
+    - predicate: wifi_transfer.request.satisfied
+      expect: PASS
+      actual: NOT_EVALUATED
+  fixtures:
+    actions:
+      create-transfer: OUTCOME_UNKNOWN

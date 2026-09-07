@@ -1,0 +1,33 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: core5g-file-transfer
+  name: 09-resource-unavailable
+spec:
+  classes:
+  - resource_unavailable
+  purpose: 能力不可用时阻断准备。
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: op-09-resource-unavailable
+      version: 1
+    subject:
+      senderId: 001019876543210
+    request:
+      operation: prepare_transfer
+      transferId: tr-source-001
+      urgency: normal
+      senderImsi: 001019876543210
+      receiverImsis:
+      - 001019876543211
+    facts: {}
+    availableResources: []
+    constraints:
+      maxActions: 13
+  expect:
+    procedure: null
+    planningStatus: PLANNING_BLOCKED
+    terminal: null
+    postconditions: []

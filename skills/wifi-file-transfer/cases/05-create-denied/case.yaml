@@ -1,0 +1,50 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: wifi-file-transfer
+  name: 05-create-denied
+spec:
+  classes:
+  - action_denied
+  purpose: 已授权调用返回 Tool-domain DENIED。
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: op-05-create-denied
+      version: 1
+    subject:
+      senderId: 001019876543210
+    request:
+      requestId: wifi-source-001
+      senderId: 001019876543210
+      receiverIds:
+      - 001019876543211
+      urgency: normal
+    facts: {}
+    availableResources:
+    - ref: wifi.transfer.create
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: wifi.qos.boost
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    constraints:
+      maxActions: 3
+  expect:
+    procedure: create-wifi-transfer-normal
+    planningStatus: READY
+    terminal: FAILED
+    postconditions:
+    - predicate: wifi_transfer.request.satisfied
+      expect: PASS
+      actual: NOT_EVALUATED
+    errorCode: ACTION_DENIED
+    reasonCode: AUTHORITY_DENIED
+  fixtures:
+    actions:
+      create-transfer: DENIED

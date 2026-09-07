@@ -1,0 +1,95 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: core5g-file-transfer
+  name: 11-release-ready
+spec:
+  classes:
+  - happy_path
+  purpose: 释放请求由组不存在或已释放的 Observation 证明。
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: op-11-release-ready
+      version: 1
+    subject:
+      senderId: 001019876543210
+    request:
+      operation: release_group
+      transferId: tr-source-001
+      groupId: vg-20260907-001
+      outcome: completed
+    facts: {}
+    availableResources:
+    - ref: transfer.participants.resolve_endpoints
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    - ref: edge.cache.ensure
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: edge.cache.reconcile
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: virtual_group.create
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: virtual_group.reconcile_create
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: virtual_group.assign_members
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: virtual_group.reconcile_members
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: transfer.qos.boost
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: transfer.qos.reconcile
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: virtual_group.release
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: virtual_group.reconcile_release
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    constraints:
+      maxActions: 13
+  expect:
+    procedure: release-virtual-group
+    planningStatus: READY
+    terminal: SUCCEEDED
+    postconditions:
+    - predicate: file_transfer.request.satisfied
+      expect: PASS
+      actual: PASS
+  fixtures:
+    actions:
+      release-vg: COMMITTED
+    predicates:
+      verify-goal:
+        file_transfer.request.satisfied: PASS

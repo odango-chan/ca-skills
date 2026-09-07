@@ -1,0 +1,104 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: core5g-file-transfer
+  name: 05-create-unknown-unresolved
+spec:
+  classes:
+  - outcome_unknown_unresolved
+  purpose: 核对不确定时不继续成员分配。
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: op-05-create-unknown-unresolved
+      version: 1
+    subject:
+      senderId: 001019876543210
+    request:
+      operation: prepare_transfer
+      transferId: tr-source-001
+      urgency: normal
+      senderImsi: 001019876543210
+      receiverImsis:
+      - 001019876543211
+    facts:
+      virtual_group.id:
+        value: vg-20260907-001
+    availableResources:
+    - ref: transfer.participants.resolve_endpoints
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    - ref: edge.cache.ensure
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: edge.cache.reconcile
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: virtual_group.create
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: virtual_group.reconcile_create
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: virtual_group.assign_members
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: virtual_group.reconcile_members
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: transfer.qos.boost
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: transfer.qos.reconcile
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: virtual_group.release
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: virtual_group.reconcile_release
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    constraints:
+      maxActions: 13
+  expect:
+    procedure: prepare-file-transfer-normal
+    planningStatus: READY
+    terminal: UNRESOLVED
+    postconditions:
+    - predicate: file_transfer.request.satisfied
+      expect: PASS
+      actual: NOT_EVALUATED
+  fixtures:
+    actions:
+      resolve-member-endpoints: SUCCEEDED
+      ensure-edge-cache: COMMITTED
+      create-vg: OUTCOME_UNKNOWN
+      reconcile-vg-create: UNRESOLVED
+    predicates:
+      verify-registration:
+        transfer.participants.registered: PASS
+      verify-sessions:
+        transfer.participants.pdu_sessions_active: PASS

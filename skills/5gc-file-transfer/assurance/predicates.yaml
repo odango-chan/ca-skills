@@ -18,8 +18,6 @@ predicates:
         observations.participants.all(p,
           p.registrationState == "REGISTERED"
         )
-      passReasonCode: ALL_PARTICIPANTS_REGISTERED
-      failReasonCode: PARTICIPANT_NOT_REGISTERED
 
   transfer.participants.pdu_sessions_active:
     observations:
@@ -38,8 +36,6 @@ predicates:
         observations.participants.all(p,
           p.sessionState == "ACTIVE"
         )
-      passReasonCode: ALL_PARTICIPANT_SESSIONS_ACTIVE
-      failReasonCode: PARTICIPANT_SESSION_INACTIVE
 
   file_transfer.request.satisfied:
     observations:

@@ -58,3 +58,44 @@ Platform compiler、Planning、mock fixture runner、Service Case 展示和场�
 
 尚待处理：显式官方 Skills root 的历史 `TestMigrated*TargetMockQualification` 中 weather/download 出现 ACTION_INPUT_SCHEMA_MISMATCH；不能用仓内 mock PASS 覆盖这一结果。应核对迁移前基线与正式 sessionrun/Q4 路径，不能扩展旧 interpreter 去承接 vNext。
 完整 make verify、file-transfer Registry/Case/Script 补齐、源端验证脚本的旧 Procedure 假设清理、架构/运行文档旧路径全面收敛和新 composition promotion 均未完成。
+
+## 2026-09-07 后续完成（本阶段）
+
+- Platform 本地 `skills/`（四个参考包）已从旧 `ProcedureSet` 迁移为 canonical vNext
+  Procedure 源，并同步更新其 cases（多谓词 verify 拆分为单谓词链后同步 mock
+  predicates 与 expected trace）。Platform 全部测试（compiler / mockruntime /
+  planning / service / api / procedurevariant / skillbuildartifact）PASS。
+- Platform `CompileFiles`（API/service 路径）补齐 vNext lowering（此前只 `Compile`
+  会 lowering，导致 service/API 拿到空 ProcedureSet）；sessionrun
+  `rebuildPackage` 现在识别 canonical vNext Procedure 源。
+- shared Runtime ProcedureTemplate 绑定路径补齐整数归一化与
+  `ExpandProcedure` 完整图 entry/inputs 保留；Runtime 的 variant golden
+  parity fixture 更新为新 canonical 值。
+- PR5-1..PR5-9 与 pr4-8 gates PASS；check-generate PASS；参考 Skill SQ0/SQ1/SQ2
+  PASS；m5-q4 PASS；Runtime 全量测试 PASS。
+
+### file-transfer 准入评估
+
+| 项 | wifi-file-transfer | 5gc-file-transfer |
+| --- | --- | --- |
+| vNext Procedure compile | PASS（2 procedures） | 仅 Procedure 语法 OK，Package 被 Predicate 阻塞 |
+| Predicate registry | `wifi_transfer.request.satisfied`（CEL）已注册 | `transfer.participants.*`（CEL）已注册；`file_transfer.request.satisfied` 使用 `evaluator.type: script` |
+| Case coverage | 8 cases 覆盖 happy_path / outcome_unknown_safe_stopped / postcondition_failed / action_denied / resource_unavailable / observation_unknown / qos_unknown | 11 cases 已建（未覆盖门禁，因 Package 阻塞） |
+| 受控 Script | 无 | `evaluate_transfer_request_satisfied.py` 有 connectionagent-tool 头（governed），但作为 Predicate evaluator 引用 |
+| Provider assumptions | `wifi.transfer.create` / `wifi.qos.boost` 已在 Platform registry（`wifi_transfer_create.yaml` / `wifi_qos_boost.yaml`） | `virtual_group.*` / `transfer_qos.*` / `transfer_participants.*` / `edge_cache.*` registry 项已建（未最终验证 schema 闭包） |
+| 资格状态 | 仍为 migration target，**未**列为 production-qualified | 仍为 migration target，**未**列为 production-qualified |
+
+### 5gc-file-transfer 阻塞依赖
+
+`file_transfer.request.satisfied` 声明 `evaluator.type: script` + `ref:
+skill.evaluate-transfer-request-satisfied`。当前 canonical `predicate-set.schema.yaml`
+只支持 CEL evaluator（`{type: cel, expression}`），compiler/observation profile
+没有 script-based predicate 求值。这是 runtime/observation-profile 层特性，本阶段按
+任务约束记录为依赖、不做 fake 绕过，也不把 5gc-file-transfer 标为可准入。
+
+### 结论
+
+Skills 包目录、examples 分类、单文件 Case 收敛与 authoring 工具已完成并通过仓内
+门禁。`5gc-file-transfer` 的准入被上述 script-predicate 依赖阻塞；`wifi-file-transfer`
+编译与 Case 覆盖就绪但未生产资格化。新 composition promotion 仍需最终 governance
+BOM 更新（不在本仓执行）。

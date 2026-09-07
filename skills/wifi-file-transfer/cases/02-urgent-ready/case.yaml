@@ -1,0 +1,54 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: wifi-file-transfer
+  name: 02-urgent-ready
+spec:
+  classes:
+  - happy_path
+  purpose: 加急传输还必须配置 QoS 后验证。
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: op-02-urgent-ready
+      version: 1
+    subject:
+      senderId: 001019876543210
+    request:
+      requestId: wifi-source-001
+      senderId: 001019876543210
+      receiverIds:
+      - 001019876543211
+      urgency: urgent
+    facts:
+      wifi_transfer.id:
+        value: wifi-transfer-001
+    availableResources:
+    - ref: wifi.transfer.create
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: wifi.qos.boost
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    constraints:
+      maxActions: 3
+  expect:
+    procedure: create-wifi-transfer-urgent
+    planningStatus: READY
+    terminal: SUCCEEDED
+    postconditions:
+    - predicate: wifi_transfer.request.satisfied
+      expect: PASS
+      actual: PASS
+  fixtures:
+    actions:
+      create-transfer: COMMITTED
+      qos-boost: COMMITTED
+    predicates:
+      verify-goal:
+        wifi_transfer.request.satisfied: PASS

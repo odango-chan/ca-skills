@@ -1,0 +1,51 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: wifi-file-transfer
+  name: 07-observation-unknown
+spec:
+  classes:
+  - observation_unknown
+  purpose: 所需 Observation 不可用时不能宣告成功。
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: op-07-observation-unknown
+      version: 1
+    subject:
+      senderId: 001019876543210
+    request:
+      requestId: wifi-source-001
+      senderId: 001019876543210
+      receiverIds:
+      - 001019876543211
+      urgency: normal
+    facts: {}
+    availableResources:
+    - ref: wifi.transfer.create
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: wifi.qos.boost
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    constraints:
+      maxActions: 3
+  expect:
+    procedure: create-wifi-transfer-normal
+    planningStatus: READY
+    terminal: UNRESOLVED
+    postconditions:
+    - predicate: wifi_transfer.request.satisfied
+      expect: PASS
+      actual: UNKNOWN
+  fixtures:
+    actions:
+      create-transfer: COMMITTED
+    predicates:
+      verify-goal:
+        wifi_transfer.request.satisfied: UNKNOWN
