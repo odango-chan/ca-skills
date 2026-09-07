@@ -1,5 +1,0 @@
-mockPredicates:
-  verify-current-registration:
-    ue.registered: PASS
-  verify-registration-context:
-    ue.registration_context.consistent: FAIL

@@ -1,6 +1,92 @@
 apiVersion: connectionagent.io/v1alpha1
 kind: SkillTestCase
-metadata: {skill: ensure-session-qos, name: 07-create-unknown-not-committed}
+metadata:
+  skill: ensure-session-qos
+  name: 07-create-unknown-not-committed
 spec:
-  classes: [outcome_unknown_not_committed]
+  classes:
+  - outcome_unknown_not_committed
   purpose: 调和确认创建未提交后才重试原写操作。
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: session-07-create-unknown-not-committed
+      version: 1
+    subject:
+      supi: imsi-001010000000001
+      pduSessionId: 10
+    request:
+      dnn: internet
+      sst: 1
+      sd: '010203'
+      fiveQi: 7
+    facts:
+      ue.registered:
+        value: PASS
+      pdu_session.established:
+        value: FAIL
+      pdu_session.qos.satisfied:
+        value: FAIL
+      user_plane.connectivity.available:
+        value: FAIL
+    availableResources:
+    - ref: pdu_session.query
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    - ref: user_plane.probe
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    - ref: pdu_session.create
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: pdu_session.reconcile
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    constraints:
+      maxActions: 8
+  expect:
+    procedure: create-session-with-qos
+    planningStatus: READY_AFTER_REQUIREMENT
+    terminal: SUCCEEDED
+    postconditions:
+    - predicate: pdu_session.established
+      expect: PASS
+      actual: PASS
+    - predicate: pdu_session.qos.satisfied
+      expect: PASS
+      actual: PASS
+    - predicate: user_plane.connectivity.available
+      expect: PASS
+      actual: PASS
+    trace:
+      match: exact
+      ordered:
+      - nodeId: create-session
+        outcome: OUTCOME_UNKNOWN
+      - nodeId: reconcile-create
+        outcome: NOT_COMMITTED
+      - nodeId: create-session
+        outcome: COMMITTED
+      - nodeId: verify-session-goal
+        outcome: PASS
+      forbiddenImmediateRetryAfterUnknown: true
+  fixtures:
+    actions:
+      create-session:
+      - OUTCOME_UNKNOWN
+      - COMMITTED
+      reconcile-create: NOT_COMMITTED
+    predicates:
+      verify-session-goal:
+        pdu_session.established: PASS
+        pdu_session.qos.satisfied: PASS
+        user_plane.connectivity.available: PASS

@@ -4,5 +4,77 @@ metadata:
   skill: ue-registration
   name: 03-authentication-outcome-unknown
 spec:
-  classes: [outcome_unknown_safe_stopped]
+  classes:
+  - outcome_unknown_safe_stopped
   purpose: 验证鉴权 mutation 结果未知且没有冻结 Recovery 时安全停止，并禁止盲目重试。
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: reg-03-auth-unknown
+      version: 1
+    subject:
+      ueRef: ran-ue-0003
+    request:
+      registrationType: initial
+    facts: {}
+    availableResources:
+    - ref: ue.identity.resolve
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    - ref: ue.authentication.execute
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ue.security.establish
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ue.registration_context.prepare
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ue.registration.finalize
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    constraints:
+      maxActions: 8
+  expect:
+    procedure: ensure-registration
+    planningStatus: READY
+    terminal: SAFE_STOPPED
+    postconditions:
+    - predicate: ue.registered
+      expect: PASS
+      actual: FAIL
+    - predicate: ue.registration_context.consistent
+      expect: PASS
+      actual: NOT_EVALUATED
+    trace:
+      match: exact
+      ordered:
+      - nodeId: verify-current-registration
+        outcome: FAIL
+      - nodeId: resolve-identity
+        outcome: SUCCEEDED
+      - nodeId: verify-identity
+        outcome: PASS
+      - nodeId: authenticate
+        outcome: OUTCOME_UNKNOWN
+      forbiddenImmediateRetryAfterUnknown: true
+  fixtures:
+    actions:
+      resolve-identity: SUCCEEDED
+      authenticate: OUTCOME_UNKNOWN
+    predicates:
+      verify-current-registration:
+        ue.registered: FAIL
+      verify-identity:
+        ue.identity.resolved: PASS

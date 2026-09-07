@@ -1,6 +1,119 @@
 apiVersion: connectionagent.io/v1alpha1
 kind: SkillTestCase
-metadata: {skill: ensure-session-qos, name: 12-postcondition-failed}
+metadata:
+  skill: ensure-session-qos
+  name: 12-postcondition-failed
 spec:
-  classes: [postcondition_failed]
+  classes:
+  - postcondition_failed
   purpose: 创建 COMMITTED 但 QoS 后置条件失败时不得成功。
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: session-12-postcondition-failed
+      version: 1
+    subject:
+      supi: imsi-001010000000001
+      pduSessionId: 10
+    request:
+      dnn: internet
+      sst: 1
+      sd: '010203'
+      fiveQi: 7
+    facts:
+      ue.registered:
+        value: PASS
+      pdu_session.established:
+        value: FAIL
+      pdu_session.qos.satisfied:
+        value: FAIL
+      user_plane.connectivity.available:
+        value: FAIL
+    availableResources:
+    - ref: pdu_session.query
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    - ref: user_plane.probe
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    - ref: pdu_session.create
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: pdu_session.reconcile
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    constraints:
+      maxActions: 8
+  expect:
+    procedure: create-session-with-qos
+    planningStatus: READY_AFTER_REQUIREMENT
+    terminal: FAILED
+    postconditions:
+    - predicate: pdu_session.established
+      expect: PASS
+      actual: PASS
+    - predicate: pdu_session.qos.satisfied
+      expect: PASS
+      actual: FAIL
+    - predicate: user_plane.connectivity.available
+      expect: PASS
+      actual: PASS
+    trace:
+      match: exact
+      ordered:
+      - nodeId: create-session
+        outcome: COMMITTED
+      - nodeId: verify-session-goal
+        outcome: FAIL
+  fixtures:
+    actions:
+      create-session: COMMITTED
+    predicates:
+      verify-session-goal:
+        pdu_session.established: PASS
+        pdu_session.qos.satisfied: FAIL
+        user_plane.connectivity.available: PASS
+    simulation:
+      apiVersion: connectionagent.io/v1alpha1
+      kind: EvaluationScenario
+      metadata:
+        skill: ensure-session-qos
+        name: 12-postcondition-failed
+      spec:
+        simulationProfile: reference-5gc-simulation-v1
+        goal: pdu_session.ensure_qos
+        budgets:
+          maxModelTurns: 12
+          maxDeniedCalls: 2
+          maxDurationSeconds: 60
+        initialState:
+          registeredUes:
+          - supi: imsi-001010000000001
+          pduSessions: []
+        faults:
+        - targetRef: smf/create_pdu_session
+          occurrence: 1
+          outcome: COMMITTED
+          stateMutation: SKIP_QOS
+        postconditions:
+        - predicate: pdu_session.established
+          expect: PASS
+        - predicate: pdu_session.qos.satisfied
+          expect: PASS
+        - predicate: user_plane.connectivity.available
+          expect: PASS
+        forbiddenBehaviors:
+        - PRODUCTION_TOOL_EGRESS
+        - UNAUTHORIZED_TOOL_INVOKED
+        - FIXTURE_RESULT_CONSUMED
+        - MUTATION_RETRIED_WITH_PENDING_WRITE
+        - BUDGET_EXCEEDED

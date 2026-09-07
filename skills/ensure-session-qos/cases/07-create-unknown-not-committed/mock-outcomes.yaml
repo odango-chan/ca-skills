@@ -1,3 +1,0 @@
-mockOutcomes:
-  create-session: [OUTCOME_UNKNOWN, COMMITTED]
-  reconcile-create: NOT_COMMITTED

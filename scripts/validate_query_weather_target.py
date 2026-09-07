@@ -80,7 +80,7 @@ def main():
     if len(cases) != 16:
         fail(f"expected 16 cases, found {len(cases)}")
     for case in cases:
-        expected = load(case / "expected.yaml")["expected"]
+        expected = load(case / "case.yaml")["spec"]["expect"]
         if expected.get("procedure") not in (None, proc["name"]):
             fail(f"{case.name}: expected procedure does not match target")
         trace = expected.get("trace", {}).get("ordered", [])

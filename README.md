@@ -183,32 +183,30 @@ Observation + scope
   -> proof input
 ```
 
-Field-level prior-output authoring is expressed with `fromOutput`, for example:
+Prior-output bindings use the canonical `with` / `from` form, for example:
 
 ```yaml
-members:
-  fromOutput:
-    node: resolve-member-endpoints
-    path: output.members
+with:
+  members:
+    from: resolve-member-endpoints.output.output.members
 ```
 
-The target Compiler must validate producer/consumer control-flow ordering, output path existence, schema compatibility, bounds, and immutable reuse across reconcile paths. The current shared Runtime does not yet fully implement this field-level prior-output binding, so target Skills using it are authoring/golden fixtures until the coordinated Runtime refactor lands; they must not pass production execution qualification prematurely.
+Runtime PR5 includes governed Script output binding. File-transfer admission still requires Registry closure and Provider/Sandbox qualification; syntax alone does not establish that qualification.
 
 ## Procedure selection vs. Predicate proof
 
 Known canonical request/context values select a Procedure directly with CEL:
 
 ```yaml
-spec:
-  selectionPolicy: exactlyOne
-  procedures:
-  - name: create-wifi-transfer-normal
+procedures:
+  create-wifi-transfer-normal:
     applicability:
       when: request.urgency == "normal"
-
-  - name: create-wifi-transfer-urgent
+    # start and nodes declare the executable graph
+  create-wifi-transfer-urgent:
     applicability:
       when: request.urgency == "urgent"
+    # start and nodes declare the executable graph
 ```
 
 `applicability.when` is a selector, not a Predicate. It does not create PASS/FAIL/UNKNOWN, run the Evidence Gate, or acquire Observations. Exactly one Procedure must match before execution; zero or multiple matches fail closed.

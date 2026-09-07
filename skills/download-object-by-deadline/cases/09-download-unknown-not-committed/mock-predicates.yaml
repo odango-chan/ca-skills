@@ -1,4 +1,0 @@
-mockPredicates:
-  verify-transfer:
-    file_transfer.completed: PASS
-    file_transfer.deadline_met: PASS

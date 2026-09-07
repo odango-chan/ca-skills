@@ -1,6 +1,87 @@
 apiVersion: connectionagent.io/v1alpha1
 kind: SkillTestCase
-metadata: {skill: ensure-session-qos, name: 17-observation-unknown}
+metadata:
+  skill: ensure-session-qos
+  name: 17-observation-unknown
 spec:
-  classes: [observation_unknown]
+  classes:
+  - observation_unknown
   purpose: 查询成功但 Session observation 仍未知时停止，不根据猜测写入。
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: session-17-observation-unknown
+      version: 1
+    subject:
+      supi: imsi-001010000000001
+      pduSessionId: 10
+    request:
+      dnn: internet
+      sst: 1
+      sd: '010203'
+      fiveQi: 7
+    facts:
+      ue.registered:
+        value: PASS
+      pdu_session.established:
+        value: UNKNOWN
+      pdu_session.qos.satisfied:
+        value: UNKNOWN
+      user_plane.connectivity.available:
+        value: UNKNOWN
+    availableResources:
+    - ref: pdu_session.query
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    - ref: user_plane.probe
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    - ref: pdu_session.create
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: pdu_session.modify_qos
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: pdu_session.reconcile
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    constraints:
+      maxActions: 8
+  expect:
+    procedure: observe-session-then-converge
+    planningStatus: READY_AFTER_REQUIREMENT
+    terminal: UNRESOLVED
+    postconditions:
+    - predicate: pdu_session.established
+      expect: PASS
+      actual: UNKNOWN
+    - predicate: pdu_session.qos.satisfied
+      expect: PASS
+      actual: NOT_EVALUATED
+    - predicate: user_plane.connectivity.available
+      expect: PASS
+      actual: NOT_EVALUATED
+    trace:
+      match: exact
+      ordered:
+      - nodeId: query-session
+        outcome: SUCCEEDED
+      - nodeId: observe-established
+        outcome: UNKNOWN
+  fixtures:
+    actions:
+      query-session: SUCCEEDED
+    predicates:
+      observe-established:
+        pdu_session.established: UNKNOWN

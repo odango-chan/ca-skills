@@ -1,5 +1,0 @@
-expected:
-  procedure: null
-  planningStatus: PRECONDITION_UNSATISFIED
-  terminal: null
-  postconditions: []

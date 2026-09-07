@@ -1,6 +1,100 @@
 apiVersion: connectionagent.io/v1alpha1
 kind: SkillTestCase
-metadata: {skill: ensure-session-qos, name: 05-observe-existing-then-modify}
+metadata:
+  skill: ensure-session-qos
+  name: 05-observe-existing-then-modify
 spec:
-  classes: [requirement_observation_modify]
+  classes:
+  - requirement_observation_modify
   purpose: Session 状态未知时先查询，观察为已存在但 QoS 不满足后修改。
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: session-05-observe-existing-then-modify
+      version: 1
+    subject:
+      supi: imsi-001010000000001
+      pduSessionId: 10
+    request:
+      dnn: internet
+      sst: 1
+      sd: '010203'
+      fiveQi: 7
+    facts:
+      ue.registered:
+        value: PASS
+      pdu_session.established:
+        value: UNKNOWN
+      pdu_session.qos.satisfied:
+        value: UNKNOWN
+      user_plane.connectivity.available:
+        value: UNKNOWN
+    availableResources:
+    - ref: pdu_session.query
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    - ref: user_plane.probe
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    - ref: pdu_session.create
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: pdu_session.modify_qos
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: pdu_session.reconcile
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    constraints:
+      maxActions: 8
+  expect:
+    procedure: observe-session-then-converge
+    planningStatus: READY_AFTER_REQUIREMENT
+    terminal: SUCCEEDED
+    postconditions:
+    - predicate: pdu_session.established
+      expect: PASS
+      actual: PASS
+    - predicate: pdu_session.qos.satisfied
+      expect: PASS
+      actual: PASS
+    - predicate: user_plane.connectivity.available
+      expect: PASS
+      actual: PASS
+    trace:
+      match: exact
+      ordered:
+      - nodeId: query-session
+        outcome: SUCCEEDED
+      - nodeId: observe-established
+        outcome: PASS
+      - nodeId: observe-qos
+        outcome: FAIL
+      - nodeId: modify-session-qos
+        outcome: COMMITTED
+      - nodeId: verify-session-goal
+        outcome: PASS
+  fixtures:
+    actions:
+      query-session: SUCCEEDED
+      modify-session-qos: COMMITTED
+    predicates:
+      observe-established:
+        pdu_session.established: PASS
+      observe-qos:
+        pdu_session.qos.satisfied: FAIL
+      verify-session-goal:
+        pdu_session.established: PASS
+        pdu_session.qos.satisfied: PASS
+        user_plane.connectivity.available: PASS

@@ -87,7 +87,7 @@ def validate_cases(nodes):
     for case_dir in sorted(CASES.iterdir()):
         if not case_dir.is_dir():
             continue
-        expected = load(case_dir / "expected.yaml")["expected"]
+        expected = load(case_dir / "case.yaml")["spec"]["expect"]
         trace = expected.get("trace", {}).get("ordered", [])
         seen = set()
         for event in trace:
@@ -113,7 +113,7 @@ def validate_cases(nodes):
                 terminal is None or terminal.get("result") != expected_terminal
             ):
                 fail(f"{case_dir.name}: trace does not reach expected terminal")
-        planning = load(case_dir / "planning-context.yaml")
+        planning = load(case_dir / "case.yaml")["spec"]["context"]
         if planning.get("facts") not in ({}, None):
             fail(f"{case_dir.name}: dynamic state must not select Procedure via facts")
         if expected.get("procedure") is not None and expected["procedure"] != "ensure-registration":

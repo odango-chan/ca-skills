@@ -11,6 +11,9 @@ def validate(root):
             continue
         if not (skill / 'SKILL.md').is_file():
             errors.append(f'{skill.name}: missing SKILL.md')
+        for legacy in ('planning-context.yaml', 'mock-outcomes.yaml', 'mock-predicates.yaml', 'expected.yaml', 'evaluation-scenario.yaml'):
+            for path in (skill / 'cases').glob('*/' + legacy):
+                errors.append(f'{path}: consolidate into case.yaml')
         if (skill / 'examples').exists():
             errors.append(f'{skill.name}: examples/ is forbidden; executable fixtures belong in cases/, explanatory samples in references/')
     return errors

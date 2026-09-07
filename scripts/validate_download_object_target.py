@@ -77,7 +77,7 @@ def validate_cases(procedures):
     if len(cases) != 14:
         fail(f"expected 14 cases, found {len(cases)}")
     for case in cases:
-        expected = load(case / "expected.yaml")["expected"]
+        expected = load(case / "case.yaml")["spec"]["expect"]
         procedure = expected.get("procedure")
         if procedure is None:
             continue

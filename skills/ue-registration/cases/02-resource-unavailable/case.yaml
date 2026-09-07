@@ -4,5 +4,45 @@ metadata:
   skill: ue-registration
   name: 02-resource-unavailable
 spec:
-  classes: [resource_unavailable]
+  classes:
+  - resource_unavailable
   purpose: 验证 Initial Registration 缺少必需 Capability 时规划阻断，不生成不可执行 Procedure。
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: reg-02-resource-unavailable
+      version: 1
+    subject:
+      ueRef: ran-ue-0002
+    request:
+      registrationType: initial
+    facts: {}
+    availableResources:
+    - ref: ue.identity.resolve
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    - ref: ue.authentication.execute
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ue.security.establish
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ue.registration_context.prepare
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    constraints:
+      maxActions: 8
+  expect:
+    procedure: null
+    planningStatus: PLANNING_BLOCKED
+    terminal: null
+    postconditions: []

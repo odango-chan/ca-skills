@@ -1,5 +1,0 @@
-mockPredicates:
-  verify-session-goal:
-    pdu_session.established: PASS
-    pdu_session.qos.satisfied: FAIL
-    user_plane.connectivity.available: PASS

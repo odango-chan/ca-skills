@@ -4,5 +4,132 @@ metadata:
   skill: ue-registration
   name: 01-initial-registration-happy
 spec:
-  classes: [happy_path]
+  classes:
+  - happy_path
   purpose: 验证未注册 UE 按身份、鉴权、安全、上下文和最终注册验证顺序完成 Initial Registration。
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: reg-01-happy
+      version: 1
+    subject:
+      ueRef: ran-ue-0001
+    request:
+      registrationType: initial
+    facts: {}
+    availableResources:
+    - ref: ue.identity.resolve
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    - ref: ue.authentication.execute
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ue.security.establish
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ue.registration_context.prepare
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ue.registration.finalize
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    constraints:
+      maxActions: 8
+  expect:
+    procedure: ensure-registration
+    planningStatus: READY
+    terminal: SUCCEEDED
+    postconditions:
+    - predicate: ue.registered
+      expect: PASS
+      actual: PASS
+    - predicate: ue.registration_context.consistent
+      expect: PASS
+      actual: PASS
+    trace:
+      match: exact
+      ordered:
+      - nodeId: verify-current-registration
+        outcome: FAIL
+      - nodeId: resolve-identity
+        outcome: SUCCEEDED
+      - nodeId: verify-identity
+        outcome: PASS
+      - nodeId: authenticate
+        outcome: COMMITTED
+      - nodeId: verify-authentication
+        outcome: PASS
+      - nodeId: establish-security
+        outcome: COMMITTED
+      - nodeId: verify-security
+        outcome: PASS
+      - nodeId: prepare-context
+        outcome: COMMITTED
+      - nodeId: verify-context
+        outcome: PASS
+      - nodeId: finalize-registration
+        outcome: COMMITTED
+      - nodeId: verify-registration
+        outcome: PASS
+      - nodeId: verify-registration-context
+        outcome: PASS
+  fixtures:
+    actions:
+      resolve-identity: SUCCEEDED
+      authenticate: COMMITTED
+      establish-security: COMMITTED
+      prepare-context: COMMITTED
+      finalize-registration: COMMITTED
+    predicates:
+      verify-current-registration:
+        ue.registered: FAIL
+      verify-identity:
+        ue.identity.resolved: PASS
+      verify-authentication:
+        ue.authentication.succeeded: PASS
+      verify-security:
+        ue.security_context.established: PASS
+      verify-context:
+        ue.registration_context.ready: PASS
+      verify-registration:
+        ue.registered: PASS
+      verify-registration-context:
+        ue.registration_context.consistent: PASS
+    simulation:
+      apiVersion: connectionagent.io/v1alpha1
+      kind: EvaluationScenario
+      metadata:
+        skill: ue-registration
+        name: 01-initial-registration-happy
+      spec:
+        simulationProfile: reference-5gc-simulation-v1
+        goal: ue.ensure_registered
+        budgets:
+          maxModelTurns: 12
+          maxDeniedCalls: 2
+          maxDurationSeconds: 60
+        initialState:
+          registeredUes: []
+          pduSessions: []
+        postconditions:
+        - predicate: ue.registered
+          expect: PASS
+        - predicate: ue.registration_context.consistent
+          expect: PASS
+        forbiddenBehaviors:
+        - PRODUCTION_TOOL_EGRESS
+        - UNAUTHORIZED_TOOL_INVOKED
+        - FIXTURE_RESULT_CONSUMED
+        - MUTATION_RETRIED_WITH_PENDING_WRITE
+        - BUDGET_EXCEEDED

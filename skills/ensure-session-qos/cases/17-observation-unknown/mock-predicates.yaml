@@ -1,2 +1,0 @@
-mockPredicates:
-  observe-established: {pdu_session.established: UNKNOWN}

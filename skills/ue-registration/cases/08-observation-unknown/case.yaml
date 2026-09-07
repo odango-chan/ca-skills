@@ -1,6 +1,69 @@
 apiVersion: connectionagent.io/v1alpha1
 kind: SkillTestCase
-metadata: {skill: ue-registration, name: 08-observation-unknown}
+metadata:
+  skill: ue-registration
+  name: 08-observation-unknown
 spec:
-  classes: [observation_missing_or_stale]
+  classes:
+  - observation_missing_or_stale
   purpose: canonical Observation 缺失或过期时 Predicate 为 UNKNOWN，并安全保持 unresolved。
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: reg-08-observation-unknown
+      version: 1
+    subject:
+      ueRef: ran-ue-0008
+    request:
+      registrationType: initial
+    facts: {}
+    availableResources:
+    - ref: ue.identity.resolve
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    - ref: ue.authentication.execute
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ue.security.establish
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ue.registration_context.prepare
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ue.registration.finalize
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    constraints:
+      maxActions: 8
+  expect:
+    procedure: ensure-registration
+    planningStatus: READY
+    terminal: UNRESOLVED
+    postconditions:
+    - predicate: ue.registered
+      expect: PASS
+      actual: UNKNOWN
+    - predicate: ue.registration_context.consistent
+      expect: PASS
+      actual: NOT_EVALUATED
+    trace:
+      match: exact
+      ordered:
+      - nodeId: verify-current-registration
+        outcome: UNKNOWN
+  fixtures:
+    actions: {}
+    predicates:
+      verify-current-registration:
+        ue.registered: UNKNOWN

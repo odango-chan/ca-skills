@@ -4,5 +4,112 @@ metadata:
   skill: query-weather-for-ue
   name: 12-normalization-failed
 spec:
-  classes: [local_compute_failed]
+  classes:
+  - local_compute_failed
   purpose: 验证原始天气结果无法规范化时 Skill 失败，缺字段不得用默认值掩盖。
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: op-12-normalization-failed
+      version: 1
+    subject:
+      supi: imsi-001010000000001
+      pduSessionId: 10
+    request:
+      city: Tokyo
+      unit: celsius
+    facts:
+      ue.registered:
+        value: PASS
+      user_plane.connectivity.available:
+        value: PASS
+    availableResources:
+    - ref: pdu_session.ensure
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: pdu_session.reconcile
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: user_plane.probe
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    - ref: external.weather.query
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+      blockedBy: []
+    constraints:
+      maxActions: 8
+  expect:
+    procedure: query-weather
+    planningStatus: READY
+    terminal: FAILED
+    postconditions:
+    - predicate: service.weather.query.succeeded
+      expect: PASS
+      actual: NOT_EVALUATED
+    trace:
+      match: exact
+      ordered:
+      - nodeId: verify-connectivity
+        outcome: PASS
+      - nodeId: query-weather
+        outcome: SUCCEEDED
+      - nodeId: normalize-weather
+        outcome: FAILED
+  fixtures:
+    actions:
+      query-weather: SUCCEEDED
+      normalize-weather: FAILED
+    predicates:
+      verify-connectivity:
+        user_plane.connectivity.available: PASS
+    simulation:
+      apiVersion: connectionagent.io/v1alpha1
+      kind: EvaluationScenario
+      metadata:
+        skill: query-weather-for-ue
+        name: 12-normalization-failed
+      spec:
+        simulationProfile: reference-5gc-simulation-v1
+        goal: weather.query_for_ue
+        budgets:
+          maxModelTurns: 12
+          maxDeniedCalls: 2
+          maxDurationSeconds: 60
+        initialState:
+          registeredUes:
+          - supi: imsi-001010000000001
+          pduSessions:
+          - supi: imsi-001010000000001
+            pduSessionId: 10
+            state: ACTIVE
+            connectivity: PASS
+          weatherResponses:
+          - city: Tokyo
+            unit: celsius
+            response:
+              city: Tokyo
+              temperature: 22.5
+              condition: Clear
+        faults:
+        - targetRef: skill.normalize-weather-result
+          occurrence: 1
+          outcome: FAILED
+        postconditions:
+        - predicate: service.weather.query.succeeded
+          expect: PASS
+        forbiddenBehaviors:
+        - PRODUCTION_TOOL_EGRESS
+        - UNAUTHORIZED_TOOL_INVOKED
+        - FIXTURE_RESULT_CONSUMED
+        - MUTATION_RETRIED_WITH_PENDING_WRITE
+        - BUDGET_EXCEEDED

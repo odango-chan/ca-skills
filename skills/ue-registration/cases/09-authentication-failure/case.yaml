@@ -1,6 +1,79 @@
 apiVersion: connectionagent.io/v1alpha1
 kind: SkillTestCase
-metadata: {skill: ue-registration, name: 09-authentication-failure}
+metadata:
+  skill: ue-registration
+  name: 09-authentication-failure
 spec:
-  classes: [authentication_failure]
+  classes:
+  - authentication_failure
   purpose: 鉴权 Capability 失败时终止，不进入安全上下文建立。
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: reg-09-auth-failure
+      version: 1
+    subject:
+      ueRef: ran-ue-0009
+    request:
+      registrationType: initial
+    facts: {}
+    availableResources:
+    - ref: ue.identity.resolve
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    - ref: ue.authentication.execute
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ue.security.establish
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ue.registration_context.prepare
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ue.registration.finalize
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    constraints:
+      maxActions: 8
+  expect:
+    procedure: ensure-registration
+    planningStatus: READY
+    terminal: FAILED
+    postconditions:
+    - predicate: ue.registered
+      expect: PASS
+      actual: FAIL
+    - predicate: ue.registration_context.consistent
+      expect: PASS
+      actual: NOT_EVALUATED
+    trace:
+      match: exact
+      ordered:
+      - nodeId: verify-current-registration
+        outcome: FAIL
+      - nodeId: resolve-identity
+        outcome: SUCCEEDED
+      - nodeId: verify-identity
+        outcome: PASS
+      - nodeId: authenticate
+        outcome: FAILED
+  fixtures:
+    actions:
+      resolve-identity: SUCCEEDED
+      authenticate: FAILED
+    predicates:
+      verify-current-registration:
+        ue.registered: FAIL
+      verify-identity:
+        ue.identity.resolved: PASS

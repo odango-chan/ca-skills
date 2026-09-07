@@ -4,5 +4,38 @@ metadata:
   skill: query-weather-for-ue
   name: 09-precondition-unsatisfied
 spec:
-  classes: [precondition_unsatisfied]
+  classes:
+  - precondition_unsatisfied
   purpose: 验证 UE 明确未注册时不选择 Procedure，也不启动 Mock 执行。
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: op-09-precondition-unsatisfied
+      version: 1
+    subject:
+      supi: imsi-001010000000001
+      pduSessionId: 10
+    request:
+      city: Tokyo
+      unit: celsius
+    facts:
+      ue.registered:
+        value: FAIL
+      user_plane.connectivity.available:
+        value: FAIL
+    availableResources:
+    - ref: external.weather.query
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: false
+      blockedBy:
+      - user_plane.connectivity.available
+    constraints:
+      maxActions: 8
+  expect:
+    procedure: null
+    planningStatus: PRECONDITION_UNSATISFIED
+    terminal: null
+    postconditions: []

@@ -1,5 +1,0 @@
-mockOutcomes:
-  observe-object: SUCCEEDED
-  derive-requirement: SUCCEEDED
-  resolve-qos: SUCCEEDED
-  download-object: COMMITTED

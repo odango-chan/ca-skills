@@ -4,5 +4,70 @@ metadata:
   skill: ue-registration
   name: 06-already-registered
 spec:
-  classes: [already_registered]
+  classes:
+  - already_registered
   purpose: 已注册 UE 只验证当前注册上下文，不重复执行 mutation。
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: reg-06-already
+      version: 1
+    subject:
+      ueRef: ran-ue-0006
+    request:
+      registrationType: initial
+    facts: {}
+    availableResources:
+    - ref: ue.identity.resolve
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    - ref: ue.authentication.execute
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ue.security.establish
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ue.registration_context.prepare
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ue.registration.finalize
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    constraints:
+      maxActions: 8
+  expect:
+    procedure: ensure-registration
+    planningStatus: READY
+    terminal: SUCCEEDED
+    postconditions:
+    - predicate: ue.registered
+      expect: PASS
+      actual: PASS
+    - predicate: ue.registration_context.consistent
+      expect: PASS
+      actual: PASS
+    trace:
+      match: exact
+      ordered:
+      - nodeId: verify-current-registration
+        outcome: PASS
+      - nodeId: verify-registration-context
+        outcome: PASS
+  fixtures:
+    actions: {}
+    predicates:
+      verify-current-registration:
+        ue.registered: PASS
+      verify-registration-context:
+        ue.registration_context.consistent: PASS

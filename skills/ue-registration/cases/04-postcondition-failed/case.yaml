@@ -4,5 +4,70 @@ metadata:
   skill: ue-registration
   name: 04-postcondition-failed
 spec:
-  classes: [postcondition_failed]
+  classes:
+  - postcondition_failed
   purpose: 验证 UE 表面已注册但网络侧注册上下文不一致时，最终业务 Oracle 明确失败。
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: reg-04-postcondition-failed
+      version: 1
+    subject:
+      ueRef: ran-ue-0004
+    request:
+      registrationType: initial
+    facts: {}
+    availableResources:
+    - ref: ue.identity.resolve
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    - ref: ue.authentication.execute
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ue.security.establish
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ue.registration_context.prepare
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ue.registration.finalize
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    constraints:
+      maxActions: 8
+  expect:
+    procedure: ensure-registration
+    planningStatus: READY
+    terminal: FAILED
+    postconditions:
+    - predicate: ue.registered
+      expect: PASS
+      actual: PASS
+    - predicate: ue.registration_context.consistent
+      expect: PASS
+      actual: FAIL
+    trace:
+      match: exact
+      ordered:
+      - nodeId: verify-current-registration
+        outcome: PASS
+      - nodeId: verify-registration-context
+        outcome: FAIL
+  fixtures:
+    actions: {}
+    predicates:
+      verify-current-registration:
+        ue.registered: PASS
+      verify-registration-context:
+        ue.registration_context.consistent: FAIL

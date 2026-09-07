@@ -1,3 +1,0 @@
-mockOutcomes:
-  ensure-connectivity: OUTCOME_UNKNOWN
-  reconcile-connectivity: FAILED

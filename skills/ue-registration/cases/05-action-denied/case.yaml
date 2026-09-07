@@ -4,5 +4,78 @@ metadata:
   skill: ue-registration
   name: 05-action-denied
 spec:
-  classes: [action_denied]
+  classes:
+  - action_denied
   purpose: 验证当前 Registration Action 被授权边界拒绝时立即终止，后续阶段不得执行。
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: reg-05-action-denied
+      version: 1
+    subject:
+      ueRef: ran-ue-0005
+    request:
+      registrationType: initial
+    facts: {}
+    availableResources:
+    - ref: ue.identity.resolve
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    - ref: ue.authentication.execute
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ue.security.establish
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ue.registration_context.prepare
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ue.registration.finalize
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    constraints:
+      maxActions: 8
+  expect:
+    procedure: ensure-registration
+    planningStatus: READY
+    terminal: FAILED
+    errorCode: ACTION_DENIED
+    reasonCode: AUTHORITY_DENIED
+    postconditions:
+    - predicate: ue.registered
+      expect: PASS
+      actual: FAIL
+    - predicate: ue.registration_context.consistent
+      expect: PASS
+      actual: NOT_EVALUATED
+    trace:
+      match: exact
+      ordered:
+      - nodeId: verify-current-registration
+        outcome: FAIL
+      - nodeId: resolve-identity
+        outcome: SUCCEEDED
+      - nodeId: verify-identity
+        outcome: PASS
+      - nodeId: authenticate
+        outcome: DENIED
+  fixtures:
+    actions:
+      resolve-identity: SUCCEEDED
+      authenticate: DENIED
+    predicates:
+      verify-current-registration:
+        ue.registered: FAIL
+      verify-identity:
+        ue.identity.resolved: PASS

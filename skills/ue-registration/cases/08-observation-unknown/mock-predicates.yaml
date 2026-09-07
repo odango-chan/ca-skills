@@ -1,3 +1,0 @@
-mockPredicates:
-  verify-current-registration:
-    ue.registered: UNKNOWN

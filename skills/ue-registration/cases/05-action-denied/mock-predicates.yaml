@@ -1,5 +1,0 @@
-mockPredicates:
-  verify-current-registration:
-    ue.registered: FAIL
-  verify-identity:
-    ue.identity.resolved: PASS

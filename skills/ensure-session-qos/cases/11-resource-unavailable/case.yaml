@@ -1,6 +1,50 @@
 apiVersion: connectionagent.io/v1alpha1
 kind: SkillTestCase
-metadata: {skill: ensure-session-qos, name: 11-resource-unavailable}
+metadata:
+  skill: ensure-session-qos
+  name: 11-resource-unavailable
 spec:
-  classes: [resource_unavailable]
+  classes:
+  - resource_unavailable
   purpose: 当前状态需要修改但 Capability 缺失时阻断规划。
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: session-11-resource-unavailable
+      version: 1
+    subject:
+      supi: imsi-001010000000001
+      pduSessionId: 10
+    request:
+      dnn: internet
+      sst: 1
+      sd: '010203'
+      fiveQi: 7
+    facts:
+      ue.registered:
+        value: PASS
+      pdu_session.established:
+        value: PASS
+      pdu_session.qos.satisfied:
+        value: FAIL
+      user_plane.connectivity.available:
+        value: PASS
+    availableResources:
+    - ref: pdu_session.query
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    - ref: user_plane.probe
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    constraints:
+      maxActions: 8
+  expect:
+    procedure: null
+    planningStatus: PLANNING_BLOCKED
+    terminal: null
+    postconditions: []

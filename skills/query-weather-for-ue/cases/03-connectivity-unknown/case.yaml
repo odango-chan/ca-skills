@@ -4,5 +4,85 @@ metadata:
   skill: query-weather-for-ue
   name: 03-connectivity-unknown
 spec:
-  classes: [requirement_observation]
+  classes:
+  - requirement_observation
   purpose: 验证连接状态未知时先探测，不依据猜测直接执行写操作。
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: op-03-connectivity-unknown
+      version: 1
+    subject:
+      supi: imsi-001010000000001
+      pduSessionId: 10
+    request:
+      city: Tokyo
+      unit: celsius
+    facts:
+      ue.registered:
+        value: PASS
+      user_plane.connectivity.available:
+        value: UNKNOWN
+    availableResources:
+    - ref: pdu_session.ensure
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: pdu_session.reconcile
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: user_plane.probe
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    - ref: external.weather.query
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: false
+      blockedBy:
+      - user_plane.connectivity.available
+    constraints:
+      maxActions: 8
+  expect:
+    procedure: query-weather
+    planningStatus: READY_AFTER_REQUIREMENT
+    terminal: SUCCEEDED
+    postconditions:
+    - predicate: service.weather.query.succeeded
+      expect: PASS
+      actual: PASS
+    trace:
+      match: ordered_subsequence
+      ordered:
+      - nodeId: verify-connectivity
+        outcome: UNKNOWN
+      - nodeId: probe-connectivity
+        outcome: SUCCEEDED
+      - nodeId: verify-connectivity
+        outcome: PASS
+      - nodeId: query-weather
+        outcome: SUCCEEDED
+      - nodeId: verify-weather-result
+        outcome: PASS
+      resourceUnlocks:
+      - resource: external.weather.query
+        afterNode: verify-connectivity
+        predicate: user_plane.connectivity.available
+  fixtures:
+    actions:
+      probe-connectivity: SUCCEEDED
+      query-weather: SUCCEEDED
+      normalize-weather: SUCCEEDED
+    predicates:
+      verify-connectivity:
+        user_plane.connectivity.available:
+        - UNKNOWN
+        - PASS
+      verify-weather-result:
+        service.weather.query.succeeded: PASS

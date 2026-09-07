@@ -1,5 +1,0 @@
-mockOutcomes:
-  ensure-connectivity: OUTCOME_UNKNOWN
-  reconcile-connectivity: COMMITTED
-  query-weather: SUCCEEDED
-  normalize-weather: SUCCEEDED
