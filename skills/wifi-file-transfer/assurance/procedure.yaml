@@ -1,97 +1,103 @@
-apiVersion: connectionagent.io/v1alpha1
-kind: ProcedureSet
-metadata:
-  skill: wifi-file-transfer
-spec:
-  selectionPolicy: exactlyOne
-  procedures:
-  - name: create-wifi-transfer-normal
-    goal: wifi_file_transfer.orchestrate
-    entry: create-transfer
+procedures:
+  create-wifi-transfer-normal:
     applicability:
       when: request.urgency == "normal"
+    start: create-transfer
     nodes:
-    - id: create-transfer
-      type: action
-      ref: wifi.transfer.create
-      inputs:
-        requestId: {fromContext: request.requestId}
-        senderId: {fromContext: request.senderId}
-        receiverIds: {fromContext: request.receiverIds}
-      'on':
-        COMMITTED: {next: verify-goal}
-        NOT_COMMITTED: {next: failed}
-        OUTCOME_UNKNOWN: {next: safe-stopped}
-        FAILED: {next: failed}
-        DENIED: {next: failed}
-    - id: verify-goal
-      type: verify
-      predicates:
-      - wifi_transfer.request.satisfied
-      'on':
-        PASS: {next: done}
-        FAIL: {next: failed}
-        UNKNOWN: {next: unresolved}
-    - id: done
-      type: terminal
-      result: SUCCEEDED
-    - id: failed
-      type: terminal
-      result: FAILED
-    - id: unresolved
-      type: terminal
-      result: UNRESOLVED
-    - id: safe-stopped
-      type: terminal
-      result: SAFE_STOPPED
-
-  - name: create-wifi-transfer-urgent
-    goal: wifi_file_transfer.orchestrate
-    entry: create-transfer
+      create-transfer:
+        call: wifi.transfer.create
+        with:
+          requestId:
+            from: input.request-id
+          senderId:
+            from: input.sender-id
+          receiverIds:
+            from: input.receiver-ids
+        'on':
+          COMMITTED: verify-goal
+          NOT_COMMITTED: failed
+          OUTCOME_UNKNOWN: safe-stopped
+          FAILED: failed
+          DENIED: failed
+      verify-goal:
+        verify: wifi_transfer.request.satisfied
+        'on':
+          PASS: done
+          FAIL: failed
+          UNKNOWN: unresolved
+      done:
+        terminal: SUCCEEDED
+      failed:
+        terminal: FAILED
+      unresolved:
+        terminal: UNRESOLVED
+      safe-stopped:
+        terminal: SAFE_STOPPED
+    inputs:
+      receiver-ids:
+        type: array
+        from: context.request.receiverIds
+      request-id:
+        type: string
+        from: context.request.requestId
+      sender-id:
+        type: string
+        from: context.request.senderId
+  create-wifi-transfer-urgent:
     applicability:
       when: request.urgency == "urgent"
+    start: create-transfer
     nodes:
-    - id: create-transfer
-      type: action
-      ref: wifi.transfer.create
-      inputs:
-        requestId: {fromContext: request.requestId}
-        senderId: {fromContext: request.senderId}
-        receiverIds: {fromContext: request.receiverIds}
-      'on':
-        COMMITTED: {next: qos-boost}
-        NOT_COMMITTED: {next: failed}
-        OUTCOME_UNKNOWN: {next: safe-stopped}
-        FAILED: {next: failed}
-        DENIED: {next: failed}
-    - id: qos-boost
-      type: action
-      ref: wifi.qos.boost
-      inputs:
-        transferId: {fromContext: facts.wifi_transfer.id}
-      'on':
-        COMMITTED: {next: verify-goal}
-        NOT_COMMITTED: {next: failed}
-        OUTCOME_UNKNOWN: {next: safe-stopped}
-        FAILED: {next: failed}
-        DENIED: {next: failed}
-    - id: verify-goal
-      type: verify
-      predicates:
-      - wifi_transfer.request.satisfied
-      'on':
-        PASS: {next: done}
-        FAIL: {next: failed}
-        UNKNOWN: {next: unresolved}
-    - id: done
-      type: terminal
-      result: SUCCEEDED
-    - id: failed
-      type: terminal
-      result: FAILED
-    - id: unresolved
-      type: terminal
-      result: UNRESOLVED
-    - id: safe-stopped
-      type: terminal
-      result: SAFE_STOPPED
+      create-transfer:
+        call: wifi.transfer.create
+        with:
+          requestId:
+            from: input.request-id
+          senderId:
+            from: input.sender-id
+          receiverIds:
+            from: input.receiver-ids
+        'on':
+          COMMITTED: qos-boost
+          NOT_COMMITTED: failed
+          OUTCOME_UNKNOWN: safe-stopped
+          FAILED: failed
+          DENIED: failed
+      qos-boost:
+        call: wifi.qos.boost
+        with:
+          transferId:
+            from: input.wifi-transfer-id
+        'on':
+          COMMITTED: verify-goal
+          NOT_COMMITTED: failed
+          OUTCOME_UNKNOWN: safe-stopped
+          FAILED: failed
+          DENIED: failed
+      verify-goal:
+        verify: wifi_transfer.request.satisfied
+        'on':
+          PASS: done
+          FAIL: failed
+          UNKNOWN: unresolved
+      done:
+        terminal: SUCCEEDED
+      failed:
+        terminal: FAILED
+      unresolved:
+        terminal: UNRESOLVED
+      safe-stopped:
+        terminal: SAFE_STOPPED
+    inputs:
+      receiver-ids:
+        type: array
+        from: context.request.receiverIds
+      request-id:
+        type: string
+        from: context.request.requestId
+      sender-id:
+        type: string
+        from: context.request.senderId
+      wifi-transfer-id:
+        type: string
+        from: context.facts.wifi_transfer.id

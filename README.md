@@ -121,7 +121,7 @@ Target Admission validates the proposed Skill/Variant/entrypoint, target busines
 
 Routing quality belongs primarily to Agent/Benchmark evaluation. Admission safety and business execution reliability belong to Runtime/Assurance evaluation.
 
-`core5g-intent` is the reference routing Skill and intentionally has **no `assurance/` directory**. It outputs `schemas/execution-target-candidate.schema.yaml`. `core5g-file-transfer` and `wifi-file-transfer` are assurance-enabled executable Skills.
+`core5g-intent` is the reference routing Skill and intentionally has **no `assurance/` directory**. It outputs `schemas/execution-target-candidate.schema.yaml`. The four currently admitted official Procedure sources are `ue-registration`, `ensure-session-qos`, `download-object-by-deadline`, and `query-weather-for-ue`; they compile through the vNext authoring path and the shared Runtime boundary. `core5g-file-transfer` and `wifi-file-transfer` remain target source packages pending their Capability/Predicate registry and Qualification admission; their presence in this repository must not be represented as production qualification.
 
 Routing candidates distinguish:
 
@@ -304,7 +304,7 @@ The current gateway-oriented branch intentionally targets the refactored model r
 ## Current gateway-oriented Skills
 
 - `core5g-intent` -> `[TASK: 5GC-INTENT]`; Agentic routing Skill, no `assurance/`, outputs an `ExecutionTargetCandidate`;
-- `core5g-file-transfer` -> `[TASK: 5GC-FILE-TRANSFER]` and `[TASK: 5GC-VG-RELEASE]`; assurance-enabled executable Skill target fixture;
-- `wifi-file-transfer` -> `[TASK: WIFI-TRANSFER]`; assurance-enabled executable Skill.
+- `core5g-file-transfer` -> `[TASK: 5GC-FILE-TRANSFER]` and `[TASK: 5GC-VG-RELEASE]`; migration target source package, not an admitted production execution target;
+- `wifi-file-transfer` -> `[TASK: WIFI-TRANSFER]`; migration target source package, not an admitted production execution target.
 
 Gateway task markers are external protocol identifiers. They do not need to equal the internal Skill name.
