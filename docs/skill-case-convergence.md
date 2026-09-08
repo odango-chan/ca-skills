@@ -16,8 +16,8 @@ Benchmark assets origin/main 是 `b41d3ea`，本地已有 `83d8763` 提交；保
 | ensure-session-qos | executable | 有 | 无 | 已列入官方准入集合，本阶段待重跑 |
 | download-object-by-deadline | executable | 有 | 无 | 已列入官方准入集合，本阶段待重跑 |
 | query-weather-for-ue | executable | 有 | 无 | 已列入官方准入集合，本阶段待重跑 |
-| 5gc-file-transfer | executable migration target | 无 | 有 | 尚未资格验证 |
-| wifi-file-transfer | executable migration target | 无 | 有 | 尚未资格验证 |
+| 5gc-file-transfer | executable migration target | 有 | 有 | local Sandbox/Q4 PASS；未 production-qualified |
+| wifi-file-transfer | executable migration target | 有 | 有 | local Sandbox/Q4 PASS；未 production-qualified |
 
 ## examples 逐项分类
 
@@ -84,9 +84,9 @@ Platform compiler、Planning、mock fixture runner、Service Case 展示和场�
 | Evaluator 实现 | CEL 直接布尔审计 | Script 复用 governed `LocalPythonScriptExecutor`（与 Procedure Script 同一基座，无第二执行器）；输入 `request/subject/facts/observations/evidence`，输出 `PASS/FAIL/UNKNOWN` + `reasonCode`，执行失败与 `FAIL` 分离 |
 | Case coverage | 8 cases 覆盖 happy_path / outcome_unknown_safe_stopped / postcondition_failed / action_denied / resource_unavailable / observation_unknown / qos_unknown | 11 cases 已建并新增覆盖：normal prepare / urgent prepare / missing QoS / release / NOT_FOUND release / contradictory state -> UNKNOWN / output validation / timeout-failure 不转 FAIL |
 | 受控 Script | 无（simple predicate 保持 CEL） | `scripts/evaluate_transfer_request_satisfied.py`（`local_compute` + `network: denied` + `timeout: 1s` + `PredicateEvaluationResult` 输出）已纳入 Runtime Bundle 闭包与 digest |
-| Provider assumptions | `wifi.transfer.create` / `wifi.qos.boost` 已在 Platform registry | `virtual_group.*` / `transfer_qos.*` / `transfer_participants.*` / `edge_cache.*` registry 项已建（待最终 schema 闭包验证） |
+| Provider assumptions | `wifi.transfer.create` / `wifi.qos.boost` 已在 Platform registry；本地 Sandbox/Q4 已覆盖 | `virtual_group.*` / `transfer_qos.*` / `transfer_participants.*` / `edge_cache.*` registry 与本地 Sandbox/Q4 已覆盖；deployment ProviderBinding 仍由部署负责 |
 | Procedure 图 | 保持 `verify: file_transfer.request.satisfied` 单验证节点，无 proof-only Script 节点污染 | 同左：Procedure = flow，Predicate = proof，Script 仅在 Predicate evaluator 内执行，不新增 workflow 节点 |
-| 资格状态 | migration target，编译与 Case 闭包就绪，未 production-qualified（需 Provider/Sandbox 真实 SQ2） | migration target，CEL+Script 双 evaluator 编译通过，未 production-qualified（需 Provider/Sandbox 真实 SQ2） |
+| 资格状态 | migration target，compile/cases/registry/local Sandbox Q4 PASS，未 production-qualified（需 immutable artifact/profile 与 deployment closure） | migration target，compile/cases/registry/local Sandbox Q4 PASS，未 production-qualified（需 immutable artifact/profile 与 deployment closure） |
 
 ### 5gc-file-transfer Predicate 模型（已冻结 PR6）
 
@@ -101,3 +101,12 @@ Platform compiler、Planning、mock fixture runner、Service Case 展示和场�
 ### PR6 Entry Baseline boundary
 
 本仓的 Skill/Case 收敛、Procedure/Predicate authoring 模型、PredicateSet 双 evaluator 契约、受治理 Script 基座复用、以及 `5gc-file-transfer` / `wifi-file-transfer` 的谓词分工已冻结为 PR6 Entry Baseline。后续需要完成 Provider Closure、shared Runtime SQ2、Sandbox qualification、Benchmark integration、cross-repository hardening 和新的 final composition promotion；不重新开放 Predicate evaluator 语义，除非真实执行证明存在基础缺陷。
+
+## PR7 Skill preflight hardening
+
+PR6 的包结构和 Predicate 模型保持冻结。本次预检只修复 vNext 数据流：
+metadata 与 Script 输出必须被后续 Action 消费；QoS/容量准入必须先于
+download；`OUTCOME_UNKNOWN` 只能进入匹配的 download status/reconcile；
+completion/deadline Predicates 只能作为独立的最终证明。`make verify` 委托
+Platform 执行 compiler 与 Planning 检查，并不把 file-transfer 源包自动变成
+生产资格包。详见 `docs/skill-preflight-hardening.md`。

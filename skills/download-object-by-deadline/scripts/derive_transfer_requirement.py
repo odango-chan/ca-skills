@@ -9,16 +9,12 @@
 # ///
 
 
-from typing import TypedDict
+class TransferRequirementInputV1:
+    pass
 
 
-class TransferRequirementInputV1(TypedDict):
-    bytesRemaining: int
-    secondsRemaining: int
-
-
-class TransferRequirementOutputV1(TypedDict):
-    minimumPayloadBitrateBps: int
+class TransferRequirementOutputV1:
+    pass
 
 
 def main(input: TransferRequirementInputV1) -> TransferRequirementOutputV1:

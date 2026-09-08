@@ -98,6 +98,9 @@ references/on-demand/
 
 The target architecture does not force every Skill into deterministic Procedure execution.
 
+The current PR7 preflight status and the download deadline dataflow are recorded
+in [`docs/skill-preflight-hardening.md`](docs/skill-preflight-hardening.md).
+
 A routing/interpretation Skill may remain Agentic:
 
 ```text
@@ -120,7 +123,7 @@ Target Admission validates the proposed Skill/Variant/entrypoint, target busines
 
 Routing quality belongs primarily to Agent/Benchmark evaluation. Admission safety and business execution reliability belong to Runtime/Assurance evaluation.
 
-`core5g-intent` is the reference routing Skill and intentionally has **no `assurance/` directory**. It outputs `schemas/execution-target-candidate.schema.yaml`. The four currently admitted official Procedure sources are `ue-registration`, `ensure-session-qos`, `download-object-by-deadline`, and `query-weather-for-ue`; they compile through the vNext authoring path and the shared Runtime boundary. `core5g-file-transfer` and `wifi-file-transfer` remain target source packages pending their Capability/Predicate registry and Qualification admission; their presence in this repository must not be represented as production qualification.
+`core5g-intent` is the reference routing Skill and intentionally has **no `assurance/` directory**. It outputs `schemas/execution-target-candidate.schema.yaml`. The four currently admitted official Procedure sources are `ue-registration`, `ensure-session-qos`, `download-object-by-deadline`, and `query-weather-for-ue`; they compile through the vNext authoring path and the shared Runtime boundary. `core5g-file-transfer` and `wifi-file-transfer` have valid source, case, registry, and local Sandbox/Q4 preflight evidence, but remain outside production qualification until immutable artifact/profile admission and deployment-owned Provider/Observation closure are recorded.
 
 Routing candidates distinguish:
 

@@ -20,21 +20,12 @@ spec:
       objectRef: obj-report-2026
       direction: downlink
       deadline: '2026-08-13T23:59:59Z'
+      secondsRemaining: 600
       sizeBytes: 104857600
     facts:
       ue.registered:
         value: PASS
       object.size.known:
-        value: PASS
-      bytes_remaining:
-        value: 104857600
-      seconds_remaining:
-        value: 600
-      minimum_payload_bitrate_bps:
-        value: 1398102
-      file_transfer.completed:
-        value: PASS
-      file_transfer.deadline_met:
         value: PASS
     availableResources:
     - ref: object.metadata.query
@@ -42,37 +33,7 @@ spec:
       version: v1
       effect: read_only
       invocable: true
-    - ref: user_plane.capacity.estimate
-      kind: capability
-      version: v1
-      effect: read_only
-      invocable: true
     - ref: qos.requirement.resolve
-      kind: capability
-      version: v1
-      effect: read_only
-      invocable: true
-    - ref: pdu_session.create
-      kind: capability
-      version: v1
-      effect: mutation
-      invocable: true
-    - ref: pdu_session.modify_qos
-      kind: capability
-      version: v1
-      effect: mutation
-      invocable: true
-    - ref: pdu_session.query
-      kind: capability
-      version: v1
-      effect: read_only
-      invocable: true
-    - ref: pdu_session.reconcile
-      kind: capability
-      version: v1
-      effect: mutation
-      invocable: true
-    - ref: user_plane.probe
       kind: capability
       version: v1
       effect: read_only
@@ -96,7 +57,7 @@ spec:
       maxActions: 12
   expect:
     procedure: download-direct
-    planningStatus: READY
+    planningStatus: READY_AFTER_REQUIREMENT
     terminal: FAILED
     postconditions:
     - predicate: file_transfer.completed
@@ -108,8 +69,14 @@ spec:
     trace:
       match: exact
       ordered:
+      - nodeId: derive-requirement
+        outcome: SUCCEEDED
+      - nodeId: resolve-qos
+        outcome: SUCCEEDED
       - nodeId: download-object
         outcome: NOT_COMMITTED
   fixtures:
     actions:
+      resolve-qos: SUCCEEDED
+      derive-requirement: SUCCEEDED
       download-object: NOT_COMMITTED

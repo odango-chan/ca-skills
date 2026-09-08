@@ -14,13 +14,7 @@ spec:
   allowedResources:
     capabilities:
     - object.metadata.query
-    - user_plane.capacity.estimate
     - qos.requirement.resolve
-    - pdu_session.create
-    - pdu_session.modify_qos
-    - pdu_session.query
-    - pdu_session.reconcile
-    - user_plane.probe
     - file.download
     - file.download.status
     localTools:

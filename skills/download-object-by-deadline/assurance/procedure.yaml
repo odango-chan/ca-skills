@@ -4,11 +4,39 @@ procedures:
       objectref:
         type: string
         from: context.request.objectRef
+      bytesremaining:
+        type: integer
+        from: context.request.sizeBytes
+      secondsremaining:
+        type: integer
+        from: context.request.secondsRemaining
       ueref:
         type: string
         from: context.subject.ueRef
-    start: download-object
+    start: derive-requirement
     nodes:
+      derive-requirement:
+        script: scripts/derive_transfer_requirement.py
+        with:
+          bytesRemaining:
+            from: input.bytesremaining
+          secondsRemaining:
+            from: input.secondsremaining
+        'on':
+          SUCCEEDED: resolve-qos
+          FAILED: failed
+      resolve-qos:
+        call: qos.requirement.resolve
+        with:
+          ueRef:
+            from: input.ueref
+          minimumPayloadBitrateBps:
+            from: derive-requirement.output.minimumPayloadBitrateBps
+        'on':
+          SUCCEEDED: download-object
+          FAILED: failed
+          UNKNOWN: unresolved
+          DENIED: failed
       download-object:
         call: file.download
         with:
@@ -25,13 +53,19 @@ procedures:
           FAILED: failed
           DENIED: failed
       reconcile-download:
-        call: pdu_session.reconcile
+        call: file.download.status
+        with:
+          objectRef:
+            from: input.objectref
+          ueRef:
+            from: input.ueref
         'on':
           COMMITTED: verify-transfer
           NOT_COMMITTED: download-object
           UNRESOLVED: unresolved
           FAILED: safe-stopped
           DENIED: safe-stopped
+          UNKNOWN: unresolved
       verify-transfer:
         verify: file_transfer.completed
         'on':
@@ -54,23 +88,18 @@ procedures:
         terminal: SAFE_STOPPED
     applicability:
       when: has(request.sizeBytes) && request.sizeBytes > 0
+
   observe-then-download:
     inputs:
       objectref:
         type: string
         from: context.request.objectRef
-      bytesremaining:
-        type: string
-        from: context.facts.bytes_remaining
       secondsremaining:
-        type: string
-        from: context.facts.seconds_remaining
+        type: integer
+        from: context.request.secondsRemaining
       ueref:
         type: string
         from: context.subject.ueRef
-      minimumpayloadbitratebps:
-        type: string
-        from: context.facts.minimum_payload_bitrate_bps
     start: observe-object
     nodes:
       observe-object:
@@ -93,31 +122,24 @@ procedures:
         script: scripts/derive_transfer_requirement.py
         with:
           bytesRemaining:
-            from: input.bytesremaining
+            from: observe-object.output.sizeBytes
           secondsRemaining:
             from: input.secondsremaining
         'on':
           SUCCEEDED: resolve-qos
           FAILED: failed
-          DENIED: failed
       resolve-qos:
         call: qos.requirement.resolve
         with:
           ueRef:
             from: input.ueref
           minimumPayloadBitrateBps:
-            from: input.minimumpayloadbitratebps
+            from: derive-requirement.output.minimumPayloadBitrateBps
         'on':
-          SUCCEEDED: verify-qos-accepted
+          SUCCEEDED: download-object
           FAILED: failed
           UNKNOWN: unresolved
           DENIED: failed
-      verify-qos-accepted:
-        verify: file_transfer.completed
-        'on':
-          PASS: download-object
-          FAIL: failed
-          UNKNOWN: unresolved
       download-object:
         call: file.download
         with:
@@ -134,13 +156,19 @@ procedures:
           FAILED: failed
           DENIED: failed
       reconcile-download:
-        call: pdu_session.reconcile
+        call: file.download.status
+        with:
+          objectRef:
+            from: input.objectref
+          ueRef:
+            from: input.ueref
         'on':
           COMMITTED: verify-transfer
           NOT_COMMITTED: download-object
           UNRESOLVED: unresolved
           FAILED: safe-stopped
           DENIED: safe-stopped
+          UNKNOWN: unresolved
       verify-transfer:
         verify: file_transfer.completed
         'on':
@@ -165,4 +193,3 @@ procedures:
         terminal: PLANNING_BLOCKED
     applicability:
       when: "!has(request.sizeBytes) || request.sizeBytes <= 0"
-

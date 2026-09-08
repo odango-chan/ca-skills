@@ -1,22 +1,20 @@
 ---
 name: ensure-session-qos
-description: 为目标 UE 收敛满足指定 DNN、S-NSSAI 和 5QI 要求的 PDU Session，并以独立用户面证据确认最终状态。
+description: Converge a target UE to a PDU Session satisfying the requested DNN, S-NSSAI, and 5QI, with independent user-plane evidence for the final state.
 ---
 
 # Ensure Session QoS
 
-当业务目标是确保目标 UE 获得指定 DNN、S-NSSAI 和 5QI 的数据连接时使用本 Skill。
+Use this Skill when the business goal is to ensure that a target UE has a data connection satisfying the requested DNN, S-NSSAI, and 5QI.
 
-本 Skill 的目标是最终存在满足请求 QoS 的 PDU Session；单次 create/modify 成功不等于业务目标完成。
-用户面连接性属于最终业务成功条件，但连接恢复不是本 Skill 的主动目标。
+The goal is a PDU Session whose QoS is actually satisfied; one successful create or modify Action is not enough. User-plane connectivity is an independent final business condition, but restoring connectivity is not this Skill's active objective.
 
-使用时遵守以下业务边界：
+Follow these boundaries:
 
-1. 未确认目标 UE 已注册时，不启动 Session 写操作。
-2. 当前 Session/QoS 已满足目标时只验证，不重复写入。
-3. 不根据猜测维护第二套 Session 状态真相。
-4. 具有副作用的动作结果未知时，不盲目重试。
-5. 最终成功必须由独立证据确认 Session、QoS 和用户面均满足。
+1. Do not start a Session mutation until the target UE is trusted as registered.
+2. If the current Session and QoS already satisfy the request, verify them instead of writing again.
+3. Do not maintain a second Session state model from guesses.
+4. Do not blindly retry a side-effecting Action with an unknown outcome.
+5. Prove Session state, QoS, and user-plane connectivity independently before declaring success.
 
-请求字段和确定性执行流程以 `assurance/` 机器契约为准；Provider、Tool、ObservationBinding
-和 acquisition 不属于 Skill source。
+Request fields and deterministic execution flow are defined by the `assurance/` machine contracts. Provider, Tool, ObservationBinding, and acquisition details belong to the governed execution plane.

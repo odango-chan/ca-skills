@@ -1,5 +1,17 @@
 # `download-object-by-deadline` migration
 
+## PR7 preflight hardening
+
+The deadline path now consumes real Procedure outputs: trusted request
+`secondsRemaining` and `sizeBytes`, or `object.metadata.query.output.sizeBytes`,
+feed the governed local derivation Script. Its typed output feeds QoS
+capacity/admission, then `file.download`; the final completion and deadline
+Predicates remain independent post-download proofs. An `OUTCOME_UNKNOWN`
+download is reconciled through `file.download.status`, not through PDU-session
+reconcile. The current authoring contract has no governed wall-clock binding,
+so `secondsRemaining` is an explicit trusted request input and is not computed
+from an untrusted fact.
+
 ## M0-M2
 
 - M0 Inventory: DONE in `connectionagent/docs/skill-source-migration-s3.md`.
