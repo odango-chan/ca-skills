@@ -1,7 +1,7 @@
-# Skill / Case convergence（进行中）
+# Skill / Case convergence（PR5.5 DONE；PR6 Entry Baseline FROZEN）
 
 本阶段接续 PR5，不修改 `connectionagent-pr5-final-composition` 冻结基线。
-单文件 Case 已迁移到工作树，尚未完成最终资格验证，不代表新 composition 已可晋级。
+单文件 Case 与双 evaluator 模型已冻结为 PR6 Entry Baseline；该基线不代表 PR6 完成，且不应原地晋级为最终 composition。
 
 ## 2026-09-07 检查基线
 
@@ -57,7 +57,7 @@ Platform compiler、Planning、mock fixture runner、Service Case 展示和场�
 - Skills package layout 与两个仓库 diff check PASS。
 
 尚待处理：显式官方 Skills root 的历史 `TestMigrated*TargetMockQualification` 中 weather/download 出现 ACTION_INPUT_SCHEMA_MISMATCH；不能用仓内 mock PASS 覆盖这一结果。应核对迁移前基线与正式 sessionrun/Q4 路径，不能扩展旧 interpreter 去承接 vNext。
-完整 make verify、file-transfer Registry/Case/Script 补齐、源端验证脚本的旧 Procedure 假设清理、架构/运行文档旧路径全面收敛和新 composition promotion 均未完成。
+完整 make verify、file-transfer Provider/Binding/Sandbox SQ2、Benchmark integration、架构/运行文档旧路径全面收敛和新 final composition promotion 均属于 PR6 后续工作。
 
 ## 2026-09-07 后续完成（本阶段）
 
@@ -98,6 +98,6 @@ Platform compiler、Planning、mock fixture runner、Service Case 展示和场�
 - Runtime 的 `ObservationPredicateEvaluator` 通过同一 `LocalPythonScriptExecutor` 执行 Predicate Script，Evidence Gate 先于 evaluator 产生 `UNKNOWN`，Script 仅在证据完备时可返回语义 `UNKNOWN`，执行失败（timeout/policy/output_invalid）单独报错不转 `FAIL`；
 - 该恢复仅为领域断言“本次 file-transfer 请求是否满足”，不产生工作流副作用。
 
-### 结论
+### PR6 Entry Baseline boundary
 
-本仓的 Skill/Case 收敛、Procedure/Predicate authoring 模型、PredicateSet 双 evaluator 契约、受治理 Script 基座复用、以及 `5gc-file-transfer` / `wifi-file-transfer` 的谓词分工已冻结为 PR6 前最终态。后续仅需 Provider/Sandbox 的真实 SQ2 与跨仓 composition 晋升，不再重新开放 Predicate evaluator 语义。
+本仓的 Skill/Case 收敛、Procedure/Predicate authoring 模型、PredicateSet 双 evaluator 契约、受治理 Script 基座复用、以及 `5gc-file-transfer` / `wifi-file-transfer` 的谓词分工已冻结为 PR6 Entry Baseline。后续需要完成 Provider Closure、shared Runtime SQ2、Sandbox qualification、Benchmark integration、cross-repository hardening 和新的 final composition promotion；不重新开放 Predicate evaluator 语义，除非真实执行证明存在基础缺陷。
