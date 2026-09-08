@@ -110,3 +110,27 @@ download；`OUTCOME_UNKNOWN` 只能进入匹配的 download status/reconcile；
 completion/deadline Predicates 只能作为独立的最终证明。`make verify` 委托
 Platform 执行 compiler 与 Planning 检查，并不把 file-transfer 源包自动变成
 生产资格包。详见 `docs/skill-preflight-hardening.md`。
+
+## PR7 Preflight 收口（COMPLETE）
+
+PR6 冻结模型与 PR7 预检进度已分层：
+
+```text
+PR6 frozen authoring model
+  vs
+PR7 preflight qualification progress — COMPLETE
+```
+
+历史事实不删除；当前 blocker 只保留真实剩余项。
+
+当前状态（与最新 main 一致）：
+
+- Skills `a152c03`、Platform `9c6e609`、Runtime `c9d08889`、Sandbox `54225f67` 已对齐；
+  Runtime Script-output binding 已发布、Sandbox download/QoS 校验已发布、Platform 已重 pin；
+  历史 blocker 文案（`0eafdef` / `Script-output binding still unpublished` / `Platform standalone qualification blocked`）已归档为历史。
+- `download-object-by-deadline` 保持受信任 `secondsRemaining` 输入，数据流与 UNKNOWN 分支与 `skills/download-object-by-deadline/assurance/procedure.yaml` 一致；`scripts/validate_download_object_target.py` 仍作为 source semantic 回归。
+- `make verify` 已委托 canonical gates（layout 一次、源回归、官方 4 Skill compile、Case schema、Planning、官方资格、file-transfer compile/cases、本地 Sandbox/Q4）；不再复制 Platform Compiler/Runtime 实现。
+- `5gc-file-transfer` / `wifi-file-transfer` 仍为 migration-target：`source/compile/cases/registry/local Sandbox Q4` PASS，未 `production-qualified`；剩余 blocker 为 `immutable artifact/profile admission`、`deployment ProviderBinding`、`ObservationCatalog closure`。
+- `make verify` 的 CI 定位器与 `CONNECTIONAGENT_SKILLS_ROOT` 显式性、Runtime 源码解耦、14 Cases 与 fixture 复用、Runtime 执行权威均已保持。
+
+后续 PR7-C 执行准入仍遵循 `Skill visible ≠ Skill executable` 且 `make verify` 不改变该边界。

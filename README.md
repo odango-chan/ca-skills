@@ -123,7 +123,31 @@ Target Admission validates the proposed Skill/Variant/entrypoint, target busines
 
 Routing quality belongs primarily to Agent/Benchmark evaluation. Admission safety and business execution reliability belong to Runtime/Assurance evaluation.
 
-`core5g-intent` is the reference routing Skill and intentionally has **no `assurance/` directory**. It outputs `schemas/execution-target-candidate.schema.yaml`. The four currently admitted official Procedure sources are `ue-registration`, `ensure-session-qos`, `download-object-by-deadline`, and `query-weather-for-ue`; they compile through the vNext authoring path and the shared Runtime boundary. `core5g-file-transfer` and `wifi-file-transfer` have valid source, case, registry, and local Sandbox/Q4 preflight evidence, but remain outside production qualification until immutable artifact/profile admission and deployment-owned Provider/Observation closure are recorded.
+`5gc-intent` (`skills/5gc-intent`) is the reference routing Skill and intentionally has **no `assurance/` directory**. It outputs `schemas/execution-target-candidate.schema.yaml` and is Agentic routing only.
+
+Official executable sources (vNext canonical Procedure, compiled and qualified through the shared Runtime boundary):
+
+```text
+ue-registration
+ensure-session-qos
+download-object-by-deadline
+query-weather-for-ue
+```
+
+Routing:
+
+```text
+5gc-intent
+```
+
+PR7-C target sources (valid source, compile, cases, registry, and local Sandbox/Q4 preflight evidence; not production-qualified until immutable artifact/profile admission and deployment-owned ProviderBinding / ObservationCatalog closure):
+
+```text
+5gc-file-transfer
+wifi-file-transfer
+```
+
+These two remain migration-target lifecycle packages by design: the source model is complete and preflight-qualified, but production admission waits for deployment qualification closure. See `docs/skill-preflight-hardening.md` for the qualification matrix.
 
 Routing candidates distinguish:
 
@@ -329,8 +353,11 @@ The current gateway-oriented branch intentionally targets the refactored model r
 
 ## Current gateway-oriented Skills
 
-- `core5g-intent` -> `[TASK: 5GC-INTENT]`; Agentic routing Skill, no `assurance/`, outputs an `ExecutionTargetCandidate`;
-- `core5g-file-transfer` -> `[TASK: 5GC-FILE-TRANSFER]` and `[TASK: 5GC-VG-RELEASE]`; migration target source package, not an admitted production execution target;
-- `wifi-file-transfer` -> `[TASK: WIFI-TRANSFER]`; migration target source package, not an admitted production execution target.
+- `5gc-intent` -> `[TASK: 5GC-INTENT]`; Agentic routing Skill, no `assurance/`, outputs an `ExecutionTargetCandidate`;
+- `5gc-file-transfer` -> `[TASK: 5GC-FILE-TRANSFER]` and `[TASK: 5GC-VG-RELEASE]`; migration-target source package, preflight qualified (`source/compile/cases/registry/local Sandbox Q4` PASS), not production-qualified;
+- `wifi-file-transfer` -> `[TASK: WIFI-TRANSFER]`; migration-target source package, preflight qualified, not production-qualified;
+- `ue-registration`, `ensure-session-qos`, `download-object-by-deadline`, `query-weather-for-ue` -> official executable sources, production-qualified via Platform/Runtime/Sandbox.
 
 Gateway task markers are external protocol identifiers. They do not need to equal the internal Skill name.
+
+Verification entry is `make verify` (`scripts/verify.py` delegating canonical Platform gates); see `docs/skill-preflight-hardening.md` for the full gate list and qualification boundary.
