@@ -87,7 +87,7 @@ procedures:
           groupId:
             from: input.virtual-group-id
           members:
-            from: resolve-member-endpoints.output.output.members
+            from: resolve-member-endpoints.output.members
         'on':
           COMMITTED: verify-goal
           NOT_COMMITTED: failed
@@ -102,7 +102,7 @@ procedures:
           groupId:
             from: input.virtual-group-id
           members:
-            from: resolve-member-endpoints.output.output.members
+            from: resolve-member-endpoints.output.members
         'on':
           COMMITTED: verify-goal
           NOT_COMMITTED: assign-members
@@ -224,7 +224,7 @@ procedures:
           groupId:
             from: input.virtual-group-id
           members:
-            from: resolve-member-endpoints.output.output.members
+            from: resolve-member-endpoints.output.members
         'on':
           COMMITTED: qos-boost
           NOT_COMMITTED: failed
@@ -239,7 +239,7 @@ procedures:
           groupId:
             from: input.virtual-group-id
           members:
-            from: resolve-member-endpoints.output.output.members
+            from: resolve-member-endpoints.output.members
         'on':
           COMMITTED: qos-boost
           NOT_COMMITTED: assign-members
