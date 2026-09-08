@@ -6,7 +6,7 @@ metadata:
 spec:
   classes:
   - budget_exhausted_with_pending_write
-  purpose: 创建未知且预算耗尽时保留待决写并停止。
+  purpose: 创建结果未知且预算耗尽时保留待决写并安全停止；预算耗尽是并存事实，不覆盖 UNKNOWN 的直接原因。
   context:
     apiVersion: connectionagent.io/v1alpha1
     kind: PlanningContext
@@ -91,7 +91,6 @@ spec:
     - predicate: file_transfer.request.satisfied
       expect: PASS
       actual: NOT_EVALUATED
-    errorCode: BUDGET_EXCEEDED
   fixtures:
     actions:
       resolve-member-endpoints: SUCCEEDED
