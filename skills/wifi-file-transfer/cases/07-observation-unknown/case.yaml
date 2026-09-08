@@ -14,12 +14,12 @@ spec:
       operationId: op-07-observation-unknown
       version: 1
     subject:
-      senderId: 001019876543210
+      senderId: '001019876543210'
     request:
       requestId: wifi-source-001
-      senderId: 001019876543210
+      senderId: '001019876543210'
       receiverIds:
-      - 001019876543211
+      - '001019876543211'
       urgency: normal
     facts: {}
     availableResources:

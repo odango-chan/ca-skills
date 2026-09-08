@@ -14,7 +14,7 @@ spec:
       operationId: op-11-release-ready
       version: 1
     subject:
-      senderId: 001019876543210
+      senderId: '001019876543210'
     request:
       operation: release_group
       transferId: tr-source-001

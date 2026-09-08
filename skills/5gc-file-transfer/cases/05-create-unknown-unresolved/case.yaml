@@ -14,14 +14,14 @@ spec:
       operationId: op-05-create-unknown-unresolved
       version: 1
     subject:
-      senderId: 001019876543210
+      senderId: '001019876543210'
     request:
       operation: prepare_transfer
       transferId: tr-source-001
       urgency: normal
-      senderImsi: 001019876543210
+      senderImsi: '001019876543210'
       receiverImsis:
-      - 001019876543211
+      - '001019876543211'
     facts:
       virtual_group.id:
         value: vg-20260907-001
