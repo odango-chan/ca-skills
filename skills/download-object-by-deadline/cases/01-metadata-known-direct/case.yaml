@@ -112,6 +112,8 @@ spec:
         outcome: COMMITTED
       - nodeId: verify-transfer
         outcome: PASS
+      - nodeId: verify-transfer-2
+        outcome: PASS
   fixtures:
     actions:
       download-object: COMMITTED
