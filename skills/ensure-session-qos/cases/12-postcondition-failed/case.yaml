@@ -66,13 +66,15 @@ spec:
       actual: FAIL
     - predicate: user_plane.connectivity.available
       expect: PASS
-      actual: PASS
+      actual: NOT_EVALUATED
     trace:
       match: exact
       ordered:
       - nodeId: create-session
         outcome: COMMITTED
       - nodeId: verify-session-goal
+        outcome: PASS
+      - nodeId: verify-session-goal-2
         outcome: FAIL
   fixtures:
     actions:
@@ -80,7 +82,9 @@ spec:
     predicates:
       verify-session-goal:
         pdu_session.established: PASS
+      verify-session-goal-2:
         pdu_session.qos.satisfied: FAIL
+      verify-session-goal-3:
         user_plane.connectivity.available: PASS
     simulation:
       apiVersion: connectionagent.io/v1alpha1

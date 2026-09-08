@@ -68,6 +68,12 @@ spec:
         outcome: COMMITTED
       - nodeId: verify-connectivity
         outcome: PASS
+      - nodeId: query-weather
+        outcome: SUCCEEDED
+      - nodeId: normalize-weather
+        outcome: SUCCEEDED
+      - nodeId: persist-weather-result
+        outcome: SUCCEEDED
       - nodeId: verify-weather-result
         outcome: PASS
       forbiddenImmediateRetryAfterUnknown: true
@@ -81,6 +87,7 @@ spec:
       reconcile-connectivity: COMMITTED
       query-weather: SUCCEEDED
       normalize-weather: SUCCEEDED
+      persist-weather-result: SUCCEEDED
     predicates:
       verify-connectivity:
         user_plane.connectivity.available:

@@ -85,6 +85,10 @@ spec:
         outcome: COMMITTED
       - nodeId: verify-session-goal
         outcome: PASS
+      - nodeId: verify-session-goal-2
+        outcome: PASS
+      - nodeId: verify-session-goal-3
+        outcome: PASS
   fixtures:
     actions:
       query-session: SUCCEEDED
@@ -96,5 +100,7 @@ spec:
         pdu_session.qos.satisfied: FAIL
       verify-session-goal:
         pdu_session.established: PASS
+      verify-session-goal-2:
         pdu_session.qos.satisfied: PASS
+      verify-session-goal-3:
         user_plane.connectivity.available: PASS
