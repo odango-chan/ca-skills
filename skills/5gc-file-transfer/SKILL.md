@@ -29,7 +29,4 @@ Do not use it for generic `[TASK: 5GC-INTENT]` routing or Wi-Fi transfer tasks.
 - `virtual_group.activate` is therefore outside this Skill.
 - Once the request is normalized, hand execution to the governed assurance entrypoint. Do not construct ad-hoc NF/VG/PCF Tool sequences from prose.
 
-## On-demand references
-
-- `references/on-demand/sbi-proxy-provider-mapping.md` -> current provider migration mapping.
-- `references/on-demand/predicate-evaluation.md` -> Predicate/Observation evaluation details.
+Provider implementation, ProviderBinding, ObservationBinding, Predicate execution, UNKNOWN/reconcile behavior, and deployment-specific Tool mappings are governed outside model context by the shared Platform/Runtime contracts.
