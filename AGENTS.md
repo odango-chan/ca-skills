@@ -2,7 +2,7 @@
 
 ## Repository purpose
 
-This repository owns official ConnectionAgent Skill source assets and model-visible routing policy assets. Keep executable Platform/Runtime logic out of this repository.
+This repository owns official ConnectionAgent Skill source assets, model-visible routing policy assets, and the human-facing authoring entry point. Keep executable Platform/Runtime logic out of this repository.
 
 ## Asset rules
 
@@ -11,6 +11,8 @@ This repository owns official ConnectionAgent Skill source assets and model-visi
 - Model-facing Markdown under `skills/` is authored in English.
 - Governed executable Skills use the complete `assurance/{contract.yaml,procedure.yaml,predicates.yaml}` trio.
 - Machine-readable assurance, procedure, case, schema, and script metadata must stay consistent with contracts owned by `connectionagent-skill-platform` and `connectionagent-runtime`.
+- `docs/authoring.md` is the human-facing author guide; it must not duplicate the complete Platform machine grammar.
+- `.agents/skills/create-connectionagent-skill/` is a repository-local authoring workflow, not an official business Skill.
 - Vendor `cases/` validate the Vendor Skill itself. Customer `SkillProfileQualificationCase` assets are not Vendor cases.
 - Do not keep package-root `README.md`, `MIGRATION.md`, or `examples/` directories in official packages.
 - Do not copy Runtime state machines, Provider/Observation bindings, Provider implementation mappings, Sandbox simulation worlds, Benchmark scoring logic, or Web behavior into model context.
@@ -18,7 +20,7 @@ This repository owns official ConnectionAgent Skill source assets and model-visi
 
 ## Cross-repository ownership
 
-- Skill compiler, schemas, ProcedurePatch, Artifact/Variant and Qualification orchestration: `connectionagent-skill-platform`.
+- Normative Skill machine schemas, compiler semantics, ProcedurePatch, Artifact/Variant and Qualification orchestration: `connectionagent-skill-platform`.
 - Runtime admission, reliable execution, Evidence Gate, ObservationBinding, ProviderBinding and Reconcile: `connectionagent-runtime`.
 - Goal interpretation, routing execution, LLM/model loop and Host behavior: `connectionagent-agent`.
 - Simulation worlds, fault injection and ground truth: `connectionagent-sandbox`.
