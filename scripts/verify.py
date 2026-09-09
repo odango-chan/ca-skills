@@ -131,10 +131,19 @@ def resolve_platform_root():
         platform = Path(platform_value).resolve()
     else:
         platform = (ROOT.parent / "connectionagent-skill-platform").resolve()
-    if not (platform / ".git").is_dir():
+
+    # A normal checkout has a .git directory while a linked Git worktree has
+    # a .git file. Accept both, and also require the Platform paths this script
+    # actually invokes so a similarly named directory fails closed.
+    required_paths = (
+        platform / ".git",
+        platform / "backend" / "cmd" / "casp",
+        platform / "registry",
+    )
+    if not all(path.exists() for path in required_paths):
         raise SystemExit(
             "CONNECTIONAGENT_SKILL_PLATFORM_ROOT must point to a Skill Platform Git checkout "
-            "when ../connectionagent-skill-platform is unavailable"
+            "with backend/cmd/casp and registry when ../connectionagent-skill-platform is unavailable"
         )
     return platform
 
