@@ -1,43 +1,50 @@
 # Authoring ConnectionAgent Skills
 
-This document is the human-facing entry point for creating and reviewing official ConnectionAgent Skill source.
+This guide explains how to add or change official Skill source in this repository.
 
-The repository-local authoring assistant at `.agents/skills/create-connectionagent-skill/SKILL.md` contains the workflow and core invariants. Detailed practical syntax lives in `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md` and should be loaded only when assurance, Script, or Case source is being authored. `connectionagent-skill-platform` remains the normative machine-language authority.
+For detailed YAML and Script examples, use `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md`. Machine validity is defined by the current schemas and compiler in `connectionagent-skill-platform`.
 
-## 1. Decide what you are authoring
+Chinese version: [`authoring.zh-CN.md`](authoring.zh-CN.md)
 
-Before creating a package, classify the asset.
+## 1. Choose the right asset type
+
+Before creating files, decide whether the change belongs to a Skill, a routing-policy package, or a Runtime Capability.
 
 ### Executable Skill
 
-Create an executable Skill when the model needs a product/domain-level capability whose execution must be governed by deterministic assurance.
+Use an executable Skill for a product or domain goal that needs deterministic execution assurance. It normally contains `SKILL.md` and the complete `assurance/` extension.
 
-An executable Skill normally contains `SKILL.md` plus the complete `assurance/` extension.
+Typical examples:
 
-### Model-context or routing-policy package
+- `ue-registration`
+- `ensure-session-qos`
+- `download-object-by-deadline`
+- `query-weather-for-ue`
 
-A model-context package provides business semantics or routing policy to the Agent but is not executed as a preliminary Runtime Procedure.
+### Routing-policy or model-context package
 
-`skills/5gc-intent` is the current example. Routing itself is Agent-owned behavior. Do not model routing as “Skill A executes and returns an `ExecutionTarget` for Skill B”.
+Use this form when the Agent needs business semantics or routing policy, but there is no Runtime Procedure to execute.
 
-### Capability
+`5gc-intent` is the reference package. Routing remains Agent-owned behavior; do not model routing as one executable Skill selecting another executable Skill.
 
-A low-level Provider action is normally a Runtime Capability, not a standalone Skill. Create a Skill only when there is meaningful product/domain semantics, planning context, or assurance composition above the primitive action.
+### Runtime Capability
 
-For the practical granularity boundary, see `.agents/skills/create-connectionagent-skill/references/skill-granularity.md`.
+Low-level Provider actions belong to Runtime capability contracts. Do not create a Skill merely to wrap a single query, create, update, or delete operation.
 
-## 2. Canonical package shapes
+For boundary examples, see `.agents/skills/create-connectionagent-skill/references/skill-granularity.md`.
 
-A model-context-only package may be as small as:
+## 2. Package layout
+
+A model-context package may be as small as:
 
 ```text
 skills/<name>/
 ├── SKILL.md
-├── references/
-└── schemas/
+├── references/    # optional
+└── schemas/       # optional
 ```
 
-A governed executable Skill adds the complete assurance extension:
+A governed executable Skill uses:
 
 ```text
 skills/<name>/
@@ -48,37 +55,44 @@ skills/<name>/
 │   └── predicates.yaml
 ├── cases/
 │   └── <case>/case.yaml
-├── references/
-├── schemas/
-└── scripts/
+├── references/    # optional
+├── schemas/       # optional
+└── scripts/       # optional
 ```
 
-Only create optional directories when they contain real assets.
-
-Current package rules:
+Repository rules:
 
 - `assurance/` is all-or-nothing;
 - there is no standalone `evidence.yaml`;
-- qualification cases use one `cases/<case>/case.yaml` file;
-- package-root `examples/`, `README.md`, and `MIGRATION.md` are not canonical;
-- explanatory examples belong under `references/samples/`;
-- model-facing Markdown under `skills/` is authored in English.
+- each qualification case is one `cases/<case>/case.yaml` file;
+- package-root `README.md`, `MIGRATION.md`, and `examples/` are not part of the canonical package shape;
+- explanatory samples belong under `references/samples/`;
+- model-facing Markdown under `skills/` is written in English;
+- do not create empty directories.
 
-## 3. Keep `SKILL.md` thin
+## 3. Write `SKILL.md` for the model
 
-`SKILL.md` is the single package-root model-facing entry point. Keep only information that materially affects model decisions:
+`SKILL.md` is the package-root model-facing entry point. Keep it focused on information that changes model behavior:
 
-- when the Skill or policy applies;
-- business/domain meaning;
+- when the Skill applies;
+- the business or domain goal;
 - input normalization and disambiguation;
-- model-facing structured input/output expectations;
+- model-facing input and output expectations;
 - constraints the model must not guess or bypass.
 
-Do not copy Runtime or Platform mechanics into model context. Avoid Provider implementation mappings, deployment endpoints, ObservationBinding details, Runtime state machines, qualification status, Benchmark scoring rules, migration history, and architecture tutorials.
+Do not place implementation or deployment mechanics in `SKILL.md`. Provider mappings, endpoints, ObservationBinding details, Runtime state machines, qualification status, Benchmark scoring, migration notes, and architecture tutorials belong elsewhere.
 
-## 4. Current authoring syntax authority
+## 4. Authoring contracts
 
-Use these Platform schemas for official source authoring:
+For executable Skills, the three files under `assurance/` have distinct roles:
+
+| File | Purpose |
+| --- | --- |
+| `contract.yaml` | Skill goal, admissible resources, preconditions, requirements, postconditions, and planning limits |
+| `procedure.yaml` | deterministic workflow structure and data/control bindings |
+| `predicates.yaml` | required observations and deterministic judgment over materialized evidence |
+
+Use these Platform schemas as the authoring authority:
 
 | Source asset | Platform schema |
 | --- | --- |
@@ -88,61 +102,93 @@ Use these Platform schemas for official source authoring:
 | `cases/<case>/case.yaml` | `schemas/v1alpha1/skill-test-case.schema.yaml` |
 | governed Script metadata | `schemas/v1alpha1/script-tool-metadata.schema.yaml` |
 
-For current `assurance/procedure.yaml`, author from `procedure-source.schema.yaml`. The current source model is object-form Procedure vNext (`procedures -> start/nodes`), not the older array/type/action authoring shape that can still appear in historical or internal schemas.
+For `procedure.yaml`, author against `procedure-source.schema.yaml`. Current official source uses the object-form vNext model (`procedures -> start/nodes`). Do not use the older array/type/action source shape.
 
-The practical syntax reference is `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md`. Keep detailed YAML/Python examples there rather than duplicating them in the main authoring Skill or this guide.
+The detailed syntax reference is intentionally kept in one place:
 
-## 5. Observation, Evidence Gate, and Predicate
+```text
+.agents/skills/create-connectionagent-skill/references/authoring-syntax.md
+```
 
-Observation acquisition and Predicate judgment are separate concerns.
+## 5. Evidence and Predicate rules
 
-At Runtime, required observations are materialized first. The Evidence Gate checks presence, freshness, and validity before the evaluator runs. Missing, stale, unavailable, or invalid required evidence produces `UNKNOWN` without pretending that the Predicate evaluated to `FAIL`.
+Observation acquisition and Predicate evaluation are separate.
 
-Use CEL for small auditable deterministic assertions and a governed Predicate Script for genuinely complex deterministic domain judgment. Predicate Scripts operate only on already-materialized inputs/evidence and must not call Providers, MCP servers, the network, or hidden workflows.
+Runtime materializes the required observations first. The Evidence Gate checks whether required evidence is present, fresh, and usable. Missing or unusable required evidence produces `UNKNOWN` before the evaluator runs.
+
+Use CEL for short, auditable deterministic checks. Use a governed Predicate Script only when the judgment is too complex for a clear CEL expression.
+
+Predicate Scripts may only evaluate supplied data. They must not call Providers, MCP servers, external services, or acquire additional evidence.
 
 ## 6. Qualification cases
 
-Skill qualification cases are source-package assets, not Benchmark definitions.
+Skill cases validate the source package and its expected planning/execution behavior. They are not Benchmark cases.
 
-Write exactly one `case.yaml` per case directory. Coverage follows semantic obligations, not a fixed Case count. Cover normal success, relevant failure/denial, `UNKNOWN`/reconcile paths, budget handling, and independent postcondition verification where the Procedure/Profile makes them meaningful.
+Use one `case.yaml` per case directory. Coverage should follow the Skill's semantic obligations rather than a fixed case count. Depending on the Skill, useful classes include:
 
-Do not duplicate cases merely by changing an operation identifier, and do not treat an injected fixture result as proof of the business outcome.
+- normal success;
+- denied or failed operations;
+- evidence `UNKNOWN`;
+- mutation `OUTCOME_UNKNOWN` followed by reconcile;
+- budget or planning limits;
+- independent postcondition failure.
 
-## 7. Authoring workflow
+Do not treat fixture output as proof of the business result. Final success must still be supported by the required postconditions.
 
-Use this sequence for a new Skill or structural change:
+## 7. Use existing Skills as examples
 
-1. Read repository `AGENTS.md` and this guide.
-2. Classify the asset as executable Skill, model-context/routing policy, or lower-level Capability.
-3. Inspect one or two adjacent official packages with similar semantics.
-4. Reuse Registry Capability/Predicate/schema contracts before creating local ones.
-5. Use `.agents/skills/create-connectionagent-skill/SKILL.md` for the workflow and core invariants.
-6. Load `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md` only when assurance, Script, or Case source must be written or changed.
-7. For one executable package, run focused compile:
+Prefer current official packages over copied tutorial examples:
+
+| Need | Reference package |
+| --- | --- |
+| compact end-to-end executable Skill | `query-weather-for-ue` |
+| mutation and reconcile handling | `ue-registration` |
+| requirements and postconditions | `ensure-session-qos` |
+| deadline and local computation | `download-object-by-deadline` |
+| non-executable routing policy | `5gc-intent` |
+
+This keeps examples aligned with the compiler and avoids maintaining a second set of sample packages.
+
+## 8. Authoring workflow
+
+For a new Skill or a structural change:
+
+1. Read `AGENTS.md`.
+2. Decide whether the asset is an executable Skill, routing-policy/model-context package, or Runtime Capability.
+3. Inspect one or two current packages with similar semantics.
+4. Reuse existing Registry capability, predicate, and schema contracts where possible.
+5. Read the relevant section of `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md` before editing assurance source, Scripts, or Cases.
+6. For one executable package, run:
 
    ```bash
    python3 -B scripts/verify.py --compile skills/<name>
    ```
 
-   Set `CONNECTIONAGENT_SKILL_PLATFORM_ROOT=/path/to/connectionagent-skill-platform` when the Platform checkout is not the sibling `../connectionagent-skill-platform`.
+   Set `CONNECTIONAGENT_SKILL_PLATFORM_ROOT=/path/to/connectionagent-skill-platform` when the Platform repository is not available as sibling `../connectionagent-skill-platform`.
 
-8. Before delivery, run the repository gate:
+7. Before delivery, run:
 
    ```bash
    make verify
    ```
 
-9. Run any additional SQ/production admission work required by the target profile in the owning Platform/Runtime/Sandbox environment.
+8. Report the checks that actually ran and any remaining Platform, Runtime, Provider, Sandbox, or deployment dependency.
 
-A successful source check or focused compile does **not** make a Skill production-qualified.
+A successful compile or repository preflight check does not make a Skill production-qualified.
 
-## 8. Normative authority
+## 9. Ownership
 
-Use this precedence when prose and implementation disagree:
+Keep the repository boundary simple:
 
-1. cross-repository machine-contract/current-stage decisions in `odango-chan/connectionagent`;
-2. current machine schemas and compiler validation in `odango-chan/connectionagent-skill-platform`;
-3. repository-local package rules in `AGENTS.md`;
-4. the repository-local authoring workflow and references.
+```text
+connectionagent-skills
+  authoring guidance + official Skill source
 
-The goal is one language contract with useful progressive authoring views, not multiple independently maintained language definitions.
+connectionagent-skill-platform
+  machine schemas + compiler + qualification
+
+connectionagent-runtime
+  admission + binding + deterministic execution
+```
+
+If a concrete scenario cannot be expressed, first check whether the missing piece is a ProviderBinding, ObservationBinding, Runtime behavior, qualification rule, or integration issue before changing the Skill language.
