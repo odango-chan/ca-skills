@@ -423,7 +423,8 @@ spec:
     metadata:
       operationId: op-01
       version: 1
-    subject: {}
+    subject:
+      id: subject-1
     request: {}
     facts: {}
     availableResources: []
@@ -434,6 +435,10 @@ spec:
     procedure: default
     planningStatus: READY
     terminal: SUCCEEDED
+    postconditions:
+    - predicate: example.goal_satisfied
+      expect: PASS
+      actual: PASS
 
   fixtures: {}
 ```
