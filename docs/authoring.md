@@ -2,7 +2,7 @@
 
 This document is the human-facing entry point for creating and reviewing official ConnectionAgent Skill source.
 
-It is intentionally **not** a second language specification. `connectionagent-skill-platform` owns the normative machine schemas, compiler validation, Artifact/Variant production, and Qualification semantics. If this guide ever conflicts with the current Platform schema or compiler, the Platform machine contract wins.
+The repository-local authoring assistant at `.agents/skills/create-connectionagent-skill/SKILL.md` contains the current practical syntax cheatsheet and minimal examples. `connectionagent-skill-platform` remains the normative machine-language authority.
 
 ## 1. Decide what you are authoring
 
@@ -11,8 +11,6 @@ Before creating a package, classify the asset.
 ### Executable Skill
 
 Create an executable Skill when the model needs a product/domain-level capability whose execution must be governed by deterministic assurance.
-
-Examples include registration, QoS assurance, deadline-aware transfer, and weather query workflows.
 
 An executable Skill normally contains `SKILL.md` plus the complete `assurance/` extension.
 
@@ -24,9 +22,9 @@ A model-context package provides business semantics or routing policy to the Age
 
 ### Capability
 
-A low-level provider action is normally a Runtime Capability, not a standalone Skill. Create a Skill only when there is meaningful product/domain semantics, planning context, or assurance composition above the primitive action.
+A low-level Provider action is normally a Runtime Capability, not a standalone Skill. Create a Skill only when there is meaningful product/domain semantics, planning context, or assurance composition above the primitive action.
 
-See `.agents/skills/create-connectionagent-skill/references/skill-granularity.md` for the practical boundary.
+For the practical granularity boundary, see `.agents/skills/create-connectionagent-skill/references/skill-granularity.md`.
 
 ## 2. Canonical package shapes
 
@@ -49,8 +47,7 @@ skills/<name>/
 │   ├── procedure.yaml
 │   └── predicates.yaml
 ├── cases/
-│   └── <case>/
-│       └── case.yaml
+│   └── <case>/case.yaml
 ├── references/
 ├── schemas/
 └── scripts/
@@ -60,16 +57,16 @@ Only create optional directories when they contain real assets.
 
 Current package rules:
 
-- `assurance/` is all-or-nothing at the package-layout level;
+- `assurance/` is all-or-nothing;
 - there is no standalone `evidence.yaml`;
 - qualification cases use one `cases/<case>/case.yaml` file;
-- package-root `examples/`, `README.md`, and `MIGRATION.md` are not part of the canonical Skill shape;
+- package-root `examples/`, `README.md`, and `MIGRATION.md` are not canonical;
 - explanatory examples belong under `references/samples/`;
 - model-facing Markdown under `skills/` is authored in English.
 
 ## 3. Keep `SKILL.md` thin
 
-`SKILL.md` is the single package-root model-facing entry point. Keep only information that materially affects model decisions, such as:
+`SKILL.md` is the single package-root model-facing entry point. Keep only information that materially affects model decisions:
 
 - when the Skill or policy applies;
 - business/domain meaning;
@@ -77,21 +74,23 @@ Current package rules:
 - model-facing structured input/output expectations;
 - constraints the model must not guess or bypass.
 
-Do not copy Runtime or Platform mechanics into model context. In particular, avoid Provider implementation mappings, deployment endpoints, ObservationBinding details, Runtime state machines, qualification status, Benchmark scoring rules, migration history, and architecture tutorials.
+Do not copy Runtime or Platform mechanics into model context. Avoid Provider implementation mappings, deployment endpoints, ObservationBinding details, Runtime state machines, qualification status, Benchmark scoring rules, migration history, and architecture tutorials.
 
-## 4. Assurance responsibilities
+## 4. Current authoring syntax authority
 
-For an executable Skill, the three files under `assurance/` have separate responsibilities:
+Use these Platform schemas for official source authoring:
 
-- `contract.yaml` declares the Skill-local execution/assurance contract and references governed capabilities or schemas;
-- `procedure.yaml` declares deterministic workflow structure;
-- `predicates.yaml` declares typed observations and deterministic assertions over materialized evidence.
+| Source asset | Platform schema |
+| --- | --- |
+| `assurance/contract.yaml` | `schemas/v1alpha1/skill-contract.schema.yaml` |
+| `assurance/procedure.yaml` | `schemas/v1alpha1/procedure-source.schema.yaml` |
+| `assurance/predicates.yaml` | `schemas/v1alpha1/predicate-set.schema.yaml` |
+| `cases/<case>/case.yaml` | `schemas/v1alpha1/skill-test-case.schema.yaml` |
+| governed Script metadata | `schemas/v1alpha1/script-tool-metadata.schema.yaml` |
 
-Do not duplicate their full field grammar here. Before authoring or changing these files, inspect the current schemas and compiler behavior in `connectionagent-skill-platform`.
+For current `assurance/procedure.yaml`, author from `procedure-source.schema.yaml`. The current source model is object-form Procedure vNext (`procedures -> start/nodes`), not the older array/type/action authoring shape that can still appear in other historical or internal schemas.
 
-The current Procedure model is the object-form Procedure vNext. Its node vocabulary is `call`, `verify`, `script`, `procedure`, `for`, `reconcile`, and `terminal`, with data/control bindings expressed through the current `with` / `on` model. `for` is the collection construct. Skill source does not carry graph coordinates or deployment Provider bindings.
-
-Procedure selection conditions use the current applicability contract; they are not Predicate definitions.
+The repository-local `create-connectionagent-skill` assistant contains a concise syntax reference for contract, Procedure nodes/bindings, Predicate observations/evaluators, Script metadata, and Case envelopes. Do not maintain another copy here.
 
 ## 5. Observation, Evidence Gate, and Predicate
 
@@ -99,50 +98,42 @@ Observation acquisition and Predicate judgment are separate concerns.
 
 At Runtime, required observations are materialized first. The Evidence Gate checks presence, freshness, and validity before the evaluator runs. Missing, stale, unavailable, or invalid required evidence produces `UNKNOWN` without pretending that the Predicate evaluated to `FAIL`.
 
-Use:
-
-- CEL for small, auditable deterministic assertions such as comparisons, boolean composition, and straightforward collection checks;
-- a governed Predicate Script for genuinely complex deterministic domain judgment.
-
-Predicate Scripts operate only on already-materialized inputs/evidence. They must not call Providers, MCP servers, the network, or hidden workflows. Procedure Scripts and Predicate Scripts share the governed local-compute execution base, but their semantics remain different: a Procedure Script computes workflow data; a Predicate Script judges supplied evidence.
+Use CEL for small auditable deterministic assertions and a governed Predicate Script for genuinely complex deterministic domain judgment. Predicate Scripts operate only on already-materialized inputs/evidence and must not call Providers, MCP servers, the network, or hidden workflows.
 
 ## 6. Qualification cases
 
 Skill qualification cases are source-package assets, not Benchmark definitions.
 
-Write exactly one `case.yaml` per case directory. Cover the semantic classes implied by the procedure and profile, including normal success, governed failure, `UNKNOWN` / reconcile paths, budget handling, and independent postcondition verification where applicable.
+Write exactly one `case.yaml` per case directory. Coverage follows semantic obligations, not a fixed Case count. Cover normal success, relevant failure/denial, `UNKNOWN`/reconcile paths, budget handling, and independent postcondition verification where the Procedure/Profile makes them meaningful.
 
-Do not duplicate cases merely by changing an operation identifier. Do not treat an injected fixture result as proof of the business outcome.
-
-Benchmark cases remain independently authored evaluation assets and must not use the Skill's internal expected path as their oracle.
+Do not duplicate cases merely by changing an operation identifier, and do not treat an injected fixture result as proof of the business outcome.
 
 ## 7. Authoring workflow
 
-Use this sequence for a new Skill or a structural change:
+Use this sequence for a new Skill or structural change:
 
-1. Read the repository `AGENTS.md` and this guide.
+1. Read repository `AGENTS.md` and this guide.
 2. Classify the asset as executable Skill, model-context/routing policy, or lower-level Capability.
 3. Inspect one or two adjacent official packages with similar semantics.
-4. Inspect the current Platform machine schemas and current-stage decisions before writing assurance source.
-5. Author the smallest complete source package; do not create placeholder directories or duplicate language documentation.
-6. Run repository verification:
+4. Reuse Registry Capability/Predicate/schema contracts before creating local ones.
+5. Use `.agents/skills/create-connectionagent-skill/SKILL.md` as the practical vNext syntax guide.
+6. For one executable package, run focused compile:
+
+   ```bash
+   python3 -B scripts/verify.py --compile skills/<name>
+   ```
+
+   Set `CONNECTIONAGENT_SKILL_PLATFORM_ROOT=/path/to/connectionagent-skill-platform` when the Platform checkout is not the sibling `../connectionagent-skill-platform`.
+
+7. Before delivery, run the repository gate:
 
    ```bash
    make verify
    ```
 
-7. When doing focused package work, run the Platform compiler through the local authoring helper:
+8. Run any additional SQ1/SQ2/production admission work required by the target profile in the owning Platform/Runtime/Sandbox environment.
 
-   ```bash
-   bash .agents/skills/create-connectionagent-skill/scripts/compile-package.sh \
-     skills/<name>
-   ```
-
-   The helper uses `CONNECTIONAGENT_SKILL_PLATFORM` when set, otherwise it looks for a sibling `../connectionagent-skill-platform` checkout.
-
-8. Run the required SQ1/SQ2 gates for the target qualification profile and retain the exact source/artifact digest and evidence.
-
-A successful source check or compile does **not** by itself make a Skill production-qualified. Deployment ProviderBinding, Observation closure, immutable Artifact/Variant admission, and environment-owned qualification remain the responsibility of their owning layers.
+A successful source check or focused compile does **not** make a Skill production-qualified.
 
 ## 8. Normative authority
 
@@ -151,6 +142,6 @@ Use this precedence when prose and implementation disagree:
 1. cross-repository machine-contract/current-stage decisions in `odango-chan/connectionagent`;
 2. current machine schemas and compiler validation in `odango-chan/connectionagent-skill-platform`;
 3. repository-local package rules in `AGENTS.md`;
-4. this authoring guide and examples.
+4. `.agents/skills/create-connectionagent-skill/SKILL.md` and this human guide.
 
-The goal is one language contract with multiple useful entry points, not multiple copies of the language definition.
+The goal is one language contract with useful authoring views, not multiple independently maintained language definitions.
