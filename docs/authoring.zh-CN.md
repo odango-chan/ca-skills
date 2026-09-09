@@ -167,7 +167,7 @@ Predicate 脚本只能判断已经提供的数据，不能主动调用 Provider�
 
 ## 6. 资格验证用例怎么写
 
-Skill Case 是 Skill 源码中的资格验证资产，不是 Benchmark Case。
+Skill 内的用例属于源码包的资格验证资产，不是 Benchmark 评测用例。
 
 每个用例一个文件：
 
@@ -180,13 +180,13 @@ cases/<case>/case.yaml
 - 正常成功；
 - 操作失败或被拒绝；
 - Evidence `UNKNOWN`；
-- mutation 的 `OUTCOME_UNKNOWN` 以及后续 reconcile；
+- 变更操作出现 `OUTCOME_UNKNOWN` 后进行调和；
 - 规划与预算限制；
 - 后置条件独立验证失败。
 
 不要把 mock / fixture 返回值直接当成业务成功证明。最终结果仍应由后置条件或独立 Evidence 证明。
 
-SkillTestCase 也不能替代 BenchmarkCase。Benchmark 的黑盒裁决不能直接依赖 Skill 内部预期路径。
+`SkillTestCase` 也不能替代 `BenchmarkCase`。Benchmark 的黑盒裁决不能直接依赖 Skill 内部预期路径。
 
 ## 7. 优先参考真实 Skill，不再维护第二套教学例子
 
@@ -195,9 +195,9 @@ SkillTestCase 也不能替代 BenchmarkCase。Benchmark 的黑盒裁决不能直
 | 需求 | 参考 Skill |
 | --- | --- |
 | 完整但较紧凑的端到端流程 | `query-weather-for-ue` |
-| mutation / `OUTCOME_UNKNOWN` / reconcile | `ue-registration` |
-| requirements 与 postconditions | `ensure-session-qos` |
-| deadline 与本地计算 | `download-object-by-deadline` |
+| 变更操作、`OUTCOME_UNKNOWN` 与调和 | `ue-registration` |
+| 可满足要求与后置条件 | `ensure-session-qos` |
+| 截止时间与本地计算 | `download-object-by-deadline` |
 | 非执行型路由策略 | `5gc-intent` |
 
 真实 Skill 会跟随编译器持续验证，比额外维护一套教学包更可靠。
@@ -256,4 +256,4 @@ connectionagent-runtime
 - 资格验证；
 - Sandbox / 集成环境。
 
-只有确认现有语言本身确实无法表达必要语义时，才考虑修改 Skill Language。
+只有确认现有语言本身确实无法表达必要语义时，才考虑修改 Skill 语言。
