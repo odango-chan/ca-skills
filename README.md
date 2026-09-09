@@ -1,3 +1,5 @@
+![ConnectionAgent Skills](assets/repo-banner.svg)
+
 # ConnectionAgent Skills
 
 Official Skill source for ConnectionAgent.
