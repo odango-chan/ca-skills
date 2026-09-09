@@ -99,6 +99,12 @@ Agent 从 Runtime 已发现并准入的 Skill 集中做路由选择；最终执�
 
 两个文件传输 Skill 当前剩余的主要工作是生产部署和绑定关系收口，不是继续扩展 Skill 语法。
 
+## 编写模型冻结
+
+当前 Skill 语言和保障编写模型已经冻结。新增 Skill 和日常维护默认使用现有语言，不再因为便利性、部署差异、评测需求或局部实现问题扩展语法。
+
+只有在真实产品场景证明现有语言存在表达能力缺口，并且该问题不能通过 ProviderBinding、ObservationBinding、Runtime、资格验证、Sandbox 或集成方式解决时，才允许启动语言变更。语言变更需要同步修改 Skill Platform 的 Schema 与编译器，以及受影响的官方 Skill、用例和编写文档，并重新通过 `make verify`，之后才能建立新的冻结基线。
+
 ## 验证
 
 运行完整仓库验证：

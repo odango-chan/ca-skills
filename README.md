@@ -99,6 +99,12 @@ Agent routing selects from the admitted Skill set; Runtime still performs the fi
 
 The remaining production work for the file-transfer Skills is deployment and binding closure rather than Skill-language work.
 
+## Authoring model freeze
+
+The current Skill language and assurance authoring model are frozen. New Skills and normal maintenance should use the existing language rather than extend it.
+
+A syntax change requires a demonstrated product-level expressiveness gap that cannot be solved in ProviderBinding, ObservationBinding, Runtime, qualification, Sandbox, or integration. Any approved language revision must update the owning Platform schemas/compiler and the affected official Skills, Cases, and authoring guidance together, then pass `make verify` before a new baseline is established.
+
 ## Verification
 
 Run the repository gate with:
