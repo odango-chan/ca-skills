@@ -1,9 +1,11 @@
 # Session goal model
 
-本 Skill 的主动目标是“最终存在满足请求 QoS 的 PDU Session”。创建、修改、查询和调和只是实现目标的动作，不能独立代表成功。
+The proactive goal of this Skill is: **a PDU Session exists and satisfies the requested QoS**. Create, modify, query, and reconcile operations are implementation steps; none of them independently establishes success.
 
-三个后置条件分别回答：会话是否存在、请求的 QoS 是否满足、用户面是否真实可用。写操作返回 COMMITTED 后仍必须重新观察这三个 Predicate；用户面连通性是最终成功门禁，不是本 Skill 主动修复的 requirement。
+The three postconditions answer separate questions: whether the session exists, whether the requested QoS is satisfied, and whether the user plane is actually usable. A mutation returning `COMMITTED` is therefore not enough; governed execution must still re-observe and prove all three Predicates.
 
-因此，Session 和 QoS 已满足但 `user_plane.connectivity.available=FAIL` 时，本 Skill 选择零写入验证路径并返回 FAILED。连接恢复属于未来 `ensure-connectivity` 或 `restore-connectivity` 的目标边界。
+User-plane connectivity is a final success gate, not a repair requirement owned by this Skill. If the Session and QoS already satisfy the request but `user_plane.connectivity.available=FAIL`, the Skill takes the zero-write verification path and returns failure rather than attempting unrelated repair.
 
-Release/断开连接是相反且具有破坏性的独立目标，不属于本 Skill。需要覆盖释放流程时，应另建 `ensure-session-absent`。
+Connectivity recovery belongs to a future goal such as `ensure-connectivity` or `restore-connectivity`.
+
+Release/disconnection is a separate destructive goal and does not belong to this Skill. A flow that guarantees absence of the Session should be modeled separately, for example as `ensure-session-absent`.
