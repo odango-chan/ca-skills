@@ -72,6 +72,12 @@ Compile or local preflight success is not production qualification.
 - Independent evaluation cases and verdicts: `connectionagent-benchmarks`
 - Product UI: `connectionagent-web`
 
-## Change rule
+## Frozen authoring model
 
-Treat the current Skill language and assurance authoring model as frozen. Change syntax only when a concrete product scenario proves an expressiveness gap that cannot be solved by ProviderBinding, ObservationBinding, Runtime behavior, qualification, Sandbox, or integration work.
+The current Skill language and assurance authoring model are frozen.
+
+Do not change source syntax for convenience, cleanup, provider differences, deployment binding, qualification shortcuts, or benchmark-specific needs.
+
+A language change is allowed only when a concrete product scenario demonstrates an expressiveness gap that cannot be solved by ProviderBinding, ObservationBinding, Runtime behavior, qualification, Sandbox, or integration work.
+
+When such a gap is proven, treat the change as a language revision. Update the owning Skill Platform schemas/compiler together with official Skill examples and Cases, authoring guidance, and compatibility notes as needed. Re-run `make verify` before establishing a new frozen baseline.
