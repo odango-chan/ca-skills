@@ -1,155 +1,118 @@
 # ConnectionAgent Skills
 
-`connectionagent-skills` is the source-of-truth repository for official ConnectionAgent **Skill source assets** and model-visible routing policy assets.
+Official Skill source for ConnectionAgent.
 
-The repository intentionally stays small: it defines what a Skill means and, for governed executable Skills, the Skill-local assurance source required by the shared Platform/Runtime contracts. It does not duplicate execution-engine architecture.
+This repository contains model-facing Skill descriptions, Skill-local assurance source, qualification cases, routing-policy/model-context packages, and authoring guidance.
 
-## Repository boundary
+Chinese version: [`README.zh-CN.md`](README.zh-CN.md)
 
-This repository owns:
-
-- `SKILL.md` model-visible business/domain semantics;
-- optional Skill-local `assurance/` source;
-- Skill Qualification `cases/` that belong to the source package;
-- Skill-local `schemas/`, `scripts/`, and model references;
-- official routing-policy/model-context packages such as `5gc-intent`;
-- the human-facing authoring guide and repository-local authoring workflow.
-
-This repository does **not** own:
-
-- normative machine grammar, compiler, ProcedurePatch, Artifact/Variant production, or Qualification orchestration — `connectionagent-skill-platform`;
-- Agent loop, goal interpretation, routing execution, or model adapters — `connectionagent-agent`;
-- Runtime admission, ProviderBinding, ObservationBinding, Procedure execution, Evidence Gate, Predicate execution, or Reconcile — `connectionagent-runtime`;
-- environment simulation, fault injection, or ground truth — `connectionagent-sandbox`;
-- Benchmark verdicts/certification — `connectionagent-benchmark` / `connectionagent-benchmarks`;
-- product UI — `connectionagent-web`.
-
-## Package model
-
-A model-context-only package may contain:
+## Repository layout
 
 ```text
-skills/<package>/
-├── SKILL.md
-├── references/
-└── schemas/
+connectionagent-skills/
+├── skills/                  # official Skill and routing-policy source
+├── docs/                    # authoring guides
+├── scripts/verify.py        # repository verification entrypoint
+└── .agents/skills/
+    └── create-connectionagent-skill/
 ```
 
-A governed executable Skill adds the Execution Assurance Extension:
+An executable Skill normally uses:
 
 ```text
-skills/<package>/
+skills/<name>/
 ├── SKILL.md
 ├── assurance/
 │   ├── contract.yaml
 │   ├── procedure.yaml
 │   └── predicates.yaml
 ├── cases/
-├── references/
-├── schemas/
-└── scripts/
+│   └── <case>/case.yaml
+├── references/    # optional
+├── schemas/       # optional
+└── scripts/       # optional governed local compute
 ```
 
-`assurance/` is all-or-nothing at the package-layout level. There is intentionally no standalone `evidence.yaml` in the current model.
+A routing-policy or model-context package may contain only `SKILL.md` and optional model-facing references or schemas.
 
-## Authoring rules
+## Authoring
 
-`SKILL.md` is the single package-root human/model entry point. Keep it thin and include only semantics that materially affect model decisions:
-
-- when the Skill or policy applies;
-- business/domain meaning;
-- normalization and disambiguation rules;
-- structured model-facing input/output expectations;
-- boundaries the model must not guess or bypass.
-
-Do not copy Runtime or Platform mechanics into model context. In particular, Skill packages should not carry migration histories, Provider implementation mappings, deployment endpoints, ObservationBinding details, Runtime state machines, Benchmark scoring rules, or architecture tutorials.
-
-`references/preload/` is reserved for small domain semantics that must influence essentially every invocation. `references/on-demand/` is for additional Skill-local business/domain detail that may matter only in specific cases. Both are model-context assets and should remain concise. Model-facing Markdown inside `skills/` is authored in English.
-
-Package-root `README.md`, `MIGRATION.md`, and `examples/` are intentionally not part of the canonical package shape. Historical migration notes belong in Git history or cross-repository engineering documentation. Executable qualification fixtures belong in `cases/<case>/case.yaml`; explanatory samples belong in `references/samples/`.
-
-## Authoring entry point
-
-Author guides:
+Start with:
 
 - English: [`docs/authoring.md`](docs/authoring.md)
 - 中文：[`docs/authoring.zh-CN.md`](docs/authoring.zh-CN.md)
 
-The repository-local authoring assistant lives at:
+The repository-local authoring assistant is:
 
 ```text
 .agents/skills/create-connectionagent-skill/
 ```
 
-Its `SKILL.md` contains the workflow and loading rules. Detailed source syntax is kept under its `references/` directory and validated by the current Skill Platform schemas/compiler.
+Its `SKILL.md` contains the authoring workflow. Detailed YAML, Script, and Case syntax is kept in `references/authoring-syntax.md` and checked against the current `connectionagent-skill-platform` schemas/compiler.
 
-Authority is split as follows:
+A few package rules are worth keeping in mind:
 
-```text
-connectionagent-skills
-  = authoring guidance + official source
+- `SKILL.md` is the package-root model-facing entry point;
+- executable Skills use the complete `assurance/` trio;
+- there is no standalone `evidence.yaml`;
+- each qualification case is one `cases/<case>/case.yaml`;
+- package-root `README.md`, `MIGRATION.md`, and `examples/` are not part of the Skill package format;
+- model-facing Markdown under `skills/` is written in English;
+- deployment endpoints, Provider bindings, Observation bindings, and Runtime state do not belong in Skill source.
 
-connectionagent-skill-platform
-  = normative machine schemas + compiler + qualification
-```
+## Source and execution
 
-## Routing policy vs executable Skill
+`skills/` is the official source catalog. Skill Platform discovers and compiles this source into immutable Artifact/Variant form before Runtime execution.
 
-Routing is Agent-owned behavior.
+Runtime does not execute the working tree directly. A change to this repository therefore does not alter an already admitted Artifact or an existing Run.
 
-`skills/5gc-intent` is a model-visible routing-policy package for generic 5GC intent. It has no `assurance/` and is not executed as a preliminary Runtime Procedure.
+Custom ZIP, directory, or Git imports belong to the Platform workspace/import flow. They do not write into `skills/` or become official source merely by being imported.
 
-Current routing/execution shape:
+The main ownership split is:
 
-```text
-Goal / intent
-  -> RuntimeHost discovery of admitted Skills
-  -> Agent routing / selection
-  -> agent.routing_result@1
-  -> load selected Skill context
-  -> plan entrypoint + canonical input
-  -> RuntimeHost ProcedureExecutionRequest
-  -> Runtime admission + deterministic execution
-```
+| Repository | Responsibility |
+| --- | --- |
+| `connectionagent-skills` | official Skill source and authoring guidance |
+| `connectionagent-skill-platform` | machine schemas, compiler, build and qualification |
+| `connectionagent-agent` | goal interpretation, routing and planning |
+| `connectionagent-runtime` | admission, binding and deterministic execution |
+| `connectionagent-sandbox` | controlled environment and fault injection |
+| `connectionagent-benchmarks` | independent evaluation cases and verdicts |
 
-A resolved routing result does not grant authority. Runtime still admits the immutable Artifact/Variant and owns deployment binding and execution.
+## Routing policy
 
-The current design does not reintroduce `ExecutionTarget.v1`, `RunPlanSnapshot.v1`, `RunPlanRevision.v1`, or generic `PlanDelta.v1` as cross-repository machine contracts.
+`skills/5gc-intent` is a model-visible routing-policy package. It has no `assurance/` and is not executed as a preliminary Runtime Procedure.
 
-## Current official packages
+Agent routing selects from the admitted Skill set; Runtime still performs the final Artifact/Variant admission and execution.
 
-| Package | Role | Current status |
+## Current packages
+
+| Package | Role | Status |
 | --- | --- | --- |
-| `5gc-intent` | Agent routing policy/model context | non-executable policy asset |
-| `5gc-file-transfer` | governed product Skill | source/compile/cases/registry/local Sandbox-Q4 PASS; production deployment admission pending |
-| `wifi-file-transfer` | governed product Skill | source/compile/cases/registry/local Sandbox-Q4 PASS; production deployment admission pending |
-| `ue-registration` | governed reference Skill | production-qualified reference |
-| `ensure-session-qos` | governed reference Skill | production-qualified reference |
-| `download-object-by-deadline` | governed reference Skill | production-qualified reference |
-| `query-weather-for-ue` | governed reference Skill | production-qualified reference |
+| `5gc-intent` | routing policy / model context | non-executable |
+| `5gc-file-transfer` | product Skill | local source/compile/case/Q4 preflight complete; production deployment admission pending |
+| `wifi-file-transfer` | product Skill | local source/compile/case/Q4 preflight complete; production deployment admission pending |
+| `ue-registration` | reference Skill | production-qualified reference |
+| `ensure-session-qos` | reference Skill | production-qualified reference |
+| `download-object-by-deadline` | reference Skill | production-qualified reference |
+| `query-weather-for-ue` | reference Skill | production-qualified reference |
 
-For the two file-transfer Skills, the remaining production closure is deployment/lifecycle work, not authoring-model work:
-
-```text
-immutable Artifact/Variant admission
-production ProviderBinding closure
-ObservationCatalog / ObservationBinding closure
-```
-
-Do not reopen frozen Skill syntax merely to solve those deployment concerns.
-
-## Source discovery
-
-Official Skills are discovered from this repository through `OfficialSkillSource` and then frozen/compiled by Skill Platform. Runtime never executes the live working tree directly. Custom Skill import belongs to the controlled Platform Workspace path and must not write into this repository.
-
-See [`docs/source-discovery-and-import.md`](docs/source-discovery-and-import.md) for the repository-local source boundary.
+The remaining production work for the file-transfer Skills is deployment and binding closure rather than Skill-language work.
 
 ## Verification
 
-Run:
+Run the repository gate with:
 
 ```bash
 make verify
 ```
 
-The local entrypoint checks repository/package hygiene and delegates compile, Case, planning, and qualification gates to the owning Platform/Runtime/Sandbox implementations. A green source/preflight gate does not by itself promote a Skill to production-qualified.
+For a focused compile of one executable Skill:
+
+```bash
+python3 -B scripts/verify.py --compile skills/<name>
+```
+
+Set `CONNECTIONAGENT_SKILL_PLATFORM_ROOT` when `connectionagent-skill-platform` is not available as sibling `../connectionagent-skill-platform`.
+
+Compile or local preflight success is not, by itself, production qualification.
