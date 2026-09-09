@@ -70,27 +70,28 @@ Package-root `README.md`, `MIGRATION.md`, and `examples/` are intentionally not 
 
 ## Authoring entry point
 
-Start with [`docs/authoring.md`](docs/authoring.md) when creating or structurally changing a Skill package.
+Author guides:
 
-The repository-local helper lives at:
+- English: [`docs/authoring.md`](docs/authoring.md)
+- 中文：[`docs/authoring.zh-CN.md`](docs/authoring.zh-CN.md)
+
+The repository-local authoring assistant lives at:
 
 ```text
 .agents/skills/create-connectionagent-skill/
 ```
 
-It is an authoring workflow, not an official business Skill. It consumes the current Skill Platform schemas/compiler instead of copying their full grammar into this repository.
+Its `SKILL.md` contains the workflow and loading rules. Detailed source syntax is kept under its `references/` directory and validated by the current Skill Platform schemas/compiler.
 
-Authority is intentionally split:
+Authority is split as follows:
 
 ```text
 connectionagent-skills
-  = author guide / official source / examples
+  = authoring guidance + official source
 
 connectionagent-skill-platform
-  = normative machine schemas / compiler semantics / qualification
+  = normative machine schemas + compiler + qualification
 ```
-
-This keeps “how to write a Skill” close to the source catalog while preserving one machine-language authority.
 
 ## Routing policy vs executable Skill
 
