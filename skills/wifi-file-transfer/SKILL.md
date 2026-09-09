@@ -42,7 +42,4 @@ If urgency is uncertain, use `normal`.
 
 Once receiver IDs and urgency are canonical, hand execution to the governed assurance entrypoint. Do not assemble Wi-Fi Tool calls from prose.
 
-## On-demand references
-
-- `references/on-demand/wifiboost-provider-mapping.md` -> current provider migration mapping.
-- `references/on-demand/predicate-evaluation.md` -> Predicate/Observation evaluation details.
+Provider implementation, ProviderBinding, ObservationBinding, Predicate execution, UNKNOWN handling, and deployment-specific Tool mappings are governed outside model context by the shared Platform/Runtime contracts.
