@@ -1,3 +1,5 @@
+![ConnectionAgent Skills](assets/repo-banner.svg)
+
 # ConnectionAgent Skills
 
 ConnectionAgent 官方 Skill 源码仓。
