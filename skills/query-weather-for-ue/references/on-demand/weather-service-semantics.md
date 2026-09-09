@@ -1,22 +1,24 @@
-# 天气服务语义
+# Weather service semantics
 
-Weather Tool 属于外部业务 Tool，不是 3GPP 核心网能力。
+The Weather Tool is an external business Tool, not a 3GPP core-network capability.
 
-本 Skill 使用稳定语义 `external.weather.query`。运行环境可以把它绑定到不同运营商或测试 Weather MCP Tool。
+This Skill depends on the stable semantic capability `external.weather.query`. A deployment may bind that capability to different operator or test Weather MCP Tools without changing the Skill.
 
-输入至少包含：
+The canonical input includes at least:
 
 - `city`
 - `unit`
 
-本参考包使用摄氏度 `celsius`。
+This reference package uses `celsius`.
 
-成功的原始输出必须同时包含非空 `city`、有限数值 `temperature` 和非空 `condition`。本地规范化 Tool 只做去除首尾空白和数值归一化；任何缺字段、空字符串或非有限温度都明确失败，不能补 `unknown` 或 `0.0`。
+A successful raw result must contain a non-empty `city`, a finite numeric `temperature`, and a non-empty `condition`. Local normalization may trim whitespace and normalize numeric representation only. Missing fields, empty strings, or non-finite temperatures are explicit failures; the normalizer must not invent `unknown`, `0.0`, or other fallback values.
 
-调用硬前置：
+A hard precondition for invocation is:
 
-`user_plane.connectivity.available=PASS`
+```text
+user_plane.connectivity.available = PASS
+```
 
-Tool 可发现但前置不满足时，PlanningContext 可以显示资源存在，但 `invocable=false`。模型不得据此直接调用。
+A Tool may be discoverable while this precondition is unsatisfied. In that case the planning context may still expose the resource, but it must be treated as `invocable=false`; discovery does not authorize direct invocation.
 
-`external.weather.query=SUCCEEDED` 只表示外部调用完成，不等于整个 Skill 成功。规范化完成后必须通过 `verify-weather-result` 独立求值 `service.weather.query.succeeded`，只有 PASS 才能进入 `SUCCEEDED` terminal。
+`external.weather.query=SUCCEEDED` means only that the external call completed. It does not establish Skill success. After normalization, `verify-weather-result` independently evaluates `service.weather.query.succeeded`; only `PASS` may reach the `SUCCEEDED` terminal.
