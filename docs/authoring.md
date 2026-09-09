@@ -2,7 +2,7 @@
 
 This document is the human-facing entry point for creating and reviewing official ConnectionAgent Skill source.
 
-The repository-local authoring assistant at `.agents/skills/create-connectionagent-skill/SKILL.md` contains the current practical syntax cheatsheet and minimal examples. `connectionagent-skill-platform` remains the normative machine-language authority.
+The repository-local authoring assistant at `.agents/skills/create-connectionagent-skill/SKILL.md` contains the workflow and core invariants. Detailed practical syntax lives in `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md` and should be loaded only when assurance, Script, or Case source is being authored. `connectionagent-skill-platform` remains the normative machine-language authority.
 
 ## 1. Decide what you are authoring
 
@@ -88,9 +88,9 @@ Use these Platform schemas for official source authoring:
 | `cases/<case>/case.yaml` | `schemas/v1alpha1/skill-test-case.schema.yaml` |
 | governed Script metadata | `schemas/v1alpha1/script-tool-metadata.schema.yaml` |
 
-For current `assurance/procedure.yaml`, author from `procedure-source.schema.yaml`. The current source model is object-form Procedure vNext (`procedures -> start/nodes`), not the older array/type/action authoring shape that can still appear in other historical or internal schemas.
+For current `assurance/procedure.yaml`, author from `procedure-source.schema.yaml`. The current source model is object-form Procedure vNext (`procedures -> start/nodes`), not the older array/type/action authoring shape that can still appear in historical or internal schemas.
 
-The repository-local `create-connectionagent-skill` assistant contains a concise syntax reference for contract, Procedure nodes/bindings, Predicate observations/evaluators, Script metadata, and Case envelopes. Do not maintain another copy here.
+The practical syntax reference is `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md`. Keep detailed YAML/Python examples there rather than duplicating them in the main authoring Skill or this guide.
 
 ## 5. Observation, Evidence Gate, and Predicate
 
@@ -116,8 +116,9 @@ Use this sequence for a new Skill or structural change:
 2. Classify the asset as executable Skill, model-context/routing policy, or lower-level Capability.
 3. Inspect one or two adjacent official packages with similar semantics.
 4. Reuse Registry Capability/Predicate/schema contracts before creating local ones.
-5. Use `.agents/skills/create-connectionagent-skill/SKILL.md` as the practical vNext syntax guide.
-6. For one executable package, run focused compile:
+5. Use `.agents/skills/create-connectionagent-skill/SKILL.md` for the workflow and core invariants.
+6. Load `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md` only when assurance, Script, or Case source must be written or changed.
+7. For one executable package, run focused compile:
 
    ```bash
    python3 -B scripts/verify.py --compile skills/<name>
@@ -125,13 +126,13 @@ Use this sequence for a new Skill or structural change:
 
    Set `CONNECTIONAGENT_SKILL_PLATFORM_ROOT=/path/to/connectionagent-skill-platform` when the Platform checkout is not the sibling `../connectionagent-skill-platform`.
 
-7. Before delivery, run the repository gate:
+8. Before delivery, run the repository gate:
 
    ```bash
    make verify
    ```
 
-8. Run any additional SQ1/SQ2/production admission work required by the target profile in the owning Platform/Runtime/Sandbox environment.
+9. Run any additional SQ/production admission work required by the target profile in the owning Platform/Runtime/Sandbox environment.
 
 A successful source check or focused compile does **not** make a Skill production-qualified.
 
@@ -142,6 +143,6 @@ Use this precedence when prose and implementation disagree:
 1. cross-repository machine-contract/current-stage decisions in `odango-chan/connectionagent`;
 2. current machine schemas and compiler validation in `odango-chan/connectionagent-skill-platform`;
 3. repository-local package rules in `AGENTS.md`;
-4. `.agents/skills/create-connectionagent-skill/SKILL.md` and this human guide.
+4. the repository-local authoring workflow and references.
 
-The goal is one language contract with useful authoring views, not multiple independently maintained language definitions.
+The goal is one language contract with useful progressive authoring views, not multiple independently maintained language definitions.
