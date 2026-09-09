@@ -1,9 +1,9 @@
 # Security failures
 
-仅在 Security Context 建立阶段出现异常时读取。
+Read this reference only when Security Context establishment fails.
 
-需要区分明确的 UE reject、完整性校验失败、依赖超时和结果未知。Authentication 已成功不能被用来推导 Security Context 已建立；最终状态必须由独立 Evidence / Predicate 证明。
+Distinguish an explicit UE rejection, integrity verification failure, dependency timeout, and an outcome whose side-effect state is unknown. Successful Authentication must not be used to infer that the Security Context was established; the final state still requires independent governed proof.
 
-如果安全建立 mutation 的结果为 `OUTCOME_UNKNOWN`，当前已治理 Procedure 安全停止，不允许根据 Authentication 已成功这一事实推测安全上下文已经提交。
+If the Security Context mutation returns `OUTCOME_UNKNOWN`, preserve that outcome and let the governed Procedure apply its declared safety semantics. Do not infer commitment merely because Authentication succeeded.
 
-本文只解释异常语义，不赋予模型绕过 Authorization、Assurance 或 Runtime policy 的权限。
+This document explains failure meaning only. It does not authorize bypassing Authorization, Assurance, Provider policy, or Runtime execution rules.
