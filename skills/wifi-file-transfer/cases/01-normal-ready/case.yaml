@@ -21,7 +21,9 @@ spec:
       receiverIds:
       - '001019876543211'
       urgency: normal
-    facts: {}
+    facts:
+      wifi_transfer.id:
+        value: wifi-transfer-001
     availableResources:
     - ref: wifi.transfer.create
       kind: capability
