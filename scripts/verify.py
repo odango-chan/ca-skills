@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Thin source-repository verification coordinator.
+"""Single source-repository verification entrypoint.
 
 The Skills repository owns only repository-local package/layout hygiene.
 Platform owns the compiler, Case schema, planning, and qualification semantics;
@@ -28,6 +28,15 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
+ASSURANCE_FILES = ("contract.yaml", "procedure.yaml", "predicates.yaml")
+LEGACY_CASE_FILES = (
+    "planning-context.yaml",
+    "mock-outcomes.yaml",
+    "mock-predicates.yaml",
+    "expected.yaml",
+    "evaluation-scenario.yaml",
+)
+OBSOLETE_ROOT_FILES = ("README.md", "MIGRATION.md")
 
 
 def run(args, cwd, env=None):
@@ -35,10 +44,65 @@ def run(args, cwd, env=None):
     subprocess.run(args, cwd=cwd, env=env, check=True)
 
 
+def validate_package_layout():
+    """Check repository-owned source-package hygiene only."""
+    errors = []
+    skills_root = ROOT / "skills"
+
+    for skill in sorted(skills_root.iterdir()):
+        if not skill.is_dir():
+            continue
+
+        if not (skill / "SKILL.md").is_file():
+            errors.append(f"{skill.name}: missing SKILL.md")
+
+        for name in OBSOLETE_ROOT_FILES:
+            path = skill / name
+            if path.exists():
+                errors.append(
+                    f"{skill.name}: {name} is not a canonical package-root entrypoint; "
+                    "keep current model semantics in SKILL.md and history outside the package"
+                )
+
+        assurance = skill / "assurance"
+        if assurance.exists():
+            if not assurance.is_dir():
+                errors.append(f"{skill.name}: assurance must be a directory")
+            else:
+                present = {name for name in ASSURANCE_FILES if (assurance / name).is_file()}
+                if present and present != set(ASSURANCE_FILES):
+                    missing = ", ".join(sorted(set(ASSURANCE_FILES) - present))
+                    errors.append(f"{skill.name}: partial assurance package; missing {missing}")
+                if not present:
+                    errors.append(
+                        f"{skill.name}: empty assurance/ is ambiguous; remove it or provide "
+                        "the full contract/procedure/predicates trio"
+                    )
+                if (assurance / "evidence.yaml").exists():
+                    errors.append(
+                        f"{skill.name}: legacy assurance/evidence.yaml is forbidden; "
+                        "observations and predicates belong in predicates.yaml"
+                    )
+
+        for legacy in LEGACY_CASE_FILES:
+            for path in (skill / "cases").glob("*/" + legacy):
+                errors.append(f"{path}: consolidate into case.yaml")
+
+        if (skill / "examples").exists():
+            errors.append(
+                f"{skill.name}: examples/ is forbidden; executable fixtures belong in "
+                "cases/, explanatory samples in references/"
+            )
+
+    if errors:
+        raise SystemExit("\n".join(errors))
+    print("PACKAGE_LAYOUT_OK", flush=True)
+
+
 def main():
     # 1. Repository-local source hygiene only. Machine grammar belongs to Platform.
     print("=== 1/8 package layout ===", flush=True)
-    run(["python3", "-B", "scripts/validate_package_layout.py"], ROOT)
+    validate_package_layout()
 
     platform_value = os.environ.get("CONNECTIONAGENT_SKILL_PLATFORM_ROOT", "").strip()
     if platform_value:
@@ -57,7 +121,6 @@ def main():
     print("=== 2/8 official source compile (ue-registration, ensure-session-qos, download-object-by-deadline, query-weather-for-ue) ===", flush=True)
     run(["go", "test", "./backend/internal/qualificationruntime",
          "-run", "^TestOfficialTargetSkillsCompileFromExplicitSource$", "-count=1"], platform, env)
-    # fail-closed: missing source must fail
     run(["go", "test", "./backend/internal/qualificationruntime",
          "-run", "^TestOfficialSkillSourceFailsClosedWhenMissing$", "-count=1"], platform, env)
 
