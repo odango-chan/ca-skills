@@ -1,9 +1,9 @@
 # Authentication failures
 
-仅在 Authentication 阶段出现异常并需要进一步解释时读取。
+Read this reference only when the Authentication stage fails and additional semantic interpretation is needed.
 
-Synchronization failure 表示 UE 与认证侧序列状态可能不同步，不等价于 subscriber 不存在。Authentication response mismatch 表示鉴权目标未满足，不能继续建立 Security Context。AUSF unavailable 属于依赖不可用，也不等价于 UE 主动拒绝鉴权。
+A synchronization failure means the UE and authentication side may have inconsistent sequence state; it does not imply that the subscriber is absent. An authentication response mismatch means the authentication goal was not satisfied and Security Context establishment must not continue. AUSF unavailability is a dependency failure and is not equivalent to the UE explicitly rejecting authentication.
 
-如果认证 mutation 的副作用状态无法确定，应保留 `OUTCOME_UNKNOWN`。当前已治理 Registration Procedure 对这种结果安全停止，不允许仅凭本文建议直接重试。
+If the side-effect state of an authentication mutation cannot be determined, preserve `OUTCOME_UNKNOWN`. The governed Registration Procedure owns the resulting transition and safety behavior; this reference does not authorize a direct retry.
 
-本文只解释异常语义，不定义执行 transition、补偿策略或 Authorization 例外。
+This document explains failure meaning only. It does not define execution transitions, compensation policy, authorization exceptions, or Runtime behavior.
