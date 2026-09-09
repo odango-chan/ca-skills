@@ -1,11 +1,11 @@
 # Official Skill Source Discovery
 
 **状态：Repository Boundary Note**  
-**更新时间：2026-09-07**
+**更新时间：2026-09-09**
 
 `connectionagent-skills` 是 ConnectionAgent Official Skill Source 的源码权威仓。
 
-本文只说明本仓与 Source Discovery / Custom Import 的边界；完整跨仓模型见顶层 `connectionagent/docs/skill-source-catalog-and-import.md`。
+本文只说明本仓与 Source Discovery / Custom Import 的边界；完整跨仓模型以顶层 `connectionagent` 当前 machine contract / repository boundary 文档为准。
 
 ## 1. Official Skill 不需要手工 Import
 
@@ -72,24 +72,44 @@ obtain execution authority merely because import succeeded
 
 ## 4. Runtime 不直接读取本仓执行
 
-正确链路：
+当前正确链路：
 
 ```text
 connectionagent-skills
   -> Skill Platform source snapshot
-  -> SkillBuildArtifact / CompiledProcedureVariant
-  -> Agent Resolution
-  -> Runtime admission / RunPlan
+  -> immutable SkillBuildArtifact / ProcedureVariant
+  -> qualification projection
+  -> RuntimeHost discovery/context surface
+  -> Agent selects an admitted Skill / Variant
+  -> Agent loads selected Skill context and plans entrypoint/input
+  -> RuntimeHost ProcedureExecutionRequest
+  -> Runtime admission / ProviderBinding / deterministic execution
 ```
 
-Runtime 不应在每次 Run 时扫描本仓的 working tree 或 `SKILL.md`。
+Runtime 执行请求以 immutable Artifact/Variant identity、entrypoint、input/context/correlation 为核心。
 
-这样 Source 的后续变化不会改变已经冻结的 Artifact、Variant 或历史 Run provenance。
+当前不重新引入：
 
-## 5. 本仓成功标准
+```text
+ExecutionTarget.v1
+RunPlanSnapshot.v1
+RunPlanRevision.v1
+generic PlanDelta.v1
+```
 
-- `skills/` 保持 Official Skill Source 的清晰单一职责；
-- Official Skill 可以被 deployment 自动发现；
-- 仓库源码与执行 Artifact 明确分层；
+Runtime 不应在每次 Run 时扫描本仓 working tree 或直接执行 `SKILL.md`。Source 后续变化不能改变已经冻结的 Artifact/Variant identity 或历史 Run provenance。
+
+## 5. Routing policy 资产
+
+`skills/5gc-intent` 是 Agent-owned generic 5GC routing 的模型可见 policy asset。它没有 `assurance/`，也不是 Runtime 需要执行的前置 Procedure。
+
+Agent routing 产生 `agent.routing_result@1` 语义事实，再从 Runtime 已发现/准入的 Skill 集中选择真实执行对象。Routing policy source 与 executable Artifact source 可以同仓维护，但执行权限边界必须保持分离。
+
+## 6. 本仓成功标准
+
+- `skills/` 保持 Official Skill Source / model policy asset 的清晰单一职责；
+- Official executable Skill 可以被 deployment 自动发现、构建和资格验证；
+- routing policy 不被误当成 Runtime execution hop；
+- 仓库源码与 immutable execution Artifact 明确分层；
 - Custom Import 不污染 Official Source；
 - 每个构建结果能够追溯到明确 source revision/digest。
