@@ -12,6 +12,7 @@ LEGACY_CASE_FILES = (
     "expected.yaml",
     "evaluation-scenario.yaml",
 )
+OBSOLETE_ROOT_FILES = ("README.md", "MIGRATION.md")
 
 
 def validate(root):
@@ -22,6 +23,14 @@ def validate(root):
 
         if not (skill / "SKILL.md").is_file():
             errors.append(f"{skill.name}: missing SKILL.md")
+
+        for name in OBSOLETE_ROOT_FILES:
+            path = skill / name
+            if path.exists():
+                errors.append(
+                    f"{skill.name}: {name} is not a canonical package-root entrypoint; "
+                    "keep current model semantics in SKILL.md and history outside the package"
+                )
 
         assurance = skill / "assurance"
         if assurance.exists():
