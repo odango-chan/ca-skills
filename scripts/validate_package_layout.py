@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate lightweight Skill package structure without duplicating compiler semantics."""
+"""Validate repository-local Skill package layout without duplicating compiler semantics."""
 import argparse
 from pathlib import Path
 
@@ -46,6 +46,10 @@ def validate(root):
                 if not present:
                     errors.append(
                         f"{skill.name}: empty assurance/ is ambiguous; remove it or provide the full contract/procedure/predicates trio"
+                    )
+                if (assurance / "evidence.yaml").exists():
+                    errors.append(
+                        f"{skill.name}: legacy assurance/evidence.yaml is forbidden; observations and predicates belong in predicates.yaml"
                     )
 
         for legacy in LEGACY_CASE_FILES:
