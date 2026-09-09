@@ -12,11 +12,12 @@ This repository owns:
 - optional Skill-local `assurance/` source;
 - Skill Qualification `cases/` that belong to the source package;
 - Skill-local `schemas/`, `scripts/`, and model references;
-- official routing-policy/model-context packages such as `5gc-intent`.
+- official routing-policy/model-context packages such as `5gc-intent`;
+- the human-facing authoring guide and repository-local authoring workflow.
 
 This repository does **not** own:
 
-- compiler, ProcedurePatch, Artifact/Variant production, or Qualification orchestration — `connectionagent-skill-platform`;
+- normative machine grammar, compiler, ProcedurePatch, Artifact/Variant production, or Qualification orchestration — `connectionagent-skill-platform`;
 - Agent loop, goal interpretation, routing execution, or model adapters — `connectionagent-agent`;
 - Runtime admission, ProviderBinding, ObservationBinding, Procedure execution, Evidence Gate, Predicate execution, or Reconcile — `connectionagent-runtime`;
 - environment simulation, fault injection, or ground truth — `connectionagent-sandbox`;
@@ -66,6 +67,30 @@ Do not copy Runtime or Platform mechanics into model context. In particular, Ski
 `references/preload/` is reserved for small domain semantics that must influence essentially every invocation. `references/on-demand/` is for additional Skill-local business/domain detail that may matter only in specific cases. Both are model-context assets and should remain concise. Model-facing Markdown inside `skills/` is authored in English.
 
 Package-root `README.md`, `MIGRATION.md`, and `examples/` are intentionally not part of the canonical package shape. Historical migration notes belong in Git history or cross-repository engineering documentation. Executable qualification fixtures belong in `cases/<case>/case.yaml`; explanatory samples belong in `references/samples/`.
+
+## Authoring entry point
+
+Start with [`docs/authoring.md`](docs/authoring.md) when creating or structurally changing a Skill package.
+
+The repository-local helper lives at:
+
+```text
+.agents/skills/create-connectionagent-skill/
+```
+
+It is an authoring workflow, not an official business Skill. It consumes the current Skill Platform schemas/compiler instead of copying their full grammar into this repository.
+
+Authority is intentionally split:
+
+```text
+connectionagent-skills
+  = author guide / official source / examples
+
+connectionagent-skill-platform
+  = normative machine schemas / compiler semantics / qualification
+```
+
+This keeps “how to write a Skill” close to the source catalog while preserving one machine-language authority.
 
 ## Routing policy vs executable Skill
 
