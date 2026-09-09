@@ -1,0 +1,11 @@
+requestId: core5g-intent-001
+status: RESOLVED
+selection:
+  skill: core5g-file-transfer
+request:
+  operation: prepare_transfer
+  transferId: tr-core5g-intent-001
+  urgency: urgent
+  senderImsi: '001019876543210'
+  receiverImsis:
+    - '001019876543211'
