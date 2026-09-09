@@ -171,13 +171,12 @@ Production-qualified: NO for both `5gc-file-transfer` and `wifi-file-transfer`.
 Remaining true blockers before production admission:
 
 ```text
-immutable artifact/profile admission
+immutable Artifact/Variant admission
 deployment-owned ProviderBinding closure
-ObservationCatalog closure
+ObservationCatalog / ObservationBinding closure
 ```
 
-`make verify` green does not auto-promote these targets to
-production-qualified.
+`make verify` green does not auto-promote these targets to production-qualified.
 
 ## Verification ownership and entry
 
@@ -198,6 +197,8 @@ connectionagent-skill-platform
 
 connectionagent-runtime
   owns:
+    RuntimeHost discovery/context/execution authority
+    Artifact/Variant admission
     deterministic execution semantics (budget, pending write, OUTCOME_UNKNOWN,
     execution record projection — consumed, not reconstructed, by Platform)
 
@@ -262,22 +263,43 @@ development), not `../connectionagent-runtime` source files directly.
 ```text
 Skill visible  ≠  Skill executable
 Skill source exists  ≠  production-qualified
+Routing policy visible  ≠  Runtime execution hop
 ```
 
-PR7-C flow:
+Current PR7-C flow:
 
 ```text
-Goal
+Goal / intent
  ↓
-Skill selection
+RuntimeHost discovery of admitted Skills
  ↓
-ExecutionTargetCandidate
+Agent-owned routing / Skill selection
  ↓
-Target Admission
+agent.routing_result@1
  ↓
-qualified target only
+load selected Skill context
  ↓
-Runtime
+Agent planning: entrypoint + canonical input / decision
+ ↓
+RuntimeHost ProcedureExecutionRequest
+  (immutable Artifact/Variant identity + entrypoint + input + correlation)
+ ↓
+Runtime admission + ProviderBinding resolution
+ ↓
+deterministic Procedure execution
+```
+
+`5gc-intent` is a model-visible routing policy asset and is not executed as a
+preliminary Runtime Procedure before another Skill.
+
+The current machine baseline does not reintroduce:
+
+```text
+ExecutionTarget.v1
+ExecutionTargetCandidate as a cross-repo execution contract
+RunPlanSnapshot.v1
+RunPlanRevision.v1
+generic PlanDelta.v1
 ```
 
 `make verify` does not change this boundary.
@@ -312,6 +334,9 @@ pending write, OUTCOME_UNKNOWN, execution record).
 PR7 Skill Preflight:
   COMPLETE
 
+Skill authoring model:
+  FROZEN
+
 Official Skill source readiness:
   READY
 
@@ -323,10 +348,11 @@ wifi-file-transfer:
   preflight qualified
   production admission pending deployment closure
 
-PR7-C execution admission
-  waits for deployment qualification closure
+PR7-C execution admission:
+  RuntimeHost / immutable Artifact-or-Variant based
+  production file-transfer admission waits for deployment qualification closure
 ```
 
 All file-transfer Skills are intentionally not marked production-qualified
 until the remaining blockers above are closed. That does not keep the overall
-Skill Preflight incomplete.
+Skill Preflight incomplete and does not reopen the frozen Skill authoring model.
