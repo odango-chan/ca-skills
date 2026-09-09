@@ -6,28 +6,27 @@ Platform owns the compiler, Case schema, planning, and qualification semantics;
 this script delegates those checks instead of copying them into per-Skill
 validators.
 
-make verify should represent "this Skills checkout has passed the canonical
-source validation required to enter the next stage". It does not by itself
-mean production-qualified.
+Usage:
+  python3 -B scripts/verify.py
+      Run the full repository verification gate used by ``make verify``.
 
-Gates:
-  1. repository-local package layout
-  2. official source compile (4 official reference Skills)
-  3. canonical Case / authoring-model validation
-  4. canonical Planning validation
-  5. official executable Skill qualification (current SQ/Q4 level)
-  6. 5gc-file-transfer compile + cases
-  7. wifi-file-transfer compile + cases
-  8. local Sandbox/Q4 file-transfer qualification
+  python3 -B scripts/verify.py --compile skills/<name>
+      Run repository-owned hygiene for one official executable package and then
+      invoke the Skill Platform compiler for that package only.
+
+A successful focused compile is source/build evidence only. It is not SQ2/Q4 or
+production qualification.
 """
 
-from pathlib import Path
+import argparse
 import os
+from pathlib import Path
 import subprocess
 import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
+SKILLS_ROOT = (ROOT / "skills").resolve()
 ASSURANCE_FILES = ("contract.yaml", "procedure.yaml", "predicates.yaml")
 LEGACY_CASE_FILES = (
     "planning-context.yaml",
@@ -40,17 +39,17 @@ OBSOLETE_ROOT_FILES = ("README.md", "MIGRATION.md")
 
 
 def run(args, cwd, env=None):
-    print("+", " ".join(args), flush=True)
+    print("+", " ".join(str(arg) for arg in args), flush=True)
     subprocess.run(args, cwd=cwd, env=env, check=True)
 
 
-def validate_package_layout():
+def validate_skill_packages(packages):
     """Check repository-owned source-package hygiene only."""
     errors = []
-    skills_root = ROOT / "skills"
 
-    for skill in sorted(skills_root.iterdir()):
+    for skill in sorted(packages):
         if not skill.is_dir():
+            errors.append(f"{skill}: package directory does not exist")
             continue
 
         if not (skill / "SKILL.md").is_file():
@@ -84,9 +83,11 @@ def validate_package_layout():
                         "observations and predicates belong in predicates.yaml"
                     )
 
-        for legacy in LEGACY_CASE_FILES:
-            for path in (skill / "cases").glob("*/" + legacy):
-                errors.append(f"{path}: consolidate into case.yaml")
+        cases = skill / "cases"
+        if cases.exists():
+            for legacy in LEGACY_CASE_FILES:
+                for path in cases.glob("*/" + legacy):
+                    errors.append(f"{path}: consolidate into case.yaml")
 
         if (skill / "examples").exists():
             errors.append(
@@ -99,72 +100,263 @@ def validate_package_layout():
     print("PACKAGE_LAYOUT_OK", flush=True)
 
 
-def main():
-    # 1. Repository-local source hygiene only. Machine grammar belongs to Platform.
-    print("=== 1/8 package layout ===", flush=True)
-    validate_package_layout()
+def all_skill_packages():
+    return [path for path in SKILLS_ROOT.iterdir() if path.is_dir()]
 
+
+def resolve_official_package(value):
+    candidate = Path(value)
+    if not candidate.is_absolute():
+        if candidate.parts and candidate.parts[0] == "skills":
+            candidate = ROOT / candidate
+        else:
+            candidate = SKILLS_ROOT / candidate
+    candidate = candidate.resolve()
+
+    try:
+        candidate.relative_to(SKILLS_ROOT)
+    except ValueError as error:
+        raise SystemExit(
+            f"focused compile only accepts official packages under {SKILLS_ROOT}: {candidate}"
+        ) from error
+
+    if not candidate.is_dir():
+        raise SystemExit(f"Skill package directory does not exist: {candidate}")
+    return candidate
+
+
+def resolve_platform_root():
     platform_value = os.environ.get("CONNECTIONAGENT_SKILL_PLATFORM_ROOT", "").strip()
     if platform_value:
         platform = Path(platform_value).resolve()
     else:
-        # Convenient for a developer checkout only. CI must set the locator.
         platform = (ROOT.parent / "connectionagent-skill-platform").resolve()
     if not (platform / ".git").is_dir():
-        raise SystemExit("CONNECTIONAGENT_SKILL_PLATFORM_ROOT must point to a Skill Platform Git checkout")
+        raise SystemExit(
+            "CONNECTIONAGENT_SKILL_PLATFORM_ROOT must point to a Skill Platform Git checkout "
+            "when ../connectionagent-skill-platform is unavailable"
+        )
+    return platform
 
+
+def platform_env():
     env = os.environ.copy()
     env["CONNECTIONAGENT_SKILLS_ROOT"] = str(ROOT)
     env["GOWORK"] = "off"
+    return env
+
+
+def compile_package(package, platform, env):
+    run(
+        [
+            "go",
+            "run",
+            "./backend/cmd/casp",
+            "compile",
+            "--package",
+            str(package),
+            "--registry",
+            str(platform / "registry"),
+            "--format",
+            "json",
+        ],
+        platform,
+        env,
+    )
+
+
+def focused_compile(value):
+    package = resolve_official_package(value)
+    print(f"=== focused package hygiene: {package.name} ===", flush=True)
+    validate_skill_packages([package])
+
+    if not (package / "assurance").is_dir():
+        raise SystemExit(
+            f"{package.name}: focused compiler mode is for executable packages with assurance/; "
+            "model-context/routing-policy packages use repository hygiene only"
+        )
+
+    platform = resolve_platform_root()
+    env = platform_env()
+    print(f"=== focused Platform compile: {package.name} ===", flush=True)
+    compile_package(package, platform, env)
+    print(f"Focused compile: PASS ({package.name})")
+    print("Note: compile PASS is not SQ/Q4 or production qualification.")
+
+
+def full_verify():
+    # 1. Repository-local source hygiene only. Machine grammar belongs to Platform.
+    print("=== 1/8 package layout ===", flush=True)
+    validate_skill_packages(all_skill_packages())
+
+    platform = resolve_platform_root()
+    env = platform_env()
 
     # 2. official source compile (4 reference Skills via Platform canonical gate)
-    print("=== 2/8 official source compile (ue-registration, ensure-session-qos, download-object-by-deadline, query-weather-for-ue) ===", flush=True)
-    run(["go", "test", "./backend/internal/qualificationruntime",
-         "-run", "^TestOfficialTargetSkillsCompileFromExplicitSource$", "-count=1"], platform, env)
-    run(["go", "test", "./backend/internal/qualificationruntime",
-         "-run", "^TestOfficialSkillSourceFailsClosedWhenMissing$", "-count=1"], platform, env)
+    print(
+        "=== 2/8 official source compile "
+        "(ue-registration, ensure-session-qos, download-object-by-deadline, query-weather-for-ue) ===",
+        flush=True,
+    )
+    run(
+        [
+            "go",
+            "test",
+            "./backend/internal/qualificationruntime",
+            "-run",
+            "^TestOfficialTargetSkillsCompileFromExplicitSource$",
+            "-count=1",
+        ],
+        platform,
+        env,
+    )
+    run(
+        [
+            "go",
+            "test",
+            "./backend/internal/qualificationruntime",
+            "-run",
+            "^TestOfficialSkillSourceFailsClosedWhenMissing$",
+            "-count=1",
+        ],
+        platform,
+        env,
+    )
 
     # 3. canonical Case and authoring-model validation
     print("=== 3/8 canonical Case / authoring-model validation ===", flush=True)
-    run(["go", "test", "./backend/internal/compiler",
-         "-run", "^TestCanonicalCaseRejectsSplitFilesAndUnknownFields$", "-count=1"], platform, env)
-    run(["go", "test", "./backend/internal/compiler",
-         "-run", "^TestProcedureSourcesUseCanonicalAuthoringModel$", "-count=1"], platform, env)
+    run(
+        [
+            "go",
+            "test",
+            "./backend/internal/compiler",
+            "-run",
+            "^TestCanonicalCaseRejectsSplitFilesAndUnknownFields$",
+            "-count=1",
+        ],
+        platform,
+        env,
+    )
+    run(
+        [
+            "go",
+            "test",
+            "./backend/internal/compiler",
+            "-run",
+            "^TestProcedureSourcesUseCanonicalAuthoringModel$",
+            "-count=1",
+        ],
+        platform,
+        env,
+    )
 
     # 4. canonical Planning validation
     print("=== 4/8 canonical Planning validation ===", flush=True)
-    run(["go", "test", "./backend/internal/planning",
-         "-run", "^TestReferencePlanningCases$", "-count=1"], platform, env)
-    run(["go", "test", "./backend/internal/planning",
-         "-run", "^TestPlanningContextAllowsOpaqueFacts$", "-count=1"], platform, env)
+    run(
+        [
+            "go",
+            "test",
+            "./backend/internal/planning",
+            "-run",
+            "^TestReferencePlanningCases$",
+            "-count=1",
+        ],
+        platform,
+        env,
+    )
+    run(
+        [
+            "go",
+            "test",
+            "./backend/internal/planning",
+            "-run",
+            "^TestPlanningContextAllowsOpaqueFacts$",
+            "-count=1",
+        ],
+        platform,
+        env,
+    )
 
     # 5. official executable Skill qualification (current supported level: m5-q4)
     print("=== 5/8 official executable Skill qualification (current SQ/Q4 level) ===", flush=True)
-    run(["go", "test", "./backend/internal/sessionrun",
-         "-run", "^TestRunOfficialSkillQualificationUsesCompiledOfficialSourceAndSandbox$", "-count=1"], platform, env)
-    run(["go", "test", "./backend/internal/sessionrun",
-         "-run", "^TestRunOfficialSkillQualificationCoversObservationUnknownAndPredicateFail$", "-count=1"], platform, env)
+    run(
+        [
+            "go",
+            "test",
+            "./backend/internal/sessionrun",
+            "-run",
+            "^TestRunOfficialSkillQualificationUsesCompiledOfficialSourceAndSandbox$",
+            "-count=1",
+        ],
+        platform,
+        env,
+    )
+    run(
+        [
+            "go",
+            "test",
+            "./backend/internal/sessionrun",
+            "-run",
+            "^TestRunOfficialSkillQualificationCoversObservationUnknownAndPredicateFail$",
+            "-count=1",
+        ],
+        platform,
+        env,
+    )
 
-    # 6. 5gc-file-transfer compile + cases (casp compile as canonical CLI)
+    # 6. 5gc-file-transfer compile + cases
     print("=== 6/8 5gc-file-transfer compile ===", flush=True)
-    run(["go", "run", "./backend/cmd/casp", "compile", "--package",
-         str(ROOT / "skills/5gc-file-transfer"), "--registry", str(platform / "registry"), "--format", "json"], platform, env)
+    compile_package(ROOT / "skills/5gc-file-transfer", platform, env)
 
     # 7. wifi-file-transfer compile + cases
     print("=== 7/8 wifi-file-transfer compile ===", flush=True)
-    run(["go", "run", "./backend/cmd/casp", "compile", "--package",
-         str(ROOT / "skills/wifi-file-transfer"), "--registry", str(platform / "registry"), "--format", "json"], platform, env)
+    compile_package(ROOT / "skills/wifi-file-transfer", platform, env)
 
     # 8. local Sandbox/Q4 qualification for file-transfer paths
     print("=== 8/8 local Sandbox/Q4 file-transfer qualification ===", flush=True)
-    run(["go", "test", "./backend/internal/sessionrun",
-         "-run", "^TestRunOfficialFileTransferRecoveryMatrixThroughQualifiedSandbox$", "-count=1"], platform, env)
-    run(["go", "test", "./backend/internal/sessionrun",
-         "-run", "^TestRunOfficialMutationUnknownCasesThroughQualifiedSandbox$", "-count=1"], platform, env)
+    run(
+        [
+            "go",
+            "test",
+            "./backend/internal/sessionrun",
+            "-run",
+            "^TestRunOfficialFileTransferRecoveryMatrixThroughQualifiedSandbox$",
+            "-count=1",
+        ],
+        platform,
+        env,
+    )
+    run(
+        [
+            "go",
+            "test",
+            "./backend/internal/sessionrun",
+            "-run",
+            "^TestRunOfficialMutationUnknownCasesThroughQualifiedSandbox$",
+            "-count=1",
+        ],
+        platform,
+        env,
+    )
 
     print("Skills verification: PASS")
     print("COMPILE PASS | CASE PASS | PLANNING PASS | SQ/Q4 PASS (local Sandbox)")
     print("Note: local Sandbox/Q4 PASS is preflight evidence, not production-qualified.")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--compile",
+        metavar="SKILL_PACKAGE",
+        help="run package hygiene and a focused Platform compile for one official executable Skill",
+    )
+    args = parser.parse_args()
+
+    if args.compile:
+        focused_compile(args.compile)
+    else:
+        full_verify()
 
 
 if __name__ == "__main__":
