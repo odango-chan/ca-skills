@@ -81,3 +81,11 @@ Do not change source syntax for convenience, cleanup, provider differences, depl
 A language change is allowed only when a concrete product scenario demonstrates an expressiveness gap that cannot be solved by ProviderBinding, ObservationBinding, Runtime behavior, qualification, Sandbox, or integration work.
 
 When such a gap is proven, treat the change as a language revision. Update the owning Skill Platform schemas/compiler together with official Skill examples and Cases, authoring guidance, and compatibility notes as needed. Re-run `make verify` before establishing a new frozen baseline.
+
+## Cross-Repository Codex Coordination
+
+- This repository's `AGENTS.md` remains authoritative for Skill-source-local authoring and validation, including when work is delegated from a project-level `ca_*` subagent.
+- The project-level Codex multi-agent policy is owned by `odango-chan/connectionagent` in `docs/codex-multi-agent.md`; do not duplicate agent definitions, model selection, or concurrency policy here.
+- Prefer starting Codex in this repository for Skill-source-only work.
+- Escalate to the `connectionagent` governance repository when a task requires coordinated changes in another repository or changes cross-repository ownership, public Skill/Runtime contract semantics, frozen language semantics, BOM/Gates, or system assembly.
+- Do not solve cross-repository requirements by adding Runtime, Platform, Sandbox, Benchmark, Agent-loop, or UI authority to Skill source.
