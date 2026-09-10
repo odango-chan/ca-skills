@@ -11,7 +11,7 @@ ConnectionAgent 官方 Skill 源码仓。
 ## 仓库结构
 
 ```text
-connectionagent-skills/
+ca-skills/
 ├── skills/                  # 官方 Skill 与路由策略源码
 ├── docs/                    # Skill 编写文档
 ├── scripts/verify.py        # 仓库统一验证入口
@@ -50,7 +50,7 @@ skills/<name>/
 .agents/skills/create-connectionagent-skill/
 ```
 
-它的 `SKILL.md` 只保留编写流程和关键规则。具体的 YAML、脚本和用例语法放在 `references/authoring-syntax.md`，最终以 `connectionagent-skill-platform` 当前的 Schema 和编译器为准。
+它的 `SKILL.md` 只保留编写流程和关键规则。具体的 YAML、脚本和用例语法放在 `references/authoring-syntax.md`，最终以 `ca-skill-toolchain` 当前的 Schema 和编译器为准。
 
 几个常用约束：
 
@@ -66,20 +66,21 @@ skills/<name>/
 
 `skills/` 是官方 Skill 源码目录。
 
-Skill Platform 从这里发现源码，完成编译并形成不可变的 `SkillBuildArtifact` / `ProcedureVariant` 后，Runtime 才会执行。Runtime 不直接执行当前工作区源码，因此仓库中的一次源码修改不会改变已经准入的构建产物，也不会影响历史运行记录。
+Skill Toolchain 从这里发现源码，完成编译并形成不可变的 `SkillBuildArtifact` / `ProcedureVariant` 后，Runtime 才会执行。Runtime 不直接执行当前工作区源码，因此仓库中的一次源码修改不会改变已经准入的构建产物，也不会影响历史运行记录。
 
-用户从 ZIP、本地目录或 Git 导入的自定义 Skill 属于 Platform 的工作区与导入流程。导入成功不会把它自动写入本仓 `skills/`，也不会因此变成官方 Skill。
+用户从 ZIP、本地目录或 Git 导入的自定义 Skill 属于 Toolchain 的工作区与导入流程。导入成功不会把它自动写入本仓 `skills/`，也不会因此变成官方 Skill。
 
 各仓职责可以简单看成：
 
 | 仓库 | 主要职责 |
 | --- | --- |
-| `connectionagent-skills` | 官方 Skill 源码与编写文档 |
-| `connectionagent-skill-platform` | Schema、编译、构建与资格验证 |
-| `connectionagent-agent` | 目标理解、路由与规划 |
-| `connectionagent-runtime` | 准入、绑定与确定性执行 |
-| `connectionagent-sandbox` | 受控环境与故障注入 |
-| `connectionagent-benchmarks` | 独立评测用例与裁决 |
+| `ca-skills` | 官方 Skill 源码与编写文档 |
+| `ca-skill-toolchain` | Schema、编译、构建与资格验证 |
+| `ca-agent` | 目标理解、路由与规划 |
+| `ca-runtime` | 准入、绑定与确定性执行 |
+| `ca-sandbox` | 受控环境与故障注入 |
+| `ca-benchmarks` | 正式独立评测资产 |
+| `ca-benchmark-engine` | 评测执行、裁决与认证 |
 
 ## 路由策略
 
@@ -105,7 +106,7 @@ Agent 从 Runtime 已发现并准入的 Skill 集中做路由选择；最终执�
 
 当前 Skill 语言和保障编写模型已经冻结。新增 Skill 和日常维护默认使用现有语言，不再因为便利性、部署差异、评测需求或局部实现问题扩展语法。
 
-只有在真实产品场景证明现有语言存在表达能力缺口，并且该问题不能通过 ProviderBinding、ObservationBinding、Runtime、资格验证、Sandbox 或集成方式解决时，才允许启动语言变更。语言变更需要同步修改 Skill Platform 的 Schema 与编译器，以及受影响的官方 Skill、用例和编写文档，并重新通过 `make verify`，之后才能建立新的冻结基线。
+只有在真实产品场景证明现有语言存在表达能力缺口，并且该问题不能通过 ProviderBinding、ObservationBinding、Runtime、资格验证、Sandbox 或集成方式解决时，才允许启动语言变更。语言变更需要同步修改 Skill Toolchain 的 Schema 与编译器，以及受影响的官方 Skill、用例和编写文档，并重新通过 `make verify`，之后才能建立新的冻结基线。
 
 ## 验证
 
@@ -121,10 +122,12 @@ make verify
 python3 -B scripts/verify.py --compile skills/<name>
 ```
 
-如果 `connectionagent-skill-platform` 不在兄弟目录 `../connectionagent-skill-platform`，设置：
+默认 Toolchain 兄弟目录为 `../ca-skill-toolchain`。如果目录不同，设置：
 
 ```bash
-export CONNECTIONAGENT_SKILL_PLATFORM_ROOT=/path/to/connectionagent-skill-platform
+export CA_SKILL_TOOLCHAIN_ROOT=/path/to/ca-skill-toolchain
 ```
+
+迁移期仍兼容 `CONNECTIONAGENT_SKILL_PLATFORM_ROOT`。
 
 编译通过或本地预检通过，并不等于已经通过生产环境资格验证。
