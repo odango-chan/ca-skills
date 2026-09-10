@@ -1,5 +1,5 @@
 ---
-name: core5g-file-transfer
+name: 5gc-file-transfer
 description: Prepare or release governed 5GC resources for gateway-driven file transfers, with optional QoS acceleration for explicitly urgent requests.
 ---
 

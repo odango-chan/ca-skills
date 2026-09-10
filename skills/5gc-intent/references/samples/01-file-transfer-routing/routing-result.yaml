@@ -1,10 +1,10 @@
-requestId: core5g-intent-001
+requestId: 5gc-intent-001
 status: RESOLVED
 selection:
-  skill: core5g-file-transfer
+  skill: 5gc-file-transfer
 request:
   operation: prepare_transfer
-  transferId: tr-core5g-intent-001
+  transferId: tr-5gc-intent-001
   urgency: urgent
   senderImsi: '001019876543210'
   receiverImsis:

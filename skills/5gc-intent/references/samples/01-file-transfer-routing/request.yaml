@@ -1,5 +1,5 @@
-requestId: core5g-intent-001
-transferId: tr-core5g-intent-001
+requestId: 5gc-intent-001
+transferId: tr-5gc-intent-001
 intent: Send a large file to Leo as fast as possible.
 senderImsi: '001019876543210'
 roster:

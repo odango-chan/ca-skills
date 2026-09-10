@@ -1,7 +1,7 @@
 apiVersion: connectionagent.io/v1alpha1
 kind: SkillContract
 metadata:
-  name: core5g-file-transfer
+  name: 5gc-file-transfer
 spec:
   skillType: executable
   goal: file_transfer.orchestrate

@@ -1,7 +1,7 @@
 apiVersion: connectionagent.io/v1alpha1
 kind: PredicateSet
 metadata:
-  skill: core5g-file-transfer
+  skill: 5gc-file-transfer
 predicates:
   transfer.participants.registered:
     observations:

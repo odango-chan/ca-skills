@@ -1,5 +1,5 @@
 ---
-name: core5g-intent
+name: 5gc-intent
 description: Interpret a generic 5GC intent and guide Agent-owned routing to the narrowest admitted governed Skill or Variant.
 ---
 

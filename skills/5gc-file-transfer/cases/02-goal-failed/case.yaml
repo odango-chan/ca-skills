@@ -1,7 +1,7 @@
 apiVersion: connectionagent.io/v1alpha1
 kind: SkillTestCase
 metadata:
-  skill: core5g-file-transfer
+  skill: 5gc-file-transfer
   name: 02-goal-failed
 spec:
   classes:
