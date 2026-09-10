@@ -2,9 +2,9 @@
 """Single source-repository verification entrypoint.
 
 The Skills repository owns only repository-local package/layout hygiene.
-Platform owns the compiler, Case schema, planning, and qualification semantics;
-this script delegates those checks instead of copying them into per-Skill
-validators.
+The Skill Toolchain owns the compiler, Case schema, planning, and qualification
+semantics; this script delegates those checks instead of copying them into
+per-Skill validators.
 
 Usage:
   python3 -B scripts/verify.py
@@ -12,7 +12,7 @@ Usage:
 
   python3 -B scripts/verify.py --compile skills/<name>
       Run repository-owned hygiene for one official executable package and then
-      invoke the Skill Platform compiler for that package only.
+      invoke the Skill Toolchain compiler for that package only.
 
 A successful focused compile is source/build evidence only. It is not SQ2/Q4 or
 production qualification.
@@ -126,30 +126,44 @@ def resolve_official_package(value):
 
 
 def resolve_platform_root():
-    platform_value = os.environ.get("CONNECTIONAGENT_SKILL_PLATFORM_ROOT", "").strip()
+    platform_value = (
+        os.environ.get("CA_SKILL_TOOLCHAIN_ROOT", "").strip()
+        or os.environ.get("CONNECTIONAGENT_SKILL_PLATFORM_ROOT", "").strip()
+    )
     if platform_value:
         platform = Path(platform_value).resolve()
     else:
-        platform = (ROOT.parent / "connectionagent-skill-platform").resolve()
+        canonical = (ROOT.parent / "ca-skill-toolchain").resolve()
+        legacy = (ROOT.parent / "connectionagent-skill-platform").resolve()
+        platform = canonical if canonical.exists() else legacy
 
     # A normal checkout has a .git directory while a linked Git worktree has
-    # a .git file. Accept both, and also require the Platform paths this script
+    # a .git file. Accept both, and require the Toolchain paths this script
     # actually invokes so a similarly named directory fails closed.
-    required_paths = (
-        platform / ".git",
-        platform / "backend" / "cmd" / "casp",
-        platform / "registry",
-    )
-    if not all(path.exists() for path in required_paths):
+    canonical_cli = platform / "backend" / "cmd" / "caskill"
+    legacy_cli = platform / "backend" / "cmd" / "casp"
+    if not (
+        (platform / ".git").exists()
+        and (platform / "registry").exists()
+        and (canonical_cli.exists() or legacy_cli.exists())
+    ):
         raise SystemExit(
-            "CONNECTIONAGENT_SKILL_PLATFORM_ROOT must point to a Skill Platform Git checkout "
-            "with backend/cmd/casp and registry when ../connectionagent-skill-platform is unavailable"
+            "CA_SKILL_TOOLCHAIN_ROOT must point to a Skill Toolchain Git checkout "
+            "with backend/cmd/caskill (or compatibility backend/cmd/casp) and registry; "
+            "CONNECTIONAGENT_SKILL_PLATFORM_ROOT remains accepted during migration"
         )
     return platform
 
 
+def platform_cli(platform):
+    canonical = platform / "backend" / "cmd" / "caskill"
+    return "./backend/cmd/caskill" if canonical.exists() else "./backend/cmd/casp"
+
+
 def platform_env():
     env = os.environ.copy()
+    # Keep the current Toolchain input variable during the namespace migration;
+    # changing this contract is separate from repository/CLI discovery.
     env["CONNECTIONAGENT_SKILLS_ROOT"] = str(ROOT)
     env["GOWORK"] = "off"
     return env
@@ -160,7 +174,7 @@ def compile_package(package, platform, env):
         [
             "go",
             "run",
-            "./backend/cmd/casp",
+            platform_cli(platform),
             "compile",
             "--package",
             str(package),
@@ -187,21 +201,21 @@ def focused_compile(value):
 
     platform = resolve_platform_root()
     env = platform_env()
-    print(f"=== focused Platform compile: {package.name} ===", flush=True)
+    print(f"=== focused Toolchain compile: {package.name} ===", flush=True)
     compile_package(package, platform, env)
     print(f"Focused compile: PASS ({package.name})")
     print("Note: compile PASS is not SQ/Q4 or production qualification.")
 
 
 def full_verify():
-    # 1. Repository-local source hygiene only. Machine grammar belongs to Platform.
+    # 1. Repository-local source hygiene only. Machine grammar belongs to Toolchain.
     print("=== 1/8 package layout ===", flush=True)
     validate_skill_packages(all_skill_packages())
 
     platform = resolve_platform_root()
     env = platform_env()
 
-    # 2. official source compile (4 reference Skills via Platform canonical gate)
+    # 2. official source compile (4 reference Skills via Toolchain canonical gate)
     print(
         "=== 2/8 official source compile "
         "(ue-registration, ensure-session-qos, download-object-by-deadline, query-weather-for-ue) ===",
@@ -358,7 +372,7 @@ def main():
     parser.add_argument(
         "--compile",
         metavar="SKILL_PACKAGE",
-        help="run package hygiene and a focused Platform compile for one official executable Skill",
+        help="run package hygiene and a focused Toolchain compile for one official executable Skill",
     )
     args = parser.parse_args()
 
