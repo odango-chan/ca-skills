@@ -1,6 +1,6 @@
 # ConnectionAgent Skill 编写指南
 
-本文档面向需要新增或修改官方 Skill 的开发者，说明 `connectionagent-skills` 仓中的编写方式、边界和验证流程。
+本文档面向需要新增或修改官方 Skill 的开发者，说明 `ca-skills` 仓中的编写方式、边界和验证流程。
 
 详细 YAML 与脚本语法见：
 
@@ -8,7 +8,7 @@
 .agents/skills/create-connectionagent-skill/references/authoring-syntax.md
 ```
 
-机器语法是否合法，以 `connectionagent-skill-platform` 当前的 Schema 和编译器为准。
+机器语法是否合法，以 `ca-skill-toolchain` 当前的 Schema 和编译器为准。
 
 英文版：[`authoring.md`](authoring.md)
 
@@ -217,10 +217,12 @@ cases/<case>/case.yaml
    python3 -B scripts/verify.py --compile skills/<name>
    ```
 
-   如果 `connectionagent-skill-platform` 不在兄弟目录 `../connectionagent-skill-platform`，设置：
+   默认从兄弟目录 `../ca-skill-toolchain` 查找 Toolchain。如需指定路径，设置：
 
    ```bash
-   export CONNECTIONAGENT_SKILL_PLATFORM_ROOT=/path/to/connectionagent-skill-platform
+   export CA_SKILL_TOOLCHAIN_ROOT=/path/to/ca-skill-toolchain
+
+   历史环境变量 `CONNECTIONAGENT_SKILL_PLATFORM_ROOT` 仍作为 compatibility alias 保留。
    ```
 
 7. 提交前运行完整仓库验证：
@@ -238,13 +240,13 @@ cases/<case>/case.yaml
 可以简单记成：
 
 ```text
-connectionagent-skills
+ca-skills
   编写指南 + 官方 Skill 源码
 
-connectionagent-skill-platform
+ca-skill-toolchain
   Schema + 编译器 + 资格验证
 
-connectionagent-runtime
+ca-runtime
   准入 + 绑定 + 确定性执行
 ```
 

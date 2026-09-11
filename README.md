@@ -11,7 +11,7 @@ Chinese version: [`README.zh-CN.md`](README.zh-CN.md)
 ## Repository layout
 
 ```text
-connectionagent-skills/
+ca-skills/
 ├── skills/                  # official Skill and routing-policy source
 ├── docs/                    # authoring guides
 ├── scripts/verify.py        # repository verification entrypoint
@@ -50,7 +50,7 @@ The repository-local authoring assistant is:
 .agents/skills/create-connectionagent-skill/
 ```
 
-Its `SKILL.md` contains the authoring workflow. Detailed YAML, Script, and Case syntax is kept in `references/authoring-syntax.md` and checked against the current `connectionagent-skill-platform` schemas/compiler.
+Its `SKILL.md` contains the authoring workflow. Detailed YAML, Script, and Case syntax is kept in `references/authoring-syntax.md` and checked against the current `ca-skill-toolchain` schemas/compiler.
 
 A few package rules are worth keeping in mind:
 
@@ -64,7 +64,7 @@ A few package rules are worth keeping in mind:
 
 ## Source and execution
 
-`skills/` is the official source catalog. Skill Platform discovers and compiles this source into immutable Artifact/Variant form before Runtime execution.
+`skills/` is the official source catalog. Skill Toolchain discovers and compiles this source into immutable Artifact/Variant form before Runtime execution.
 
 Runtime does not execute the working tree directly. A change to this repository therefore does not alter an already admitted Artifact or an existing Run.
 
@@ -74,12 +74,12 @@ The main ownership split is:
 
 | Repository | Responsibility |
 | --- | --- |
-| `connectionagent-skills` | official Skill source and authoring guidance |
-| `connectionagent-skill-platform` | machine schemas, compiler, build and qualification |
-| `connectionagent-agent` | goal interpretation, routing and planning |
-| `connectionagent-runtime` | admission, binding and deterministic execution |
-| `connectionagent-sandbox` | controlled environment and fault injection |
-| `connectionagent-benchmarks` | independent evaluation cases and verdicts |
+| `ca-skills` | official Skill source and authoring guidance |
+| `ca-skill-toolchain` | machine schemas, compiler, build and qualification |
+| `ca-agent` | goal interpretation, routing and planning |
+| `ca-runtime` | admission, binding and deterministic execution |
+| `ca-sandbox` | controlled environment and fault injection |
+| `ca-benchmarks` | independent evaluation cases and verdicts |
 
 ## Routing policy
 
@@ -121,6 +121,6 @@ For a focused compile of one executable Skill:
 python3 -B scripts/verify.py --compile skills/<name>
 ```
 
-Set `CONNECTIONAGENT_SKILL_PLATFORM_ROOT` when `connectionagent-skill-platform` is not available as sibling `../connectionagent-skill-platform`.
+The default sibling checkout is `../ca-skill-toolchain`. Set `CA_SKILL_TOOLCHAIN_ROOT` for an explicit checkout; the historical `CONNECTIONAGENT_SKILL_PLATFORM_ROOT` remains a compatibility alias.
 
 Compile or local preflight success is not, by itself, production qualification.

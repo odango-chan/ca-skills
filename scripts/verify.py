@@ -19,10 +19,13 @@ production qualification.
 """
 
 import argparse
+import atexit
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
+import tempfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -126,32 +129,61 @@ def resolve_official_package(value):
 
 
 def resolve_platform_root():
-    platform_value = os.environ.get("CONNECTIONAGENT_SKILL_PLATFORM_ROOT", "").strip()
+    platform_value = (
+        os.environ.get("CA_SKILL_TOOLCHAIN_ROOT", "").strip()
+        or os.environ.get("CONNECTIONAGENT_SKILL_PLATFORM_ROOT", "").strip()
+    )
     if platform_value:
         platform = Path(platform_value).resolve()
     else:
-        platform = (ROOT.parent / "connectionagent-skill-platform").resolve()
+        candidates = (
+            ROOT.parent / "ca-skill-toolchain",
+            ROOT.parent / "connectionagent-skill-platform",
+        )
+        platform = next((candidate.resolve() for candidate in candidates if candidate.exists()), candidates[0].resolve())
 
     # A normal checkout has a .git directory while a linked Git worktree has
     # a .git file. Accept both, and also require the Platform paths this script
     # actually invokes so a similarly named directory fails closed.
     required_paths = (
         platform / ".git",
-        platform / "backend" / "cmd" / "casp",
+        platform / "backend" / "cmd" / "caskill",
         platform / "registry",
     )
     if not all(path.exists() for path in required_paths):
         raise SystemExit(
-            "CONNECTIONAGENT_SKILL_PLATFORM_ROOT must point to a Skill Platform Git checkout "
-            "with backend/cmd/casp and registry when ../connectionagent-skill-platform is unavailable"
+            "CA_SKILL_TOOLCHAIN_ROOT (or compatibility alias CONNECTIONAGENT_SKILL_PLATFORM_ROOT) "
+            "must point to a Skill Toolchain Git checkout "
+            "with backend/cmd/caskill and registry when ../ca-skill-toolchain is unavailable"
         )
     return platform
 
 
-def platform_env():
+def platform_env(platform):
     env = os.environ.copy()
     env["CONNECTIONAGENT_SKILLS_ROOT"] = str(ROOT)
     env["GOWORK"] = "off"
+
+    # The canonical module paths are intentionally published independently of
+    # this repository. Until those sibling commits are published, make the
+    # standard ca-* workspace usable without asking authors to maintain a
+    # local replacement configuration or changing the checked-in go.mod.
+    mod_dir = Path(tempfile.mkdtemp(prefix="ca-skills-verify-"))
+    atexit.register(shutil.rmtree, mod_dir, ignore_errors=True)
+    modfile = mod_dir / "workspace.mod"
+    shutil.copy2(platform / "go.mod", modfile)
+    go_sum = platform / "go.sum"
+    if go_sum.exists():
+        shutil.copy2(go_sum, mod_dir / "workspace.sum")
+    with modfile.open("a", encoding="utf-8") as handle:
+        handle.write(
+            "\nreplace github.com/odango-chan/ca-runtime => "
+            f"{(ROOT.parent / 'ca-runtime').resolve()}\n"
+            "replace github.com/odango-chan/ca-sandbox => "
+            f"{(ROOT.parent / 'ca-sandbox').resolve()}\n"
+        )
+    existing_flags = env.get("GOFLAGS", "").strip()
+    env["GOFLAGS"] = f"{existing_flags} -modfile={modfile}".strip()
     return env
 
 
@@ -160,7 +192,7 @@ def compile_package(package, platform, env):
         [
             "go",
             "run",
-            "./backend/cmd/casp",
+            "./backend/cmd/caskill",
             "compile",
             "--package",
             str(package),
@@ -186,7 +218,7 @@ def focused_compile(value):
         )
 
     platform = resolve_platform_root()
-    env = platform_env()
+    env = platform_env(platform)
     print(f"=== focused Platform compile: {package.name} ===", flush=True)
     compile_package(package, platform, env)
     print(f"Focused compile: PASS ({package.name})")
@@ -199,7 +231,7 @@ def full_verify():
     validate_skill_packages(all_skill_packages())
 
     platform = resolve_platform_root()
-    env = platform_env()
+    env = platform_env(platform)
 
     # 2. official source compile (4 reference Skills via Platform canonical gate)
     print(

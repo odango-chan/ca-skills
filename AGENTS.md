@@ -2,7 +2,7 @@
 
 ## Repository role
 
-`connectionagent-skills` contains official ConnectionAgent Skill source and model-visible routing-policy assets.
+`ca-skills` contains official ConnectionAgent Skill source and model-visible routing-policy assets.
 
 Keep Platform, Runtime, Sandbox, Benchmark, Agent-loop, and UI implementation out of this repository.
 
@@ -33,7 +33,7 @@ Repository-local authoring workflow:
 
 Its `SKILL.md` contains workflow and loading rules. Load `references/authoring-syntax.md` only when editing assurance source, governed Scripts, or Cases. Use `references/skill-granularity.md` when deciding Skill vs routing policy vs Runtime Capability.
 
-Do not duplicate the full Skill grammar in `AGENTS.md`, README, or other prose. The current machine schemas/compiler in `connectionagent-skill-platform` are authoritative.
+Do not duplicate the full Skill grammar in `AGENTS.md`, README, or other prose. The current machine schemas/compiler in `ca-skill-toolchain` are authoritative.
 
 For current official `assurance/procedure.yaml`, author against `schemas/v1alpha1/procedure-source.schema.yaml`, not historical/internal procedure source shapes.
 
@@ -64,13 +64,13 @@ Compile or local preflight success is not production qualification.
 
 ## Ownership
 
-- Skill source and authoring guidance: `connectionagent-skills`
-- Machine schemas, compiler, Artifact/Variant build, Qualification: `connectionagent-skill-platform`
-- Goal interpretation, routing, planning/model loop: `connectionagent-agent`
-- Admission, Provider/Observation binding, Evidence Gate, deterministic execution, Reconcile: `connectionagent-runtime`
-- Environment simulation, fault injection, ground truth: `connectionagent-sandbox`
-- Independent evaluation cases and verdicts: `connectionagent-benchmarks`
-- Product UI: `connectionagent-web`
+- Skill source and authoring guidance: `ca-skills`
+- Machine schemas, compiler, Artifact/Variant build, Qualification: `ca-skill-toolchain`
+- Goal interpretation, routing, planning/model loop: `ca-agent`
+- Admission, Provider/Observation binding, Evidence Gate, deterministic execution, Reconcile: `ca-runtime`
+- Environment simulation, fault injection, ground truth: `ca-sandbox`
+- Independent evaluation cases and verdicts: `ca-benchmarks`
+- Product UI: `ca-console`
 
 ## Frozen authoring model
 

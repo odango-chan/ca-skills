@@ -40,7 +40,7 @@ spec:
     - ref: file.download.status
       kind: capability
       version: v1
-      effect: read_only
+      effect: mutation
       invocable: true
     - ref: skill.derive-transfer-requirement
       kind: tool

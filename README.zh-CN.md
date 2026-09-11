@@ -11,7 +11,7 @@ ConnectionAgent 官方 Skill 源码仓。
 ## 仓库结构
 
 ```text
-connectionagent-skills/
+ca-skills/
 ├── skills/                  # 官方 Skill 与路由策略源码
 ├── docs/                    # Skill 编写文档
 ├── scripts/verify.py        # 仓库统一验证入口
@@ -50,7 +50,7 @@ skills/<name>/
 .agents/skills/create-connectionagent-skill/
 ```
 
-它的 `SKILL.md` 只保留编写流程和关键规则。具体的 YAML、脚本和用例语法放在 `references/authoring-syntax.md`，最终以 `connectionagent-skill-platform` 当前的 Schema 和编译器为准。
+它的 `SKILL.md` 只保留编写流程和关键规则。具体的 YAML、脚本和用例语法放在 `references/authoring-syntax.md`，最终以 `ca-skill-toolchain` 当前的 Schema 和编译器为准。
 
 几个常用约束：
 
@@ -74,12 +74,12 @@ Skill Platform 从这里发现源码，完成编译并形成不可变的 `SkillB
 
 | 仓库 | 主要职责 |
 | --- | --- |
-| `connectionagent-skills` | 官方 Skill 源码与编写文档 |
-| `connectionagent-skill-platform` | Schema、编译、构建与资格验证 |
-| `connectionagent-agent` | 目标理解、路由与规划 |
-| `connectionagent-runtime` | 准入、绑定与确定性执行 |
-| `connectionagent-sandbox` | 受控环境与故障注入 |
-| `connectionagent-benchmarks` | 独立评测用例与裁决 |
+| `ca-skills` | 官方 Skill 源码与编写文档 |
+| `ca-skill-toolchain` | Schema、编译、构建与资格验证 |
+| `ca-agent` | 目标理解、路由与规划 |
+| `ca-runtime` | 准入、绑定与确定性执行 |
+| `ca-sandbox` | 受控环境与故障注入 |
+| `ca-benchmarks` | 独立评测用例与裁决 |
 
 ## 路由策略
 
@@ -121,10 +121,12 @@ make verify
 python3 -B scripts/verify.py --compile skills/<name>
 ```
 
-如果 `connectionagent-skill-platform` 不在兄弟目录 `../connectionagent-skill-platform`，设置：
+默认从兄弟目录 `../ca-skill-toolchain` 查找 Toolchain。如需指定路径，设置：
 
 ```bash
-export CONNECTIONAGENT_SKILL_PLATFORM_ROOT=/path/to/connectionagent-skill-platform
+export CA_SKILL_TOOLCHAIN_ROOT=/path/to/ca-skill-toolchain
+
+历史环境变量 `CONNECTIONAGENT_SKILL_PLATFORM_ROOT` 仍作为 compatibility alias 保留。
 ```
 
 编译通过或本地预检通过，并不等于已经通过生产环境资格验证。

@@ -65,7 +65,6 @@ procedures:
           UNRESOLVED: unresolved
           FAILED: safe-stopped
           DENIED: safe-stopped
-          UNKNOWN: unresolved
       verify-transfer:
         verify: file_transfer.completed
         'on':
@@ -168,7 +167,6 @@ procedures:
           UNRESOLVED: unresolved
           FAILED: safe-stopped
           DENIED: safe-stopped
-          UNKNOWN: unresolved
       verify-transfer:
         verify: file_transfer.completed
         'on':

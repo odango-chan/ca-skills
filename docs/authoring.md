@@ -2,7 +2,7 @@
 
 This guide explains how to add or change official Skill source in this repository.
 
-For detailed YAML and Script examples, use `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md`. Machine validity is defined by the current schemas and compiler in `connectionagent-skill-platform`.
+For detailed YAML and Script examples, use `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md`. Machine validity is defined by the current schemas and compiler in `ca-skill-toolchain`.
 
 Chinese version: [`authoring.zh-CN.md`](authoring.zh-CN.md)
 
@@ -164,7 +164,7 @@ For a new Skill or a structural change:
    python3 -B scripts/verify.py --compile skills/<name>
    ```
 
-   Set `CONNECTIONAGENT_SKILL_PLATFORM_ROOT=/path/to/connectionagent-skill-platform` when the Platform repository is not available as sibling `../connectionagent-skill-platform`.
+   Set `CA_SKILL_TOOLCHAIN_ROOT=/path/to/ca-skill-toolchain` when the Toolchain repository is not available as sibling `../ca-skill-toolchain`. The historical `CONNECTIONAGENT_SKILL_PLATFORM_ROOT` remains a compatibility alias.
 
 7. Before delivery, run:
 
@@ -181,13 +181,13 @@ A successful compile or repository preflight check does not make a Skill product
 Keep the repository boundary simple:
 
 ```text
-connectionagent-skills
+ca-skills
   authoring guidance + official Skill source
 
-connectionagent-skill-platform
+ca-skill-toolchain
   machine schemas + compiler + qualification
 
-connectionagent-runtime
+ca-runtime
   admission + binding + deterministic execution
 ```
 
