@@ -1,12 +1,10 @@
 rules:
   context.runtime_state.no_fabrication:
-    subject: MODEL_PROPOSAL
     statement: >
       运行时状态必须来自受信运行时上下文或 Observation；模型不得从静态身份、历史样例或常识中复制、推导或猜测当前运行时值。
     violation: INVENTED_RUNTIME_STATE
 
   context.required.no_guess:
-    subject: MODEL_PROPOSAL
     statement: >
       当完成当前决策所需的必需上下文缺失或歧义时，模型不得自行补造该值；应请求上下文或返回相应的受控状态。
     violation: MISSING_REQUIRED_CONTEXT
