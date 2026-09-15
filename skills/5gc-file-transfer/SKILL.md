@@ -22,11 +22,11 @@ Do not use it for generic `[TASK: 5GC-INTENT]` routing or Wi-Fi transfer tasks.
 
 ## Business semantics
 
-- A `prepare_transfer` request carries canonical sender/receiver IMSIs and a normalized urgency classification. The exact grounding rules for model-produced fields are defined by the frozen model-visible RuleSet for this Skill.
+- A `prepare_transfer` request carries canonical sender/receiver IMSIs and a normalized urgency classification. Exact grounding constraints for model-produced fields come from the model-facing Rule subset assembled for the current decision from the frozen Rule authority.
 - Current participant endpoint addresses are resolved during governed execution because they are runtime network state; callers provide identity, not a frozen endpoint roster.
-- An urgent normalized request may add QoS acceleration before final goal verification. Exact urgency grounding policy, including any policy parameters, belongs to the frozen RuleSet rather than this Markdown file.
+- An urgent normalized request may add QoS acceleration before final goal verification. Exact urgency grounding policy, including any policy parameters, belongs to the frozen Rule authority rather than this Markdown file.
 - Receiver consent, file upload/download, user-visible messages, and the decision to activate a virtual group remain gateway responsibilities.
 - `virtual_group.activate` is therefore outside this Skill.
-- Once a request is normalized, execution enters the governed assurance path. Exact model-facing no-bypass constraints are defined by the frozen RuleSet.
+- Once a request is normalized, execution enters the governed assurance path. Any model-facing no-bypass constraint is selected into model context only when it is relevant to the model's current authority; Runtime enforcement does not depend on model exposure.
 
 Provider implementation, ProviderBinding, ObservationBinding, Predicate execution, UNKNOWN/reconcile behavior, and deployment-specific Tool mappings are governed outside model context by the shared Platform/Runtime contracts.
