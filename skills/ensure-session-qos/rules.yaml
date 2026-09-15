@@ -1,0 +1,9 @@
+uses:
+  - context.runtime_state.no_fabrication
+
+rules:
+  qos_parameters.grounded:
+    statement: >
+      dnn、sst、sd（若使用）和 fiveQi 必须来自明确请求或受信上下文；
+      模型不得为了满足请求 Schema 而臆造缺失的 QoS 参数。
+    violation: PARAMETER_FABRICATION
