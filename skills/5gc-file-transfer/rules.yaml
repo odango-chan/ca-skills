@@ -3,7 +3,6 @@ uses:
 
 rules:
   urgency.explicit_only:
-    subject: MODEL_PROPOSAL
     policy:
       shortDeadlineMax: 5m
     statement: >
@@ -12,7 +11,6 @@ rules:
     violation: PARAMETER_FABRICATION
 
   governed_entrypoint_only:
-    subject: MODEL_PROPOSAL
     statement: >
       请求完成规范化后必须交给受治理的 assurance entrypoint；模型不得自行拼装底层 Tool 调用序列绕过治理边界。
     violation: RAW_TOOL_BYPASS
