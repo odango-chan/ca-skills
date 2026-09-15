@@ -1,37 +1,18 @@
-apiVersion: experiment.connectionagent.io/v1alpha1
-kind: SkillRuleSetPrototype
-metadata:
-  skill: 5gc-file-transfer
-  note: D1 experiment only; not current machine syntax
-spec:
-  uses:
-    - context.runtime_state.no_fabrication
+uses:
+  - context.runtime_state.no_fabrication
 
-  rules:
-    - id: urgency.explicit_only
-      title: Urgency must be explicitly grounded
-      subject: MODEL_PROPOSAL
-      category: grounding
-      severity: hard
-      appliesTo:
-        - routing
-        - planning
-      policy:
-        shortDeadlineMax: 5m
-      statement: >
-        urgency 只能来自用户意图中的明确加速语义，或满足冻结 short-deadline policy
-        的明确 deadline；文件大小本身不能推出 urgent。
-      violation:
-        code: PARAMETER_FABRICATION
+rules:
+  urgency.explicit_only:
+    subject: MODEL_PROPOSAL
+    policy:
+      shortDeadlineMax: 5m
+    statement: >
+      urgency 只能来自用户意图中的明确加速语义，或满足冻结 short-deadline policy
+      的明确 deadline；文件大小本身不能推出 urgent。
+    violation: PARAMETER_FABRICATION
 
-    - id: governed_entrypoint_only
-      title: Governed execution boundary must not be bypassed
-      subject: MODEL_PROPOSAL
-      category: tool_discipline
-      severity: hard
-      appliesTo:
-        - planning
-      statement: >
-        请求完成规范化后必须交给受治理的 assurance entrypoint；模型不得自行拼装底层 Tool 调用序列绕过治理边界。
-      violation:
-        code: RAW_TOOL_BYPASS
+  governed_entrypoint_only:
+    subject: MODEL_PROPOSAL
+    statement: >
+      请求完成规范化后必须交给受治理的 assurance entrypoint；模型不得自行拼装底层 Tool 调用序列绕过治理边界。
+    violation: RAW_TOOL_BYPASS
