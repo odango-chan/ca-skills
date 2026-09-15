@@ -1,6 +1,6 @@
 ---
 name: 5gc-file-transfer
-description: Prepare or release governed 5GC resources for gateway-driven file transfers, with optional QoS acceleration for explicitly urgent requests.
+description: Prepare or release governed 5GC resources for gateway-driven file transfers, with optional QoS acceleration for normalized urgent requests.
 ---
 
 # 5GC File Transfer
@@ -22,11 +22,11 @@ Do not use it for generic `[TASK: 5GC-INTENT]` routing or Wi-Fi transfer tasks.
 
 ## Business semantics
 
-- A `prepare_transfer` request must already contain canonical sender/receiver IMSIs. Current UE endpoint addresses are runtime network state and are not routing-model inputs.
-- Governed execution resolves the current participant endpoint set before assigning virtual-group members. Do not copy IP addresses from a static identity roster.
-- `urgent` means the source intent explicitly asks for accelerated completion, such as urgent, ASAP, hurry, or an equivalent expression. A large file by itself is not urgent.
+- A `prepare_transfer` request carries canonical sender/receiver IMSIs and a normalized urgency classification. The exact grounding rules for model-produced fields are defined by the frozen model-visible RuleSet for this Skill.
+- Current participant endpoint addresses are resolved during governed execution because they are runtime network state; callers provide identity, not a frozen endpoint roster.
+- An urgent normalized request may add QoS acceleration before final goal verification. Exact urgency grounding policy, including any policy parameters, belongs to the frozen RuleSet rather than this Markdown file.
 - Receiver consent, file upload/download, user-visible messages, and the decision to activate a virtual group remain gateway responsibilities.
 - `virtual_group.activate` is therefore outside this Skill.
-- Once the request is normalized, hand execution to the governed assurance entrypoint. Do not construct ad-hoc NF/VG/PCF Tool sequences from prose.
+- Once a request is normalized, execution enters the governed assurance path. Exact model-facing no-bypass constraints are defined by the frozen RuleSet.
 
 Provider implementation, ProviderBinding, ObservationBinding, Predicate execution, UNKNOWN/reconcile behavior, and deployment-specific Tool mappings are governed outside model context by the shared Platform/Runtime contracts.
