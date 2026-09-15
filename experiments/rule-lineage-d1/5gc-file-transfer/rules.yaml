@@ -13,9 +13,11 @@ spec:
       appliesTo:
         - routing
         - planning
+      policy:
+        shortDeadlineMax: 5m
       statement: >
-        urgency 只能来自用户意图或受信上下文中的明确加速语义；
-        文件大小本身不能推出 urgent。
+        urgency 只能来自用户意图或受信上下文中的明确加速语义，
+        或者明确不晚于 5 分钟完成的 deadline；文件大小本身不能推出 urgent。
       violation:
         code: PARAMETER_FABRICATION
 
