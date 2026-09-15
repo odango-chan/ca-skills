@@ -1,0 +1,45 @@
+apiVersion: experiment.connectionagent.io/v1alpha1
+kind: SkillRuleSetPrototype
+metadata:
+  skill: 5gc-file-transfer
+  note: D1 change-simulation baseline; not current machine syntax
+spec:
+  rules:
+    - id: urgency.explicit_only
+      title: Urgency must be explicitly grounded
+      subject: MODEL_PROPOSAL
+      category: grounding
+      severity: hard
+      appliesTo:
+        - routing
+        - planning
+      statement: >
+        urgency 只能来自用户意图或受信上下文中的明确加速语义；
+        文件大小本身不能推出 urgent。
+      violation:
+        code: PARAMETER_FABRICATION
+
+    - id: endpoint.runtime_only
+      title: Runtime endpoint state must not be invented
+      subject: MODEL_PROPOSAL
+      category: grounding
+      severity: hard
+      appliesTo:
+        - planning
+      statement: >
+        当前 UE endpoint 地址属于运行时网络状态；模型不得从静态身份信息中复制、推导或猜测当前地址。
+      violation:
+        code: INVENTED_RUNTIME_STATE
+
+    - id: governed_entrypoint_only
+      title: Governed execution boundary must not be bypassed
+      subject: MODEL_PROPOSAL
+      category: tool_discipline
+      severity: hard
+      appliesTo:
+        - planning
+      statement: >
+        请求完成规范化后必须交给受治理的 assurance entrypoint；
+        模型不得自行拼装 NF、VG、PCF 等底层 Tool 调用序列绕过治理边界。
+      violation:
+        code: RAW_TOOL_BYPASS
