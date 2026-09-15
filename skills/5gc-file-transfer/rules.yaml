@@ -4,6 +4,9 @@ metadata:
   skill: 5gc-file-transfer
   note: D1 experiment only; not current machine syntax
 spec:
+  uses:
+    - context.runtime_state.no_fabrication
+
   rules:
     - id: urgency.explicit_only
       title: Urgency must be explicitly grounded
@@ -20,18 +23,6 @@ spec:
         的明确 deadline；文件大小本身不能推出 urgent。
       violation:
         code: PARAMETER_FABRICATION
-
-    - id: endpoint.runtime_only
-      title: Runtime endpoint state must not be invented
-      subject: MODEL_PROPOSAL
-      category: grounding
-      severity: hard
-      appliesTo:
-        - planning
-      statement: >
-        当前 UE endpoint 地址属于运行时网络状态；模型不得从静态身份信息中复制、推导或猜测当前地址。
-      violation:
-        code: INVENTED_RUNTIME_STATE
 
     - id: governed_entrypoint_only
       title: Governed execution boundary must not be bypassed
