@@ -64,7 +64,7 @@ skills/<name>/
 └── schemas/       # 可选
 ```
 
-可执行 Skill 的标准结构为：
+可执行 Skill 的**当前**标准结构为：
 
 ```text
 skills/<name>/
@@ -90,6 +90,8 @@ skills/<name>/
 - `skills/` 下供模型读取的 Markdown 统一使用英文；
 - 不创建空目录占位。
 
+> 2026-09-15 已冻结新的 Rule / Case lineage 设计方向，但 `rules.yaml`、`SkillRuleSet`、`ruleRefs` 尚未进入 Toolchain Schema。当前不要自行创建 `rules.yaml` 或向 Case 加未定义字段。
+
 ## 3. `SKILL.md` 写什么
 
 `SKILL.md` 是 Skill 根目录中供模型读取的入口文件，应尽量薄，只保留会影响模型决策的内容：
@@ -113,7 +115,114 @@ skills/<name>/
 
 这些内容属于各自的实现仓或工程文档，不属于模型上下文。
 
-## 4. `assurance/` 三个文件分别负责什么
+## 4. Rule / Procedure / Predicate 的长期关系
+
+Rule 新设计已经冻结为**设计基线**，详细说明见 `ca-skill-toolchain/docs/rule-authoring-and-case-lineage.md`。
+
+核心关系：
+
+```text
+Rule
+  = 什么必须成立 / 什么禁止发生
+
+Procedure
+  = 受治理流程怎样执行
+
+Predicate
+  = 如何基于 Observation / Evidence 判断 PASS / FAIL / UNKNOWN
+
+Qualification Case
+  = 如何证明 Skill Artifact 具备资格
+
+Benchmark Case
+  = 如何独立评价 Model / Agent / Harness / System
+```
+
+它们不合并成一个对象。
+
+例如：
+
+```text
+Rule:
+  OUTCOME_UNKNOWN 后不得 blind retry
+
+Procedure:
+  mutation OUTCOME_UNKNOWN -> reconcile
+
+Predicate / Evidence:
+  判断目标状态或 reconcile 结果
+```
+
+Procedure 可以保障 Rule，但 Procedure node 不是 Rule identity；Predicate 可以判断某些 Rule 所需事实，但 Predicate 也不是规范正文。
+
+### 4.1 一套 CA Authoring Language Core
+
+后续 Rule 如果正式实现，不应再创造一套独立 DSL。长期目标是 Procedure、Rule、Predicate、Case 尽量复用相同的基础语法原语，例如：
+
+```text
+ref
+from / value
+when
+expression
+verify
+path / op / value
+for   # 仅允许需要迭代的 artifact
+```
+
+但每种 Artifact 是受限子语言：
+
+```text
+Procedure
+  可以 call / tool / reconcile / on / terminal
+
+Rule
+  只表达 when / verify / appliesTo / violation / severity
+  不执行 mutation，不拥有流程路由
+
+Predicate
+  只定义 observations / freshness / evaluator
+
+Case
+  只定义 challenge / fixture / evidence / expectation
+```
+
+原则是：
+
+> **共享基础语法，不共享执行权限。**
+
+### 4.2 Rule ID 与 Violation Code 分离
+
+未来 Rule 使用稳定的具体规范身份，例如：
+
+```text
+5gc-file-transfer.urgency.explicit-only
+execution.outcome-unknown.no-blind-retry
+```
+
+评测侧的跨 Skill 违规类别则可以是：
+
+```text
+PARAMETER_FABRICATION
+BLIND_RETRY_AFTER_UNKNOWN
+INVENTED_RUNTIME_STATE
+```
+
+具体 Rule 与统计用 Violation family 不使用同一个 ID 空间。
+
+### 4.3 当前不要提前迁移
+
+当前 Toolchain 还没有：
+
+```text
+SkillRuleSet schema
+rules.yaml package support
+SkillTestCase.ruleRefs
+Rule compile/artifact
+```
+
+因此现在仍按本文后续章节中的现行语法编写。正式迁移会先以 `5gc-file-transfer` 做 reference migration，再决定 machine contract。
+
+## 5. `assurance/` 三个文件分别负责什么
 
 对于可执行 Skill：
 
@@ -150,7 +259,7 @@ procedures
 .agents/skills/create-connectionagent-skill/references/authoring-syntax.md
 ```
 
-## 5. Observation、Evidence 与 Predicate
+## 6. Observation、Evidence 与 Predicate
 
 这三者不要混在一起理解。
 
@@ -165,7 +274,9 @@ Runtime 先根据 Predicate 声明获取所需 Observation，并形成可供判�
 
 Predicate 脚本只能判断已经提供的数据，不能主动调用 Provider、MCP、网络服务，也不能自行重新获取 Evidence。
 
-## 6. 资格验证用例怎么写
+未来 Rule 表达式也应优先复用这套确定性表达式方向，不为 Rule 再发明一套表达式语言。
+
+## 7. 资格验证用例怎么写
 
 Skill 内的用例属于源码包的资格验证资产，不是 Benchmark 评测用例。
 
@@ -188,7 +299,21 @@ cases/<case>/case.yaml
 
 `SkillTestCase` 也不能替代 `BenchmarkCase`。Benchmark 的黑盒裁决不能直接依赖 Skill 内部预期路径。
 
-## 7. 优先参考真实 Skill，不再维护第二套教学例子
+未来两者会通过稳定 `ruleRefs` 建立 lineage，但仍保持：
+
+```text
+SkillTestCase
+  = package/artifact qualification
+  = fixture-driven
+
+BenchmarkCase
+  = independent evaluation question
+  = held-out variants + independent evidence
+```
+
+不能把 Qualification 用例原样复制成正式 Benchmark 题目，否则模型可能只是在复现已经暴露的例题，而不是泛化遵从 Rule。
+
+## 8. 优先参考真实 Skill，不再维护第二套教学例子
 
 新增 Skill 时，优先找最接近的正式包参考：
 
@@ -202,7 +327,9 @@ cases/<case>/case.yaml
 
 真实 Skill 会跟随编译器持续验证，比额外维护一套教学包更可靠。
 
-## 8. 推荐编写流程
+Rule/Case 新模型落地前，`5gc-file-transfer` 将作为 reference migration 对象，不要以尚未完成的 reference 设计替代当前正式包语法。
+
+## 9. 推荐编写流程
 
 新增或结构性修改 Skill 时，按下面顺序进行：
 
@@ -221,9 +348,9 @@ cases/<case>/case.yaml
 
    ```bash
    export CA_SKILL_TOOLCHAIN_ROOT=/path/to/ca-skill-toolchain
+   ```
 
    历史环境变量 `CONNECTIONAGENT_SKILL_PLATFORM_ROOT` 仍作为 compatibility alias 保留。
-   ```
 
 7. 提交前运行完整仓库验证：
 
@@ -235,19 +362,23 @@ cases/<case>/case.yaml
 
 编译通过或本地预检通过，不等于已经通过生产环境资格验证。
 
-## 9. 仓库之间的边界
+## 10. 仓库之间的边界
 
 可以简单记成：
 
 ```text
 ca-skills
-  编写指南 + 官方 Skill 源码
+  编写指南 + 官方 Skill / Rule 源码 authority
+  # Rule machine source 在 Schema 落地后启用
 
 ca-skill-toolchain
   Schema + 编译器 + 资格验证
 
 ca-runtime
   准入 + 绑定 + 确定性执行
+
+ca-benchmarks / ca-benchmark-engine
+  BenchmarkCase + held-out evaluation + assessment
 ```
 
 当某个真实场景暂时表达不出来时，不要首先扩展 Skill 语法。先确认缺口究竟来自：
@@ -256,6 +387,7 @@ ca-runtime
 - ObservationBinding；
 - Runtime 能力；
 - 资格验证；
+- Benchmark / Judge；
 - Sandbox / 集成环境。
 
 只有确认现有语言本身确实无法表达必要语义时，才考虑修改 Skill 语言。
