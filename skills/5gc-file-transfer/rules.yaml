@@ -3,6 +3,9 @@ uses:
 
 rules:
   urgency.explicit_only:
+    when:
+      operations:
+        - prepare_transfer
     policy:
       shortDeadlineMax: 5m
     statement: >
