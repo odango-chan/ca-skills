@@ -80,9 +80,33 @@ Repository rules:
 - the business or domain goal;
 - input normalization and disambiguation;
 - model-facing input and output expectations;
-- constraints the model must not guess or bypass.
+- constraints the model must not guess or bypass;
+- **when the next decision depends on current state, which Agent-visible read-only Capability should be used first.**
 
-Do not place implementation or deployment mechanics in `SKILL.md`. Provider mappings, endpoints, ObservationBinding details, Runtime state machines, qualification status, Benchmark scoring, migration notes, and architecture tutorials belong elsewhere.
+Tool-use guidance is appropriate when it changes planning behavior, for example:
+
+```text
+Before choosing a recovery action, inspect the current user-plane state with <read-only capability>.
+Do not infer user-plane reachability from PDU Session existence.
+```
+
+Only name model-visible business-semantic Capabilities in `SKILL.md`. Do not expose raw ObservationRefs, ObservationBinding, environment endpoints, or source-specific transport details.
+
+Do not place implementation or deployment mechanics in `SKILL.md`. Provider mappings, endpoints, raw ObservationRefs, ObservationBinding details, ObservationSource transport, Runtime state machines, qualification status, Benchmark scoring, migration notes, and architecture tutorials belong elsewhere.
+
+### 3.1 Tool guidance is not Tool authority
+
+A Skill may tell the model when and which Tool to use, but it cannot widen the Agent's Effective Toolset.
+
+```text
+Skill guidance
+  -> model decision guidance
+
+Effective Toolset / Runtime admission
+  -> executable authority
+```
+
+If a recommended read-only Capability is unavailable to the current AgentInstance, the model must treat it as unavailable. It must not bypass Runtime/`ca-mcp` and call Sandbox, Service Fabric, or a raw Observation API directly.
 
 ## 4. Long-term Rule / Procedure / Predicate model
 
@@ -219,11 +243,60 @@ The detailed syntax reference is intentionally kept in one place:
 .agents/skills/create-connectionagent-skill/references/authoring-syntax.md
 ```
 
-## 6. Evidence and Predicate rules
+## 6. Observation, Evidence, Agent reads, and Predicate
 
-Observation acquisition and Predicate evaluation are separate.
+These roles must remain distinct.
 
-Runtime materializes the required observations first. The Evidence Gate checks whether required evidence is present, fresh, and usable. Missing or unusable required evidence produces `UNKNOWN` before the evaluator runs.
+### 6.1 Agent read-only inspection
+
+When model planning depends on current state, the model uses a Runtime-admitted read-only Capability. `SKILL.md` provides business-level guidance about when inspection is required, which Capability to use, and which substitute inference is forbidden.
+
+```text
+Agent
+  -> read-only Tool
+  -> ca-mcp
+  -> Runtime read-only Capability
+  -> Runtime Observation acquisition / Provider read path
+  -> trusted fact
+  -> Agent planning
+```
+
+The model does not need raw ObservationRefs, ObservationBinding, Sandbox Observation APIs, or Service Fabric internal streams.
+
+### 6.2 Runtime Assurance
+
+Runtime materializes the observations required by a Predicate. The Evidence Gate checks whether required evidence is present, fresh, and usable.
+
+```text
+Procedure / precondition / postcondition
+  -> Predicate
+  -> required Observation
+  -> Runtime Observation acquisition
+  -> Evidence
+  -> PASS / FAIL / UNKNOWN
+```
+
+Missing or unusable required evidence produces `UNKNOWN` before the evaluator runs.
+
+### 6.3 Shared facts, separate verdict authority
+
+Agent read-only Capabilities and Runtime Assurance may share the same ObservationSource, binding, normalization, provenance, and observation cache when freshness and binding requirements are satisfied.
+
+But:
+
+```text
+Agent read result
+  = planning input
+
+Predicate result
+  = assurance verdict authority
+```
+
+A model having just inspected state does not make a postcondition pass. Runtime Assurance also does not depend on the model having inspected first.
+
+Observation classes remain fact-oriented, such as Network Observation and Environment Observation. Do not introduce `Planning Observation`, `Agent Observation Projection`, or similar parallel fact types.
+
+### 6.4 Predicate evaluator
 
 Use CEL for short, auditable deterministic checks. Use a governed Predicate Script only when the judgment is too complex for a clear CEL expression.
 
@@ -242,7 +315,8 @@ Use one `case.yaml` per case directory. Coverage should follow the Skill's seman
 - evidence `UNKNOWN`;
 - mutation `OUTCOME_UNKNOWN` followed by reconcile;
 - budget or planning limits;
-- independent postcondition failure.
+- independent postcondition failure;
+- when planning depends on current state, whether the model uses the Skill-directed read-only Capability instead of guessing state.
 
 Do not treat fixture output as proof of the business result. Final success must still be supported by the required postconditions.
 
@@ -284,8 +358,9 @@ For a new Skill or a structural change:
 2. Decide whether the asset is an executable Skill, routing-policy/model-context package, or Runtime Capability.
 3. Inspect one or two current packages with similar semantics.
 4. Reuse existing Registry capability, predicate, and schema contracts where possible.
-5. Read the relevant section of `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md` before editing assurance source, Scripts, or Cases.
-6. For one executable package, run:
+5. If model planning depends on current state, confirm that an appropriate Agent-visible read-only Capability already exists and keep only business-level Tool guidance in `SKILL.md`.
+6. Read the relevant section of `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md` before editing assurance source, Scripts, or Cases.
+7. For one executable package, run:
 
    ```bash
    python3 -B scripts/verify.py --compile skills/<name>
@@ -293,13 +368,13 @@ For a new Skill or a structural change:
 
    Set `CA_SKILL_TOOLCHAIN_ROOT=/path/to/ca-skill-toolchain` when the Toolchain repository is not available as sibling `../ca-skill-toolchain`. The historical `CONNECTIONAGENT_SKILL_PLATFORM_ROOT` remains a compatibility alias.
 
-7. Before delivery, run:
+8. Before delivery, run:
 
    ```bash
    make verify
    ```
 
-8. Report the checks that actually ran and any remaining Platform, Runtime, Provider, Sandbox, or deployment dependency.
+9. Report the checks that actually ran and any remaining Platform, Runtime, Provider, Sandbox, or deployment dependency.
 
 A successful compile or repository preflight check does not make a Skill production-qualified.
 
@@ -310,16 +385,20 @@ Keep the repository boundary simple:
 ```text
 ca-skills
   authoring guidance + official Skill / Rule source authority
+  model-facing guidance for when/which admitted Tool to use
   # Rule machine source becomes active only after the schema lands
 
 ca-skill-toolchain
   machine schemas + compiler + qualification
 
 ca-runtime
-  admission + binding + deterministic execution
+  admission + binding + deterministic execution + Observation/Evidence/Predicate authority
+
+ca-mcp
+  mechanical mapping from Runtime admitted Capability to Agent MCP Tool
 
 ca-benchmarks / ca-benchmark-engine
   BenchmarkCase + held-out evaluation + assessment
 ```
 
-If a concrete scenario cannot be expressed, first check whether the missing piece is a ProviderBinding, ObservationBinding, Runtime behavior, qualification rule, Benchmark/Judge requirement, or integration issue before changing the Skill language.
+If a concrete scenario cannot be expressed, first check whether the missing piece is an Agent-visible read-only Capability, ProviderBinding, ObservationBinding/ObservationSource, Runtime behavior, qualification rule, Benchmark/Judge requirement, or integration issue before changing the Skill language.
