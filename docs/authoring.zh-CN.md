@@ -101,16 +101,33 @@ skills/<name>/
 - 输入如何归一化、如何消歧；
 - 模型需要理解的输入输出语义；
 - 哪些信息不能猜、哪些边界不能绕过；
-- **当下一步取决于当前状态时，什么时候必须先查询事实，以及应该使用哪个 Agent-visible read-only Capability。**
+- 当下一步依赖当前状态时，**哪些事实必须先获得、哪些替代推断不成立**。
 
-这里允许写 Tool 使用指导，因为它直接影响模型规划，例如：
+默认不要把 `SKILL.md` 写成 Tool 流程说明书。通用 Agent 应根据当前 model-visible Tool 的 name / description / schema 自己选择合适的 read-only Capability。
+
+例如更推荐写：
 
 ```text
-在选择恢复动作前，先使用 <read-only capability> 确认当前用户面状态。
+在选择恢复动作前，必须先确认当前用户面是否可达。
 不要从 PDU Session 存在这一事实推断用户面一定可达。
 ```
 
-但 `SKILL.md` 只写**模型可见的业务语义 Capability**，不写底层 ObservationRef、ObservationBinding 或环境 endpoint。
+而不是默认写：
+
+```text
+Step 1: call user_plane.inspect_connectivity
+Step 2: ...
+```
+
+只有在以下情况才建议在 `SKILL.md` 显式推荐某个业务 Capability：
+
+```text
+多个可见 Tool 名称/语义非常接近
+模型容易选择错误但这种区别属于领域知识
+必须强调“用 A 类事实，不要用 B 类事实代替”
+```
+
+即便点名，也只写**模型可见的业务语义 Capability**，不写底层 ObservationRef、ObservationBinding 或环境 endpoint。
 
 不应放进 `SKILL.md` 的内容包括：
 
@@ -120,6 +137,7 @@ skills/<name>/
 - ObservationBinding；
 - ObservationSource endpoint / transport；
 - Runtime 状态机；
+- Runtime Tool eligibility 规则；
 - 资格验证状态；
 - Benchmark 评分规则；
 - 迁移历史；
@@ -127,19 +145,29 @@ skills/<name>/
 
 这些内容属于各自的实现仓或工程文档，不属于模型上下文。
 
-### 3.1 Tool 指导不等于 Tool 授权
+### 3.1 Skill 语义不等于 Tool 授权
 
-`SKILL.md` 可以告诉模型“何时用哪个 Tool”，但不能因此扩大当前 Agent 的 Effective Toolset。
+`SKILL.md` 负责 epistemic/domain guidance：
 
 ```text
-Skill guidance
-  -> model decision hint
-
-Effective Toolset / Runtime admission
-  -> actual executable authority
+what must be known
+what must not be guessed
+which inference is invalid
 ```
 
-如果 Skill 建议的 read-only Capability 在当前 AgentInstance 中不可见或不可执行，模型必须按 unavailable 处理，不能绕过 Runtime/`ca-mcp` 直接调用 Sandbox、Service Fabric 或 Observation API。
+真正的 ConnectionAgent Tool 可见上限由 Runtime/Harness 解析：
+
+```text
+Runtime Capability Catalog
+  + selected Skill/Artifact
+  + SkillContract allowedResources
+  + Context / Template / AgentProfile / Environment / policy
+  -> Runtime Resolved CA Toolset
+```
+
+Host / `ca-mcp` 只能机械映射和进一步收缩，不能因为 Skill prose 或 Goal 文本扩大 Tool 权限。
+
+如果某个语义上合适的 read-only Capability 在当前 AgentInstance 中不可见，模型必须按 unavailable 处理，不能绕过 Runtime/`ca-mcp` 直接调用 Sandbox、Service Fabric 或 Observation API。
 
 ## 4. Rule / Procedure / Predicate 的长期关系
 
@@ -258,6 +286,26 @@ Rule compile/artifact
 | `procedure.yaml` | 声明确定性的流程结构、数据绑定和结果路由 |
 | `predicates.yaml` | 声明需要观察什么，以及如何基于已获取 Evidence 做确定性判断 |
 
+其中 `contract.yaml` 的 `allowedResources.capabilities` 还有一个重要作用：它是 Runtime/Harness 计算当前 Skill 的 ConnectionAgent Tool eligibility 时的**资源上限输入之一**。
+
+必须保持：
+
+```text
+allowedResources.capabilities
+  = Skill 可以使用的 Capability universe / upper bound input
+
+Runtime Resolved CA Toolset
+  = 当前 resolved Agent/Skill/Context/Environment 最多允许模型看到的 CA Capability 子集
+```
+
+所以 `allowedResources.capabilities`：
+
+- 可以包含模型规划可能需要的 read-only / inspect Capability；
+- 也可以包含 deterministic Procedure 内部使用、但不需要直接暴露给模型的 Capability；
+- 不是 MCP Tool catalog；
+- 不等于最终 model-visible Toolset；
+- 不能绕过 Environment / policy / Runtime admission。
+
 对应的 Platform 权威 Schema：
 
 | Skill 源码 | Platform Schema |
@@ -291,13 +339,19 @@ procedures
 
 ### 6.1 Agent 查询
 
-模型需要当前事实来决定下一步时，应调用 Runtime admitted 的 read-only Capability。`SKILL.md` 负责给出业务层指导：什么时候必须查询、用哪个 Capability、不能从什么事实进行替代推断。
+模型需要当前事实来决定下一步时，应在 Runtime Resolved CA Toolset 中自主选择合适的 read-only Capability。
 
 正常链路：
 
 ```text
+Skill/domain constraints
+  -> what must be known / what must not be inferred
+
+Runtime/Harness
+  -> resolves allowed read-only Capabilities
+
 Agent
-  -> read-only Tool
+  -> chooses one visible read-only Tool
   -> ca-mcp
   -> Runtime read-only Capability
   -> Runtime Observation acquisition / Provider read path
@@ -306,6 +360,8 @@ Agent
 ```
 
 模型不需要知道 raw ObservationRef、ObservationBinding、Sandbox Observation API 或 Service Fabric internal stream。
+
+Skill 默认不需要指定具体 Tool 名；只有真实领域歧义时才点名。
 
 ### 6.2 Runtime Assurance
 
@@ -369,7 +425,8 @@ cases/<case>/case.yaml
 - 变更操作出现 `OUTCOME_UNKNOWN` 后进行调和；
 - 规划与预算限制；
 - 后置条件独立验证失败；
-- 当规划依赖当前状态时，模型是否先使用 Skill 指定的 read-only Capability 而不是猜测状态。
+- 当规划依赖当前状态时，模型是否能在允许的 read-only Toolset 中自主找到合适 Capability，而不是猜测状态；
+- 如果存在领域歧义，Skill 的语义约束是否足以避免模型用错误事实替代正确事实。
 
 不要把 mock / fixture 返回值直接当成业务成功证明。最终结果仍应由后置条件或独立 Evidence 证明。
 
@@ -413,9 +470,10 @@ Rule/Case 新模型落地前，`5gc-file-transfer` 将作为 reference migration
 2. 判断这是可执行 Skill、路由策略 / 模型上下文，还是 Runtime Capability。
 3. 找 1～2 个最接近的正式 Skill 参考。
 4. 优先复用已有 Registry 中的 Capability、Predicate 和 Schema。
-5. 如果模型规划需要当前状态，确认现有 Registry 中是否已有合适的 read-only Capability，并只在 `SKILL.md` 中写业务层 Tool 使用指导。
-6. 需要改 `assurance/`、脚本或用例时，按需查看 `references/authoring-syntax.md` 对应章节。
-7. 单独编译当前 Skill：
+5. 如果模型规划可能需要当前状态，确认现有 Registry 中是否已有合适的 read-only Capability，并把它纳入正确的 `allowedResources.capabilities` 资源边界；不要为了提示模型而把底层 Observation wiring 写进 `SKILL.md`。
+6. 只在领域语义确实容易误选时，在 `SKILL.md` 补充“应该依赖哪类事实/Capability”的指导。
+7. 需要改 `assurance/`、脚本或用例时，按需查看 `references/authoring-syntax.md` 对应章节。
+8. 单独编译当前 Skill：
 
    ```bash
    python3 -B scripts/verify.py --compile skills/<name>
@@ -429,13 +487,13 @@ Rule/Case 新模型落地前，`5gc-file-transfer` 将作为 reference migration
 
    历史环境变量 `CONNECTIONAGENT_SKILL_PLATFORM_ROOT` 仍作为 compatibility alias 保留。
 
-8. 提交前运行完整仓库验证：
+9. 提交前运行完整仓库验证：
 
    ```bash
    make verify
    ```
 
-9. 如目标是更高等级资格验证或生产环境准入，再进入 Platform / Runtime / Sandbox 对应流程。
+10. 如目标是更高等级资格验证或生产环境准入，再进入 Platform / Runtime / Sandbox 对应流程。
 
 编译通过或本地预检通过，不等于已经通过生产环境资格验证。
 
@@ -446,17 +504,20 @@ Rule/Case 新模型落地前，`5gc-file-transfer` 将作为 reference migration
 ```text
 ca-skills
   编写指南 + 官方 Skill / Rule 源码 authority
-  model-facing guidance for when/which admitted Tool to use
+  Skill resource boundary + epistemic/domain guidance
   # Rule machine source 在 Schema 落地后启用
 
 ca-skill-toolchain
   Schema + 编译器 + 资格验证
 
-ca-runtime
-  准入 + 绑定 + 确定性执行 + Observation/Evidence/Predicate authority
+ca-runtime / Harness
+  准入 + ConnectionAgent Tool eligibility + 绑定 + 确定性执行 + Observation/Evidence/Predicate authority
 
 ca-mcp
-  Runtime admitted Capability -> Agent MCP Tool 的机械适配
+  Runtime-authorized Capability -> Agent MCP Tool 的机械适配
+
+Agent Host
+  注册模型可见 Tool；对 CA Tool 只能执行 Runtime Resolved CA Toolset 或进一步收缩
 
 ca-benchmarks / ca-benchmark-engine
   BenchmarkCase + held-out evaluation + assessment
@@ -464,7 +525,9 @@ ca-benchmarks / ca-benchmark-engine
 
 当某个真实场景暂时表达不出来时，不要首先扩展 Skill 语法。先确认缺口究竟来自：
 
-- 缺少 Agent-visible read-only Capability；
+- 缺少合适的 read-only Capability；
+- Skill `allowedResources.capabilities` 资源边界；
+- Runtime Tool eligibility resolution；
 - ProviderBinding；
 - ObservationBinding / ObservationSource；
 - Runtime 能力；
