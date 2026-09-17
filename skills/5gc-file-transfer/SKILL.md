@@ -22,11 +22,13 @@ Do not use it for generic `[TASK: 5GC-INTENT]` routing or Wi-Fi transfer tasks.
 
 ## Business semantics
 
-- A `prepare_transfer` request must already contain canonical sender/receiver IMSIs. Current UE endpoint addresses are runtime network state and are not routing-model inputs.
+- A `prepare_transfer` request must already contain canonical sender/receiver IMSIs. Current UE endpoint addresses are dynamic network state and are not routing-model inputs.
+- If the Agent must reason about a participant's current endpoint, connectivity, or other dynamic network state before selecting an execution target, establish that fact with an eligible model-visible read-only Tool rather than copying static roster data or inferring from an earlier mutation. The Tool may be exposed directly by its governed owner; do not assume Runtime must proxy it.
+- Agent-visible read results are planning inputs only. Governed execution independently acquires and verifies the evidence required by its Predicate and assurance contracts.
 - Governed execution resolves the current participant endpoint set before assigning virtual-group members. Do not copy IP addresses from a static identity roster.
 - `urgent` means the source intent explicitly asks for accelerated completion, such as urgent, ASAP, hurry, or an equivalent expression. A large file by itself is not urgent.
 - Receiver consent, file upload/download, user-visible messages, and the decision to activate a virtual group remain gateway responsibilities.
 - `virtual_group.activate` is therefore outside this Skill.
 - Once the request is normalized, hand execution to the governed assurance entrypoint. Do not construct ad-hoc NF/VG/PCF Tool sequences from prose.
 
-Provider implementation, ProviderBinding, ObservationBinding, Predicate execution, UNKNOWN/reconcile behavior, and deployment-specific Tool mappings are governed outside model context by the shared Platform/Runtime contracts.
+Provider implementation, ProviderBinding, ObservationBinding, Predicate execution, UNKNOWN/reconcile behavior, Tool eligibility, and deployment-specific Tool mappings are governed outside model context by their owning Platform/Runtime/Tool contracts.
