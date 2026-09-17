@@ -81,32 +81,59 @@ Repository rules:
 - input normalization and disambiguation;
 - model-facing input and output expectations;
 - constraints the model must not guess or bypass;
-- **when the next decision depends on current state, which Agent-visible read-only Capability should be used first.**
+- when the next decision depends on current state, **which facts must first be established and which substitute inferences are invalid**.
 
-Tool-use guidance is appropriate when it changes planning behavior, for example:
+Do not make `SKILL.md` a default Tool workflow script. A general-purpose Agent should normally choose among its current model-visible read-only Capabilities from their names, descriptions, and schemas.
+
+Prefer guidance such as:
 
 ```text
-Before choosing a recovery action, inspect the current user-plane state with <read-only capability>.
+Before choosing a recovery action, establish current user-plane reachability.
 Do not infer user-plane reachability from PDU Session existence.
 ```
 
-Only name model-visible business-semantic Capabilities in `SKILL.md`. Do not expose raw ObservationRefs, ObservationBinding, environment endpoints, or source-specific transport details.
-
-Do not place implementation or deployment mechanics in `SKILL.md`. Provider mappings, endpoints, raw ObservationRefs, ObservationBinding details, ObservationSource transport, Runtime state machines, qualification status, Benchmark scoring, migration notes, and architecture tutorials belong elsewhere.
-
-### 3.1 Tool guidance is not Tool authority
-
-A Skill may tell the model when and which Tool to use, but it cannot widen the Agent's Effective Toolset.
+rather than a default recipe such as:
 
 ```text
-Skill guidance
-  -> model decision guidance
-
-Effective Toolset / Runtime admission
-  -> executable authority
+Step 1: call user_plane.inspect_connectivity
+Step 2: ...
 ```
 
-If a recommended read-only Capability is unavailable to the current AgentInstance, the model must treat it as unavailable. It must not bypass Runtime/`ca-mcp` and call Sandbox, Service Fabric, or a raw Observation API directly.
+Explicitly recommend a model-visible business Capability only when there is real domain ambiguity, for example:
+
+```text
+multiple visible Tools have very similar names or semantics
+the model can easily choose the wrong fact source
+choosing the right class of fact is itself domain knowledge
+```
+
+Even then, `SKILL.md` names only the business-semantic Capability, never raw ObservationRefs, ObservationBinding, environment endpoints, or source-specific transport details.
+
+Do not place implementation or deployment mechanics in `SKILL.md`. Provider mappings, endpoints, raw ObservationRefs, ObservationBinding details, ObservationSource transport, Runtime state machines, Runtime Tool-eligibility policy, qualification status, Benchmark scoring, migration notes, and architecture tutorials belong elsewhere.
+
+### 3.1 Skill semantics are not Tool authority
+
+`SKILL.md` provides epistemic/domain guidance:
+
+```text
+what must be known
+what must not be guessed
+which inference is invalid
+```
+
+The authoritative ConnectionAgent Tool visibility upper bound is resolved by Runtime/Harness:
+
+```text
+Runtime Capability Catalog
+  + selected Skill/Artifact
+  + SkillContract allowedResources
+  + Context / Template / AgentProfile / Environment / policy
+  -> Runtime Resolved CA Toolset
+```
+
+Host and `ca-mcp` mechanically map and may further narrow that set. They must not widen Tool authority based on Skill prose or Goal text.
+
+If a semantically appropriate read-only Capability is not visible to the current AgentInstance, the model must treat it as unavailable. It must not bypass Runtime/`ca-mcp` and call Sandbox, Service Fabric, or a raw Observation API directly.
 
 ## 4. Long-term Rule / Procedure / Predicate model
 
@@ -225,6 +252,26 @@ For executable Skills, the three files under `assurance/` have distinct roles:
 | `procedure.yaml` | deterministic workflow structure and data/control bindings |
 | `predicates.yaml` | required observations and deterministic judgment over materialized evidence |
 
+`contract.yaml` has an additional important role: `allowedResources.capabilities` is one upper-bound input to Runtime/Harness ConnectionAgent Tool-eligibility resolution for this Skill.
+
+Keep the distinction explicit:
+
+```text
+allowedResources.capabilities
+  = Capability universe / upper-bound input allowed by the Skill
+
+Runtime Resolved CA Toolset
+  = the subset currently allowed to be model-visible for the resolved Agent/Skill/Context/Environment
+```
+
+Therefore `allowedResources.capabilities`:
+
+- may include read-only or inspect Capabilities useful to model planning;
+- may also include deterministic Procedure-only Capabilities that do not need to be model-visible;
+- is not an MCP Tool catalog;
+- is not the final model-visible Toolset;
+- cannot bypass Environment, policy, or Runtime admission constraints.
+
 Use these Platform schemas as the authoring authority:
 
 | Source asset | Platform schema |
@@ -249,11 +296,17 @@ These roles must remain distinct.
 
 ### 6.1 Agent read-only inspection
 
-When model planning depends on current state, the model uses a Runtime-admitted read-only Capability. `SKILL.md` provides business-level guidance about when inspection is required, which Capability to use, and which substitute inference is forbidden.
+When model planning depends on current state, the model should autonomously select an appropriate read-only Capability from the Runtime Resolved CA Toolset.
 
 ```text
+Skill/domain constraints
+  -> what must be known / what must not be inferred
+
+Runtime/Harness
+  -> resolves allowed read-only Capabilities
+
 Agent
-  -> read-only Tool
+  -> chooses one visible read-only Tool
   -> ca-mcp
   -> Runtime read-only Capability
   -> Runtime Observation acquisition / Provider read path
@@ -262,6 +315,8 @@ Agent
 ```
 
 The model does not need raw ObservationRefs, ObservationBinding, Sandbox Observation APIs, or Service Fabric internal streams.
+
+A Skill does not need to name a specific Tool by default; explicit Tool guidance is only for real domain ambiguity.
 
 ### 6.2 Runtime Assurance
 
@@ -316,7 +371,8 @@ Use one `case.yaml` per case directory. Coverage should follow the Skill's seman
 - mutation `OUTCOME_UNKNOWN` followed by reconcile;
 - budget or planning limits;
 - independent postcondition failure;
-- when planning depends on current state, whether the model uses the Skill-directed read-only Capability instead of guessing state.
+- when planning depends on current state, whether the model can discover and use an appropriate allowed read-only Capability instead of guessing;
+- where domain ambiguity exists, whether Skill semantics prevent the model from substituting the wrong class of fact.
 
 Do not treat fixture output as proof of the business result. Final success must still be supported by the required postconditions.
 
@@ -358,9 +414,10 @@ For a new Skill or a structural change:
 2. Decide whether the asset is an executable Skill, routing-policy/model-context package, or Runtime Capability.
 3. Inspect one or two current packages with similar semantics.
 4. Reuse existing Registry capability, predicate, and schema contracts where possible.
-5. If model planning depends on current state, confirm that an appropriate Agent-visible read-only Capability already exists and keep only business-level Tool guidance in `SKILL.md`.
-6. Read the relevant section of `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md` before editing assurance source, Scripts, or Cases.
-7. For one executable package, run:
+5. If model planning may depend on current state, confirm that an appropriate read-only Capability exists and place it within the correct `allowedResources.capabilities` resource boundary; do not put low-level Observation wiring into `SKILL.md` just to prompt inspection.
+6. Add explicit Tool guidance in `SKILL.md` only when domain semantics make the correct fact source genuinely ambiguous.
+7. Read the relevant section of `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md` before editing assurance source, Scripts, or Cases.
+8. For one executable package, run:
 
    ```bash
    python3 -B scripts/verify.py --compile skills/<name>
@@ -368,13 +425,13 @@ For a new Skill or a structural change:
 
    Set `CA_SKILL_TOOLCHAIN_ROOT=/path/to/ca-skill-toolchain` when the Toolchain repository is not available as sibling `../ca-skill-toolchain`. The historical `CONNECTIONAGENT_SKILL_PLATFORM_ROOT` remains a compatibility alias.
 
-8. Before delivery, run:
+9. Before delivery, run:
 
    ```bash
    make verify
    ```
 
-9. Report the checks that actually ran and any remaining Platform, Runtime, Provider, Sandbox, or deployment dependency.
+10. Report the checks that actually ran and any remaining Platform, Runtime, Provider, Sandbox, or deployment dependency.
 
 A successful compile or repository preflight check does not make a Skill production-qualified.
 
@@ -385,20 +442,23 @@ Keep the repository boundary simple:
 ```text
 ca-skills
   authoring guidance + official Skill / Rule source authority
-  model-facing guidance for when/which admitted Tool to use
+  Skill resource boundary + epistemic/domain guidance
   # Rule machine source becomes active only after the schema lands
 
 ca-skill-toolchain
   machine schemas + compiler + qualification
 
-ca-runtime
-  admission + binding + deterministic execution + Observation/Evidence/Predicate authority
+ca-runtime / Harness
+  admission + ConnectionAgent Tool eligibility + binding + deterministic execution + Observation/Evidence/Predicate authority
 
 ca-mcp
-  mechanical mapping from Runtime admitted Capability to Agent MCP Tool
+  mechanical mapping from Runtime-authorized Capability to Agent MCP Tool
+
+Agent Host
+  registers model-visible Tools; for CA Tools it may only apply Runtime Resolved CA Toolset or narrow it further
 
 ca-benchmarks / ca-benchmark-engine
   BenchmarkCase + held-out evaluation + assessment
 ```
 
-If a concrete scenario cannot be expressed, first check whether the missing piece is an Agent-visible read-only Capability, ProviderBinding, ObservationBinding/ObservationSource, Runtime behavior, qualification rule, Benchmark/Judge requirement, or integration issue before changing the Skill language.
+If a concrete scenario cannot be expressed, first check whether the missing piece is an appropriate read-only Capability, the Skill `allowedResources.capabilities` boundary, Runtime Tool-eligibility resolution, ProviderBinding, ObservationBinding/ObservationSource, Runtime behavior, qualification, Benchmark/Judge requirements, or integration before changing the Skill language.
