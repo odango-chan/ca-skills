@@ -36,7 +36,7 @@ Choose exactly one primary asset class:
 
 - **Executable Skill** — product/domain goal with deterministic assurance composition;
 - **Model-context / routing-policy package** — model-visible semantics only, with no preliminary Runtime Procedure;
-- **Runtime Capability** — low-level Provider/read/mutation action; do not create a Skill merely to wrap one primitive call.
+- **Capability / Tool contract** — low-level governed read/mutation/local-compute operation; do not create a Skill merely to wrap one primitive call.
 
 Routing is Agent-owned. Do not model routing as one Skill executing to mint authority for another Skill.
 
@@ -68,7 +68,7 @@ Keep these rules invariant:
 - no package-root `README.md`, `MIGRATION.md`, or `examples/`;
 - no empty placeholder directories;
 - model-facing Markdown under `skills/` is English;
-- Provider/deployment bindings and Runtime state do not belong in Skill source.
+- Provider/deployment bindings, Tool-owner transport details, and Runtime state do not belong in Skill source.
 
 ## Keep package `SKILL.md` thin
 
@@ -81,7 +81,7 @@ Keep these rules invariant:
 - boundaries the model must not guess or bypass;
 - when a decision depends on current state, which facts must first be established and which substitute inferences are invalid.
 
-Do **not** make `SKILL.md` a default Tool workflow script. A general-purpose Agent should normally choose among its current model-visible read-only Capabilities from Tool names, descriptions, and schemas.
+Do **not** make `SKILL.md` a default Tool workflow script. A general-purpose Agent should normally choose among its current model-visible read-only Tools from Tool names, descriptions, and schemas.
 
 Prefer:
 
@@ -97,47 +97,52 @@ Step 1: call user_plane.inspect_connectivity
 Step 2: ...
 ```
 
-Explicitly recommend a business-semantic Capability only when there is genuine domain ambiguity: multiple visible Tools have similar semantics and selecting the correct fact source is itself domain knowledge.
+Explicitly recommend a business-semantic Tool/Capability only when there is genuine domain ambiguity: multiple visible Tools have similar semantics and selecting the correct fact source is itself domain knowledge.
 
-Never expose raw ObservationRefs, ObservationBinding, ObservationSource endpoints, Sandbox trust surfaces, or Service Fabric internal streams as model guidance.
+Never expose raw ObservationRefs, ObservationBinding, ObservationSource endpoints, GroundTruth, or owner-private event streams as model guidance.
 
-## Skill resource boundary is not Tool authority
+## Skill resource boundary is not Tool provision
 
-For executable Skills, `assurance/contract.yaml.allowedResources.capabilities` is one Skill-level Capability universe / upper-bound input.
+For executable Skills, `assurance/contract.yaml.allowedResources.capabilities` is a Skill-level semantic Capability universe / upper-bound input.
 
 It may include:
 
 ```text
-read-only / inspect Capabilities useful to planning
-Procedure-only Capabilities
-mutation Capabilities
-local compute Capabilities
+read-only / inspect capabilities useful to planning
+Procedure-only capabilities
+mutation capabilities
+local compute capabilities
 ```
 
 But:
 
 ```text
 allowedResources.capabilities
-  != Runtime Resolved CA Toolset
-  != MCP Tool catalog
   != final model-visible Tool list
+  != MCP Tool catalog
+  != statement that Runtime provides every Tool
 ```
 
-Current architecture:
+ConnectionAgent follows owner-direct / direct-first composition:
 
 ```text
-Runtime Capability Catalog
-  + selected/admitted Skill or Artifact
-  + SkillContract allowedResources.capabilities
-  + Context / Template / AgentProfile / Environment / policy inputs
-  -> ca-runtime / Harness
-  -> Runtime Resolved CA Toolset
-  -> ca-mcp / Host mechanical mapping and optional narrowing
+Tool owner
+  -> owns Tool contract, implementation, catalog and transport surface
+
+ca-runtime / Harness
+  -> owns authoritative ConnectionAgent Tool eligibility for the resolved execution context
+
+Agent Host
+  -> mechanically composes eligible Tools from their real owners
+  -> may narrow further
+  -> must not widen Runtime/Harness eligibility
 ```
 
-Runtime/Harness owns authoritative ConnectionAgent Tool eligibility. `ca-mcp` and Host may mechanically narrow but never widen it. Skill prose cannot grant Tool authority.
+A model-visible read-only Tool may therefore be provided by Runtime-backed `ca-mcp`, Service Fabric, Sandbox, another governed MCP owner, or another admitted Tool owner. Do not wrap a Tool through Runtime merely to make it visible to the model when the owner already has a stable governed surface.
 
-Do not add new Skill fields such as:
+The Runtime/Harness eligibility result should bind semantic capability requirements to owner-provided Tool identities; Tool provision remains with the owner.
+
+Do not add local Skill fields such as:
 
 ```text
 visibleTools
@@ -156,17 +161,28 @@ When planning depends on current state:
 Skill/domain guidance
   -> what must be known / what must not be inferred
 
-Runtime Resolved CA Toolset
-  -> eligible read-only Capabilities
+Runtime/Harness eligibility
+  -> which governed ConnectionAgent Tools are allowed to be model-visible
+
+Host
+  -> composes those Tools from their actual owners
 
 Agent
-  -> autonomously chooses a visible read-only Tool
-  -> ca-mcp
-  -> Runtime read-only Capability
-  -> Runtime Observation acquisition / Provider read path
-  -> trusted fact
-  -> planning
+  -> autonomously chooses an eligible read-only Tool
+  -> Tool owner returns current business fact
+  -> planning continues
 ```
+
+Examples of legitimate read-only Tool owners include:
+
+```text
+Runtime-backed ca-mcp
+Service Fabric
+Sandbox / environment service
+another governed MCP/server owner
+```
+
+Do not require the observation path to traverse RuntimeHost if the Tool owner already exposes the governed read surface directly.
 
 Runtime Assurance remains independent:
 
@@ -174,12 +190,12 @@ Runtime Assurance remains independent:
 Procedure / precondition / postcondition
   -> Predicate
   -> required Observation
-  -> Runtime Observation acquisition
+  -> Runtime-governed Observation acquisition
   -> Evidence
   -> PASS / FAIL / UNKNOWN
 ```
 
-The two consumers may share ObservationSource, binding, normalization, provenance, and a freshness-valid cache. But:
+Agent-facing read Tools and Runtime Assurance may ultimately observe the same underlying network/environment fact, but they do not share verdict authority:
 
 ```text
 Agent read result
@@ -212,9 +228,10 @@ Do not load it for a simple model-context/routing-policy edit that only changes 
 - use governed outcomes and explicit `on` routing;
 - mutation `OUTCOME_UNKNOWN` preserves uncertainty and must reconcile before retry/continuation;
 - `applicability.when` is Procedure selection, not Runtime Predicate evaluation;
-- if planning needs current state, ensure an appropriate read-only Capability exists within the Skill resource boundary; do not assume Skill prose makes it visible;
-- model Tool choice is normally autonomous within the Runtime-resolved set;
-- Agent read-only inspection may share Runtime Observation acquisition with Assurance, but not verdict authority;
+- if planning needs current state, ensure an appropriate governed read-only Tool can be bound into the Agent's eligible Toolset;
+- do not assume Runtime is the Tool provider; preserve owner-direct access where a governed owner surface already exists;
+- model Tool choice is normally autonomous within the eligible visible set;
+- Agent read-only inspection is planning input, never Predicate verdict authority;
 - Runtime Assurance must not depend on the model having inspected first;
 - Observation acquisition happens before Predicate evaluation;
 - missing/stale/unavailable required evidence becomes `UNKNOWN`, not business `FAIL`;
@@ -226,27 +243,28 @@ Do not load it for a simple model-context/routing-policy edit that only changes 
 ## Workflow
 
 1. Read repository `AGENTS.md`.
-2. Classify the request as executable Skill, model-context/routing policy, or Runtime Capability.
+2. Classify the request as executable Skill, model-context/routing policy, or governed Capability/Tool.
 3. Inspect one or two adjacent official Skills with similar semantics.
 4. Reuse existing governed contracts before introducing new local assets.
-5. If model planning depends on current state, confirm an appropriate read-only Capability exists and place it in the correct `allowedResources.capabilities` boundary where applicable.
-6. Put epistemic/domain constraints in `SKILL.md`; name a specific Capability only for genuine domain ambiguity.
-7. Read `references/authoring-syntax.md` only if assurance, Script, or Case source must change.
-8. Write the smallest complete package; do not add speculative files or duplicate language docs.
-9. Run focused compile:
+5. If model planning depends on current state, identify the required fact and confirm there is an admitted read-only Tool capable of establishing it.
+6. Confirm the Tool can be included by Runtime/Harness eligibility without changing Tool ownership or forcing a Runtime proxy.
+7. Put epistemic/domain constraints in `SKILL.md`; name a specific Tool/Capability only for genuine domain ambiguity.
+8. Read `references/authoring-syntax.md` only if assurance, Script, or Case source must change.
+9. Write the smallest complete package; do not add speculative files or duplicate language docs.
+10. Run focused compile:
 
    ```bash
    python3 -B scripts/verify.py --compile skills/<name>
    ```
 
-10. Before delivery, run:
+11. Before delivery, run:
 
    ```bash
    make verify
    ```
 
-11. Run additional qualification/production admission required by the owning Runtime/Sandbox environment.
-12. Report exactly what ran and what did not run.
+12. Run additional qualification/production admission required by the owning Runtime/Sandbox/environment.
+13. Report exactly what ran and what did not run.
 
 A focused compile or green source gate is not production qualification.
 
@@ -262,10 +280,11 @@ Do not add:
 - raw ObservationRef / ObservationBinding as model-facing Tool guidance;
 - `PlanningObservation` / `Agent Observation Projection` as new artifact types;
 - `visibleTools` / `planningTools` / `observationTools` as local Tool-authority fields;
+- Runtime proxy wrappers whose only purpose is to re-export an already governed owner Tool;
 - graph coordinates/layout metadata in Skill source;
 - `ExecutionTarget.v1`, `RunPlanSnapshot.v1`, `RunPlanRevision.v1`, or generic `PlanDelta.v1` as new cross-repository contracts.
 
-If a scenario appears impossible, first determine whether the gap is an appropriate read-only Capability, Skill resource boundary, Runtime Tool eligibility resolution, ProviderBinding, ObservationBinding/ObservationSource, Runtime behavior, qualification, or integration before changing the Skill language.
+If a scenario appears impossible, first determine whether the gap is a missing read-only Tool, Tool-owner contract/catalog, Skill resource boundary, Runtime Tool eligibility resolution, Tool binding, ObservationBinding/ObservationSource, Runtime behavior, qualification, or integration before changing the Skill language.
 
 ## Delivery
 
@@ -274,6 +293,6 @@ Report:
 - files added/changed/removed;
 - semantic decisions and reused contracts;
 - exact verification/compile/qualification commands actually run;
-- unresolved Toolchain, Runtime, Provider, Sandbox, or deployment dependencies.
+- unresolved Toolchain, Runtime, Tool-owner, Provider, Sandbox, or deployment dependencies.
 
 For detailed syntax, read `references/authoring-syntax.md`. For Skill-vs-Capability granularity, read `references/skill-granularity.md`. For the human-oriented guide, see `docs/authoring.md`.
