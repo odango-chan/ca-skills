@@ -100,13 +100,25 @@ skills/<name>/
 - 对应的业务或领域目标；
 - 输入如何归一化、如何消歧；
 - 模型需要理解的输入输出语义；
-- 哪些信息不能猜、哪些边界不能绕过。
+- 哪些信息不能猜、哪些边界不能绕过；
+- **当下一步取决于当前状态时，什么时候必须先查询事实，以及应该使用哪个 Agent-visible read-only Capability。**
+
+这里允许写 Tool 使用指导，因为它直接影响模型规划，例如：
+
+```text
+在选择恢复动作前，先使用 <read-only capability> 确认当前用户面状态。
+不要从 PDU Session 存在这一事实推断用户面一定可达。
+```
+
+但 `SKILL.md` 只写**模型可见的业务语义 Capability**，不写底层 ObservationRef、ObservationBinding 或环境 endpoint。
 
 不应放进 `SKILL.md` 的内容包括：
 
 - Provider 实现和映射；
 - 部署地址、凭据；
+- raw `ObservationRef`；
 - ObservationBinding；
+- ObservationSource endpoint / transport；
 - Runtime 状态机；
 - 资格验证状态；
 - Benchmark 评分规则；
@@ -114,6 +126,20 @@ skills/<name>/
 - 大段系统架构教程。
 
 这些内容属于各自的实现仓或工程文档，不属于模型上下文。
+
+### 3.1 Tool 指导不等于 Tool 授权
+
+`SKILL.md` 可以告诉模型“何时用哪个 Tool”，但不能因此扩大当前 Agent 的 Effective Toolset。
+
+```text
+Skill guidance
+  -> model decision hint
+
+Effective Toolset / Runtime admission
+  -> actual executable authority
+```
+
+如果 Skill 建议的 read-only Capability 在当前 AgentInstance 中不可见或不可执行，模型必须按 unavailable 处理，不能绕过 Runtime/`ca-mcp` 直接调用 Sandbox、Service Fabric 或 Observation API。
 
 ## 4. Rule / Procedure / Predicate 的长期关系
 
@@ -259,13 +285,62 @@ procedures
 .agents/skills/create-connectionagent-skill/references/authoring-syntax.md
 ```
 
-## 6. Observation、Evidence 与 Predicate
+## 6. Observation、Evidence、Agent 查询与 Predicate
 
-这三者不要混在一起理解。
+这些概念不要混在一起理解。
 
-Runtime 先根据 Predicate 声明获取所需 Observation，并形成可供判断的 Evidence。随后 Evidence Gate 检查所需数据是否存在、是否新鲜、是否可用。
+### 6.1 Agent 查询
+
+模型需要当前事实来决定下一步时，应调用 Runtime admitted 的 read-only Capability。`SKILL.md` 负责给出业务层指导：什么时候必须查询、用哪个 Capability、不能从什么事实进行替代推断。
+
+正常链路：
+
+```text
+Agent
+  -> read-only Tool
+  -> ca-mcp
+  -> Runtime read-only Capability
+  -> Runtime Observation acquisition / Provider read path
+  -> trusted fact
+  -> Agent planning
+```
+
+模型不需要知道 raw ObservationRef、ObservationBinding、Sandbox Observation API 或 Service Fabric internal stream。
+
+### 6.2 Runtime Assurance
+
+Runtime 根据 Predicate 声明获取所需 Observation，并形成可供判断的 Evidence。随后 Evidence Gate 检查所需数据是否存在、是否新鲜、是否可用。
+
+```text
+Procedure / precondition / postcondition
+  -> Predicate
+  -> required Observation
+  -> Runtime Observation acquisition
+  -> Evidence
+  -> PASS / FAIL / UNKNOWN
+```
 
 如果必要 Evidence 缺失、过期或不可用，应得到 `UNKNOWN`，而不是把“没有证据”误判成业务 `FAIL`。
+
+### 6.3 共用事实基础设施，不共用 verdict authority
+
+Agent read-only Capability 与 Runtime Assurance 可以共用同一 ObservationSource、binding、normalization、provenance 以及满足 freshness 条件的 observation cache。
+
+但必须保持：
+
+```text
+Agent read result
+  = planning input
+
+Predicate result
+  = assurance verdict authority
+```
+
+模型刚查询过状态，不代表 postcondition 自动 PASS；Runtime Assurance 也不依赖模型必须先查询。
+
+Observation 的事实类型仍按来源/语义区分，例如 Network Observation 与 Environment Observation；不要再引入 `Planning Observation`、`Agent Observation Projection` 等并列类型。
+
+### 6.4 Predicate evaluator
 
 判断器建议：
 
@@ -293,7 +368,8 @@ cases/<case>/case.yaml
 - Evidence `UNKNOWN`；
 - 变更操作出现 `OUTCOME_UNKNOWN` 后进行调和；
 - 规划与预算限制；
-- 后置条件独立验证失败。
+- 后置条件独立验证失败；
+- 当规划依赖当前状态时，模型是否先使用 Skill 指定的 read-only Capability 而不是猜测状态。
 
 不要把 mock / fixture 返回值直接当成业务成功证明。最终结果仍应由后置条件或独立 Evidence 证明。
 
@@ -337,8 +413,9 @@ Rule/Case 新模型落地前，`5gc-file-transfer` 将作为 reference migration
 2. 判断这是可执行 Skill、路由策略 / 模型上下文，还是 Runtime Capability。
 3. 找 1～2 个最接近的正式 Skill 参考。
 4. 优先复用已有 Registry 中的 Capability、Predicate 和 Schema。
-5. 需要改 `assurance/`、脚本或用例时，按需查看 `references/authoring-syntax.md` 对应章节。
-6. 单独编译当前 Skill：
+5. 如果模型规划需要当前状态，确认现有 Registry 中是否已有合适的 read-only Capability，并只在 `SKILL.md` 中写业务层 Tool 使用指导。
+6. 需要改 `assurance/`、脚本或用例时，按需查看 `references/authoring-syntax.md` 对应章节。
+7. 单独编译当前 Skill：
 
    ```bash
    python3 -B scripts/verify.py --compile skills/<name>
@@ -352,13 +429,13 @@ Rule/Case 新模型落地前，`5gc-file-transfer` 将作为 reference migration
 
    历史环境变量 `CONNECTIONAGENT_SKILL_PLATFORM_ROOT` 仍作为 compatibility alias 保留。
 
-7. 提交前运行完整仓库验证：
+8. 提交前运行完整仓库验证：
 
    ```bash
    make verify
    ```
 
-8. 如目标是更高等级资格验证或生产环境准入，再进入 Platform / Runtime / Sandbox 对应流程。
+9. 如目标是更高等级资格验证或生产环境准入，再进入 Platform / Runtime / Sandbox 对应流程。
 
 编译通过或本地预检通过，不等于已经通过生产环境资格验证。
 
@@ -369,13 +446,17 @@ Rule/Case 新模型落地前，`5gc-file-transfer` 将作为 reference migration
 ```text
 ca-skills
   编写指南 + 官方 Skill / Rule 源码 authority
+  model-facing guidance for when/which admitted Tool to use
   # Rule machine source 在 Schema 落地后启用
 
 ca-skill-toolchain
   Schema + 编译器 + 资格验证
 
 ca-runtime
-  准入 + 绑定 + 确定性执行
+  准入 + 绑定 + 确定性执行 + Observation/Evidence/Predicate authority
+
+ca-mcp
+  Runtime admitted Capability -> Agent MCP Tool 的机械适配
 
 ca-benchmarks / ca-benchmark-engine
   BenchmarkCase + held-out evaluation + assessment
@@ -383,8 +464,9 @@ ca-benchmarks / ca-benchmark-engine
 
 当某个真实场景暂时表达不出来时，不要首先扩展 Skill 语法。先确认缺口究竟来自：
 
+- 缺少 Agent-visible read-only Capability；
 - ProviderBinding；
-- ObservationBinding；
+- ObservationBinding / ObservationSource；
 - Runtime 能力；
 - 资格验证；
 - Benchmark / Judge；
