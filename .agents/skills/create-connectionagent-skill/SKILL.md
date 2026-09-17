@@ -1,11 +1,11 @@
 ---
 name: create-connectionagent-skill
-description: Use when the user asks to design, create, or structurally complete an official ConnectionAgent Skill source package in this repository. Classify the asset, follow the current authoring workflow, load detailed syntax references only when needed, validate with Skill Platform, and report qualification status precisely.
+description: Use when the user asks to design, create, or structurally complete an official ConnectionAgent Skill source package in this repository. Classify the asset, follow the current authoring workflow, load detailed syntax references only when needed, validate with Skill Toolchain, and report qualification status precisely.
 ---
 
 # Create ConnectionAgent Skill
 
-Create or structurally complete official ConnectionAgent Skill source in `connectionagent-skills`.
+Create or structurally complete official ConnectionAgent Skill source in `ca-skills`.
 
 Official source lives only under `skills/<name>/`. This developer workflow is an authoring assistant, not an official business Skill and not a second machine-language authority.
 
@@ -16,11 +16,11 @@ Read repository `AGENTS.md` first.
 Use this precedence:
 
 1. current cross-repository machine-contract/stage decisions;
-2. current Skill Platform schemas and compiler behavior;
+2. current `ca-skill-toolchain` schemas and compiler behavior;
 3. repository-local `AGENTS.md` rules;
 4. this workflow and its references.
 
-For official source authoring, the important Platform schemas are:
+Important source schemas:
 
 - `assurance/contract.yaml` -> `schemas/v1alpha1/skill-contract.schema.yaml`;
 - `assurance/procedure.yaml` -> `schemas/v1alpha1/procedure-source.schema.yaml`;
@@ -36,7 +36,7 @@ Choose exactly one primary asset class:
 
 - **Executable Skill** — product/domain goal with deterministic assurance composition;
 - **Model-context / routing-policy package** — model-visible semantics only, with no preliminary Runtime Procedure;
-- **Runtime Capability** — low-level Provider action; do not create a Skill merely to wrap one primitive call.
+- **Runtime Capability** — low-level Provider/read/mutation action; do not create a Skill merely to wrap one primitive call.
 
 Routing is Agent-owned. Do not model routing as one Skill executing to mint authority for another Skill.
 
@@ -70,35 +70,132 @@ Keep these rules invariant:
 - model-facing Markdown under `skills/` is English;
 - Provider/deployment bindings and Runtime state do not belong in Skill source.
 
-## Keep the package `SKILL.md` thin
+## Keep package `SKILL.md` thin
 
-The package `SKILL.md` is the single model-facing entry point. Keep only information that materially changes model decisions:
+`SKILL.md` is the model-facing semantic entry point. Keep only information that materially changes model decisions:
 
 - when the Skill applies;
 - business/domain meaning;
 - normalization and disambiguation;
 - model-facing structured expectations;
 - boundaries the model must not guess or bypass;
-- when the next decision depends on current state, which admitted read-only Capability the model should use first.
+- when a decision depends on current state, which facts must first be established and which substitute inferences are invalid.
 
-It is valid for `SKILL.md` to say things such as:
+Do **not** make `SKILL.md` a default Tool workflow script. A general-purpose Agent should normally choose among its current model-visible read-only Capabilities from Tool names, descriptions, and schemas.
+
+Prefer:
 
 ```text
-Before choosing a recovery action, inspect the current state with <read-only capability>.
-Do not infer connectivity from PDU Session existence.
+Before choosing a recovery action, establish current user-plane reachability.
+Do not infer user-plane reachability from PDU Session existence.
 ```
 
-Only name model-visible business-semantic Capabilities. Do not expose raw ObservationRefs, ObservationBinding, ObservationSource endpoints, Sandbox trust surfaces, or Service Fabric internal streams.
+instead of:
 
-Tool guidance is not Tool authority. A Skill must not widen the Agent's Effective Toolset. If a recommended read-only Capability is unavailable, the model must treat it as unavailable instead of bypassing Runtime/`ca-mcp`.
+```text
+Step 1: call user_plane.inspect_connectivity
+Step 2: ...
+```
 
-Do not copy full Procedure graphs, Provider mappings, deployment endpoints, Runtime state machines, qualification status, Benchmark scoring, architecture tutorials, or migration history into model context.
+Explicitly recommend a business-semantic Capability only when there is genuine domain ambiguity: multiple visible Tools have similar semantics and selecting the correct fact source is itself domain knowledge.
+
+Never expose raw ObservationRefs, ObservationBinding, ObservationSource endpoints, Sandbox trust surfaces, or Service Fabric internal streams as model guidance.
+
+## Skill resource boundary is not Tool authority
+
+For executable Skills, `assurance/contract.yaml.allowedResources.capabilities` is one Skill-level Capability universe / upper-bound input.
+
+It may include:
+
+```text
+read-only / inspect Capabilities useful to planning
+Procedure-only Capabilities
+mutation Capabilities
+local compute Capabilities
+```
+
+But:
+
+```text
+allowedResources.capabilities
+  != Runtime Resolved CA Toolset
+  != MCP Tool catalog
+  != final model-visible Tool list
+```
+
+Current architecture:
+
+```text
+Runtime Capability Catalog
+  + selected/admitted Skill or Artifact
+  + SkillContract allowedResources.capabilities
+  + Context / Template / AgentProfile / Environment / policy inputs
+  -> ca-runtime / Harness
+  -> Runtime Resolved CA Toolset
+  -> ca-mcp / Host mechanical mapping and optional narrowing
+```
+
+Runtime/Harness owns authoritative ConnectionAgent Tool eligibility. `ca-mcp` and Host may mechanically narrow but never widen it. Skill prose cannot grant Tool authority.
+
+Do not add new Skill fields such as:
+
+```text
+visibleTools
+toolset
+planningTools
+observationTools
+```
+
+unless a future cross-repository machine-contract decision explicitly introduces them.
+
+## Observation and Assurance
+
+When planning depends on current state:
+
+```text
+Skill/domain guidance
+  -> what must be known / what must not be inferred
+
+Runtime Resolved CA Toolset
+  -> eligible read-only Capabilities
+
+Agent
+  -> autonomously chooses a visible read-only Tool
+  -> ca-mcp
+  -> Runtime read-only Capability
+  -> Runtime Observation acquisition / Provider read path
+  -> trusted fact
+  -> planning
+```
+
+Runtime Assurance remains independent:
+
+```text
+Procedure / precondition / postcondition
+  -> Predicate
+  -> required Observation
+  -> Runtime Observation acquisition
+  -> Evidence
+  -> PASS / FAIL / UNKNOWN
+```
+
+The two consumers may share ObservationSource, binding, normalization, provenance, and a freshness-valid cache. But:
+
+```text
+Agent read result
+  = planning input
+
+Predicate result
+  = assurance verdict authority
+```
+
+A model having inspected a fact does not make a postcondition pass. Runtime Assurance also must not depend on the model having inspected first.
+
+Do not introduce `PlanningObservation`, `Agent Observation Projection`, or another parallel Observation fact type. Retain fact-oriented distinctions such as Network Observation and Environment Observation.
 
 ## Load detailed references only when needed
 
-Use progressive disclosure instead of carrying all syntax in this file.
-
-Read `references/authoring-syntax.md` when creating or changing any of these assets:
+Read `references/authoring-syntax.md` when creating or changing:
 
 - `assurance/contract.yaml`;
 - `assurance/procedure.yaml`;
@@ -106,29 +203,25 @@ Read `references/authoring-syntax.md` when creating or changing any of these ass
 - governed `scripts/*.py`;
 - `cases/<case>/case.yaml`.
 
-That reference contains the current practical syntax, bindings, node forms, Predicate/Evidence rules, Script metadata, Case envelope, and links to official examples.
-
 Do not load it for a simple model-context/routing-policy edit that only changes `SKILL.md` or model references.
 
 ## Core authoring invariants
-
-Apply these even before opening the detailed syntax reference:
 
 - reuse governed Registry Capability/Predicate/schema contracts before creating local ones;
 - Procedure source uses current object-form vNext (`procedures -> start/nodes`);
 - use governed outcomes and explicit `on` routing;
 - mutation `OUTCOME_UNKNOWN` preserves uncertainty and must reconcile before retry/continuation;
 - `applicability.when` is Procedure selection, not Runtime Predicate evaluation;
-- model planning that depends on current state uses an admitted read-only Capability named by the Skill instead of guessing state;
-- Agent read-only inspection may reuse the same Runtime Observation acquisition/source as Assurance, but its result remains planning input rather than Predicate verdict authority;
+- if planning needs current state, ensure an appropriate read-only Capability exists within the Skill resource boundary; do not assume Skill prose makes it visible;
+- model Tool choice is normally autonomous within the Runtime-resolved set;
+- Agent read-only inspection may share Runtime Observation acquisition with Assurance, but not verdict authority;
 - Runtime Assurance must not depend on the model having inspected first;
 - Observation acquisition happens before Predicate evaluation;
-- missing/stale/unavailable required evidence becomes `UNKNOWN` through the Evidence Gate, not business `FAIL`;
-- do not introduce `Planning Observation` or `Agent Observation Projection` as parallel fact types; retain fact-oriented Network Observation / Environment Observation distinctions;
+- missing/stale/unavailable required evidence becomes `UNKNOWN`, not business `FAIL`;
 - CEL is for small auditable deterministic assertions; governed Script is for complex deterministic local judgment;
 - Predicate Scripts must not call Providers, MCP servers, networks, or acquire additional evidence;
 - SkillTestCase is not BenchmarkCase;
-- Case coverage follows semantic obligations, not a fixed Case count.
+- Case coverage follows semantic obligations, not a fixed count.
 
 ## Workflow
 
@@ -136,25 +229,24 @@ Apply these even before opening the detailed syntax reference:
 2. Classify the request as executable Skill, model-context/routing policy, or Runtime Capability.
 3. Inspect one or two adjacent official Skills with similar semantics.
 4. Reuse existing governed contracts before introducing new local assets.
-5. If model planning depends on current state, confirm that an appropriate Agent-visible read-only Capability exists; keep only business-level Tool-use guidance in `SKILL.md`.
-6. Read `references/authoring-syntax.md` only if assurance, Script, or Case source must be authored or changed.
-7. Write the smallest complete package; do not add speculative files or duplicate language documentation.
-8. For one executable package, run focused compile:
+5. If model planning depends on current state, confirm an appropriate read-only Capability exists and place it in the correct `allowedResources.capabilities` boundary where applicable.
+6. Put epistemic/domain constraints in `SKILL.md`; name a specific Capability only for genuine domain ambiguity.
+7. Read `references/authoring-syntax.md` only if assurance, Script, or Case source must change.
+8. Write the smallest complete package; do not add speculative files or duplicate language docs.
+9. Run focused compile:
 
    ```bash
    python3 -B scripts/verify.py --compile skills/<name>
    ```
 
-9. Before delivery, run the repository source/preflight gate:
+10. Before delivery, run:
 
    ```bash
    make verify
    ```
 
-10. Run any additional SQ/production admission work required by the owning Platform/Runtime/Sandbox environment.
-11. Report exactly what ran and what did not run.
-
-`verify.py` uses `CONNECTIONAGENT_SKILL_PLATFORM_ROOT` when set; otherwise it expects sibling `../connectionagent-skill-platform`.
+11. Run additional qualification/production admission required by the owning Runtime/Sandbox environment.
+12. Report exactly what ran and what did not run.
 
 A focused compile or green source gate is not production qualification.
 
@@ -168,11 +260,12 @@ Do not add:
 - another compile helper under this authoring workflow;
 - Provider/deployment mappings in model context;
 - raw ObservationRef / ObservationBinding as model-facing Tool guidance;
-- `Planning Observation` / `Agent Observation Projection` as new artifact types;
+- `PlanningObservation` / `Agent Observation Projection` as new artifact types;
+- `visibleTools` / `planningTools` / `observationTools` as local Tool-authority fields;
 - graph coordinates/layout metadata in Skill source;
 - `ExecutionTarget.v1`, `RunPlanSnapshot.v1`, `RunPlanRevision.v1`, or generic `PlanDelta.v1` as new cross-repository contracts.
 
-If a concrete scenario appears impossible, first determine whether the gap is actually a missing Agent-visible read-only Capability, ProviderBinding, ObservationBinding/ObservationSource, Runtime behavior, qualification, or integration before changing the frozen Skill language.
+If a scenario appears impossible, first determine whether the gap is an appropriate read-only Capability, Skill resource boundary, Runtime Tool eligibility resolution, ProviderBinding, ObservationBinding/ObservationSource, Runtime behavior, qualification, or integration before changing the Skill language.
 
 ## Delivery
 
@@ -181,6 +274,6 @@ Report:
 - files added/changed/removed;
 - semantic decisions and reused contracts;
 - exact verification/compile/qualification commands actually run;
-- unresolved Platform, Runtime, Provider, Sandbox, or deployment dependencies.
+- unresolved Toolchain, Runtime, Provider, Sandbox, or deployment dependencies.
 
-For detailed authoring syntax, read `references/authoring-syntax.md`. For Skill-vs-Capability granularity, read `references/skill-granularity.md`. For the human-oriented repository guide, see `docs/authoring.md`.
+For detailed syntax, read `references/authoring-syntax.md`. For Skill-vs-Capability granularity, read `references/skill-granularity.md`. For the human-oriented guide, see `docs/authoring.md`.
