@@ -78,7 +78,19 @@ The package `SKILL.md` is the single model-facing entry point. Keep only informa
 - business/domain meaning;
 - normalization and disambiguation;
 - model-facing structured expectations;
-- boundaries the model must not guess or bypass.
+- boundaries the model must not guess or bypass;
+- when the next decision depends on current state, which admitted read-only Capability the model should use first.
+
+It is valid for `SKILL.md` to say things such as:
+
+```text
+Before choosing a recovery action, inspect the current state with <read-only capability>.
+Do not infer connectivity from PDU Session existence.
+```
+
+Only name model-visible business-semantic Capabilities. Do not expose raw ObservationRefs, ObservationBinding, ObservationSource endpoints, Sandbox trust surfaces, or Service Fabric internal streams.
+
+Tool guidance is not Tool authority. A Skill must not widen the Agent's Effective Toolset. If a recommended read-only Capability is unavailable, the model must treat it as unavailable instead of bypassing Runtime/`ca-mcp`.
 
 Do not copy full Procedure graphs, Provider mappings, deployment endpoints, Runtime state machines, qualification status, Benchmark scoring, architecture tutorials, or migration history into model context.
 
@@ -107,8 +119,12 @@ Apply these even before opening the detailed syntax reference:
 - use governed outcomes and explicit `on` routing;
 - mutation `OUTCOME_UNKNOWN` preserves uncertainty and must reconcile before retry/continuation;
 - `applicability.when` is Procedure selection, not Runtime Predicate evaluation;
+- model planning that depends on current state uses an admitted read-only Capability named by the Skill instead of guessing state;
+- Agent read-only inspection may reuse the same Runtime Observation acquisition/source as Assurance, but its result remains planning input rather than Predicate verdict authority;
+- Runtime Assurance must not depend on the model having inspected first;
 - Observation acquisition happens before Predicate evaluation;
 - missing/stale/unavailable required evidence becomes `UNKNOWN` through the Evidence Gate, not business `FAIL`;
+- do not introduce `Planning Observation` or `Agent Observation Projection` as parallel fact types; retain fact-oriented Network Observation / Environment Observation distinctions;
 - CEL is for small auditable deterministic assertions; governed Script is for complex deterministic local judgment;
 - Predicate Scripts must not call Providers, MCP servers, networks, or acquire additional evidence;
 - SkillTestCase is not BenchmarkCase;
@@ -120,22 +136,23 @@ Apply these even before opening the detailed syntax reference:
 2. Classify the request as executable Skill, model-context/routing policy, or Runtime Capability.
 3. Inspect one or two adjacent official Skills with similar semantics.
 4. Reuse existing governed contracts before introducing new local assets.
-5. Read `references/authoring-syntax.md` only if assurance, Script, or Case source must be authored or changed.
-6. Write the smallest complete package; do not add speculative files or duplicate language documentation.
-7. For one executable package, run focused compile:
+5. If model planning depends on current state, confirm that an appropriate Agent-visible read-only Capability exists; keep only business-level Tool-use guidance in `SKILL.md`.
+6. Read `references/authoring-syntax.md` only if assurance, Script, or Case source must be authored or changed.
+7. Write the smallest complete package; do not add speculative files or duplicate language documentation.
+8. For one executable package, run focused compile:
 
    ```bash
    python3 -B scripts/verify.py --compile skills/<name>
    ```
 
-8. Before delivery, run the repository source/preflight gate:
+9. Before delivery, run the repository source/preflight gate:
 
    ```bash
    make verify
    ```
 
-9. Run any additional SQ/production admission work required by the owning Platform/Runtime/Sandbox environment.
-10. Report exactly what ran and what did not run.
+10. Run any additional SQ/production admission work required by the owning Platform/Runtime/Sandbox environment.
+11. Report exactly what ran and what did not run.
 
 `verify.py` uses `CONNECTIONAGENT_SKILL_PLATFORM_ROOT` when set; otherwise it expects sibling `../connectionagent-skill-platform`.
 
@@ -150,10 +167,12 @@ Do not add:
 - per-Skill root validators such as `scripts/validate_<skill>.py`;
 - another compile helper under this authoring workflow;
 - Provider/deployment mappings in model context;
+- raw ObservationRef / ObservationBinding as model-facing Tool guidance;
+- `Planning Observation` / `Agent Observation Projection` as new artifact types;
 - graph coordinates/layout metadata in Skill source;
 - `ExecutionTarget.v1`, `RunPlanSnapshot.v1`, `RunPlanRevision.v1`, or generic `PlanDelta.v1` as new cross-repository contracts.
 
-If a concrete scenario appears impossible, first determine whether the gap is actually in ProviderBinding, ObservationBinding, Runtime, qualification, or integration before changing the frozen Skill language.
+If a concrete scenario appears impossible, first determine whether the gap is actually a missing Agent-visible read-only Capability, ProviderBinding, ObservationBinding/ObservationSource, Runtime behavior, qualification, or integration before changing the frozen Skill language.
 
 ## Delivery
 
