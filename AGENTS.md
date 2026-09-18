@@ -81,3 +81,21 @@ Do not change source syntax for convenience, cleanup, provider differences, depl
 A language change is allowed only when a concrete product scenario demonstrates an expressiveness gap that cannot be solved by ProviderBinding, ObservationBinding, Runtime behavior, qualification, Sandbox, or integration work.
 
 When such a gap is proven, treat the change as a language revision. Update the owning Skill Platform schemas/compiler together with official Skill examples and Cases, authoring guidance, and compatibility notes as needed. Re-run `make verify` before establishing a new frozen baseline.
+## Cross-repository Documentation Governance
+
+跨仓统一文档治理以 `odango-chan/connectionagent/docs/documentation.md` 的 **跨仓统一文档治理 Profile** 为基线。本仓可以补充更严格的本地规则，但不得建立冲突的第二套生命周期或 authority 模型。
+
+执行文档任务时遵守：
+
+- `README.md` 只做仓库定位、Quick Start 和导航，不复制第二套架构正文；
+- `docs/README.md`（存在时）是文档地图和固定阅读顺序；
+- `docs/DOCUMENTATION.md`（存在时）维护本仓 Canonical Source Map、目录职责和局部例外；
+- `docs/WORK.md`（存在时）是当前实现/readiness/blocker/acceptance evidence 的唯一 live source，不承担长期设计 authority；
+- 长期边界/ownership 放 `docs/architecture/`，本仓实现契约放 `docs/design/`，why 放 `docs/decisions/`，迁移/compatibility/acceptance 放 `docs/migration/`，示例放 `docs/examples/`；没有内容时不为模板创建空目录；
+- canonical prose 的设计状态统一为 `Draft | Proposed | Accepted | Deprecated`；`Accepted` 只表示 human-readable development baseline，不等于代码已实现、machine contract ready、integration ready 或 VERIFIED；
+- 新建文档前先搜索现有 canonical topic；已有正文则原地更新，不创建 `final/latest/v2/detailed-design/review` 等平行副本；
+- machine schema/public types/executable behavior/canonical fixture/immutable result 高于 prose；发现冲突时修 canonical contract/prose，不以 consumer 文档或示例覆盖 owner authority；
+- 一次性 review、prompt、短期 inventory 优先留在 PR/Issue/review/local scratch；需要跨多个 PR/Agent 的长期实施工作再进入 migration/workstream 机制；
+- 现存目录、状态或重复文档问题属于治理债务；除非当前任务就是 documentation-governance cleanup，不顺手大规模搬迁/重命名旧文档；
+- 文档变更后运行本仓已有的 docs/link/schema validation；没有自动检查时至少核对 canonical source、相对链接、状态元数据和引用闭合。未实际执行的 Gate 必须报告 `NOT RUN`，不得写成 PASS。
+
