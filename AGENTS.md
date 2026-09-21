@@ -81,48 +81,7 @@ Do not change source syntax for convenience, cleanup, provider differences, depl
 A language change is allowed only when a concrete product scenario demonstrates an expressiveness gap that cannot be solved by ProviderBinding, ObservationBinding, Runtime behavior, qualification, Sandbox, or integration work.
 
 When such a gap is proven, treat the change as a language revision. Update the owning Skill Platform schemas/compiler together with official Skill examples and Cases, authoring guidance, and compatibility notes as needed. Re-run `make verify` before establishing a new frozen baseline.
-## Cross-repository Documentation Governance
 
-跨仓统一文档治理以 `odango-chan/connectionagent/docs/documentation.md` 的 **跨仓统一文档治理 Profile** 为基线。本仓可以补充更严格的本地规则，但不得建立冲突的第二套生命周期或 authority 模型。
-
-执行文档任务时遵守：
-
-- `README.md` 只做仓库定位、Quick Start 和导航，不复制第二套架构正文；
-- `docs/README.md`（存在时）是文档地图和固定阅读顺序；
-- `docs/DOCUMENTATION.md`（存在时）维护本仓 Canonical Source Map、目录职责和局部例外；
-- `docs/WORK.md`（存在时）是当前实现/readiness/blocker/acceptance evidence 的唯一 live source，不承担长期设计 authority；
-- 长期边界/ownership 放 `docs/architecture/`，本仓实现契约放 `docs/design/`，why 放 `docs/decisions/`，迁移/compatibility/acceptance 放 `docs/migration/`，示例放 `docs/examples/`；没有内容时不为模板创建空目录；
-- canonical prose 的设计状态统一为 `Draft | Proposed | Accepted | Deprecated`；`Accepted` 只表示 human-readable development baseline，不等于代码已实现、machine contract ready、integration ready 或 VERIFIED；
-- 新建文档前先搜索现有 canonical topic；已有正文则原地更新，不创建 `final/latest/v2/detailed-design/review` 等平行副本；
-- machine schema/public types/executable behavior/canonical fixture/immutable result 高于 prose；发现冲突时修 canonical contract/prose，不以 consumer 文档或示例覆盖 owner authority；
-- 一次性 review、prompt、短期 inventory 优先留在 PR/Issue/review/local scratch；需要跨多个 PR/Agent 的长期实施工作再进入 migration/workstream 机制；
-- 现存目录、状态或重复文档问题属于治理债务；除非当前任务就是 documentation-governance cleanup，不顺手大规模搬迁/重命名旧文档；
-- 文档变更后运行本仓已有的 docs/link/schema validation；没有自动检查时至少核对 canonical source、相对链接、状态元数据和引用闭合。未实际执行的 Gate 必须报告 `NOT RUN`，不得写成 PASS。
-
-
-## WORK.md v2 — 当前状态文档硬规则
-
-`docs/WORK.md` 只描述当前事实，不承担工程日志、历史时间线或完整验收报告。WORK 只回答：当前职责、总体状态、已完成、未完成、blocker、下一步。
-
-统一状态：
-```text
-Design:          PROPOSED | ACCEPTED
-Implementation:  NOT_STARTED | PARTIAL | IMPLEMENTED
-Acceptance:      NOT_RUN | BLOCKED | FAIL | PASS
-Roll-up:         VERIFIED | DEFERRED | RETIRED
-```
-`ACCEPTED != IMPLEMENTED`；`IMPLEMENTED != PASS`；只有 REQUIRED acceptance 全部 PASS 才能写 `VERIFIED`。
-
-禁止在 WORK 末尾追加按日期排列的实施日志、完整测试输出、临时目录/端口、旧 correction、raw evidence、architecture/design/ADR 正文。历史过程由 Git/PR/Issue 保留，raw evidence 放 `artifacts/acceptance/<run-id>/`，active migration detail 放 `docs/migration/` 或 `docs/work/<workstream>/`。
-
-WORK 目标约 200～300 行；超过 400 行必须先治理再追加。状态变化时原位改写旧结论；关闭项从 Open work 删除；跨仓 owner live status 只引用，不手抄第二份。
-
-### WORK 刷新模板（必须原位刷新，不追加日志）
-
-```markdown
-# <repo> 当前工作状态
-
-Updated: YYYY-MM-DD
 
 ## 1. Overall
 一句话说明当前阶段与最主要剩余工作。
@@ -205,3 +164,15 @@ Updated: YYYY-MM-DD
 - 已被 canonical ADR/design 吸收的讨论过程。
 
 **判断不清时默认先迁移/保留，不默认删除。**
+
+## Documentation & WORK Governance
+
+- 跨仓文档规则以 `odango-chan/connectionagent/docs/documentation.md` 为唯一治理基线；本仓只补充 owner-local 例外。
+- `README` 只做定位/Quick Start/导航；一个主题只保留一个 canonical source；machine schema/public types/executable behavior/immutable evidence 高于 prose。
+- `docs/WORK.md` 只保存**当前快照**，固定为：`Overall`、`Current scope matrix`、`Open work`、`Blockers`、`Next actions`、`Authority / evidence links`。没有 live work 时不为模板强建空 WORK。
+- WORK 状态只用：Design=`PROPOSED|ACCEPTED`；Implementation=`NOT_STARTED|PARTIAL|IMPLEMENTED`；Acceptance=`NOT_RUN|BLOCKED|FAIL|PASS`；Roll-up=`VERIFIED|DEFERRED|RETIRED`。`IMPLEMENTED != PASS`。
+- 状态变化必须**原位刷新**表格/条目：case 完成只更新结果与 evidence locator；blocker 解除就删除；阶段关闭从 Open work 移除；禁止追加日期流水、`implementation update`、`correction`。
+- WORK 目标约 200～300 行；超过 400 行先治理，不能继续堆历史。
+- 治理已有膨胀 WORK 必须按 `Inventory -> Classify -> Migrate before delete -> Verify -> Compact` 执行；若某段仍是唯一的人类可读 authority/index，先迁移并验证引用，再删除。
+- 归位：稳定语义→architecture/design；why→ADR；活动迁移→migration/workstream；case 当前结果→acceptance matrix/ledger；raw run→`artifacts/acceptance/`；纯历史→Git/PR/Issue。
+- 顶层/集成仓不得复制 owner live status；只引用 owner WORK 或 mechanically generated status。判断不清时默认先迁移/保留，不默认删除。
