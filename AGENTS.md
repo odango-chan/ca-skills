@@ -167,7 +167,7 @@ When such a gap is proven, treat the change as a language revision. Update the o
 
 ## Documentation & WORK Governance
 
-- 跨仓文档规则以 `odango-chan/connectionagent/docs/documentation.md` 为唯一治理基线；本仓只补充 owner-local 例外。
+- 跨仓文档规则以 `odango-chan/connectionagent/docs/DOCUMENTATION.md` 为唯一治理基线；本仓只补充 owner-local 例外。
 - `README` 只做定位/Quick Start/导航；一个主题只保留一个 canonical source；machine schema/public types/executable behavior/immutable evidence 高于 prose。
 - `docs/WORK.md` 只保存**当前快照**，固定为：`Overall`、`Current scope matrix`、`Open work`、`Blockers`、`Next actions`、`Authority / evidence links`。没有 live work 时不为模板强建空 WORK。
 - WORK 状态只用：Design=`PROPOSED|ACCEPTED`；Implementation=`NOT_STARTED|PARTIAL|IMPLEMENTED`；Acceptance=`NOT_RUN|BLOCKED|FAIL|PASS`；Roll-up=`VERIFIED|DEFERRED|RETIRED`。`IMPLEMENTED != PASS`。
