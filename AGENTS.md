@@ -156,3 +156,52 @@ Updated: YYYY-MM-DD
 
 刷新规则：实现变化改 matrix；case 执行只更新 Acceptance 和 evidence locator；blocker 原位增删；阶段关闭删除 open item；下一步直接重排；设计变化先改 canonical；跨仓依赖只引用 owner 当前状态。
 除非新增全新当前 scope，否则 WORK 更新默认应让文件长度持平或缩短。
+
+
+### 现有 WORK.md 迁移流程（先迁移，再压缩）
+
+对已经膨胀的 `docs/WORK.md` 做治理时，**禁止直接摘要后覆盖原文件**。必须按以下顺序执行：
+
+```text
+1. Inventory
+   - 读取改动前完整 WORK
+   - 标出每一段当前唯一承载的信息
+
+2. Classify
+   - 当前状态 / open work / blocker / next action -> 留在 WORK
+   - 稳定语义 / 长期约束 -> architecture/design
+   - 决策原因 -> ADR
+   - 仍在进行的迁移细节 -> migration/workstream
+   - acceptance case 当前结果 -> acceptance ledger/matrix
+   - raw evidence / run detail -> artifacts/acceptance
+   - 已结束的纯过程流水 -> Git/PR/Issue history
+
+3. Migrate before delete
+   - 某段若仍是唯一的人类可读 authority/index，先迁移到正确 canonical 文档
+   - 确认目标文档存在且引用可追踪后，才允许从 WORK 删除
+   - 不得用“Git 里还能找”替代尚未迁移的当前 authority
+
+4. Verify
+   - 检查 caseId / evidence locator / canonical links 没有丢失
+   - 检查没有把历史 PASS 冒充 current PASS
+   - 检查跨仓 owner 状态改为引用而不是复制
+
+5. Compact
+   - 最后才按 WORK v2 六区块模板重写 snapshot
+   - compact 后 WORK 只保存 current truth
+```
+
+迁移时必须保留的信息类型：
+- 仍被 acceptance matrix 引用的 case/result/evidence locator；
+- 尚未进入其他 canonical 文档的稳定约束或边界；
+- 当前 migration/cutover 的执行条件、删除 gate、兼容条件；
+- 当前 blocker 的解除条件；
+- 仍需后续复验的历史 evidence 基线。
+
+可以直接依赖 Git history 而不另建 archive 的内容：
+- 已关闭且已被当前结论完全取代的逐日修复流水；
+- 临时端口、PID、scratch 目录等一次性执行细节；
+- 已有 immutable artifact 保存的完整 stdout/stderr；
+- 已被 canonical ADR/design 吸收的讨论过程。
+
+**判断不清时默认先迁移/保留，不默认删除。**
