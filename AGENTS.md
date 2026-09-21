@@ -99,3 +99,60 @@ When such a gap is proven, treat the change as a language revision. Update the o
 - 现存目录、状态或重复文档问题属于治理债务；除非当前任务就是 documentation-governance cleanup，不顺手大规模搬迁/重命名旧文档；
 - 文档变更后运行本仓已有的 docs/link/schema validation；没有自动检查时至少核对 canonical source、相对链接、状态元数据和引用闭合。未实际执行的 Gate 必须报告 `NOT RUN`，不得写成 PASS。
 
+
+## WORK.md v2 — 当前状态文档硬规则
+
+`docs/WORK.md` 只描述当前事实，不承担工程日志、历史时间线或完整验收报告。WORK 只回答：当前职责、总体状态、已完成、未完成、blocker、下一步。
+
+统一状态：
+```text
+Design:          PROPOSED | ACCEPTED
+Implementation:  NOT_STARTED | PARTIAL | IMPLEMENTED
+Acceptance:      NOT_RUN | BLOCKED | FAIL | PASS
+Roll-up:         VERIFIED | DEFERRED | RETIRED
+```
+`ACCEPTED != IMPLEMENTED`；`IMPLEMENTED != PASS`；只有 REQUIRED acceptance 全部 PASS 才能写 `VERIFIED`。
+
+禁止在 WORK 末尾追加按日期排列的实施日志、完整测试输出、临时目录/端口、旧 correction、raw evidence、architecture/design/ADR 正文。历史过程由 Git/PR/Issue 保留，raw evidence 放 `artifacts/acceptance/<run-id>/`，active migration detail 放 `docs/migration/` 或 `docs/work/<workstream>/`。
+
+WORK 目标约 200～300 行；超过 400 行必须先治理再追加。状态变化时原位改写旧结论；关闭项从 Open work 删除；跨仓 owner live status 只引用，不手抄第二份。
+
+### WORK 刷新模板（必须原位刷新，不追加日志）
+
+```markdown
+# <repo> 当前工作状态
+
+Updated: YYYY-MM-DD
+
+## 1. Overall
+一句话说明当前阶段与最主要剩余工作。
+
+## 2. Current scope matrix
+| Scope | Implementation | Acceptance | Remaining |
+| --- | --- | --- | --- |
+| <scope> | NOT_STARTED / PARTIAL / IMPLEMENTED | NOT_RUN / BLOCKED / FAIL / PASS | <一句话；完成则写 —> |
+
+## 3. Open work
+### P0
+- <当前必须先完成的 1～5 项>
+### P1
+- <后续项；没有则省略>
+
+## 4. Blockers
+- <blocker -> owner/dependency -> 解除条件>
+- 无 blocker 时写 `None.`
+
+## 5. Next actions
+1. <下一步>
+2. <下一步>
+3. <下一步>
+
+## 6. Authority / evidence links
+- Design: <canonical path>
+- Acceptance: <matrix/ledger path>
+- Latest evidence: <artifact locator>
+- Cross-repo owner: <owner WORK/path，若适用>
+```
+
+刷新规则：实现变化改 matrix；case 执行只更新 Acceptance 和 evidence locator；blocker 原位增删；阶段关闭删除 open item；下一步直接重排；设计变化先改 canonical；跨仓依赖只引用 owner 当前状态。
+除非新增全新当前 scope，否则 WORK 更新默认应让文件长度持平或缩短。
