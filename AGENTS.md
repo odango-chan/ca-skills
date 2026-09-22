@@ -89,3 +89,22 @@ When such a gap is proven, treat the change as a language revision. Update the o
 - 本仓没有 live implementation work 时不为了统一模板创建空 `docs/WORK.md`。
 - 若未来出现持续实施工作，需要 WORK 时只保存 current snapshot，并按 `Inventory -> Classify -> Migrate before delete -> Verify -> Compact` 治理；历史流水留给 Git/PR/Issue。
 
+## Agent scratch / temporary storage
+
+本机 `/tmp` 可能是容量有限的 RAM-backed tmpfs。大下载、依赖缓存、解压目录、构建中间产物、浏览器/测试数据、artifact，以及需要跨多个命令保留的状态不得默认放在 `/tmp`。
+
+```bash
+AGENT_TMP="${CA_AGENT_TMPDIR:-$PWD/.agent-tmp}"
+mkdir -p "$AGENT_TMP"
+export TMPDIR="$AGENT_TMP"
+export TMP="$AGENT_TMP"
+export TEMP="$AGENT_TMP"
+```
+
+- 若设置 `CA_AGENT_TMPDIR`，优先使用该目录；它应位于容量充足、非 tmpfs 的磁盘；
+- 未设置时使用仓库内 `.agent-tmp/`；
+- `/tmp` 只用于小型、短生命周期、随时可丢弃的文件；
+- 调试、恢复或跨命令需要的中间状态不要只存在 `/tmp`；
+- 长时间或大 IO 任务开始前检查可用空间；
+- 只清理由当前任务创建的 scratch；不得扫描、停止或删除其他任务、用户或 Agent 的进程、文件或临时目录。
+
