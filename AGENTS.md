@@ -91,7 +91,7 @@ When such a gap is proven, treat the change as a language revision. Update the o
 
 ## Issue / audit trail discipline
 
-发现本仓或其他仓存在**可执行的问题/缺口**（包括实现缺陷、文档漂移、缺失 contract/test/evidence、治理遗漏、cleanup/technical debt）时，不得只留在聊天、WORK 或提交说明里：
+发现本仓或其他仓存在**可执行的问题/需求/缺口**（包括实现缺陷、产品/工程需求、feature/change request、文档漂移、缺失 contract/test/evidence、治理遗漏、cleanup/technical debt）时，不得只留在聊天、WORK 或提交说明里：
 
 - 先在真正 owning repository 搜索现有 open Issue；已有等价 Issue 时复用并补充新证据，不重复创建。
 - 没有等价 Issue 时，在 owner 仓创建 Issue；跨仓问题以 authority/code owner 仓为主 Issue，consumer 仓直接引用。只有 consumer 自身存在独立实施/验收工作时才额外建 local Issue。
@@ -101,6 +101,7 @@ When such a gap is proven, treat the change as a language revision. Update the o
 - 关闭前在 Issue 留下 resolving commit(s)、实际执行的 test/acceptance result、stable evidence locator，以及仍未覆盖的 scope；若只完成部分条件，保持 Issue open。
 - 若发现的问题不属于当前任务 scope，不要顺手扩大实现范围；创建/更新 Issue 后保留 open，交给后续 workstream。
 - Issue 负责 actionable tracking / 历史审计；`WORK.md` 仍只保存 current snapshot，`TRACEABILITY.md` 仍负责 contract -> code -> test -> acceptance -> evidence。关闭 Issue 不能替代 WORK/TRACEABILITY 同步。
+- `WORK.md` 不维护 `Open work` / `Next actions` prose backlog；actionable work、需求与 blocker 进入 owner Issue，WORK 只保留状态与 Issue ref。
 
 ## Agent scratch / temporary storage
 
