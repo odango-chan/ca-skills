@@ -20,6 +20,8 @@ Goal / generic 5GC intent
   -> selected admitted Skill / Variant
   -> load selected Skill context
   -> planning
+     -> admitted read-only Tools when needed
+     -> final Skill input
   -> RuntimeHost
 ```
 
@@ -47,15 +49,17 @@ Already-classified tasks such as `5GC-FILE-TRANSFER`, `5GC-VG-RELEASE`, or `WIFI
 ## Routing policy
 
 1. Normalize the user's goal, subjects, participants, urgency, QoS, deadlines, and other explicit constraints.
-2. Resolve names or aliases only from identity context supplied with the request, such as the live `roster`. Never invent a canonical identifier.
-3. Treat the roster as identity context only. Do not infer or copy current UE IP/session state into the selected Skill request; execution-time network values belong to governed Runtime resolution.
-4. Preserve gateway-owned business correlation identifiers, such as `transferId`, when the selected Skill requires them. Do not synthesize them from the routing `requestId`.
-5. Prefer the narrowest applicable admitted/certified Variant, then the applicable base Skill, then another governed Skill that explicitly covers the goal.
-6. Produce canonical business input containing only values known from the user/gateway context. Do not invent Skill policy constants, runtime-derived network state, ProviderBinding values, or deployment details.
-7. If required identity or business context is missing or ambiguous, return `NEEDS_CONTEXT` rather than guessing.
-8. If no governed target supports the requested behavior, return `NEEDS_EXTENSION` rather than constructing raw SBI, database, shell, MCP, or vendor-private bypass operations.
+2. Skill routing does **not** need to convert a user-visible participant name/alias into IMSI merely to choose a semantic Skill. For example, "send a file to Leo" is already sufficient to route to `5gc-file-transfer`.
+3. Preserve user-visible participant references from the Goal. Do not invent canonical identifiers and do not use remembered/static IMSIs.
+4. A request-supplied `roster`, when present, is compatibility/demo identity context only. It is not the target architecture's authoritative name->IMSI dependency, and its IMSIs must not be assumed stable across Environments or Trials.
+5. After a Skill is selected and its model context is loaded, that Skill's planning phase may use admitted read-only identity capabilities such as `ue.identity.lookup` to resolve a name/alias to the **current** canonical IMSI.
+6. Preserve gateway-owned business correlation identifiers, such as `transferId`, when the selected Skill requires them. Do not synthesize them from the routing `requestId`.
+7. Prefer the narrowest applicable admitted/certified Variant, then the applicable base Skill, then another governed Skill that explicitly covers the goal.
+8. Produce only context known from the user/gateway at routing time. Do not invent Skill policy constants, runtime-derived network state, ProviderBinding values, deployment details, or a current IMSI that has not been supplied or governedly resolved.
+9. If the Goal does not identify a required participant at all, return `NEEDS_CONTEXT`. If a later governed identity lookup returns `NOT_FOUND` or `AMBIGUOUS`, the planning phase must request/retain additional context instead of guessing.
+10. If no governed target supports the requested behavior, return `NEEDS_EXTENSION` rather than constructing raw SBI, database, shell, MCP, or vendor-private bypass operations.
 
-Semantic normalization may create request facts; it must not invent current network state such as registration, PDU Session, UE IP, QoS, or virtual-group status.
+Semantic normalization may create request facts; it must not invent current network state such as registration, PDU Session, UE IP, QoS, virtual-group status, or mutable identity bindings.
 
 ## Routing result
 
@@ -67,8 +71,10 @@ NEEDS_CONTEXT
 NEEDS_EXTENSION
 ```
 
-A `RESOLVED` result identifies the selected Skill, optional Variant/entrypoint, and canonical business request. It does not grant execution authority. Runtime still admits the immutable Artifact/Variant identity, resolves ProviderBinding, and owns deterministic execution.
+A `RESOLVED` result identifies the selected Skill and optional Variant/entrypoint. It may carry normalized planning context that is already known from the Goal/gateway, but that context is **not required to be the selected Skill's final execution request**. Final Skill input is produced only after the selected Skill context is loaded and any required governed read-only lookup has completed.
+
+The routing result does not grant execution authority. Runtime still admits the immutable Artifact/Variant identity, resolves ProviderBinding, and owns deterministic execution.
 
 The canonical benchmark evidence family for routing is `agent.routing_result@1`; this Skill-local schema describes the routing payload semantics, not a new top-level cross-repository contract.
 
-Representative inputs, routing results, and demo identity context are under `references/samples/`.
+Representative inputs and routing results are under `references/samples/`. The retained roster fixture is compatibility/demo material only.

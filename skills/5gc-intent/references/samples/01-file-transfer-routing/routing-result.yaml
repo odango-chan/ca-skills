@@ -3,9 +3,8 @@ status: RESOLVED
 selection:
   skill: 5gc-file-transfer
 request:
-  operation: prepare_transfer
   transferId: tr-5gc-intent-001
   urgency: urgent
   senderImsi: '001019876543210'
-  receiverImsis:
-    - '001019876543211'
+  receiverRefs:
+  - Leo

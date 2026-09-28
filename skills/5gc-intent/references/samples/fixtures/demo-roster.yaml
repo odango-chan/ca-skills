@@ -1,6 +1,9 @@
-# Demo-only identity context for gateway routing examples.
-# Production routing should use the live identity roster supplied by the active gateway/session.
-# Current UE endpoint addresses are deliberately excluded; they are runtime network state.
+# Compatibility/demo-only identity context.
+# Target architecture resolves name/alias -> current IMSI through an admitted
+# governed read-only identity lookup after the target Skill is selected.
+#
+# These IMSIs are sample values only. A reference Environment may remap the
+# same stable name (for example Leo) to a different IMSI between Trials.
 roster:
 - imsi: '001019876543210'
 - name: Leo

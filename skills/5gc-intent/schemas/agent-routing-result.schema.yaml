@@ -40,8 +40,10 @@ properties:
   request:
     type: object
     description: >-
-      Canonical business request proposed for the selected Skill. Runtime
-      admission validates it against the admitted artifact before execution.
+      Optional normalized planning handoff containing only context already known
+      from the Goal/gateway. It is not necessarily the selected Skill's final
+      execution input; selected-Skill planning may still perform governed
+      read-only identity/state lookups before producing the execution request.
     additionalProperties: true
   reasonCode:
     type: string
@@ -55,7 +57,6 @@ allOf:
     then:
       required:
         - selection
-        - request
   - if:
       properties:
         status:
