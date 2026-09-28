@@ -1,10 +1,13 @@
+# Reference result after the selected 5gc-file-transfer planning path has
+# resolved "Leo" through the governed ue.identity.lookup read-only Capability.
 requestId: 5gc-intent-001
 status: RESOLVED
 selection:
   skill: 5gc-file-transfer
 request:
+  operation: prepare_transfer
   transferId: tr-5gc-intent-001
   urgency: urgent
   senderImsi: '001019876543210'
-  receiverRefs:
-  - Leo
+  receiverImsis:
+    - '001019876543211'
