@@ -91,6 +91,13 @@ spec:
     - predicate: file_transfer.request.satisfied
       expect: PASS
       actual: NOT_EVALUATED
+    # Runtime owner contract (ca-runtime docs/design/provider-boundary.md
+    # §14-§16, ca-runtime#96 CLOSED): when a mutation result is OUTCOME_UNKNOWN
+    # and action budget is exhausted, Runtime terminal = SAFE_STOPPED with the
+    # mutation retained as pendingAction and reasonCode empty. Budget exhaustion
+    # is a coexisting fact and must not overwrite UNKNOWN; the admitted recovery
+    # retry, if any, must not dispatch when budget is exhausted
+    # (reasonCode BUDGET_EXHAUSTED_PENDING_RETRY).
   fixtures:
     actions:
       resolve-member-endpoints: SUCCEEDED
