@@ -5,8 +5,8 @@ metadata:
 predicates:
   # The two former participant prerequisites
   # (transfer.participants.registered, transfer.participants.pdu_sessions_active)
-  # are deleted. They referenced ObservationRefs with no Runtime/Sandbox owner,
-  # and they hard-coded sst/sd. Participant registration and baseline session/QoS
+  # are deleted. They duplicated prerequisite observations and hard-coded
+  # sst/sd. Participant registration and baseline session/QoS
   # readiness are no longer asserted here: they are converged and independently
   # proven by the composed ue-registration and ensure-session-qos procedures,
   # each of which owns its own ObservationRefs and predicates.
@@ -16,6 +16,8 @@ predicates:
   file_transfer.request.satisfied:
     observations:
       virtualGroup:
+        # Reference simulated deployment owner: ca-5gc-sim. This is a 5GC
+        # resource observation and must not be rebound to Sandbox.
         ref: virtual_group.snapshot
         # The virtual-group resource is keyed by the business transferId
         # (gateway-owned, present on the request) for prepare_transfer. The
@@ -27,6 +29,7 @@ predicates:
             : {"transferId": request.transferId}
         freshness: 5s
       qosBoost:
+        # Reference simulated deployment owner: ca-5gc-sim.
         ref: transfer.qos.boost_state
         scope: >
           {"transferId": request.transferId}
