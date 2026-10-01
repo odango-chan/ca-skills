@@ -65,6 +65,33 @@ Agent or an executor default. If a future product surface must let the gateway
 request a different policy, define an explicit `requested policy` vs `effective
 Environment policy` distinction instead of merging the two.
 
+### 2.1 5GC transfer resource owner boundary
+
+The policy is consumed by 5GC-domain resources. In the reference simulated
+deployment those resources are owned by `ca-5gc-sim`, not Sandbox:
+
+```text
+ca-lab
+  owns effective Environment networkPolicy
+
+ca-5gc-sim
+  materializes UE/session/QoS state
+  owns transfer.participants.* for the 5GC world
+  owns edge.cache.* on the 5GC-file-transfer path
+  owns virtual_group.* lifecycle/membership
+  owns transfer.qos.* urgent acceleration
+  owns virtual_group.snapshot / transfer.qos.boost_state readback
+
+ca-sandbox
+  owns WiFi simulation plus scheduler/fault/lifecycle surfaces
+  is not a 5GC transfer/VG/QoS authority
+```
+
+The gateway still owns `transferId` allocation and the application/file-transfer
+lifecycle. Passing that business identity into ca-5gc-sim does not transfer its
+ownership and must never alias it to Trial, Attempt, Runtime, request, or world
+identities.
+
 ## 3. Canonical value set
 
 `request.networkPolicy` is one object, required for `prepare_transfer`:
