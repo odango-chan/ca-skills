@@ -17,13 +17,14 @@ predicates:
     observations:
       virtualGroup:
         ref: virtual_group.snapshot
+        # The virtual-group resource is keyed by the business transferId
+        # (gateway-owned, present on the request) for prepare_transfer. The
+        # group id is produced during execution and must not be read from a
+        # pre-run fact; release_group addresses the resource by its groupId.
         scope: >
-          {
-            "transferId": request.transferId,
-            "groupId": request.operation == "release_group"
-              ? request.groupId
-              : facts["virtual_group.id"]
-          }
+          request.operation == "release_group"
+            ? {"transferId": request.transferId, "groupId": request.groupId}
+            : {"transferId": request.transferId}
         freshness: 5s
       qosBoost:
         ref: transfer.qos.boost_state

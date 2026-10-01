@@ -1,0 +1,24 @@
+=== focused package hygiene: 5gc-file-transfer ===
+PACKAGE_LAYOUT_OK
+=== focused Platform compile: 5gc-file-transfer ===
++ go run ./backend/cmd/caskill compile --package /Users/xiaotuanzi/ConnectionAgent/ca-skills/.agent-tmp/fact-binding/skills/5gc-file-transfer --registry /Users/xiaotuanzi/ConnectionAgent/ca-skill-toolchain/registry --format json
+{
+  "apiVersion": "connectionagent.io/v1alpha1",
+  "kind": "ValidationReport",
+  "metadata": {
+    "reportId": "09aa055f-f4a6-4c14-909c-739285258bbc",
+    "runId": "34805f10-4725-48e9-b8bd-f61994589e74",
+    "skill": "5gc-file-transfer",
+    "workspaceRevision": 1,
+    "packageDigest": "sha256:e0456380cb37f1dee27d59f90d07c8700d9ba1ac4708be683212d810e7fd8958",
+    "sourcePackageDigest": "sha256:e0456380cb37f1dee27d59f90d07c8700d9ba1ac4708be683212d810e7fd8958",
+    "runtimeBundleDigest": "sha256:28e4dcadbd3442342dc93f0480924631b477608af96ae873c2b22f6a4eb5fbbf",
+    "caseSetDigest": "sha256:be0440d72bbd97459ad61118a5189d4d7701195d534ffdfde54b1d2bb98dcf2a",
+    "registryDigest": "sha256:18cea49c0f159ef7964357bab97ab4bed56f74729ec705639c921cda413da619",
+    "schemaDigest": "sha256:31b0877d405b83b932b5997af3b5673f61a78679285c3dd9f98efb378ad6ed94"
+  },
+  "status": "VALID",
+  "findings": []
+}
+Focused compile: PASS (5gc-file-transfer)
+Note: compile PASS is not SQ/Q4 or production qualification.

@@ -1,0 +1,2 @@
+=== focused package hygiene: 5gc-file-transfer ===
+5gc-file-transfer: Procedure input binds run-produced fact 'virtual_group.id' from context.facts; bind it from the producing node's output instead (odango-chan/ca-skills#13)

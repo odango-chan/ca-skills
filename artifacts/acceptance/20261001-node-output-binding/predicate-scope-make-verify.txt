@@ -1,0 +1,65 @@
+python3 -B scripts/verify.py
+=== 1/8 package layout ===
+PACKAGE_LAYOUT_OK
+=== 2/8 official source compile (ue-registration, ensure-session-qos, download-object-by-deadline, query-weather-for-ue) ===
++ go test ./backend/internal/compiler -run ^TestCommittedSkillsCompileValid$ -count=1
+ok  	github.com/odango-chan/ca-skill-toolchain/backend/internal/compiler	0.822s
+=== 3/8 canonical Case / authoring-model validation ===
++ go test ./backend/internal/compiler -run ^TestCanonicalCaseRejectsSplitFilesAndUnknownFields$ -count=1
+ok  	github.com/odango-chan/ca-skill-toolchain/backend/internal/compiler	0.313s
++ go test ./backend/internal/compiler -run ^TestProcedureSourcesUseCanonicalAuthoringModel$ -count=1
+ok  	github.com/odango-chan/ca-skill-toolchain/backend/internal/compiler	0.198s
+=== 4/8 canonical Planning validation ===
++ go test ./backend/internal/planning -run ^TestReferencePlanningCases$ -count=1
+ok  	github.com/odango-chan/ca-skill-toolchain/backend/internal/planning	0.675s
++ go test ./backend/internal/planning -run ^TestPlanningContextAllowsOpaqueFacts$ -count=1
+ok  	github.com/odango-chan/ca-skill-toolchain/backend/internal/planning	0.317s
+=== 5/8 committed Skill Cases through Mock Runtime ===
++ go test ./backend/internal/mockruntime -run ^TestReferenceMockCases$ -count=1
+ok  	github.com/odango-chan/ca-skill-toolchain/backend/internal/mockruntime	0.692s
+=== 6/8 5gc-file-transfer compile ===
++ go run ./backend/cmd/caskill compile --package /Users/xiaotuanzi/ConnectionAgent/ca-skills/.agent-tmp/fact-binding/skills/5gc-file-transfer --registry /Users/xiaotuanzi/ConnectionAgent/ca-skill-toolchain/registry --format json
+{
+  "apiVersion": "connectionagent.io/v1alpha1",
+  "kind": "ValidationReport",
+  "metadata": {
+    "reportId": "5f865ee7-4f4c-4dd3-9006-9c6a82f3c84f",
+    "runId": "4e397941-1f2c-4fff-9cd0-42ae8683ff07",
+    "skill": "5gc-file-transfer",
+    "workspaceRevision": 1,
+    "packageDigest": "sha256:af7f9ce47636c2f25d27cf5a1033fab324b0af639a9d13c6b8f28c4a122e1f95",
+    "sourcePackageDigest": "sha256:af7f9ce47636c2f25d27cf5a1033fab324b0af639a9d13c6b8f28c4a122e1f95",
+    "runtimeBundleDigest": "sha256:92e6a8ce0df2909023f84b38391b09f3f6b83677c08f55015d0908bf7308d47e",
+    "caseSetDigest": "sha256:be0440d72bbd97459ad61118a5189d4d7701195d534ffdfde54b1d2bb98dcf2a",
+    "registryDigest": "sha256:18cea49c0f159ef7964357bab97ab4bed56f74729ec705639c921cda413da619",
+    "schemaDigest": "sha256:31b0877d405b83b932b5997af3b5673f61a78679285c3dd9f98efb378ad6ed94"
+  },
+  "status": "VALID",
+  "findings": []
+}
+=== 7/8 wifi-file-transfer compile ===
++ go run ./backend/cmd/caskill compile --package /Users/xiaotuanzi/ConnectionAgent/ca-skills/.agent-tmp/fact-binding/skills/wifi-file-transfer --registry /Users/xiaotuanzi/ConnectionAgent/ca-skill-toolchain/registry --format json
+{
+  "apiVersion": "connectionagent.io/v1alpha1",
+  "kind": "ValidationReport",
+  "metadata": {
+    "reportId": "e067f1a5-5a32-4e73-8fc8-33e58c359898",
+    "runId": "4b24fda2-ae89-425e-9076-34a9b209a2dd",
+    "skill": "wifi-file-transfer",
+    "workspaceRevision": 1,
+    "packageDigest": "sha256:9e4a3ce6368e69509d523cd3d1a06da524533b17bf1262c337ce9149258218f1",
+    "sourcePackageDigest": "sha256:9e4a3ce6368e69509d523cd3d1a06da524533b17bf1262c337ce9149258218f1",
+    "runtimeBundleDigest": "sha256:f903b33280e45b70cdc0e17e0ba797faa1bd0db27c2d2b6ce7592e2dabbb31be",
+    "caseSetDigest": "sha256:1d2f98caa1d6149fa6b39b072a7ef767f50cfd2f8c7f4f9dc0a211a1bd322897",
+    "registryDigest": "sha256:18cea49c0f159ef7964357bab97ab4bed56f74729ec705639c921cda413da619",
+    "schemaDigest": "sha256:31b0877d405b83b932b5997af3b5673f61a78679285c3dd9f98efb378ad6ed94"
+  },
+  "status": "VALID",
+  "findings": []
+}
+=== 8/8 official file-transfer Artifact contract ===
++ go test ./backend/internal/skillbuildartifact -run ^TestOfficialFileTransferArtifactsExcludeAuthorizationOutcome$ -count=1
+ok  	github.com/odango-chan/ca-skill-toolchain/backend/internal/skillbuildartifact	0.485s
+Skills verification: PASS
+COMPILE PASS | CASE PASS | PLANNING PASS | MOCK-RUNTIME PASS | ARTIFACT CONTRACT PASS
+Note: these local gates are not live owner execution or production qualification.

@@ -117,7 +117,7 @@ procedures:
           fiveQi:
             from: input.policy-five-qi
         'on':
-          COMMITTED: assign-members
+          COMMITTED: assign-members-after-create
           NOT_COMMITTED: failed
           OUTCOME_UNKNOWN: reconcile-vg-create
           FAILED: failed
@@ -128,38 +128,73 @@ procedures:
           transferId:
             from: input.transfer-id
         'on':
-          COMMITTED: assign-members
+          COMMITTED: assign-members-after-reconcile-create
           NOT_COMMITTED: create-vg
           UNRESOLVED: unresolved
           FAILED: safe-stopped
           DENIED: safe-stopped
-      assign-members:
+      # create-vg and reconcile-vg-create can each COMMIT the same virtual group
+      # but only the node that actually produced the id owns it. Because a node
+      # input has exactly one source, the convergence is split per producing
+      # predecessor: each lineage binds groupId from its own create/reconcile
+      # output instead of a shared context.facts intermediary.
+      assign-members-after-create:
         call: virtual_group.assign_members
         with:
           transferId:
             from: input.transfer-id
           groupId:
-            from: input.virtual-group-id
+            from: create-vg.output.groupId
           members:
             from: resolve-member-endpoints.output.members
         'on':
           COMMITTED: verify-goal
           NOT_COMMITTED: failed
-          OUTCOME_UNKNOWN: reconcile-vg-members
+          OUTCOME_UNKNOWN: reconcile-vg-members-after-create
           FAILED: failed
           DENIED: failed
-      reconcile-vg-members:
+      assign-members-after-reconcile-create:
+        call: virtual_group.assign_members
+        with:
+          transferId:
+            from: input.transfer-id
+          groupId:
+            from: reconcile-vg-create.output.groupId
+          members:
+            from: resolve-member-endpoints.output.members
+        'on':
+          COMMITTED: verify-goal
+          NOT_COMMITTED: failed
+          OUTCOME_UNKNOWN: reconcile-vg-members-after-reconcile-create
+          FAILED: failed
+          DENIED: failed
+      reconcile-vg-members-after-create:
         call: virtual_group.reconcile_members
         with:
           transferId:
             from: input.transfer-id
           groupId:
-            from: input.virtual-group-id
+            from: create-vg.output.groupId
           members:
             from: resolve-member-endpoints.output.members
         'on':
           COMMITTED: verify-goal
-          NOT_COMMITTED: assign-members
+          NOT_COMMITTED: assign-members-after-create
+          UNRESOLVED: unresolved
+          FAILED: safe-stopped
+          DENIED: safe-stopped
+      reconcile-vg-members-after-reconcile-create:
+        call: virtual_group.reconcile_members
+        with:
+          transferId:
+            from: input.transfer-id
+          groupId:
+            from: reconcile-vg-create.output.groupId
+          members:
+            from: resolve-member-endpoints.output.members
+        'on':
+          COMMITTED: verify-goal
+          NOT_COMMITTED: assign-members-after-reconcile-create
           UNRESOLVED: unresolved
           FAILED: safe-stopped
           DENIED: safe-stopped
@@ -188,9 +223,6 @@ procedures:
       transfer-id:
         type: string
         from: context.request.transferId
-      virtual-group-id:
-        type: string
-        from: context.facts.virtual_group.id
       policy-dnn:
         type: string
         from: context.request.networkPolicy.dnn
@@ -323,7 +355,7 @@ procedures:
           fiveQi:
             from: input.policy-five-qi
         'on':
-          COMMITTED: assign-members
+          COMMITTED: assign-members-after-create
           NOT_COMMITTED: failed
           OUTCOME_UNKNOWN: reconcile-vg-create
           FAILED: failed
@@ -334,38 +366,71 @@ procedures:
           transferId:
             from: input.transfer-id
         'on':
-          COMMITTED: assign-members
+          COMMITTED: assign-members-after-reconcile-create
           NOT_COMMITTED: create-vg
           UNRESOLVED: unresolved
           FAILED: safe-stopped
           DENIED: safe-stopped
-      assign-members:
+      # Urgent convergence is split the same way as the normal path so each
+      # consuming node has exactly one producing predecessor for groupId. The
+      # distinct urgent QoS boost below remains the only urgent-specific step.
+      assign-members-after-create:
         call: virtual_group.assign_members
         with:
           transferId:
             from: input.transfer-id
           groupId:
-            from: input.virtual-group-id
+            from: create-vg.output.groupId
           members:
             from: resolve-member-endpoints.output.members
         'on':
           COMMITTED: qos-boost
           NOT_COMMITTED: failed
-          OUTCOME_UNKNOWN: reconcile-vg-members
+          OUTCOME_UNKNOWN: reconcile-vg-members-after-create
           FAILED: failed
           DENIED: failed
-      reconcile-vg-members:
+      assign-members-after-reconcile-create:
+        call: virtual_group.assign_members
+        with:
+          transferId:
+            from: input.transfer-id
+          groupId:
+            from: reconcile-vg-create.output.groupId
+          members:
+            from: resolve-member-endpoints.output.members
+        'on':
+          COMMITTED: qos-boost
+          NOT_COMMITTED: failed
+          OUTCOME_UNKNOWN: reconcile-vg-members-after-reconcile-create
+          FAILED: failed
+          DENIED: failed
+      reconcile-vg-members-after-create:
         call: virtual_group.reconcile_members
         with:
           transferId:
             from: input.transfer-id
           groupId:
-            from: input.virtual-group-id
+            from: create-vg.output.groupId
           members:
             from: resolve-member-endpoints.output.members
         'on':
           COMMITTED: qos-boost
-          NOT_COMMITTED: assign-members
+          NOT_COMMITTED: assign-members-after-create
+          UNRESOLVED: unresolved
+          FAILED: safe-stopped
+          DENIED: safe-stopped
+      reconcile-vg-members-after-reconcile-create:
+        call: virtual_group.reconcile_members
+        with:
+          transferId:
+            from: input.transfer-id
+          groupId:
+            from: reconcile-vg-create.output.groupId
+          members:
+            from: resolve-member-endpoints.output.members
+        'on':
+          COMMITTED: qos-boost
+          NOT_COMMITTED: assign-members-after-reconcile-create
           UNRESOLVED: unresolved
           FAILED: safe-stopped
           DENIED: safe-stopped
@@ -416,9 +481,6 @@ procedures:
       transfer-id:
         type: string
         from: context.request.transferId
-      virtual-group-id:
-        type: string
-        from: context.facts.virtual_group.id
       policy-dnn:
         type: string
         from: context.request.networkPolicy.dnn

@@ -28,9 +28,7 @@ spec:
         sd: '000000'
         pduSessionId: 10
         fiveQi: 8
-    facts:
-      virtual_group.id:
-        value: vg-20260907-001
+    facts: {}
     availableResources:
     - ref: ue.identity.lookup
       kind: capability
@@ -147,7 +145,7 @@ spec:
       resolve-member-endpoints: SUCCEEDED
       ensure-edge-cache: COMMITTED
       create-vg: COMMITTED
-      assign-members: COMMITTED
+      assign-members-after-create: COMMITTED
       qos-boost: COMMITTED
     predicates:
       converge-sender-registration-ensure-registration-verify-current-registration:

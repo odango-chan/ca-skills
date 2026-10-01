@@ -28,9 +28,7 @@ spec:
         sd: '000000'
         pduSessionId: 10
         fiveQi: 8
-    facts:
-      virtual_group.id:
-        value: vg-20260907-001
+    facts: {}
     availableResources:
     - ref: transfer.participants.resolve_endpoints
       kind: capability
