@@ -162,6 +162,7 @@ def resolve_platform_root():
 def platform_env(platform):
     env = os.environ.copy()
     env["CONNECTIONAGENT_SKILLS_ROOT"] = str(ROOT)
+    env["CA_SKILLS_ROOT"] = str(ROOT)
     env["GOWORK"] = "off"
 
     # The canonical module paths are intentionally published independently of
@@ -175,15 +176,25 @@ def platform_env(platform):
     go_sum = platform / "go.sum"
     if go_sum.exists():
         shutil.copy2(go_sum, mod_dir / "workspace.sum")
+    dependency_root = platform.parent
+    required_repositories = ("ca-runtime", "ca-sandbox", "nodus")
+    while not all((dependency_root / name).exists() for name in required_repositories):
+        parent = dependency_root.parent
+        if parent == dependency_root:
+            raise SystemExit("could not locate sibling ca-runtime, ca-sandbox, and nodus repositories")
+        dependency_root = parent
+    env["CA_BENCHMARKS_QUALIFICATION_DIR"] = str(dependency_root / "ca-benchmarks" / "qualification")
     with modfile.open("a", encoding="utf-8") as handle:
         handle.write(
             "\nreplace github.com/odango-chan/ca-runtime => "
-            f"{(ROOT.parent / 'ca-runtime').resolve()}\n"
+            f"{(dependency_root / 'ca-runtime').resolve()}\n"
             "replace github.com/odango-chan/ca-sandbox => "
-            f"{(ROOT.parent / 'ca-sandbox').resolve()}\n"
+            f"{(dependency_root / 'ca-sandbox').resolve()}\n"
+            "replace github.com/odango-chan/nodus => "
+            f"{(dependency_root / 'nodus').resolve()}\n"
         )
     existing_flags = env.get("GOFLAGS", "").strip()
-    env["GOFLAGS"] = f"{existing_flags} -modfile={modfile}".strip()
+    env["GOFLAGS"] = f"{existing_flags} -mod=mod -modfile={modfile}".strip()
     return env
 
 
@@ -233,7 +244,7 @@ def full_verify():
     platform = resolve_platform_root()
     env = platform_env(platform)
 
-    # 2. official source compile (4 reference Skills via Platform canonical gate)
+    # 2. official source compile through the current Platform compiler gate.
     print(
         "=== 2/8 official source compile "
         "(ue-registration, ensure-session-qos, download-object-by-deadline, query-weather-for-ue) ===",
@@ -243,27 +254,14 @@ def full_verify():
         [
             "go",
             "test",
-            "./backend/internal/qualificationruntime",
+            "./backend/internal/compiler",
             "-run",
-            "^TestOfficialTargetSkillsCompileFromExplicitSource$",
+            "^TestCommittedSkillsCompileValid$",
             "-count=1",
         ],
         platform,
         env,
     )
-    run(
-        [
-            "go",
-            "test",
-            "./backend/internal/qualificationruntime",
-            "-run",
-            "^TestOfficialSkillSourceFailsClosedWhenMissing$",
-            "-count=1",
-        ],
-        platform,
-        env,
-    )
-
     # 3. canonical Case and authoring-model validation
     print("=== 3/8 canonical Case / authoring-model validation ===", flush=True)
     run(
@@ -318,27 +316,15 @@ def full_verify():
         env,
     )
 
-    # 5. official executable Skill qualification (current supported level: m5-q4)
-    print("=== 5/8 official executable Skill qualification (current SQ/Q4 level) ===", flush=True)
+    # 5. committed official Skill Cases through the current deterministic Mock Runtime gate.
+    print("=== 5/8 committed Skill Cases through Mock Runtime ===", flush=True)
     run(
         [
             "go",
             "test",
-            "./backend/internal/sessionrun",
+            "./backend/internal/mockruntime",
             "-run",
-            "^TestRunOfficialSkillQualificationUsesCompiledOfficialSourceAndSandbox$",
-            "-count=1",
-        ],
-        platform,
-        env,
-    )
-    run(
-        [
-            "go",
-            "test",
-            "./backend/internal/sessionrun",
-            "-run",
-            "^TestRunOfficialSkillQualificationCoversObservationUnknownAndPredicateFail$",
+            "^TestReferenceMockCases$",
             "-count=1",
         ],
         platform,
@@ -353,27 +339,15 @@ def full_verify():
     print("=== 7/8 wifi-file-transfer compile ===", flush=True)
     compile_package(ROOT / "skills/wifi-file-transfer", platform, env)
 
-    # 8. local Sandbox/Q4 qualification for file-transfer paths
-    print("=== 8/8 local Sandbox/Q4 file-transfer qualification ===", flush=True)
+    # 8. official file-transfer Artifact invariant retained by the Platform.
+    print("=== 8/8 official file-transfer Artifact contract ===", flush=True)
     run(
         [
             "go",
             "test",
-            "./backend/internal/sessionrun",
+            "./backend/internal/skillbuildartifact",
             "-run",
-            "^TestRunOfficialFileTransferRecoveryMatrixThroughQualifiedSandbox$",
-            "-count=1",
-        ],
-        platform,
-        env,
-    )
-    run(
-        [
-            "go",
-            "test",
-            "./backend/internal/sessionrun",
-            "-run",
-            "^TestRunOfficialMutationUnknownCasesThroughQualifiedSandbox$",
+            "^TestOfficialFileTransferArtifactsExcludeAuthorizationOutcome$",
             "-count=1",
         ],
         platform,
@@ -381,8 +355,8 @@ def full_verify():
     )
 
     print("Skills verification: PASS")
-    print("COMPILE PASS | CASE PASS | PLANNING PASS | SQ/Q4 PASS (local Sandbox)")
-    print("Note: local Sandbox/Q4 PASS is preflight evidence, not production-qualified.")
+    print("COMPILE PASS | CASE PASS | PLANNING PASS | MOCK-RUNTIME PASS | ARTIFACT CONTRACT PASS")
+    print("Note: these local gates are not live owner execution or production qualification.")
 
 
 def main():

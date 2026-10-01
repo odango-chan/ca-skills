@@ -92,8 +92,8 @@ Agent 从 Runtime 已发现并准入的 Skill 集中做路由选择；最终执�
 | 包 | 用途 | 当前状态 |
 | --- | --- | --- |
 | `5gc-intent` | 路由策略与模型上下文 | 非执行型 |
-| `5gc-file-transfer` | 产品 Skill | 本地源码、编译、用例和 Q4 预检已通过；生产部署准入待完成 |
-| `wifi-file-transfer` | 产品 Skill | 本地源码、编译、用例和 Q4 预检已通过；生产部署准入待完成 |
+| `5gc-file-transfer` | 产品 Skill | 本地源码、编译、用例和 Mock Runtime 预检已通过；live owner execution 与生产部署准入待完成 |
+| `wifi-file-transfer` | 产品 Skill | 本地源码、编译、用例和 Mock Runtime 预检已通过；live owner execution 与生产部署准入待完成 |
 | `ue-registration` | 参考 Skill | 已通过生产级资格验证 |
 | `ensure-session-qos` | 参考 Skill | 已通过生产级资格验证 |
 | `download-object-by-deadline` | 参考 Skill | 已通过生产级资格验证 |

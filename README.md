@@ -92,8 +92,8 @@ Agent routing selects from the admitted Skill set; Runtime still performs the fi
 | Package | Role | Status |
 | --- | --- | --- |
 | `5gc-intent` | routing policy / model context | non-executable |
-| `5gc-file-transfer` | product Skill | local source/compile/case/Q4 preflight complete; production deployment admission pending |
-| `wifi-file-transfer` | product Skill | local source/compile/case/Q4 preflight complete; production deployment admission pending |
+| `5gc-file-transfer` | product Skill | local source/compile/case/Mock Runtime preflight complete; live owner execution and production admission remain pending |
+| `wifi-file-transfer` | product Skill | local source/compile/case/Mock Runtime preflight complete; live owner execution and production admission remain pending |
 | `ue-registration` | reference Skill | production-qualified reference |
 | `ensure-session-qos` | reference Skill | production-qualified reference |
 | `download-object-by-deadline` | reference Skill | production-qualified reference |
