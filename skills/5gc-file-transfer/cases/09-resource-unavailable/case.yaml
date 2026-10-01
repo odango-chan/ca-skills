@@ -22,6 +22,12 @@ spec:
       senderImsi: '001019876543210'
       receiverImsis:
       - '001019876543211'
+      networkPolicy:
+        dnn: internet
+        sst: 1
+        sd: '000000'
+        pduSessionId: 10
+        fiveQi: 8
     facts: {}
     availableResources: []
     constraints:

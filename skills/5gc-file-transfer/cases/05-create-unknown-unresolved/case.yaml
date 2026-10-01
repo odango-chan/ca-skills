@@ -22,6 +22,12 @@ spec:
       senderImsi: '001019876543210'
       receiverImsis:
       - '001019876543211'
+      networkPolicy:
+        dnn: internet
+        sst: 1
+        sd: '000000'
+        pduSessionId: 10
+        fiveQi: 8
     facts:
       virtual_group.id:
         value: vg-20260907-001
@@ -98,7 +104,9 @@ spec:
       create-vg: OUTCOME_UNKNOWN
       reconcile-vg-create: UNRESOLVED
     predicates:
-      verify-registration:
-        transfer.participants.registered: PASS
-      verify-sessions:
-        transfer.participants.pdu_sessions_active: PASS
+      converge-sender-registration-ensure-registration-verify-current-registration:
+        ue.registered: PASS
+      converge-sender-registration-ensure-registration-verify-registration-context:
+        ue.registration_context.consistent: PASS
+      converge-sender-registration-ensure-registration-postcondition:
+        ue.registered: PASS
