@@ -1,23 +1,77 @@
 procedures:
+  # Normal prepare path. Registration and baseline session/QoS prerequisites are
+  # converged by composing the certified `ue-registration` and
+  # `ensure-session-qos` Skills, then transfer-specific work runs and the final
+  # business goal is independently verified. Prerequisite failure is a business
+  # outcome, not an unconditional assumption.
   prepare-file-transfer-normal:
     applicability:
-      when: 'request.operation == "prepare_transfer" && request.urgency == "normal"
-
-        '
-    start: verify-registration
+      when: 'request.operation == "prepare_transfer" && request.urgency == "normal"'
+    start: converge-sender-registration
     nodes:
-      verify-registration:
-        verify: transfer.participants.registered
+      converge-sender-registration:
+        procedure:
+          skill: ue-registration
+          procedure: ensure-registration
+          postcondition: ue.registered
+        with:
+          ue-ref:
+            from: input.sender-imsi
+          registration-type:
+            value: initial
         'on':
-          PASS: verify-sessions
-          FAIL: failed
-          UNKNOWN: unresolved
-      verify-sessions:
-        verify: transfer.participants.pdu_sessions_active
+          SUCCEEDED: converge-receiver-registrations
+          FAILED: failed
+          UNRESOLVED: unresolved
+          SAFE_STOPPED: safe-stopped
+      converge-receiver-registrations:
+        for:
+          each: receiver
+          in:
+            from: input.receiver-imsis
+        do:
+          converge-registration:
+            procedure:
+              skill: ue-registration
+              procedure: ensure-registration
+            with:
+              ue-ref:
+                from: loop.receiver
+              registration-type:
+                value: initial
         'on':
-          PASS: resolve-member-endpoints
-          FAIL: failed
-          UNKNOWN: unresolved
+          SUCCEEDED: converge-receiver-sessions
+          FAILED: failed
+          UNRESOLVED: unresolved
+          SAFE_STOPPED: safe-stopped
+      converge-receiver-sessions:
+        for:
+          each: receiver
+          in:
+            from: input.receiver-imsis
+        do:
+          converge-session-qos:
+            procedure:
+              skill: ensure-session-qos
+              procedure: observe-session-then-converge
+            with:
+              supi:
+                from: loop.receiver
+              pdusessionid:
+                from: input.policy-pdu-session-id
+              dnn:
+                from: input.policy-dnn
+              sst:
+                from: input.policy-sst
+              sd:
+                from: input.policy-sd
+              fiveqi:
+                from: input.policy-five-qi
+        'on':
+          SUCCEEDED: resolve-member-endpoints
+          FAILED: failed
+          UNRESOLVED: unresolved
+          SAFE_STOPPED: safe-stopped
       resolve-member-endpoints:
         call: transfer.participants.resolve_endpoints
         with:
@@ -61,7 +115,7 @@ procedures:
           durationSeconds:
             value: 3600
           fiveQi:
-            value: 8
+            from: input.policy-five-qi
         'on':
           COMMITTED: assign-members
           NOT_COMMITTED: failed
@@ -126,6 +180,7 @@ procedures:
     inputs:
       receiver-imsis:
         type: array
+        maxItems: 16
         from: context.request.receiverImsis
       sender-imsi:
         type: string
@@ -136,25 +191,93 @@ procedures:
       virtual-group-id:
         type: string
         from: context.facts.virtual_group.id
+      policy-dnn:
+        type: string
+        from: context.request.networkPolicy.dnn
+      policy-sst:
+        type: integer
+        from: context.request.networkPolicy.sst
+      policy-sd:
+        type: string
+        from: context.request.networkPolicy.sd
+      policy-pdu-session-id:
+        type: integer
+        from: context.request.networkPolicy.pduSessionId
+      policy-five-qi:
+        type: integer
+        from: context.request.networkPolicy.fiveQi
+
+  # Urgent prepare path. It converges exactly the same prerequisites as the
+  # normal path and then adds the distinct, bounded urgent QoS boost. Baseline
+  # session/QoS and urgent acceleration stay separate authorities.
   prepare-file-transfer-urgent:
     applicability:
-      when: 'request.operation == "prepare_transfer" && request.urgency == "urgent"
-
-        '
-    start: verify-registration
+      when: 'request.operation == "prepare_transfer" && request.urgency == "urgent"'
+    start: converge-sender-registration
     nodes:
-      verify-registration:
-        verify: transfer.participants.registered
+      converge-sender-registration:
+        procedure:
+          skill: ue-registration
+          procedure: ensure-registration
+          postcondition: ue.registered
+        with:
+          ue-ref:
+            from: input.sender-imsi
+          registration-type:
+            value: initial
         'on':
-          PASS: verify-sessions
-          FAIL: failed
-          UNKNOWN: unresolved
-      verify-sessions:
-        verify: transfer.participants.pdu_sessions_active
+          SUCCEEDED: converge-receiver-registrations
+          FAILED: failed
+          UNRESOLVED: unresolved
+          SAFE_STOPPED: safe-stopped
+      converge-receiver-registrations:
+        for:
+          each: receiver
+          in:
+            from: input.receiver-imsis
+        do:
+          converge-registration:
+            procedure:
+              skill: ue-registration
+              procedure: ensure-registration
+            with:
+              ue-ref:
+                from: loop.receiver
+              registration-type:
+                value: initial
         'on':
-          PASS: resolve-member-endpoints
-          FAIL: failed
-          UNKNOWN: unresolved
+          SUCCEEDED: converge-receiver-sessions
+          FAILED: failed
+          UNRESOLVED: unresolved
+          SAFE_STOPPED: safe-stopped
+      converge-receiver-sessions:
+        for:
+          each: receiver
+          in:
+            from: input.receiver-imsis
+        do:
+          converge-session-qos:
+            procedure:
+              skill: ensure-session-qos
+              procedure: observe-session-then-converge
+            with:
+              supi:
+                from: loop.receiver
+              pdusessionid:
+                from: input.policy-pdu-session-id
+              dnn:
+                from: input.policy-dnn
+              sst:
+                from: input.policy-sst
+              sd:
+                from: input.policy-sd
+              fiveqi:
+                from: input.policy-five-qi
+        'on':
+          SUCCEEDED: resolve-member-endpoints
+          FAILED: failed
+          UNRESOLVED: unresolved
+          SAFE_STOPPED: safe-stopped
       resolve-member-endpoints:
         call: transfer.participants.resolve_endpoints
         with:
@@ -198,7 +321,7 @@ procedures:
           durationSeconds:
             value: 3600
           fiveQi:
-            value: 8
+            from: input.policy-five-qi
         'on':
           COMMITTED: assign-members
           NOT_COMMITTED: failed
@@ -285,6 +408,7 @@ procedures:
     inputs:
       receiver-imsis:
         type: array
+        maxItems: 16
         from: context.request.receiverImsis
       sender-imsi:
         type: string
@@ -295,6 +419,22 @@ procedures:
       virtual-group-id:
         type: string
         from: context.facts.virtual_group.id
+      policy-dnn:
+        type: string
+        from: context.request.networkPolicy.dnn
+      policy-sst:
+        type: integer
+        from: context.request.networkPolicy.sst
+      policy-sd:
+        type: string
+        from: context.request.networkPolicy.sd
+      policy-pdu-session-id:
+        type: integer
+        from: context.request.networkPolicy.pduSessionId
+      policy-five-qi:
+        type: integer
+        from: context.request.networkPolicy.fiveQi
+
   release-virtual-group:
     applicability:
       when: request.operation == "release_group"

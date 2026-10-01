@@ -3,40 +3,16 @@ kind: PredicateSet
 metadata:
   skill: 5gc-file-transfer
 predicates:
-  transfer.participants.registered:
-    observations:
-      participants:
-        ref: transfer.participants.registration
-        scope: >
-          {
-            "participantImsis": [request.senderImsi] + request.receiverImsis
-          }
-        freshness: 5s
-    evaluator:
-      type: cel
-      expression: >
-        observations.participants.all(p,
-          p.registrationState == "REGISTERED"
-        )
-
-  transfer.participants.pdu_sessions_active:
-    observations:
-      participants:
-        ref: transfer.participants.session
-        scope: >
-          {
-            "participantImsis": [request.senderImsi] + request.receiverImsis,
-            "sst": 1,
-            "sd": "000000"
-          }
-        freshness: 5s
-    evaluator:
-      type: cel
-      expression: >
-        observations.participants.all(p,
-          p.sessionState == "ACTIVE"
-        )
-
+  # The two former participant prerequisites
+  # (transfer.participants.registered, transfer.participants.pdu_sessions_active)
+  # are deleted. They referenced ObservationRefs with no Runtime/Sandbox owner,
+  # and they hard-coded sst/sd. Participant registration and baseline session/QoS
+  # readiness are no longer asserted here: they are converged and independently
+  # proven by the composed ue-registration and ensure-session-qos procedures,
+  # each of which owns its own ObservationRefs and predicates.
+  #
+  # file_transfer.request.satisfied remains the single independent final-goal
+  # proof for this Skill.
   file_transfer.request.satisfied:
     observations:
       virtualGroup:

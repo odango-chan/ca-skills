@@ -1,0 +1,110 @@
+Composed node identity for 5gc-file-transfer (ca-skills#7 / ca-skill-toolchain#102).
+Convention: ComposedNodeID(siteID, callee, child) = "<siteID>-<callee>-<child>".
+Top-level sites splice dependent terminals onto the parent transitions (terminals not emitted).
+Loop-body sites keep dependent terminals inside the body; the enclosing for.on routes them.
+
+PROCEDURE prepare-file-transfer-normal
+  site converge-sender-registration (top-level, callee ensure-registration, postcondition ue.registered)
+    converge-sender-registration-ensure-registration-verify-current-registration
+    converge-sender-registration-ensure-registration-verify-registration-context
+    converge-sender-registration-ensure-registration-resolve-identity
+    converge-sender-registration-ensure-registration-verify-identity
+    converge-sender-registration-ensure-registration-authenticate
+    converge-sender-registration-ensure-registration-verify-authentication
+    converge-sender-registration-ensure-registration-establish-security
+    converge-sender-registration-ensure-registration-verify-security
+    converge-sender-registration-ensure-registration-prepare-context
+    converge-sender-registration-ensure-registration-verify-context
+    converge-sender-registration-ensure-registration-finalize-registration
+    converge-sender-registration-ensure-registration-verify-registration
+    converge-sender-registration-ensure-registration-done   [spliced]
+    converge-sender-registration-ensure-registration-failed   [spliced]
+    converge-sender-registration-ensure-registration-unresolved   [spliced]
+    converge-sender-registration-ensure-registration-safe-stopped   [spliced]
+    converge-sender-registration-ensure-registration-postcondition   (synthesized verify)
+  loop converge-receiver-registrations (for over receiverImsis, body callee ensure-registration)
+    converge-receiver-registrations-ensure-registration-verify-current-registration
+    converge-receiver-registrations-ensure-registration-verify-registration-context
+    converge-receiver-registrations-ensure-registration-resolve-identity
+    converge-receiver-registrations-ensure-registration-verify-identity
+    converge-receiver-registrations-ensure-registration-authenticate
+    converge-receiver-registrations-ensure-registration-verify-authentication
+    converge-receiver-registrations-ensure-registration-establish-security
+    converge-receiver-registrations-ensure-registration-verify-security
+    converge-receiver-registrations-ensure-registration-prepare-context
+    converge-receiver-registrations-ensure-registration-verify-context
+    converge-receiver-registrations-ensure-registration-finalize-registration
+    converge-receiver-registrations-ensure-registration-verify-registration
+    converge-receiver-registrations-ensure-registration-done
+    converge-receiver-registrations-ensure-registration-failed
+    converge-receiver-registrations-ensure-registration-unresolved
+    converge-receiver-registrations-ensure-registration-safe-stopped
+  loop converge-receiver-sessions (for over receiverImsis, body callee observe-session-then-converge)
+    converge-receiver-sessions-observe-session-then-converge-query-session
+    converge-receiver-sessions-observe-session-then-converge-observe-established
+    converge-receiver-sessions-observe-session-then-converge-observe-qos
+    converge-receiver-sessions-observe-session-then-converge-create-session
+    converge-receiver-sessions-observe-session-then-converge-reconcile-create
+    converge-receiver-sessions-observe-session-then-converge-modify-session-qos
+    converge-receiver-sessions-observe-session-then-converge-reconcile-modify
+    converge-receiver-sessions-observe-session-then-converge-verify-session-goal
+    converge-receiver-sessions-observe-session-then-converge-verify-session-goal-2
+    converge-receiver-sessions-observe-session-then-converge-verify-session-goal-3
+    converge-receiver-sessions-observe-session-then-converge-done
+    converge-receiver-sessions-observe-session-then-converge-failed
+    converge-receiver-sessions-observe-session-then-converge-unresolved
+    converge-receiver-sessions-observe-session-then-converge-safe-stopped
+
+PROCEDURE prepare-file-transfer-urgent
+  site converge-sender-registration (top-level, callee ensure-registration, postcondition ue.registered)
+    converge-sender-registration-ensure-registration-verify-current-registration
+    converge-sender-registration-ensure-registration-verify-registration-context
+    converge-sender-registration-ensure-registration-resolve-identity
+    converge-sender-registration-ensure-registration-verify-identity
+    converge-sender-registration-ensure-registration-authenticate
+    converge-sender-registration-ensure-registration-verify-authentication
+    converge-sender-registration-ensure-registration-establish-security
+    converge-sender-registration-ensure-registration-verify-security
+    converge-sender-registration-ensure-registration-prepare-context
+    converge-sender-registration-ensure-registration-verify-context
+    converge-sender-registration-ensure-registration-finalize-registration
+    converge-sender-registration-ensure-registration-verify-registration
+    converge-sender-registration-ensure-registration-done   [spliced]
+    converge-sender-registration-ensure-registration-failed   [spliced]
+    converge-sender-registration-ensure-registration-unresolved   [spliced]
+    converge-sender-registration-ensure-registration-safe-stopped   [spliced]
+    converge-sender-registration-ensure-registration-postcondition   (synthesized verify)
+  loop converge-receiver-registrations (for over receiverImsis, body callee ensure-registration)
+    converge-receiver-registrations-ensure-registration-verify-current-registration
+    converge-receiver-registrations-ensure-registration-verify-registration-context
+    converge-receiver-registrations-ensure-registration-resolve-identity
+    converge-receiver-registrations-ensure-registration-verify-identity
+    converge-receiver-registrations-ensure-registration-authenticate
+    converge-receiver-registrations-ensure-registration-verify-authentication
+    converge-receiver-registrations-ensure-registration-establish-security
+    converge-receiver-registrations-ensure-registration-verify-security
+    converge-receiver-registrations-ensure-registration-prepare-context
+    converge-receiver-registrations-ensure-registration-verify-context
+    converge-receiver-registrations-ensure-registration-finalize-registration
+    converge-receiver-registrations-ensure-registration-verify-registration
+    converge-receiver-registrations-ensure-registration-done
+    converge-receiver-registrations-ensure-registration-failed
+    converge-receiver-registrations-ensure-registration-unresolved
+    converge-receiver-registrations-ensure-registration-safe-stopped
+  loop converge-receiver-sessions (for over receiverImsis, body callee observe-session-then-converge)
+    converge-receiver-sessions-observe-session-then-converge-query-session
+    converge-receiver-sessions-observe-session-then-converge-observe-established
+    converge-receiver-sessions-observe-session-then-converge-observe-qos
+    converge-receiver-sessions-observe-session-then-converge-create-session
+    converge-receiver-sessions-observe-session-then-converge-reconcile-create
+    converge-receiver-sessions-observe-session-then-converge-modify-session-qos
+    converge-receiver-sessions-observe-session-then-converge-reconcile-modify
+    converge-receiver-sessions-observe-session-then-converge-verify-session-goal
+    converge-receiver-sessions-observe-session-then-converge-verify-session-goal-2
+    converge-receiver-sessions-observe-session-then-converge-verify-session-goal-3
+    converge-receiver-sessions-observe-session-then-converge-done
+    converge-receiver-sessions-observe-session-then-converge-failed
+    converge-receiver-sessions-observe-session-then-converge-unresolved
+    converge-receiver-sessions-observe-session-then-converge-safe-stopped
+
+Terminal routing: every composition site maps SUCCEEDED/FAILED/UNRESOLVED/SAFE_STOPPED explicitly.

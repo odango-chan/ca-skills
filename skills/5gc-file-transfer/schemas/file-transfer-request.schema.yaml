@@ -29,6 +29,49 @@ properties:
     items:
       type: string
       pattern: '^[0-9]{15}$'
+  networkPolicy:
+    type: object
+    description: >-
+      Canonical baseline 5GC network policy for this transfer. Shape is owned by
+      ca-skills; values are owned by the business materialization / gateway that
+      invokes the Skill. The same values feed the composed ensure-session-qos
+      input, virtual-group creation and final verification so no second authority
+      exists. Urgent acceleration is a distinct transfer.qos.boost path and is
+      not expressed here. See docs/network-policy-identity.md.
+    required:
+    - dnn
+    - sst
+    - sd
+    - pduSessionId
+    - fiveQi
+    properties:
+      dnn:
+        type: string
+        minLength: 1
+        maxLength: 100
+        description: Data Network Name used by the baseline PDU session.
+      sst:
+        type: integer
+        minimum: 0
+        maximum: 255
+        description: Slice/Service Type of the requested S-NSSAI.
+      sd:
+        type: string
+        pattern: '^[0-9A-Fa-f]{6}$'
+        description: Slice Differentiator of the requested S-NSSAI (6 hex digits).
+      pduSessionId:
+        type: integer
+        minimum: 1
+        maximum: 15
+        description: Canonical PDU Session identity for this transfer's participants.
+      fiveQi:
+        type: integer
+        minimum: 1
+        maximum: 255
+        description: >-
+          Single canonical baseline 5QI applied to the converged PDU session and
+          to the virtual group. Urgent acceleration is separate.
+    additionalProperties: false
   groupId:
     type: string
     pattern: '^vg-[0-9]{8}-[0-9]{3}$'
@@ -45,6 +88,7 @@ allOf:
     - urgency
     - senderImsi
     - receiverImsis
+    - networkPolicy
 - if:
     properties:
       operation: {const: release_group}
