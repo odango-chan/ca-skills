@@ -28,22 +28,42 @@ new cross-repository runtime service or a second policy authority.
 ## 2. Ownership
 
 ```text
-shape owner = ca-skills
-              skills/5gc-file-transfer/schemas/file-transfer-request.schema.yaml
-value owner = business materialization / gateway
-              (the same initiator that supplies transferId and the participant IMSIs)
+shape owner       = ca-skills
+                    skills/5gc-file-transfer/schemas/file-transfer-request.schema.yaml
+reference value   = Environment owner (ca-lab)
+owner               ca-lab/reference-5gc-network-policy@v1, per Environment generation
+materialization   = business materialization consumes the selected Environment policy
+                    and materializes it into the executable Skill input
 ```
 
 `ca-skills` owns the *shape*: the field names, types, ranges and the invariant
-that every consumer reads the same object. The *values* are business input,
-exactly like `transferId` in `docs/business-resource-identity.md`.
+that every consumer reads the same object.
 
-The Environment owner (`ca-lab`) has not yet declared the reference 5GC network
-profile that a deployment would materialize (open: `odango-chan/ca-lab#15`).
-Until it does, this Skill takes the values as an **explicit request field**
-supplied by business materialization; it does not invent defaults, and the
-request schema fails closed when `networkPolicy` is absent for
-`prepare_transfer`.
+The *values* are **Environment-owned**, not business-gateway-owned. `ca-lab`
+declares the reference 5GC network/session policy as a read-only Environment
+parameter (`odango-chan/ca-lab#15`, landed) and exposes it, generation-fenced,
+through `calab.environment-inventory/v1` (`networkPolicy {authority, policyRef,
+revision, generation, dnn, sst, sd, pduSessionId, fiveQi, digest}`).
+
+Business materialization therefore does **not** author these values and they are
+**not** a Goal field: the same logical Goal must not change identity when it is
+evaluated in a different Environment. Instead:
+
+```text
+Goal { operation, receiverImsis, urgency, transferId }
+  -> Resolve / Prepare Environment
+  -> EnvironmentInventory networkPolicy (authority/policyRef/revision/generation/digest)
+  -> Business Materialization
+       ResolvedStimulus + BusinessMaterializationReceipt.businessResources.networkPolicy
+  -> executable Skill input { transferId, senderImsi, receiverImsis, urgency, networkPolicy }
+```
+
+The Skill request schema still requires `networkPolicy` for `prepare_transfer`
+and fails closed when it is absent, but the value comes from the prepared
+Environment (via materialization), never from a Benchmark fixture, the routing
+Agent or an executor default. If a future product surface must let the gateway
+request a different policy, define an explicit `requested policy` vs `effective
+Environment policy` distinction instead of merging the two.
 
 ## 3. Canonical value set
 
@@ -79,8 +99,11 @@ reintroduce a second implicit hard-code.
 ## 4. Flow
 
 ```text
-business gateway / materialization
-  -> request.networkPolicy {dnn, sst, sd, pduSessionId, fiveQi}
+Goal { operation, receiverImsis, urgency, transferId }   # no networkPolicy
+  -> Resolve / Prepare Environment
+  -> EnvironmentInventory networkPolicy (ca-lab authority/policyRef/revision/generation/digest)
+  -> Business Materialization
+  -> executable Skill input networkPolicy {dnn, sst, sd, pduSessionId, fiveQi}
   -> 5gc-file-transfer procedure inputs
        policy-dnn, policy-sst, policy-sd, policy-pdu-session-id, policy-five-qi
   -> composed ensure-session-qos input (dnn, sst, sd, fiveqi) per receiver
@@ -89,13 +112,14 @@ business gateway / materialization
 ```
 
 The binding is by reference in the Procedure source, so the value is resolved
-once from the request and cannot diverge between these consumers.
+once from the materialized request and cannot diverge between these consumers.
 
 ## 5. Prohibited
 
 ```text
 no literal sst/sd/fiveQi in assurance/predicates.yaml or assurance/procedure.yaml
 no default invented by the routing Agent, the Benchmark, or the executor
+no networkPolicy field in the Goal / Intent source contract
 networkPolicy values must not be derived from Trial/Attempt/Run/request ids
 the urgent QoS boost must not be silently aliased to the baseline fiveQi
 ```
