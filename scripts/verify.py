@@ -22,6 +22,7 @@ import argparse
 import atexit
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -39,6 +40,14 @@ LEGACY_CASE_FILES = (
     "evaluation-scenario.yaml",
 )
 OBSOLETE_ROOT_FILES = ("README.md", "MIGRATION.md")
+# Facts that a run produces (a virtual group id created/reconciled by a node)
+# must reach consumers through the producing node's output. Freezing such a
+# value as a Procedure input sourced from `context.facts.*` is unsatisfiable at
+# Runtime binding time because no deployment trusted-context resolver owns it.
+# See odango-chan/ca-skills#13. `wifi-file-transfer`'s `wifi_transfer.id` is the
+# same class of defect but is tracked as a separate follow-up owner issue, so it
+# is deliberately not listed here yet.
+RUN_PRODUCED_FACT_IDS = ("virtual_group.id",)
 
 
 def run(args, cwd, env=None):
@@ -85,6 +94,19 @@ def validate_skill_packages(packages):
                         f"{skill.name}: legacy assurance/evidence.yaml is forbidden; "
                         "observations and predicates belong in predicates.yaml"
                     )
+
+                procedure_source = assurance / "procedure.yaml"
+                if procedure_source.is_file():
+                    source = procedure_source.read_text(encoding="utf-8")
+                    for fact_id in RUN_PRODUCED_FACT_IDS:
+                        if re.search(
+                            r"from:\s*context\.facts\." + re.escape(fact_id) + r"\b", source
+                        ):
+                            errors.append(
+                                f"{skill.name}: Procedure input binds run-produced fact "
+                                f"'{fact_id}' from context.facts; bind it from the producing "
+                                "node's output instead (odango-chan/ca-skills#13)"
+                            )
 
         cases = skill / "cases"
         if cases.exists():
