@@ -86,6 +86,9 @@ procedures:
           DENIED: failed
       ensure-edge-cache:
         call: edge.cache.ensure
+        with:
+          transferId:
+            from: input.transfer-id
         'on':
           COMMITTED: create-vg
           NOT_COMMITTED: failed
@@ -297,6 +300,9 @@ procedures:
           DENIED: failed
       ensure-edge-cache:
         call: edge.cache.ensure
+        with:
+          transferId:
+            from: input.transfer-id
         'on':
           COMMITTED: create-vg
           NOT_COMMITTED: failed
