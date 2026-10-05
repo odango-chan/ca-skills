@@ -100,7 +100,7 @@ spec:
       resolve-member-endpoints: SUCCEEDED
       ensure-edge-cache: COMMITTED
       create-vg: OUTCOME_UNKNOWN
-      assign-members-after-reconcile-create: COMMITTED
+      assign-members: COMMITTED
       reconcile-vg-create: COMMITTED
     predicates:
       converge-sender-registration-ensure-registration-verify-current-registration:

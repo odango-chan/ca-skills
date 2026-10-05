@@ -102,7 +102,7 @@ spec:
       create-vg:
       - OUTCOME_UNKNOWN
       - COMMITTED
-      assign-members-after-create: COMMITTED
+      assign-members: COMMITTED
       reconcile-vg-create: NOT_COMMITTED
     predicates:
       converge-sender-registration-ensure-registration-verify-current-registration:

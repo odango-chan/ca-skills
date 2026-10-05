@@ -150,7 +150,7 @@ spec:
       resolve-member-endpoints: SUCCEEDED
       ensure-edge-cache: COMMITTED
       create-vg: COMMITTED
-      assign-members-after-create: COMMITTED
+      assign-members: COMMITTED
     predicates:
       converge-sender-registration-ensure-registration-verify-current-registration:
         ue.registered: FAIL
