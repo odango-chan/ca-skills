@@ -183,8 +183,12 @@ def resolve_platform_root():
 
 def platform_env(platform):
     env = os.environ.copy()
-    env["CONNECTIONAGENT_SKILLS_ROOT"] = str(ROOT)
-    env["CA_SKILLS_ROOT"] = str(ROOT)
+    # Canonical official Skill checkout root read by the Toolchain
+    # (`skilldependency.EnvOfficialSkillRoot`). The legacy
+    # `CA_SKILLS_ROOT` / `CONNECTIONAGENT_SKILLS_ROOT` aliases were retired by
+    # odango-chan/ca-skill-toolchain#113; re-adding them here would be a
+    # compatibility shim the Toolchain no longer reads.
+    env["CA_SKILL_ROOT"] = str(ROOT)
     env["GOWORK"] = "off"
 
     # The canonical module paths are intentionally published independently of
