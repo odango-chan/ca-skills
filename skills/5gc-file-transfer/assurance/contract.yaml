@@ -36,7 +36,7 @@ spec:
     digest: sha256:8c82c4b7eaa901fb4ad4e532d7db84e332168916f42a5fb25333e379cf7fbdc1
   - name: ensure-session-qos
     artifactRef: ensure-session-qos
-    digest: sha256:5ede18eaca575ea1e3f858c71ae55c41d82ffb8477195efd7b08493fb66840db
+    digest: sha256:d63b1a51846a51c39d2ef90eff9d0e0daffdefb86b6a3c23578878b3cb02d034
   planning:
     maxActions: 174
     allowDynamicProcedure: false

@@ -75,13 +75,10 @@ spec:
     trace:
       match: exact
       ordered:
-      - nodeId: query-session
-        outcome: SUCCEEDED
       - nodeId: observe-established
         outcome: UNKNOWN
   fixtures:
-    actions:
-      query-session: SUCCEEDED
+    actions: {}
     predicates:
       observe-established:
         pdu_session.established: UNKNOWN

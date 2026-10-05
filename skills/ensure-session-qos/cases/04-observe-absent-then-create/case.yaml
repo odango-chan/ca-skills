@@ -75,8 +75,6 @@ spec:
     trace:
       match: exact
       ordered:
-      - nodeId: query-session
-        outcome: SUCCEEDED
       - nodeId: observe-established
         outcome: FAIL
       - nodeId: create-session
@@ -89,7 +87,6 @@ spec:
         outcome: PASS
   fixtures:
     actions:
-      query-session: SUCCEEDED
       create-session: COMMITTED
     predicates:
       observe-established:

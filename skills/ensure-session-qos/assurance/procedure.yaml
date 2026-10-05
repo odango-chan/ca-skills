@@ -211,20 +211,8 @@ procedures:
       fiveqi:
         type: string
         from: context.request.fiveQi
-    start: query-session
+    start: observe-established
     nodes:
-      query-session:
-        call: pdu_session.query
-        with:
-          supi:
-            from: input.supi
-          pduSessionId:
-            from: input.pdusessionid
-        'on':
-          SUCCEEDED: observe-established
-          FAILED: failed
-          UNKNOWN: unresolved
-          DENIED: failed
       observe-established:
         verify: pdu_session.established
         'on':
