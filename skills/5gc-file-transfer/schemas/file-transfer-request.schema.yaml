@@ -32,12 +32,14 @@ properties:
   networkPolicy:
     type: object
     description: >-
-      Canonical baseline 5GC network policy for this transfer. Shape is owned by
-      ca-skills; values are owned by the business materialization / gateway that
-      invokes the Skill. The same values feed the composed ensure-session-qos
-      input, virtual-group creation and final verification so no second authority
-      exists. Urgent acceleration is a distinct transfer.qos.boost path and is
-      not expressed here. See docs/network-policy-identity.md.
+      Effective baseline 5GC network policy for this transfer. Shape is owned by
+      ca-skills; values are owned by the prepared Environment and are materialized
+      into this executable Skill input after Environment selection. They are not
+      gateway-owned and are not part of Goal identity. The same values feed the
+      composed ensure-session-qos input and 5GC virtual-group creation so no
+      second authority exists. Urgent acceleration is a distinct
+      transfer.qos.boost path and is not expressed here. See
+      docs/network-policy-identity.md.
     required:
     - dnn
     - sst
