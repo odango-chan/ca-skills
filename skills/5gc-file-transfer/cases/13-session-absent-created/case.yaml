@@ -146,6 +146,7 @@ spec:
       ensure-edge-cache: COMMITTED
       create-vg: COMMITTED
       assign-members: COMMITTED
+      converge-receiver-sessions-observe-session-then-converge-create-session: COMMITTED
     predicates:
       converge-sender-registration-ensure-registration-verify-current-registration:
         ue.registered: PASS
@@ -155,3 +156,11 @@ spec:
         ue.registered: PASS
       verify-goal:
         file_transfer.request.satisfied: PASS
+      converge-receiver-sessions-observe-session-then-converge-observe-established:
+        pdu_session.established: FAIL
+      converge-receiver-sessions-observe-session-then-converge-verify-session-goal:
+        pdu_session.established: PASS
+      converge-receiver-sessions-observe-session-then-converge-verify-session-goal-2:
+        pdu_session.qos.satisfied: PASS
+      converge-receiver-sessions-observe-session-then-converge-verify-session-goal-3:
+        user_plane.connectivity.available: PASS

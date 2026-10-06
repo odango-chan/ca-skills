@@ -165,3 +165,7 @@ spec:
         ue.registered: PASS
       verify-goal:
         file_transfer.request.satisfied: PASS
+      converge-receiver-sessions-observe-session-then-converge-observe-established:
+        pdu_session.established: PASS
+        pdu_session.qos.satisfied: PASS
+        user_plane.connectivity.available: PASS

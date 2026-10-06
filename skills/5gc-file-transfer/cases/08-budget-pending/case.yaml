@@ -169,3 +169,7 @@ spec:
         ue.registration_context.consistent: PASS
       converge-sender-registration-ensure-registration-postcondition:
         ue.registered: PASS
+      converge-receiver-sessions-observe-session-then-converge-observe-established:
+        pdu_session.established: PASS
+        pdu_session.qos.satisfied: PASS
+        user_plane.connectivity.available: PASS
