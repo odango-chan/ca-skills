@@ -66,6 +66,9 @@ Keep these rules invariant:
 - no standalone `evidence.yaml`;
 - one `case.yaml` per qualification Case directory;
 - no package-root `README.md`, `MIGRATION.md`, or `examples/`;
+- `references/` is supplemental Skill-owned material, not automatically model-visible context;
+- cross-cutting Planner/Linker/Admission fixtures do not belong under a business Skill's `references/`;
+- `scripts/` is an optional governed local-compute capability and must not be removed from the package model merely because a current Skill does not need it;
 - no empty placeholder directories;
 - model-facing Markdown under `skills/` is English;
 - Provider/deployment bindings, Tool-owner transport details, and Runtime state do not belong in Skill source.
@@ -80,6 +83,10 @@ Keep these rules invariant:
 - model-facing structured expectations;
 - boundaries the model must not guess or bypass;
 - when a decision depends on current state, which facts must first be established and which substitute inferences are invalid.
+
+Executable Skills do **not** need a Skill-specific model output payload by default. Do not add an output schema merely so the model can claim that execution succeeded; governed Procedure execution and SkillContract postconditions own success.
+
+If a model stage has a structured response, keep that response contract with its owning Host/model adapter unless the Skill genuinely owns a semantic payload. Only then should `SKILL.md` describe the payload and `schemas/` define its exact shape.
 
 Do **not** make `SKILL.md` a default Tool workflow script. A general-purpose Agent should normally choose among its current model-visible read-only Tools from Tool names, descriptions, and schemas.
 
