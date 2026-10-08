@@ -67,6 +67,9 @@ Repository rules:
 - each qualification case is one `cases/<case>/case.yaml` file;
 - package-root `README.md`, `MIGRATION.md`, and `examples/` are not part of the canonical package shape;
 - explanatory samples belong under `references/samples/`;
+- `references/` is Skill-owned supplemental material, but its contents are **not automatically model-visible**; model loading must be explicit through Skill/Host context policy;
+- `scripts/` remains a first-class optional governed local-compute asset; create it only when the Skill actually needs deterministic local computation, never as an empty placeholder;
+- cross-cutting Planner/Linker/Admission fixtures belong in their owning test area, not under a business Skill's `references/`;
 - model-facing Markdown under `skills/` is written in English;
 - do not create empty directories.
 
@@ -79,9 +82,13 @@ Repository rules:
 - when the Skill applies;
 - the business or domain goal;
 - input normalization and disambiguation;
-- model-facing input and output expectations;
+- model-facing input and output expectations **when the Skill actually owns such a payload**;
 - constraints the model must not guess or bypass;
 - when the next decision depends on current state, **which facts must first be established and which substitute inferences are invalid**.
+
+For an executable Skill, do **not** invent a Skill-specific model response payload merely to report execution success. Runtime success is established by governed Procedure execution and SkillContract postconditions / Predicate verdicts. If a model stage such as routing or semantic choice has a structured response, that response contract belongs to the owning Host/model adapter unless the Skill itself genuinely owns a semantic payload.
+
+If the Skill itself does own a real model-facing payload, describe its semantics in `SKILL.md` and put the exact reusable payload shape in `schemas/` when a schema is useful. Do not create `output.schema.yaml` by default for executable Skills.
 
 Do not make `SKILL.md` a default Tool workflow script. A general-purpose Agent should normally choose among its current model-visible read-only Capabilities from their names, descriptions, and schemas.
 
