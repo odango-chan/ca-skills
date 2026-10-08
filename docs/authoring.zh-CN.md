@@ -87,6 +87,9 @@ skills/<name>/
 - 每个资格验证用例只使用一个 `cases/<case>/case.yaml`；
 - Skill 根目录不使用 `README.md`、`MIGRATION.md`、`examples/`；
 - 说明性示例放在 `references/samples/`；
+- `references/` 是 Skill 自己拥有的补充材料，但**不会因为放在这里就自动进入模型上下文**；是否加载必须由 Skill/Host 的上下文策略显式决定；
+- `scripts/` 继续是一等可选的 governed local-compute 资产；只有确实需要确定性本地计算时才创建，不要建空目录占位；
+- 跨 Skill 的 Planner/Linker/Admission 测试 fixture 放到对应测试区域，不放在业务 Skill 的 `references/` 下；
 - `skills/` 下供模型读取的 Markdown 统一使用英文；
 - 不创建空目录占位。
 
@@ -99,9 +102,13 @@ skills/<name>/
 - 什么情况下使用这个 Skill；
 - 对应的业务或领域目标；
 - 输入如何归一化、如何消歧；
-- 模型需要理解的输入输出语义；
+- 当 Skill 确实拥有这类 payload 时，模型需要理解的输入输出语义；
 - 哪些信息不能猜、哪些边界不能绕过；
 - 当下一步依赖当前状态时，**哪些事实必须先获得、哪些替代推断不成立**。
+
+对于 executable Skill，**不要为了“返回执行结果”额外发明一套 Skill-specific 模型输出 payload**。真实执行成功由 governed Procedure + SkillContract postcondition / Predicate verdict 决定。
+
+如果某个模型 stage（例如 routing 或 semantic choice）有结构化输出，该 response contract 默认属于对应的 Host / model adapter；只有当 Skill 本身确实拥有一个独立的 model-facing semantic payload 时，才在 `SKILL.md` 中说明，并在有必要时用 `schemas/` 固定 exact shape。不要默认给每个 executable Skill 创建 `output.schema.yaml`。
 
 默认不要把 `SKILL.md` 写成 Tool 流程说明书。通用 Agent 应根据当前 model-visible Tool 的 name / description / schema 自己选择合适的 read-only Capability。
 
