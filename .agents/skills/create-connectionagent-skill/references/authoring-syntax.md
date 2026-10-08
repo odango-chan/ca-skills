@@ -41,6 +41,9 @@ Rules:
 - qualification cases use one `case.yaml` per case directory;
 - no package-root `README.md`, `MIGRATION.md`, or `examples/`;
 - explanatory samples belong in `references/samples/`;
+- `references/` contents are not automatically injected into model context;
+- `scripts/` is optional governed deterministic local compute, not a deprecated package feature;
+- cross-cutting Planner/Linker/Admission fixtures belong in their test owner, not a business Skill's `references/`;
 - do not create empty placeholder directories.
 
 ## `SKILL.md`
@@ -74,6 +77,9 @@ description: Achieve <business goal> when <selection condition>.
 ```
 
 Keep only business/domain meaning, normalization and disambiguation, model-facing structured expectations, and boundaries the model must not guess or bypass.
+
+For executable Skills, "output expectation" does **not** mean every Skill needs a model response schema. Governed execution success is established by Runtime postconditions/Predicates. Only define a Skill-owned model-facing payload/schema when the Skill genuinely owns that semantic payload; stage-owned outputs such as routing or planning-choice responses stay with their owning Host/model adapter.
+
 
 Do not copy Provider bindings, deployment endpoints, Runtime state machines, full Procedure graphs, qualification status, Benchmark scoring, or migration history into model context.
 
