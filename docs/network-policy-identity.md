@@ -68,13 +68,13 @@ Environment policy` distinction instead of merging the two.
 ### 2.1 5GC transfer resource owner boundary
 
 The policy is consumed by 5GC-domain resources. In the reference simulated
-deployment those resources are owned by `ca-5gc-sim`, not Sandbox:
+deployment those resources are owned by `env-5gc-sim`, not Sandbox:
 
 ```text
 ca-lab
   owns effective Environment networkPolicy
 
-ca-5gc-sim
+env-5gc-sim
   materializes UE/session/QoS state
   owns transfer.participants.* for the 5GC world
   owns edge.cache.* on the 5GC-file-transfer path
@@ -88,7 +88,7 @@ ca-sandbox
 ```
 
 The gateway still owns `transferId` allocation and the application/file-transfer
-lifecycle. Passing that business identity into ca-5gc-sim does not transfer its
+lifecycle. Passing that business identity into env-5gc-sim does not transfer its
 ownership and must never alias it to Trial, Attempt, Runtime, request, or world
 identities.
 

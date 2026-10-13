@@ -1,0 +1,15 @@
+{
+  "caseId": "ENV-5GC-SIM-RENAME-CONSUMER-01",
+  "issue": "odango-chan/env-5gc-sim#34",
+  "consumerRepository": "odango-chan/ca-skills",
+  "scope": "active component identity consumer cutover from current main",
+  "oldActiveIdentityScan": "0 matches outside historical artifacts and docs/migration",
+  "result": "PASS",
+  "commands": [
+    {
+      "command": "make verify",
+      "result": "PASS"
+    }
+  ],
+  "historicalArtifactsRewritten": false
+}

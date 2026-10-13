@@ -16,7 +16,7 @@ predicates:
   file_transfer.request.satisfied:
     observations:
       virtualGroup:
-        # Reference simulated deployment owner: ca-5gc-sim. This is a 5GC
+        # Reference simulated deployment owner: env-5gc-sim. This is a 5GC
         # resource observation and must not be rebound to Sandbox.
         ref: virtual_group.snapshot
         # The virtual-group resource is keyed by the business transferId
@@ -29,7 +29,7 @@ predicates:
             : {"transferId": request.transferId}
         freshness: 5s
       qosBoost:
-        # Reference simulated deployment owner: ca-5gc-sim.
+        # Reference simulated deployment owner: env-5gc-sim.
         ref: transfer.qos.boost_state
         scope: >
           {"transferId": request.transferId}
