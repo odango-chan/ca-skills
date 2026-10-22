@@ -1,0 +1,3 @@
+=== focused package hygiene: establish-pdu-session ===
+PACKAGE_LAYOUT_OK
+CA_SKILL_TOOLCHAIN_ROOT (or compatibility alias CONNECTIONAGENT_SKILL_PLATFORM_ROOT) must point to a Skill Toolchain Git checkout with backend/cmd/caskill and registry when ../ca-skill-toolchain is unavailable

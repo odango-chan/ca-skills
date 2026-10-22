@@ -1,0 +1,5 @@
+python3 -B scripts/verify.py
+=== 1/8 package layout ===
+PACKAGE_LAYOUT_OK
+CA_SKILL_TOOLCHAIN_ROOT (or compatibility alias CONNECTIONAGENT_SKILL_PLATFORM_ROOT) must point to a Skill Toolchain Git checkout with backend/cmd/caskill and registry when ../ca-skill-toolchain is unavailable
+make: *** [Makefile:3: verify] Error 1

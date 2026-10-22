@@ -2,6 +2,8 @@
 
 状态：Proposed v0.1；owner：[ca-skills#20](https://github.com/odango-chan/ca-skills/issues/20)。
 
+语义评审：**CHANGES_REQUIRED**；[完整评审](../artifacts/reviews/20261022-createdsession-skill-review/README.md)发现 3 项 P1 和 4 项 P2，包括 facts 绑定、精确 UDM 取证 scope、只读不确定结果的 Artifact 契约，以及用例预期/数据流/局部类型/调和建模。静态 PASS 不代表可执行；修正和 owner gate 前保留 Draft。
+
 `skills/establish-pdu-session/` 是覆盖完整初始建立目标的源码候选，尚未通过引用闭合、编译、资格或生产准入。它不是单条 UDM Get 的包装 Skill，不使用模拟器的 pdu_session.create/ensure，也不依赖 canonical establishment/absence 布尔值。
 
 设计输入为 Sandbox [总设计](https://github.com/odango-chan/sandbox/blob/460c4628eb54a97de2485e1b41ed76db9ba22d23/docs/design/createdsession-agent-orchestration.md)、[输入](https://github.com/odango-chan/sandbox/blob/460c4628eb54a97de2485e1b41ed76db9ba22d23/docs/design/createdsession-procedure-context.md)、[B](https://github.com/odango-chan/sandbox/blob/460c4628eb54a97de2485e1b41ed76db9ba22d23/docs/design/createdsession-resource-lifecycle.md)、[C](https://github.com/odango-chan/sandbox/blob/460c4628eb54a97de2485e1b41ed76db9ba22d23/docs/design/createdsession-n1n2-verification.md)。源码采用 Toolchain `07a8ee41` 的现行 schema，不修改语法或 active Registry。

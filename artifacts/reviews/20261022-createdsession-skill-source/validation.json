@@ -180,5 +180,13 @@
   },
   "protocolCodec": "NOT_IMPLEMENTED; Provider#20 owns the proposed pure NAS/N2 SM tools; Fabric#70 owns source/mediation",
   "live": "NOT_RUN",
-  "productionAdmission": "NOT_GRANTED"
+  "productionAdmission": "NOT_GRANTED",
+  "semanticReview": {
+    "status": "CHANGES_REQUIRED",
+    "reviewedCommit": "d3576dcdd0dce732cb284da28d8105976e63d6a0",
+    "P1": 3,
+    "P2": 4,
+    "report": "../20261022-createdsession-skill-review/README.md",
+    "scope": "Source/contract inspection and explicit counterexamples; not owner compiler/Mock/SQ/live execution."
+  }
 }

@@ -1,0 +1,24 @@
+{
+  "sourceCommit": "d3576dcdd0dce732cb284da28d8105976e63d6a0",
+  "commands": [
+    {
+      "command": "python3 -B scripts/verify.py --compile skills/establish-pdu-session",
+      "exitCode": 1,
+      "status": "ENVIRONMENT_BLOCKED",
+      "evidence": "focused-compile.txt"
+    },
+    {
+      "command": "make verify",
+      "exitCode": 2,
+      "status": "ENVIRONMENT_BLOCKED",
+      "evidence": "make-verify.txt"
+    }
+  ],
+  "goAvailable": false,
+  "schemaChecks": "PASS as recorded in ../20261022-createdsession-skill-source/validation.json; no semantic approval implied",
+  "compilerDiagnostics": "NOT_AVAILABLE; process stops in environment preflight before invoking actual compiler",
+  "mockRuntime": "NOT_RUN",
+  "SQ": "NOT_RUN",
+  "protocol": "NOT_RUN",
+  "live": "NOT_RUN"
+}
