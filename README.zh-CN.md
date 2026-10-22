@@ -130,3 +130,5 @@ export CA_SKILL_TOOLCHAIN_ROOT=/path/to/ca-skill-toolchain
 ```
 
 编译通过或本地预检通过，并不等于已经通过生产环境资格验证。
+
+CreatedSession 初始建立源码候选见 [`establish-pdu-session`](skills/establish-pdu-session/SKILL.md)；[依赖反查与验证边界](docs/createdsession-source-candidate.md)明确当前未完成引用闭合、编译/资格与真实验收，不代表生产准入。

@@ -1,0 +1,415 @@
+procedures:
+  establish-initial:
+    inputs:
+      ue-ref:
+        type: string
+        from: context.subject.ueRef
+      psi:
+        type: integer
+        from: context.request.pduSessionId
+      dnn:
+        type: string
+        from: context.request.dnn
+      slice:
+        type: object
+        from: context.request.sNssai
+      plmn:
+        type: object
+        from: context.request.servingPlmn
+      ingress-ref:
+        type: string
+        from: context.facts.createdsession_ingress.value.ref
+      lifecycle-ref:
+        type: string
+        from: context.facts.createdsession_lifecycle.value.ref
+      requested-type:
+        type: string
+        from: context.request.requestedPduSessionType
+      requested-ssc:
+        type: integer
+        from: context.request.requestedSscMode
+    start: verify-ingress
+    nodes:
+      verify-ingress:
+        verify: createdsession.ingress.eligible
+        'on':
+          PASS: get-sm-data
+          FAIL: failed
+          UNKNOWN: unresolved
+      get-sm-data:
+        call: sbi.udm.sm_data.get
+        with:
+          ueRef:
+            from: input.ue-ref
+          dnn:
+            from: input.dnn
+          sNssai:
+            from: input.slice
+          servingPlmn:
+            from: input.plmn
+        'on':
+          SUCCEEDED: verify-udm
+          FAILED: failed
+          DENIED: failed
+          OUTCOME_UNKNOWN: unresolved
+      verify-udm:
+        verify: createdsession.udm.subscription_usable
+        'on':
+          PASS: select-configuration
+          FAIL: failed
+          UNKNOWN: unresolved
+      select-configuration:
+        script: scripts/select_establishment_configuration.py
+        with:
+          subscription:
+            from: get-sm-data.output.subscription
+          dnn:
+            from: input.dnn
+          sNssai:
+            from: input.slice
+          requestedPduSessionType:
+            from: input.requested-type
+          requestedSscMode:
+            from: input.requested-ssc
+        'on':
+          SUCCEEDED: inspect-policy-context
+          FAILED: failed
+          DENIED: failed
+      inspect-policy-context:
+        call: fivegc.session.operation_context.read
+        with:
+          ueRef: &id001
+            from: input.ue-ref
+          pduSessionId: &id002
+            from: input.psi
+          ingressRef: &id003
+            from: input.ingress-ref
+          lifecycleRef: &id004
+            from: input.lifecycle-ref
+          selection: &id005
+            from: select-configuration.output
+          purpose:
+            value: policy-create
+        'on':
+          SUCCEEDED: verify-policy-context
+          FAILED: failed
+          DENIED: failed
+          UNKNOWN: unresolved
+      verify-policy-context:
+        verify: createdsession.policy_context.ready
+        'on':
+          PASS: subscribe-udm
+          FAIL: failed
+          UNKNOWN: unresolved
+      subscribe-udm:
+        call: sbi.udm.sdm_subscription.create
+        with:
+          operationContextRef:
+            from: inspect-policy-context.output.contextRef
+          lifecycleRef:
+            from: input.lifecycle-ref
+        'on':
+          COMMITTED: verify-subscription
+          NOT_COMMITTED: handoff-failed
+          OUTCOME_UNKNOWN: reconcile-subscribe-udm
+          FAILED: handoff-failed
+          DENIED: handoff-failed
+      reconcile-subscribe-udm:
+        call: createdsession.operation.reconcile
+        with:
+          operationRef:
+            from: subscribe-udm.output.operationRef
+          lifecycleRef:
+            from: input.lifecycle-ref
+        'on':
+          COMMITTED: handoff-unresolved
+          NOT_COMMITTED: handoff-failed
+          UNRESOLVED: unresolved
+          FAILED: safe-stopped
+          DENIED: safe-stopped
+      verify-subscription:
+        verify: createdsession.udm.subscription_owned
+        'on':
+          PASS: create-policy
+          FAIL: handoff-failed
+          UNKNOWN: handoff-unresolved
+      create-policy:
+        call: sbi.pcf.sm_policy.create
+        with:
+          operationContextRef:
+            from: inspect-policy-context.output.contextRef
+          selection:
+            from: select-configuration.output
+          subscriptionRef:
+            from: subscribe-udm.output.subscriptionRef
+          lifecycleRef:
+            from: input.lifecycle-ref
+        'on':
+          COMMITTED: verify-policy
+          NOT_COMMITTED: handoff-failed
+          OUTCOME_UNKNOWN: reconcile-create-policy
+          FAILED: handoff-failed
+          DENIED: handoff-failed
+      reconcile-create-policy:
+        call: createdsession.operation.reconcile
+        with:
+          operationRef:
+            from: create-policy.output.operationRef
+          lifecycleRef:
+            from: input.lifecycle-ref
+        'on':
+          COMMITTED: handoff-unresolved
+          NOT_COMMITTED: handoff-failed
+          UNRESOLVED: unresolved
+          FAILED: safe-stopped
+          DENIED: safe-stopped
+      verify-policy:
+        verify: createdsession.pcf.association_owned
+        'on':
+          PASS: verify-initial-n4
+          FAIL: handoff-failed
+          UNKNOWN: handoff-unresolved
+      verify-initial-n4:
+        verify: createdsession.n4.initial_resources_ready
+        'on':
+          PASS: inspect-delivery-context
+          FAIL: handoff-failed
+          UNKNOWN: handoff-unresolved
+      inspect-delivery-context:
+        call: fivegc.session.operation_context.read
+        with:
+          ueRef: *id001
+          pduSessionId: *id002
+          ingressRef: *id003
+          lifecycleRef: *id004
+          selection: *id005
+          purpose:
+            value: nas-and-n2-delivery
+        'on':
+          SUCCEEDED: verify-delivery-context
+          FAILED: handoff-failed
+          DENIED: handoff-failed
+          UNKNOWN: handoff-unresolved
+      verify-delivery-context:
+        verify: createdsession.delivery_context.ready
+        'on':
+          PASS: prepare-establishment-response
+          FAIL: handoff-failed
+          UNKNOWN: handoff-unresolved
+      transfer-to-amf:
+        call: sbi.amf.n1n2.transfer
+        with:
+          operationContextRef:
+            from: inspect-delivery-context.output.contextRef
+          lifecycleRef:
+            from: input.lifecycle-ref
+          responseArtifactRef:
+            from: prepare-establishment-response.output.responseArtifactRef
+        'on':
+          COMMITTED: verify-transfer
+          NOT_COMMITTED: handoff-failed
+          OUTCOME_UNKNOWN: reconcile-transfer-to-amf
+          FAILED: handoff-failed
+          DENIED: handoff-failed
+      reconcile-transfer-to-amf:
+        call: createdsession.operation.reconcile
+        with:
+          operationRef:
+            from: transfer-to-amf.output.operationRef
+          lifecycleRef:
+            from: input.lifecycle-ref
+        'on':
+          COMMITTED: handoff-unresolved
+          NOT_COMMITTED: handoff-failed
+          UNRESOLVED: unresolved
+          FAILED: safe-stopped
+          DENIED: safe-stopped
+      verify-transfer:
+        verify: createdsession.amf.transfer_initiated
+        'on':
+          PASS: await-ran-result
+          FAIL: handoff-failed
+          UNKNOWN: handoff-unresolved
+      verify-ran:
+        verify: createdsession.ran.setup_accepted
+        'on':
+          PASS: await-forwarding
+          FAIL: handoff-failed
+          UNKNOWN: handoff-unresolved
+      verify-forwarding:
+        verify: createdsession.n4.forwarding_ready
+        'on':
+          PASS: await-ue
+          FAIL: handoff-failed
+          UNKNOWN: handoff-unresolved
+      verify-ue:
+        verify: createdsession.ue.configuration_accepted
+        'on':
+          PASS: handoff-success
+          FAIL: handoff-failed
+          UNKNOWN: handoff-unresolved
+      handoff-success:
+        call: fivegc.session.resource_responsibility.transfer
+        with:
+          lifecycleRef:
+            from: input.lifecycle-ref
+          disposition:
+            value: success
+        'on':
+          COMMITTED: verify-handoff-success
+          NOT_COMMITTED: safe-stopped
+          OUTCOME_UNKNOWN: reconcile-handoff-success
+          FAILED: safe-stopped
+          DENIED: safe-stopped
+      reconcile-handoff-success:
+        call: createdsession.operation.reconcile
+        with:
+          operationRef:
+            from: handoff-success.output.operationRef
+          lifecycleRef:
+            from: input.lifecycle-ref
+        'on':
+          COMMITTED: verify-handoff-success
+          NOT_COMMITTED: safe-stopped
+          UNRESOLVED: unresolved
+          FAILED: safe-stopped
+          DENIED: safe-stopped
+      verify-handoff-success:
+        verify: createdsession.resources.managed
+        'on':
+          PASS: done
+          FAIL: safe-stopped
+          UNKNOWN: unresolved
+      handoff-failed:
+        call: fivegc.session.resource_responsibility.transfer
+        with:
+          lifecycleRef:
+            from: input.lifecycle-ref
+          disposition:
+            value: failed
+        'on':
+          COMMITTED: verify-handoff-failed
+          NOT_COMMITTED: safe-stopped
+          OUTCOME_UNKNOWN: reconcile-handoff-failed
+          FAILED: safe-stopped
+          DENIED: safe-stopped
+      reconcile-handoff-failed:
+        call: createdsession.operation.reconcile
+        with:
+          operationRef:
+            from: handoff-failed.output.operationRef
+          lifecycleRef:
+            from: input.lifecycle-ref
+        'on':
+          COMMITTED: verify-handoff-failed
+          NOT_COMMITTED: safe-stopped
+          UNRESOLVED: unresolved
+          FAILED: safe-stopped
+          DENIED: safe-stopped
+      verify-handoff-failed:
+        verify: createdsession.resources.managed
+        'on':
+          PASS: failed
+          FAIL: safe-stopped
+          UNKNOWN: unresolved
+      handoff-unresolved:
+        call: fivegc.session.resource_responsibility.transfer
+        with:
+          lifecycleRef:
+            from: input.lifecycle-ref
+          disposition:
+            value: unresolved
+        'on':
+          COMMITTED: verify-handoff-unresolved
+          NOT_COMMITTED: safe-stopped
+          OUTCOME_UNKNOWN: reconcile-handoff-unresolved
+          FAILED: safe-stopped
+          DENIED: safe-stopped
+      reconcile-handoff-unresolved:
+        call: createdsession.operation.reconcile
+        with:
+          operationRef:
+            from: handoff-unresolved.output.operationRef
+          lifecycleRef:
+            from: input.lifecycle-ref
+        'on':
+          COMMITTED: verify-handoff-unresolved
+          NOT_COMMITTED: safe-stopped
+          UNRESOLVED: unresolved
+          FAILED: safe-stopped
+          DENIED: safe-stopped
+      verify-handoff-unresolved:
+        verify: createdsession.resources.managed
+        'on':
+          PASS: unresolved
+          FAIL: safe-stopped
+          UNKNOWN: unresolved
+      done:
+        terminal: SUCCEEDED
+      failed:
+        terminal: FAILED
+      unresolved:
+        terminal: UNRESOLVED
+      safe-stopped:
+        terminal: SAFE_STOPPED
+      await-ran-result:
+        call: fivegc.session.evidence.await
+        with:
+          operationContextRef:
+            from: inspect-delivery-context.output.contextRef
+          afterOperationRef:
+            from: transfer-to-amf.output.operationRef
+          lifecycleRef:
+            from: input.lifecycle-ref
+          purpose:
+            value: ran-setup-result
+        'on':
+          SUCCEEDED: verify-ran
+          FAILED: handoff-unresolved
+          UNKNOWN: handoff-unresolved
+          DENIED: handoff-failed
+      await-forwarding:
+        call: fivegc.session.evidence.await
+        with:
+          operationContextRef:
+            from: inspect-delivery-context.output.contextRef
+          afterOperationRef:
+            from: transfer-to-amf.output.operationRef
+          lifecycleRef:
+            from: input.lifecycle-ref
+          purpose:
+            value: n4-forwarding
+        'on':
+          SUCCEEDED: verify-forwarding
+          FAILED: handoff-unresolved
+          UNKNOWN: handoff-unresolved
+          DENIED: handoff-failed
+      await-ue:
+        call: fivegc.session.evidence.await
+        with:
+          operationContextRef:
+            from: inspect-delivery-context.output.contextRef
+          afterOperationRef:
+            from: transfer-to-amf.output.operationRef
+          lifecycleRef:
+            from: input.lifecycle-ref
+          purpose:
+            value: ue-configuration
+        'on':
+          SUCCEEDED: verify-ue
+          FAILED: handoff-unresolved
+          UNKNOWN: handoff-unresolved
+          DENIED: handoff-failed
+      prepare-establishment-response:
+        call: fivegc.session.establishment_response.prepare
+        with:
+          operationContextRef:
+            from: inspect-delivery-context.output.contextRef
+          selection:
+            from: select-configuration.output
+          policyResultRef:
+            from: create-policy.output.policyResultRef
+        'on':
+          SUCCEEDED: transfer-to-amf
+          FAILED: handoff-failed
+          DENIED: handoff-failed

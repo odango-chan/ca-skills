@@ -1,0 +1,139 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: PredicateSet
+metadata:
+  skill: establish-pdu-session
+predicates:
+  createdsession.ingress.eligible:
+    observations:
+      state:
+        ref: createdsession.procedure_context
+        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef":
+          facts.createdsession_ingress.value.ref}'
+        freshness: 5s
+    evaluator:
+      type: cel
+      expression: observations.state.requestType == 1 && observations.state.messageType
+        == 193 && observations.state.bindingStatus == "CURRENT" && observations.state.actionAuthorized
+        == true
+  createdsession.policy_context.ready:
+    observations:
+      state:
+        ref: createdsession.policy_operation_context
+        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef":
+          facts.createdsession_ingress.value.ref}'
+        freshness: 5s
+    evaluator:
+      type: cel
+      expression: observations.state.bindingStatus == "CURRENT" && observations.state.addressAllocated
+        == true && observations.state.callbackReady == true && observations.state.associationOwnership
+        == "EXCLUSIVE"
+  createdsession.udm.subscription_owned:
+    observations:
+      state:
+        ref: createdsession.udm_subscription_resource
+        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef":
+          facts.createdsession_ingress.value.ref}'
+        freshness: 1h
+    evaluator:
+      type: cel
+      expression: observations.state.creationState == "CREATED" && observations.state.ownership
+        == "AGENT" && observations.state.managementState == "DURABLE"
+  createdsession.pcf.association_owned:
+    observations:
+      state:
+        ref: createdsession.pcf_association_resource
+        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef":
+          facts.createdsession_ingress.value.ref}'
+        freshness: 1h
+    evaluator:
+      type: cel
+      expression: observations.state.creationState == "CREATED" && observations.state.ownership
+        == "AGENT" && observations.state.managementState == "DURABLE"
+  createdsession.n4.initial_resources_ready:
+    observations:
+      state:
+        ref: createdsession.n4_initial_resources
+        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef":
+          facts.createdsession_ingress.value.ref}'
+        freshness: 5s
+    evaluator:
+      type: cel
+      expression: observations.state.bindingStatus == "CURRENT" && observations.state.defaultFlowInstalled
+        == true && observations.state.uplinkEndpointBound == true
+  createdsession.delivery_context.ready:
+    observations:
+      state:
+        ref: createdsession.nas_delivery_context
+        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef":
+          facts.createdsession_ingress.value.ref}'
+        freshness: 5s
+    evaluator:
+      type: cel
+      expression: observations.state.bindingStatus == "CURRENT" && observations.state.nasInputsComplete
+        == true && observations.state.delegatedCallerAuthorized == true && observations.state.uniqueSenderReserved
+        == true
+  createdsession.amf.transfer_initiated:
+    observations:
+      response:
+        ref: createdsession.amf_transfer_result
+        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef":
+          facts.createdsession_ingress.value.ref}'
+        freshness: 1h
+    evaluator:
+      type: script
+      ref: skill.evaluate-transfer-start
+  createdsession.ran.setup_accepted:
+    observations:
+      state:
+        ref: createdsession.ran_setup_result
+        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef":
+          facts.createdsession_ingress.value.ref}'
+        freshness: 1h
+    evaluator:
+      type: cel
+      expression: observations.state.result == "ACCEPTED" && observations.state.requiredFlowMatched
+        == true && observations.state.currentInstanceBound == true
+  createdsession.n4.forwarding_ready:
+    observations:
+      state:
+        ref: createdsession.n4_forwarding_resources
+        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef":
+          facts.createdsession_ingress.value.ref}'
+        freshness: 5s
+    evaluator:
+      type: cel
+      expression: observations.state.bindingStatus == "CURRENT" && observations.state.requiredFlowMatched
+        == true && observations.state.downlinkTunnelMatched == true && observations.state.gatesAllowForwarding
+        == true
+  createdsession.ue.configuration_accepted:
+    observations:
+      state:
+        ref: createdsession.ue_sm_configuration
+        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef":
+          facts.createdsession_ingress.value.ref}'
+        freshness: 5s
+    evaluator:
+      type: cel
+      expression: observations.state.smState == "ACTIVE" && observations.state.selectedConfigurationMatched
+        == true && observations.state.currentInstanceBound == true
+  createdsession.resources.managed:
+    observations:
+      state:
+        ref: createdsession.resource_responsibility
+        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef":
+          facts.createdsession_ingress.value.ref}'
+        freshness: 5s
+    evaluator:
+      type: cel
+      expression: observations.state.managementState == "ACCEPTED" && observations.state.allResourcesCovered
+        == true && observations.state.pendingResponsibilitiesRetained == true
+  createdsession.udm.subscription_usable:
+    observations:
+      response:
+        ref: sbi.operation.result
+        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef":
+          facts.createdsession_ingress.value.ref}'
+        freshness: 1h
+    evaluator:
+      type: script
+      ref: skill.evaluate-udm-read

@@ -92,6 +92,7 @@ Agent routing selects from the admitted Skill set; Runtime still performs the fi
 | Package | Role | Status |
 | --- | --- | --- |
 | `5gc-intent` | routing policy / model context | non-executable |
+| `establish-pdu-session` | event-driven initial establishment | [source candidate](docs/createdsession-source-candidate.md); reference closure/compiler/qualification blocked or not run; no production admission |
 | `5gc-file-transfer` | product Skill | local source/compile/case/Mock Runtime preflight complete; live owner execution and production admission remain pending |
 | `wifi-file-transfer` | product Skill | local source/compile/case/Mock Runtime preflight complete; live owner execution and production admission remain pending |
 | `ue-registration` | reference Skill | production-qualified reference |

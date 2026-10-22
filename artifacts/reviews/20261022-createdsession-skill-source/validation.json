@@ -1,0 +1,184 @@
+{
+  "date": "2026-10-22",
+  "package": "establish-pdu-session",
+  "sourceBase": "29eeb650fe570c910affe5af99b94e1baaa7f5f0",
+  "schemaOwner": "ca-skill-toolchain@07a8ee41ca456265e116812ff0ad31fe74333451",
+  "schemaValidation": {
+    "status": "PASS",
+    "checked": [
+      "skills/establish-pdu-session/assurance/contract.yaml",
+      "skills/establish-pdu-session/assurance/procedure.yaml",
+      "skills/establish-pdu-session/assurance/predicates.yaml",
+      "skills/establish-pdu-session/cases/01-complete-profile/case.yaml",
+      "skills/establish-pdu-session/cases/02-ingress-unknown/case.yaml",
+      "skills/establish-pdu-session/cases/03-udm-partial-or-ambiguous/case.yaml",
+      "skills/establish-pdu-session/cases/04-udm-target-rejection/case.yaml",
+      "skills/establish-pdu-session/cases/05-address-or-callback-missing/case.yaml",
+      "skills/establish-pdu-session/cases/06-subscription-ownership-unknown/case.yaml",
+      "skills/establish-pdu-session/cases/07-pcf-association-reused/case.yaml",
+      "skills/establish-pdu-session/cases/08-initial-n4-not-proven/case.yaml",
+      "skills/establish-pdu-session/cases/09-old-instance-or-no-authority/case.yaml",
+      "skills/establish-pdu-session/cases/10-response-artifact-invalid/case.yaml",
+      "skills/establish-pdu-session/cases/11-amf-202-unsupported/case.yaml",
+      "skills/establish-pdu-session/cases/12-ran-setup-failure/case.yaml",
+      "skills/establish-pdu-session/cases/13-ran-late-or-ambiguous/case.yaml",
+      "skills/establish-pdu-session/cases/14-n4-forwarding-failure/case.yaml",
+      "skills/establish-pdu-session/cases/15-ue-proof-missing/case.yaml",
+      "skills/establish-pdu-session/cases/16-manager-receipt-missing/case.yaml",
+      "skills/establish-pdu-session/cases/17-subscribe-udm-unknown/case.yaml",
+      "skills/establish-pdu-session/cases/18-create-policy-unknown/case.yaml",
+      "skills/establish-pdu-session/cases/19-response-prepare-denied/case.yaml",
+      "skills/establish-pdu-session/cases/20-transfer-to-amf-unknown/case.yaml",
+      "skills/establish-pdu-session/cases/21-reconciled-commit-no-output-join/case.yaml",
+      "skills/establish-pdu-session/cases/22-reconciled-not-committed-no-retry/case.yaml",
+      "skills/establish-pdu-session/cases/23-denied-before-resource-create/case.yaml",
+      "skills/establish-pdu-session/cases/24-amf-200-still-buffered/case.yaml",
+      "skills/establish-pdu-session/scripts/evaluate_udm_read.py:metadata",
+      "skills/establish-pdu-session/scripts/select_establishment_configuration.py:metadata",
+      "skills/establish-pdu-session/scripts/evaluate_transfer_start.py:metadata"
+    ],
+    "localSchemas": "meta-schema validation PASS"
+  },
+  "packageLayout": "PASS",
+  "sourceGraphChecks": {
+    "status": "PASS",
+    "nodes": 38,
+    "reachableNodes": 38,
+    "producerBindingsChecked": 24,
+    "scope": "One-off reachability/dominance/unknown-route inspection, not the owner compiler or Runtime."
+  },
+  "localComputeVectors": {
+    "status": "PASS",
+    "count": 20,
+    "results": [
+      {
+        "case": "udm-matched",
+        "expected": "PASS",
+        "actual": "PASS"
+      },
+      {
+        "case": "udm-no-match",
+        "expected": "FAIL",
+        "actual": "FAIL"
+      },
+      {
+        "case": "udm-ambiguous",
+        "expected": "UNKNOWN",
+        "actual": "UNKNOWN"
+      },
+      {
+        "case": "udm-partial",
+        "expected": "UNKNOWN",
+        "actual": "UNKNOWN"
+      },
+      {
+        "case": "udm-scp-error",
+        "expected": "UNKNOWN",
+        "actual": "UNKNOWN"
+      },
+      {
+        "case": "udm-target-error",
+        "expected": "FAIL",
+        "actual": "FAIL"
+      },
+      {
+        "case": "udm-timeout",
+        "expected": "UNKNOWN",
+        "actual": "UNKNOWN"
+      },
+      {
+        "case": "udm-invalid-data",
+        "expected": "UNKNOWN",
+        "actual": "UNKNOWN"
+      },
+      {
+        "case": "amf-init-only",
+        "expected": "PASS",
+        "actual": "PASS"
+      },
+      {
+        "case": "amf-202",
+        "expected": "UNKNOWN",
+        "actual": "UNKNOWN"
+      },
+      {
+        "case": "amf-unknown-cause",
+        "expected": "UNKNOWN",
+        "actual": "UNKNOWN"
+      },
+      {
+        "case": "amf-cause-missing",
+        "expected": "UNKNOWN",
+        "actual": "UNKNOWN"
+      },
+      {
+        "case": "amf-scp-origin",
+        "expected": "UNKNOWN",
+        "actual": "UNKNOWN"
+      },
+      {
+        "case": "amf-partial",
+        "expected": "UNKNOWN",
+        "actual": "UNKNOWN"
+      },
+      {
+        "case": "amf-target-rejected",
+        "expected": "FAIL",
+        "actual": "FAIL"
+      },
+      {
+        "case": "selection-matched",
+        "actual": "SUPPORTED",
+        "expected": "SUPPORTED"
+      },
+      {
+        "case": "selection-other-dnn",
+        "actual": "REJECTED",
+        "expected": "REJECTED"
+      },
+      {
+        "case": "selection-sd-absent-vs-zero",
+        "actual": "REJECTED",
+        "expected": "REJECTED"
+      },
+      {
+        "case": "selection-type-disallowed",
+        "actual": "REJECTED",
+        "expected": "REJECTED"
+      },
+      {
+        "case": "selection-ssc-disallowed",
+        "actual": "REJECTED",
+        "expected": "REJECTED"
+      }
+    ]
+  },
+  "ownerCommands": [
+    {
+      "command": "python3 -B scripts/verify.py --compile skills/establish-pdu-session",
+      "exitCode": 1,
+      "status": "ENVIRONMENT_BLOCKED",
+      "evidence": "focused-compile.txt"
+    },
+    {
+      "command": "make verify",
+      "exitCode": 2,
+      "status": "ENVIRONMENT_BLOCKED",
+      "evidence": "make-verify.txt"
+    }
+  ],
+  "environment": {
+    "goInstalled": false,
+    "toolchainCheckout": "SCHEMAS_ONLY; missing executable compiler checkout and sibling dependencies"
+  },
+  "referenceClosure": "BLOCKED: proposed Capability/Observation dependencies are not registered; see docs/createdsession-source-candidate.md. Not an executed compiler result.",
+  "qualificationCases": {
+    "count": 24,
+    "schema": "PASS",
+    "mockRuntime": "NOT_RUN",
+    "SQ": "NOT_RUN"
+  },
+  "protocolCodec": "NOT_IMPLEMENTED; Provider#20 owns the proposed pure NAS/N2 SM tools; Fabric#70 owns source/mediation",
+  "live": "NOT_RUN",
+  "productionAdmission": "NOT_GRANTED"
+}

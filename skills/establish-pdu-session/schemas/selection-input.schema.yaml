@@ -1,0 +1,43 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: selection-input.schema.yaml
+title: EstablishmentSelectionInput
+type: object
+additionalProperties: false
+required:
+- dnn
+- sNssai
+- requestedPduSessionType
+- requestedSscMode
+- subscription
+properties:
+  dnn:
+    type: string
+    pattern: ^[a-z0-9][a-z0-9.-]*$
+  sNssai:
+    type: object
+    additionalProperties: false
+    required:
+    - sst
+    properties:
+      sst:
+        type: integer
+        minimum: 0
+        maximum: 255
+      sd:
+        type: integer
+        minimum: 0
+        maximum: 16777214
+  requestedPduSessionType:
+    type: string
+    const: IPV4
+  requestedSscMode:
+    type: integer
+    const: 1
+  subscription:
+    type: object
+    required:
+    - dnn
+    - sNssai
+    - pduSessionTypes
+    - sscModes
+    additionalProperties: true

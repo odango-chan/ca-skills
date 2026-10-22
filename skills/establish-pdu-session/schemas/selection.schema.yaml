@@ -1,0 +1,33 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: selection.schema.yaml
+title: EstablishmentSelection
+type: object
+additionalProperties: false
+required:
+- dnn
+- sNssai
+- pduSessionType
+- sscMode
+properties:
+  dnn:
+    type: string
+    pattern: ^[a-z0-9][a-z0-9.-]*$
+  sNssai:
+    type: object
+    additionalProperties: false
+    required:
+    - sst
+    properties:
+      sst:
+        type: integer
+        minimum: 0
+        maximum: 255
+      sd:
+        type: integer
+        minimum: 0
+        maximum: 16777214
+  pduSessionType:
+    const: IPV4
+  sscMode:
+    type: integer
+    const: 1
