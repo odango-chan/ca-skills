@@ -131,8 +131,8 @@ predicates:
     observations:
       response:
         ref: sbi.operation.result
-        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef":
-          facts.createdsession_ingress.value.ref}'
+        scope: '{"ueRef": subject.ueRef, "invocationId": subject.udmReadReceipt.invocationId,
+          "transactionRef": subject.udmReadReceipt.result.transactionRef}'
         freshness: 1h
     evaluator:
       type: script
