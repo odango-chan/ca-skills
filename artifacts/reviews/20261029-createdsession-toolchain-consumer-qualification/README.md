@@ -2,7 +2,7 @@
 
 ## Scope
 
-Rechecked the current `ca-skills` CreatedSession source candidate against the available local `ca-skill-toolchain` candidate after earlier reports of `CAPABILITY_NOT_FOUND` findings. This is Toolchain compile and Case evidence only; it is not production qualification or live 5GC acceptance.
+Rechecked the current `ca-skills` CreatedSession source candidate against the available local `ca-skill-toolchain` candidate. The Root `5gc-file-transfer` package and its Cases pass, while the child `establish-pdu-session` package that contains the four post-transfer Predicate refs still fails compile. This is Toolchain compile and Case evidence only; it is not production qualification or live 5GC acceptance.
 
 ## Exact inputs
 
@@ -21,6 +21,20 @@ Rechecked the current `ca-skills` CreatedSession source candidate against the av
 - Deterministic `planning-test`: PASS for all 17 committed CreatedSession Cases.
 - `mock-run`: PASS for each of the 14 Cases with a selected Procedure. The three blocked-admission Cases have no selected Procedure and were exercised by `planning-test` only.
 - For the explicit Case gates, `caskill` was invoked from the Toolchain checkout with the Skill package, registry, and relative case directory (`cases/<case>`). `mock-run` also received the Case's expected Procedure name.
+
+The separate `establish-pdu-session` child package compile on the same exact commits returned `INVALID` with 19 `CAPABILITY_NOT_FOUND` findings and zero Predicate binding findings. Its 9 distinct unresolved Capability refs are:
+
+- `sbi.udm.sm_data.get`
+- `fivegc.session.operation_context.read`
+- `sbi.udm.sdm_subscription.create`
+- `sbi.pcf.sm_policy.create`
+- `createdsession.operation.reconcile`
+- `sbi.amf.n1n2.transfer`
+- `fivegc.session.resource_responsibility.transfer`
+- `fivegc.session.evidence.await`
+- `fivegc.session.establishment_response.prepare`
+
+Toolchain `AGENTS.md` assigns `CapabilityContract.v1` ownership to Runtime and limits Platform to build-time `CapabilityRequirement` reference validation. Runtime is read-only for this goal, so these findings cannot be fixed by inventing Skill or Reference Registry contracts. The exact compile command was `python3 -B scripts/verify.py --compile skills/establish-pdu-session` with the same `CA_SKILL_TOOLCHAIN_ROOT`; it exited 1 with the findings above.
 
 | Case | Planning | Mock Runtime |
 | --- | --- | --- |
@@ -42,10 +56,10 @@ Rechecked the current `ca-skills` CreatedSession source candidate against the av
 | `17-registration-unknown-admission-blocked` | PASS | Not applicable; no Procedure selected |
 | `18-node-output-binding-no-fact` | PASS | PASS |
 
-The compiler report from `make verify` was `VALID` with the same package, runtime-bundle, Case-set, registry, and schema digests above. The full compiler JSON was emitted to stdout by `caskill`; no persistent report file was created by that command.
+The compiler report from `make verify` for the Root `5gc-file-transfer` package was `VALID` with the same package, runtime-bundle, Case-set, registry, and schema digests above. The full compiler JSON was emitted to stdout by `caskill`; no persistent report file was created by that command. The `make verify` gate does not compile the separate `establish-pdu-session` child package.
 
 ## Limits and remaining work
 
 - The Toolchain candidate was not confirmed merged to its owner main branch during this run.
-- These compile, planning, and mock gates do not establish formal release qualification, active production Capability Admission, Runtime owner acceptance, Provider/Fabric cross-process operation, authoritative live Observations, or protocol compatibility.
+- Root compile/planning/mock gates do not establish formal release qualification or active production Capability Admission. The child Skill remains uncompiled because Runtime-owned Capability contracts are absent from the reference snapshot; Provider/Fabric cross-process operation, authoritative live Observations and protocol compatibility are also unverified.
 - Fabric's authenticated, durable and operation-correlated `UpdateSMContext` source remains unresolved. Real UE/5GC acceptance was not run.
