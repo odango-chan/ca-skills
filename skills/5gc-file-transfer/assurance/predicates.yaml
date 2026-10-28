@@ -8,8 +8,9 @@ predicates:
   # are deleted. They duplicated prerequisite observations and hard-coded
   # sst/sd. Participant registration and baseline session/QoS
   # readiness are no longer asserted here: they are converged and independently
-  # proven by the composed ue-registration and ensure-session-qos procedures,
-  # each of which owns its own ObservationRefs and predicates.
+  # gated by the imported owner Predicate `ue.registered` and independently
+  # proven by the composed ensure-session-qos procedure, which owns its own
+  # ObservationRefs and predicates. Registration is never invoked here.
   #
   # file_transfer.request.satisfied remains the single independent final-goal
   # proof for this Skill.

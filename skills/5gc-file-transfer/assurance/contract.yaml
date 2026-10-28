@@ -31,6 +31,8 @@ spec:
   # digests are the `sourcePackageDigest` values produced by
   # `python3 -B scripts/verify.py --compile skills/<name>` on ca-skills main.
   dependencies:
+  # This dependency supplies the owner PredicateDefinition used to gate
+  # prepare procedures. Its registration Procedure is never composed here.
   - name: ue-registration
     artifactRef: ue-registration
     digest: sha256:8c82c4b7eaa901fb4ad4e532d7db84e332168916f42a5fb25333e379cf7fbdc1
@@ -38,18 +40,19 @@ spec:
     artifactRef: ensure-session-qos
     digest: sha256:d63b1a51846a51c39d2ef90eff9d0e0daffdefb86b6a3c23578878b3cb02d034
   planning:
-    maxActions: 174
+    maxActions: 89
     allowDynamicProcedure: false
     # parentActions = worst-case parent-level action nodes on one urgent path:
     # resolve-member-endpoints, edge.cache.ensure/reconcile,
     # virtual_group.create/reconcile_create, assign_members/reconcile_members,
     # transfer.qos.boost/reconcile = 9.
-    # childActions = 5 (sender registration) + 16x5 (receiver registrations)
-    # + 16x5 (receiver session/QoS convergence) = 165 at the request schema's
-    # maxItems bound of 16 receivers. Runtime remains the enforcing authority.
+    # Registration gates prepare Procedure applicability; it is not a child
+    # procedure. The
+    # only composed child is ensure-session-qos: 16x5 actions at the request
+    # schema's maxItems bound. Runtime remains the enforcing authority.
     budgetPartition:
       parentActions: 9
-      childActions: 165
+      childActions: 80
   failureSemantics:
     outcomeUnknown:
       requireReconcile: true

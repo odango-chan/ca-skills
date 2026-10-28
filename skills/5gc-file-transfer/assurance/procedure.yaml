@@ -1,49 +1,14 @@
 procedures:
-  # Normal prepare path. Registration and baseline session/QoS prerequisites are
-  # converged by composing the certified `ue-registration` and
-  # `ensure-session-qos` Skills, then transfer-specific work runs and the final
-  # business goal is independently verified. Prerequisite failure is a business
-  # outcome, not an unconditional assumption.
+  # Normal prepare path. Registration is a UE-initiated external prerequisite
+  # enforced by applicability; this procedure never invokes registration. Receiver
+  # session/QoS prerequisites are composed before transfer-specific work.
   prepare-file-transfer-normal:
     applicability:
+      predicates:
+        ue.registered: PASS
       when: 'request.operation == "prepare_transfer" && request.urgency == "normal"'
-    start: converge-sender-registration
+    start: converge-receiver-sessions
     nodes:
-      converge-sender-registration:
-        procedure:
-          skill: ue-registration
-          procedure: ensure-registration
-          postcondition: ue.registered
-        with:
-          ue-ref:
-            from: input.sender-imsi
-          registration-type:
-            value: initial
-        'on':
-          SUCCEEDED: converge-receiver-registrations
-          FAILED: failed
-          UNRESOLVED: unresolved
-          SAFE_STOPPED: safe-stopped
-      converge-receiver-registrations:
-        for:
-          each: receiver
-          in:
-            from: input.receiver-imsis
-        do:
-          converge-registration:
-            procedure:
-              skill: ue-registration
-              procedure: ensure-registration
-            with:
-              ue-ref:
-                from: loop.receiver
-              registration-type:
-                value: initial
-        'on':
-          SUCCEEDED: converge-receiver-sessions
-          FAILED: failed
-          UNRESOLVED: unresolved
-          SAFE_STOPPED: safe-stopped
       converge-receiver-sessions:
         for:
           each: receiver
@@ -215,49 +180,16 @@ procedures:
         type: integer
         from: context.request.networkPolicy.fiveQi
 
-  # Urgent prepare path. It converges exactly the same prerequisites as the
-  # normal path and then adds the distinct, bounded urgent QoS boost. Baseline
-  # session/QoS and urgent acceleration stay separate authorities.
+  # Urgent prepare has the same registration applicability and receiver
+  # session/QoS prerequisites as normal prepare, then adds the bounded urgent
+  # QoS boost. Baseline QoS and urgent acceleration remain separate.
   prepare-file-transfer-urgent:
     applicability:
+      predicates:
+        ue.registered: PASS
       when: 'request.operation == "prepare_transfer" && request.urgency == "urgent"'
-    start: converge-sender-registration
+    start: converge-receiver-sessions
     nodes:
-      converge-sender-registration:
-        procedure:
-          skill: ue-registration
-          procedure: ensure-registration
-          postcondition: ue.registered
-        with:
-          ue-ref:
-            from: input.sender-imsi
-          registration-type:
-            value: initial
-        'on':
-          SUCCEEDED: converge-receiver-registrations
-          FAILED: failed
-          UNRESOLVED: unresolved
-          SAFE_STOPPED: safe-stopped
-      converge-receiver-registrations:
-        for:
-          each: receiver
-          in:
-            from: input.receiver-imsis
-        do:
-          converge-registration:
-            procedure:
-              skill: ue-registration
-              procedure: ensure-registration
-            with:
-              ue-ref:
-                from: loop.receiver
-              registration-type:
-                value: initial
-        'on':
-          SUCCEEDED: converge-receiver-sessions
-          FAILED: failed
-          UNRESOLVED: unresolved
-          SAFE_STOPPED: safe-stopped
       converge-receiver-sessions:
         for:
           each: receiver

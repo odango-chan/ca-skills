@@ -28,37 +28,14 @@ spec:
         sd: '000000'
         pduSessionId: 10
         fiveQi: 8
-    facts: {}
+    facts:
+      ue.registered:
+        value: PASS
     availableResources:
     - ref: ue.identity.lookup
       kind: capability
       version: v1
       effect: read_only
-      invocable: true
-    - ref: ue.identity.resolve
-      kind: capability
-      version: v1
-      effect: read_only
-      invocable: true
-    - ref: ue.authentication.execute
-      kind: capability
-      version: v1
-      effect: mutation
-      invocable: true
-    - ref: ue.security.establish
-      kind: capability
-      version: v1
-      effect: mutation
-      invocable: true
-    - ref: ue.registration_context.prepare
-      kind: capability
-      version: v1
-      effect: mutation
-      invocable: true
-    - ref: ue.registration.finalize
-      kind: capability
-      version: v1
-      effect: mutation
       invocable: true
     - ref: pdu_session.query
       kind: capability
@@ -131,7 +108,7 @@ spec:
       effect: mutation
       invocable: true
     constraints:
-      maxActions: 174
+      maxActions: 89
   expect:
     procedure: prepare-file-transfer-urgent
     planningStatus: READY
@@ -148,12 +125,6 @@ spec:
       assign-members: COMMITTED
       qos-boost: COMMITTED
     predicates:
-      converge-sender-registration-ensure-registration-verify-current-registration:
-        ue.registered: PASS
-      converge-sender-registration-ensure-registration-verify-registration-context:
-        ue.registration_context.consistent: PASS
-      converge-sender-registration-ensure-registration-postcondition:
-        ue.registered: PASS
       verify-goal:
         file_transfer.request.satisfied: PASS
       converge-receiver-sessions-observe-session-then-converge-observe-established:
