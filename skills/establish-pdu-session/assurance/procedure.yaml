@@ -78,15 +78,15 @@ procedures:
       inspect-policy-context:
         call: fivegc.session.operation_context.read
         with:
-          ueRef: &id001
+          ueRef:
             from: input.ue-ref
-          pduSessionId: &id002
+          pduSessionId:
             from: input.psi
-          ingressRef: &id003
+          ingressRef:
             from: input.ingress-ref
-          lifecycleRef: &id004
+          lifecycleRef:
             from: input.lifecycle-ref
-          selection: &id005
+          selection:
             from: select-configuration.output
           purpose:
             value: policy-create
@@ -178,11 +178,16 @@ procedures:
       inspect-delivery-context:
         call: fivegc.session.operation_context.read
         with:
-          ueRef: *id001
-          pduSessionId: *id002
-          ingressRef: *id003
-          lifecycleRef: *id004
-          selection: *id005
+          ueRef:
+            from: input.ue-ref
+          pduSessionId:
+            from: input.psi
+          ingressRef:
+            from: input.ingress-ref
+          lifecycleRef:
+            from: input.lifecycle-ref
+          selection:
+            from: select-configuration.output
           purpose:
             value: nas-and-n2-delivery
         'on':

@@ -1,0 +1,51 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: transfer-response-evaluation-input.schema.yaml
+title: TransferResponseEvaluationInput
+type: object
+required: [observations]
+properties:
+  observations:
+    type: object
+    required: [response]
+    properties:
+      response:
+        type: object
+        required: [networkOutcome, responseOrigin, captureComplete]
+        properties:
+          networkOutcome:
+            type: string
+            minLength: 1
+          responseOrigin:
+            type: string
+            minLength: 1
+          captureComplete:
+            type: boolean
+          httpStatus:
+            type: integer
+            minimum: 100
+            maximum: 599
+          cause:
+            type: string
+            minLength: 1
+        allOf:
+        - if:
+            properties:
+              networkOutcome:
+                const: HTTP_RESPONSE
+          then:
+            required: [httpStatus]
+        additionalProperties: true
+    additionalProperties: true
+  evidence:
+    type: object
+    additionalProperties:
+      type: object
+      properties:
+        refs:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+      additionalProperties: true
+additionalProperties: false

@@ -1,0 +1,112 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: udm-response-evaluation-input.schema.yaml
+title: UdmResponseEvaluationInput
+type: object
+required: [observations]
+properties:
+  observations:
+    type: object
+    required: [response]
+    properties:
+      response:
+        type: object
+        required: [networkOutcome, responseOrigin, captureComplete]
+        properties:
+          networkOutcome:
+            type: string
+            minLength: 1
+          responseOrigin:
+            type: string
+            minLength: 1
+          captureComplete:
+            type: boolean
+          httpStatus:
+            type: integer
+            minimum: 100
+            maximum: 599
+          selection:
+            type: string
+            enum: [MATCHED, NO_MATCH, HTTP_ERROR]
+          subscription:
+            type: object
+            required: [dnn, sNssai, pduSessionTypes, sscModes]
+            properties:
+              dnn:
+                type: string
+                pattern: ^[a-z0-9][a-z0-9.-]*$
+              sNssai:
+                type: object
+                required: [sst]
+                properties:
+                  sst:
+                    type: integer
+                    minimum: 0
+                    maximum: 255
+                  sd:
+                    type: integer
+                    minimum: 0
+                    maximum: 16777214
+                additionalProperties: true
+              pduSessionTypes:
+                type: object
+                properties:
+                  allowedSessionTypes:
+                    type: array
+                    minItems: 1
+                    uniqueItems: true
+                    items:
+                      type: string
+                      enum: [IPV4, IPV6, IPV4V6]
+                  defaultSessionType:
+                    type: string
+                    enum: [IPV4, IPV6, IPV4V6]
+                anyOf:
+                - required: [allowedSessionTypes]
+                - required: [defaultSessionType]
+                additionalProperties: true
+              sscModes:
+                type: object
+                properties:
+                  allowedSscModes:
+                    type: array
+                    minItems: 1
+                    uniqueItems: true
+                    items:
+                      type: integer
+                      enum: [1, 2, 3]
+                  defaultSscMode:
+                    type: integer
+                    enum: [1, 2, 3]
+                anyOf:
+                - required: [allowedSscModes]
+                - required: [defaultSscMode]
+                additionalProperties: true
+            additionalProperties: true
+        allOf:
+        - if:
+            properties:
+              networkOutcome:
+                const: HTTP_RESPONSE
+          then:
+            required: [httpStatus, selection]
+        - if:
+            properties:
+              selection:
+                const: MATCHED
+          then:
+            required: [subscription]
+        additionalProperties: true
+    additionalProperties: true
+  evidence:
+    type: object
+    additionalProperties:
+      type: object
+      properties:
+        refs:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+      additionalProperties: true
+additionalProperties: false

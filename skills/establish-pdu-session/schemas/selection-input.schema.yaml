@@ -40,4 +40,56 @@ properties:
     - sNssai
     - pduSessionTypes
     - sscModes
+    properties:
+      dnn:
+        type: string
+        pattern: ^[a-z0-9][a-z0-9.-]*$
+      sNssai:
+        type: object
+        additionalProperties: false
+        required:
+        - sst
+        properties:
+          sst:
+            type: integer
+            minimum: 0
+            maximum: 255
+          sd:
+            type: integer
+            minimum: 0
+            maximum: 16777214
+      pduSessionTypes:
+        type: object
+        anyOf:
+        - required: [allowedSessionTypes]
+        - required: [defaultSessionType]
+        properties:
+          allowedSessionTypes:
+            type: array
+            minItems: 1
+            uniqueItems: true
+            items:
+              type: string
+              enum: [IPV4, IPV6, IPV4V6]
+          defaultSessionType:
+            type: string
+            enum: [IPV4, IPV6, IPV4V6]
+        additionalProperties: true
+      sscModes:
+        type: object
+        anyOf:
+        - required: [allowedSscModes]
+        - required: [defaultSscMode]
+        properties:
+          allowedSscModes:
+            type: array
+            minItems: 1
+            uniqueItems: true
+            items:
+              type: integer
+              enum: [1, 2, 3]
+          defaultSscMode:
+            type: integer
+            enum: [1, 2, 3]
+        additionalProperties: true
     additionalProperties: true
