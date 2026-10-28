@@ -18,10 +18,10 @@ procedures:
         from: context.request.servingPlmn
       ingress-ref:
         type: string
-        from: context.facts.createdsession_ingress.value.ref
+        from: context.facts.createdsession_ingress.ref
       lifecycle-ref:
         type: string
-        from: context.facts.createdsession_lifecycle.value.ref
+        from: context.facts.createdsession_lifecycle.ref
       requested-type:
         type: string
         from: context.request.requestedPduSessionType

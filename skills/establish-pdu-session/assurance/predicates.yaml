@@ -8,7 +8,7 @@ predicates:
       state:
         ref: createdsession.procedure_context
         scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef":
-          facts.createdsession_ingress.value.ref}'
+          facts.createdsession_ingress.ref}'
         freshness: 5s
     evaluator:
       type: cel
@@ -20,7 +20,7 @@ predicates:
       state:
         ref: createdsession.policy_operation_context
         scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef":
-          facts.createdsession_ingress.value.ref}'
+          facts.createdsession_ingress.ref}'
         freshness: 5s
     evaluator:
       type: cel
@@ -32,7 +32,7 @@ predicates:
       state:
         ref: createdsession.udm_subscription_resource
         scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef":
-          facts.createdsession_ingress.value.ref}'
+          facts.createdsession_ingress.ref}'
         freshness: 1h
     evaluator:
       type: cel
@@ -43,7 +43,7 @@ predicates:
       state:
         ref: createdsession.pcf_association_resource
         scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef":
-          facts.createdsession_ingress.value.ref}'
+          facts.createdsession_ingress.ref}'
         freshness: 1h
     evaluator:
       type: cel
@@ -54,7 +54,7 @@ predicates:
       state:
         ref: createdsession.n4_initial_resources
         scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef":
-          facts.createdsession_ingress.value.ref}'
+          facts.createdsession_ingress.ref}'
         freshness: 5s
     evaluator:
       type: cel
@@ -65,7 +65,7 @@ predicates:
       state:
         ref: createdsession.nas_delivery_context
         scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef":
-          facts.createdsession_ingress.value.ref}'
+          facts.createdsession_ingress.ref}'
         freshness: 5s
     evaluator:
       type: cel
@@ -77,7 +77,7 @@ predicates:
       response:
         ref: createdsession.amf_transfer_result
         scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef":
-          facts.createdsession_ingress.value.ref}'
+          facts.createdsession_ingress.ref}'
         freshness: 1h
     evaluator:
       type: script
@@ -87,7 +87,7 @@ predicates:
       state:
         ref: createdsession.ran_setup_result
         scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef":
-          facts.createdsession_ingress.value.ref}'
+          facts.createdsession_ingress.ref}'
         freshness: 1h
     evaluator:
       type: cel
@@ -98,7 +98,7 @@ predicates:
       state:
         ref: createdsession.n4_forwarding_resources
         scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef":
-          facts.createdsession_ingress.value.ref}'
+          facts.createdsession_ingress.ref}'
         freshness: 5s
     evaluator:
       type: cel
@@ -110,7 +110,7 @@ predicates:
       state:
         ref: createdsession.ue_sm_configuration
         scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef":
-          facts.createdsession_ingress.value.ref}'
+          facts.createdsession_ingress.ref}'
         freshness: 5s
     evaluator:
       type: cel
@@ -121,7 +121,7 @@ predicates:
       state:
         ref: createdsession.resource_responsibility
         scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef":
-          facts.createdsession_ingress.value.ref}'
+          facts.createdsession_ingress.ref}'
         freshness: 5s
     evaluator:
       type: cel
