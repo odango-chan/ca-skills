@@ -51,7 +51,7 @@ procedures:
           SUCCEEDED: verify-udm
           FAILED: failed
           DENIED: failed
-          OUTCOME_UNKNOWN: unresolved
+          OUTCOME_UNKNOWN: safe-stopped
       verify-udm:
         verify: createdsession.udm.subscription_usable
         'on':

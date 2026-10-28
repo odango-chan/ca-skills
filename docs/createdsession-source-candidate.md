@@ -73,7 +73,9 @@ predicates.yaml 中新增 source 名称/字段均是本候选的未闭合依赖�
 
 ## 5. 当前验证范围
 
-24 个 case.yaml 是按当前 Case schema 编写的合成资格场景草稿，覆盖完整目标、缺失/歧义、真实拒绝、资源归属、旧实例、200 缓存/202、RAN/N4/UE、unknown/reconcile 和移交。它们不是已执行的 Mock Runtime/协议/live 用例；fixtures 中的权威标记、Tool 可用和 PASS 只描述挑战输入。
+26 个 case.yaml 是按当前 Case schema 编写的合成资格场景草稿，覆盖完整目标、缺失/歧义、真实拒绝、资源归属、旧实例、200 缓存/202、RAN/N4/UE、read-only UDM uncertainty、mutation unknown/reconcile 和移交。它们不是已执行的 Mock Runtime/协议/live 用例；fixtures 中的权威标记、Tool 可用和 PASS 只描述挑战输入。
+
+当前本地 candidate 将 `get-sm-data` 的 `OUTCOME_UNKNOWN` 分支改为 `SAFE_STOPPED`，并增加 `26-udm-read-unknown` Case；原因是现有 Runtime 只在 action-level unknown path 做安全停止，不能把该 read-only uncertainty 表达成 mutation reconciliation。Toolchain#131 本地候选已允许 read-only `OUTCOME_UNKNOWN` 并在资格特征派生时按 owner effect 区分 mutation unknown。组合 compile 仍 INVALID：当前 Toolchain registry 没有这些 owner Capability 注册，19 个 `CAPABILITY_NOT_FOUND`。该修正尚未发布或获得 Runtime 执行资格，不表示 #131 已关闭。
 
 当前 Case fixtures 不能提供新增 Capability 的真实 typed node outputs/source。因此后续资格必须由正式 owner Tool adapters/Qualification composition 供应这些输出和 evidence，不能扩展 case.yaml 私有字段、绕过 Artifact 或将 fixtures 当真实成功。
 
