@@ -87,7 +87,7 @@ procedures:
           lifecycleRef:
             from: input.lifecycle-ref
           selection:
-            from: select-configuration.output
+            from: select-configuration.output.configuration
           purpose:
             value: policy-create
         'on':
@@ -139,9 +139,15 @@ procedures:
           operationContextRef:
             from: inspect-policy-context.output.contextRef
           selection:
-            from: select-configuration.output
+            from: select-configuration.output.configuration
           subscriptionRef:
             from: subscribe-udm.output.subscriptionRef
+          sessionDataSourceRef:
+            from: get-sm-data.output.fabricRecordRef
+          subscribedAmbr:
+            from: select-configuration.output.subscribedAmbr
+          subscribedDefaultQos:
+            from: select-configuration.output.subscribedDefaultQos
           lifecycleRef:
             from: input.lifecycle-ref
         'on':
@@ -187,7 +193,7 @@ procedures:
           lifecycleRef:
             from: input.lifecycle-ref
           selection:
-            from: select-configuration.output
+            from: select-configuration.output.configuration
           purpose:
             value: nas-and-n2-delivery
         'on':
@@ -411,7 +417,7 @@ procedures:
           operationContextRef:
             from: inspect-delivery-context.output.contextRef
           selection:
-            from: select-configuration.output
+            from: select-configuration.output.configuration
           policyResultRef:
             from: create-policy.output.policyResultRef
         'on':

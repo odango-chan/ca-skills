@@ -40,6 +40,8 @@ properties:
     - sNssai
     - pduSessionTypes
     - sscModes
+    - sessionAmbr
+    - defaultQos
     properties:
       dnn:
         type: string
@@ -92,4 +94,37 @@ properties:
             type: integer
             enum: [1, 2, 3]
         additionalProperties: true
+      sessionAmbr:
+        type: object
+        additionalProperties: false
+        required: [uplink, downlink]
+        properties:
+          uplink:
+            type: string
+            pattern: '^[0-9]+(\.[0-9]+)? (bps|Kbps|Mbps|Gbps|Tbps)$'
+          downlink:
+            type: string
+            pattern: '^[0-9]+(\.[0-9]+)? (bps|Kbps|Mbps|Gbps|Tbps)$'
+      defaultQos:
+        type: object
+        additionalProperties: false
+        required: [fiveQi, arp]
+        properties:
+          fiveQi:
+            type: integer
+            minimum: 0
+            maximum: 255
+          arp:
+            type: object
+            additionalProperties: false
+            required: [priorityLevel, preemptCap, preemptVuln]
+            properties:
+              priorityLevel:
+                type: integer
+                minimum: 1
+                maximum: 15
+              preemptCap:
+                enum: [MAY_PREEMPT, NOT_PREEMPT]
+              preemptVuln:
+                enum: [PREEMPTABLE, NOT_PREEMPTABLE]
     additionalProperties: true

@@ -45,4 +45,39 @@ def main(input: EstablishmentSelectionInput) -> EstablishmentSelection:
             raise ValueError("unsupported subscribed SSC mode")
     if "IPV4" not in allowed_types or 1 not in allowed_modes:
         raise ValueError("UE request is not permitted by subscription")
-    return {"dnn": request["dnn"], "sNssai": dict(request["sNssai"]), "pduSessionType": "IPV4", "sscMode": 1}
+    ambr = subscription.get("sessionAmbr")
+    if type(ambr) is not dict or sorted(ambr.keys()) != ["downlink", "uplink"]:
+        raise ValueError("subscribed session AMBR is unavailable or invalid")
+    for direction in ("uplink", "downlink"):
+        value = ambr[direction]
+        if type(value) is not str or not value:
+            raise ValueError("subscribed session AMBR is unavailable or invalid")
+    qos = subscription.get("defaultQos")
+    if type(qos) is not dict or sorted(qos.keys()) != ["arp", "fiveQi"]:
+        raise ValueError("subscribed default QoS is unavailable or invalid")
+    if type(qos["fiveQi"]) is not int:
+        raise ValueError("subscribed default QoS is unavailable or invalid")
+    if qos["fiveQi"] < 0 or qos["fiveQi"] > 255:
+        raise ValueError("subscribed default QoS is unavailable or invalid")
+    arp = qos["arp"]
+    if type(arp) is not dict or sorted(arp.keys()) != ["preemptCap", "preemptVuln", "priorityLevel"]:
+        raise ValueError("subscribed default QoS is unavailable or invalid")
+    if type(arp["priorityLevel"]) is not int:
+        raise ValueError("subscribed default QoS is unavailable or invalid")
+    if arp["priorityLevel"] < 1 or arp["priorityLevel"] > 15:
+        raise ValueError("subscribed default QoS is unavailable or invalid")
+    if arp["preemptCap"] not in ("MAY_PREEMPT", "NOT_PREEMPT") or arp["preemptVuln"] not in ("PREEMPTABLE", "NOT_PREEMPTABLE"):
+        raise ValueError("subscribed default QoS is unavailable or invalid")
+    return {
+        "configuration": {
+            "dnn": request["dnn"],
+            "sNssai": dict(request["sNssai"]),
+            "pduSessionType": "IPV4",
+            "sscMode": 1,
+        },
+        "subscribedAmbr": dict(ambr),
+        "subscribedDefaultQos": {
+            "5qi": qos["fiveQi"],
+            "arp": dict(arp),
+        },
+    }

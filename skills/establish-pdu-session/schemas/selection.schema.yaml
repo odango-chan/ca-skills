@@ -4,30 +4,49 @@ title: EstablishmentSelection
 type: object
 additionalProperties: false
 required:
-- dnn
-- sNssai
-- pduSessionType
-- sscMode
+- configuration
+- subscribedAmbr
+- subscribedDefaultQos
 properties:
-  dnn:
-    type: string
-    pattern: ^[a-z0-9][a-z0-9.-]*$
-  sNssai:
+  configuration:
     type: object
     additionalProperties: false
     required:
-    - sst
+    - dnn
+    - sNssai
+    - pduSessionType
+    - sscMode
     properties:
-      sst:
-        type: integer
-        minimum: 0
-        maximum: 255
-      sd:
-        type: integer
-        minimum: 0
-        maximum: 16777214
-  pduSessionType:
-    const: IPV4
-  sscMode:
-    type: integer
-    const: 1
+      dnn:
+        type: string
+        pattern: ^[a-z0-9][a-z0-9.-]*$
+      sNssai:
+        type: object
+        additionalProperties: false
+        required: [sst]
+        properties:
+          sst: {type: integer, minimum: 0, maximum: 255}
+          sd: {type: integer, minimum: 0, maximum: 16777214}
+      pduSessionType: {const: IPV4}
+      sscMode: {type: integer, const: 1}
+  subscribedAmbr:
+    type: object
+    additionalProperties: false
+    required: [uplink, downlink]
+    properties:
+      uplink: {type: string, pattern: '^[0-9]+(\.[0-9]+)? (bps|Kbps|Mbps|Gbps|Tbps)$'}
+      downlink: {type: string, pattern: '^[0-9]+(\.[0-9]+)? (bps|Kbps|Mbps|Gbps|Tbps)$'}
+  subscribedDefaultQos:
+    type: object
+    additionalProperties: false
+    required: ['5qi', arp]
+    properties:
+      '5qi': {type: integer, minimum: 0, maximum: 255}
+      arp:
+        type: object
+        additionalProperties: false
+        required: [priorityLevel, preemptCap, preemptVuln]
+        properties:
+          priorityLevel: {type: integer, minimum: 1, maximum: 15}
+          preemptCap: {enum: [MAY_PREEMPT, NOT_PREEMPT]}
+          preemptVuln: {enum: [PREEMPTABLE, NOT_PREEMPTABLE]}
