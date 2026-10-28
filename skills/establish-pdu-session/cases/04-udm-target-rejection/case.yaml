@@ -5,7 +5,7 @@ metadata:
   name: 04-udm-target-rejection
 spec:
   classes:
-  - evidence_boundary
+  - precondition_unsatisfied
   purpose: A real target HTTP rejection is retained and stops this invocation.
   context:
     apiVersion: connectionagent.io/v1alpha1

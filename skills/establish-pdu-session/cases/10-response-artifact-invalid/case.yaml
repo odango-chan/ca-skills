@@ -5,7 +5,7 @@ metadata:
   name: 10-response-artifact-invalid
 spec:
   classes:
-  - evidence_boundary
+  - local_compute_failed
   purpose: Invalid or stale response construction inputs stop locally; no NGAP bytes
     are supplied by the model.
   context:

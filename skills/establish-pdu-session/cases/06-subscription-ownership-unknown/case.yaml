@@ -5,7 +5,7 @@ metadata:
   name: 06-subscription-ownership-unknown
 spec:
   classes:
-  - evidence_boundary
+  - observation_unknown
   purpose: Unknown resource ownership is handed to the already responsible durable
     manager.
   context:

@@ -5,7 +5,7 @@ metadata:
   name: 09-old-instance-or-no-authority
 spec:
   classes:
-  - evidence_boundary
+  - precondition_unknown
   purpose: A stale instance or missing delegated caller/unique sender proof prevents
     NAS delivery.
   context:

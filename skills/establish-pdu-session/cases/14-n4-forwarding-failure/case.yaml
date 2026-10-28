@@ -5,7 +5,7 @@ metadata:
   name: 14-n4-forwarding-failure
 spec:
   classes:
-  - independent_postcondition
+  - postcondition_failed
   purpose: A definite UPF forwarding mismatch cannot be masked by SMF remote_dl.
   context:
     apiVersion: connectionagent.io/v1alpha1

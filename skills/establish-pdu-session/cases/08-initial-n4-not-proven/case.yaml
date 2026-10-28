@@ -5,7 +5,7 @@ metadata:
   name: 08-initial-n4-not-proven
 spec:
   classes:
-  - evidence_boundary
+  - observation_unknown
   purpose: PCF success does not prove initial N4 resources; no N2 operation follows.
   context:
     apiVersion: connectionagent.io/v1alpha1

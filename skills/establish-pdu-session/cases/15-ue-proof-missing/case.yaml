@@ -5,7 +5,7 @@ metadata:
   name: 15-ue-proof-missing
 spec:
   classes:
-  - independent_postcondition
+  - observation_unknown
   purpose: NAS sent and RAN success cannot replace independent UE acceptance.
   context:
     apiVersion: connectionagent.io/v1alpha1

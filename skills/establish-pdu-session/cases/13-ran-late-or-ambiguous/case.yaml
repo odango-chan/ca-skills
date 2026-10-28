@@ -5,7 +5,7 @@ metadata:
   name: 13-ran-late-or-ambiguous
 spec:
   classes:
-  - independent_postcondition
+  - observation_unknown
   purpose: Uncorrelated or late setup evidence cannot satisfy the current attempt.
   context:
     apiVersion: connectionagent.io/v1alpha1

@@ -5,7 +5,7 @@ metadata:
   name: 23-denied-before-resource-create
 spec:
   classes:
-  - denied
+  - action_denied
   purpose: A denied UDM read stops before any resource creation.
   context:
     apiVersion: connectionagent.io/v1alpha1

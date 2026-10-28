@@ -5,7 +5,7 @@ metadata:
   name: 19-response-prepare-denied
 spec:
   classes:
-  - denied
+  - action_denied
   purpose: A denied local response construction cannot invoke the AMF transfer.
   context:
     apiVersion: connectionagent.io/v1alpha1

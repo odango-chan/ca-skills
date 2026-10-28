@@ -5,7 +5,7 @@ metadata:
   name: 03-udm-partial-or-ambiguous
 spec:
   classes:
-  - evidence_boundary
+  - observation_unknown
   purpose: Partial capture, ambiguity or untrusted response origin does not become
     a usable subscription.
   context:

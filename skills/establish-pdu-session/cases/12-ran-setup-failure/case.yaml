@@ -5,7 +5,7 @@ metadata:
   name: 12-ran-setup-failure
 spec:
   classes:
-  - independent_postcondition
+  - postcondition_failed
   purpose: A definite failure of the required RAN flow is a business failure.
   context:
     apiVersion: connectionagent.io/v1alpha1

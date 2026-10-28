@@ -1,0 +1,45 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: establish-pdu-session
+  name: 25-required-capability-unavailable
+spec:
+  classes:
+  - resource_unavailable
+  purpose: A required establishment Capability is absent, so admission blocks before a Procedure can execute.
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: cs-candidate-25
+      version: 1
+    subject:
+      ueRef: synthetic-ue-a
+    request:
+      pduSessionId: 1
+      dnn: internet
+      sNssai:
+        sst: 1
+        sd: 0
+      servingPlmn:
+        mcc: '001'
+        mnc: '01'
+      requestedPduSessionType: IPV4
+      requestedSscMode: 1
+    facts:
+      createdsession_ingress:
+        value:
+          ref: synthetic-ingress-a
+        authoritative: true
+      createdsession_lifecycle:
+        value:
+          ref: synthetic-lifecycle-a
+        authoritative: true
+    availableResources: []
+    constraints:
+      maxActions: 32
+  expect:
+    procedure: null
+    planningStatus: PLANNING_BLOCKED
+    terminal: null
+    postconditions: []

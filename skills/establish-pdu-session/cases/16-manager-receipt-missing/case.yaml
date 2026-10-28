@@ -5,7 +5,7 @@ metadata:
   name: 16-manager-receipt-missing
 spec:
   classes:
-  - evidence_boundary
+  - outcome_unknown_unresolved
   purpose: Successful network steps do not erase ongoing resource responsibility.
   context:
     apiVersion: connectionagent.io/v1alpha1

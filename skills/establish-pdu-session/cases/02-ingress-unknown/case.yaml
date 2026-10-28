@@ -5,7 +5,7 @@ metadata:
   name: 02-ingress-unknown
 spec:
   classes:
-  - evidence_boundary
+  - precondition_unknown
   purpose: Missing or ambiguous ingress binding stops before a mutation.
   context:
     apiVersion: connectionagent.io/v1alpha1

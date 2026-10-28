@@ -5,7 +5,7 @@ metadata:
   name: 05-address-or-callback-missing
 spec:
   classes:
-  - evidence_boundary
+  - precondition_unknown
   purpose: Missing real allocation or callback readiness prevents resource creation.
   context:
     apiVersion: connectionagent.io/v1alpha1

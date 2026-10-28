@@ -5,7 +5,7 @@ metadata:
   name: 11-amf-202-unsupported
 spec:
   classes:
-  - evidence_boundary
+  - outcome_unknown_unresolved
   purpose: An acknowledged asynchronous transfer outside the profile is not completion.
   context:
     apiVersion: connectionagent.io/v1alpha1

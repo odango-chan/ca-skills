@@ -5,7 +5,7 @@ metadata:
   name: 07-pcf-association-reused
 spec:
   classes:
-  - evidence_boundary
+  - observation_unknown
   purpose: A returned Location does not prove exclusive policy association ownership.
   context:
     apiVersion: connectionagent.io/v1alpha1
