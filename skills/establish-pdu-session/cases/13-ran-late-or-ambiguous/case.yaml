@@ -105,7 +105,7 @@ spec:
     postconditions:
     - predicate: createdsession.ran.setup_accepted
       expect: PASS
-      actual: NOT_EVALUATED
+      actual: UNKNOWN
     - predicate: createdsession.n4.forwarding_ready
       expect: PASS
       actual: NOT_EVALUATED
@@ -114,7 +114,7 @@ spec:
       actual: NOT_EVALUATED
     - predicate: createdsession.resources.managed
       expect: PASS
-      actual: NOT_EVALUATED
+      actual: PASS
   fixtures:
     actions:
       get-sm-data: SUCCEEDED
