@@ -2,7 +2,7 @@
 
 状态：Proposed v0.1；owner：[ca-skills#20](https://github.com/odango-chan/ca-skills/issues/20)。
 
-语义评审：**CHANGES_REQUIRED**；[完整评审](../artifacts/reviews/20261022-createdsession-skill-review/README.md)发现 3 项 P1 和 4 项 P2，包括 facts 绑定、精确 UDM 取证 scope、只读不确定结果的 Artifact 契约，以及用例预期/数据流/局部类型/调和建模。静态 PASS 不代表可执行；修正和 owner gate 前保留 Draft。
+语义评审：[2026-10-22 完整评审](../artifacts/reviews/20261022-createdsession-skill-review/README.md)针对当时的 `d3576dc` 判定 **CHANGES_REQUIRED**。之后的源码提交已修正 admitted fact 绑定、UDM 读取 lineage、read-only UNKNOWN 的安全停止、Case 期望、AMBR/QoS 传递及局部类型检查；这些修正不构成 Runtime/Fabric owner contract 或资格通过。当前仍因正式 owner Mutation Capability/Admission、四个 post-transfer Observation、跨组件来源关联和真实集成证据未闭合而保持 Draft。
 
 `skills/establish-pdu-session/` 是覆盖完整初始建立目标的源码候选，尚未通过引用闭合、编译、资格或生产准入。它不是单条 UDM Get 的包装 Skill，不使用模拟器的 pdu_session.create/ensure，也不依赖 canonical establishment/absence 布尔值。
 
@@ -46,11 +46,10 @@ SMF ACTIVATING 取得 N2 的两次 SBI 方案保留为备选，需要不同显�
 | sbi.pcf.sm_policy.create / mutation | context、选择、subscriptionRef、lifecycle → policyResultRef/operationRef | Provider#19；PCF 实际地址要求和同 SUPI/PSI 复用/改 callback 仍需隔离证明 |
 | fivegc.session.establishment_response.prepare / local_compute | 当前 context、选择、policyResultRef → responseArtifactRef，封装精确 NAS/N2 产物及版本/digests | [Provider#20](https://github.com/odango-chan/ca-provider-5gc/issues/20) 拥有计算/profile/产物，Provider#17 提供 NF context；完整 codec/向量/调用面尚未实现，绝不在本 Tool 内发 SBI 或读取 NF |
 | sbi.amf.n1n2.transfer / mutation | 当前 context、受限 responseArtifactRef、lifecycle → operationRef 与真实 response | Provider#20/Fabric#70；验证相同实例/产物有效性与唯一 sender；不把 SMF response 冒充本调用响应 |
-| createdsession.operation.reconcile / read_only | 原 operationRef、lifecycle → COMMITTED/NOT_COMMITTED/UNRESOLVED | Runtime#172；只对已记录操作取证和调和，不暗中重新变更；操作身份必须在任何 unknown 路径可恢复 |
 | fivegc.session.evidence.await / read_only | 本次 transfer operationRef、当前 context/lifecycle、所需证据类别 → 来源可用性结果 | Runtime#172/Fabric#70 及 UE source owner；按执行期限有界等候，SUCCEEDED 只说明材料可用，不授予 Predicate PASS；caller timeout 不改业务期限 |
 | fivegc.session.resource_responsibility.transfer / mutation | lifecycle、终止/成功 disposition → 可恢复 operation/receipt | Provider#19 的持续资源服务与 Runtime#172；内部责任移交，无隐藏 NF 清理，持久责任不能直到此步骤才首次建立 |
 
-所有变更结果要求 operationRef；NOT_COMMITTED 不由“HTTP 非 2xx”直接推导。备选 SMF ACTIVATING 在阶段检查前写 up_cnx_state，不能伪装为只读 codec；主流程的 response.prepare 仅 local_compute；SMF/AMF 的实际每个 SO 仍按一次调用一次发送，mandatory SCP。
+Procedure 的不确定变更使用 Toolchain 原生 `reconcile: <mutation-node-id>`，关联原 mutation 的 invocation 并由 Runtime Reconciler 处理；它不是 Capability、Provider read 或独立 operationRef 查询。Toolchain `882ac43` 已识别该语法，但当前编译因 mutation owner 尚无正式注册契约而给出 `PR5_VNEXT_RECONCILE_EFFECT_INVALID`。所有变更结果要求 operationRef；NOT_COMMITTED 不由“HTTP 非 2xx”直接推导。备选 SMF ACTIVATING 在阶段检查前写 up_cnx_state，不能伪装为只读 codec；主流程的 response.prepare 仅 local_compute；SMF/AMF 的实际每个 SO 仍按一次调用一次发送，mandatory SCP。
 
 ## 4. Predicate 与 Observation 反查
 
@@ -100,9 +99,9 @@ The entries below satisfy the nine-field handoff required for implementation. Na
 
 26 个 case.yaml 是按当前 Case schema 编写的合成资格场景草稿，覆盖完整目标、缺失/歧义、真实拒绝、资源归属、旧实例、200 缓存/202、RAN/N4/UE、read-only UDM uncertainty、mutation unknown/reconcile 和移交。它们不是已执行的 Mock Runtime/协议/live 用例；fixtures 中的权威标记、Tool 可用和 PASS 只描述挑战输入。
 
-当前本地 candidate 将 `get-sm-data` 的 `OUTCOME_UNKNOWN` 分支改为 `SAFE_STOPPED`，并增加 `26-udm-read-unknown` Case；原因是现有 Runtime 只在 action-level unknown path 做安全停止，不能把该 read-only uncertainty 表达成 mutation reconciliation。2026-10-29 使用 ca-skill-toolchain 本地候选 `codex/createdsession-skill-local-predicates-128`@`9993c413dff7a897907ae7d228dc70606f023ad9` 验证：Root `5gc-file-transfer` compile 为 `VALID`、0 findings；该 Root 的 17 个 Cases 均通过 deterministic `planning-test`，14 个含选定 Procedure 的 Case 通过 `mock-run`。但包含四个 post-transfer Predicate refs 的 child `establish-pdu-session` 在同一 checkout compile 为 `INVALID`，19 个 node findings 全为 `CAPABILITY_NOT_FOUND`，没有 Predicate binding findings。缺失的 9 个 Capability refs 是 `sbi.udm.sm_data.get`、`fivegc.session.operation_context.read`、`sbi.udm.sdm_subscription.create`、`sbi.pcf.sm_policy.create`、`createdsession.operation.reconcile`、`sbi.amf.n1n2.transfer`、`fivegc.session.resource_responsibility.transfer`、`fivegc.session.evidence.await`、`fivegc.session.establishment_response.prepare`。不能通过在 Skill 源或 Reference Registry 里伪造 CapabilityContract 来消除这些 findings；Toolchain 将 CapabilityContract.v1 的 authority 指向 Runtime，而 Runtime 本 Goal 只读。详细 root positive gates 与 child negative compile result 见 [2026-10-29 Toolchain consumer qualification](../artifacts/reviews/20261029-createdsession-toolchain-consumer-qualification/README.md)。Root 结果仅证明对应 candidate 的本地 compile/Case gates；child 不可编译，完整 CreatedSession Skill qualification、生产 Capability Admission、Runtime/跨进程/真实网络均未通过或未运行。
+当前本地 candidate 将 `get-sm-data` 的 `OUTCOME_UNKNOWN` 分支改为 `SAFE_STOPPED`，并增加 `26-udm-read-unknown` Case；read-only uncertainty 不进入 mutation reconciliation。针对此前伪装成 `read_only` Capability 的 recovery calls，已改为 Toolchain 原生 reconcile lineage，直接引用每个 owning mutation 节点，不再声明 `createdsession.operation.reconcile`。2026-10-29 对当前 Skills `c50681d` 使用 Toolchain PR #132 `882ac43` 验证：Root `5gc-file-transfer` compile `VALID`、0 findings；`make verify` 的 8 gates 与 8 个 Python regressions PASS；child `establish-pdu-session` compile 仍 `INVALID`，当前首先报告 `PR5_VNEXT_RECONCILE_EFFECT_INVALID`，因为 reconcile owner mutation 还没有正式注册的 CapabilityContract。当前还未能从此 early owner-contract blocker 得到完整 Capability ref finding 集。此前对 `582481c`/`9993c41` 的 19 个 `CAPABILITY_NOT_FOUND` 结果仅代表旧版自定义 reconcile 节点；在正式 Toolchain `882ac43` 上不能继续照抄该 finding 数量。
 
-本日更新的 Toolchain consumer qualification 已使用 Toolchain PR #132 候选 `882ac439b8bd182213b06fc49be4389731269b30` 与 Skills `582481ccda1d9a1b2c651a417391eb101c7cd28f` 重跑：Root compile 仍 PASS；child 仍 INVALID（19 个缺失 Capability node findings）；四个 Observation refs 在当前 Provider/Fabric/Sandbox owner candidate 中均无 schema/source 声明。详见上方 post-transfer binding 表及最新证据记录。
+四个 post-transfer Observation refs 在当前 Provider/Fabric/Sandbox owner candidate 中仍无 schema/source 声明。不能通过在 Skill 源或 Reference Registry 伪造 CapabilityContract 消除 owner 缺口；Toolchain 将 CapabilityContract.v1 authority 指向 Runtime，而 Runtime 本 Goal 只读。完整 Skill qualification、生产 Capability Admission、Runtime/跨进程/真实网络均未通过或未运行。详细 Root/child 结果见 [2026-10-29 Toolchain consumer qualification](../artifacts/reviews/20261029-createdsession-toolchain-consumer-qualification/README.md)。
 
 当前 Case fixtures 不能提供新增 Capability 的真实 typed node outputs/source。因此后续资格必须由正式 owner Tool adapters/Qualification composition 供应这些输出和 evidence，不能扩展 case.yaml 私有字段、绕过 Artifact 或将 fixtures 当真实成功。
 

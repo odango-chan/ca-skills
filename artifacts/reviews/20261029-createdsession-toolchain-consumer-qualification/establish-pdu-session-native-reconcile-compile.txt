@@ -1,0 +1,31 @@
+=== focused package hygiene: establish-pdu-session ===
+PACKAGE_LAYOUT_OK
+=== focused Platform compile: establish-pdu-session ===
++ go run ./backend/cmd/caskill compile --package /home/z00587616/ca-agent-demo/.agent-tmp/ca-skills-createdsession-live/skills/establish-pdu-session --registry /home/z00587616/ca-agent-demo/.agent-tmp/toolchain-pr132-current/registry --format json
+{
+  "apiVersion": "connectionagent.io/v1alpha1",
+  "kind": "ValidationReport",
+  "metadata": {
+    "reportId": "fe098afa-856a-425c-be23-f51d375d29ff",
+    "runId": "56376ff8-bc4e-429d-b1e6-ffc012098190",
+    "skill": "establish-pdu-session",
+    "workspaceRevision": 1,
+    "packageDigest": "sha256:cecc4a252ba33cbe91ca433ba0c35882d335992c30e9aa220194a24cdc096127",
+    "sourcePackageDigest": "sha256:cecc4a252ba33cbe91ca433ba0c35882d335992c30e9aa220194a24cdc096127",
+    "runtimeBundleDigest": "sha256:aab3cfeccea9582472d0f5d3471f6b7b55f0ba1292b1be68aaa1ee1101ff176e",
+    "caseSetDigest": "sha256:a02b218d0401fdb5c602c485bc621efbd783ccbd042b8e296134cbcb2b000373",
+    "registryDigest": "sha256:961b776567719a53be81a31ae3c4f105540449299c5113fbbb5cd0fdeb00d9db",
+    "schemaDigest": "sha256:3fe530870dafe1f40f0031bfcd8118158c00dd0bcdc0ab9a9bd6d45bd99a6df2"
+  },
+  "status": "INVALID",
+  "findings": [
+    {
+      "severity": "ERROR",
+      "code": "PR5_VNEXT_RECONCILE_EFFECT_INVALID",
+      "path": "assurance/procedure.yaml",
+      "message": "reconcile owner must resolve to a mutation capability"
+    }
+  ]
+}
+exit status 1
+Skills verification: FAIL (1)

@@ -1,0 +1,79 @@
+python3 -B scripts/verify.py
+=== 1/8 package layout ===
+PACKAGE_LAYOUT_OK
+=== 2/8 official source compile (ue-registration, ensure-session-qos, download-object-by-deadline, query-weather-for-ue) ===
++ go test ./backend/internal/compiler -run ^TestCommittedSkillsCompileValid$ -count=1
+ok  	github.com/odango-chan/ca-skill-toolchain/backend/internal/compiler	0.196s
+=== 3/8 canonical Case / authoring-model validation ===
++ go test ./backend/internal/compiler -run ^TestCanonicalCaseRejectsSplitFilesAndUnknownFields$ -count=1
+ok  	github.com/odango-chan/ca-skill-toolchain/backend/internal/compiler	0.187s
++ go test ./backend/internal/compiler -run ^TestProcedureSourcesUseCanonicalAuthoringModel$ -count=1
+ok  	github.com/odango-chan/ca-skill-toolchain/backend/internal/compiler	0.016s
+=== 4/8 canonical Planning validation ===
++ go test ./backend/internal/planning -run ^TestReferencePlanningCases$ -count=1
+ok  	github.com/odango-chan/ca-skill-toolchain/backend/internal/planning	0.267s
++ go test ./backend/internal/planning -run ^TestPlanningContextAllowsOpaqueFacts$ -count=1
+ok  	github.com/odango-chan/ca-skill-toolchain/backend/internal/planning	0.097s
+=== 5/8 committed Skill Cases through Mock Runtime ===
++ go test ./backend/internal/mockruntime -run ^TestReferenceMockCases$ -count=1
+ok  	github.com/odango-chan/ca-skill-toolchain/backend/internal/mockruntime	0.580s
+=== 6/8 5gc-file-transfer compile ===
++ go run ./backend/cmd/caskill compile --package /home/z00587616/ca-agent-demo/.agent-tmp/ca-skills-createdsession-live/skills/5gc-file-transfer --registry /home/z00587616/ca-agent-demo/.agent-tmp/toolchain-pr132-current/registry --format json
+{
+  "apiVersion": "connectionagent.io/v1alpha1",
+  "kind": "ValidationReport",
+  "metadata": {
+    "reportId": "2f6c698a-2f2c-46bb-a403-ffddff1e7d67",
+    "runId": "35f86be6-b569-42a1-84f5-398ba80c89e3",
+    "skill": "5gc-file-transfer",
+    "workspaceRevision": 1,
+    "packageDigest": "sha256:0dbc8454ee2ee8933857664b2565b84df94245da53d53f04c0bf34b64ce621ca",
+    "sourcePackageDigest": "sha256:0dbc8454ee2ee8933857664b2565b84df94245da53d53f04c0bf34b64ce621ca",
+    "runtimeBundleDigest": "sha256:8301891f569f0045c421347cf8a719d842dbd006031b3c61c4c5d049bf15f89b",
+    "caseSetDigest": "sha256:2e67970855ccd37022800b1cb1a640e12962619d5f4234f6c74e18a8dde2730d",
+    "registryDigest": "sha256:961b776567719a53be81a31ae3c4f105540449299c5113fbbb5cd0fdeb00d9db",
+    "schemaDigest": "sha256:3fe530870dafe1f40f0031bfcd8118158c00dd0bcdc0ab9a9bd6d45bd99a6df2"
+  },
+  "status": "VALID",
+  "findings": []
+}
+=== 7/8 wifi-file-transfer compile ===
++ go run ./backend/cmd/caskill compile --package /home/z00587616/ca-agent-demo/.agent-tmp/ca-skills-createdsession-live/skills/wifi-file-transfer --registry /home/z00587616/ca-agent-demo/.agent-tmp/toolchain-pr132-current/registry --format json
+{
+  "apiVersion": "connectionagent.io/v1alpha1",
+  "kind": "ValidationReport",
+  "metadata": {
+    "reportId": "6bf04901-77ef-4292-b615-591ebeb9e370",
+    "runId": "a2da51ff-6854-4293-b0b5-faebb6f2c341",
+    "skill": "wifi-file-transfer",
+    "workspaceRevision": 1,
+    "packageDigest": "sha256:9e4a3ce6368e69509d523cd3d1a06da524533b17bf1262c337ce9149258218f1",
+    "sourcePackageDigest": "sha256:9e4a3ce6368e69509d523cd3d1a06da524533b17bf1262c337ce9149258218f1",
+    "runtimeBundleDigest": "sha256:f903b33280e45b70cdc0e17e0ba797faa1bd0db27c2d2b6ce7592e2dabbb31be",
+    "caseSetDigest": "sha256:1d2f98caa1d6149fa6b39b072a7ef767f50cfd2f8c7f4f9dc0a211a1bd322897",
+    "registryDigest": "sha256:961b776567719a53be81a31ae3c4f105540449299c5113fbbb5cd0fdeb00d9db",
+    "schemaDigest": "sha256:3fe530870dafe1f40f0031bfcd8118158c00dd0bcdc0ab9a9bd6d45bd99a6df2"
+  },
+  "status": "VALID",
+  "findings": []
+}
+=== 8/8 official file-transfer Artifact contract ===
++ go test ./backend/internal/skillbuildartifact -run ^TestOfficialFileTransferArtifactsExcludeAuthorizationOutcome$ -count=1
+ok  	github.com/odango-chan/ca-skill-toolchain/backend/internal/skillbuildartifact	0.161s
+Skills verification: PASS
+COMPILE PASS | CASE PASS | PLANNING PASS | MOCK-RUNTIME PASS | ARTIFACT CONTRACT PASS
+Note: these local gates are not live owner execution or production qualification.
+python3 -B -m unittest discover -s tests -v
+test_allowed_lists_do_not_require_default_values (test_createdsession_script_inputs.CreatedSessionScriptInputTests.test_allowed_lists_do_not_require_default_values) ... ok
+test_boolean_ssc_mode_is_not_treated_as_integer_one (test_createdsession_script_inputs.CreatedSessionScriptInputTests.test_boolean_ssc_mode_is_not_treated_as_integer_one) ... ok
+test_matched_udm_result_with_null_subscription_is_unknown (test_createdsession_script_inputs.CreatedSessionScriptInputTests.test_matched_udm_result_with_null_subscription_is_unknown) ... ok
+test_missing_subscribed_ambr_or_qos_fails_closed (test_createdsession_script_inputs.CreatedSessionScriptInputTests.test_missing_subscribed_ambr_or_qos_fails_closed) ... ok
+test_null_transfer_http_status_is_unknown_without_exception (test_createdsession_script_inputs.CreatedSessionScriptInputTests.test_null_transfer_http_status_is_unknown_without_exception) ... ok
+test_string_session_type_set_is_rejected (test_createdsession_script_inputs.CreatedSessionScriptInputTests.test_string_session_type_set_is_rejected) ... ok
+test_subscribed_ambr_and_default_qos_are_preserved_for_pcf (test_createdsession_script_inputs.CreatedSessionScriptInputTests.test_subscribed_ambr_and_default_qos_are_preserved_for_pcf) ... ok
+test_subscription_defaults_are_used_when_allowed_lists_are_absent (test_createdsession_script_inputs.CreatedSessionScriptInputTests.test_subscription_defaults_are_used_when_allowed_lists_are_absent) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.001s
+
+OK

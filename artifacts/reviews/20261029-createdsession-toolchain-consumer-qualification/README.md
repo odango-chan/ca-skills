@@ -2,28 +2,39 @@
 
 ## Current revalidation (2026-10-29)
 
-The earlier exact-input record below is preserved. The current candidate was
-rechecked against newer branch heads:
+Current source heads:
 
-- Skills: `582481ccda1d9a1b2c651a417391eb101c7cd28f`.
+- Skills: `c50681da11f8c8c070b4416c56131813149008c5`.
 - Toolchain: `882ac439b8bd182213b06fc49be4389731269b30` (PR #132 candidate;
-  owner `main` remains `07a8ee41ca456265e116812ff0ad31fe74333451`).
-- Current Toolchain schema digest: `sha256:3fe530870dafe1f40f0031bfcd8118158c00dd0bcdc0ab9a9bd6d45bd99a6df2`.
+  owner `main` is not this candidate).
+- Toolchain schema digest: `sha256:3fe530870dafe1f40f0031bfcd8118158c00dd0bcdc0ab9a9bd6d45bd99a6df2`.
+- Child source package digest after native reconcile conversion:
+  `sha256:cecc4a252ba33cbe91ca433ba0c35882d335992c30e9aa220194a24cdc096127`.
 
-Results from this revalidation:
+Results:
 
-- `CA_SKILL_TOOLCHAIN_ROOT=/home/z00587616/ca-agent-demo/.agent-tmp/toolchain-pr132-current python3 -B scripts/verify.py --compile skills/5gc-file-transfer` — PASS, `VALID`, zero findings.
-- `CA_SKILL_TOOLCHAIN_ROOT=/home/z00587616/ca-agent-demo/.agent-tmp/toolchain-pr132-current python3 -B scripts/verify.py --compile skills/establish-pdu-session` — INVALID, 19 `CAPABILITY_NOT_FOUND` findings and zero Predicate-binding findings. The nine distinct refs remain those listed below.
-- `CA_SKILL_TOOLCHAIN_ROOT=/home/z00587616/ca-agent-demo/.agent-tmp/toolchain-pr132-current make verify` — PASS for the repository's eight gates and eight Python regression tests. This command does not compile the separate `establish-pdu-session` package or run all 26 CreatedSession Cases.
-- The four script-input counterexamples from the historical review are now covered by the current `tests/test_createdsession_script_inputs.py`; all eight tests passed, covering string session-type lists, Boolean SSC modes, null UDM subscription, null transfer status, and AMBR/QoS propagation.
+- Root `5gc-file-transfer` compile: PASS, `VALID`, zero findings.
+- `make verify`: PASS, all eight repository gates and eight Python regressions.
+- Child `establish-pdu-session` compile: INVALID with
+  `PR5_VNEXT_RECONCILE_EFFECT_INVALID`: native reconcile requires its owning
+  mutation to resolve to a registered mutation Capability. That owner contract
+  is missing, so the compiler cannot qualify the recovery lineage or proceed to
+  complete consumer validation. This replaces the older 19-finding result for
+  the previous Skill source, which represented `reconcile` as a fake read-only
+  Capability.
+- Current logs: [child compile](establish-pdu-session-native-reconcile-compile.txt)
+  and [repository verification](make-verify-current.txt).
+- All four historical local script counterexamples remain covered by the
+  eight regressions in `tests/test_createdsession_script_inputs.py`.
 
-The Skill-local counterexamples are fixed, but they do not remove the owner boundary: the current Toolchain still cannot compile the child package because its required Runtime-owned `CapabilityContract.v1` entries are absent. No registry entries were fabricated. The Toolchain candidate is not the owner main branch, and neither this local `make verify` nor Root compile is production qualification or live acceptance.
+No Capability contracts were fabricated. Local Root compile and `make verify`
+do not establish child qualification, production admission, or live acceptance.
 
 ## Scope
 
 Rechecked the current `ca-skills` CreatedSession source candidate against the available local `ca-skill-toolchain` candidate. The Root `5gc-file-transfer` package and its Cases pass, while the child `establish-pdu-session` package that contains the four post-transfer Predicate refs still fails compile. This is Toolchain compile and Case evidence only; it is not production qualification or live 5GC acceptance.
 
-## Exact inputs
+## Historical exact inputs (revalidation before native reconcile conversion)
 
 - Skill repository: `codex/createdsession-source-candidate` at `cdfd89da40da57c671a35aed9e8cc20813bac33e`.
 - Toolchain checkout: `codex/createdsession-skill-local-predicates-128` at `9993c413dff7a897907ae7d228dc70606f023ad9`.

@@ -19,7 +19,6 @@ spec:
     - sbi.udm.sdm_subscription.create
     - sbi.pcf.sm_policy.create
     - sbi.amf.n1n2.transfer
-    - createdsession.operation.reconcile
     - fivegc.session.resource_responsibility.transfer
     - fivegc.session.evidence.await
     - fivegc.session.establishment_response.prepare

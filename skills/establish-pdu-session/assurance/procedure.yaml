@@ -115,18 +115,11 @@ procedures:
           FAILED: handoff-failed
           DENIED: handoff-failed
       reconcile-subscribe-udm:
-        call: createdsession.operation.reconcile
-        with:
-          operationRef:
-            from: subscribe-udm.output.operationRef
-          lifecycleRef:
-            from: input.lifecycle-ref
+        reconcile: subscribe-udm
         'on':
           COMMITTED: handoff-unresolved
           NOT_COMMITTED: handoff-failed
           UNRESOLVED: unresolved
-          FAILED: safe-stopped
-          DENIED: safe-stopped
       verify-subscription:
         verify: createdsession.udm.subscription_owned
         'on':
@@ -157,18 +150,11 @@ procedures:
           FAILED: handoff-failed
           DENIED: handoff-failed
       reconcile-create-policy:
-        call: createdsession.operation.reconcile
-        with:
-          operationRef:
-            from: create-policy.output.operationRef
-          lifecycleRef:
-            from: input.lifecycle-ref
+        reconcile: create-policy
         'on':
           COMMITTED: handoff-unresolved
           NOT_COMMITTED: handoff-failed
           UNRESOLVED: unresolved
-          FAILED: safe-stopped
-          DENIED: safe-stopped
       verify-policy:
         verify: createdsession.pcf.association_owned
         'on':
@@ -223,18 +209,11 @@ procedures:
           FAILED: handoff-failed
           DENIED: handoff-failed
       reconcile-transfer-to-amf:
-        call: createdsession.operation.reconcile
-        with:
-          operationRef:
-            from: transfer-to-amf.output.operationRef
-          lifecycleRef:
-            from: input.lifecycle-ref
+        reconcile: transfer-to-amf
         'on':
           COMMITTED: handoff-unresolved
           NOT_COMMITTED: handoff-failed
           UNRESOLVED: unresolved
-          FAILED: safe-stopped
-          DENIED: safe-stopped
       verify-transfer:
         verify: createdsession.amf.transfer_initiated
         'on':
@@ -273,18 +252,11 @@ procedures:
           FAILED: safe-stopped
           DENIED: safe-stopped
       reconcile-handoff-success:
-        call: createdsession.operation.reconcile
-        with:
-          operationRef:
-            from: handoff-success.output.operationRef
-          lifecycleRef:
-            from: input.lifecycle-ref
+        reconcile: handoff-success
         'on':
           COMMITTED: verify-handoff-success
           NOT_COMMITTED: safe-stopped
           UNRESOLVED: unresolved
-          FAILED: safe-stopped
-          DENIED: safe-stopped
       verify-handoff-success:
         verify: createdsession.resources.managed
         'on':
@@ -305,18 +277,11 @@ procedures:
           FAILED: safe-stopped
           DENIED: safe-stopped
       reconcile-handoff-failed:
-        call: createdsession.operation.reconcile
-        with:
-          operationRef:
-            from: handoff-failed.output.operationRef
-          lifecycleRef:
-            from: input.lifecycle-ref
+        reconcile: handoff-failed
         'on':
           COMMITTED: verify-handoff-failed
           NOT_COMMITTED: safe-stopped
           UNRESOLVED: unresolved
-          FAILED: safe-stopped
-          DENIED: safe-stopped
       verify-handoff-failed:
         verify: createdsession.resources.managed
         'on':
@@ -337,18 +302,11 @@ procedures:
           FAILED: safe-stopped
           DENIED: safe-stopped
       reconcile-handoff-unresolved:
-        call: createdsession.operation.reconcile
-        with:
-          operationRef:
-            from: handoff-unresolved.output.operationRef
-          lifecycleRef:
-            from: input.lifecycle-ref
+        reconcile: handoff-unresolved
         'on':
           COMMITTED: verify-handoff-unresolved
           NOT_COMMITTED: safe-stopped
           UNRESOLVED: unresolved
-          FAILED: safe-stopped
-          DENIED: safe-stopped
       verify-handoff-unresolved:
         verify: createdsession.resources.managed
         'on':
