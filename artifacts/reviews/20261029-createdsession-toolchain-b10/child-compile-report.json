@@ -1,0 +1,25 @@
+{
+  "apiVersion": "connectionagent.io/v1alpha1",
+  "kind": "ValidationReport",
+  "metadata": {
+    "reportId": "1b0e574c-b7c2-4952-bbfd-4339a9561eb7",
+    "runId": "b7631ef2-c8e4-47f1-8bab-f3a5f2ca5f05",
+    "skill": "establish-pdu-session",
+    "workspaceRevision": 1,
+    "packageDigest": "sha256:cecc4a252ba33cbe91ca433ba0c35882d335992c30e9aa220194a24cdc096127",
+    "sourcePackageDigest": "sha256:cecc4a252ba33cbe91ca433ba0c35882d335992c30e9aa220194a24cdc096127",
+    "runtimeBundleDigest": "sha256:aab3cfeccea9582472d0f5d3471f6b7b55f0ba1292b1be68aaa1ee1101ff176e",
+    "caseSetDigest": "sha256:a02b218d0401fdb5c602c485bc621efbd783ccbd042b8e296134cbcb2b000373",
+    "registryDigest": "sha256:961b776567719a53be81a31ae3c4f105540449299c5113fbbb5cd0fdeb00d9db",
+    "schemaDigest": "sha256:3fe530870dafe1f40f0031bfcd8118158c00dd0bcdc0ab9a9bd6d45bd99a6df2"
+  },
+  "status": "INVALID",
+  "findings": [
+    {
+      "severity": "ERROR",
+      "code": "PR5_VNEXT_RECONCILE_EFFECT_INVALID",
+      "path": "assurance/procedure.yaml",
+      "message": "reconcile owner must resolve to a mutation capability"
+    }
+  ]
+}

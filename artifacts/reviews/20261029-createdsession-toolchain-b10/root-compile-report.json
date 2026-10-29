@@ -1,0 +1,18 @@
+{
+  "apiVersion": "connectionagent.io/v1alpha1",
+  "kind": "ValidationReport",
+  "metadata": {
+    "reportId": "bb0253a8-488c-448e-a949-a01d6deac124",
+    "runId": "f9b951a9-4243-4d19-8e64-e0e20fc97b08",
+    "skill": "5gc-file-transfer",
+    "workspaceRevision": 1,
+    "packageDigest": "sha256:0dbc8454ee2ee8933857664b2565b84df94245da53d53f04c0bf34b64ce621ca",
+    "sourcePackageDigest": "sha256:0dbc8454ee2ee8933857664b2565b84df94245da53d53f04c0bf34b64ce621ca",
+    "runtimeBundleDigest": "sha256:8301891f569f0045c421347cf8a719d842dbd006031b3c61c4c5d049bf15f89b",
+    "caseSetDigest": "sha256:2e67970855ccd37022800b1cb1a640e12962619d5f4234f6c74e18a8dde2730d",
+    "registryDigest": "sha256:961b776567719a53be81a31ae3c4f105540449299c5113fbbb5cd0fdeb00d9db",
+    "schemaDigest": "sha256:3fe530870dafe1f40f0031bfcd8118158c00dd0bcdc0ab9a9bd6d45bd99a6df2"
+  },
+  "status": "VALID",
+  "findings": []
+}
