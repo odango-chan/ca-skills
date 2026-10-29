@@ -71,11 +71,26 @@ predicates.yaml 中新增 source 名称/字段均是本候选的未闭合依赖�
 
 有界 await 的数据/事件 port、执行期限、重启恢复和结果投递尚未实现。它不能伪造事件，也不能解析 N2 或替原 SMF 对 AMF 响应。source 不可用、超时、旧事件/实例歧义为 UNKNOWN；明确网络反证为 FAIL。
 
+### Post-transfer Observation refs: owner binding not identified
+
+The four child predicates consume these candidate refs, but no versioned owner contract or native source was found at the current Provider `d2070c3fdcbafe7fd53d630a7379c4c3f64aa156`, Fabric `1ae8338e19902668a2947c7b47d39b06d631acbf`, or Sandbox `460c4628eb54a97de2485e1b41ed76db9ba22d23` heads. Exact-ref searches across those checkouts returned no matches. These names remain unversioned Skill-side candidates, not registered observations.
+
+| Candidate observation ref | Predicate | Current owner/source status |
+| --- | --- | --- |
+| `createdsession.ran_setup_result` | `createdsession.ran.setup_accepted` | Provider N2 decoding of Fabric's preserved UpdateSMContext source is only a candidate; authenticated native source and association contract are unidentified. |
+| `createdsession.n4_forwarding_resources` | `createdsession.n4.forwarding_ready` | UPF PDR/FAR/QER and tunnel-stage proof source/version is unidentified; summary evidence cannot establish current forwarding readiness. |
+| `createdsession.ue_sm_configuration` | `createdsession.ue.configuration_accepted` | Independent current UE/session configuration source and schema version are unidentified. |
+| `createdsession.resource_responsibility` | `createdsession.resources.managed` | Persistent owner and transferable lifecycle receipt contract/version are unidentified; a Provider lifecycle candidate is not accepted proof. |
+
+Keep all four bindings unresolved/UNKNOWN until the owning repository publishes exact schema/version, source identity, correlation, freshness/consistency, and positive/negative qualification evidence. Do not satisfy them with fixture strings or inferred operation outcomes.
+
 ## 5. 当前验证范围
 
 26 个 case.yaml 是按当前 Case schema 编写的合成资格场景草稿，覆盖完整目标、缺失/歧义、真实拒绝、资源归属、旧实例、200 缓存/202、RAN/N4/UE、read-only UDM uncertainty、mutation unknown/reconcile 和移交。它们不是已执行的 Mock Runtime/协议/live 用例；fixtures 中的权威标记、Tool 可用和 PASS 只描述挑战输入。
 
 当前本地 candidate 将 `get-sm-data` 的 `OUTCOME_UNKNOWN` 分支改为 `SAFE_STOPPED`，并增加 `26-udm-read-unknown` Case；原因是现有 Runtime 只在 action-level unknown path 做安全停止，不能把该 read-only uncertainty 表达成 mutation reconciliation。2026-10-29 使用 ca-skill-toolchain 本地候选 `codex/createdsession-skill-local-predicates-128`@`9993c413dff7a897907ae7d228dc70606f023ad9` 验证：Root `5gc-file-transfer` compile 为 `VALID`、0 findings；该 Root 的 17 个 Cases 均通过 deterministic `planning-test`，14 个含选定 Procedure 的 Case 通过 `mock-run`。但包含四个 post-transfer Predicate refs 的 child `establish-pdu-session` 在同一 checkout compile 为 `INVALID`，19 个 node findings 全为 `CAPABILITY_NOT_FOUND`，没有 Predicate binding findings。缺失的 9 个 Capability refs 是 `sbi.udm.sm_data.get`、`fivegc.session.operation_context.read`、`sbi.udm.sdm_subscription.create`、`sbi.pcf.sm_policy.create`、`createdsession.operation.reconcile`、`sbi.amf.n1n2.transfer`、`fivegc.session.resource_responsibility.transfer`、`fivegc.session.evidence.await`、`fivegc.session.establishment_response.prepare`。不能通过在 Skill 源或 Reference Registry 里伪造 CapabilityContract 来消除这些 findings；Toolchain 将 CapabilityContract.v1 的 authority 指向 Runtime，而 Runtime 本 Goal 只读。详细 root positive gates 与 child negative compile result 见 [2026-10-29 Toolchain consumer qualification](../artifacts/reviews/20261029-createdsession-toolchain-consumer-qualification/README.md)。Root 结果仅证明对应 candidate 的本地 compile/Case gates；child 不可编译，完整 CreatedSession Skill qualification、生产 Capability Admission、Runtime/跨进程/真实网络均未通过或未运行。
+
+本日更新的 Toolchain consumer qualification 已使用 Toolchain PR #132 候选 `882ac439b8bd182213b06fc49be4389731269b30` 与 Skills `582481ccda1d9a1b2c651a417391eb101c7cd28f` 重跑：Root compile 仍 PASS；child 仍 INVALID（19 个缺失 Capability node findings）；四个 Observation refs 在当前 Provider/Fabric/Sandbox owner candidate 中均无 schema/source 声明。详见上方 post-transfer binding 表及最新证据记录。
 
 当前 Case fixtures 不能提供新增 Capability 的真实 typed node outputs/source。因此后续资格必须由正式 owner Tool adapters/Qualification composition 供应这些输出和 evidence，不能扩展 case.yaml 私有字段、绕过 Artifact 或将 fixtures 当真实成功。
 
