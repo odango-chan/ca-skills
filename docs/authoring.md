@@ -279,6 +279,8 @@ Therefore `allowedResources.capabilities`:
 - is not the final model-visible Toolset;
 - cannot bypass Environment, policy, or Runtime admission constraints.
 
+A resource entry may be a registered Capability ID (resolved by the deployment CapabilityContracts registry to its exact Operations) or a direct exact Operation ID. Procedure `call` always names an exact Operation ID. The current conventional 5GC Skill uses direct Operation grants. The ToolCatalog defines Operation contracts; it is not the deployment Capability registry.
+
 Use these Platform schemas as the authoring authority:
 
 | Source asset | Platform schema |
