@@ -34,13 +34,15 @@ It declares 12 Operations. The conventional Skill's `allowedResources.capabiliti
 
 The MAS Skill declares 16 `ca.pdu_session.*` Operation identities in both `allowedResources.capabilities[]` and Procedure `call` positions: 14 MAS business operations and two Host-side resource-finalization/cleanup operations. None is present in the imported ToolCatalog. The MAS prototype's `design/tool-contract.yaml` is a design artifact and is not an approved ToolCatalog, so it was intentionally not imported. MAS dependency resolution remains BLOCKED until the owning Tool contract is supplied and approved.
 
-## Legacy identifiers retained in the synchronized source
+## 5GC-specific identifiers retained in the synchronized source
 
-The conventional Skill still uses `createdsession.*` Predicate IDs and ObservationRefs. Both current Skill packages also refer to the Host trusted facts `createdsession_ingress` and `createdsession_lifecycle`.
+The conventional Skill still uses `createdsession.*` Predicate IDs and ObservationRefs. Both current Skill packages also refer to the 5GC Host facts `createdsession_ingress` and `createdsession_lifecycle`.
 
 These names are **not** CA language keywords, reserved prefixes or special color categories. The language service classifies a Predicate reference because it appears in a Predicate-reference field, not because its text begins with `createdsession.`.
 
-This refresh deliberately keeps the Skill source byte-aligned with `ca-agent-demo/main`; it does not perform a one-sided rename. A safe rename requires a coordinated change to the Host trusted-fact producers, Observation sources/refs, Skill predicates and their references, and affected Cases. Until that migration is approved and implemented by the owning Host source, the language contract must treat these names as ordinary source identifiers and must not hard-code the prefix.
+The Generic Agent Host convergence in [ca-agent-demo PR #194](https://github.com/odango-chan/ca-agent-demo/pull/194) removed CreatedSession identity from the generic Host, Agent, Runtime and Observability layers. The remaining names belong to the 5GC-specific Integration, Skill and Tool contracts. They must not become hard-coded rules in the generic Compiler, Studio or LSP.
+
+If the 5GC domain later adopts a neutral identifier namespace, that is a separate domain-contract migration across trusted facts, Observation sources/refs, Skill predicates/references, Tool/Capability contracts and affected Cases. It is not a prerequisite for this language-token contract. This refresh keeps the Skill source synchronized with `ca-agent-demo/main` rather than renaming one side in isolation.
 
 ## Compatibility and acceptance status
 
