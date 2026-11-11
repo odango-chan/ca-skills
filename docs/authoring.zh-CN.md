@@ -305,6 +305,8 @@ Runtime Resolved CA Toolset
 - 不等于最终 model-visible Toolset；
 - 不能绕过 Environment / policy / Runtime admission。
 
+资源条目既可以填写由部署侧 CapabilityContracts 注册表映射到精确 Operation 集合的 Capability ID，也可以直接填写精确 Operation ID。Procedure 的 `call` 始终填写精确 Operation ID。当前传统 5GC Skill 使用的是直接授权的 Operation ID。ToolCatalog 定义 Operation 契约，本身不是部署侧 Capability 注册表。
+
 对应的 Platform 权威 Schema：
 
 | Skill 源码 | Platform Schema |
