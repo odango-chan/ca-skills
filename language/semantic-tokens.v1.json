@@ -1,12 +1,12 @@
 {
   "id": "connectionagent.skill.semantic-tokens",
   "schemaVersion": 1,
-  "version": "0.1.0",
-  "status": "frozen-v0.1",
+  "version": "0.2.0",
+  "status": "current",
   "authority": {
-    "semantics": "ca-skills current authoring model and 5GC source baseline",
-    "grammar": "ca-skill-compiler (target), legacy ca-skill-toolchain only for supported source constructs",
-    "note": "This projection classifies existing source positions; it neither extends the authoring grammar nor asserts link/admission/runtime readiness."
+    "semantics": "ca-skills Skill Language v0.2 and Script Contract v0",
+    "grammar": "docs/skill-language-spec.md and docs/script-contract.md",
+    "note": "This is a source-position projection only. It does not validate YAML, resolve references, execute Scripts/Tools, or imply Runtime readiness."
   },
   "legend": {
     "tokenTypes": [
@@ -28,11 +28,7 @@
       },
       {
         "id": "skillCapability",
-        "description": "External governed Capability/Operation identity"
-      },
-      {
-        "id": "skillTool",
-        "description": "Skill-owned local Tool identity"
+        "description": "Resource-grant identity in allowedResources; may identify a Capability or directly granted Operation"
       },
       {
         "id": "skillPredicate",
@@ -61,6 +57,10 @@
       {
         "id": "skillBinding",
         "description": "Explicit Procedure input/output/context binding"
+      },
+      {
+        "id": "skillOperation",
+        "description": "Exact callable Operation identity from an imported ToolCatalog"
       }
     ],
     "tokenModifiers": [
@@ -113,7 +113,6 @@
         "procedures/*/nodes/*": [
           "call",
           "verify",
-          "tool",
           "script",
           "reconcile",
           "procedure",
@@ -131,9 +130,7 @@
           "name",
           "call",
           "verify",
-          "tool",
           "script",
-          "procedure",
           "with"
         ],
         "procedures/*/nodes/*/postconditions": [
@@ -144,9 +141,7 @@
           "name",
           "call",
           "verify",
-          "tool",
           "script",
-          "procedure",
           "with"
         ]
       },
@@ -196,20 +191,7 @@
         {
           "path": "procedures/*/nodes/*/call",
           "part": "value",
-          "type": "skillCapability",
-          "modifiers": [
-            "reference"
-          ]
-        },
-        {
-          "path": "procedures/*/nodes/*/tool",
-          "part": "key",
-          "type": "skillOperator"
-        },
-        {
-          "path": "procedures/*/nodes/*/tool",
-          "part": "value",
-          "type": "skillTool",
+          "type": "skillOperation",
           "modifiers": [
             "reference"
           ]
@@ -284,20 +266,7 @@
         {
           "path": "procedures/*/nodes/*/preconditions/steps/*/call",
           "part": "value",
-          "type": "skillCapability",
-          "modifiers": [
-            "reference"
-          ]
-        },
-        {
-          "path": "procedures/*/nodes/*/preconditions/steps/*/tool",
-          "part": "key",
-          "type": "skillOperator"
-        },
-        {
-          "path": "procedures/*/nodes/*/preconditions/steps/*/tool",
-          "part": "value",
-          "type": "skillTool",
+          "type": "skillOperation",
           "modifiers": [
             "reference"
           ]
@@ -329,19 +298,6 @@
           ]
         },
         {
-          "path": "procedures/*/nodes/*/preconditions/steps/*/procedure",
-          "part": "key",
-          "type": "skillOperator"
-        },
-        {
-          "path": "procedures/*/nodes/*/preconditions/steps/*/procedure",
-          "part": "value",
-          "type": "skillProcedure",
-          "modifiers": [
-            "reference"
-          ]
-        },
-        {
           "path": "procedures/*/nodes/*/postconditions/steps/*/call",
           "part": "key",
           "type": "skillOperator"
@@ -349,20 +305,7 @@
         {
           "path": "procedures/*/nodes/*/postconditions/steps/*/call",
           "part": "value",
-          "type": "skillCapability",
-          "modifiers": [
-            "reference"
-          ]
-        },
-        {
-          "path": "procedures/*/nodes/*/postconditions/steps/*/tool",
-          "part": "key",
-          "type": "skillOperator"
-        },
-        {
-          "path": "procedures/*/nodes/*/postconditions/steps/*/tool",
-          "part": "value",
-          "type": "skillTool",
+          "type": "skillOperation",
           "modifiers": [
             "reference"
           ]
@@ -389,19 +332,6 @@
           "path": "procedures/*/nodes/*/postconditions/steps/*/verify",
           "part": "value",
           "type": "skillPredicate",
-          "modifiers": [
-            "reference"
-          ]
-        },
-        {
-          "path": "procedures/*/nodes/*/postconditions/steps/*/procedure",
-          "part": "key",
-          "type": "skillOperator"
-        },
-        {
-          "path": "procedures/*/nodes/*/postconditions/steps/*/procedure",
-          "part": "value",
-          "type": "skillProcedure",
           "modifiers": [
             "reference"
           ]
@@ -504,11 +434,11 @@
           "requestSchema"
         ],
         "spec/context": [
-          "requiredFacts"
+          "requiredFacts",
+          "schemas"
         ],
         "spec/allowedResources": [
-          "capabilities",
-          "localTools"
+          "capabilities"
         ],
         "spec/preconditions/*": [
           "predicate",
@@ -527,6 +457,12 @@
         ],
         "spec/failureSemantics/outcomeUnknown": [
           "requireReconcile"
+        ],
+        "spec/context/schemas": [
+          "subject",
+          "facts",
+          "observations",
+          "evidence"
         ]
       },
       "rules": [
@@ -550,14 +486,6 @@
           "path": "spec/allowedResources/capabilities/*",
           "part": "value",
           "type": "skillCapability",
-          "modifiers": [
-            "reference"
-          ]
-        },
-        {
-          "path": "spec/allowedResources/localTools/*",
-          "part": "value",
-          "type": "skillTool",
           "modifiers": [
             "reference"
           ]
@@ -587,6 +515,38 @@
           "path": "spec/postconditions/*/expect",
           "part": "value",
           "type": "skillOutcome"
+        },
+        {
+          "path": "spec/context/schemas/subject",
+          "part": "value",
+          "type": "skillSchema",
+          "modifiers": [
+            "reference"
+          ]
+        },
+        {
+          "path": "spec/context/schemas/facts",
+          "part": "value",
+          "type": "skillSchema",
+          "modifiers": [
+            "reference"
+          ]
+        },
+        {
+          "path": "spec/context/schemas/observations",
+          "part": "value",
+          "type": "skillSchema",
+          "modifiers": [
+            "reference"
+          ]
+        },
+        {
+          "path": "spec/context/schemas/evidence",
+          "part": "value",
+          "type": "skillSchema",
+          "modifiers": [
+            "reference"
+          ]
         }
       ]
     },
@@ -615,8 +575,7 @@
         "predicates/*/evaluator": [
           "type",
           "expression",
-          "script",
-          "with"
+          "ref"
         ]
       },
       "rules": [
@@ -632,6 +591,14 @@
           "path": "predicates/*/observations/*/ref",
           "part": "value",
           "type": "skillObservation",
+          "modifiers": [
+            "reference"
+          ]
+        },
+        {
+          "path": "predicates/*/evaluator/ref",
+          "part": "value",
+          "type": "skillReference",
           "modifiers": [
             "reference"
           ]
@@ -779,19 +746,9 @@
           "spec"
         ],
         "spec": [
-          "contracts",
-          "operations"
+          "contracts"
         ],
         "spec/contracts/*": [
-          "operation",
-          "adapter",
-          "effect",
-          "inputSchema",
-          "outputSchema",
-          "reconcileOutputSchema",
-          "description"
-        ],
-        "spec/operations/*": [
           "operation",
           "adapter",
           "effect",
@@ -805,16 +762,7 @@
         {
           "path": "spec/contracts/*/operation",
           "part": "value",
-          "type": "skillCapability",
-          "modifiers": [
-            "declaration",
-            "imported"
-          ]
-        },
-        {
-          "path": "spec/operations/*/operation",
-          "part": "value",
-          "type": "skillCapability",
+          "type": "skillOperation",
           "modifiers": [
             "declaration",
             "imported"

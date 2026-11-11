@@ -6,7 +6,7 @@ The source tree must contain only schemas owned by the Skill. A file being prese
 | --- | --- | --- |
 | Public Skill Request | Skill author | `spec.inputs.requestSchema` points to `schemas/**`; Compiler resolves `context.request.*` from it. |
 | Tool Operation Input / Output | Tool owner | Imported ToolCatalog under logical `lib/tools/**`; Compiler links exact Operation IDs and uses its Schemas. |
-| Host Subject / Facts / Constraints | Agent Host owner | Explicit `spec.context.schemas.*` path into logical `lib/host/**`; missing file is `EXTERNAL_SCHEMA_MISSING`. |
+| Host Subject / Facts | Agent Host owner | Explicit `spec.context.schemas.subject/facts` paths into logical `lib/host/**`; missing files are `EXTERNAL_SCHEMA_MISSING`. |
 | Observation payload | Observation source owner | Explicit `spec.context.schemas.observations` path into logical `lib/observations/**`. |
 | Predicate evidence/provenance projection | Host / Runtime owner | Explicit `spec.context.schemas.evidence` path into logical `lib/host/**`. Never infer it from a Script or Case fixture. |
 | Procedure Script input | No separate file owner | Derived per call site from `with:` Producer references. |

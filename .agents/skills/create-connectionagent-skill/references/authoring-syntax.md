@@ -1,133 +1,67 @@
 # ConnectionAgent Skill Authoring Syntax
 
-This is a practical syntax/example reference, not a separate language authority. The canonical source-language semantics and semantic-token taxonomy are defined in [Skill Language Specification](../../../../docs/skill-language-spec.md). Current examples are the two packages in [the current 5GC baseline](../../../../docs/current-5gc-skill-baseline.md). The target Compiler must validate every construct; unsupported syntax must fail explicitly rather than be silently dropped. Legacy Toolchain support is only a subset and does not redefine this source contract.
+This is a practical reference, not a separate language authority. Follow [Skill Language Specification](../../../../docs/skill-language-spec.md), [Script Contract](../../../../docs/script-contract.md), [Schema Ownership](../../../../docs/schema-ownership.md) and [Authoring Model](../../../../docs/authoring-model.md).
 
-## Canonical executable package
+## Package
 
-```text
+~~~text
 skills/<name>/
 ├── SKILL.md
-├── assurance/
-│   ├── contract.yaml
-│   ├── procedure.yaml
-│   └── predicates.yaml
-├── cases/
-│   └── <case>/case.yaml
-├── references/       # optional flat Markdown
-├── schemas/           # optional Skill-owned schemas
-└── scripts/           # optional governed local compute
-```
+├── assurance/{contract,procedure,predicates}.yaml
+├── cases/<case>/case.yaml
+├── references/       # optional model knowledge
+├── schemas/          # Skill-owned schemas only
+└── scripts/          # pure local computation
+~~~
 
-There is no standalone `evidence.yaml`. Do not add package-root `README.md`, `MIGRATION.md`, `examples/`, or maintainer-only `design/`.
+## Procedure
 
-## Contract
+A main-node `call` is a scalar exact Operation ID:
 
-`contract.yaml` declares the Skill identity/type, business goal, entry Procedure, request schema, required facts, allowed Capability/local Tool resources, final preconditions/postconditions and action budget.
+~~~yaml
+nodes:
+  read-subscription:
+    call: sbi.udm.sm_data.get
+    with:
+      ueRef:
+        from: input.ue-ref
+~~~
 
-An allowed Capability is a semantic resource declaration. It is not proof that a Tool implementation is registered, deployed, READY or authorized.
+Do not use a `{dependency, operation}` object. Dependency acquisition and source identity are outside the Skill language; the caller supplies ToolCatalog files and Compiler links the exact Operation ID.
 
-## Procedure source
+Supported main-node actions: `call`, `script`, `procedure`, `verify`, `reconcile` and `terminal`. Preconditions/postconditions contain ordered `steps` using only `call`, `script` or `verify`. `tool` and nested `procedure` steps are not supported.
 
-The current source model uses one deterministic graph:
+## Scripts
 
-```yaml
-procedures:
-  establish:
-    inputs: {}
-    start: inspect
-    nodes:
-      inspect:
-        call: example.state.read
-        'on':
-          SUCCEEDED: verify-state
-          FAILED: failed
-          DENIED: failed
-      verify-state:
-        verify: example.state.ready
-        'on':
-          PASS: done
-          FAIL: failed
-          UNKNOWN: unresolved
-      done:
-        terminal: SUCCEEDED
-      failed:
-        terminal: FAILED
-      unresolved:
-        terminal: UNRESOLVED
-```
+~~~python
+from typing import Literal, TypedDict
 
-Current node intents include:
+class Result(TypedDict):
+    accepted: Literal[True]
+    value: str
 
-- `call`: invoke a governed Capability;
-- `tool`: invoke a governed Skill-local Tool;
-- `script`: run deterministic local computation;
-- `verify`: evaluate a Predicate against admitted evidence;
-- `procedure`: invoke a child Procedure;
-- `for`: express an explicitly bounded iteration where supported;
-- `reconcile`: reconcile the exact original mutation;
-- `terminal`: end with a declared terminal result.
+def main(input: dict) -> Result:
+    return {"accepted": True, "value": input["source"]}
+~~~
 
-Bindings use explicit `with/from` or `with/value`. Do not invent implicit previous-node outputs, hidden interpolation, or a second sequencing DSL.
+`input: dict` is a container only. Procedure inputs come from exact `with:` bindings; Predicate evaluator inputs come from the Host Predicate Evaluation Context and declared observations. The Script output `TypedDict` is the sole Script-owned Schema declaration. Compiler generates the read-only Output JSON Schema.
 
-## Node preconditions and postconditions
+Do not add `# /// connectionagent-tool` metadata or per-Script `name`, `inputSchema`, `outputSchema`, `effect`, `sandbox` or `timeout` fields. A Script is not a separate Tool/Capability and cannot perform network, MCP, Provider or Tool I/O.
 
-The current conventional PDU Session source uses ordered node-level preparation and verification blocks:
+See the Script Contract for supported output types and constraints.
 
-```yaml
-preconditions:
-  steps:
-    - name: prepare-input
-      script: scripts/prepare_input.py
-  'on':
-    PASS: continue
-    FAIL: failed
-    UNKNOWN: unresolved
+## Schema ownership
 
-postconditions:
-  steps:
-    - verify: example.operation_effective
-  'on':
-    PASS: next-business-node
-    FAIL: failed
-    UNKNOWN: unresolved
-```
+- Request Schema: Skill-owned under `schemas/`.
+- Tool Schema: imported ToolCatalog under logical `lib/tools/`.
+- Subject/Facts/Evidence Schema: real Host Owner files under logical `lib/host/`.
+- Observation payload Schema: real Observation Owner files under logical `lib/observations/`.
+- Procedure Script input: derived per call site.
+- Predicate Script input: derived from Host context and declared observations.
+- Script output: generated from Output `TypedDict`.
 
-Preconditions are side-effect-free preparation immediately before the main operation. Postconditions verify the result after the main operation; successful operation outcome enters the postcondition phase, and only PASS advances. See [Authoring model](../../../../docs/authoring-model.md) for ordering, allowed steps and failure semantics.
+Do not infer external fields from `requiredFacts`, and do not duplicate external Tool Schema in Script input files.
 
-**Compatibility warning:** the current legacy `ca-skill-toolchain` `procedure-source.schema.yaml` does not include these node-level fields. The new stateless Compiler v0 is the target, but its implementation has not started. Do not remove or flatten these fields to force legacy compilation.
+## Cases and References
 
-## Outcomes and reconciliation
-
-Keep result domains distinct:
-
-- Predicate: `PASS / FAIL / UNKNOWN`;
-- operation: the outcomes declared by the imported Tool contract;
-- Procedure terminal: `SUCCEEDED / FAILED / UNRESOLVED / SAFE_STOPPED`.
-
-Use `reconcile: <original-node>` for an original mutation with uncertain outcome. Preserve the exact original operation identity. Never blindly retry an unknown mutation.
-
-## Predicate source
-
-`predicates.yaml` declares the observations required and the deterministic evaluator over already materialized evidence. Missing, stale, unavailable, ambiguous or wrong-producer evidence must remain UNKNOWN; do not reinterpret it as FAIL or PASS.
-
-## Cases
-
-Each qualification case is one file:
-
-```text
-cases/<case-name>/case.yaml
-```
-
-Cases record semantic obligations and expected outcomes. They are not execution evidence. The current conventional PDU Session package documents 36 cases as obligations that are not yet executable Runtime fixtures.
-
-## Scripts and schemas
-
-- Python Scripts are deterministic local computation only; they do not call network services, Providers, MCP servers, shell commands, clocks, databases or credentials.
-- Use explicit Script input/output declarations and author-owned schemas. Do not infer constraints that the source declaration does not express.
-- Request/response schemas owned by the Skill live under `schemas/`.
-
-## References and imported Library
-
-- Optional model knowledge lives in flat `references/*.md` and is selected when useful; it is not automatically loaded and is not evidence.
-- Imported Tool contracts live in project `lib/` as read-only snapshots. Do not edit imported files or infer runtime readiness from their presence.
-- Current import: `lib/tools/createdsession.tool.yaml` (12 conventional Operations). The 16 MAS Capability references remain unresolved; the MAS design draft is not an approved ToolCatalog.
+Cases are semantic source obligations, not execution evidence. Optional model knowledge belongs in `references/`; it is not evidence or executable syntax and is not automatically loaded.

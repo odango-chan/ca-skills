@@ -1,6 +1,6 @@
 # Skill-owned Python Script Contract v0
 
-**Status:** Current source contract for the target Compiler v0 language. This supersedes the old `# /// connectionagent-tool` metadata convention. It does not claim Compiler conformance has already passed.
+**Status:** Current source contract for the target Compiler v0.2 language. This supersedes the old `# /// connectionagent-tool` metadata convention. It does not claim Compiler conformance has already passed.
 
 ## 1. Identity and entry point
 
@@ -35,7 +35,7 @@ For `evaluator: {type: script, ref: scripts/foo.py}`, the input is the Host-crea
 
 - `subject`: exact trusted Subject projection;
 - `request`: Skill Request validated by `spec.inputs.requestSchema`;
-- `facts` and `constraints`: Host-owned context projections;
+- `facts`: Host-owned fact projection;
 - `observations`: a map from each declared observation alias to its materialized payload;
 - `evidence`: Host-owned provenance/evidence projection available to this Predicate evaluation.
 
@@ -75,7 +75,7 @@ Remove the old `# /// connectionagent-tool` block. Do not declare `inputSchema`,
 
 Skill Scripts are restricted to deterministic local computation. They must not access network/MCP/HTTP, shell/subprocess, filesystem, environment secrets, clocks, random sources, databases or credentials. The Host owns a fixed execution sandbox and timeout policy; a Script cannot widen it through source metadata.
 
-A Script is not an independently invocable Tool or Capability. It is a Skill-owned source asset referenced by Procedure `script` or Predicate `evaluator.ref`. There is no `allowedResources.localTools` grant list.
+A Script is not an independently invocable Tool or Capability. It is a Skill-owned source asset referenced by Procedure `script` or Predicate `evaluator.ref`. There is no `allowedResources.localTools`.
 
 ## 5. Current PDU Session migration
 
