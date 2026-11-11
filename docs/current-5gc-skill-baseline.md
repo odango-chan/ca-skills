@@ -30,9 +30,17 @@ The conventional Skill's model-facing guide was also cleaned of prototype-relati
 
 Source blob: `05a34f38b9974742c9e2d85e0d432cf616ce01e8`
 
-It declares 12 Operations. The conventional Skill's `contract.yaml` lists exactly those 12 Capability IDs; all 12 resolve by name against this snapshot.
+It declares 12 Operations. The conventional Skill's `allowedResources.capabilities[]` lists those same 12 exact Operation IDs as direct grants (not the six grouped Capability IDs in the separate deployment registry). The Procedure calls use the same Operation identities, and all 12 resolve against this snapshot. The deployment-owned `CapabilityContracts` file under `ca-agent-demo/tools/contracts/capabilities/` is not imported into this Skill project.
 
-The MAS Skill declares 16 `ca.pdu_session.*` Capabilities. None of those 16 Operations is present in the imported ToolCatalog. The MAS prototype's `design/tool-contract.yaml` is a design artifact and is not an approved ToolCatalog, so it was intentionally not imported. MAS dependency resolution remains BLOCKED until the owning Tool contract is supplied and approved.
+The MAS Skill declares 16 `ca.pdu_session.*` Operation identities in both `allowedResources.capabilities[]` and Procedure `call` positions: 14 MAS business operations and two Host-side resource-finalization/cleanup operations. None is present in the imported ToolCatalog. The MAS prototype's `design/tool-contract.yaml` is a design artifact and is not an approved ToolCatalog, so it was intentionally not imported. MAS dependency resolution remains BLOCKED until the owning Tool contract is supplied and approved.
+
+## Legacy identifiers retained in the synchronized source
+
+The conventional Skill still uses `createdsession.*` Predicate IDs and ObservationRefs. Both current Skill packages also refer to the Host trusted facts `createdsession_ingress` and `createdsession_lifecycle`.
+
+These names are **not** CA language keywords, reserved prefixes or special color categories. The language service classifies a Predicate reference because it appears in a Predicate-reference field, not because its text begins with `createdsession.`.
+
+This refresh deliberately keeps the Skill source byte-aligned with `ca-agent-demo/main`; it does not perform a one-sided rename. A safe rename requires a coordinated change to the Host trusted-fact producers, Observation sources/refs, Skill predicates and their references, and affected Cases. Until that migration is approved and implemented by the owning Host source, the language contract must treat these names as ordinary source identifiers and must not hard-code the prefix.
 
 ## Compatibility and acceptance status
 
