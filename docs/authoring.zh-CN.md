@@ -8,7 +8,7 @@
 .agents/skills/create-connectionagent-skill/references/authoring-syntax.md
 ```
 
-机器语法是否合法，以 `ca-skill-toolchain` 当前的 Schema 和编译器为准。
+详细语法见 `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md`；当前 5GC 源码基线见[Current 5GC Skill baseline](current-5gc-skill-baseline.md)，节点语义见[Authoring model](authoring-model.md)，目录权限见[Project Layout](project-layout.md)。旧版 `ca-skill-toolchain` 只支持其当前 Schema 已建模的语法。传统 5GC Procedure 使用了旧版 Schema 尚不支持的节点级 `preconditions/postconditions`；无状态 Compiler v0 设计已确认，但尚未实现。
 
 英文版：[`authoring.md`](authoring.md)
 
@@ -28,20 +28,18 @@ assurance/
 cases/
 ```
 
-现有参考：
+当前 5GC 可执行 Skill 示例：
 
-- `ue-registration`
-- `ensure-session-qos`
-- `download-object-by-deadline`
-- `query-weather-for-ue`
+- `establish-pdu-session`：传统 UE 请求初始会话建立；
+- `establish-pdu-session-mas`：SMF MAS policy-first 初始会话建立。
+
+二者是不同的业务 profile，不是互为 fallback。其他历史包暂时保留，但不属于当前 5GC 基线。
 
 ### 路由策略 / 模型上下文包
 
 如果内容只是给 Agent 提供业务语义、归一化规则或路由策略，本身并不需要交给 Runtime 执行 Procedure，则使用模型上下文形式。
 
-`5gc-intent` 是当前参考。
-
-路由属于 Agent 自身行为，不要设计成“先执行一个路由 Skill，再由它返回另一个 Skill 的执行目标”。
+路由属于 Agent 自身行为，不要设计成“先执行一个路由 Skill，再由它返回另一个 Skill 的执行目标”。历史路由包不作为当前 5GC 基线或本次编写示例。
 
 ### Runtime Capability
 
@@ -87,7 +85,7 @@ skills/<name>/
 - 每个资格验证用例只使用一个 `cases/<case>/case.yaml`；
 - Skill 根目录不使用 `README.md`、`MIGRATION.md`、`examples/`；
 - 说明性示例放在 `references/samples/`；
-- `references/` 是 Skill 自己拥有的补充材料，但**不会因为放在这里就自动进入模型上下文**；是否加载必须由 Skill/Host 的上下文策略显式决定；
+- `references/` 是 Skill 自己拥有的补充材料，但**不会因为放在这里就自动进入模型上下文**。`SKILL.md` 列出精确路径并说明用途，由模型判断是否读取相关材料；不要创建 `preload/` 或 `on-demand/` 目录；
 - `scripts/` 继续是一等可选的 governed local-compute 资产；只有确实需要确定性本地计算时才创建，不要建空目录占位；
 - 跨 Skill 的 Planner/Linker/Admission 测试 fixture 放到对应测试区域，不放在业务 Skill 的 `references/` 下；
 - `skills/` 下供模型读取的 Markdown 统一使用英文；
@@ -281,7 +279,7 @@ SkillTestCase.ruleRefs
 Rule compile/artifact
 ```
 
-因此现在仍按本文后续章节中的现行语法编写。正式迁移会先以 `5gc-file-transfer` 做 reference migration，再决定 machine contract。
+因此当前继续使用现有源码模型，等待新 Compiler 与 Rule machine contract 落地。历史 Skill 不作为当前 5GC 编写样例。
 
 ## 5. `assurance/` 三个文件分别负责什么
 
@@ -323,7 +321,7 @@ Runtime Resolved CA Toolset
 | `cases/<case>/case.yaml` | `schemas/v1alpha1/skill-test-case.schema.yaml` |
 | Python 脚本元信息 | `schemas/v1alpha1/script-tool-metadata.schema.yaml` |
 
-当前 `procedure.yaml` 应以 `procedure-source.schema.yaml` 为准，使用对象形式的 Procedure vNext：
+当前 `procedure.yaml` 使用对象形式的 Procedure vNext，而不是旧的 array/type/action 形式：
 
 ```text
 procedures
@@ -332,7 +330,7 @@ procedures
        -> nodes
 ```
 
-不要从历史 `procedure-set.schema.yaml` 推导当前 Skill 源码写法。
+不要从历史 `procedure-set.schema.yaml` 推导当前 Skill 源码写法。兼容性注意：旧版 `procedure-source.schema.yaml` 尚未建模传统 PDU Session Skill 使用的节点级 `preconditions/postconditions`。不要为了让旧编译器接受而删除或压平这些字段。新无状态 Compiler 是目标实现，但目前尚未开始实现。
 
 详细节点、Binding、Predicate、脚本和用例示例统一放在：
 
@@ -457,17 +455,14 @@ BenchmarkCase
 
 新增 Skill 时，优先找最接近的正式包参考：
 
-| 需求 | 参考 Skill |
+| 需求 | 当前参考包 |
 | --- | --- |
-| 完整但较紧凑的端到端流程 | `query-weather-for-ue` |
-| 变更操作、`OUTCOME_UNKNOWN` 与调和 | `ue-registration` |
-| 可满足要求与后置条件 | `ensure-session-qos` |
-| 截止时间与本地计算 | `download-object-by-deadline` |
-| 非执行型路由策略 | `5gc-intent` |
+| 传统 UE 请求初始 PDU Session Establishment | `establish-pdu-session` |
+| SMF MAS policy-first 初始会话建立 | `establish-pdu-session-mas` |
 
-真实 Skill 会跟随编译器持续验证，比额外维护一套教学包更可靠。
+这两个包是当前仓库 5GC 基线仅有的 Skill 源码示例。它们尚未完成 Compiler/Link 验证，详见[当前 5GC Skill 基线](current-5gc-skill-baseline.md)。其他历史包暂时保留，但不属于当前编写范围。
 
-Rule/Case 新模型落地前，`5gc-file-transfer` 将作为 reference migration 对象，不要以尚未完成的 reference 设计替代当前正式包语法。
+Rule/Case 的机器迁移等待 Schema 与 Compiler 支持后再处理。不要用历史 Skill 替代当前 5GC 源码契约。
 
 ## 9. 推荐编写流程
 
@@ -480,7 +475,7 @@ Rule/Case 新模型落地前，`5gc-file-transfer` 将作为 reference migration
 5. 如果模型规划可能需要当前状态，确认现有 Registry 中是否已有合适的 read-only Capability，并把它纳入正确的 `allowedResources.capabilities` 资源边界；不要为了提示模型而把底层 Observation wiring 写进 `SKILL.md`。
 6. 只在领域语义确实容易误选时，在 `SKILL.md` 补充“应该依赖哪类事实/Capability”的指导。
 7. 需要改 `assurance/`、脚本或用例时，按需查看 `references/authoring-syntax.md` 对应章节。
-8. 单独编译当前 Skill：
+8. 对符合旧版语法的 Skill 单独编译：
 
    ```bash
    python3 -B scripts/verify.py --compile skills/<name>
@@ -502,7 +497,7 @@ Rule/Case 新模型落地前，`5gc-file-transfer` 将作为 reference migration
 
 10. 如目标是更高等级资格验证或生产环境准入，再进入 Platform / Runtime / Sandbox 对应流程。
 
-编译通过或本地预检通过，不等于已经通过生产环境资格验证。
+旧版编译或本地预检通过，不等于已经通过生产环境资格验证。当前 5GC 基线在节点级 Procedure 字段未被编译器支持前，不得把旧版编译尝试当作该基线的验证结果。
 
 ## 10. 仓库之间的边界
 
