@@ -254,8 +254,8 @@ ToolCatalog 定义 Operation，本身不是部署侧 Capability 注册表。如�
 
 | Token ID | 适用位置 | 示例 |
 | --- | --- | --- |
-| `ca.document.kind` | 文档 `kind` 的值 | `SkillContract`、`PredicateSet`、`SkillTestCase`、`ToolCatalog` |
-| `ca.document.version` | `apiVersion` 的值 | `connectionagent.io/v1alpha1` |
+| `ca.document.kind` | 文档 `kind` 的值 | `SkillContract`、`PredicateSet`、`SkillTestCase`、`ToolCatalog`、`CapabilityContracts` |
+| `ca.document.version` | `apiVersion` 的值 | `connectionagent.io/v1alpha1`、`ca-agent-host.capability-contracts/v1` |
 | `ca.keyword.structure` | 定义位置中的 CA 结构字段 | `spec`、`metadata`、`procedures`、`nodes`、`predicates`、`observations` |
 | `ca.keyword.control` | 节点意图 Key | `call`、`verify`、`script`、`reconcile`、`terminal` |
 | `ca.keyword.condition` | 条件/阶段 Key | `applicability`、`preconditions`、`postconditions`、`steps`、`'on'` |
