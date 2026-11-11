@@ -1,0 +1,110 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: establish-pdu-session
+  name: 22-handoff-failed-unknown
+spec:
+  classes:
+  - outcome_unknown_not_committed
+  purpose: 'Synthetic branch obligation: handoff-failed uncertainty stops without another mutation; durable
+    pre-create responsibility must retain late results. Not Runtime recovery qualification.'
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: cs-candidate-01
+      version: 1
+    subject:
+      ueRef: synthetic-ue-a
+    request:
+      pduSessionId: 1
+      pti: 7
+      requestType: 1
+      dnn: internet
+      sNssai:
+        sst: 1
+        sd: 0
+      servingPlmn:
+        mcc: '001'
+        mnc: '01'
+      requestedPduSessionType: IPV4
+      requestedSscMode: 1
+    facts:
+      createdsession_ingress:
+        value: synthetic-ingress-a
+        authoritative: true
+      createdsession_lifecycle:
+        value: synthetic-lifecycle-a
+        authoritative: true
+    availableResources:
+    - ref: sbi.udm.sm_data.get
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    - ref: ca.session.operation_context.read
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    - ref: sbi.udm.sdm_subscription.create
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: sbi.pcf.sm_policy.create
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: sbi.amf.n1n2.transfer
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.session.resource_responsibility.transfer
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: skill.select-establishment-configuration
+      kind: tool
+      version: 1.0.0
+      effect: local_compute
+      invocable: true
+    - ref: skill.evaluate-udm-read
+      kind: tool
+      version: 1.0.0
+      effect: local_compute
+      invocable: true
+    - ref: ca.session.evidence.await
+      kind: capability
+      version: v1
+      effect: read_only
+      invocable: true
+    - ref: skill.evaluate-transfer-start
+      kind: tool
+      version: 1.0.0
+      effect: local_compute
+      invocable: true
+    - ref: ca.session.establishment_response.prepare
+      kind: capability
+      version: v1
+      effect: local_compute
+      invocable: true
+    constraints:
+      maxActions: 32
+  expect:
+    procedure: ue-requested-pdu-session-establishment
+    planningStatus: READY
+    terminal: SAFE_STOPPED
+    postconditions:
+    - predicate: createdsession.ran.setup_accepted
+      expect: PASS
+      actual: FAIL
+    - predicate: createdsession.n4.forwarding_ready
+      expect: PASS
+      actual: NOT_EVALUATED
+    - predicate: createdsession.resources.managed
+      expect: PASS
+      actual: NOT_EVALUATED

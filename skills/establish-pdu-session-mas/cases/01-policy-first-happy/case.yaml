@@ -1,0 +1,167 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: establish-pdu-session-mas
+  name: 01-policy-first-happy
+spec:
+  classes:
+  - happy_path
+  purpose: "Synthetic policy-first Establish obligation: certified PA CREATE before address and PA UPDATE after address, followed by same-N4 RAN/forwarding evidence and durable resource custody. Not live evidence."
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: mas-candidate-01-policy-first-happy
+      version: 1
+    subject:
+      ueRef: synthetic-ue-a
+    request:
+      pduSessionId: 1
+      pti: 7
+      requestType: 1
+      dnn: internet
+      sNssai:
+        sst: 1
+        sd: 0
+      servingPlmn:
+        mcc: '001'
+        mnc: '01'
+      requestedPduSessionType: IPV4
+      requestedSscMode: 1
+    facts:
+      createdsession_ingress:
+        value: synthetic-ingress-a
+        authoritative: true
+      createdsession_lifecycle:
+        value: synthetic-lifecycle-a
+        authoritative: true
+    availableResources:
+    - ref: ca.pdu_session.subscription.validate
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.secondary_auth.disposition
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.context.create
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.uecm.register
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.policy.create
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.anchor.select
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.address.allocate
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.policy.update
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.charging.create
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.user_plane.establish
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.address.confirm
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.access.signal
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.user_plane.activate
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.events.emit
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.resources.finalize
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.resources.cleanup
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    constraints:
+      maxActions: 48
+  expect:
+    procedure: establish-session
+    planningStatus: READY
+    terminal: SUCCEEDED
+    postconditions:
+    - predicate: mas.establishment.ran_accepted
+      expect: PASS
+      actual: PASS
+    - predicate: mas.establishment.forwarding_ready
+      expect: PASS
+      actual: PASS
+    - predicate: mas.establishment.resources_managed
+      expect: PASS
+      actual: PASS
+    trace:
+      match: ordered_subsequence
+      ordered:
+      - nodeId: validate-subscription
+        outcome: COMMITTED
+      - nodeId: secondary-auth
+        outcome: COMMITTED
+      - nodeId: create-context
+        outcome: COMMITTED
+      - nodeId: register-uecm
+        outcome: COMMITTED
+      - nodeId: create-policy
+        outcome: COMMITTED
+      - nodeId: select-anchor
+        outcome: COMMITTED
+      - nodeId: allocate-address
+        outcome: COMMITTED
+      - nodeId: update-policy
+        outcome: COMMITTED
+      - nodeId: create-charging
+        outcome: COMMITTED
+      - nodeId: establish-user-plane
+        outcome: COMMITTED
+      - nodeId: confirm-address
+        outcome: COMMITTED
+      - nodeId: signal-access
+        outcome: COMMITTED
+      - nodeId: activate-forwarding
+        outcome: COMMITTED
+      - nodeId: emit-events
+        outcome: COMMITTED
+      - nodeId: finalize-resources
+        outcome: COMMITTED

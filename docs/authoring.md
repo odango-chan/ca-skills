@@ -2,7 +2,7 @@
 
 This guide explains how to add or change official Skill source in this repository.
 
-For detailed YAML and Script examples, use `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md`. Machine validity is defined by the current schemas and compiler in `ca-skill-toolchain`.
+For the canonical source-language and semantic-token contract, see [Skill Language Specification](skill-language-spec.md). Use `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md` for practical examples, [Authoring Model](authoring-model.md) for current 5GC node semantics, [Current 5GC Skill baseline](current-5gc-skill-baseline.md) for provenance/compatibility, and [Project Layout](project-layout.md) for workspace structure. The legacy `ca-skill-toolchain` validates only constructs represented by its current schemas. The conventional 5GC Procedure uses node-level `preconditions/postconditions` that the legacy schema does not support; the accepted stateless Compiler v0 is not implemented yet.
 
 Chinese version: [`authoring.zh-CN.md`](authoring.zh-CN.md)
 
@@ -14,18 +14,18 @@ Before creating files, decide whether the change belongs to a Skill, a routing-p
 
 Use an executable Skill for a product or domain goal that needs deterministic execution assurance. It normally contains `SKILL.md` and the complete `assurance/` extension.
 
-Typical examples:
+Current 5GC executable examples:
 
-- `ue-registration`
-- `ensure-session-qos`
-- `download-object-by-deadline`
-- `query-weather-for-ue`
+- `establish-pdu-session` — conventional initial establishment profile;
+- `establish-pdu-session-mas` — SMF MAS policy-first initial establishment profile.
+
+They are separate business profiles, not fallbacks for one another. Other historical packages remain outside the current 5GC baseline.
 
 ### Routing-policy or model-context package
 
 Use this form when the Agent needs business semantics or routing policy, but there is no Runtime Procedure to execute.
 
-`5gc-intent` is the reference package. Routing remains Agent-owned behavior; do not model routing as one executable Skill selecting another executable Skill.
+Routing remains Agent-owned behavior; do not model routing as one executable Skill selecting another executable Skill. No historical routing package is treated as part of the current 5GC baseline.
 
 ### Runtime Capability
 
@@ -67,7 +67,7 @@ Repository rules:
 - each qualification case is one `cases/<case>/case.yaml` file;
 - package-root `README.md`, `MIGRATION.md`, and `examples/` are not part of the canonical package shape;
 - explanatory samples belong under `references/samples/`;
-- `references/` is Skill-owned supplemental material, but its contents are **not automatically model-visible**; model loading must be explicit through Skill/Host context policy;
+- `references/` is Skill-owned supplemental material, but its contents are **not automatically model-visible**. `SKILL.md` lists exact paths and when each may help; the model decides whether to read a relevant reference. Do not create `preload/` or `on-demand/` directory conventions;
 - `scripts/` remains a first-class optional governed local-compute asset; create it only when the Skill actually needs deterministic local computation, never as an empty placeholder;
 - cross-cutting Planner/Linker/Admission fixtures belong in their owning test area, not under a business Skill's `references/`;
 - model-facing Markdown under `skills/` is written in English;
@@ -184,7 +184,7 @@ A Procedure may enforce a Rule, but a Procedure node is not the Rule identity. A
 
 ### 4.1 One CA Authoring Language Core
 
-When Rule support is implemented, it should reuse the same authoring primitives rather than introduce a separate DSL. Candidate shared primitives include:
+The source-derived v0 language contract and semantic-token taxonomy are specified in [Skill Language Specification](skill-language-spec.md). The shared primitives below remain the long-term design direction; they are not all current reserved syntax. In particular, Rule syntax is not part of the current Skill source baseline. When Rule support is implemented, it should reuse the same authoring primitives rather than introduce a separate DSL. Candidate shared primitives include:
 
 ```text
 ref
@@ -222,7 +222,7 @@ The principle is:
 Future Rule identities may look like:
 
 ```text
-5gc-file-transfer.urgency.explicit-only
+5gc.pdu-session.initial-establishment.profile-bound
 execution.outcome-unknown.no-blind-retry
 ```
 
@@ -247,7 +247,7 @@ SkillTestCase.ruleRefs
 Rule compile/artifact
 ```
 
-Current Skills therefore continue to use the existing syntax in the following sections. `5gc-file-transfer` will be used as the reference migration before the machine contract is implemented.
+Current Skills continue to use the source constructs recorded in [Skill Language Specification](skill-language-spec.md) until the new Compiler and Rule machine contract are implemented. Historical packages are not used as current 5GC authoring examples.
 
 ## 5. Authoring contracts
 
@@ -279,6 +279,8 @@ Therefore `allowedResources.capabilities`:
 - is not the final model-visible Toolset;
 - cannot bypass Environment, policy, or Runtime admission constraints.
 
+A resource entry may be a registered Capability ID (resolved by the deployment CapabilityContracts registry to its exact Operations) or a direct exact Operation ID. Procedure `call` always names an exact Operation ID. The current conventional 5GC Skill uses direct Operation grants. The ToolCatalog defines Operation contracts; it is not the deployment Capability registry.
+
 Use these Platform schemas as the authoring authority:
 
 | Source asset | Platform schema |
@@ -289,7 +291,7 @@ Use these Platform schemas as the authoring authority:
 | `cases/<case>/case.yaml` | `schemas/v1alpha1/skill-test-case.schema.yaml` |
 | governed Script metadata | `schemas/v1alpha1/script-tool-metadata.schema.yaml` |
 
-For `procedure.yaml`, author against `procedure-source.schema.yaml`. Current official source uses the object-form vNext model (`procedures -> start/nodes`). Do not use the older array/type/action source shape.
+For `procedure.yaml`, the current source uses the object-form vNext model (`procedures -> start/nodes`), not the older array/type/action shape. Compatibility warning: the current legacy `procedure-source.schema.yaml` does not model node-level `preconditions/postconditions` used by the conventional PDU Session Skill. Do not delete or flatten those fields to make the legacy compiler accept the source. The new stateless Compiler is the target, but implementation has not started.
 
 The detailed syntax reference is intentionally kept in one place:
 
@@ -401,17 +403,14 @@ Do not copy Qualification examples directly into formal Benchmark tasks when tha
 
 Prefer current official packages over copied tutorial examples:
 
-| Need | Reference package |
+| Need | Current reference package |
 | --- | --- |
-| compact end-to-end executable Skill | `query-weather-for-ue` |
-| mutation and reconcile handling | `ue-registration` |
-| requirements and postconditions | `ensure-session-qos` |
-| deadline and local computation | `download-object-by-deadline` |
-| non-executable routing policy | `5gc-intent` |
+| conventional UE-requested initial PDU Session Establishment | `establish-pdu-session` |
+| SMF MAS policy-first initial establishment | `establish-pdu-session-mas` |
 
-This keeps examples aligned with the compiler and avoids maintaining a second set of sample packages.
+These are the only current 5GC Skill source examples for this repository baseline. They are not yet fully compiler/link validated; see [Current 5GC Skill baseline](current-5gc-skill-baseline.md). Other historical packages remain unchanged and are outside this authoring scope.
 
-Before Rule/Case migration is implemented, `5gc-file-transfer` is the planned reference migration target, not a replacement for the current package contract.
+Rule/Case machine migration remains deferred until its schema and compiler support are available. Do not use a historical package as a substitute for the current 5GC source contract.
 
 ## 9. Authoring workflow
 
@@ -424,7 +423,7 @@ For a new Skill or a structural change:
 5. If model planning may depend on current state, confirm that an appropriate read-only Capability exists and place it within the correct `allowedResources.capabilities` resource boundary; do not put low-level Observation wiring into `SKILL.md` just to prompt inspection.
 6. Add explicit Tool guidance in `SKILL.md` only when domain semantics make the correct fact source genuinely ambiguous.
 7. Read the relevant section of `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md` before editing assurance source, Scripts, or Cases.
-8. For one executable package, run:
+8. For one legacy-compatible executable package, run:
 
    ```bash
    python3 -B scripts/verify.py --compile skills/<name>
@@ -440,7 +439,7 @@ For a new Skill or a structural change:
 
 10. Report the checks that actually ran and any remaining Platform, Runtime, Provider, Sandbox, or deployment dependency.
 
-A successful compile or repository preflight check does not make a Skill production-qualified.
+A successful legacy compile or repository preflight check does not make a Skill production-qualified. Do not treat a legacy compile attempt as validation of the current 5GC baseline while its node-level Procedure fields remain unsupported.
 
 ## 10. Ownership
 
