@@ -35,11 +35,12 @@ Library files are external contracts, not Skill-authored source.
 - Open files in a read-only preview with normal syntax highlighting and navigation.
 - Disable text editing, rename, move, paste-overwrite and ordinary Delete actions.
 - Provide explicit `Import`, `Re-import` and `Remove Import` operations. Re-import replaces the imported snapshot from its owner; Remove Import removes the project reference/snapshot after confirmation. These are dependency-management actions, not source editing.
-- Keep the imported file at its project-relative path. Do not copy a ToolCatalog into each Skill.
+- Keep each imported file at its project-relative path. Do not copy a ToolCatalog into each Skill.
+- Current import kind: `lib/tools/*.yaml` for ToolCatalog Operations. Optional future import kind: `lib/capabilities/*.yaml` for deployment-owned CapabilityContracts, when the project explicitly needs Capability-ID navigation. Such a snapshot is read-only and does not become a Skill-authored or deployment-approval authority.
 - A present contract does not mean its Tool implementation is registered, deployed, READY, authorized or executable.
 - A design draft is not an approved external contract and must not be imported as one.
 
-The current 5GC project imports `lib/tools/createdsession.tool.yaml` from `ca-agent-demo`. It resolves the conventional PDU Session Skill's 12 declared Operations. It does not resolve the MAS Skill's 16 `ca.pdu_session.*` references.
+The current 5GC project imports only `lib/tools/createdsession.tool.yaml` from `ca-agent-demo`. The conventional PDU Session Skill's 12 direct Operation grants and Procedure calls resolve against it. The project does not import the deployment-owned CapabilityContracts registry. The MAS Skill's 16 `ca.pdu_session.*` Operation identities remain unresolved; its design-only ToolCatalog is not imported.
 
 ## 3. `output/` — generated and read-only
 
