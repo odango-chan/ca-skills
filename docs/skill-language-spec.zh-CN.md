@@ -1,349 +1,167 @@
 # ConnectionAgent Skill 语言规范
 
-**版本：** v0.1  
-**状态：** Draft——基于当前源码整理的语言契约，尚不代表 Compiler 一致性验收通过  
+**版本：** v0.2  
+**状态：** 当前目标无状态 Compiler 的源码语言契约；Compiler 一致性验收单独记录。  
 **归属：** `ca-skills`  
-**消费者：** `ca-skill-compiler`、`ca-skill-studio-demo`，以及未来的 LSP
+**消费者：** `ca-skill-compiler`、Skill Studio 和未来 LSP。
 
-本文档扩展现有编写指南中的 **One CA Authoring Language Core**，明确当前源码使用的语法词汇、Artifact 边界、引用关系和语义 Token 分类，不另造一套 DSL。
+本仓库拥有官方 Skill 语言与官方 Skill 源码。Compiler 实现这套语言，不另造 DSL、导入格式或包管理系统。
 
-## 1. 权威边界与范围
+## 1. 权威与边界
 
-`ca-skills` 负责 Authoring Semantics 和对外的 Skill 源码语言契约。本文是以下内容的规范来源：
+`ca-skills` 是 Skill 源码语言契约和官方 Skill 包的唯一权威。当前 `ca-agent-demo` 源码用于核对实际运行行为、刷新样例，不是第二个 Skill 输入源。
 
-- 官方 Skill 源码构造的含义和作用；
-- 语言关键字、用户自定义标识符与引用的区别；
-- 编辑器和未来语言服务共用的稳定语义 Token ID；
-- 当前源码语法、已有文档但尚未验证的语法、未来设计之间的边界。
+- 本规范定义源码构造、支持语法、身份与引用位置。
+- [Script 契约](script-contract.md)定义唯一的 Skill 自有 Python Script 形式。
+- [Schema 所有权](schema-ownership.md)定义每类 Schema 的真正生产者。
+- [Authoring Model](authoring-model.md)定义 Procedure 业务语义。
+- [语义 Token 投影](../language/semantic-tokens.v1.json)定义编辑器 Token 分类，不定义语法，也不代表引用已经链接成功。
+- 目标 Compiler 对调用方提供的文件字节进行解析、链接、校验和生成。Studio/调用方负责获取依赖并组装 BuildRequest；Compiler 不获取、持久化、锁定、刷新或管理依赖。
+- 声明或链接成功不代表 Tool 已实现、有权限、Runtime READY、执行成功、Case 通过或真实 5GC 验收。
 
-目标 Compiler 实现这份契约并提供机器校验；Skill Studio 消费 Token 分类实现语法高亮；未来 LSP 可以复用同一套符号和引用分类，实现诊断、补全、定义跳转和引用查找。
+旧版 `ca-skill-toolchain` Schema 不是语言权威。Compiler 必须实现本契约，不能为了满足旧 Schema 而扁平化或静默忽略源码语义。
 
-旧版 `ca-skill-toolchain` Schema 只验证它实际建模的子集，不能反过来重新定义或静默缩小当前源码契约。尤其是传统 PDU Session Skill 已使用节点级 `preconditions` 和 `postconditions`，而旧版 Procedure Schema 不支持这些字段。目标无状态 Compiler 必须实现已记录的源码语义，或者明确报告不支持的语法；绝不能静默丢弃。
+## 2. 语言 Artifact
 
-本 v0 根据当前两个 5GC Skill 和导入的 Library 快照整理，不代表新 Compiler、Linker 或 Runtime 已接受或执行所有构造。
-
-## 2. 语言层次
-
-Skill 编写语言由现有格式与 ConnectionAgent 专属结构组合而成：
-
-| 层次 | 源文件 | 语言职责 |
+| 层次 | 源文件 | 职责 |
 | --- | --- | --- |
-| 模型指导 | `SKILL.md` | Markdown 与标准 Skill frontmatter；描述业务含义、适用范围和安全边界 |
-| Skill 契约 | `assurance/contract.yaml` | Skill 身份、目标、入口 Procedure、资源边界和最终条件 |
-| Procedure | `assurance/procedure.yaml` | 确定性流程图、节点意图、绑定、条件和结果路由 |
-| Predicate 集合 | `assurance/predicates.yaml` | 必需 Observation，以及基于已物化 Evidence 的确定性判断 |
-| 资格 Case | `cases/<case>/case.yaml` | 场景、Fixture 和预期语义义务 |
-| 受治理脚本 | `scripts/*.py` | 带有声明元信息和 Schema 的确定性本地计算 |
-| Skill Schema | `schemas/*` | Skill 自有的 Payload/Schema；JSON Schema 关键字仍属于 JSON Schema，不是 CA 关键字 |
-| 补充知识 | `references/*.md` | 可选 Markdown 知识，不是可执行语法，也不是 Evidence |
-| 导入 Library | `lib/**/*.yaml` | 只读外部契约/目录，由 Skill 源码引用 |
-| 生成产物 | `output/**` | Compiler 所有的生成结果，不能作为源码输入 |
+| 模型指导 | `SKILL.md` | 标准 Skill frontmatter 和面向模型的业务指导 |
+| Skill 契约 | `assurance/contract.yaml` | Skill 身份、目标、入口 Procedure、Request/Context Schema 引用、资源授权与最终条件 |
+| Procedure | `assurance/procedure.yaml` | 确定性流程图、Operation 调用、Script/Procedure/Predicate 引用、绑定和路由 |
+| Predicate 集合 | `assurance/predicates.yaml` | Observation 声明，以及基于已物化 Evidence 的 CEL 或 Script 判断 |
+| Case | `cases/*/case.yaml` | 源码级场景和语义义务；不是执行器或 Qualification 引擎 |
+| Script | `scripts/*.py` | Skill 自有的确定性本地计算，使用严格 Output `TypedDict` |
+| Skill 自有 Schema | `schemas/**` | 公共 Request 和其他真正由 Skill 拥有的接口 |
+| Reference | `references/**/*.md` | 可选模型知识，不是可执行语法或 Evidence |
+| 导入契约 | Compiler 逻辑输入 `lib/**` | Studio/调用方提供的 Tool/Host/Observation Owner 契约 |
 
-不能把所有 YAML key 都当作保留字。YAML 是序列化格式；只有出现在已定义 ConnectionAgent 语法位置的 Key/Value 才获得 CA 语义分类。
+Script 输出 Schema 是 BuildResult 生成产物，不是 `schemas/` 下的作者源码，也不能再次作为 Compiler 输入。
 
-## 3. 当前 Artifact 形式
+## 3. SkillContract
 
-下面列出当前源码基线中实际存在、或现有编写参考明确记录的字段和形式。它们不代表所有旧版 Schema/Compiler 都接受这些语法。字段的精确必填性和约束由目标机器 Schema 定义。
+文档身份仍为 `apiVersion: connectionagent.io/v1alpha1` / `kind: SkillContract`。关键字段：
 
-### 3.1 `SKILL.md`
+- `spec.inputs.requestSchema`：Skill 自己拥有的公共 Request Schema。
+- `spec.context.requiredFacts`：必需事实标识符列表，**不是**字段级 Schema。
+- `spec.context.schemas`：当使用 `subject`、`facts`、`observations`、`evidence` 命名空间时，显式引用对应 Owner Schema。
+- `spec.allowedResources.capabilities[]`：资源授权上界。值可以是部署 Capability ID 或直接 Operation ID；它不是 Script 白名单。
+- Contract 级 preconditions/postconditions 是 Skill 全局条件，与 Procedure 节点级条件不同。
+- 不再有 `allowedResources.localTools`。Script 是 Skill 内部源码资产，不是独立可调用 Tool。
 
-Frontmatter 使用标准 Skill 元信息字段 `name` 和 `description`。Markdown 正文是面向模型的业务说明。标题和普通领域词汇不是 CA 保留关键字。
+外部 Schema 引用示例：
 
-### 3.2 `SkillContract`
-
-当前文档身份：
-
-```yaml
-apiVersion: connectionagent.io/v1alpha1
-kind: SkillContract
-metadata:
-  name: establish-pdu-session
+~~~yaml
 spec:
-  skillType: executable
-  goal: pdu_session.initial_request_fulfilled
-  entryProcedure: ue-requested-pdu-session-establishment
   inputs:
     requestSchema: schemas/establishment-request.schema.yaml
   context:
-    requiredFacts: []
-  allowedResources:
-    capabilities: []
-    localTools: []
-  postconditions: []
-```
+    requiredFacts:
+      - createdsession_ingress
+    schemas:
+      subject: lib/host/subject.schema.yaml
+      facts: lib/host/facts.schema.yaml
+      observations: lib/observations/context-observations.schema.yaml
+      evidence: lib/host/evidence.schema.yaml
+~~~
 
-当前编写模型识别的结构字段包括：
+所有路径均相对于逻辑 BuildRequest 文件集合。使用到对应命名空间但路径缺失或没有权威 Owner Schema 时，必须报错。不能用 `requiredFacts` 名称、宽泛 object 或部署配置 Schema 替代。
 
-- `skillType`、`goal`、`entryProcedure`；
-- `inputs.requestSchema`；
-- `context.requiredFacts`；
-- `allowedResources.capabilities` 和 `allowedResources.localTools`；
-- Contract 级 `preconditions`、`requirements` 和 `postconditions`；
-- `planning.maxActions`、`planning.allowDynamicProcedure`；
-- `failureSemantics.outcomeUnknown.requireReconcile`。
+## 4. Procedure
 
-Contract 级 preconditions/postconditions 是整个 Skill 的条件，不等同于 Procedure 节点级的 preconditions/postconditions。
+当前源码采用命名 Procedure 与命名 Node 的 Map：
 
-### 3.3 `Procedure`
-
-当前源码采用对象形式的流程图：
-
-```yaml
+~~~yaml
 procedures:
-  <procedure-id>:
-    inputs: {}
-    start: <node-id>
+  establish:
+    inputs:
+      dnn:
+        type: string
+        from: context.request.dnn
+    start: read-subscription
     nodes:
-      <node-id>:
-        call: capability.operation
-        with: {}
-        'on': {}
-```
+      read-subscription:
+        call: sbi.udm.sm_data.get
+        with:
+          dnn:
+            from: input.dnn
+        'on':
+          SUCCEEDED: verify-subscription
+          FAILED: failed
+      verify-subscription:
+        verify: example.subscription_usable
+        'on':
+          PASS: done
+          FAIL: failed
+          UNKNOWN: unresolved
+      done:
+        terminal: SUCCEEDED
+~~~
 
-当前 5GC 源码使用的节点意图：
+当前支持的主节点意图只有：
 
-| Intent Key | 含义 |
+| 意图 | 含义 |
 | --- | --- |
-| `call` | 调用被引用的受治理 Capability/Operation |
-| `verify` | 判断被引用的 Predicate |
-| `script` | 执行受治理的本地计算脚本 |
-| `reconcile` | 调和原始的、具有不确定结果的变更节点 |
+| `call` | 调用一个精确的导入 Tool Operation |
+| `script` | 按 Skill 包相对路径运行自有 Script |
+| `procedure` | 调用本地 Procedure 或显式指定的跨 Skill Procedure |
+| `verify` | 判断 Predicate |
+| `reconcile` | 调和原始 Mutation Node |
 | `terminal` | 以声明的 Procedure 终态结束 |
 
-早期语法参考还记录了 `tool`、`procedure` 和 `for` 形式。它们属于**已有文档描述、但当前两个 5GC Skill 尚未使用验证**的语法；在被视为通用可用语法前，必须确认目标 Compiler 的支持情况。迭代必须显式有界，并受 Artifact 类型约束。
+`call` 始终是**标量 Operation ID**，例如：
 
-Procedure 可以声明：
+~~~yaml
+call: sbi.udm.sm_data.get
+~~~
 
-- `inputs.<name>.type` 和 `inputs.<name>.from`；
-- `start` 和 `nodes`；
-- `with.<argument>.from` 或 `with.<argument>.value`；
-- `'on'` 结果到下一节点的映射；
-- `applicability`；当前传统 PDU Session 源码使用其中的 `predicates` 映射；
-- 节点级 `preconditions` 和 `postconditions`。
+它不是 Capability 分组、Dependency 名称、MCP Tool 名称、对象或 `{dependency, operation}`。Studio/调用方把所需 ToolCatalog 文件装配到逻辑 `lib/**` 输入中；Compiler 根据精确 Operation ID 跨已提供的 ToolCatalog 链接。Operation ID 在本次输入集合中必须唯一，缺失或重复均报错。Skill 源码没有 Dependency 命名空间或别名。
 
-不要把节点 ID、输入名、参数名或输出字段名误认为保留关键字。它们都是作者定义的标识符。
+`Procedure.inputs.<name>.from` 与 `with.<argument>.from` 是显式数据绑定。`with` 每项只能有 `from` 或 `value`。`Procedure.inputs.<name>.type` 只能作为作者类型断言，由真实 Producer Schema 校验；不能用它创建或替代缺失的 Schema。
 
-### 3.4 节点级 Preconditions 和 Postconditions
+主节点 `procedure` 可引用本地 Procedure 名称，也可用显式 `{skill, procedure}` 指定跨 Skill Procedure。不存在隐式前序节点绑定、字符串插值、动态 selector 或自动 Skill 路由。
 
-传统 PDU Session 源码使用带有 `steps` 和 `'on'` 结果映射的有序阶段：
+### 4.1 节点级 Preconditions / Postconditions
 
-```yaml
-preconditions:
-  steps:
-    - name: prepare-input
-      script: scripts/prepare_input.py
-  'on':
-    PASS: continue
-    FAIL: failed
-    UNKNOWN: unresolved
+`preconditions` 和 `postconditions` 是有序的节点进入/结果阶段，使用 `steps` 和显式 `'on'` 路由。当前只支持 `call`、`script`、`verify` 三种步骤意图。每个命名 Step 有独立作用域；引用使用精确生产者路径，例如 `preconditions.<step>.output` 或 `<node>.preconditions.<step>.output`。
 
-postconditions:
-  steps:
-    - verify: example.operation_effective
-  'on':
-    PASS: next-business-node
-    FAIL: failed
-    UNKNOWN: unresolved
-```
+影响执行语义的未知字段和不支持的动作必须明确失败。`tool`、`for` 和 `applicability.when` 不属于当前语言版本，不能把旧编写笔记当作允许 Compiler 接受它们的依据。
 
-Preconditions 是主操作前立即执行的无副作用准备；Postconditions 在 Procedure 继续前证明操作的业务结果。具体执行顺序和失败语义见[Authoring Model](authoring-model.md)。
+## 5. PredicateSet
 
-这些节点级字段已经存在于当前源码，但旧版 `ca-skill-toolchain` Procedure Schema 不支持。它们属于目标源码契约，不意味着可以自行发明其他节点字段。
+`assurance/predicates.yaml` 声明 Predicate 身份和必需 Observation。Evaluator 只能是：
 
-### 3.5 Binding 与 Path
+- `{type: cel, expression: ...}`：基于已物化 Evidence 的 CEL 表达式；或
+- `{type: script, ref: scripts/foo.py}`：Skill 自有 Predicate Script。
 
-每个 `with` 参数只能有一种显式来源：
+`evaluator.ref` 是包内相对 Script 路径，不是 `skill.*` Tool ID。Predicate Script 输入采用 [Script 契约](script-contract.md)定义的 Predicate Evaluation Context，不负责获取 Observation 或调用 Provider。
 
-- `from`：引用 Procedure 输入、准入上下文、前序节点结果或准备阶段结果；
-- `value`：字面量。
+## 6. Cases
 
-当前 Path 命名空间包括 `input.*`、`context.subject.*`、`context.request.*`、`context.facts.*`、`context.constraints.*`、迭代得到支持时的 `loop.*`，以及明确的生产者路径，例如 `<node>.output.*` 或 `<node>.preconditions.<step>.output`。
+每个 Case 是一个 `cases/<name>/case.yaml` 源码级场景和预期语义义务。Compiler 不执行 Case，也不实现 Qualification、Case Runner、Release Gate 或 Runtime readiness。
 
-Path 不是任意字符串表达式。不要发明隐式前序节点绑定、隐藏插值、`fromContext` 或 `fromOutput`。
+## 7. ToolCatalog、Capability 与 Operation 身份
 
-### 3.6 Predicate 集合
+当前正式导入的 ToolCatalog 为 `lib/tools/createdsession.tool.yaml`。它在 `spec.contracts[].operation` 中定义精确 Operation，并附带 Effect 与 Input/Output/Reconcile Schema。
 
-当前文档身份：
+必须区分：
 
-```yaml
-apiVersion: connectionagent.io/v1alpha1
-kind: PredicateSet
-metadata:
-  skill: establish-pdu-session
-predicates:
-  example.goal_satisfied:
-    observations:
-      state:
-        ref: example.state.snapshot
-        scope: '{}'
-        freshness: 5s
-    evaluator:
-      type: cel
-      expression: observations.state.status == "READY"
-```
+- Capability ID：部署侧拥有的资源分组/授权身份。
+- Operation ID：ToolCatalog 声明的一个精确可调用操作。
+- Procedure `call`：始终是 Operation ID。
+- `allowedResources.capabilities[]`：Skill 声明的资源授权上界；当前传统 PDU 条目是直接 Operation ID。
 
-当前源码词汇包括：
+ToolCatalog 快照只证明契约文件已提供，不证明 Adapter 已注册、已授权、已就绪或执行成功。MAS Skill 的 16 个 `ca.pdu_session.*` Operation 引用仍未解析，因为没有正式批准的 MAS ToolCatalog；设计稿不能作为正式 Library。
 
-- `predicates.<predicate-id>` 定义；
-- `observations.<alias>.ref`、`scope` 和 `freshness`；
-- `evaluator.type`，当前源码形式为 `cel` 和 `script`；
-- CEL 使用 `evaluator.expression`，受治理的 Predicate Script 使用 `evaluator.ref`。
+## 8. Schema 所有权
 
-Expression 的值属于 CEL 子语言，不是 YAML 或 CA 关键字列表。Predicate 只判断已经物化的 Evidence，不负责获取 Evidence 或调用 Provider。
+详见 [Schema Ownership](schema-ownership.md)。简要规则：Skill 拥有公共 Request Schema；Tool/Host/Observation Owner 拥有 Producer Schema；Procedure 绑定派生 Script 输入投影；Script `TypedDict` 声明自身计算输出；Compiler 生成 Script Output Schema。
 
-### 3.7 资格 Case
+## 9. 编辑器与 Compiler 消费者
 
-每个 Case 是一个独立的 `cases/<case-name>/case.yaml` 文件，文档身份为 `kind: SkillTestCase`。当前源码字段包括 `metadata.skill`、`metadata.name`、`spec.classes`、`spec.purpose`、`spec.context`、`spec.expect` 和 `spec.fixtures`。
+机器可读 Token 注册表是 [`language/semantic-tokens.v1.json`](../language/semantic-tokens.v1.json)。它只分类源码位置，颜色不代表链接成功。
 
-Case 是源码层面的语义义务。文件存在不代表它已执行、不代表 Runtime 已通过，也不代表 Skill 已取得资格。
+Studio/调用方组装 `files` 和可选 targets。Compiler 接收字节，返回诊断和生成文件，不做依赖获取或包管理。Native Go 与 WASM 必须实现相同语言语义。Compiler Build 成功不代表 Script 执行、Runtime READY、Qualification 或真实 5GC 成功。
 
-### 3.8 受治理 Python Script
+## 10. 变更控制
 
-Skill 内 Python Script 只负责确定性本地计算。文档化的元信息块由 `# /// connectionagent-tool` 分隔，字段包括 `name`、`inputSchema`、`outputSchema`、`effect`、`sandbox.network` 和 `timeout` 等。
-
-Script 元信息不是普通 Python 语法。Script 正文仍由 Python 语言工具处理；CA Token 分类只作用于元信息块，以及 Skill 对 Script 的引用。
-
-### 3.9 导入的 ToolCatalog 与 Capability 引用
-
-当前导入快照是 `lib/tools/createdsession.tool.yaml`，文档类型为 `ToolCatalog`。Operation 定义位于 `spec.contracts[].operation`，并带有对应的 adapter、effect、input schema 和 output schema。
-
-必须区分三种身份：
-
-- **Capability ID** 表示一个获准使用的资源组。部署侧拥有的 `CapabilityContracts` 注册表可以把该 ID 映射到一个或多个精确 Operation 身份。
-- **Operation ID** 表示一个可被调用的精确操作。Procedure 节点的 `call` 始终引用 Operation ID，而不是 Capability 分组。
-- `contract.spec.allowedResources.capabilities[]` 是 Skill 的资源授权上界，其中的值既可以是 Capability ID，也可以是直接授权的 Operation ID。Host 通过部署侧 Capability 注册表解析 Capability ID；如果值是精确 Operation ID，也允许作为直接授权。
-
-ToolCatalog 定义 Operation，本身不是部署侧 Capability 注册表。如果项目需要跳转到 Capability 定义文件，可以选择将只读的 `CapabilityContracts` 快照导入 `lib/capabilities/`。当前项目尚未导入这份部署侧注册表；没有对应导入时，命名的 Capability ID 无法跳转到其定义文件。但如果 `allowedResources.capabilities[]` 中的值与已导入 Operation 精确匹配，仍可直接跳转到该 Operation 定义。
-
-当前项目基线：
-
-- 传统 Skill 的 12 个 `allowedResources.capabilities[]` 条目实际是直接授权的 Operation ID，而不是部署注册表中的六个分组 Capability ID。它们均可在导入的 ToolCatalog 中按精确 Operation 身份解析；Procedure 的 `call` 使用同一组 Operation 身份。
-- MAS Skill 在资源授权列表和 Procedure 调用中均声明了 16 个 `ca.pdu_session.*` Operation 身份：其中 14 个属于 MAS 业务操作，另外两个是 Host 侧资源责任收尾/清理操作。当前已批准的 ToolCatalog 不包含其中任何一个。其 `design/tool-contract.yaml` 明确只是设计草案，不是已批准的 ToolCatalog，因此这些引用继续保持 unresolved。不得自行编造定义，也不得将草案作为正式依赖导入。
-
-导入解析成功只代表源码/链接层面的事实，不代表实现已注册、已部署、READY、已授权或成功执行。
-## 4. 符号与引用模型
-
-以下定义/引用关系构成 v0 的跳转契约。机器可读的 Token ID 和源码选择器统一记录在[语义 Token 目录](../spec/skill-language-tokens.yaml)：
-
-| 定义 | 定义位置 | 引用位置 |
-| --- | --- | --- |
-| Skill | Skill 包 frontmatter 的 `name` | Case 的 `metadata.skill`；其他明确声明的包级引用 |
-| Procedure | `procedure.yaml: procedures.<id>` Map Key | Contract 的 `entryProcedure`；受支持的子 Procedure 引用 |
-| Procedure Node | `procedure.yaml: procedures.*.nodes.<id>` Map Key | `start`、主节点 `'on'` 目标、`reconcile` 目标 |
-| Predicate | `predicates.yaml: predicates.<id>` Map Key | Procedure 的 `verify`；Contract 的 `predicate` 字段；`applicability.predicates` |
-| Capability | 可选导入的 `CapabilityContracts` 中 `spec.capabilities[*].capability`（部署侧拥有） | 当值为 Capability ID 时，引用自 Contract 的 `allowedResources.capabilities[]` |
-| Operation | 导入 ToolCatalog 的 `spec.contracts[].operation` | Procedure 的 `call`；当直接授权 Operation 时，也可被 Contract 的 `allowedResources.capabilities[]` 引用 |
-| Case | `case.yaml: metadata.name` | Case 的 `metadata.skill` 标识所属 Skill |
-| Local Tool | Script 元信息身份（与 `skill.*` local-tool ID 的映射尚未冻结） | Contract 的 `allowedResources.localTools[]`；受支持时的 Procedure `tool`；指向 Local Tool 的 Predicate evaluator `ref` |
-| Script | `scripts/` 下的文件 | Procedure 的 `script` 路径 |
-| Schema | `schemas/` 下的文件 | Contract 的 `requestSchema`；其他按路径引用的 Schema |
-
-解析规则：
-
-1. 只允许精确标识符和包内相对路径，不做模糊名称匹配。
-2. Procedure 的 `call` 值必须在项目导入的 ToolCatalog 中精确解析到 Operation 定义。
-3. `allowedResources.capabilities[]` 的值优先在已导入的 CapabilityContracts 注册表中精确解析；若没有匹配的 Capability ID，则允许在 ToolCatalog 中按精确 Operation 身份解析为直接 Operation 授权。两处都找不到时，必须保留为未解析状态。
-4. `reconcile` 必须解析到同一 Procedure 中原始的变更节点；它不是 Capability 或 Operation 引用。
-5. 未解析引用必须保留为未解析状态。语法高亮不能暗示链接已经成功。
-6. 出现在正文、注释、用户自定义 Map Key 或无关 YAML 字段中的同名字符串，不自动成为符号引用。
-
-这些关系定义未来的 Go-to-Definition 和 Find References 行为。第一阶段可以只根据语法位置分类引用，不要求解析目标文件。
-
-## 5. 语义 Token 分类
-
-以下 Token ID 是稳定的语言级分类，独立于编辑器主题颜色，也独立于未来 LSP 对 Semantic Token Type 的编码。
-
-| Token ID | 适用位置 | 示例 |
-| --- | --- | --- |
-| `ca.document.kind` | 文档 `kind` 的值 | `SkillContract`、`PredicateSet`、`SkillTestCase`、`ToolCatalog`、`CapabilityContracts` |
-| `ca.document.version` | `apiVersion` 的值 | `connectionagent.io/v1alpha1`、`ca-agent-host.capability-contracts/v1` |
-| `ca.keyword.structure` | 定义位置中的 CA 结构字段 | `spec`、`metadata`、`procedures`、`nodes`、`predicates`、`observations` |
-| `ca.keyword.control` | 节点意图 Key | `call`、`verify`、`script`、`reconcile`、`terminal` |
-| `ca.keyword.condition` | 条件/阶段 Key | `applicability`、`preconditions`、`postconditions`、`steps`、`'on'` |
-| `ca.keyword.binding` | 绑定 Key | `with`、`from`、`value` |
-| `ca.reference.capability` | `allowedResources.capabilities[]` 中的资源授权值（Capability ID 或直接授权的 Operation） | `capability-id` |
-| `ca.symbol.skill-definition` | Skill frontmatter name | `name: establish-pdu-session` |
-| `ca.symbol.capability-definition` | 可选导入的 `CapabilityContracts` 注册表中的 Capability ID | `spec.capabilities[*].capability` |
-| `ca.symbol.procedure-definition` | Procedure 定义 Map Key | `procedures.<id>` |
-| `ca.symbol.node-definition` | Procedure Node 定义 Map Key | `nodes.<id>` |
-| `ca.symbol.predicate-definition` | Predicate 定义 Map Key | `predicates.<id>` |
-| `ca.symbol.case-definition` | Case 的 `metadata.name` | `01-complete-profile` |
-| `ca.symbol.local-tool-definition` | Script 元信息中的 Local Tool 身份 | `# name: select-establishment-configuration` |
-| `ca.symbol.operation-definition` | 导入 Operation 定义值 | `spec.contracts[].operation` |
-| `ca.reference.operation` | Procedure `call` 位置中的精确 Operation ID | `sbi.udm.sm_data.get` |
-| `ca.reference.predicate` | 引用位置中的 Predicate ID | `createdsession.ingress.eligible` |
-| `ca.reference.procedure` | 引用位置中的 Procedure ID | `entryProcedure`、子 Procedure 引用 |
-| `ca.reference.node` | 引用位置中的 Procedure Node ID | `start`、主节点 `'on'` 目标、`reconcile` 目标 |
-| `ca.reference.local-tool` | 引用位置中的 Skill Local Tool ID | `skill.select-establishment-configuration` |
-| `ca.reference.script` | 包内相对 Script 路径 | `scripts/select_establishment_configuration.py` |
-| `ca.reference.schema` | 包内相对 Schema 路径或 Schema Registry 引用 | `schemas/establishment-request.schema.yaml` |
-| `ca.reference.binding-path` | `from` 的值 | `input.ue`、`context.request.dnn` |
-| `ca.value.outcome` | 结果映射/期望中的 Outcome | `PASS`、`UNKNOWN`、`COMMITTED`、`OUTCOME_UNKNOWN` |
-| `ca.value.effect` | Tool/Case 契约中的 Effect 值 | `READ`、`MUTATION`、`local_compute` |
-| `ca.value.type` | 类型声明中的基础类型值 | `string`、`integer`、`object` |
-| `ca.expression.cel` | CEL Expression 值 | `observations.state.status == "READY"` |
-| `ca.identifier.user-defined` | 用户定义的 ID 和 Map/Property 名称 | Node ID、输入名、Observation Alias、Case 名称 |
-
-普通 YAML/Python 注释继续由各自的语言 Grammar 处理，不属于 CA 专属语义 Token。分类必须依赖语法位置，不能只依赖拼写。例如，只有作为节点意图 Key 的 `call` 才是控制关键字；正文或用户自定义字段中的同名文本是普通文本。`allowedResources.capabilities` 下的值属于资源授权引用；Procedure 的 `call` 值属于 Operation 引用。任意属性 `status` 不是 CA 保留 Token。当前源码中的 `createdsession.*` Predicate/Observation 名称只是用户定义标识符，不是保留前缀或语言关键字。
-
-Outcome 值由各自的结果域负责：
-
-- Predicate Outcome：`PASS`、`FAIL`、`UNKNOWN`；
-- Procedure 终态：`SUCCEEDED`、`FAILED`、`UNRESOLVED`、`SAFE_STOPPED`；
-- Operation Outcome：由被引用的 Operation 契约声明，不存在一个全局硬编码枚举。
-
-Effect 值也取决于声明它的契约。不要把 `READ`、`read_only`、`MUTATION` 和 `local_compute` 合并成自行发明的统一枚举。
-
-机器可读的 Token ID 注册表位于 `spec/skill-language-tokens.yaml`，记录 Token ID、源码位置和符号/引用选择器，不包含编辑器专属颜色。Token 分类定义的是**它是什么**，不是**它显示什么颜色**。颜色映射由 Skill Studio 的主题负责。未来 LSP Semantic Tokens 必须复用相同 Token ID，不能再创建一套 Studio 专属词汇。
-
-## 6. 当前、待确认与排除的语法
-
-| 构造 | 当前源码状态 | Compiler 状态/规则 |
-| --- | --- | --- |
-| Skill frontmatter、Contract、Procedure 图、PredicateSet、Case Envelope | 当前包基线中存在 | 按目标源码契约校验 |
-| Procedure 的 `call`、`verify`、`script`、`reconcile`、`terminal` | 当前 5GC 源码中存在 | 必须识别并实现 |
-| 节点级 `preconditions` / `postconditions` | 传统源码中存在 | 旧版 Toolchain 不支持；目标 Compiler 必须支持 |
-| `applicability.predicates` | 传统源码中存在 | 保留这一已观察到的形式 |
-| `applicability.when` | 出现在较早的编写示例中，不在当前两个包的基线中 | v0 不冻结；不能与 `predicates` 视为等价 |
-| Procedure `tool`、子 `procedure`、`for` | 早期语法文档有描述，当前两个包没有展示 | 声称支持前必须确认目标 Compiler 语义 |
-| `rules.yaml`、`SkillRuleSet`、`ruleRefs` 等 Rule 源码 | 仅设计阶段，当前 Skill 包不存在 | 排除在 v0 语法和保留关键字高亮之外 |
-| Rule 的 `path / op / value` | 长期 Language Core 的候选原语 | 当前不是保留语法 |
-| MAS Capability 引用 | MAS 源码中声明，但导入 ToolCatalog 不包含 | 按引用着色；导入批准前保持 unresolved |
-
-## 7. 编辑器与 LSP 消费方式
-
-### 第一阶段：Skill Studio 高亮
-
-Skill Studio 可以使用 YAML/TextMate 上下文规则，为这些 Token ID 分配带命名空间的 TextMate Scope，并映射到现有 Studio 主题。必须做到：
-
-- 保留普通 YAML 语法高亮；
-- 只在定义好的结构位置识别 CA 关键字；
-- 根据字段上下文识别 Capability、Predicate、Procedure、Script 和 Schema 引用；
-- 让用户自定义标识符与保留语法有视觉区分；
-- 不通过颜色暗示引用解析、语义校验或 Runtime 就绪。
-
-第一阶段不要求实现 LSP Server、诊断、补全或跳转。
-
-### 后续：LSP 与 Compiler
-
-Compiler 解析并校验源码契约，建立符号/引用索引。LSP 消费该索引及同一套 Token 分类，实现 Semantic Tokens、诊断、补全、Go-to-Definition 和 Find References。Compiler 不得依赖 Skill Studio、TextMate 或主题配置。
-
-## 8. 变更控制与未决事项
-
-新增保留字、Artifact 类型、节点意图、绑定形式、表达式语言或引用规则，必须：
-
-1. 更新本文，给出示例和明确的支持状态；
-2. 增加正例与负例源码 Fixture；
-3. 更新目标 Compiler 的实现和校验；
-4. 同步 Skill Studio Grammar/Token；
-5. 同步中英文编写指南。
-
-以下内容有意不在 v0 冻结：Rule 机器语法；`applicability.when` 的精确语义；通用子 Procedure 和迭代支持；跨项目 Capability/Operation Registry 的完整定义与版本解析契约。不得用编辑器专属猜测填补这些缺口。
-
-相关文档：
-
-- [Skill 编写指南](authoring.zh-CN.md)
-- [Authoring Guide](authoring.md)
-- [Authoring Model](authoring-model.md)
-- [实用语法参考](../.agents/skills/create-connectionagent-skill/references/authoring-syntax.md)
-- [当前 5GC 源码基线](current-5gc-skill-baseline.md)
+语言变更必须同步更新本规范、对应专项契约、正负例源码 Fixture、语义 Token 投影和中英文编写指南。除非业务 Owner 明确改变决定，否则保留当前业务 Procedure 语义。Compiler 跟随语言实现，不得静默重新定义语言。
