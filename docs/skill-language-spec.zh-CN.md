@@ -241,10 +241,11 @@ ToolCatalog 定义 Operation，本身不是部署侧 Capability 注册表。如�
 解析规则：
 
 1. 只允许精确标识符和包内相对路径，不做模糊名称匹配。
-2. Operation 引用必须针对项目选定的导入目录解析；不能假设所有 Capability 都定义在同一个目录中。
-3. `reconcile` 必须解析到同一 Procedure 中原始的变更节点，不是 Capability 引用。
-4. 未解析引用必须保留为未解析状态。语法高亮不能暗示链接已经成功。
-5. 出现在正文、注释、用户自定义 Map Key 或无关 YAML 字段中的同名字符串，不自动成为符号引用。
+2. Procedure 的 `call` 值必须在项目导入的 ToolCatalog 中精确解析到 Operation 定义。
+3. `allowedResources.capabilities[]` 的值优先在已导入的 CapabilityContracts 注册表中精确解析；若没有匹配的 Capability ID，则允许在 ToolCatalog 中按精确 Operation 身份解析为直接 Operation 授权。两处都找不到时，必须保留为未解析状态。
+4. `reconcile` 必须解析到同一 Procedure 中原始的变更节点；它不是 Capability 或 Operation 引用。
+5. 未解析引用必须保留为未解析状态。语法高亮不能暗示链接已经成功。
+6. 出现在正文、注释、用户自定义 Map Key 或无关 YAML 字段中的同名字符串，不自动成为符号引用。
 
 这些关系定义未来的 Go-to-Definition 和 Find References 行为。第一阶段可以只根据语法位置分类引用，不要求解析目标文件。
 
