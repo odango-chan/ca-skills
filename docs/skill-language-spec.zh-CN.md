@@ -219,17 +219,19 @@ Script 元信息不是普通 Python 语法。Script 正文仍由 Python 语言�
 
 ## 4. 符号与引用模型
 
-以下定义/引用关系构成 v0 的跳转契约：
+以下定义/引用关系构成 v0 的跳转契约。机器可读的 Token ID 和源码选择器统一记录在[语义 Token 目录](../spec/skill-language-tokens.yaml)：
 
 | 定义 | 定义位置 | 引用位置 |
 | --- | --- | --- |
 | Skill | Skill 包 frontmatter 的 `name` | Case 的 `metadata.skill`；其他明确声明的包级引用 |
-| Procedure | `procedure.yaml: procedures.<id>` | Contract 的 `entryProcedure`；受支持时的 Procedure 节点 `procedure`；适用时的调和目标 |
-| Predicate | `predicates.yaml: predicates.<id>` | Procedure 的 `verify`；Contract 的 `predicate` 字段；`applicability.predicates` |
+| Procedure | `procedure.yaml: procedures.<id>` Map Key | Contract 的 `entryProcedure`；受支持的子 Procedure 引用 |
+| Procedure Node | `procedure.yaml: procedures.*.nodes.<id>` Map Key | `start`、主节点 `'on'` 目标、`reconcile` 目标 |
+| Predicate | `predicates.yaml: predicates.<id>` Map Key | Procedure 的 `verify`；Contract 的 `predicate` 字段；`applicability.predicates` |
 | Operation | 导入 ToolCatalog 的 `spec.contracts[].operation` | Contract 的 `allowedResources.capabilities[]`；Procedure 的 `call` |
-| Local Tool | Skill 内声明的 Local Tool 身份 | Contract 的 `allowedResources.localTools[]`；受支持时的 Procedure `tool` |
-| Script | `scripts/` 下的文件及其元信息 `name` | Procedure 的 `script`；指向 Script 的 Predicate evaluator `ref` |
-| Schema | `schemas/` 下的文件 | Contract 的 `requestSchema`；Script 使用路径引用时的 `inputSchema` / `outputSchema` |
+| Case | `case.yaml: metadata.name` | Case 的 `metadata.skill` 标识所属 Skill |
+| Local Tool | Script 元信息身份（与 `skill.*` local-tool ID 的映射尚未冻结） | Contract 的 `allowedResources.localTools[]`；受支持时的 Procedure `tool`；指向 Local Tool 的 Predicate evaluator `ref` |
+| Script | `scripts/` 下的文件 | Procedure 的 `script` 路径 |
+| Schema | `schemas/` 下的文件 | Contract 的 `requestSchema`；其他按路径引用的 Schema |
 
 解析规则：
 
@@ -254,9 +256,16 @@ Script 元信息不是普通 Python 语法。Script 正文仍由 Python 语言�
 | `ca.keyword.condition` | 条件/阶段 Key | `applicability`、`preconditions`、`postconditions`、`steps`、`'on'` |
 | `ca.keyword.binding` | 绑定 Key | `with`、`from`、`value` |
 | `ca.reference.capability` | Capability 引用值 | `sbi.udm.sm_data.get` |
-| `ca.reference.operation-definition` | 导入 Operation 定义值 | `spec.contracts[].operation` |
+| `ca.symbol.skill-definition` | Skill frontmatter name | `name: establish-pdu-session` |
+| `ca.symbol.procedure-definition` | Procedure 定义 Map Key | `procedures.<id>` |
+| `ca.symbol.node-definition` | Procedure Node 定义 Map Key | `nodes.<id>` |
+| `ca.symbol.predicate-definition` | Predicate 定义 Map Key | `predicates.<id>` |
+| `ca.symbol.case-definition` | Case 的 `metadata.name` | `01-complete-profile` |
+| `ca.symbol.local-tool-definition` | Script 元信息中的 Local Tool 身份 | `# name: select-establishment-configuration` |
+| `ca.symbol.operation-definition` | 导入 Operation 定义值 | `spec.contracts[].operation` |
 | `ca.reference.predicate` | 引用位置中的 Predicate ID | `createdsession.ingress.eligible` |
 | `ca.reference.procedure` | 引用位置中的 Procedure ID | `entryProcedure`、子 Procedure 引用 |
+| `ca.reference.node` | 引用位置中的 Procedure Node ID | `start`、主节点 `'on'` 目标、`reconcile` 目标 |
 | `ca.reference.local-tool` | 引用位置中的 Skill Local Tool ID | `skill.select-establishment-configuration` |
 | `ca.reference.script` | 包内相对 Script 路径 | `scripts/select_establishment_configuration.py` |
 | `ca.reference.schema` | 包内相对 Schema 路径或 Schema Registry 引用 | `schemas/establishment-request.schema.yaml` |
@@ -266,9 +275,8 @@ Script 元信息不是普通 Python 语法。Script 正文仍由 Python 语言�
 | `ca.value.type` | 类型声明中的基础类型值 | `string`、`integer`、`object` |
 | `ca.expression.cel` | CEL Expression 值 | `observations.state.status == "READY"` |
 | `ca.identifier.user-defined` | 用户定义的 ID 和 Map/Property 名称 | Node ID、输入名、Observation Alias、Case 名称 |
-| `ca.comment` | YAML 和 Script 元信息注释 | 普通注释 |
 
-分类必须依赖语法位置，不能只依赖拼写。例如，只有作为节点意图 Key 的 `call` 才是控制关键字；正文或用户自定义字段中的同名文本是普通文本。只有位于 `allowedResources.capabilities` 或 Procedure `call` 值中的 Capability ID 才是引用。任意属性 `status` 不是 CA 保留 Token。
+普通 YAML/Python 注释继续由各自的语言 Grammar 处理，不属于 CA 专属语义 Token。分类必须依赖语法位置，不能只依赖拼写。例如，只有作为节点意图 Key 的 `call` 才是控制关键字；正文或用户自定义字段中的同名文本是普通文本。只有位于 `allowedResources.capabilities` 或 Procedure `call` 值中的 Capability ID 才是引用。任意属性 `status` 不是 CA 保留 Token。
 
 Outcome 值由各自的结果域负责：
 
@@ -278,7 +286,7 @@ Outcome 值由各自的结果域负责：
 
 Effect 值也取决于声明它的契约。不要把 `READ`、`read_only`、`MUTATION` 和 `local_compute` 合并成自行发明的统一枚举。
 
-Token 分类定义的是**它是什么**，不是**它显示什么颜色**。颜色映射由 Skill Studio 的主题负责。未来 LSP Semantic Tokens 必须复用相同 Token ID，不能再创建一套 Studio 专属词汇。
+机器可读的 Token ID 注册表位于 `spec/skill-language-tokens.yaml`，记录 Token ID、源码位置和符号/引用选择器，不包含编辑器专属颜色。Token 分类定义的是**它是什么**，不是**它显示什么颜色**。颜色映射由 Skill Studio 的主题负责。未来 LSP Semantic Tokens 必须复用相同 Token ID，不能再创建一套 Studio 专属词汇。
 
 ## 6. 当前、待确认与排除的语法
 

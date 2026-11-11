@@ -2,12 +2,6 @@
 
 本文档面向需要新增或修改官方 Skill 的开发者，说明 `ca-skills` 仓中的编写方式、边界和验证流程。
 
-详细 YAML 与脚本语法见：
-
-```text
-.agents/skills/create-connectionagent-skill/references/authoring-syntax.md
-```
-
 统一的源码语言契约与语义 Token 分类见[Skill Language Specification](skill-language-spec.zh-CN.md)（英文规范：[Skill Language Specification](skill-language-spec.md)）。实用 YAML/脚本示例见 `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md`；当前 5GC 节点语义见[Authoring Model](authoring-model.md)，源码来源和兼容性见[Current 5GC Skill baseline](current-5gc-skill-baseline.md)，目录权限见[Project Layout](project-layout.md)。旧版 `ca-skill-toolchain` 只支持其当前 Schema 已建模的语法。传统 5GC Procedure 使用了旧版 Schema 尚不支持的节点级 `preconditions/postconditions`；无状态 Compiler v0 设计已确认，但尚未实现。
 
 英文版：[`authoring.md`](authoring.md)

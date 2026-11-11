@@ -27,6 +27,7 @@ ca-skills/
 ├── lib/                     # imported, read-only external contracts
 ├── output/                  # generated build output (not committed)
 ├── docs/                    # authoring and maintainer guidance
+├── spec/                    # machine-readable Skill language token/reference catalog
 ├── scripts/verify.py        # existing legacy verification entrypoint
 └── .agents/skills/           # repository-local authoring assistant
 ```
@@ -35,6 +36,8 @@ The project follows the `skills/` + `lib/` + `output/` model: editable Skill sou
 
 ## Authoring
 
+- [Skill Language Specification](docs/skill-language-spec.md)
+- [Semantic token catalog](spec/skill-language-tokens.yaml)
 - English: [Authoring guide](docs/authoring.md)
 - 中文：[Skill 编写指南](docs/authoring.zh-CN.md)
 - [Skill Language Specification](docs/skill-language-spec.md)

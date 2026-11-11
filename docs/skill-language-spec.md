@@ -219,17 +219,19 @@ A resolved import is a source/link fact only. It does not prove that an implemen
 
 ## 4. Symbol and reference model
 
-The following definition/reference pairs are the v0 navigation contract:
+The following definition/reference pairs are the v0 navigation contract. Their machine-readable token IDs and source selectors are listed in [the semantic token catalog](../spec/skill-language-tokens.yaml):
 
 | Definition | Definition location | Reference locations |
 | --- | --- | --- |
 | Skill | Skill package frontmatter `name` | Case `metadata.skill`; package-level references where explicitly defined |
-| Procedure | `procedure.yaml: procedures.<id>` | Contract `entryProcedure`; Procedure node `procedure` where supported; reconciliation target where applicable |
-| Predicate | `predicates.yaml: predicates.<id>` | Procedure `verify`; Contract `predicate` fields; `applicability.predicates` |
+| Procedure | `procedure.yaml: procedures.<id>` map key | Contract `entryProcedure`; child Procedure reference where supported |
+| Procedure node | `procedure.yaml: procedures.*.nodes.<id>` map key | `start`, main-node `'on'` targets, `reconcile` target |
+| Predicate | `predicates.yaml: predicates.<id>` map key | Procedure `verify`; Contract `predicate` fields; `applicability.predicates` |
 | Operation | Imported ToolCatalog `spec.contracts[].operation` | Contract `allowedResources.capabilities[]`; Procedure `call` |
-| Local Tool | Declared Skill-local Tool identity | Contract `allowedResources.localTools[]`; Procedure `tool` where supported |
-| Script | File under `scripts/` and its declared metadata `name` | Procedure `script`; Predicate evaluator `ref` where it denotes a Script |
-| Schema | File under `schemas/` | Contract `requestSchema`; Script `inputSchema` / `outputSchema` when path-based |
+| Case | `case.yaml: metadata.name` | Case `metadata.skill` identifies its owning Skill |
+| Local Tool | Script metadata identity (mapping to the `skill.*` local-tool ID is not yet frozen) | Contract `allowedResources.localTools[]`; Procedure `tool` where supported; Predicate evaluator `ref` when it denotes a local Tool |
+| Script | File under `scripts/` | Procedure `script` path |
+| Schema | File under `schemas/` | Contract `requestSchema`; other schema refs where path-based |
 
 Resolution rules:
 
@@ -254,9 +256,16 @@ The following token IDs are stable language-level categories. They are independe
 | `ca.keyword.condition` | Condition/phase keys | `applicability`, `preconditions`, `postconditions`, `steps`, `'on'` |
 | `ca.keyword.binding` | Binding keys | `with`, `from`, `value` |
 | `ca.reference.capability` | Capability reference values | `sbi.udm.sm_data.get` |
-| `ca.reference.operation-definition` | Imported Operation definition values | `spec.contracts[].operation` |
+| `ca.symbol.skill-definition` | Skill frontmatter name | `name: establish-pdu-session` |
+| `ca.symbol.procedure-definition` | Procedure definition map keys | `procedures.<id>` |
+| `ca.symbol.node-definition` | Procedure node definition map keys | `nodes.<id>` |
+| `ca.symbol.predicate-definition` | Predicate definition map keys | `predicates.<id>` |
+| `ca.symbol.case-definition` | Case `metadata.name` | `01-complete-profile` |
+| `ca.symbol.local-tool-definition` | Local Tool identity in Script metadata | `# name: select-establishment-configuration` |
+| `ca.symbol.operation-definition` | Imported Operation definition values | `spec.contracts[].operation` |
 | `ca.reference.predicate` | Predicate IDs in reference positions | `createdsession.ingress.eligible` |
 | `ca.reference.procedure` | Procedure IDs in reference positions | `entryProcedure`, child Procedure reference |
+| `ca.reference.node` | Procedure node IDs in reference positions | `start`, main-node `'on'` target, `reconcile` target |
 | `ca.reference.local-tool` | Skill-local Tool IDs in reference positions | `skill.select-establishment-configuration` |
 | `ca.reference.script` | Package-relative Script paths | `scripts/select_establishment_configuration.py` |
 | `ca.reference.schema` | Package-relative schema paths or schema registry refs | `schemas/establishment-request.schema.yaml` |
@@ -266,9 +275,8 @@ The following token IDs are stable language-level categories. They are independe
 | `ca.value.type` | Primitive type values in type declarations | `string`, `integer`, `object` |
 | `ca.expression.cel` | CEL expression values | `observations.state.status == "READY"` |
 | `ca.identifier.user-defined` | User-defined IDs and map/property names | Node IDs, input names, observation aliases, Case names |
-| `ca.comment` | YAML and Script metadata comments | ordinary comments |
 
-Classification is position-sensitive, not spelling-only. For example, `call` is a control keyword only as a node-intent key; the same word in prose or a user-defined field is ordinary text. A Capability ID is a reference only under `allowedResources.capabilities` or a Procedure `call` value. An arbitrary property named `status` is not a reserved CA token.
+Ordinary YAML and Python comments remain the responsibility of their existing language grammars; they are not a CA-specific semantic token. Classification is position-sensitive, not spelling-only. For example, `call` is a control keyword only as a node-intent key; the same word in prose or a user-defined field is ordinary text. A Capability ID is a reference only under `allowedResources.capabilities` or a Procedure `call` value. An arbitrary property named `status` is not a reserved CA token.
 
 Outcome values remain owned by their result domain:
 
@@ -278,7 +286,7 @@ Outcome values remain owned by their result domain:
 
 Effect values also depend on the declaring contract. Do not collapse `READ`, `read_only`, `MUTATION` and `local_compute` into one invented universal enum.
 
-The token taxonomy defines **what** a token is, not **which color** it receives. Skill Studio owns the theme mapping. The same token IDs must be reused by future LSP Semantic Tokens; do not create a Studio-only parallel vocabulary.
+The machine-readable token ID registry is `spec/skill-language-tokens.yaml`; it records token IDs, source positions and symbol/reference selectors without editor-specific colors. The token taxonomy defines **what** a token is, not **which color** it receives. Skill Studio owns the theme mapping. The same token IDs must be reused by future LSP Semantic Tokens; do not create a Studio-only parallel vocabulary.
 
 ## 6. Current, pending and excluded syntax
 

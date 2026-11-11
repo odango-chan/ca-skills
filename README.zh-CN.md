@@ -27,6 +27,7 @@ ca-skills/
 ├── lib/                     # 外部导入的只读契约
 ├── output/                  # 编译生成产物（不提交）
 ├── docs/                    # 编写指南与维护文档
+├── spec/                    # 机器可读的语言 Token/引用目录
 ├── scripts/verify.py        # 现有旧版验证入口
 └── .agents/skills/           # 仓库内编写助手
 ```
@@ -37,6 +38,9 @@ ca-skills/
 
 - 中文：[Skill 编写指南](docs/authoring.zh-CN.md)
 - English: [Authoring guide](docs/authoring.md)
+- [Skill Language Specification（中文）](docs/skill-language-spec.zh-CN.md)
+- [Skill Language Specification (English)](docs/skill-language-spec.md)
+- [语义 Token 目录（供 Studio/LSP 消费）](spec/skill-language-tokens.yaml)
 - [Skill Language Specification（中文）](docs/skill-language-spec.zh-CN.md)
 - [Skill Language Specification (English)](docs/skill-language-spec.md)
 - [当前 Authoring Model](docs/authoring-model.md)
