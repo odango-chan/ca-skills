@@ -92,7 +92,7 @@ postconditions:
     UNKNOWN: unresolved
 ```
 
-Preconditions are side-effect-free preparation immediately before the main operation. Postconditions verify the result after the main operation; successful operation outcome enters the postcondition phase, and only PASS advances. See [Authoring model](../../../docs/authoring-model.md) for ordering, allowed steps and failure semantics.
+Preconditions are side-effect-free preparation immediately before the main operation. Postconditions verify the result after the main operation; successful operation outcome enters the postcondition phase, and only PASS advances. See [Authoring model](../../../../docs/authoring-model.md) for ordering, allowed steps and failure semantics.
 
 **Compatibility warning:** the current legacy `ca-skill-toolchain` `procedure-source.schema.yaml` does not include these node-level fields. The new stateless Compiler v0 is the target, but its implementation has not started. Do not remove or flatten these fields to force legacy compilation.
 
