@@ -57,7 +57,7 @@ Keep the procedure recognizable as UE-requested PDU Session Establishment:
 9. resource-responsibility finalization.
 
 This is business guidance, not a replacement execution graph. The model chooses the next
-business decision from the current Decision Context and Available Actions.
+business decision from current trusted facts and permitted business actions.
 
 ## Optional business references
 
