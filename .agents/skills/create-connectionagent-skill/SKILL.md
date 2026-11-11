@@ -1,47 +1,43 @@
 ---
 name: create-connectionagent-skill
-description: Use when authoring or refreshing an official ConnectionAgent Skill package in ca-skills. Follow the current source baseline, package boundaries, references model, assurance semantics and compiler compatibility status.
+description: Use when authoring or refreshing an official ConnectionAgent Skill in ca-skills. Follow the current Skill Language v0.2, Script Contract, Schema Ownership and current 5GC source baseline.
 ---
 
 # Create or update an official ConnectionAgent Skill
 
 ## Authority
 
-- Official Skill source and authoring semantics: this repository.
-- Current 5GC examples: `skills/establish-pdu-session/` and `skills/establish-pdu-session-mas/`.
-- Current source/compatibility record: `docs/current-5gc-skill-baseline.md`.
-- Canonical source-language and semantic-token contract: `docs/skill-language-spec.md`.
-- Machine-readable semantic-token and symbol/reference catalog: `spec/skill-language-tokens.yaml`.
-- Project root and read-only Library / generated Output behavior: `docs/project-layout.md`.
-- Canonical source-language and semantic-token contract: `docs/skill-language-spec.md`.
-- Procedure node semantics: `docs/authoring-model.md`.
-- Practical syntax notes: `references/authoring-syntax.md`.
-- Legacy machine schemas/compiler: `ca-skill-toolchain`, only for constructs represented by its current schemas.
-- Target stateless multi-Skill compiler: `ca-skill-compiler`; design accepted, implementation not started.
+- Official Skill source and Skill-authored language semantics: this repository.
+- Current executable source examples: `skills/establish-pdu-session/` and `skills/establish-pdu-session-mas/`.
+- Current source provenance: `docs/current-5gc-skill-baseline.md`.
+- Language authority: `docs/skill-language-spec.md`.
+- Script authority: `docs/script-contract.md`.
+- Schema ownership: `docs/schema-ownership.md`.
+- Procedure semantics: `docs/authoring-model.md`.
+- Semantic token registry: `language/semantic-tokens.v1.json`.
+- Practical syntax: `references/authoring-syntax.md`.
 
 ## Workflow
 
-1. Decide whether the asset is an executable Skill, a model-context package, or an externally owned Capability/Tool contract.
-2. Read the current 5GC baseline before using examples. Other historical packages under `skills/` are out of current scope and are not syntax authorities.
-3. Keep the English `SKILL.md` model-facing: business goal, applicability, profile, required facts, invalid inferences, completion and uncertainty. Do not expose Host/Runtime/Provider/Fabric/adapter/deployment internals.
+1. Decide whether the asset is an executable Skill, model-context package or externally owned Tool/Observation contract.
+2. Read the current 5GC baseline before copying an example. Other historical packages under `skills/` are not current syntax authorities.
+3. Keep English `SKILL.md` model-facing: business goal, applicability, supported profile, required facts, invalid inferences, completion and uncertainty. Do not expose Host/Runtime/Provider/Fabric/adapter/deployment internals.
 4. For an executable Skill, maintain the complete `assurance/{contract.yaml,procedure.yaml,predicates.yaml}` trio.
-5. Keep the deterministic workflow in `procedure.yaml`; do not duplicate its graph in prose. Respect ordered node preconditions/postconditions and native reconciliation semantics where used by the current source baseline.
-6. Use one `cases/<case>/case.yaml` per semantic obligation. Never claim a Case has executed or qualified without owner-run evidence.
-7. Put optional model knowledge in flat `references/*.md` files and list exact paths in `SKILL.md`. Do not use `preload/` or `on-demand/` directory conventions.
-8. Use `scripts/` only for governed deterministic local computation. Never put network or Provider I/O in Skill Scripts.
-9. Resolve external Tool contracts through read-only project `lib/` imports. Never invent a ToolCatalog from a design draft or infer implementation readiness from a contract snapshot.
-10. Before claiming compiler compatibility, verify that the active compiler supports every source construct and every imported reference. The legacy Toolchain does not support the node-level `preconditions/postconditions` used by the current conventional PDU Session Skill.
+5. Keep deterministic workflow in `procedure.yaml`. `call` is a scalar exact Operation ID; preserve business ordering and explicit `with/from` bindings.
+6. Use Scripts only for deterministic local computation. Script identity is the package-relative file path; use `main(input: dict) -> OutputTypedDict`. Do not add metadata or independent local Tool IDs.
+7. Put only Skill-owned public schemas in `schemas/`. Import Tool/Host/Observation Owner schemas as read-only caller-supplied contracts; never fabricate them.
+8. Use one `cases/<case>/case.yaml` per semantic obligation. Cases are source material; never claim execution or qualification without owner-run evidence.
+9. Put optional model knowledge in flat or logically grouped `references/` Markdown; list exact paths in `SKILL.md`. References are not automatically loaded.
+10. Before claiming Compiler compatibility, verify the actual target Compiler against every source construct and imported reference. Source hygiene is not Compiler acceptance.
 
 ## Validation language
 
-Use precise statuses:
-
 - `SOURCE_SYNCED`: source files are present and provenance is recorded.
-- `STATIC_SOURCE_CHECKED`: only explicit structural checks were run.
-- `COMPILE_PASS`: the actual target compiler completed successfully.
+- `SOURCE_HYGIENE_PASS`: repository-local structural checks passed.
+- `COMPILE_PASS`: the actual target Compiler completed successfully.
 - `LINK_PASS`: all declared local/imported references resolved.
 - `RUNTIME_PASS`: the admitted Runtime path executed successfully.
-- `QUALIFIED`: the required qualification owner gate passed.
+- `QUALIFIED`: a separately owned qualification gate passed.
 - `LIVE_PASS`: the real target environment completed its acceptance scenario.
 
 Never use a lower status as evidence for a higher one.
