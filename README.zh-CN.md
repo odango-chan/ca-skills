@@ -17,7 +17,7 @@ ConnectionAgent 官方 Skill 源码与编写规范仓库。
 
 仓库同时包含只读导入的 ToolCatalog 快照：`lib/tools/createdsession.tool.yaml`。它包含传统 Skill 使用的 12 个 Operation，但不包含 MAS Skill 引用的 16 个 Operation；MAS 的设计稿 Tool Contract 不作为已批准的导入契约。
 
-**验证状态：** 本次完成的是源码同步，不代表编译、链接或 Runtime 资格验证通过。传统 Skill 的 Procedure 使用节点级 `preconditions/postconditions`，旧版 Toolchain Schema 尚不支持；MAS Skill 仍有未解析的导入 Capability。无状态 Compiler v0 设计已经确认，但新编译器尚未实现。
+**验证状态：** 本次完成的是源码同步，不代表编译、链接或 Runtime 资格验证通过。传统 Skill 的 Procedure 使用节点级 `preconditions/postconditions`，旧版 Toolchain Schema 尚不支持；MAS Skill 仍有 16 个未解析的 Operation 引用（同时用作资源授权）；其设计稿 ToolCatalog 不作为正式依赖导入。无状态 Compiler v0 设计已经确认，但新编译器尚未实现。
 
 ## 仓库结构
 
