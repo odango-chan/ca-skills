@@ -64,7 +64,7 @@ Output rules:
 - `Literal` becomes `const` or `enum`.
 - `dict`, `dict[str, T]`, `Any`, `object`, empty output classes and broad/dynamic unions are forbidden as Output types.
 - No field, type or constraint may be guessed from the function body. The Compiler does not execute Python.
-- The generated file belongs only to BuildResult output at `skills/<skill-name>/schemas/generated/<script-relative-path>.output.schema.json`. It is not author-editable source and must never be fed back as input.
+- The generated file belongs only to BuildResult output. Remove the leading `scripts/` and trailing `.py` from the Script path, then place the remaining relative path under `skills/<skill-name>/schemas/generated/` and append `.output.schema.json`. For example, `scripts/common/normalize.py` generates `skills/<skill-name>/schemas/generated/common/normalize.output.schema.json`. It is not author-editable source and must never be fed back as input.
 - No generated Script Input Schema is produced. Imported Tool/Host/Observation Schemas remain their actual Owner's contracts.
 
 If a Script merely forwards an existing Producer value, prefer a direct Procedure binding instead of introducing a Script and duplicate output type.
