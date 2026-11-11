@@ -45,7 +45,7 @@ Goal
   -> RuntimeHost
 ```
 
-`skills/5gc-intent` is the current routing-policy/model-context example.
+Historical routing packages under `skills/` are outside the current 5GC baseline and are not current authoring examples.
 
 ## Prefer composition over duplication
 

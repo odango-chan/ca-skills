@@ -1,18 +1,50 @@
 # Authoring ConnectionAgent Skills
 
-This guide describes the current official source model in `ca-skills`. It is a practical guide, not a duplicate machine grammar.
+This guide explains how to add or change official Skill source in this repository.
 
-For the current two 5GC packages and their validation limits, see [Current 5GC Skill baseline](current-5gc-skill-baseline.md). Project root permissions and the `skills/` / `lib/` / `output/` model are defined in [Project Layout](project-layout.md). For Procedure node preparation and verification semantics, see [Authoring model](authoring-model.md).
+For detailed YAML and Script examples, use `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md`. Machine validity is defined by the current schemas and compiler in `ca-skill-toolchain`.
 
-## 1. Choose the right asset
+Chinese version: [`authoring.zh-CN.md`](authoring.zh-CN.md)
 
-- **Executable Skill:** owns a business goal and a deterministic assurance source. It uses `SKILL.md` plus the complete `assurance/{contract.yaml,procedure.yaml,predicates.yaml}` trio and semantic Cases.
-- **Model-context or routing package:** provides business semantics to the Agent but does not itself define a Runtime Procedure.
-- **Capability / Tool contract:** owns one governed operation and its input/output/effect contract. Do not wrap a primitive operation in a Skill merely to rename it.
+## 1. Choose the right asset type
 
-## 2. Package shape
+Before creating files, decide whether the change belongs to a Skill, a routing-policy package, or a Runtime Capability.
 
-An executable Skill normally has:
+### Executable Skill
+
+Use an executable Skill for a product or domain goal that needs deterministic execution assurance. It normally contains `SKILL.md` and the complete `assurance/` extension.
+
+Typical examples:
+
+- `ue-registration`
+- `ensure-session-qos`
+- `download-object-by-deadline`
+- `query-weather-for-ue`
+
+### Routing-policy or model-context package
+
+Use this form when the Agent needs business semantics or routing policy, but there is no Runtime Procedure to execute.
+
+`5gc-intent` is the reference package. Routing remains Agent-owned behavior; do not model routing as one executable Skill selecting another executable Skill.
+
+### Runtime Capability
+
+Low-level Provider actions belong to Runtime capability contracts. Do not create a Skill merely to wrap a single query, create, update, or delete operation.
+
+For boundary examples, see `.agents/skills/create-connectionagent-skill/references/skill-granularity.md`.
+
+## 2. Package layout
+
+A model-context package may be as small as:
+
+```text
+skills/<name>/
+├── SKILL.md
+├── references/    # optional
+└── schemas/       # optional
+```
+
+The **current** governed executable Skill layout is:
 
 ```text
 skills/<name>/
@@ -23,72 +55,417 @@ skills/<name>/
 │   └── predicates.yaml
 ├── cases/
 │   └── <case>/case.yaml
-├── references/       # optional flat Markdown
-├── schemas/           # optional Skill-owned payload schemas
-└── scripts/           # optional governed local compute
+├── references/    # optional
+├── schemas/       # optional
+└── scripts/       # optional
 ```
 
-Do not create empty directories, package-root `README.md` / `MIGRATION.md`, `examples/`, or maintainer `design/` folders.
+Repository rules:
 
-## 3. Write the model-facing Skill
+- `assurance/` is all-or-nothing;
+- there is no standalone `evidence.yaml`;
+- each qualification case is one `cases/<case>/case.yaml` file;
+- package-root `README.md`, `MIGRATION.md`, and `examples/` are not part of the canonical package shape;
+- explanatory samples belong under `references/samples/`;
+- `references/` is Skill-owned supplemental material, but its contents are **not automatically model-visible**; model loading must be explicit through Skill/Host context policy;
+- `scripts/` remains a first-class optional governed local-compute asset; create it only when the Skill actually needs deterministic local computation, never as an empty placeholder;
+- cross-cutting Planner/Linker/Admission fixtures belong in their owning test area, not under a business Skill's `references/`;
+- model-facing Markdown under `skills/` is written in English;
+- do not create empty directories.
 
-Keep `SKILL.md` focused on:
+> A new Rule / Case-lineage design baseline was frozen on 2026-09-15, but `rules.yaml`, `SkillRuleSet`, and `ruleRefs` are not yet part of the Toolchain schemas. Do not add those assets or fields to production Skill source until the machine contract lands.
 
-- when the Skill applies and the supported profile;
-- the business goal and required facts;
-- normalization and disambiguation;
-- inferences the model must not make;
-- business completion, failure and uncertainty semantics.
+## 3. Write `SKILL.md` for the model
 
-Do not copy the deterministic Procedure graph into prose. Do not put Host/Runtime internals, adapter names, Provider/Fabric topology, deployment endpoints, credentials, or transport implementation details into model-facing context. Keep maintainer integration notes under `docs/`.
+`SKILL.md` is the package-root model-facing entry point. Keep it focused on information that changes model behavior:
 
-A model response, action acknowledgement or transport success is not a substitute for independently established business facts.
+- when the Skill applies;
+- the business or domain goal;
+- input normalization and disambiguation;
+- model-facing input and output expectations **when the Skill actually owns such a payload**;
+- constraints the model must not guess or bypass;
+- when the next decision depends on current state, **which facts must first be established and which substitute inferences are invalid**.
 
-## 4. References
+For an executable Skill, do **not** invent a Skill-specific model response payload merely to report execution success. Runtime success is established by governed Procedure execution and SkillContract postconditions / Predicate verdicts. If a model stage such as routing or semantic choice has a structured response, that response contract belongs to the owning Host/model adapter unless the Skill itself genuinely owns a semantic payload.
 
-Use a flat `references/*.md` directory. The Skill lists exact paths and explains what each file is useful for. Reference loading is optional and model-selected; do not create `preload/` or `on-demand/` directories or infer loading policy from directory names.
+If the Skill itself does own a real model-facing payload, describe its semantics in `SKILL.md` and put the exact reusable payload shape in `schemas/` when a schema is useful. Do not create `output.schema.yaml` by default for executable Skills.
 
-References are supplemental knowledge, not live evidence, authorization, or a second execution graph.
+Do not make `SKILL.md` a default Tool workflow script. A general-purpose Agent should normally choose among its current model-visible read-only Capabilities from their names, descriptions, and schemas.
 
-## 5. Assurance and Procedure
+Prefer guidance such as:
 
-For an executable Skill, `assurance/` is all-or-nothing:
-
-- `contract.yaml` defines the Skill goal, resource boundary, preconditions and final postconditions;
-- `procedure.yaml` defines deterministic workflow, data bindings and outcome routing;
-- `predicates.yaml` defines evidence requirements and deterministic judgments.
-
-The current 5GC source also uses node-level `preconditions` and `postconditions`. Their ordering and outcome semantics are described in [Authoring model](authoring-model.md). Do not remove them to satisfy the legacy Toolchain schema: its current `procedure-source.schema.yaml` does not model these fields.
-
-## 6. Cases
-
-Each Case is one `cases/<case>/case.yaml`. Cases express semantic obligations. A source Case, schema check, or hand-authored expected result is not proof that a Runtime or qualification test has executed.
-
-The conventional PDU Session package contains 36 semantic obligations; its `cases/README.md` explicitly states that they are not executable Runtime fixtures yet.
-
-## 7. Scripts and schemas
-
-Skill-local Python scripts are governed deterministic local computation. They may normalize, select, derive or evaluate supplied data. They must not call Providers, MCP servers, networks, shell workflows, clocks, databases or credentials.
-
-Keep Skill-owned schemas under `schemas/`. Do not infer constraints from arbitrary Python function bodies. The future Compiler may generate only what can be derived from explicit declarations; existing schemas remain authoritative for constraints that cannot be inferred.
-
-## 8. Imported Tool contracts
-
-External Tool contracts belong under project `lib/` as imported read-only snapshots. Do not hand-edit them or copy them into every Skill.
-
-The current `lib/tools/createdsession.tool.yaml` resolves the conventional Skill's 12 declared Capabilities. The MAS Skill's 16 `ca.pdu_session.*` Capabilities remain unresolved; do not invent an approved ToolCatalog from its design-only contract draft.
-
-## 9. Compiler and verification status
-
-The legacy `ca-skill-toolchain` remains the machine authority for packages that fit its existing v1alpha1 schemas. It does not currently support the node-level Procedure `preconditions/postconditions` used by the conventional PDU Session source.
-
-The stateless `ca-skill-compiler` v0 design is accepted, but implementation is not started. Until it supports the current source constructs and Library resolution, the current 5GC source baseline must be reported as **source present / compiler-link validation NOT_RUN or BLOCKED**. Never silently lower, delete or reinterpret unsupported semantics to manufacture a PASS.
-
-The existing commands are:
-
-```bash
-make verify
-python3 -B scripts/verify.py --compile skills/<name>
+```text
+Before choosing a recovery action, establish current user-plane reachability.
+Do not infer user-plane reachability from PDU Session existence.
 ```
 
-They still delegate to the legacy Toolchain; a result for a legacy-compatible package is not evidence that the new 5GC source baseline has compiled. Compiler build success, when available, will still not mean Runtime qualification or live 5GC acceptance.
+rather than a default recipe such as:
+
+```text
+Step 1: call user_plane.inspect_connectivity
+Step 2: ...
+```
+
+Explicitly recommend a model-visible business Capability only when there is real domain ambiguity, for example:
+
+```text
+multiple visible Tools have very similar names or semantics
+the model can easily choose the wrong fact source
+choosing the right class of fact is itself domain knowledge
+```
+
+Even then, `SKILL.md` names only the business-semantic Capability, never raw ObservationRefs, ObservationBinding, environment endpoints, or source-specific transport details.
+
+Do not place implementation or deployment mechanics in `SKILL.md`. Provider mappings, endpoints, raw ObservationRefs, ObservationBinding details, ObservationSource transport, Runtime state machines, Runtime Tool-eligibility policy, qualification status, Benchmark scoring, migration notes, and architecture tutorials belong elsewhere.
+
+### 3.1 Skill semantics are not Tool authority
+
+`SKILL.md` provides epistemic/domain guidance:
+
+```text
+what must be known
+what must not be guessed
+which inference is invalid
+```
+
+The authoritative ConnectionAgent Tool visibility upper bound is resolved by Runtime/Harness:
+
+```text
+Runtime Capability Catalog
+  + selected Skill/Artifact
+  + SkillContract allowedResources
+  + Context / Template / AgentProfile / Environment / policy
+  -> Runtime Resolved CA Toolset
+```
+
+Host and `ca-mcp` mechanically map and may further narrow that set. They must not widen Tool authority based on Skill prose or Goal text.
+
+If a semantically appropriate read-only Capability is not visible to the current AgentInstance, the model must treat it as unavailable. It must not bypass Runtime/`ca-mcp` and call Sandbox, Service Fabric, or a raw Observation API directly.
+
+## 4. Long-term Rule / Procedure / Predicate model
+
+The Rule design is now a **design baseline** in `ca-skill-toolchain/docs/rule-authoring-and-case-lineage.md`.
+
+The intended responsibilities are:
+
+```text
+Rule
+  = what must hold / what is forbidden
+
+Procedure
+  = how governed execution proceeds
+
+Predicate
+  = how PASS / FAIL / UNKNOWN is determined from Observation / Evidence
+
+Qualification Case
+  = how an immutable Skill Artifact is qualified
+
+Benchmark Case
+  = how Model / Agent / Harness / System behavior is independently evaluated
+```
+
+They remain separate artifact types.
+
+Example:
+
+```text
+Rule:
+  no blind retry after OUTCOME_UNKNOWN
+
+Procedure:
+  mutation OUTCOME_UNKNOWN -> reconcile
+
+Predicate / Evidence:
+  determine goal state or reconciliation result
+```
+
+A Procedure may enforce a Rule, but a Procedure node is not the Rule identity. A Predicate may provide truth required by a Rule, but a Predicate is not the normative source.
+
+### 4.1 One CA Authoring Language Core
+
+When Rule support is implemented, it should reuse the same authoring primitives rather than introduce a separate DSL. Candidate shared primitives include:
+
+```text
+ref
+from / value
+when
+expression
+verify
+path / op / value
+for   # only where the artifact type permits iteration
+```
+
+Each artifact remains a constrained sub-language:
+
+```text
+Procedure
+  may call / tool / reconcile / on / terminal
+
+Rule
+  expresses when / verify / appliesTo / violation / severity
+  never performs mutation or owns workflow routing
+
+Predicate
+  owns observations / freshness / evaluator
+
+Case
+  owns challenge / fixture / evidence / expectation
+```
+
+The principle is:
+
+> **Share authoring primitives, not execution authority.**
+
+### 4.2 Rule ID and Violation Code are different
+
+Future Rule identities may look like:
+
+```text
+5gc.pdu-session.initial-establishment.profile-bound
+execution.outcome-unknown.no-blind-retry
+```
+
+Cross-Skill evaluation categories may look like:
+
+```text
+PARAMETER_FABRICATION
+BLIND_RETRY_AFTER_UNKNOWN
+INVENTED_RUNTIME_STATE
+```
+
+Specific normative Rule identity and aggregate violation taxonomy must not share one ID space.
+
+### 4.3 Do not migrate source early
+
+The Toolchain does not currently implement:
+
+```text
+SkillRuleSet schema
+rules.yaml package support
+SkillTestCase.ruleRefs
+Rule compile/artifact
+```
+
+Current Skills therefore continue to use the existing syntax in the following sections. `5gc-file-transfer` will be used as the reference migration before the machine contract is implemented.
+
+## 5. Authoring contracts
+
+For executable Skills, the three files under `assurance/` have distinct roles:
+
+| File | Purpose |
+| --- | --- |
+| `contract.yaml` | Skill goal, admissible resources, preconditions, requirements, postconditions, and planning limits |
+| `procedure.yaml` | deterministic workflow structure and data/control bindings |
+| `predicates.yaml` | required observations and deterministic judgment over materialized evidence |
+
+`contract.yaml` has an additional important role: `allowedResources.capabilities` is one upper-bound input to Runtime/Harness ConnectionAgent Tool-eligibility resolution for this Skill.
+
+Keep the distinction explicit:
+
+```text
+allowedResources.capabilities
+  = Capability universe / upper-bound input allowed by the Skill
+
+Runtime Resolved CA Toolset
+  = the subset currently allowed to be model-visible for the resolved Agent/Skill/Context/Environment
+```
+
+Therefore `allowedResources.capabilities`:
+
+- may include read-only or inspect Capabilities useful to model planning;
+- may also include deterministic Procedure-only Capabilities that do not need to be model-visible;
+- is not an MCP Tool catalog;
+- is not the final model-visible Toolset;
+- cannot bypass Environment, policy, or Runtime admission constraints.
+
+Use these Platform schemas as the authoring authority:
+
+| Source asset | Platform schema |
+| --- | --- |
+| `assurance/contract.yaml` | `schemas/v1alpha1/skill-contract.schema.yaml` |
+| `assurance/procedure.yaml` | `schemas/v1alpha1/procedure-source.schema.yaml` |
+| `assurance/predicates.yaml` | `schemas/v1alpha1/predicate-set.schema.yaml` |
+| `cases/<case>/case.yaml` | `schemas/v1alpha1/skill-test-case.schema.yaml` |
+| governed Script metadata | `schemas/v1alpha1/script-tool-metadata.schema.yaml` |
+
+For `procedure.yaml`, author against `procedure-source.schema.yaml`. Current official source uses the object-form vNext model (`procedures -> start/nodes`). Do not use the older array/type/action source shape.
+
+The detailed syntax reference is intentionally kept in one place:
+
+```text
+.agents/skills/create-connectionagent-skill/references/authoring-syntax.md
+```
+
+## 6. Observation, Evidence, Agent reads, and Predicate
+
+These roles must remain distinct.
+
+### 6.1 Agent read-only inspection
+
+When model planning depends on current state, the model should autonomously select an appropriate read-only Capability from the Runtime Resolved CA Toolset.
+
+```text
+Skill/domain constraints
+  -> what must be known / what must not be inferred
+
+Runtime/Harness
+  -> resolves allowed read-only Capabilities
+
+Agent
+  -> chooses one visible read-only Tool
+  -> ca-mcp
+  -> Runtime read-only Capability
+  -> Runtime Observation acquisition / Provider read path
+  -> trusted fact
+  -> Agent planning
+```
+
+The model does not need raw ObservationRefs, ObservationBinding, Sandbox Observation APIs, or Service Fabric internal streams.
+
+A Skill does not need to name a specific Tool by default; explicit Tool guidance is only for real domain ambiguity.
+
+### 6.2 Runtime Assurance
+
+Runtime materializes the observations required by a Predicate. The Evidence Gate checks whether required evidence is present, fresh, and usable.
+
+```text
+Procedure / precondition / postcondition
+  -> Predicate
+  -> required Observation
+  -> Runtime Observation acquisition
+  -> Evidence
+  -> PASS / FAIL / UNKNOWN
+```
+
+Missing or unusable required evidence produces `UNKNOWN` before the evaluator runs.
+
+### 6.3 Shared facts, separate verdict authority
+
+Agent read-only Capabilities and Runtime Assurance may share the same ObservationSource, binding, normalization, provenance, and observation cache when freshness and binding requirements are satisfied.
+
+But:
+
+```text
+Agent read result
+  = planning input
+
+Predicate result
+  = assurance verdict authority
+```
+
+A model having just inspected state does not make a postcondition pass. Runtime Assurance also does not depend on the model having inspected first.
+
+Observation classes remain fact-oriented, such as Network Observation and Environment Observation. Do not introduce `Planning Observation`, `Agent Observation Projection`, or similar parallel fact types.
+
+### 6.4 Predicate evaluator
+
+Use CEL for short, auditable deterministic checks. Use a governed Predicate Script only when the judgment is too complex for a clear CEL expression.
+
+Predicate Scripts may only evaluate supplied data. They must not call Providers, MCP servers, external services, or acquire additional evidence.
+
+Future Rule expressions should reuse the same deterministic expression direction instead of inventing a separate Rule expression language.
+
+## 7. Qualification cases
+
+Skill cases validate the source package and its expected planning/execution behavior. They are not Benchmark cases.
+
+Use one `case.yaml` per case directory. Coverage should follow the Skill's semantic obligations rather than a fixed case count. Depending on the Skill, useful classes include:
+
+- normal success;
+- denied or failed operations;
+- evidence `UNKNOWN`;
+- mutation `OUTCOME_UNKNOWN` followed by reconcile;
+- budget or planning limits;
+- independent postcondition failure;
+- when planning depends on current state, whether the model can discover and use an appropriate allowed read-only Capability instead of guessing;
+- where domain ambiguity exists, whether Skill semantics prevent the model from substituting the wrong class of fact.
+
+Do not treat fixture output as proof of the business result. Final success must still be supported by the required postconditions.
+
+In the future, Qualification Cases and Benchmark Cases may reference the same stable Rule through `ruleRefs`, while preserving separate identities and verdicts:
+
+```text
+SkillTestCase
+  = package/artifact qualification
+  = fixture-driven
+
+BenchmarkCase
+  = independent evaluation question
+  = held-out variants + independent evidence
+```
+
+Do not copy Qualification examples directly into formal Benchmark tasks when that would expose the answer rather than test generalization.
+
+## 8. Use existing Skills as examples
+
+Prefer current official packages over copied tutorial examples:
+
+| Need | Reference package |
+| --- | --- |
+| compact end-to-end executable Skill | `query-weather-for-ue` |
+| mutation and reconcile handling | `ue-registration` |
+| requirements and postconditions | `ensure-session-qos` |
+| deadline and local computation | `download-object-by-deadline` |
+| non-executable routing policy | `5gc-intent` |
+
+This keeps examples aligned with the compiler and avoids maintaining a second set of sample packages.
+
+Before Rule/Case migration is implemented, `5gc-file-transfer` is the planned reference migration target, not a replacement for the current package contract.
+
+## 9. Authoring workflow
+
+For a new Skill or a structural change:
+
+1. Read `AGENTS.md`.
+2. Decide whether the asset is an executable Skill, routing-policy/model-context package, or Runtime Capability.
+3. Inspect one or two current packages with similar semantics.
+4. Reuse existing Registry capability, predicate, and schema contracts where possible.
+5. If model planning may depend on current state, confirm that an appropriate read-only Capability exists and place it within the correct `allowedResources.capabilities` resource boundary; do not put low-level Observation wiring into `SKILL.md` just to prompt inspection.
+6. Add explicit Tool guidance in `SKILL.md` only when domain semantics make the correct fact source genuinely ambiguous.
+7. Read the relevant section of `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md` before editing assurance source, Scripts, or Cases.
+8. For one executable package, run:
+
+   ```bash
+   python3 -B scripts/verify.py --compile skills/<name>
+   ```
+
+   Set `CA_SKILL_TOOLCHAIN_ROOT=/path/to/ca-skill-toolchain` when the Toolchain repository is not available as sibling `../ca-skill-toolchain`. The historical `CONNECTIONAGENT_SKILL_PLATFORM_ROOT` remains a compatibility alias.
+
+9. Before delivery, run:
+
+   ```bash
+   make verify
+   ```
+
+10. Report the checks that actually ran and any remaining Platform, Runtime, Provider, Sandbox, or deployment dependency.
+
+A successful compile or repository preflight check does not make a Skill production-qualified.
+
+## 10. Ownership
+
+Keep the repository boundary simple:
+
+```text
+ca-skills
+  authoring guidance + official Skill / Rule source authority
+  Skill resource boundary + epistemic/domain guidance
+  # Rule machine source becomes active only after the schema lands
+
+ca-skill-toolchain
+  machine schemas + compiler + qualification
+
+ca-runtime / Harness
+  admission + ConnectionAgent Tool eligibility + binding + deterministic execution + Observation/Evidence/Predicate authority
+
+ca-mcp
+  mechanical mapping from Runtime-authorized Capability to Agent MCP Tool
+
+Agent Host
+  registers model-visible Tools; for CA Tools it may only apply Runtime Resolved CA Toolset or narrow it further
+
+ca-benchmarks / ca-benchmark-engine
+  BenchmarkCase + held-out evaluation + assessment
+```
+
+If a concrete scenario cannot be expressed, first check whether the missing piece is an appropriate read-only Capability, the Skill `allowedResources.capabilities` boundary, Runtime Tool-eligibility resolution, ProviderBinding, ObservationBinding/ObservationSource, Runtime behavior, qualification, Benchmark/Judge requirements, or integration before changing the Skill language.
