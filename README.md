@@ -17,7 +17,7 @@ Both packages were synchronized from `odango-chan/ca-agent-demo` main at `439598
 
 The repository also contains a read-only imported ToolCatalog snapshot at `lib/tools/createdsession.tool.yaml`. It contains the 12 Operations used by the conventional Skill. It does not contain the 16 MAS Operations; the MAS design-only Tool contract is not treated as an approved import.
 
-**Validation status:** source synchronization is complete in this change, but compiler/link validation and Runtime qualification are not claimed. The conventional Procedure uses node-level `preconditions/postconditions` that the legacy Toolchain schema does not support. The MAS package has unresolved imported Capability references. The new stateless Compiler v0 design is accepted, but implementation is not yet available.
+**Validation status:** source synchronization is complete in this change, but compiler/link validation and Runtime qualification are not claimed. The conventional Procedure uses node-level `preconditions/postconditions` that the legacy Toolchain schema does not support. The MAS package has 16 unresolved Operation references (also used as resource grants); its design-only ToolCatalog is not imported. The new stateless Compiler v0 design is accepted, but implementation is not yet available.
 
 ## Repository layout
 
