@@ -254,8 +254,8 @@ The following token IDs are stable language-level categories. They are independe
 
 | Token ID | Apply to | Examples |
 | --- | --- | --- |
-| `ca.document.kind` | Values of document `kind` | `SkillContract`, `PredicateSet`, `SkillTestCase`, `ToolCatalog` |
-| `ca.document.version` | Values of `apiVersion` | `connectionagent.io/v1alpha1` |
+| `ca.document.kind` | Values of document `kind` | `SkillContract`, `PredicateSet`, `SkillTestCase`, `ToolCatalog`, `CapabilityContracts` |
+| `ca.document.version` | Values of `apiVersion` | `connectionagent.io/v1alpha1`, `ca-agent-host.capability-contracts/v1` |
 | `ca.keyword.structure` | Known CA structural keys in their defined positions | `spec`, `metadata`, `procedures`, `nodes`, `predicates`, `observations` |
 | `ca.keyword.control` | Node-intent keys | `call`, `verify`, `script`, `reconcile`, `terminal` |
 | `ca.keyword.condition` | Condition/phase keys | `applicability`, `preconditions`, `postconditions`, `steps`, `'on'` |
