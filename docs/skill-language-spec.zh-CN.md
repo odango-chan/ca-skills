@@ -205,18 +205,22 @@ Script 元信息不是普通 Python 语法。Script 正文仍由 Python 语言�
 
 ### 3.9 导入的 ToolCatalog 与 Capability 引用
 
-当前导入快照是 `lib/tools/createdsession.tool.yaml`，其文档类型为 `ToolCatalog`。Operation 定义位于 `spec.contracts[].operation`，并带有对应的 adapter、effect、input schema 和 output schema。
+当前导入快照是 `lib/tools/createdsession.tool.yaml`，文档类型为 `ToolCatalog`。Operation 定义位于 `spec.contracts[].operation`，并带有对应的 adapter、effect、input schema 和 output schema。
 
-当前传统 Skill 中：
+必须区分三种身份：
 
-- `contract.spec.allowedResources.capabilities[]` 声明 Skill 可以使用的 Capability ID；
-- Procedure 的 `call` 值引用这些业务/Runtime Operation ID；
-- 导入的 ToolCatalog 定义相应的 Operation 身份。
+- **Capability ID** 表示一个获准使用的资源组。部署侧拥有的 `CapabilityContracts` 注册表可以把该 ID 映射到一个或多个精确 Operation 身份。
+- **Operation ID** 表示一个可被调用的精确操作。Procedure 节点的 `call` 始终引用 Operation ID，而不是 Capability 分组。
+- `contract.spec.allowedResources.capabilities[]` 是 Skill 的资源授权上界，其中的值既可以是 Capability ID，也可以是直接授权的 Operation ID。Host 通过部署侧 Capability 注册表解析 Capability ID；如果值是精确 Operation ID，也允许作为直接授权。
 
-当前基线中，传统 Skill 的 12 个 Capability 引用均可按精确 Operation 名称解析。MAS Skill 声明的 16 个 `ca.pdu_session.*` 引用不在该目录中，因此仍是未解析引用；不得自行编造定义，也不能把 MAS 设计稿当成已批准的导入契约。
+ToolCatalog 定义 Operation，本身不是部署侧 Capability 注册表。如果项目需要跳转到 Capability 定义文件，可以选择将只读的 `CapabilityContracts` 快照导入 `lib/capabilities/`。当前项目尚未导入这份部署侧注册表；没有对应导入时，命名的 Capability ID 无法跳转到其定义文件。但如果 `allowedResources.capabilities[]` 中的值与已导入 Operation 精确匹配，仍可直接跳转到该 Operation 定义。
+
+当前项目基线：
+
+- 传统 Skill 的 12 个 `allowedResources.capabilities[]` 条目实际是直接授权的 Operation ID，而不是部署注册表中的六个分组 Capability ID。它们均可在导入的 ToolCatalog 中按精确 Operation 身份解析；Procedure 的 `call` 使用同一组 Operation 身份。
+- MAS Skill 在资源授权列表和 Procedure 调用中均声明了 16 个 `ca.pdu_session.*` Operation 身份：其中 14 个属于 MAS 业务操作，另外两个是 Host 侧资源责任收尾/清理操作。当前已批准的 ToolCatalog 不包含其中任何一个。其 `design/tool-contract.yaml` 明确只是设计草案，不是已批准的 ToolCatalog，因此这些引用继续保持 unresolved。不得自行编造定义，也不得将草案作为正式依赖导入。
 
 导入解析成功只代表源码/链接层面的事实，不代表实现已注册、已部署、READY、已授权或成功执行。
-
 ## 4. 符号与引用模型
 
 以下定义/引用关系构成 v0 的跳转契约。机器可读的 Token ID 和源码选择器统一记录在[语义 Token 目录](../spec/skill-language-tokens.yaml)：
@@ -227,7 +231,8 @@ Script 元信息不是普通 Python 语法。Script 正文仍由 Python 语言�
 | Procedure | `procedure.yaml: procedures.<id>` Map Key | Contract 的 `entryProcedure`；受支持的子 Procedure 引用 |
 | Procedure Node | `procedure.yaml: procedures.*.nodes.<id>` Map Key | `start`、主节点 `'on'` 目标、`reconcile` 目标 |
 | Predicate | `predicates.yaml: predicates.<id>` Map Key | Procedure 的 `verify`；Contract 的 `predicate` 字段；`applicability.predicates` |
-| Operation | 导入 ToolCatalog 的 `spec.contracts[].operation` | Contract 的 `allowedResources.capabilities[]`；Procedure 的 `call` |
+| Capability | 可选导入的 `CapabilityContracts` 中 `spec.capabilities[*].capability`（部署侧拥有） | 当值为 Capability ID 时，引用自 Contract 的 `allowedResources.capabilities[]` |
+| Operation | 导入 ToolCatalog 的 `spec.contracts[].operation` | Procedure 的 `call`；当直接授权 Operation 时，也可被 Contract 的 `allowedResources.capabilities[]` 引用 |
 | Case | `case.yaml: metadata.name` | Case 的 `metadata.skill` 标识所属 Skill |
 | Local Tool | Script 元信息身份（与 `skill.*` local-tool ID 的映射尚未冻结） | Contract 的 `allowedResources.localTools[]`；受支持时的 Procedure `tool`；指向 Local Tool 的 Predicate evaluator `ref` |
 | Script | `scripts/` 下的文件 | Procedure 的 `script` 路径 |
@@ -255,14 +260,16 @@ Script 元信息不是普通 Python 语法。Script 正文仍由 Python 语言�
 | `ca.keyword.control` | 节点意图 Key | `call`、`verify`、`script`、`reconcile`、`terminal` |
 | `ca.keyword.condition` | 条件/阶段 Key | `applicability`、`preconditions`、`postconditions`、`steps`、`'on'` |
 | `ca.keyword.binding` | 绑定 Key | `with`、`from`、`value` |
-| `ca.reference.capability` | Capability 引用值 | `sbi.udm.sm_data.get` |
+| `ca.reference.capability` | `allowedResources.capabilities[]` 中的资源授权值（Capability ID 或直接授权的 Operation） | `capability-id` |
 | `ca.symbol.skill-definition` | Skill frontmatter name | `name: establish-pdu-session` |
+| `ca.symbol.capability-definition` | 可选导入的 `CapabilityContracts` 注册表中的 Capability ID | `spec.capabilities[*].capability` |
 | `ca.symbol.procedure-definition` | Procedure 定义 Map Key | `procedures.<id>` |
 | `ca.symbol.node-definition` | Procedure Node 定义 Map Key | `nodes.<id>` |
 | `ca.symbol.predicate-definition` | Predicate 定义 Map Key | `predicates.<id>` |
 | `ca.symbol.case-definition` | Case 的 `metadata.name` | `01-complete-profile` |
 | `ca.symbol.local-tool-definition` | Script 元信息中的 Local Tool 身份 | `# name: select-establishment-configuration` |
 | `ca.symbol.operation-definition` | 导入 Operation 定义值 | `spec.contracts[].operation` |
+| `ca.reference.operation` | Procedure `call` 位置中的精确 Operation ID | `sbi.udm.sm_data.get` |
 | `ca.reference.predicate` | 引用位置中的 Predicate ID | `createdsession.ingress.eligible` |
 | `ca.reference.procedure` | 引用位置中的 Procedure ID | `entryProcedure`、子 Procedure 引用 |
 | `ca.reference.node` | 引用位置中的 Procedure Node ID | `start`、主节点 `'on'` 目标、`reconcile` 目标 |
@@ -276,7 +283,7 @@ Script 元信息不是普通 Python 语法。Script 正文仍由 Python 语言�
 | `ca.expression.cel` | CEL Expression 值 | `observations.state.status == "READY"` |
 | `ca.identifier.user-defined` | 用户定义的 ID 和 Map/Property 名称 | Node ID、输入名、Observation Alias、Case 名称 |
 
-普通 YAML/Python 注释继续由各自的语言 Grammar 处理，不属于 CA 专属语义 Token。分类必须依赖语法位置，不能只依赖拼写。例如，只有作为节点意图 Key 的 `call` 才是控制关键字；正文或用户自定义字段中的同名文本是普通文本。只有位于 `allowedResources.capabilities` 或 Procedure `call` 值中的 Capability ID 才是引用。任意属性 `status` 不是 CA 保留 Token。
+普通 YAML/Python 注释继续由各自的语言 Grammar 处理，不属于 CA 专属语义 Token。分类必须依赖语法位置，不能只依赖拼写。例如，只有作为节点意图 Key 的 `call` 才是控制关键字；正文或用户自定义字段中的同名文本是普通文本。`allowedResources.capabilities` 下的值属于资源授权引用；Procedure 的 `call` 值属于 Operation 引用。任意属性 `status` 不是 CA 保留 Token。当前源码中的 `createdsession.*` Predicate/Observation 名称只是用户定义标识符，不是保留前缀或语言关键字。
 
 Outcome 值由各自的结果域负责：
 
