@@ -1,6 +1,6 @@
 # Imported Tool Library
 
-This directory contains exact snapshots of externally owned Tool contracts. Treat every file here as **imported and read-only**; refresh from the owning repository rather than editing the snapshot in place.
+This directory contains exact snapshots of externally owned contracts. Treat every file here as **imported and read-only**; refresh from the owning repository rather than editing the snapshot in place. Current imports are ToolCatalogs under `tools/`. A project may optionally import a deployment-owned CapabilityContracts snapshot under `capabilities/` when Capability-ID navigation is required; no such snapshot is present in this project.
 
 ## Current import
 
@@ -10,4 +10,4 @@ This directory contains exact snapshots of externally owned Tool contracts. Trea
 
 An imported contract proves only that a contract snapshot is present. It does not prove that an implementation is registered, deployed, READY, or authorized.
 
-The MAS Skill references 16 `ca.pdu_session.*` Operations that are not present in this snapshot. Its `design/tool-contract.yaml` is a design artifact, not an approved ToolCatalog, and is intentionally not imported.
+The MAS Skill references 16 `ca.pdu_session.*` Operation identities that are not present in this snapshot. These comprise 14 MAS business operations and two Host-side resource-finalization/cleanup operations. Its `design/tool-contract.yaml` is a design artifact, not an approved ToolCatalog, and is intentionally not imported.
