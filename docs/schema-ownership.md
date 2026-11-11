@@ -29,3 +29,12 @@ These are references to required Owner contracts, not Schemas authored or fabric
 ## Compiler / Studio boundary
 
 `ca-skills` owns Skill-authored contracts and official examples. Studio/caller prepares file bytes and supplies imported Owner/Tool contracts in the Compiler's logical `lib/**` namespace. Compiler parses and links supplied bytes; it does not discover, fetch, persist, version, lock or refresh dependencies. `outputFiles` are Compiler results; Studio decides how to display or export them.
+
+
+## Additional Tool Owner Schema gap
+
+The pinned `lib/tools/createdsession.tool.yaml` is an approved ToolCatalog snapshot, but the `sbi.udm.sm_data.get` Operation currently declares `outputSchema.properties.result` only as `{type: object}` with no nested `properties`. The conventional selection Script reads nested fields under `udmResult.subscription` (including S-NSSAI, DNN, PDU Session Types, SSC Modes, AMBR and default QoS), as well as response and provenance fields.
+
+That broad `object` declaration is not sufficient evidence for those nested fields. The Compiler must not infer them from the Script body or restore the removed Skill-owned `selection-input.schema.yaml` as a workaround. Until the Tool Owner supplies a complete Operation Output Schema, strict linking of those nested accesses must remain an explicit unresolved/unsupported producer-schema diagnostic.
+
+This is separate from the missing Host Subject/Facts/Evidence and Observation Owner Schemas above.

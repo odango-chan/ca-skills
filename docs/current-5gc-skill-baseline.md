@@ -55,6 +55,9 @@ The MAS Skill declares 16 `ca.pdu_session.*` Operation IDs. None is present in t
 
 ## Missing external Owner Schemas
 
+- **Tool Output Schema gap:** the imported `sbi.udm.sm_data.get` Operation currently exposes `result` as a broad `{type: object}` without nested properties. The selection Script reads nested subscription and provenance fields. The Compiler cannot statically validate those fields until the Tool Owner supplies a complete Output Schema; the removed Skill-owned Script Input Schema must not be restored as a workaround.
+
+
 The conventional and MAS Contracts explicitly identify required logical Owner paths under `lib/host/` and `lib/observations/`. The current repository does **not** bundle those files. `lib/` currently contains only the 12-Operation ToolCatalog snapshot.
 
 - Host Subject / Facts / Evidence Schemas are missing.
