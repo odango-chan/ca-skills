@@ -54,6 +54,7 @@ spec:
         - PredicateSet: "predicates, observations, ref, scope, freshness, evaluator, expression"
         - SkillTestCase: "metadata, spec, classes, purpose, context, subject, request, facts, availableResources, expect, fixtures"
         - ToolCatalog: "spec, contracts, operation, adapter, effect, inputSchema, outputSchema"
+        - CapabilityContracts: "spec, capabilities, capability, owner, operations, operation, effect, budgetExemptOperations"
       note: Context names are not a global reserved-word list; classify only in the corresponding document position.
     - id: ca.keyword.control
       status: current
@@ -146,20 +147,33 @@ spec:
           metadataField: name
           scalarValue: true
       note: The exact mapping between this metadata name and skill-prefixed localTools IDs is not frozen.
+    - id: ca.symbol.capability-definition
+      status: optional-import
+      description: Capability identity declared by an imported deployment-owned CapabilityContracts snapshot.
+      selectors:
+        - sourceFile: "lib/capabilities/**/*.yaml"
+          yamlPath: "$.spec.capabilities[*].capability"
+          scalarValue: true
+      note: No CapabilityContracts snapshot is imported by the current 5GC project.
     - id: ca.symbol.operation-definition
       status: current
       description: Operation identity declared by an imported ToolCatalog.
       selectors:
-        - sourceFile: "lib/**/*.yaml"
+        - sourceFile: "lib/tools/**/*.yaml"
           yamlPath: "$.spec.contracts[*].operation"
           scalarValue: true
     - id: ca.reference.capability
       status: current
-      description: Reference to an allowed Capability/Operation identity.
+      description: Resource-grant reference in allowedResources.capabilities; target may be a Capability ID or a direct Operation ID.
       selectors:
         - sourceFile: "skills/*/assurance/contract.yaml"
           yamlPath: "$.spec.allowedResources.capabilities[*]"
           scalarValue: true
+      note: Resolve exact Capability ID first when an imported CapabilityContracts snapshot exists; otherwise or on no match, try an exact ToolCatalog Operation ID as a direct grant.
+    - id: ca.reference.operation
+      status: current
+      description: Exact Operation identity referenced by a Procedure call.
+      selectors:
         - sourceFile: "skills/*/assurance/procedure.yaml"
           yamlPath: "$.procedures.*.nodes.*.call"
           scalarValue: true
@@ -295,6 +309,9 @@ spec:
         - sourceFile: "skills/*/cases/*/case.yaml"
           yamlPath: "$.spec.context.availableResources[*].effect"
           scalarValue: true
+        - sourceFile: "lib/capabilities/**/*.yaml"
+          yamlPath: "$.spec.capabilities[*].operations[*].effect"
+          scalarValue: true
         - sourceFile: "skills/*/scripts/*.py"
           metadataField: effect
           scalarValue: true
@@ -320,19 +337,37 @@ spec:
   referenceGraph:
     resolutionPolicy: exact
     noFuzzyMatching: true
+    resourceGrantResolution:
+      source: contract.spec.allowedResources.capabilities[]
+      exactTargetOrder:
+        - CapabilityContracts.spec.capabilities[].capability
+        - ToolCatalog.spec.contracts[].operation
+      operationFallbackMeaning: direct-operation-grant
+      noFuzzyMatching: true
     edges:
-      - kind: capability-operation
+      - kind: capability
         definition:
-          sourceFile: "lib/**/*.yaml"
-          documentKind: ToolCatalog
-          yamlPath: "$.spec.contracts[*].operation"
+          sourceFile: "lib/capabilities/**/*.yaml"
+          documentKind: CapabilityContracts
+          yamlPath: "$.spec.capabilities[*].capability"
         references:
           - sourceFile: "skills/*/assurance/contract.yaml"
             yamlPath: "$.spec.allowedResources.capabilities[*]"
+        status: optional-import-not-present
+        note: CapabilityContracts are deployment-owned and not imported in the current project; capability definitions become navigable when an explicit read-only snapshot is imported.
+      - kind: operation
+        definition:
+          sourceFile: "lib/tools/**/*.yaml"
+          documentKind: ToolCatalog
+          yamlPath: "$.spec.contracts[*].operation"
+        references:
           - sourceFile: "skills/*/assurance/procedure.yaml"
             yamlPath: "$.procedures.*.nodes.*.call"
+          - sourceFile: "skills/*/assurance/contract.yaml"
+            yamlPath: "$.spec.allowedResources.capabilities[*]"
+            resolutionRole: direct-operation-grant-fallback
         status: partial
-        note: The conventional Skill's 12 references resolve in the current snapshot; 16 MAS references remain unresolved.
+        note: The conventional Skill's 12 direct Operation grants and calls resolve in the current ToolCatalog; the MAS Skill's 16 Operation identities are absent from the approved catalog and remain unresolved.
       - kind: predicate
         definition:
           sourceFile: "skills/*/assurance/predicates.yaml"
