@@ -1,6 +1,6 @@
 # ConnectionAgent Skill Authoring Syntax
 
-This is a practical source reference, not a second machine-language authority. Current examples are the two packages in [the current 5GC baseline](../../../docs/current-5gc-skill-baseline.md). The active compiler must validate every construct; unsupported syntax must fail explicitly rather than be silently dropped.
+This is a practical syntax/example reference, not a separate language authority. The canonical source-language semantics and semantic-token taxonomy are defined in [Skill Language Specification](../../../../docs/skill-language-spec.md). Current examples are the two packages in [the current 5GC baseline](../../../../docs/current-5gc-skill-baseline.md). The target Compiler must validate every construct; unsupported syntax must fail explicitly rather than be silently dropped. Legacy Toolchain support is only a subset and does not redefine this source contract.
 
 ## Canonical executable package
 

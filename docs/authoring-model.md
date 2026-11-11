@@ -1,6 +1,6 @@
 # Current Skill Authoring Model
 
-**Status:** current source-authoring guidance; compiler acceptance is pending. This document records the authoring semantics used by the two current 5GC Skills. It is not a substitute for a machine schema.
+**Status:** current source-authoring guidance; compiler acceptance is pending. This document records the business/Procedure semantics used by the two current 5GC Skills. The source-language and semantic-token contract is maintained in [Skill Language Specification](skill-language-spec.md); this document is not a substitute for a machine schema.
 
 ## 1. One deterministic source graph
 

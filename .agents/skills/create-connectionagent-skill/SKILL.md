@@ -11,6 +11,7 @@ description: Use when authoring or refreshing an official ConnectionAgent Skill 
 - Current 5GC examples: `skills/establish-pdu-session/` and `skills/establish-pdu-session-mas/`.
 - Current source/compatibility record: `docs/current-5gc-skill-baseline.md`.
 - Project root and read-only Library / generated Output behavior: `docs/project-layout.md`.
+- Canonical source-language and semantic-token contract: `docs/skill-language-spec.md`.
 - Procedure node semantics: `docs/authoring-model.md`.
 - Practical syntax notes: `references/authoring-syntax.md`.
 - Legacy machine schemas/compiler: `ca-skill-toolchain`, only for constructs represented by its current schemas.

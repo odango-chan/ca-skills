@@ -37,6 +37,7 @@ The project follows the `skills/` + `lib/` + `output/` model: editable Skill sou
 
 - English: [Authoring guide](docs/authoring.md)
 - 中文：[Skill 编写指南](docs/authoring.zh-CN.md)
+- [Skill Language Specification](docs/skill-language-spec.md)
 - [Authoring model](docs/authoring-model.md)
 - [Current 5GC Skill baseline](docs/current-5gc-skill-baseline.md)
 

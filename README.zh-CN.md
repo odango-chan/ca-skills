@@ -37,6 +37,8 @@ ca-skills/
 
 - 中文：[Skill 编写指南](docs/authoring.zh-CN.md)
 - English: [Authoring guide](docs/authoring.md)
+- [Skill Language Specification（中文）](docs/skill-language-spec.zh-CN.md)
+- [Skill Language Specification (English)](docs/skill-language-spec.md)
 - [当前 Authoring Model](docs/authoring-model.md)
 - [当前 5GC Skill 基线](docs/current-5gc-skill-baseline.md)
 

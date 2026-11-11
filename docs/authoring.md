@@ -2,7 +2,7 @@
 
 This guide explains how to add or change official Skill source in this repository.
 
-For detailed syntax, use `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md`. See [Current 5GC Skill baseline](current-5gc-skill-baseline.md), [Authoring model](authoring-model.md), and [Project Layout](project-layout.md). The legacy `ca-skill-toolchain` validates only constructs represented by its current schemas. The conventional 5GC Procedure uses node-level `preconditions/postconditions` that the legacy schema does not support; the accepted stateless Compiler v0 is not implemented yet.
+For the canonical source-language and semantic-token contract, see [Skill Language Specification](skill-language-spec.md). Use `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md` for practical examples, [Authoring Model](authoring-model.md) for current 5GC node semantics, [Current 5GC Skill baseline](current-5gc-skill-baseline.md) for provenance/compatibility, and [Project Layout](project-layout.md) for workspace structure. The legacy `ca-skill-toolchain` validates only constructs represented by its current schemas. The conventional 5GC Procedure uses node-level `preconditions/postconditions` that the legacy schema does not support; the accepted stateless Compiler v0 is not implemented yet.
 
 Chinese version: [`authoring.zh-CN.md`](authoring.zh-CN.md)
 
@@ -184,7 +184,7 @@ A Procedure may enforce a Rule, but a Procedure node is not the Rule identity. A
 
 ### 4.1 One CA Authoring Language Core
 
-When Rule support is implemented, it should reuse the same authoring primitives rather than introduce a separate DSL. Candidate shared primitives include:
+The source-derived v0 language contract and semantic-token taxonomy are specified in [Skill Language Specification](skill-language-spec.md). The shared primitives below remain the long-term design direction; they are not all current reserved syntax. In particular, Rule syntax is not part of the current Skill source baseline. When Rule support is implemented, it should reuse the same authoring primitives rather than introduce a separate DSL. Candidate shared primitives include:
 
 ```text
 ref
@@ -247,7 +247,7 @@ SkillTestCase.ruleRefs
 Rule compile/artifact
 ```
 
-Current Skills continue to use the existing source model until the new compiler and Rule machine contract are implemented. Historical packages are not used as current 5GC authoring examples.
+Current Skills continue to use the source constructs recorded in [Skill Language Specification](skill-language-spec.md) until the new Compiler and Rule machine contract are implemented. Historical packages are not used as current 5GC authoring examples.
 
 ## 5. Authoring contracts
 

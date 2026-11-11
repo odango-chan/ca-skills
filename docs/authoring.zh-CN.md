@@ -8,7 +8,7 @@
 .agents/skills/create-connectionagent-skill/references/authoring-syntax.md
 ```
 
-详细语法见 `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md`；当前 5GC 源码基线见[Current 5GC Skill baseline](current-5gc-skill-baseline.md)，节点语义见[Authoring model](authoring-model.md)，目录权限见[Project Layout](project-layout.md)。旧版 `ca-skill-toolchain` 只支持其当前 Schema 已建模的语法。传统 5GC Procedure 使用了旧版 Schema 尚不支持的节点级 `preconditions/postconditions`；无状态 Compiler v0 设计已确认，但尚未实现。
+统一的源码语言契约与语义 Token 分类见[Skill Language Specification](skill-language-spec.zh-CN.md)（英文规范：[Skill Language Specification](skill-language-spec.md)）。实用 YAML/脚本示例见 `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md`；当前 5GC 节点语义见[Authoring Model](authoring-model.md)，源码来源和兼容性见[Current 5GC Skill baseline](current-5gc-skill-baseline.md)，目录权限见[Project Layout](project-layout.md)。旧版 `ca-skill-toolchain` 只支持其当前 Schema 已建模的语法。传统 5GC Procedure 使用了旧版 Schema 尚不支持的节点级 `preconditions/postconditions`；无状态 Compiler v0 设计已确认，但尚未实现。
 
 英文版：[`authoring.md`](authoring.md)
 
@@ -216,7 +216,7 @@ Procedure 可以保障 Rule，但 Procedure node 不是 Rule identity；Predicat
 
 ### 4.1 一套 CA Authoring Language Core
 
-后续 Rule 如果正式实现，不应再创造一套独立 DSL。长期目标是 Procedure、Rule、Predicate、Case 尽量复用相同的基础语法原语，例如：
+基于当前源码整理的 v0 语言契约与语义 Token 分类统一见[Skill Language Specification](skill-language-spec.zh-CN.md)。下面列出的共享原语仍是长期设计方向，并非全部属于当前保留语法；尤其 Rule 语法尚不属于当前 Skill 源码基线。后续 Rule 正式实现时，不应再创造一套独立 DSL。长期目标是 Procedure、Rule、Predicate、Case 尽量复用相同的基础语法原语，例如：
 
 ```text
 ref
@@ -279,7 +279,7 @@ SkillTestCase.ruleRefs
 Rule compile/artifact
 ```
 
-因此当前继续使用现有源码模型，等待新 Compiler 与 Rule machine contract 落地。历史 Skill 不作为当前 5GC 编写样例。
+因此当前继续使用[Skill Language Specification](skill-language-spec.zh-CN.md)记录的源码构造，等待新 Compiler 与 Rule machine contract 落地。历史 Skill 不作为当前 5GC 编写样例。
 
 ## 5. `assurance/` 三个文件分别负责什么
 
