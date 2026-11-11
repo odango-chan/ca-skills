@@ -1,24 +1,8 @@
 # ConnectionAgent Skill Authoring Syntax
 
-This reference contains the practical source syntax used when authoring official ConnectionAgent Skills.
+This is a practical source reference, not a second machine-language authority. Current examples are the two packages in [the current 5GC baseline](../../../docs/current-5gc-skill-baseline.md). The active compiler must validate every construct; unsupported syntax must fail explicitly rather than be silently dropped.
 
-It is a concise authoring view, not a second machine-language authority. The current Skill Platform schemas and compiler remain normative.
-
-## Normative source schemas
-
-| Source asset | Skill Platform schema |
-| --- | --- |
-| `assurance/contract.yaml` | `schemas/v1alpha1/skill-contract.schema.yaml` |
-| `assurance/procedure.yaml` | `schemas/v1alpha1/procedure-source.schema.yaml` |
-| `assurance/predicates.yaml` | `schemas/v1alpha1/predicate-set.schema.yaml` |
-| `cases/<case>/case.yaml` | `schemas/v1alpha1/skill-test-case.schema.yaml` |
-| governed Python Script metadata | `schemas/v1alpha1/script-tool-metadata.schema.yaml` |
-
-For official `assurance/procedure.yaml` source, use `procedure-source.schema.yaml`. Do not infer current authoring syntax from older or internal Procedure representations such as the array/type/action form.
-
-## Canonical package shape
-
-A governed executable Skill normally has:
+## Canonical executable package
 
 ```text
 skills/<name>/
@@ -29,426 +13,121 @@ skills/<name>/
 │   └── predicates.yaml
 ├── cases/
 │   └── <case>/case.yaml
-├── references/       # optional
-├── schemas/          # optional
-└── scripts/          # optional governed local compute
+├── references/       # optional flat Markdown
+├── schemas/           # optional Skill-owned schemas
+└── scripts/           # optional governed local compute
 ```
 
-Rules:
+There is no standalone `evidence.yaml`. Do not add package-root `README.md`, `MIGRATION.md`, `examples/`, or maintainer-only `design/`.
 
-- `assurance/` is all-or-nothing;
-- there is no standalone `evidence.yaml`;
-- qualification cases use one `case.yaml` per case directory;
-- no package-root `README.md`, `MIGRATION.md`, or `examples/`;
-- explanatory samples belong in `references/samples/`;
-- `references/` contents are not automatically injected into model context;
-- `scripts/` is optional governed deterministic local compute, not a deprecated package feature;
-- cross-cutting Planner/Linker/Admission fixtures belong in their test owner, not a business Skill's `references/`;
-- do not create empty placeholder directories.
+## Contract
 
-## `SKILL.md`
+`contract.yaml` declares the Skill identity/type, business goal, entry Procedure, request schema, required facts, allowed Capability/local Tool resources, final preconditions/postconditions and action budget.
 
-Keep the package `SKILL.md` thin and model-facing.
+An allowed Capability is a semantic resource declaration. It is not proof that a Tool implementation is registered, deployed, READY or authorized.
 
-Typical shape:
+## Procedure source
 
-```markdown
----
-name: example-skill
-description: Achieve <business goal> when <selection condition>.
----
-
-# Example Skill
-
-## Goal
-...
-
-## Use when
-...
-
-## Inputs and normalization
-...
-
-## Decision rules
-...
-
-## Success semantics
-...
-```
-
-Keep only business/domain meaning, normalization and disambiguation, model-facing structured expectations, and boundaries the model must not guess or bypass.
-
-For executable Skills, "output expectation" does **not** mean every Skill needs a model response schema. Governed execution success is established by Runtime postconditions/Predicates. Only define a Skill-owned model-facing payload/schema when the Skill genuinely owns that semantic payload; stage-owned outputs such as routing or planning-choice responses stay with their owning Host/model adapter.
-
-
-Do not copy Provider bindings, deployment endpoints, Runtime state machines, full Procedure graphs, qualification status, Benchmark scoring, or migration history into model context.
-
-## `contract.yaml`
-
-Typical executable contract:
-
-```yaml
-apiVersion: connectionagent.io/v1alpha1
-kind: SkillContract
-metadata:
-  name: example-skill
-spec:
-  skillType: executable
-  goal: example.goal_satisfied
-
-  inputs:
-    requestSchema: schemas/request.schema.yaml
-
-  context:
-    requiredFacts:
-    - example.context_fact
-
-  allowedResources:
-    capabilities:
-    - example.query
-    - example.mutate
-    - example.reconcile
-    localTools: []
-
-  preconditions:
-  - predicate: example.precondition
-    expect: PASS
-
-  requirements:
-  - predicate: example.requirement
-    expect: PASS
-    satisfiable: true
-
-  postconditions:
-  - predicate: example.goal_satisfied
-    expect: PASS
-
-  planning:
-    maxActions: 8
-    allowDynamicProcedure: true
-
-  failureSemantics:
-    outcomeUnknown:
-      requireReconcile: true
-```
-
-Authoring rules:
-
-- `goal` is a business/domain goal, not a Tool outcome;
-- `allowedResources.capabilities` lists governed Runtime capabilities that Procedures may call;
-- `localTools` lists governed Skill-local Tool identities, not script paths;
-- a requirement is something the allowed workflow can actively satisfy;
-- a postcondition is final proof and may intentionally have no repair action;
-- mutation `OUTCOME_UNKNOWN` must preserve uncertainty and reconcile before retry or continuation;
-- ProviderBinding, endpoint, credential, and deployment identity never belong here.
-
-## `procedure.yaml` vNext
-
-Current source shape:
+The current source model uses one deterministic graph:
 
 ```yaml
 procedures:
-  default:
-    inputs:
-      subject-id:
-        type: string
-        from: context.subject.id
-      requested-value:
-        type: string
-        from: context.request.value
-
-    applicability:
-      when: context.request.mode == "managed"
-
+  establish:
+    inputs: {}
     start: inspect
     nodes:
       inspect:
-        call: example.query
-        with:
-          id:
-            from: input.subject-id
+        call: example.state.read
         'on':
-          SUCCEEDED: verify-goal
+          SUCCEEDED: verify-state
           FAILED: failed
           DENIED: failed
-
-      verify-goal:
-        verify: example.goal_satisfied
+      verify-state:
+        verify: example.state.ready
         'on':
           PASS: done
-          FAIL: apply-change
+          FAIL: failed
           UNKNOWN: unresolved
-
-      apply-change:
-        call: example.mutate
-        with:
-          id:
-            from: input.subject-id
-          value:
-            from: input.requested-value
-        'on':
-          COMMITTED: verify-goal
-          NOT_COMMITTED: failed
-          OUTCOME_UNKNOWN: reconcile-change
-          FAILED: failed
-          DENIED: failed
-
-      reconcile-change:
-        call: example.reconcile
-        'on':
-          COMMITTED: verify-goal
-          NOT_COMMITTED: apply-change
-          UNRESOLVED: unresolved
-          FAILED: safe-stopped
-          DENIED: safe-stopped
-
       done:
         terminal: SUCCEEDED
       failed:
         terminal: FAILED
       unresolved:
         terminal: UNRESOLVED
-      safe-stopped:
-        terminal: SAFE_STOPPED
 ```
 
-### Node forms
+Current node intents include:
 
-Use one primary intent per node. Current source supports these authoring forms:
+- `call`: invoke a governed Capability;
+- `tool`: invoke a governed Skill-local Tool;
+- `script`: run deterministic local computation;
+- `verify`: evaluate a Predicate against admitted evidence;
+- `procedure`: invoke a child Procedure;
+- `for`: express an explicitly bounded iteration where supported;
+- `reconcile`: reconcile the exact original mutation;
+- `terminal`: end with a declared terminal result.
+
+Bindings use explicit `with/from` or `with/value`. Do not invent implicit previous-node outputs, hidden interpolation, or a second sequencing DSL.
+
+## Node preconditions and postconditions
+
+The current conventional PDU Session source uses ordered node-level preparation and verification blocks:
 
 ```yaml
-call: capability.name
+preconditions:
+  steps:
+    - name: prepare-input
+      script: scripts/prepare_input.py
+  'on':
+    PASS: continue
+    FAIL: failed
+    UNKNOWN: unresolved
 
-tool: skill.local-tool
-
-script: scripts/local_compute.py
-
-verify: predicate.semantic_id
-
-procedure: another-procedure
-
-for:
-  each: item
-  in:
-    from: input.items
-do:
-  process-item:
-    call: example.process
-    with:
-      item:
-        from: loop.item
-
-reconcile: capability.or-reconcile-ref
-
-terminal: SUCCEEDED
+postconditions:
+  steps:
+    - verify: example.operation_effective
+  'on':
+    PASS: next-business-node
+    FAIL: failed
+    UNKNOWN: unresolved
 ```
 
-Use `verify` for evidence-gated Predicate judgment rather than inventing ad-hoc boolean decision syntax.
+Preconditions are side-effect-free preparation immediately before the main operation. Postconditions verify the result after the main operation; successful operation outcome enters the postcondition phase, and only PASS advances. See [Authoring model](../../../docs/authoring-model.md) for ordering, allowed steps and failure semantics.
 
-### Bindings
+**Compatibility warning:** the current legacy `ca-skill-toolchain` `procedure-source.schema.yaml` does not include these node-level fields. The new stateless Compiler v0 is the target, but its implementation has not started. Do not remove or flatten these fields to force legacy compilation.
 
-Each `with` binding contains exactly one source:
+## Outcomes and reconciliation
 
-```yaml
-with:
-  a:
-    from: input.a
-  b:
-    from: context.request.b
-  c:
-    from: previous-node.output.value
-  item:
-    from: loop.item
-  fixed:
-    value: literal-value
-```
+Keep result domains distinct:
 
-Common namespaces:
+- Predicate: `PASS / FAIL / UNKNOWN`;
+- operation: the outcomes declared by the imported Tool contract;
+- Procedure terminal: `SUCCEEDED / FAILED / UNRESOLVED / SAFE_STOPPED`.
 
-- `input.<name>` — Procedure input;
-- `context.subject.*`, `context.request.*`, `context.facts.*`, `context.constraints.*` — admitted context;
-- `<node>.output.*` — prior node output;
-- `loop.<name>` — `for` binding;
-- `value` — literal constant.
+Use `reconcile: <original-node>` for an original mutation with uncertain outcome. Preserve the exact original operation identity. Never blindly retry an unknown mutation.
 
-Do not invent `fromContext`, `fromOutput`, hidden interpolation, implicit previous-output binding, or another sequencing DSL.
+## Predicate source
 
-### Control flow
+`predicates.yaml` declares the observations required and the deterministic evaluator over already materialized evidence. Missing, stale, unavailable, ambiguous or wrong-producer evidence must remain UNKNOWN; do not reinterpret it as FAIL or PASS.
 
-`on` maps governed outcomes to next node IDs:
+## Cases
 
-```yaml
-'on':
-  SUCCEEDED: next
-  FAILED: failed
-  DENIED: failed
-```
-
-Mutation paths must explicitly handle `OUTCOME_UNKNOWN` when the capability contract permits it. Never route unknown mutation outcome directly to retry.
-
-### Procedure selection
-
-Use `applicability.when` for deterministic Procedure selection in the current selection context:
-
-```yaml
-applicability:
-  when: context.request.priority == "high"
-```
-
-Selection is not Runtime Predicate evaluation and does not acquire Evidence.
-
-## `predicates.yaml`
-
-Predicates declare required observations and deterministic judgment over already-materialized evidence.
-
-CEL example:
-
-```yaml
-apiVersion: connectionagent.io/v1alpha1
-kind: PredicateSet
-metadata:
-  skill: example-skill
-predicates:
-  example.goal_satisfied:
-    observations:
-      state:
-        ref: example.state.snapshot
-        scope: '{"id": subject.id}'
-        freshness: 5s
-    evaluator:
-      type: cel
-      expression: observations.state.status == "READY"
-```
-
-Script evaluator example:
-
-```yaml
-predicates:
-  example.complex_consistency:
-    observations:
-      left:
-        ref: example.left.snapshot
-        scope: '{"id": subject.id}'
-        freshness: 5s
-      right:
-        ref: example.right.snapshot
-        scope: '{"id": subject.id}'
-        freshness: 5s
-    evaluator:
-      type: script
-      ref: skill.evaluate-complex-consistency
-```
-
-Rules:
-
-- Observation acquisition happens before evaluator execution;
-- Evidence Gate handles missing, stale, unavailable, or invalid required observations and yields `UNKNOWN` before the evaluator;
-- CEL is for small auditable deterministic assertions;
-- Script evaluators are for complex deterministic judgment over already-materialized data;
-- Predicate Scripts must not call Providers, MCP servers, networks, or acquire more evidence;
-- evaluator crash or timeout is infrastructure failure, not business `FAIL`.
-
-## Governed Python Script
-
-Skill-local deterministic scripts carry inline metadata and are referenced by Procedure path or governed local Tool identity.
-
-```python
-# /// connectionagent-tool
-# name: normalize-example
-# inputSchema: registry://schemas/example-input@v1
-# outputSchema: ExampleOutput
-# effect: local_compute
-# sandbox:
-#   network: denied
-# timeout: 2s
-# ///
-
-
-def main(input):
-    return {"value": input["value"]}
-```
-
-Scripts are deterministic local computation only. Do not hide Provider I/O, network access, shell workflows, credentials, or uncontrolled side effects inside them.
-
-Procedure Script and Predicate Script reuse the governed local-compute execution base but have different semantics: Procedure Script computes workflow data; Predicate Script judges supplied evidence.
-
-## `case.yaml`
-
-Each qualification case is exactly one file:
+Each qualification case is one file:
 
 ```text
 cases/<case-name>/case.yaml
 ```
 
-Minimal envelope:
+Cases record semantic obligations and expected outcomes. They are not execution evidence. The current conventional PDU Session package documents 36 cases as obligations that are not yet executable Runtime fixtures.
 
-```yaml
-apiVersion: connectionagent.io/v1alpha1
-kind: SkillTestCase
-metadata:
-  skill: example-skill
-  name: 01-happy-path
-spec:
-  classes:
-  - happy_path
-  purpose: Prove the normal path reaches the independently verified goal.
+## Scripts and schemas
 
-  context:
-    apiVersion: connectionagent.io/v1alpha1
-    kind: PlanningContext
-    metadata:
-      operationId: op-01
-      version: 1
-    subject:
-      id: subject-1
-    request: {}
-    facts: {}
-    availableResources: []
-    constraints:
-      maxActions: 8
+- Python Scripts are deterministic local computation only; they do not call network services, Providers, MCP servers, shell commands, clocks, databases or credentials.
+- Use explicit Script input/output declarations and author-owned schemas. Do not infer constraints that the source declaration does not express.
+- Request/response schemas owned by the Skill live under `schemas/`.
 
-  expect:
-    procedure: default
-    planningStatus: READY
-    terminal: SUCCEEDED
-    postconditions:
-    - predicate: example.goal_satisfied
-      expect: PASS
-      actual: PASS
+## References and imported Library
 
-  fixtures: {}
-```
-
-The exact `PlanningContext`, expected trace/postcondition fields, fixtures, and Simulation schema remain Platform-owned. Prefer copying the smallest adjacent current Case and changing its semantics rather than inventing fields.
-
-Coverage follows semantic obligations, not a fixed Case count. Include the normal path and relevant failure, denial, Evidence `UNKNOWN`, mutation reconcile, budget, and independent postcondition-failure classes when they are meaningful for the Procedure/Profile.
-
-SkillTestCase is not BenchmarkCase. Do not use Skill-internal expected traces as the black-box Benchmark oracle.
-
-## Current official examples
-
-Prefer real official packages over maintaining another full synthetic example set:
-
-- `skills/query-weather-for-ue/` — compact end-to-end example with Procedure Script, CEL Predicates, Cases, and external read-only capability;
-- `skills/ue-registration/` — richer mutation and `OUTCOME_UNKNOWN` / reconcile behavior;
-- `skills/ensure-session-qos/` — requirement satisfaction plus independent postcondition verification;
-- `skills/download-object-by-deadline/` — deadline-aware composition and governed local computation;
-- `skills/5gc-intent/` — model-context/routing-policy package with no executable assurance extension.
-
-## Validation
-
-Focused compile for one executable official package:
-
-```bash
-python3 -B scripts/verify.py --compile skills/<name>
-```
-
-Full source/preflight gate:
-
-```bash
-make verify
-```
-
-`verify.py` uses `CONNECTIONAGENT_SKILL_PLATFORM_ROOT` when set; otherwise it expects sibling `../connectionagent-skill-platform`.
-
-A focused compile or green source gate is not production qualification.
+- Optional model knowledge lives in flat `references/*.md` and is selected when useful; it is not automatically loaded and is not evidence.
+- Imported Tool contracts live in project `lib/` as read-only snapshots. Do not edit imported files or infer runtime readiness from their presence.
+- Current import: `lib/tools/createdsession.tool.yaml` (12 conventional Operations). The 16 MAS Capability references remain unresolved; the MAS design draft is not an approved ToolCatalog.

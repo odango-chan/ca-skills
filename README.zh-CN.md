@@ -2,131 +2,54 @@
 
 # ConnectionAgent Skills
 
-ConnectionAgent 官方 Skill 源码仓。
+ConnectionAgent 官方 Skill 源码与编写规范仓库。
 
-这里维护供模型使用的 Skill 描述、Skill 自身的保障定义、资格验证用例、路由策略与模型上下文，以及编写 Skill 所需的文档和辅助工作流。
+## 当前 5GC 基线
 
-英文版：[`README.md`](README.md)
+当前 5GC 源码基线包含两个独立的可执行 Skill：
+
+| 包 | 业务范围 |
+| --- | --- |
+| `establish-pdu-session` | 传统 5GC UE 请求的初始 PDU Session Establishment 流程 |
+| `establish-pdu-session-mas` | 基于 SMF MAS policy-first 流程的 UE 请求初始 PDU Session Establishment |
+
+两个包均同步自 `odango-chan/ca-agent-demo` main，源提交为 `4395982fa6efb97714b97901603b2dfb7018c4d0`。详见[源码与兼容性记录](docs/current-5gc-skill-baseline.md)。
+
+仓库同时包含只读导入的 ToolCatalog 快照：`lib/tools/createdsession.tool.yaml`。它包含传统 Skill 使用的 12 个 Operation，但不包含 MAS Skill 引用的 16 个 Operation；MAS 的设计稿 Tool Contract 不作为已批准的导入契约。
+
+**验证状态：** 本次完成的是源码同步，不代表编译、链接或 Runtime 资格验证通过。传统 Skill 的 Procedure 使用节点级 `preconditions/postconditions`，旧版 Toolchain Schema 尚不支持；MAS Skill 仍有未解析的导入 Capability。无状态 Compiler v0 设计已经确认，但新编译器尚未实现。
 
 ## 仓库结构
 
 ```text
 ca-skills/
-├── skills/                  # 官方 Skill 与路由策略源码
-├── docs/                    # Skill 编写文档
-├── scripts/verify.py        # 仓库统一验证入口
-└── .agents/skills/
-    └── create-connectionagent-skill/
+├── skills/                  # 官方 Skill 源码
+├── lib/                     # 外部导入的只读契约
+├── output/                  # 编译生成产物（不提交）
+├── docs/                    # 编写指南与维护文档
+├── scripts/verify.py        # 现有旧版验证入口
+└── .agents/skills/           # 仓库内编写助手
 ```
 
-可执行 Skill 通常采用下面的结构：
+项目采用 `skills/` + `lib/` + `output/` 三根目录：`skills/` 是可编辑的 Skill 源码，`lib/` 是只读导入契约，`output/` 是只读生成产物。目录权限、图标和 Explorer 交互约定见[项目目录规范](docs/project-layout.md)。
 
-```text
-skills/<name>/
-├── SKILL.md
-├── assurance/
-│   ├── contract.yaml
-│   ├── procedure.yaml
-│   └── predicates.yaml
-├── cases/
-│   └── <case>/case.yaml
-├── references/    # 可选
-├── schemas/       # 可选
-└── scripts/       # 可选，受治理的本地确定性计算
-```
+## 编写入口
 
-如果只是路由策略或模型上下文，可以只有 `SKILL.md`，再按需增加供模型读取的 `references/` 或 `schemas/`。
+- 中文：[Skill 编写指南](docs/authoring.zh-CN.md)
+- English: [Authoring guide](docs/authoring.md)
+- [当前 Authoring Model](docs/authoring-model.md)
+- [当前 5GC Skill 基线](docs/current-5gc-skill-baseline.md)
 
-## 怎么写 Skill
+`SKILL.md` 面向模型，描述业务语义；`assurance/` 保存确定性流程源；`references/` 是可选的平铺 Markdown 知识；`scripts/` 只做受治理的本地确定性计算。
 
-先看：
+## 仓库职责
 
-- 中文：[`docs/authoring.zh-CN.md`](docs/authoring.zh-CN.md)
-- 英文：[`docs/authoring.md`](docs/authoring.md)
-
-仓库内用于辅助编写 Skill 的 Agent Skill 位于：
-
-```text
-.agents/skills/create-connectionagent-skill/
-```
-
-它的 `SKILL.md` 只保留编写流程和关键规则。具体的 YAML、脚本和用例语法放在 `references/authoring-syntax.md`，最终以 `ca-skill-toolchain` 当前的 Schema 和编译器为准。
-
-几个常用约束：
-
-- `SKILL.md` 是包根目录中供模型读取的入口；
-- 可执行 Skill 使用完整的 `assurance/` 三件套；
-- 当前没有独立的 `evidence.yaml`；
-- 每个资格验证用例只使用一个 `cases/<case>/case.yaml`；
-- Skill 根目录不使用 `README.md`、`MIGRATION.md`、`examples/`；
-- `skills/` 下供模型读取的 Markdown 统一使用英文；
-- 部署地址、ProviderBinding、ObservationBinding 和 Runtime 状态不写进 Skill 源码。
-
-## 源码与执行
-
-`skills/` 是官方 Skill 源码目录。
-
-Skill Platform 从这里发现源码，完成编译并形成不可变的 `SkillBuildArtifact` / `ProcedureVariant` 后，Runtime 才会执行。Runtime 不直接执行当前工作区源码，因此仓库中的一次源码修改不会改变已经准入的构建产物，也不会影响历史运行记录。
-
-用户从 ZIP、本地目录或 Git 导入的自定义 Skill 属于 Platform 的工作区与导入流程。导入成功不会把它自动写入本仓 `skills/`，也不会因此变成官方 Skill。
-
-各仓职责可以简单看成：
-
-| 仓库 | 主要职责 |
+| 仓库 | 职责 |
 | --- | --- |
-| `ca-skills` | 官方 Skill 源码与编写文档 |
-| `ca-skill-toolchain` | Schema、编译、构建与资格验证 |
-| `ca-agent` | 目标理解、路由与规划 |
-| `ca-runtime` | 准入、绑定与确定性执行 |
-| `ca-sandbox` | 受控环境与故障注入 |
-| `ca-benchmarks` | 独立评测用例与裁决 |
+| `ca-skills` | 官方 Skill 源码与领域编写语义 |
+| `ca-skill-toolchain` | 旧版机器 Schema/Compiler 与现存 Toolchain |
+| `ca-skill-compiler` | 目标无状态多 Skill Compiler；目前仅 bootstrap，尚未实现 |
+| `ca-agent-demo` | Generic Agent Host 参考实现与当前源码样例 |
+| `ca-runtime` | 准入、操作权威、Evidence 与确定性执行 |
 
-## 路由策略
-
-`skills/5gc-intent` 是供 Agent 使用的路由策略与模型上下文包。它没有 `assurance/`，也不会先作为一个 Runtime Procedure 执行。
-
-Agent 从 Runtime 已发现并准入的 Skill 集中做路由选择；最终执行前仍由 Runtime 对 `SkillBuildArtifact` / `ProcedureVariant` 做准入和绑定。
-
-## 当前包
-
-| 包 | 用途 | 当前状态 |
-| --- | --- | --- |
-| `5gc-intent` | 路由策略与模型上下文 | 非执行型 |
-| `5gc-file-transfer` | 产品 Skill | 本地源码、编译、用例和 Mock Runtime 预检已通过；live owner execution 与生产部署准入待完成 |
-| `wifi-file-transfer` | 产品 Skill | 本地源码、编译、用例和 Mock Runtime 预检已通过；live owner execution 与生产部署准入待完成 |
-| `ue-registration` | 参考 Skill | 已通过生产级资格验证 |
-| `ensure-session-qos` | 参考 Skill | 已通过生产级资格验证 |
-| `download-object-by-deadline` | 参考 Skill | 已通过生产级资格验证 |
-| `query-weather-for-ue` | 参考 Skill | 已通过生产级资格验证 |
-
-两个文件传输 Skill 当前剩余的主要工作是生产部署和绑定关系收口，不是继续扩展 Skill 语法。
-
-## 编写模型冻结
-
-当前 Skill 语言和保障编写模型已经冻结。新增 Skill 和日常维护默认使用现有语言，不再因为便利性、部署差异、评测需求或局部实现问题扩展语法。
-
-只有在真实产品场景证明现有语言存在表达能力缺口，并且该问题不能通过 ProviderBinding、ObservationBinding、Runtime、资格验证、Sandbox 或集成方式解决时，才允许启动语言变更。语言变更需要同步修改 Skill Platform 的 Schema 与编译器，以及受影响的官方 Skill、用例和编写文档，并重新通过 `make verify`，之后才能建立新的冻结基线。
-
-## 验证
-
-运行完整仓库验证：
-
-```bash
-make verify
-```
-
-只编译一个可执行 Skill：
-
-```bash
-python3 -B scripts/verify.py --compile skills/<name>
-```
-
-默认从兄弟目录 `../ca-skill-toolchain` 查找 Toolchain。如需指定路径，设置：
-
-```bash
-export CA_SKILL_TOOLCHAIN_ROOT=/path/to/ca-skill-toolchain
-
-历史环境变量 `CONNECTIONAGENT_SKILL_PLATFORM_ROOT` 仍作为 compatibility alias 保留。
-```
-
-编译通过或本地预检通过，并不等于已经通过生产环境资格验证。
+仓库中其他旧包暂时原样保留，但不属于当前 5GC 基线，也不再作为当前语法示例。

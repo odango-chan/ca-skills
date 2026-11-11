@@ -2,125 +2,54 @@
 
 # ConnectionAgent Skills
 
-Official Skill source for ConnectionAgent.
+Official Skill source and authoring guidance for ConnectionAgent.
 
-This repository contains model-facing Skill descriptions, Skill-local assurance source, qualification cases, routing-policy/model-context packages, and authoring guidance.
+## Current 5GC baseline
 
-Chinese version: [`README.zh-CN.md`](README.zh-CN.md)
+The current 5GC source baseline contains two separate executable Skills:
+
+| Package | Business profile |
+| --- | --- |
+| `establish-pdu-session` | UE-requested initial PDU Session Establishment through the conventional 5GC procedure |
+| `establish-pdu-session-mas` | UE-requested initial PDU Session Establishment through the SMF MAS policy-first profile |
+
+Both packages were synchronized from `odango-chan/ca-agent-demo` main at `4395982fa6efb97714b97901603b2dfb7018c4d0`. See [the source and compatibility record](docs/current-5gc-skill-baseline.md).
+
+The repository also contains a read-only imported ToolCatalog snapshot at `lib/tools/createdsession.tool.yaml`. It contains the 12 Operations used by the conventional Skill. It does not contain the 16 MAS Operations; the MAS design-only Tool contract is not treated as an approved import.
+
+**Validation status:** source synchronization is complete in this change, but compiler/link validation and Runtime qualification are not claimed. The conventional Procedure uses node-level `preconditions/postconditions` that the legacy Toolchain schema does not support. The MAS package has unresolved imported Capability references. The new stateless Compiler v0 design is accepted, but implementation is not yet available.
 
 ## Repository layout
 
 ```text
 ca-skills/
-├── skills/                  # official Skill and routing-policy source
-├── docs/                    # authoring guides
-├── scripts/verify.py        # repository verification entrypoint
-└── .agents/skills/
-    └── create-connectionagent-skill/
+├── skills/                  # official Skill source
+├── lib/                     # imported, read-only external contracts
+├── output/                  # generated build output (not committed)
+├── docs/                    # authoring and maintainer guidance
+├── scripts/verify.py        # existing legacy verification entrypoint
+└── .agents/skills/           # repository-local authoring assistant
 ```
 
-An executable Skill normally uses:
-
-```text
-skills/<name>/
-├── SKILL.md
-├── assurance/
-│   ├── contract.yaml
-│   ├── procedure.yaml
-│   └── predicates.yaml
-├── cases/
-│   └── <case>/case.yaml
-├── references/    # optional
-├── schemas/       # optional
-└── scripts/       # optional governed local compute
-```
-
-A routing-policy or model-context package may contain only `SKILL.md` and optional model-facing references or schemas.
+The project follows the `skills/` + `lib/` + `output/` model: editable Skill source, imported read-only contracts, and generated read-only build output. See [Project Layout](docs/project-layout.md) for Explorer behavior and the Compiler boundary.
 
 ## Authoring
 
-Start with:
+- English: [Authoring guide](docs/authoring.md)
+- 中文：[Skill 编写指南](docs/authoring.zh-CN.md)
+- [Authoring model](docs/authoring-model.md)
+- [Current 5GC Skill baseline](docs/current-5gc-skill-baseline.md)
 
-- English: [`docs/authoring.md`](docs/authoring.md)
-- 中文：[`docs/authoring.zh-CN.md`](docs/authoring.zh-CN.md)
+`SKILL.md` is the model-facing business guide. `assurance/` contains the deterministic source contract. `references/` contains optional flat Markdown knowledge selected when useful. `scripts/` contains governed local computation only.
 
-The repository-local authoring assistant is:
-
-```text
-.agents/skills/create-connectionagent-skill/
-```
-
-Its `SKILL.md` contains the authoring workflow. Detailed YAML, Script, and Case syntax is kept in `references/authoring-syntax.md` and checked against the current `ca-skill-toolchain` schemas/compiler.
-
-A few package rules are worth keeping in mind:
-
-- `SKILL.md` is the package-root model-facing entry point;
-- executable Skills use the complete `assurance/` trio;
-- there is no standalone `evidence.yaml`;
-- each qualification case is one `cases/<case>/case.yaml`;
-- package-root `README.md`, `MIGRATION.md`, and `examples/` are not part of the Skill package format;
-- model-facing Markdown under `skills/` is written in English;
-- deployment endpoints, Provider bindings, Observation bindings, and Runtime state do not belong in Skill source.
-
-## Source and execution
-
-`skills/` is the official source catalog. Skill Toolchain discovers and compiles this source into immutable Artifact/Variant form before Runtime execution.
-
-Runtime does not execute the working tree directly. A change to this repository therefore does not alter an already admitted Artifact or an existing Run.
-
-Custom ZIP, directory, or Git imports belong to the Platform workspace/import flow. They do not write into `skills/` or become official source merely by being imported.
-
-The main ownership split is:
+## Ownership
 
 | Repository | Responsibility |
 | --- | --- |
-| `ca-skills` | official Skill source and authoring guidance |
-| `ca-skill-toolchain` | machine schemas, compiler, build and qualification |
-| `ca-agent` | goal interpretation, routing and planning |
-| `ca-runtime` | admission, binding and deterministic execution |
-| `ca-sandbox` | controlled environment and fault injection |
-| `ca-benchmarks` | independent evaluation cases and verdicts |
+| `ca-skills` | Official Skill source and authoring semantics |
+| `ca-skill-toolchain` | Legacy machine schemas/compiler and existing Toolchain implementation |
+| `ca-skill-compiler` | Target stateless multi-Skill compiler; bootstrap only, implementation pending |
+| `ca-agent-demo` | Generic Agent Host reference implementation and current source sample |
+| `ca-runtime` | Admission, operation authority, evidence and deterministic execution |
 
-## Routing policy
-
-`skills/5gc-intent` is a model-visible routing-policy package. It has no `assurance/` and is not executed as a preliminary Runtime Procedure.
-
-Agent routing selects from the admitted Skill set; Runtime still performs the final Artifact/Variant admission and execution.
-
-## Current packages
-
-| Package | Role | Status |
-| --- | --- | --- |
-| `5gc-intent` | routing policy / model context | non-executable |
-| `5gc-file-transfer` | product Skill | local source/compile/case/Mock Runtime preflight complete; live owner execution and production admission remain pending |
-| `wifi-file-transfer` | product Skill | local source/compile/case/Mock Runtime preflight complete; live owner execution and production admission remain pending |
-| `ue-registration` | reference Skill | production-qualified reference |
-| `ensure-session-qos` | reference Skill | production-qualified reference |
-| `download-object-by-deadline` | reference Skill | production-qualified reference |
-| `query-weather-for-ue` | reference Skill | production-qualified reference |
-
-The remaining production work for the file-transfer Skills is deployment and binding closure rather than Skill-language work.
-
-## Authoring model freeze
-
-The current Skill language and assurance authoring model are frozen. New Skills and normal maintenance should use the existing language rather than extend it.
-
-A syntax change requires a demonstrated product-level expressiveness gap that cannot be solved in ProviderBinding, ObservationBinding, Runtime, qualification, Sandbox, or integration. Any approved language revision must update the owning Platform schemas/compiler and the affected official Skills, Cases, and authoring guidance together, then pass `make verify` before a new baseline is established.
-
-## Verification
-
-Run the repository gate with:
-
-```bash
-make verify
-```
-
-For a focused compile of one executable Skill:
-
-```bash
-python3 -B scripts/verify.py --compile skills/<name>
-```
-
-The default sibling checkout is `../ca-skill-toolchain`. Set `CA_SKILL_TOOLCHAIN_ROOT` for an explicit checkout; the historical `CONNECTIONAGENT_SKILL_PLATFORM_ROOT` remains a compatibility alias.
-
-Compile or local preflight success is not, by itself, production qualification.
+Other historical packages remain untouched and are outside the current 5GC baseline. They are not used as current authoring examples.
