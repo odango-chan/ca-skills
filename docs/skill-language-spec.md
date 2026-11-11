@@ -241,10 +241,11 @@ The following definition/reference pairs are the v0 navigation contract. Their m
 Resolution rules:
 
 1. Resolve exact identifiers and package-relative paths only. No fuzzy name matching.
-2. Resolve Operation references against the imported catalog selected by the project. Do not assume every Capability is defined in the same catalog.
-3. Resolve `reconcile` to the exact original mutation node in the same Procedure; it is not a Capability reference.
-4. Keep unresolved references visible as unresolved. Syntax highlighting must not imply successful linking.
-5. A name that appears in prose, a comment, a user-defined map key or an unrelated YAML field is not automatically a symbol reference.
+2. Resolve Procedure `call` values to exact Operation definitions in the project's imported ToolCatalog.
+3. Resolve `allowedResources.capabilities[]` values against an imported CapabilityContracts registry first; if no exact Capability ID is found, allow an exact ToolCatalog Operation match as a direct Operation grant. If neither target exists, keep the reference unresolved.
+4. Resolve `reconcile` to the exact original mutation node in the same Procedure; it is not a Capability or Operation reference.
+5. Keep unresolved references visible as unresolved. Syntax highlighting must not imply successful linking.
+6. A name that appears in prose, a comment, a user-defined map key or an unrelated YAML field is not automatically a symbol reference.
 
 These pairs define future Go-to-Definition and Find References behavior. Phase-one highlighting may classify a reference by its syntactic position without resolving its target.
 
