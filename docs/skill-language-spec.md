@@ -205,18 +205,22 @@ Script metadata is not ordinary Python syntax. Script bodies remain Python and m
 
 ### 3.9 Imported ToolCatalog and Capability references
 
-The current imported snapshot is `lib/tools/createdsession.tool.yaml`, a `ToolCatalog` document. Its operation definitions are under `spec.contracts[].operation`, with associated adapter, effect, input schema and output schema declarations.
+The current imported snapshot is `lib/tools/createdsession.tool.yaml`, a `ToolCatalog` document. Its operation definitions are under `spec.contracts[].operation`, with the associated adapter, effect, input schema and output schema declarations.
 
-In the current conventional Skill:
+Keep three identities distinct:
 
-- `contract.spec.allowedResources.capabilities[]` declares the Capability IDs the Skill may use;
-- Procedure `call` values reference those business/Runtime operation IDs;
-- the imported ToolCatalog defines the matching Operation identities.
+- A **Capability ID** names an authorized resource group. The deployment-owned `CapabilityContracts` registry may map that ID to one or more exact Operation identities.
+- An **Operation ID** names one exact callable operation. A Procedure node's `call` always references an Operation ID, never a Capability group.
+- `contract.spec.allowedResources.capabilities[]` is the Skill's authorization upper bound. Its entries may be either a Capability ID or a direct Operation ID. The Host resolves a Capability ID through the deployment Capability registry, or accepts an exact Operation ID as a direct grant.
 
-For this project baseline, the 12 conventional Capability references resolve by exact Operation name in the imported catalog. The MAS Skill's 16 `ca.pdu_session.*` references do not resolve in that catalog. They remain unresolved references; do not invent definitions or treat the MAS design draft as an approved import.
+The ToolCatalog defines Operations; it is not itself the deployment Capability registry. A project may optionally import a read-only `CapabilityContracts` snapshot under `lib/capabilities/` when it needs source navigation for Capability IDs. This project does not currently import that deployment-owned registry. Without it, a named Capability ID cannot be linked to its definition file. An `allowedResources.capabilities[]` value that exactly matches an imported Operation may still link directly to that Operation.
+
+For this project baseline:
+
+- The conventional Skill's 12 `allowedResources.capabilities[]` entries are direct Operation grants, not the six grouped Capability IDs in the separate deployment registry. All 12 resolve by exact Operation identity in the imported ToolCatalog; the Procedure calls use those same Operation identities.
+- The MAS Skill declares 16 `ca.pdu_session.*` Operation identities in both its resource allowlist and Procedure calls: 14 MAS business operations plus two Host-side resource-finalization/cleanup operations. None is present in the approved imported ToolCatalog. Its `design/tool-contract.yaml` is explicitly a design draft, not an approved ToolCatalog, so these references remain unresolved. Do not invent definitions or import the draft as an approved dependency.
 
 A resolved import is a source/link fact only. It does not prove that an implementation is registered, deployed, READY, authorized or successfully executed.
-
 ## 4. Symbol and reference model
 
 The following definition/reference pairs are the v0 navigation contract. Their machine-readable token IDs and source selectors are listed in [the semantic token catalog](../spec/skill-language-tokens.yaml):
@@ -227,7 +231,8 @@ The following definition/reference pairs are the v0 navigation contract. Their m
 | Procedure | `procedure.yaml: procedures.<id>` map key | Contract `entryProcedure`; child Procedure reference where supported |
 | Procedure node | `procedure.yaml: procedures.*.nodes.<id>` map key | `start`, main-node `'on'` targets, `reconcile` target |
 | Predicate | `predicates.yaml: predicates.<id>` map key | Procedure `verify`; Contract `predicate` fields; `applicability.predicates` |
-| Operation | Imported ToolCatalog `spec.contracts[].operation` | Contract `allowedResources.capabilities[]`; Procedure `call` |
+| Capability | Imported `CapabilityContracts` `spec.capabilities[*].capability` (optional deployment-owned import) | Contract `allowedResources.capabilities[]` when the value is a Capability ID |
+| Operation | Imported ToolCatalog `spec.contracts[].operation` | Procedure `call`; Contract `allowedResources.capabilities[]` when it directly grants an Operation |
 | Case | `case.yaml: metadata.name` | Case `metadata.skill` identifies its owning Skill |
 | Local Tool | Script metadata identity (mapping to the `skill.*` local-tool ID is not yet frozen) | Contract `allowedResources.localTools[]`; Procedure `tool` where supported; Predicate evaluator `ref` when it denotes a local Tool |
 | Script | File under `scripts/` | Procedure `script` path |
@@ -255,14 +260,16 @@ The following token IDs are stable language-level categories. They are independe
 | `ca.keyword.control` | Node-intent keys | `call`, `verify`, `script`, `reconcile`, `terminal` |
 | `ca.keyword.condition` | Condition/phase keys | `applicability`, `preconditions`, `postconditions`, `steps`, `'on'` |
 | `ca.keyword.binding` | Binding keys | `with`, `from`, `value` |
-| `ca.reference.capability` | Capability reference values | `sbi.udm.sm_data.get` |
+| `ca.reference.capability` | Resource-grant values in `allowedResources.capabilities[]` (Capability ID or direct Operation grant) | `capability-id` |
 | `ca.symbol.skill-definition` | Skill frontmatter name | `name: establish-pdu-session` |
+| `ca.symbol.capability-definition` | Capability IDs in an optionally imported `CapabilityContracts` registry | `spec.capabilities[*].capability` |
 | `ca.symbol.procedure-definition` | Procedure definition map keys | `procedures.<id>` |
 | `ca.symbol.node-definition` | Procedure node definition map keys | `nodes.<id>` |
 | `ca.symbol.predicate-definition` | Predicate definition map keys | `predicates.<id>` |
 | `ca.symbol.case-definition` | Case `metadata.name` | `01-complete-profile` |
 | `ca.symbol.local-tool-definition` | Local Tool identity in Script metadata | `# name: select-establishment-configuration` |
 | `ca.symbol.operation-definition` | Imported Operation definition values | `spec.contracts[].operation` |
+| `ca.reference.operation` | Exact Operation IDs in Procedure `call` positions | `sbi.udm.sm_data.get` |
 | `ca.reference.predicate` | Predicate IDs in reference positions | `createdsession.ingress.eligible` |
 | `ca.reference.procedure` | Procedure IDs in reference positions | `entryProcedure`, child Procedure reference |
 | `ca.reference.node` | Procedure node IDs in reference positions | `start`, main-node `'on'` target, `reconcile` target |
@@ -276,7 +283,7 @@ The following token IDs are stable language-level categories. They are independe
 | `ca.expression.cel` | CEL expression values | `observations.state.status == "READY"` |
 | `ca.identifier.user-defined` | User-defined IDs and map/property names | Node IDs, input names, observation aliases, Case names |
 
-Ordinary YAML and Python comments remain the responsibility of their existing language grammars; they are not a CA-specific semantic token. Classification is position-sensitive, not spelling-only. For example, `call` is a control keyword only as a node-intent key; the same word in prose or a user-defined field is ordinary text. A Capability ID is a reference only under `allowedResources.capabilities` or a Procedure `call` value. An arbitrary property named `status` is not a reserved CA token.
+Ordinary YAML and Python comments remain the responsibility of their existing language grammars; they are not a CA-specific semantic token. Classification is position-sensitive, not spelling-only. For example, `call` is a control keyword only as a node-intent key; the same word in prose or a user-defined field is ordinary text. Values under `allowedResources.capabilities` are resource-grant references; Procedure `call` values are Operation references. An arbitrary property named `status` is not a reserved CA token. The current `createdsession.*` Predicate/Observation names are ordinary user-defined identifiers, not a reserved prefix or a language keyword.
 
 Outcome values remain owned by their result domain:
 
