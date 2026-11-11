@@ -1,124 +1,64 @@
-# AGENTS.md
-
-## Repository role
-
-`ca-skills` contains official ConnectionAgent Skill source and model-visible routing-policy assets.
-
-Keep Platform, Runtime, Sandbox, Benchmark, Agent-loop, and UI implementation out of this repository.
-
-## Working rules
-
-- Official packages live under `skills/<package>/`.
-- `SKILL.md` is the package-root **model-facing** entry point. Keep it thin and focused on domain semantics, normalization, selection/use conditions, and boundaries the model must not guess or bypass.
-- Model-facing Markdown under `skills/` is written in English.
-- An executable Skill uses the complete `assurance/{contract.yaml,procedure.yaml,predicates.yaml}` trio. Do not add a standalone `evidence.yaml`.
-- Qualification cases use one `cases/<case>/case.yaml` per case. Case coverage follows semantic obligations; do not hard-code a required case count in repository scripts.
-- Package-root `README.md`, `MIGRATION.md`, and `examples/` are not part of the official package shape.
-- `references/preload/` is only for small domain context needed on most invocations. Put optional Skill-local detail under `references/on-demand/`; neither directory should become an architecture manual.
-- Skill-local `scripts/` are governed deterministic local-compute assets. Do not hide Provider I/O, network access, credentials, or deployment logic in them.
-- Do not place ProviderBinding, ObservationBinding, deployment endpoints, Runtime state machines, Sandbox worlds, Benchmark scoring, or Web behavior in Skill model context.
-
-## Authoring guidance
-
-Human guides:
-
-- English: `docs/authoring.md`
-- Chinese: `docs/authoring.zh-CN.md`
-
-Repository-local authoring workflow:
-
-```text
-.agents/skills/create-connectionagent-skill/
-```
-
-Its `SKILL.md` contains workflow and loading rules. Load `references/authoring-syntax.md` only when editing assurance source, governed Scripts, or Cases. Use `references/skill-granularity.md` when deciding Skill vs routing policy vs Runtime Capability.
-
-Do not duplicate the full Skill grammar in `AGENTS.md`, README, or other prose. The current machine schemas/compiler in `ca-skill-toolchain` are authoritative.
-
-For current official `assurance/procedure.yaml`, author against `schemas/v1alpha1/procedure-source.schema.yaml`, not historical/internal procedure source shapes.
-
-## Source and execution boundary
-
-- `skills/` is the official source catalog.
-- Skill Platform freezes/compiles source before Runtime execution; Runtime does not execute the live working tree.
-- Custom ZIP/directory/Git imports belong to the Platform workspace/import flow and must not write into `skills/` or silently become official source.
-- Routing is Agent-owned. A routing-policy package such as `5gc-intent` is model context, not a preliminary executable Runtime hop.
-
-## Verification
-
-Use the single repository verification entrypoint:
-
-```bash
-make verify
-```
-
-For one executable package:
-
-```bash
-python3 -B scripts/verify.py --compile skills/<name>
-```
-
-Do not add per-Skill root validators or another compile helper. Generic source-language validation belongs to Skill Platform; package hygiene belongs in `scripts/verify.py`.
-
-Compile or local preflight success is not production qualification.
+# ca-skills repository rules
 
 ## Ownership
 
-- Skill source and authoring guidance: `ca-skills`
-- Machine schemas, compiler, Artifact/Variant build, Qualification: `ca-skill-toolchain`
-- Goal interpretation, routing, planning/model loop: `ca-agent`
-- Admission, Provider/Observation binding, Evidence Gate, deterministic execution, Reconcile: `ca-runtime`
-- Environment simulation, fault injection, ground truth: `ca-sandbox`
-- Independent evaluation cases and verdicts: `ca-benchmarks`
-- Product UI: `ca-console`
+- This repository owns official ConnectionAgent Skill source and authoring guidance.
+- `ca-agent-demo` is a reference implementation/sample source, not the owner of the official catalog.
+- `ca-skill-toolchain` contains the legacy machine schemas/compiler.
+- The accepted stateless `ca-skill-compiler` v0 design is tracked by [ca-skill-toolchain#133](https://github.com/odango-chan/ca-skill-toolchain/issues/133). The new repository is bootstrap-only; implementation is not yet available.
 
-## Frozen authoring model
+## Project roots
 
-The current Skill language and assurance authoring model are frozen.
+The project has three fixed semantic roots: `skills/` (editable author source), `lib/` (imported read-only external contracts), and `output/` (generated read-only build projection). Their Explorer permissions and actions are defined in [docs/project-layout.md](docs/project-layout.md). The root folders themselves are not renamed, moved, or deleted through ordinary file actions.
 
-Do not change source syntax for convenience, cleanup, provider differences, deployment binding, qualification shortcuts, or benchmark-specific needs.
+## Current 5GC source baseline
 
-A language change is allowed only when a concrete product scenario demonstrates an expressiveness gap that cannot be solved by ProviderBinding, ObservationBinding, Runtime behavior, qualification, Sandbox, or integration work.
+The current 5GC source baseline is:
 
-When such a gap is proven, treat the change as a language revision. Update the owning Skill Platform schemas/compiler together with official Skill examples and Cases, authoring guidance, and compatibility notes as needed. Re-run `make verify` before establishing a new frozen baseline.
+- `skills/establish-pdu-session/`
+- `skills/establish-pdu-session-mas/`
 
-## Documentation & WORK Governance
+See [Current 5GC Skill baseline](docs/current-5gc-skill-baseline.md). Other pre-existing packages under `skills/` are retained unchanged but are outside this baseline. Do not use them as current authoring examples or spend migration effort on them unless explicitly requested.
 
-- 跨仓文档治理以 `odango-chan/connectionagent/docs/DOCUMENTATION.md` 为基线；本仓只保留 Skill source / authoring 的 owner-local 规则。
-- README/authoring 文档只做定位、使用和 authoring guidance；不要复制 machine schema/compiler grammar。
-- 本仓没有 live implementation work 时不为了统一模板创建空 `docs/WORK.md`。
-- 若未来出现持续实施工作，需要 WORK 时只保存 current snapshot，并按 `Inventory -> Classify -> Migrate before delete -> Verify -> Compact` 治理；历史流水留给 Git/PR/Issue。
+## Package rules
 
-## Issue / audit trail discipline
+- Official packages live under `skills/<name>/`.
+- `SKILL.md` is the English, model-facing business entry point. Keep it focused on domain meaning, supported profile, normalization, required facts, invalid inferences, and completion/failure semantics.
+- Do not expose internal Host, Runtime, Fabric, Provider, adapter, deployment, endpoint, credential, or transport implementation details in model-facing Skill prose. Put maintainer-only integration notes under `docs/`.
+- Do not duplicate a deterministic Procedure graph in `SKILL.md`. The file is business guidance for model-driven execution; the authored Procedure remains the deterministic source.
+- An executable Skill uses the complete `assurance/{contract.yaml,procedure.yaml,predicates.yaml}` trio. Do not add a standalone `evidence.yaml`.
+- Each qualification case is one `cases/<case>/case.yaml`. Case source is not evidence that the case has been executed or qualified.
+- Package-root `README.md`, `MIGRATION.md`, `examples/`, and maintainer `design/` directories are not part of the official Skill package.
+- `references/` contains optional, flat `*.md` business knowledge files.
+- `SKILL.md` lists exact reference paths and explains when each may help. Reference loading is model-selected; do not create `preload/` or `on-demand/` subdirectories or encode loading policy in directory names.
+- Reference files are not live evidence, do not grant authority, and are not automatically injected into context.
+- Skill-local `scripts/` are governed deterministic local computation only. They must not perform Provider I/O, network access, credential access, shell workflows, or uncontrolled side effects.
 
-发现本仓或其他仓存在**可执行的问题/需求/缺口**（包括实现缺陷、产品/工程需求、feature/change request、文档漂移、缺失 contract/test/evidence、治理遗漏、cleanup/technical debt）时，不得只留在聊天、WORK 或提交说明里：
+## Procedure and machine-contract authority
 
-- 先在真正 owning repository 搜索现有 open Issue；已有等价 Issue 时复用并补充新证据，不重复创建。
-- 没有等价 Issue 时，在 owner 仓创建 Issue；跨仓问题以 authority/code owner 仓为主 Issue，consumer 仓直接引用。只有 consumer 自身存在独立实施/验收工作时才额外建 local Issue。
-- Issue 至少写清：Observed evidence/locator、Expected/target、影响范围/相关仓、owner、关闭条件/acceptance；blocker 还要写 blocking contract/file 与解除条件。
-- 当前任务会修复时，Issue 应在修复前或最迟与第一笔修复提交同时建立；实施 commit message/body 必须引用 Issue（同仓可用 `#N`，跨仓用 `owner/repo#N`）。
-- **提交代码不等于可以关 Issue。** 只有修复已进入目标分支，并完成该问题要求的 local/focused/acceptance Gate 后才能关闭。
-- 关闭前在 Issue 留下 resolving commit(s)、实际执行的 test/acceptance result、stable evidence locator，以及仍未覆盖的 scope；若只完成部分条件，保持 Issue open。
-- 若发现的问题不属于当前任务 scope，不要顺手扩大实现范围；创建/更新 Issue 后保留 open，交给后续 workstream。
-- Issue 负责 actionable tracking / 历史审计；`WORK.md` 仍只保存 current snapshot，`TRACEABILITY.md` 仍负责 contract -> code -> test -> acceptance -> evidence。关闭 Issue 不能替代 WORK/TRACEABILITY 同步。
-- `WORK.md` 不维护 `Open work` / `Next actions` prose backlog；actionable work、需求与 blocker 进入 owner Issue，WORK 只保留状态与 Issue ref。
+- The current 5GC source baseline includes node-level `preconditions` and `postconditions`; see [Authoring model](docs/authoring-model.md).
+- The legacy `ca-skill-toolchain` `procedure-source.schema.yaml` does not currently model those node-level fields. Do not remove or flatten them merely to make the legacy validator pass.
+- The new stateless Compiler v0 design is accepted, but its implementation is NOT_STARTED. Until it supports the current source constructs and imported Library references, compiler/link validation for this baseline is NOT_RUN/BLOCKED.
+- For legacy packages that fit the existing v1alpha1 contracts, the current `ca-skill-toolchain` schemas/compiler remain their machine authority. Do not claim that this implies the new 5GC baseline has compiled.
+- Never invent Capability contracts, Script schemas, or parser behavior. Unsupported features must be reported explicitly, not silently discarded.
 
-## Agent scratch / temporary storage
+## Imported Library
 
-本机 `/tmp` 可能是容量有限的 RAM-backed tmpfs。大下载、依赖缓存、解压目录、构建中间产物、浏览器/测试数据、artifact，以及需要跨多个命令保留的状态不得默认放在 `/tmp`。
+- `lib/` contains exact, read-only snapshots of externally owned Tool contracts used to resolve Skill references.
+- The current imported snapshot is `lib/tools/createdsession.tool.yaml`, sourced from `ca-agent-demo/tools/contracts/createdsession.tool.yaml` at the commit recorded in [the baseline](docs/current-5gc-skill-baseline.md).
+- Do not edit imported ToolCatalog content in place. Refresh it from its owner and update provenance.
+- An imported contract is not proof that an implementation is registered, deployed, READY, or authorized.
+- The MAS Skill's 16 `ca.pdu_session.*` references are not present in the current imported catalog. Its design-only `tool-contract.yaml` is not an approved ToolCatalog and must not be imported as one.
 
-```bash
-AGENT_TMP="${CA_AGENT_TMPDIR:-$PWD/.agent-tmp}"
-mkdir -p "$AGENT_TMP"
-export TMPDIR="$AGENT_TMP"
-export TMP="$AGENT_TMP"
-export TEMP="$AGENT_TMP"
-```
+## Documentation and verification
 
-- 若设置 `CA_AGENT_TMPDIR`，优先使用该目录；它应位于容量充足、非 tmpfs 的磁盘；
-- 未设置时使用仓库内 `.agent-tmp/`；
-- `/tmp` 只用于小型、短生命周期、随时可丢弃的文件；
-- 调试、恢复或跨命令需要的中间状态不要只存在 `/tmp`；
-- 长时间或大 IO 任务开始前检查可用空间；
-- 只清理由当前任务创建的 scratch；不得扫描、停止或删除其他任务、用户或 Agent 的进程、文件或临时目录。
+- Human guides: `docs/authoring.md` and `docs/authoring.zh-CN.md`.
+- Practical syntax notes: `.agents/skills/create-connectionagent-skill/references/authoring-syntax.md`.
+- Do not copy the complete machine grammar into prose.
+- Use `make verify` only with an explicit understanding that the current script delegates to the legacy Toolchain. A failure caused by the known unsupported source constructs or unresolved MAS imports is a compatibility blocker, not permission to weaken the Skill.
+- The future `skillc check/build` commands are targets, not currently available commands.
+- Compile success, when available, is source/build evidence only; it is not Runtime qualification or live network acceptance.
 
+## Issue discipline
+
+Search for an existing owner Issue before creating another. The current CreatedSession authoring/semantic-review trail is [ca-skills#20](https://github.com/odango-chan/ca-skills/issues/20); the older Draft PR #21 is superseded by the refreshed source baseline and must not be treated as current source.

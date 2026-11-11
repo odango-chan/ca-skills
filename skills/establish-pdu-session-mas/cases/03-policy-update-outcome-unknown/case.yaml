@@ -1,0 +1,146 @@
+apiVersion: connectionagent.io/v1alpha1
+kind: SkillTestCase
+metadata:
+  skill: establish-pdu-session-mas
+  name: 03-policy-update-outcome-unknown
+spec:
+  classes:
+  - outcome_unknown_safe_stopped
+  purpose: "An unknown PA UPDATE after address allocation reconciles the exact original operation, does not create a second policy association and stops even when the original is COMMITTED."
+  context:
+    apiVersion: connectionagent.io/v1alpha1
+    kind: PlanningContext
+    metadata:
+      operationId: mas-candidate-03-policy-update-outcome-unknown
+      version: 1
+    subject:
+      ueRef: synthetic-ue-a
+    request:
+      pduSessionId: 1
+      pti: 7
+      requestType: 1
+      dnn: internet
+      sNssai:
+        sst: 1
+        sd: 0
+      servingPlmn:
+        mcc: '001'
+        mnc: '01'
+      requestedPduSessionType: IPV4
+      requestedSscMode: 1
+    facts:
+      createdsession_ingress:
+        value: synthetic-ingress-a
+        authoritative: true
+      createdsession_lifecycle:
+        value: synthetic-lifecycle-a
+        authoritative: true
+    availableResources:
+    - ref: ca.pdu_session.subscription.validate
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.secondary_auth.disposition
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.context.create
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.uecm.register
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.policy.create
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.anchor.select
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.address.allocate
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.policy.update
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.charging.create
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.user_plane.establish
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.address.confirm
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.access.signal
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.user_plane.activate
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.events.emit
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.resources.finalize
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    - ref: ca.pdu_session.resources.cleanup
+      kind: capability
+      version: v1
+      effect: mutation
+      invocable: true
+    constraints:
+      maxActions: 48
+  expect:
+    procedure: establish-session
+    planningStatus: READY
+    terminal: SAFE_STOPPED
+    postconditions:
+    - predicate: mas.establishment.ran_accepted
+      expect: PASS
+      actual: NOT_EVALUATED
+    - predicate: mas.establishment.forwarding_ready
+      expect: PASS
+      actual: NOT_EVALUATED
+    - predicate: mas.establishment.resources_managed
+      expect: PASS
+      actual: NOT_EVALUATED
+    trace:
+      match: ordered_subsequence
+      ordered:
+      - nodeId: update-policy
+        outcome: OUTCOME_UNKNOWN
+      - nodeId: reconcile-update-policy
+        outcome: COMMITTED
+      forbiddenImmediateRetryAfterUnknown: true
+  fixtures:
+    actions:
+      update-policy: OUTCOME_UNKNOWN
+      reconcile-update-policy: COMMITTED
