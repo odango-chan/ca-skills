@@ -297,8 +297,11 @@ predicates:
     evaluator:
       type: script
       ref: scripts/evaluate_udm_read.py
+```
 
-# In the Procedure postcondition:
+Procedure postcondition:
+
+```yaml
 - verify: createdsession.udm.subscription_usable
   with:
     udmReadReceipt:
