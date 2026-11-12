@@ -560,7 +560,7 @@ The migration is now complete as a **source/behavior mapping**, but it is not ye
 
 At the time of this update:
 
-- ca-skills PR #24 is OPEN / DRAFT at `4aef253d91c76a221f8ccfb6472ca6743455d635`; Source Hygiene passed (run `43238454891`). No combined status checks were reported by the status endpoint.
+- ca-skills PR #24 is OPEN / DRAFT at `d8b7d240e741522097eaaf376a8dfcbd71f1826e`; Source Hygiene passed (run `43243171991`). No combined status checks were reported by the status endpoint.
 - ca-skills PR #25 remains OPEN / DRAFT; its source-hygiene success is recorded separately and does not validate vNext migration.
 - ca-agent-demo PRs #198, #199 and #200 remain OPEN / DRAFT. The focused results recorded by their owners are 3 passed for #198 and 5 passed for #200; #199 is documentation/inventory only.
 - ca-provider-5gc PR #50 remains OPEN / DRAFT with no observed GitHub check-runs.
