@@ -86,3 +86,10 @@ These are **mapping alternatives**, not permission for the Compiler or Runtime t
 The semantic direction of `Capability & Authoring Model vNext` remains viable. This inventory supports **removing the parallel callable identity**, not deleting the fact-owner boundaries or evidence guards.
 
 Do not freeze a final Predicate YAML shape or remove `ObservationSource` until M1–M4 have passing fixtures. The next implementation spike should first define shared Context semantic identifiers for MAS context fan-out and then independently close the owner-backed observation contracts. The two tracks can proceed without forcing an invalid snapshot abstraction.
+
+
+## 7. Normalized output schema follow-up (2026-11-12)
+
+The owner-side field-level audit is now recorded in [ca-agent-demo Draft PR #199](https://github.com/odango-chan/ca-agent-demo/pull/199), pinned to the same 5GC implementation snapshot. It enumerates the normalized `AcquiredObservation.value` fields for all 17 refs and distinguishes those values from Provider/Fabric wire schemas. No Observation output schemas are claimed as published by that PR; it is an inventory only. The next work must publish adapter-owned output Schemas and validate them by running the actual ObservationSource implementations with deterministic owner clients/stores.
+
+The Host Subject/Facts and Predicate Evidence-reference schemas are separately proposed in [ca-agent-demo Draft PR #198](https://github.com/odango-chan/ca-agent-demo/pull/198), with focused schema tests passing. They are not on `main` until merged.
