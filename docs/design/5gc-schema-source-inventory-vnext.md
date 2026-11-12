@@ -1,7 +1,7 @@
 # 5GC Executable Schema & Observation Source Inventory
 
 Status: **SOURCE AUDIT / 5GC ONLY**  
-Reference implementation: `odango-chan/ca-agent-demo` `main` (inspect exact commit before copying any schema).
+Reference implementation: `odango-chan/ca-agent-demo` `main` at `38012852827437185c6343c2b544acad401084e1` (2026-11-12; `fix(live): converge Generic Agent Host 5GC E2E and user plane evidence`). This is the audited source snapshot for this inventory.
 
 ## 1. Scope decision
 
@@ -91,3 +91,7 @@ The exact registered owner map is assembled by `integrations/fivegc/provider_res
 ## 8. Explicit non-goals
 
 This inventory does not create new Host or Observation schemas, does not promote MAS to executable, does not make all Observation refs Fabric-backed, and does not authorize copying owner schemas into `ca-skills` without owner provenance. It is a map of the current 5GC implementation and its contract authorities.
+
+## 9. Audit pin
+
+This inventory was derived from `ca-agent-demo` commit `38012852827437185c6343c2b544acad401084e1`. Any schema refresh must compare the target owner schema and implementation against this exact pin (or a newer explicitly reviewed commit), then record the new commit and schema digests. Do not treat the moving `main` name alone as reproducible provenance.
