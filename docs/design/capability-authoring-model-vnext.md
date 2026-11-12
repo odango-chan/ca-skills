@@ -293,10 +293,8 @@ Candidate:
 predicates:
   createdsession.udm.subscription_usable:
     inputs:
-      response:
-        from: nudm-sdm-get.output.result
-      receipt:
-        from: context.subject.udmReadReceipt
+      udmReadReceipt:
+        from: nudm-sdm-get.output
     evaluator:
       type: script
       ref: scripts/evaluate_udm_read.py
@@ -308,10 +306,14 @@ Semantics:
 - The evaluator receives only the declared values. The Compiler derives the Predicate Script input projection from those producer schemas and Context contracts; no author-authored Script Input Schema file is required.
 - Runtime attaches the Host Evidence projection to each producer-backed input under `input.evidence.<alias>`. Evidence is a separate provenance object, not merged into the business payload and not an arbitrary Skill-authored value.
 - The Binding Plan records parallel lineage for each consumed value and its Evidence: exact producer, source path, schema/owner, invocation/scope, and the Evidence refs/guarantees attached to that producer. A Script cannot invent or rewrite Evidence refs.
-- The Script changes from reading `input.observations.response` / implicit `input.subject` to the declared `input.response` / `input.receipt`. Its strict Output TypedDict remains unchanged.
+- The Script changes from reading `input.observations.response` / implicit `input.subject.udmReadReceipt` to the declared `input.udmReadReceipt`. Its strict Output TypedDict remains unchanged.
 - A CEL Predicate uses the same `inputs` map and evaluates those declared names. No acquisition occurs inside `verify`.
 
-This preserves the current UDM receipt-vs-result comparison without another Provider Get: the Predicate consumes the exact preceding Get result, the Host-composed receipt, and the Evidence attached to the Get producer.
+The current Procedure explicitly passes `nudm-sdm-get.output` into the Predicate as `udmReadReceipt`; this is a Predicate-local binding, not a field of `context.subject`. The vNext input declaration keeps that exact source. The prior `sbi.operation.result` ObservationSource reads the same immutable `CreatedSessionUDMResult` from an attempt-local store and adds Provider Evidence; it is not another network Get.
+
+To retire that local projection, Runtime must attach equivalent Provider Evidence to the original READ Operation result using its exact invocation/transaction/record provenance. The Predicate then consumes one result plus its Evidence, rather than comparing two copies of the same result. If Evidence parity cannot be shown, retain the local projection as a typed source over the same stored artifact—never issue another UDM Get.
+
+The current ToolCatalog still declares the nested `result` broadly as `object`; until the Provider Owner publishes its exact versioned Output Schema, nested producer-field proof remains unresolved. The syntax can be rehearsed, but a strict Compiler cannot claim those nested fields are statically proven.
 
 For the Hold path, the same shape consumes the preceding `ca.session.udm_hold.bind` output plus its Host Evidence. The current ObservationSource additionally checks the local stored record and adds `bindingStatus: CURRENT`; that normalized field and the exact hold/lifecycle/deadline correlation must therefore be part of the READ Operation's typed result or an explicit local projection over the same stored artifact. It must not trigger another Fabric pending-Hold request.
 
