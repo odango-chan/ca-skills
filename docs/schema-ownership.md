@@ -1,5 +1,7 @@
 # Skill Schema Ownership v0
 
+> Compatibility note (2026-11-12): this document describes the current v0.2 source-tree convention. In vNext, Skill source must not bind to physical `lib/` paths. The `lib/**` paths below are current local source locators only; see [Capability & Authoring Model vNext §15](design/capability-authoring-model-vnext.md#15-dependency-identity-versus-local-lib-layout) for the target dependency-identity model. Existing v0.2 compilation behavior remains unchanged until a separately reviewed migration.
+
 The source tree must contain only schemas owned by the Skill. A file being present in a Skill folder does not make that Skill the owner of every data shape it consumes.
 
 | Contract | Owner | Source / Compiler treatment |
@@ -38,3 +40,16 @@ The pinned `lib/tools/createdsession.tool.yaml` is an approved ToolCatalog snaps
 That broad `object` declaration is not sufficient evidence for those nested fields. The Compiler must not infer them from the Script body or restore the removed Skill-owned `selection-input.schema.yaml` as a workaround. Until the Tool Owner supplies a complete Operation Output Schema, strict linking of those nested accesses must remain an explicit unresolved/unsupported producer-schema diagnostic.
 
 This is separate from the missing Host Subject/Facts/Evidence and Observation Owner Schemas above.
+
+
+## vNext direction: no Skill-authored physical library paths
+
+The vNext model separates **what a Skill depends on** from **where the dependency bytes live**:
+
+- Skill source declares a stable dependency / exported contract identity, not `lib/...`.
+- Plugin-managed Workspace Configuration resolves that identity to a pinned source and immutable snapshot, and manages versioning, integrity, import, refresh, and cache.
+- Compiler receives Skill source plus resolved dependency snapshots in a deterministic logical namespace. It never fetches or manages dependencies.
+- Studio may display resolved imports in a read-only `lib/` tree, but that is not a mandatory source layout or a locator authored in the Skill.
+- No new mandatory project manifest or lockfile is introduced solely to encode paths; use the accepted Plugin-managed configuration boundary.
+
+Until this migration is separately approved, the current v0.2 `lib/...` references remain compatibility syntax. Do not change them piecemeal or invent the missing Host / Observation owner schemas.
