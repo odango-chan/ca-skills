@@ -264,3 +264,11 @@ The rehearsal supports these decisions:
 ## 11. Follow-up owner inventory
 
 See [Observation Owner and Acquisition Inventory](observation-owner-inventory-vnext.md) for the 17/17 current 5GC source-class registrations, deployment conditions, evidence caveats, and unresolved MAS Snapshot authority. This corrects the earlier lexical 19 count that included two evaluator Script refs.
+
+## 12. Isolated Compiler feasibility spike (2026-11-12)
+
+The prototype is tracked as [ca-skill-compiler PR #7](https://github.com/odango-chan/ca-skill-compiler/pull/7), Draft, based on Compiler PR #5. It adds `internal/bindingspike/` without modifying the existing `internal/compiler/bindings.go` or the paused Schema Engine work.
+
+A locally executed Go 1.23 standalone test of the proposed algorithm passed: synthetic consumer inputs using the **11 actual MAS field names** across 16 call sites yielded **176 deterministic candidate mappings**; representative 5GC UE/Ingress/Lifecycle aliases and negative cases also passed. The semantic identifiers in those tests are deliberately proposed annotations, not current ca-skills v0.2 schema fields. Producer definite availability is supplied by fixtures, not yet computed from the actual CFG; type checking is a strict primitive comparison rather than current Compiler's full JSON Schema reasoning.
+
+**Interpretation:** the spike supports feasibility of context fan-out with explicit semantic contracts. It does not authorize removing any current `with` mappings yet. Actual YAML source ingestion, semantic-field ownership, CFG dominance, complete schema checks, Compilation IR output, and old-vs-new execution/evidence equivalence remain acceptance gates.
