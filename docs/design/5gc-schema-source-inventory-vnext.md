@@ -141,7 +141,7 @@ This is the intended source-of-truth reconciliation:
 - Keep the runnable `ca-agent-demo` files as **behavior/field-shape references** for the migration rehearsal.
 - Do not copy `selection-input`, `udm-read-evaluation-input`, `transfer-start-evaluation-input`, `pcf-policy-inputs-input` or `n1n2-delivery-input` into the official Skill package.
 - The Compiler must derive Script inputs from the Procedure call-site binding graph; it must not require an independently authored mirror Schema.
-- Keep the current `predicate-evaluation-result.schema.yaml` as a separate Skill-owned Predicate result contract for now; it is not one of the five Script input Schema files rejected by the rule.
+- Do not add a manual `predicate-evaluation-result.schema.yaml` alongside the evaluator return `TypedDict`. An earlier unlinked candidate was removed from the vNext branch because its field requirements differed from the actual TypedDict; any future shared result envelope must have an identified consumer and be generated/validated from its shared type.
 - Do not copy output-side placeholders `n1n2-delivery.schema.yaml` / `pcf-policy-inputs.schema.yaml`; the official v0.2 Script output contract is derived from strict TypedDict output declarations and validated at the Tool boundary.
 
 The Procedure is already byte-identical between `ca-agent-demo/main` and `ca-skills/main`. The Script files and their legacy metadata, plus `contract.yaml` and `predicates.yaml`, still require deliberate dialect migration. No source overwrite was performed for those files.
