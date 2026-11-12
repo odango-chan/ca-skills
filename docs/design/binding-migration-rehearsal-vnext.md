@@ -336,7 +336,7 @@ Current path:
 - `sbi.udm.sm_data.get` performs the one external Provider GetSmData call and returns `invocationId` plus the Skill-facing `result` projection.
 - The same immutable `CreatedSessionUDMResult` is stored under exact `(ueRef, invocationRef, transactionRef)`.
 - The legacy `sbi.operation.result` ObservationSource reads that attempt-local store and constructs Provider SourceFactEvidence. It does **not** perform another external UDM Get.
-- `evaluate_udm_read.py` compares the Host-composed `subject.udmReadReceipt.result` with `observations.response`, then classifies the exact response as PASS / FAIL / UNKNOWN.
+- `evaluate_udm_read.py` compares the `udmReadReceipt.result` passed by the Procedure's `verify.with` mapping with `observations.response`, then classifies the exact response as PASS / FAIL / UNKNOWN. This `udmReadReceipt` is a Predicate-local input projection, not a field in the Host `context.subject` schema.
 - `selection-input.schema.yaml` separately constrains the value consumed by `select_establishment_configuration.py`; `udm-read-evaluation-input.schema.yaml` constrains the Predicate input; `predicate-evaluation-result.schema.yaml` constrains the evaluator result.
 
 vNext mapping:
