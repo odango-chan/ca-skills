@@ -217,7 +217,7 @@ Runtime:
 ## 12. Open decisions before syntax freeze
 
 The following remain open pending 5GC/MAS migration examples and Compiler feasibility review:
-- exact YAML shape for Predicate input declarations and references to explicitly scheduled READ Operations; the migration rehearsal found 19 distinct 5GC Observation Refs and one shared MAS snapshot Ref used by 17 Predicates, whose acquisition owners/contracts still need a complete inventory;
+- exact YAML shape for Predicate input declarations and references to explicitly scheduled READ Operations; the migration rehearsal found 17 distinct 5GC Observation Refs and one shared MAS snapshot Ref used by 17 Predicates, whose acquisition owners/contracts still need a complete inventory;
 - exact representation/location of Procedure context projection;
 - exact location of exceptional mappings (node-level with vs Procedure-level bindings);
 - stable semantic-field identity vocabulary for automatic binding (must not rely on property-name equality); first required use: shared Context fields and Operation input parameters, validated against the 11 common MAS context inputs and representative 5GC aliases;
@@ -228,3 +228,7 @@ The following remain open pending 5GC/MAS migration examples and Compiler feasib
 - whether procedure.yaml remains under assurance/ or moves in a separately justified directory redesign.
 
 The source-based migration rehearsal is recorded in [Binding Migration Rehearsal — 5GC and MAS](binding-migration-rehearsal-vnext.md). It supports shared Context projection plus contract-backed fan-out as the first auto-binding target, while keeping exact producer handles and assurance-sensitive references explicit until semantic output identities exist. The rehearsal traces 17 of the 19 5GC Observation Refs to concrete current owners (two Skill evaluation refs remain untraced), and identifies the MAS shared snapshot owner/READ contract as unresolved. It also confirms that v0.2 currently performs Observation acquisition inside PredicateEngine evaluation, so pure Predicate migration needs explicit acquisition scheduling rather than a syntax-only rewrite.\n\nThese syntax/contract decisions do not permit hidden Runtime behavior, ambiguous binding, or weakened Evidence guarantees.
+
+## 13. Source-backed observation mapping
+
+See [Observation Owner and Acquisition Inventory](observation-owner-inventory-vnext.md). The current 5GC source-class owners have been mapped for all **17** Predicate Observation refs (two additional `ref` entries in the file identify Script evaluators, not Observations). MAS still requires an authoritative snapshot owner/READ contract. Exact vNext replacement Operations and schema/evidence contracts remain open; no running source has been removed.
