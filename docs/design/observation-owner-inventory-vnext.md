@@ -98,3 +98,10 @@ The Host Subject/Facts and Predicate Evidence-reference schemas are separately p
 ## 8. Normalized output Schema publication update (2026-11-12)
 
 ca-agent-demo Draft PR [#200](https://github.com/odango-chan/ca-agent-demo/pull/200) now proposes 15 exported Schema files covering 16 of the 17 conventional 5GC Observation refs (the two resource-ownership refs share a structural Schema while retaining distinct fact identities). It includes strict normalized projections and a two-branch schema for N4 initial resources. The remaining `sbi.operation.result` output is intentionally blocked by the Provider UDM nested `subscription` Output Schema gap; no broad `object` fallback is introduced. PR #200 is not merged and its focused CI is pending, so these are proposed exports only.
+
+
+## 9. Provider nested UDM Output Schema follow-up (2026-11-12)
+
+The remaining upstream nested subscription schema gap now has a Provider-owned proposal in [ca-provider-5gc PR #50](https://github.com/odango-chan/ca-provider-5gc/pull/50). It replaces broad `type: object` placeholders in the v0alpha2 GetSmData result with the exact Go-projection shape (S-NSSAI, DNN, PDU session types, SSC modes, optional AMBR and QoS/ARP), and enforces MATCHED-only subscription presence.
+
+PR #50 is OPEN / DRAFT and no CI run has yet been observed. Even after it merges, the Host adapter's `runtime_value()` projection remains a distinct schema to publish: it deliberately excludes responder/deployment-binding details and carries only the exact operation/record/selection fields and optional MATCHED subscription consumed by the Predicate.
