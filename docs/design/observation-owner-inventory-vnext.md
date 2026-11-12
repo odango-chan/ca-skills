@@ -144,3 +144,27 @@ The vNext authoring model must decide whether this remains a Host orchestration 
 - pass the final result to a pure Predicate without another hidden acquisition.
 
 Do not create a generic `observation.read` callable identity or one new Operation per legacy Observation ref just to remove the old registry. The exact four owner-read shapes above are the starting point; confirm their owner contracts and Capability grouping during the first 5GC migration slice.
+
+
+### 10.2 Candidate explicit READ Operation surface
+
+The Provider Owner currently exposes one generic `ProviderObservationReadRequest/Result` API whose request contains an `observationRef` selector and whose result is a ref-discriminated union. That is a valid Provider transport contract, but the Skill should not author raw Provider Observation refs as callable identities.
+
+The adapter can expose exact READ Operation identities over that generic Provider API:
+
+| Candidate Operation surface | Fixed Provider selector | Procedure use |
+|---|---|---|
+| N4 initial-resources read | `n4.initial_resources.snapshot` | Called once before the mutation to capture the baseline and again after convergence to acquire the post-N4 resources |
+| SMF RAN-setup read | `smf.ran_setup.snapshot` | Acquires the current session's accepted RAN setup result |
+| UPF N4-forwarding read | `n4.forwarding_resources.snapshot` | Acquires the exact UPF forwarding state for the confirmed N4 pair |
+| Fabric PCF-governance read | Exact `holdRef` lookup using the proposed PCF governance result contract | Acquires current hold/sender/competing-create/lifecycle-isolation facts |
+
+These are semantic candidates, not frozen Operation IDs. Each adapter-facing Operation should have an exact Input/Output contract and a Capability membership. Its adapter fixes the Provider selector; Skill source does not pass a generic `observationRef`.
+
+Candidate Capability grouping:
+- group the three Provider assurance reads under one Provider-owned CreatedSession assurance Capability;
+- include the PCF governance read in the existing Fabric CreatedSession hold Capability only if Fabric confirms that governance is part of that same authorization boundary; otherwise publish a separate Fabric governance Capability.
+
+The Provider main request/result schemas currently use relative filename `$id` values. Before they can be referenced as vNext exported Schema identities, the Provider Owner must publish stable absolute versioned `$id` values (or an equivalent explicit export identity). The Fabric PCF governance Schema already has an absolute URL `$id`, but it is still proposed and not yet an approved stable export.
+
+The normalized Operation Output Schemas remain owned by the adapter exposing these Operations; they must not be confused with the Provider wire-result Schema. This keeps the new Skill contract small and typed while preserving the Provider's existing generic transport API behind the adapter.
