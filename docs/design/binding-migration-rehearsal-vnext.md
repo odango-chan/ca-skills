@@ -529,7 +529,7 @@ The current evaluator implementations still read the v0.2 implicit envelope:
 
 These are migration targets, not source edits. The official v0.2 scripts remain unchanged until the language and Host input projection are approved. The proposed Provider UDM v0alpha2 result Schema is a full upstream result contract; `CreatedSessionUDMResult.runtime_value()` is a narrower Host Predicate payload and still needs its own normalized export.
 
-The PR branch also contains `schemas/predicate-evaluation-result.schema.yaml`. It is not referenced by the current `contract.yaml`, `predicates.yaml`, `procedure.yaml` or `SKILL.md`, and its shape overlaps the evaluator Scripts' `PredicateEvaluationResult` TypedDict without being generated from it. Do not treat it as a per-Script Output Schema. Before syntax freeze, either identify and link its separate package-level Predicate-result consumer/owner, or remove it as an unreferenced second authority. The Script output Schema itself remains generated from TypedDict.
+The PR branch also contains `schemas/predicate-evaluation-result.schema.yaml`, the shared Predicate-result envelope retained from the runnable compatibility package. It is not a per-Script Output Schema and is not linked by the current official `contract.yaml`, `predicates.yaml`, `procedure.yaml` or `SKILL.md`. Keep it separate from the per-Script output contract: each Script output Schema remains generated from its strict return `TypedDict`. The generic result envelope's exact vNext consumer/link is deferred; this input/acquisition migration does not need to redesign Predicate result output.
 
 ## 21. End-to-end 5GC migration rehearsal result and remaining gates
 
