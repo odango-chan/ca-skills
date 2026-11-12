@@ -116,16 +116,14 @@ The follow-up code-derived audit is maintained in [5GC Owner Schema Gap Register
 
 The code-derived source inventory remains pinned to `ca-agent-demo/main@38012852827437185c6343c2b544acad401084e1`; proposed exports below are separate candidate branches and are not yet part of the official main snapshots.
 
-- Host Context / Script Evidence refs: ca-agent-demo Draft PR #198; three Owner schemas; focused CI **220 passed**.
-- Normalized Observation outputs: ca-agent-demo Draft PR #200; 15 Schema identities cover 16/17 refs; focused CI **227 passed**. The test set now includes the real UDM Hold ObservationSource projection, UDM Hold identity matching, Provider request omission and RFC 3339 format enforcement.
+- Host Context / Script Evidence refs: ca-agent-demo Draft PR #198; three Owner schemas; focused CI **3 passed**.
+- Normalized Observation outputs: ca-agent-demo Draft PR #200; 15 Schema identities cover 16/17 refs; focused CI **5 passed**. This is a focused Schema/fixture check only; it does not re-run the live 5GC flow or validate every ObservationSource output.
 - Provider GetSmData nested subscription result: ca-provider-5gc Draft PR #50; exact schema and validation script proposed, but no GitHub check-runs observed. The Host-normalized `sbi.operation.result` projection remains a separate missing Schema.
 - Fabric ingress, PCF governance and held-request-read contracts remain proposed/candidate sources. The loopback `GET /demo/hold/v1/pending` and `POST /demo/hold/v1/claim` endpoints consumed by Agent still lack a distinct Owner-published wire Schema; the Provider-facing held-request-read contract is not interchangeable with them.
 
-### 12.1 UDM SD sentinel boundary
+### 12.1 UDM result deferral
 
-Fabric's flat ingress permits the 24-bit integer `0xFFFFFF`. Provider's UDM parser treats the corresponding all-ones SD string as the reserved no-SD representation, while Provider request construction rejects `0xFFFFFF` as an ordinary SD and represents absence by omitting the field.
-
-Agent PR #200 now normalizes the sentinel to absence before both held-request identity comparison and Provider dispatch. The normalized `createdsession.udm_hold` Observation value represents `sd` as six uppercase hexadecimal characters or `null`; the raw ingress schema remains a separate wire contract.
+The current 5GC Skill already has Skill-owned consumer schemas for the UDM selection Script and UDM Predicate evaluator, plus the shared Predicate evaluation result schema. Those contracts validate what the existing business logic consumes. The Provider's full nested GetSmData Output Schema and the Host-normalized `sbi.operation.result` projection remain separate owner contracts and are deferred from the first vNext feasibility slice. Keep nested producer bindings explicit; do not infer fields from the consumer Schema or block the current Skill review on Provider PR #50.
 
 ### 12.2 Compiler consumption status
 
