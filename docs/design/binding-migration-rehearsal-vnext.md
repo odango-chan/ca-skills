@@ -149,11 +149,14 @@ The current Predicate files declare, per observation:
 - `freshness`;
 - evaluator expression consuming `observations.<name>`.
 
-The Host source confirms a separate acquisition boundary today:
+The Host source confirms a separate ObservationSource abstraction, but the current execution path does **not** keep acquisition separate from Predicate evaluation:
 - `ObservationRequest` carries an Observation Ref, grounded scope, and correlation refs;
 - `ObservationSource.acquire()` returns an acquired observation with status, normalized value, and evidence;
+- `CompositeObservationSource` routes each exact Observation Ref to one trusted source;
 - source registrations advertise evidence capability;
-- Predicate evaluation is performed separately from acquisition.
+- importantly, the current `PredicateEngine.evaluate()` iterates the Predicate's `observations` declarations and calls `self._source.acquire()` itself before evaluating CEL. Acquisition is therefore implicit in the current Predicate execution contract.
+
+The vNext proposal that Predicate evaluation be pure is consequently a **real execution-model migration**, not just a YAML rename. A migration must make acquisition scheduling explicit at the same control-flow point and preserve `when`, scope, freshness, evidence checks, UNKNOWN behavior, and trace/audit semantics. It must not eagerly read all facts at Procedure entry or turn one shared snapshot into many duplicate network calls.
 
 This means the proposed semantic distinction (Fact / Observation / acquisition / Evidence / Predicate) is well motivated. But current source syntax still couples the Predicate declaration to acquisition requirements. It must be migrated deliberately.
 
