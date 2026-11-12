@@ -53,3 +53,19 @@ The vNext model separates **what a Skill depends on** from **where the dependenc
 - No new mandatory project manifest or lockfile is introduced solely to encode paths; use the accepted Plugin-managed configuration boundary.
 
 Until this migration is separately approved, the current v0.2 `lib/...` references remain compatibility syntax. Do not change them piecemeal or invent the missing Host / Observation owner schemas.
+
+
+## vNext Predicate and Script I/O ownership (design review)
+
+The table above remains the current v0.2 compatibility rule. For the proposed pure-Predicate vNext model, the corresponding ownership is:
+
+- **Procedure Script input:** derive the effective input projection from that Procedure Script call site's `with/from` bindings. Do not author a separate Script Input Schema.
+- **Predicate input interface:** declare named values in `Predicate.inputs`; each Procedure `verify.with/from` call site supplies them. The effective Predicate Script input is derived from that declaration, all call sites, and the producer/Context contracts. Multiple call sites must be compatible.
+- **Predicate Script Evidence:** Runtime attaches Host-generated Evidence separately to each producer-backed input. Evidence is not a Script-authored field or a substitute for the business payload.
+- **Script output:** generate the output Schema from the Script's strict return `TypedDict`. Do not maintain a parallel authored per-Script Output Schema.
+- **READ Operation output:** the Tool/adapter Owner owns the domain payload Output Schema. Host owns only the generic Evidence/provenance projection. Do not retain one aggregate Observation payload Schema as a substitute for the individual READ outputs.
+- **Execution policy:** Sandbox, timeout, budget and permissions remain Host/Runtime policy, not Script metadata.
+
+The current `spec.context.schemas.observations` path is v0.2 compatibility syntax. In vNext, Observation acquisition is scheduled explicitly and each Predicate consumes declared inputs; domain payload contracts follow their actual READ Operation or stored-artifact projection owner. The exact YAML placement and shared Context/Evidence projection syntax remain design-review items.
+
+The PR branch also contains a generic `predicate-evaluation-result.schema.yaml`. It is not a per-Script Output Schema. Keep it only if its distinct shared Predicate-result consumer and owner are identified; otherwise it is an unreferenced second authority beside the generated `PredicateEvaluationResult` TypedDict output.
