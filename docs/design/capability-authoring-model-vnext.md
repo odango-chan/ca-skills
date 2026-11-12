@@ -248,11 +248,11 @@ The frozen Skill Studio Plugin-managed Configuration v0.1 already owns project d
 
 Separate three concerns:
 
-- **Skill source**: names the language-level exported contract it consumes (for example an exact Operation ID or, in a future versioned schema-reference syntax, a stable exported Schema identity). This is *what* the Skill consumes. It does not select the dependency source, dependency alias, repository, version, revision, digest, cache key, or local path.
+- **Skill source**: names the language-level exported contract it consumes (an exact Operation ID or a stable exported Schema `$id`). This is *what* the Skill consumes. It does not select the dependency source, dependency alias, repository, version, revision, digest, cache key, or local path.
 - **Studio Workspace Configuration**: owns dependency selection and source acquisition (Upload, MCP discovery, Git, Built-in), dependency aliases/identity, pinned source revision, lock/integrity metadata, immutable snapshot persistence, import/refresh/Update Lock, export and cache. It maps the Skill's exported contract references to the exact locked snapshot(s). Credentials never enter Skill source or Compiler input.
 - **Compiler**: receives Skill source plus already-resolved immutable dependency snapshots through its versioned in-memory BuildRequest. It verifies canonical snapshot digests and links exact exported contract identities. It does not fetch, select, lock, cache, update or persist dependencies.
 
-A snapshot may be displayed in a read-only **Dependencies** TreeView. A virtual `lib/` tree is optional presentation only; a physical `lib/` directory is neither required nor the source of truth. The Compiler must not require a global `lib/**` path namespace as the identity of a dependency.
+A snapshot may be displayed in a read-only **Dependencies** TreeView. The Dependencies TreeView is the user-facing projection of these snapshots. Do not create a fake `lib/` or `output/` Explorer folder merely to represent them; a physical `lib/` directory is neither required nor the source of truth. The Compiler must not require a global `lib/**` path namespace as the identity of a dependency.
 
 The current v0.2 `spec.context.schemas.*: lib/...` syntax is a **compatibility-era source locator**, not the target vNext language model. Preserve its existing behavior until a separately reviewed breaking migration; do not silently reinterpret or remove it.
 
