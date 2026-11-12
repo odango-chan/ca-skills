@@ -38,17 +38,17 @@ Therefore:
 
 The Skill source may contain a qualified exported-contract reference in the form `<dependency-alias>::<exported-contract-id>`. For example, `host-contracts::ca.host.context/subject.v1` identifies one exported Host Schema; `fivegc-tools::sbi.udm.sm_data.get` identifies one exact Operation. The alias is a stable logical namespace configured by Studio, not a repository, URL, MCP connection, revision, digest, or path. The exact YAML positions and escaping/validation rules are part of the versioned Skill language contract.
 
-For Tools, keep Capability and Operation as distinct linked identities. The Capability contract defines `Capability ID -> owner -> exact Operation IDs + expected Effects`; ToolCatalog defines each Operation's callable input/output/reconcile contract. The Skill grants Capability IDs in `allowedResources.capabilities`; Procedure nodes call exact Operation IDs. Compiler must prove every called Operation belongs to exactly one Capability granted by that Skill. A Tool Operation is not an independent permission and must never be treated as an ungrouped standalone tool. Where multiple dependency snapshots can export colliding Operation IDs, the source reference must be qualified by dependency alias, e.g. `fivegc-tools::sbi.udm.sm_data.get`; that alias only disambiguates the logical namespace and does not replace the Capability grant. CapabilityContracts and ToolCatalog must be supplied as distinct owner contracts and cross-checked for exact membership/effect. Existing 5GC `allowedResources.capabilities` currently lists Operation IDs; that is a compatibility-era source representation and must be migrated to actual Capability IDs only through a separately reviewed language change preserving exact operation coverage.
+For Tools, keep Capability and Operation as distinct linked identities. The Capability contract defines `Capability ID -> owner -> exact Operation IDs + expected Effects`; ToolCatalog defines each Operation's callable input/output/reconcile contract. The Skill grants qualified Capability IDs (`dependency-alias::capability-id`) in `allowedResources.capabilities`; Procedure nodes call qualified exact Operation IDs (`dependency-alias::operation-id`). Compiler must prove every called Operation belongs to exactly one Capability in the same resolved snapshot and that the Skill grants that qualified Capability. A Tool Operation is not an independent permission and must never be treated as an ungrouped standalone tool. Where multiple dependency snapshots can export colliding Operation IDs, the source reference must be qualified by dependency alias, e.g. `fivegc-tools::sbi.udm.sm_data.get`; that alias only disambiguates the logical namespace and does not replace the Capability grant. CapabilityContracts and ToolCatalog must be supplied as distinct owner contracts and cross-checked for exact membership/effect. Existing 5GC `allowedResources.capabilities` currently lists Operation IDs; that is a compatibility-era source representation and must be migrated to actual Capability IDs only through a separately reviewed language change preserving exact operation coverage.
 
-## 3. Compiler input contract: proposed v0.1 alignment
+## 3. Compiler input contract: proposed v0.2 alignment
 
 Compiler Draft #4 has been revised on its design branch to separate Skill source from resolved dependencies. The proposed wire shape is:
 
 ```typescript
 type File = { path: string; bytes: Uint8Array };
 type ResolvedDependency = {
-  dependencyId: string;       // opaque Studio Workspace Configuration ID
-  digest: `sha256:${string}`; // canonical snapshot content digest
+  dependencyId: string;       // Studio logical alias / reference namespace
+  digest: `sha256:${string}`; // input integrity check; not exported by BuildResult
   files: Array<{ path: string; bytes: Uint8Array }>; // snapshot-relative paths
 };
 type BuildRequest = {
