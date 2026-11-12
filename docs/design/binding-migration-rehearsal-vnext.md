@@ -288,6 +288,8 @@ A file-level comparison was made between the runnable `ca-agent-demo/main` Skill
 
 The current `ca-agent-demo` files therefore serve as the **behavior and execution baseline**, but they must not be copied wholesale into `ca-skills` and declared v0.2-conformant. The difference is precisely what the vNext migration must resolve. The Procedure's business ordering and exact producer paths remain the baseline; the authoring representation is what is under review.
 
+Recommended semantic boundary for vNext (syntax remains open): a Script is Skill-owned deterministic local computation, **not** a Tool, Operation or Capability. The current `localTools` list and `skill.*` identities must not become a second authorization/operation namespace. Keep one stable package-relative Script identity. Procedure Script inputs may be derived from the call-site bindings; Predicate evaluator inputs need a declared Skill-owned projection of the Host-supplied evaluation context. Script outputs need one strict contract source (authored or generated, not two competing schemas). Sandbox, timeout and execution permissions remain Host-owned, never Python-comment metadata.
+
 The 5GC Skill already contains Skill-owned consumer contracts for the UDM path:
 - `selection-input.schema.yaml` constrains the subscription result consumed by `select_establishment_configuration.py`;
 - `udm-read-evaluation-input.schema.yaml` constrains the exact receipt/result consumed by `evaluate_udm_read.py`;
@@ -316,4 +318,6 @@ Use three existing paths to prove the new model, without implementing a Compiler
 | Hold bind → hold-bound Predicate | A bind Operation returns a handle; the Observation source independently confirms the held request's exact identity/current binding | Decide whether the bind output is sufficient under the same evidence guarantees; otherwise schedule a distinct owner READ at the same point |
 | N4 bounded wait → initial-resources Predicate | Exact Pre-N4 policy-association scope; bounded retries; `KNOWN_ABSENT` with `CONTINUE`; final Predicate verifies actual resources | Represent wait/acquisition explicitly and supply the final typed Observation + Evidence to a pure Predicate without losing the wait policy or changing the verdict |
 
-These three slices exercise the key vNext claims: direct producer reuse, an independent owner read, and a bounded/eventual Observation. The remaining 5GC refs can then be mapped using the same alternatives in the Owner Inventory. No MAS execution is required for this first executable feasibility decision.
+These three slices exercise the key vNext claims: prior Operation-result reuse, an independent owner read, and a bounded/eventual Observation. For UDM and hold binding, the current implementation performs a separate exact stored-record Observation acquisition after the Operation; vNext may reuse the prior Operation output only if its returned data **and evidence** prove the same invocation/transaction/hold identity, scope, freshness and provenance. Otherwise that stored-record read must remain an explicit acquisition. It must not create a second external UDM Get merely to satisfy the new syntax.
+
+The remaining 5GC refs can then be mapped using the same alternatives in the Owner Inventory. No MAS execution is required for this first executable feasibility decision.
