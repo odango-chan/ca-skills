@@ -293,7 +293,7 @@ Candidate:
 predicates:
   createdsession.udm.subscription_usable:
     inputs:
-      udmReadReceipt: {}
+      udmReadResult: {}
     evaluator:
       type: script
       ref: scripts/evaluate_udm_read.py
@@ -304,8 +304,8 @@ Procedure postcondition:
 ```yaml
 - verify: createdsession.udm.subscription_usable
   with:
-    udmReadReceipt:
-      from: nudm-sdm-get.output
+    udmReadResult:
+      from: nudm-sdm-get.output.result
 ```
 
 Semantics:
@@ -314,16 +314,16 @@ Semantics:
 - The evaluator receives only the declared values. The Compiler derives the effective Predicate input projection from the Predicate interface plus all Procedure `verify.with/from` call sites and their producer schemas/Context contracts; multiple call sites must provide compatible inputs. No separate Script Input Schema file is required.
 - Runtime attaches the Host Evidence projection to each producer-backed input under `input.evidence.<alias>`. Evidence is a separate provenance object, not merged into the business payload and not an arbitrary Skill-authored value.
 - The Binding Plan records parallel lineage for each consumed value and its Evidence: exact producer, source path, schema/owner, invocation/scope, and the Evidence refs/guarantees attached to that producer. A Script cannot invent or rewrite Evidence refs.
-- The Script changes from reading `input.observations.response` / implicit `input.subject.udmReadReceipt` to the declared `input.udmReadReceipt`. Its strict Output TypedDict remains unchanged.
+- The Script changes from reading `input.observations.response` / implicit `input.subject.udmReadReceipt` to the declared `input.udmReadResult`. Its strict Output TypedDict remains unchanged.
 - A CEL Predicate uses the same `inputs` map and evaluates those declared names. No acquisition occurs inside `verify`.
 
-The current Procedure explicitly passes `nudm-sdm-get.output` into the Predicate as `udmReadReceipt`; this is a call-site binding, not a field of `context.subject`. The vNext Predicate declares only the input name, while the Procedure keeps the exact producer path. The prior `sbi.operation.result` ObservationSource reads the same immutable `CreatedSessionUDMResult` from an attempt-local store and adds Provider Evidence; it is not another network Get.
+The current Procedure passes the full `nudm-sdm-get.output` receipt (invocation identity plus `result`) at the call site. The pure Predicate input is the business payload `udmReadResult`, bound from `nudm-sdm-get.output.result`; Host attaches Provider Evidence correlated to that same invocation/transaction/record. This is a call-site binding, not a field of `context.subject`. The prior `sbi.operation.result` ObservationSource reads the same immutable `CreatedSessionUDMResult` from an attempt-local store and adds Provider Evidence; it is not another network Get.
 
-To retire that local projection, Runtime must attach equivalent Provider Evidence to the original READ Operation result using its exact invocation/transaction/record provenance. The Predicate then consumes one result plus its Evidence, rather than comparing two copies of the same result. If Evidence parity cannot be shown, retain the local projection as a typed source over the same stored artifact—never issue another UDM Get.
+Provider PR [#50](https://github.com/odango-chan/ca-provider-5gc/pull/50) proposes the full upstream GetSmData result Schema with an absolute versioned `$id`, but it remains Draft/unaccepted. That contract must be linked to the Provider ToolCatalog output. It is distinct from the narrower Host `CreatedSessionUDMResult.runtime_value()` projection consumed by the current Predicate; that normalized Host payload still needs its own exported Schema. The runnable `ca-agent-demo` compatibility copy has a legacy UDM consumer input Schema, but authoritative `ca-skills/main` does not; do not import that file as an official Skill contract or Provider Output Schema.
 
-The current ToolCatalog still declares the nested `result` broadly as `object`; until the Provider Owner publishes its exact versioned Output Schema, nested producer-field proof remains unresolved. The syntax can be rehearsed, but a strict Compiler cannot claim those nested fields are statically proven.
+To retire the local projection, Runtime must attach equivalent Provider Evidence to the original READ Operation receipt using its exact invocation/transaction/record provenance. The Predicate then consumes one business result plus its Evidence, rather than comparing two copies of the same result. If Evidence parity cannot be shown, retain the typed Host projection over the same stored artifact—never issue another UDM Get. Until both the Provider result contract and the narrower Host projection contract are resolved, a strict Compiler cannot claim all nested producer fields are statically proven.
 
-For the Hold path, the same shape consumes the preceding `ca.session.udm_hold.bind` output plus its Host Evidence. The current ObservationSource additionally checks the local stored record and adds `bindingStatus: CURRENT`; that normalized field and the exact hold/lifecycle/deadline correlation must therefore be part of the READ Operation's typed result or an explicit local projection over the same stored artifact. It must not trigger another Fabric pending-Hold request.
+For the Hold path, the same shape consumes the preceding `ca.session.udm_hold.bind` output plus its Host Evidence. The Tool output carries the held-request details but not normalized `bindingStatus`. The current ObservationSource rechecks the exact selector, held-request correlation, lifecycle and deadline against the attempt-local record, then attaches Fabric Evidence. Preserve those checks in a typed local projection over that same stored artifact; do not synthesize `CURRENT` from call success and do not trigger another Fabric pending-Hold request.
 
 ### 16.2 Explicit wait over a READ Operation
 
@@ -394,10 +394,10 @@ The three current `ca.session.evidence.await` nodes map to waits over N4 initial
 
 The first UDM / Hold / N4 slice demonstrates the core boundary, but not all 17 refs are ready to migrate:
 
-- `createdsession.procedure_context` is a captured ingress-event projection. The current Host Subject/Facts exports contain only `ueRef`, ingressRef and lifecycleRef; they do not include the event payload. It needs a distinct Host-owned ingress projection contract or an exact Host READ.
-- `createdsession.lifecycle_registration` and `createdsession.resource_responsibility` read the Host reference journal. They need an explicit Host-owned projection/READ contract; do not silently treat them as static Subject/Facts fields.
-- The nine prior-Operation-owned local projections read attempt-local stores populated by existing Operations. Their direct Operation outputs are not all proven equivalent; expose the required typed normalized result/Evidence or a local projection over the same artifact, without another external network read.
-- The generic READ result envelope (status/value/observedAt/correlation/Evidence) and the relationship between owner payload Output Schema and Host Evidence envelope still need one precise cross-owner contract.
+- `createdsession.procedure_context` is a captured ingress-event projection. ca-agent-demo PR [#200](https://github.com/odango-chan/ca-agent-demo/pull/200) proposes its `procedure-context` payload Schema; PR #198 Subject/Facts still exposes only the ingress/lifecycle handles. The payload export remains Draft/unmerged and must preserve the trusted ingress event's source provenance.
+- `createdsession.lifecycle_registration` and `createdsession.resource_responsibility` read the Host reference journal. PR #200 proposes both normalized payload Schemas; their source authority is the Agent reference journal, not Provider/Open5GS state. Keep them distinct from static Subject/Facts fields. These exports remain Draft/unmerged and must use the actual Host journal owner identity.
+- The nine prior-Operation-owned local projections read attempt-local stores populated by existing Operations. Their direct Operation outputs are not all equivalent: some return only handles while the ObservationSource adds normalized fields or validates local-store state. Expose typed projections over the same stored artifact and attach its Evidence, without another external network read.
+- The full Runtime `ObservationEvidence` envelope remains Host-internal by design. Skill consumes each Owner/adapter domain Output Schema plus the narrow Host Script Evidence-reference projection; do not publish one aggregate Observation payload Schema or the full internal envelope merely to satisfy a Compiler file-count target.
 
 ### 16.4 Impact on the current 5GC Operation set
 
