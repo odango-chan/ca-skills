@@ -105,3 +105,8 @@ ca-agent-demo Draft PR [#198](https://github.com/odango-chan/ca-agent-demo/pull/
 ## 11. Observation output Schema publication update (2026-11-12)
 
 ca-agent-demo Draft PR [#200](https://github.com/odango-chan/ca-agent-demo/pull/200) proposes normalized output Schemas for 16/17 Observation refs. The remaining `sbi.operation.result` requires the Provider Owner to complete the nested UDM subscription result Schema before a strict Skill-facing output Schema can be published. PR #200 is unmerged and CI is not yet confirmed; do not import these proposed files into the official lock until merged and reviewed.
+
+
+## 10. Detailed Owner Schema gap register
+
+The follow-up code-derived audit is maintained in [5GC Owner Schema Gap Register — vNext](5gc-owner-schema-gap-register-vnext.md). It enumerates the exact 17 Predicate Observation refs, separates generic Host Evidence Envelope from owner READ Output Schemas and Skill Predicate consumption, and records the Capability → Operation → Effect linking requirements. Use it as the WP2 checklist before attempting a no-lib Compiler build.
