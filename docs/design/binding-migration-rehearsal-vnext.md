@@ -382,4 +382,4 @@ These three existing paths show that pure Predicate is feasible without turning 
 - UDM Hold: reuse one Fabric READ Operation plus a local Host Evidence projection.
 - N4 convergence: preserve an explicit bounded wait followed by a final owner READ.
 
-This is enough to validate the core model boundary. The remaining refs should be classified using the same three categories—prior Operation result, local/event/journal projection, or genuinely independent owner READ—before any broad source migration.
+This is enough to validate the core model boundary. The full 17-ref source classification is now recorded in [Observation Owner and Acquisition Inventory](observation-owner-inventory-vnext.md): 1 Host ingress projection, 9 prior-Operation-result projections, 2 Host journal projections, and 5 independent owner-read acquisitions across 4 distinct read shapes. Therefore the vNext model does not require 17 new callable READ Operations. The remaining migration work is to expose the typed Operation result/Evidence projections and make the four genuinely independent owner-read shapes explicit under the correct Capabilities.
