@@ -218,6 +218,8 @@ Runtime:
 
 The following remain open pending 5GC/MAS migration examples and Compiler feasibility review:
 - exact YAML shape for Predicate input declarations and references to explicitly scheduled READ Operations; the migration rehearsal found 17 distinct 5GC Observation Refs and one shared MAS snapshot Ref used by 17 Predicates, whose acquisition owners/contracts still need a complete inventory;
+- how explicit acquisition supplies the materialized Observation payload and Evidence to a pure Predicate; current 5GC `evidence.await` returns only evidence refs and PredicateEngine performs a subsequent acquisition, so the migration must preserve or deliberately reconcile both acquisition points;
+- the canonical Skill-owned Script contract: stable Script identity, whether Predicate evaluator inputs have explicit Skill-owned projection Schemas, whether Procedure Script inputs are derived from call-site bindings, and one authoritative output-schema source; current ca-agent-demo `localTools` / metadata is not identical to ca-skills v0.2 Script semantics;
 - exact representation/location of Procedure context projection;
 - exact location of exceptional mappings (node-level with vs Procedure-level bindings);
 - stable semantic-field identity vocabulary for automatic binding (must not rely on property-name equality); first required use: shared Context fields and Operation input parameters, validated against the 11 common MAS context inputs and representative 5GC aliases;
