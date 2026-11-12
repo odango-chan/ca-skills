@@ -216,14 +216,14 @@ Runtime:
 ## 12. Open decisions before syntax freeze
 
 The following remain open pending 5GC/MAS migration examples and Compiler feasibility review:
-- exact YAML shape for Predicate input declarations and references to explicitly scheduled READ Operations;
+- exact YAML shape for Predicate input declarations and references to explicitly scheduled READ Operations; the migration rehearsal found 19 distinct 5GC Observation Refs and one shared MAS snapshot Ref used by 17 Predicates, whose acquisition owners/contracts still need a complete inventory;
 - exact representation/location of Procedure context projection;
 - exact location of exceptional mappings (node-level with vs Procedure-level bindings);
-- stable semantic-field identity vocabulary for automatic binding (must not rely on property-name equality);
+- stable semantic-field identity vocabulary for automatic binding (must not rely on property-name equality); first required use: shared Context fields and Operation input parameters, validated against the 11 common MAS context inputs and representative 5GC aliases;
 - whether Deployment binding overlays are needed and how they are versioned/identified;
 - exact Capability-to-Operation authorization expansion semantics;
 - Evidence vocabulary and temporal fields;
 - normalized projection contract and lineage representation;
 - whether procedure.yaml remains under assurance/ or moves in a separately justified directory redesign.
 
-These syntax/contract decisions do not permit hidden Runtime behavior, ambiguous binding, or weakened Evidence guarantees.
+The source-based migration rehearsal is recorded in [Binding Migration Rehearsal — 5GC and MAS](binding-migration-rehearsal-vnext.md). It supports shared Context projection plus contract-backed fan-out as the first auto-binding target, while keeping exact producer handles and assurance-sensitive references explicit until semantic output identities exist. The rehearsal also identifies an unresolved Observation migration inventory for both Skills, especially the MAS shared snapshot and the 5GC's 19 distinct refs.\n\nThese syntax/contract decisions do not permit hidden Runtime behavior, ambiguous binding, or weakened Evidence guarantees.
