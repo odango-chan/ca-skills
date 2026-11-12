@@ -105,3 +105,42 @@ ca-agent-demo Draft PR [#200](https://github.com/odango-chan/ca-agent-demo/pull/
 The remaining upstream nested subscription schema gap now has a Provider-owned proposal in [ca-provider-5gc PR #50](https://github.com/odango-chan/ca-provider-5gc/pull/50). It replaces broad `type: object` placeholders in the v0alpha2 GetSmData result with the exact Go-projection shape (S-NSSAI, DNN, PDU session types, SSC modes, optional AMBR and QoS/ARP), and enforces MATCHED-only subscription presence.
 
 PR #50 is OPEN / DRAFT and no CI run has yet been observed. Even after it merges, the Host adapter's `runtime_value()` projection remains a distinct schema to publish: it deliberately excludes responder/deployment-binding details and carries only the exact operation/record/selection fields and optional MATCHED subscription consumed by the Predicate.
+
+
+## 10. 5GC vNext acquisition-path classification
+
+The 17 legacy refs do **not** imply 17 new callable READ Operations. Source inspection of the runnable `ca-agent-demo/main` shows three acquisition patterns:
+
+| Pattern | Legacy refs | Existing producer / source | vNext treatment |
+|---|---|---|---|
+| Host ingress projection | `createdsession.procedure_context` | Fabric ingress event captured by the Host | Expose as an approved Host Context projection with event time and source Evidence; do not invent a network READ |
+| Prior Operation result + local Evidence projection | `createdsession.udm_hold`, `createdsession.pcf_hold`, `createdsession.n1n2_hold`, `createdsession.pcf_create_inputs`, `createdsession.nas_delivery_context`, `createdsession.amf_transfer_result`, `createdsession.udm_subscription_resource`, `createdsession.pcf_association_resource`, `sbi.operation.result` | Existing Tool Operations fetch/capture the authoritative material and populate attempt-local stores; the legacy ObservationSource reads those same stores and builds a normalized value/Evidence projection | Keep the existing Operation identity. Make its typed result and Host Evidence projection available to the Predicate. Do not add another network call merely to replace the Observation Ref |
+| Host journal projection | `createdsession.lifecycle_registration`, `createdsession.resource_responsibility` | Host-owned `CreatedSessionReferenceJournal` | Expose the required journal state through the Host Context/Evidence contract or a narrowly governed Host READ Operation; do not create a Provider/Fabric READ |
+| Independent owner READ | `createdsession.pcf_create_governance`, `createdsession.n4_baseline`, `createdsession.n4_initial_resources`, `createdsession.ran_setup_result`, `createdsession.n4_forwarding_resources` | PCF governance calls Fabric `read_governance()`; N4/RAN/forwarding sources call the Provider observation client | These are the actual independent reads that must become explicit typed READ inputs to pure Predicates |
+
+The current code supports a useful minimal estimate: **5 independent read acquisitions across 4 distinct owner-read shapes**. N4 baseline and post-N4 initial-resource checks call the same Provider N4 read shape at two different Procedure points; they must remain two reads with different temporal meaning, but need not become two different Operation identities. The other shapes are Fabric PCF governance, Provider RAN setup, and Provider N4 forwarding.
+
+The existing Operations that already capture prior material are:
+
+- `sbi.udm.sm_data.get` → exact `sbi.operation.result` projection;
+- `ca.session.udm_hold.bind`, `ca.session.pcf_hold.bind`, `ca.session.n1n2_hold.bind` → the corresponding Hold projections;
+- `ca.session.pcf_create_inputs.read` → PCF Create input projection;
+- `ca.session.operation_context.read` → NAS delivery context projection;
+- `sbi.udm.sdm_subscription.create`, `sbi.pcf.sm_policy.create` → the two resource-ownership projections;
+- `sbi.amf.n1n2.transfer` → AMF transfer-result projection;
+- `ca.session.resource_responsibility.transfer` → responsibility-journal update/projection.
+
+These are not all full payloads in the current ToolCatalog output: several currently return refs/handles while the ObservationSource reads the exact attempt-local store and adds normalized fields plus Evidence. vNext must make the materialized typed result/Evidence available to Predicate without duplicating the external effect. This may mean extending the Operation result projection, not inventing a second Operation.
+
+### 10.1 Bounded wait is orchestration, not the fact payload
+
+The current `ca.session.evidence.await` is a Host READ/wait primitive. It polls the declared ObservationSources under a bounded wait plan and returns only `evidenceRefs`. The subsequent PredicateEngine evaluation performs the final acquisition and receives the normalized value. For N4 this means a bounded series of Provider reads followed by a separate final Provider read.
+
+The vNext authoring model must decide whether this remains a Host orchestration Operation or becomes a Procedure-level bounded-wait construct over an exact owner READ Operation. Either representation must:
+
+- declare the owner READ and exact scope rather than hide a source lookup behind Predicate evaluation;
+- preserve the bounded budget/deadline and `KNOWN_ABSENT/CONTINUE` policy;
+- keep the final typed READ result and Evidence separate from the wait's evidence-reference summary;
+- pass the final result to a pure Predicate without another hidden acquisition.
+
+Do not create a generic `observation.read` callable identity or one new Operation per legacy Observation ref just to remove the old registry. The exact four owner-read shapes above are the starting point; confirm their owner contracts and Capability grouping during the first 5GC migration slice.
