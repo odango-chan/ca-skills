@@ -661,3 +661,57 @@ The complete 5GC fixture set was reviewed against the target Procedure outline. 
 5. The Cases README explicitly classifies all 36 as semantic qualification obligations, not executable Runtime fixtures. Once ordered `preconditions` / `postconditions` are supported, the real Procedure must be lowered deterministically, stable authoring-to-runtime trace lineage frozen, fixtures rebound to lowered identities, and all 36 cases executed through compile/link/admission/runtime. Envelope/schema validation alone is not workflow execution or Runtime qualification; Case 32 remains an actual action-budget enforcement obligation.
 
 Therefore the existing 36 Cases and three References are sufficient as **unchanged behavioral constraints** for this semantic migration, but they are not a substitute for new vNext binding/schema conformance tests. Before a future Compiler/Runtime implementation is accepted, add focused fixtures for each derived Predicate input projection, producer/Evidence correlation, the N4 phase union and exact instance lineage. Keep those new tests separate from the authored Case/Reference package; do not rewrite the existing examples merely to fit candidate syntax.
+## 24. Owner contract convergence decision (2026-11-13)
+
+Status: **5GC semantic ownership and migration shape converged for design review; Owner publication, READ contracts, and YAML syntax remain open.** This is not an implementation or merge authorization. `ca-skills/main` v0.2 and the runnable `ca-agent-demo/main` remain unchanged and authoritative for current execution.
+
+### 24.1 One authoritative contract per boundary
+
+| Boundary | Authority | Current proposal | Converged rule / remaining gate |
+|---|---|---|---|
+| Provider GetSmData result | `ca-provider-5gc` | PR #50 proposes the full v0alpha2 result Schema, including nested subscription fields | This is the producer Output Schema. It is Draft, has zero check-runs, and its `$id` is still under `/proposed/`. Owner must review, run CI, and publish/accept the exact versioned `$id`. Do not copy its nested fields into Skill or Host schemas |
+| Host invocation Context and Script Evidence refs | `ca-agent-demo` Host | PR #198 proposes Subject, Facts and narrow Script Evidence-ref schemas | Host owns these projections. The full Runtime `ObservationEvidence` envelope remains internal; it is not a Skill dependency |
+| Host / adapter normalized Observation payloads | `ca-agent-demo` Host and Open5GS adapters | PR #200 proposes 15 Schemas covering 16/17 legacy Observation refs | These describe current normalized legacy projections, not upstream wire contracts and not final vNext READ Operation APIs. Keep the two resource-ownership fact identities distinct even though they share one structural Schema |
+| Fabric ingress / governance / Hold control | `env-fabric` | Proposed ingress, governance and held-request contracts exist; loopback pending/claim wire still has no separate Owner Schema | Fabric owns its wire semantics. The Provider-facing held-request-read contract is not a substitute for Agent loopback `GET /demo/hold/v1/pending` / `POST /demo/hold/v1/claim`. Host-normalized projection Schemas do not bless an unpublished wire contract |
+| Skill Script I/O | `ca-skills` | Official scripts use package-relative identity and strict return `TypedDict` | Script input contracts are derived from Predicate declarations / Procedure call-site bindings. Script output Schemas are generated from strict return `TypedDict`; do not copy legacy Agent-side metadata or hand-maintain a competing result Schema |
+
+The runnable `ca-agent-demo` compatibility copy does contain three legacy UDM schemas: two Script input projections and `predicate-evaluation-result.schema.yaml`, referenced by its `connectionagent-tool` metadata. The latter leaves `evidenceUsed` optional, while the official `ca-skills/main` return `TypedDict` requires it. These are compatibility artifacts, not official `ca-skills` contracts. The attempted vNext copy of the legacy result Schema was removed; the current compatibility file was not deleted.
+
+### 24.2 The 17 legacy Observation refs do not become 17 READ Operations
+
+| Legacy source class | Count | vNext treatment |
+|---|---:|---|
+| Captured ingress projection | 1 | Bind the trusted captured event / Host `procedure-context` projection. This is not a network READ and must preserve source event provenance and receipt/acquisition time separately |
+| Prior-Operation local projections | 9 | Reuse the exact preceding Operation artifact plus its evidence where equivalent. If the Operation returns only handles, keep a typed Host projection over that same stored artifact and attach its evidence. Never add a second external read merely to replace an Observation Ref |
+| Host journal projections | 2 | Keep lifecycle-registration and resource-responsibility as Host-owned journal facts. A `lifecycleRef` or transfer receipt is only a selector/handle, not proof of current journal state. Their exact fresh acquisition boundary (Host READ Operation versus an explicitly scheduled Host projection) still needs Owner approval; do not silently promote them to static Subject/Facts fields |
+| Independent owner-read acquisition points | 5 | Four distinct READ shapes: N4 baseline/initial-resource (one shared identity only if phase-discriminated), RAN setup, N4 forwarding, and PCF governance. These require exact owner Input/Output contracts, scope/freshness/correlation guarantees, Effect and Capability membership |
+
+Thus the current migration has **five independent acquisition points across four READ shapes**, not 17 new network reads. The three Provider assurance READs are N4, RAN setup and N4 forwarding; PCF governance is a Fabric-owned READ. N4 baseline (`PRE_CREATE`) and post-create initial resources (`POST_CREATE`) may share one exact READ identity only if the result is phase-discriminated and preserves `baselineRef` → `baselineEvidenceRef` → exact `currentSessionInstanceRef` lineage. Otherwise they must remain two exact READ identities. The bounded `wait` is Runtime orchestration over the exact N4 READ, not another Tool Operation; the final READ after the wait remains explicit.
+
+### 24.3 UDM `sbi.operation.result`: direct prior-Operation binding
+
+The selected vNext mapping is:
+
+1. Keep `sbi.udm.sm_data.get` as one Provider-owned READ Operation.
+2. Bind its exact `output.result` as the pure Predicate input `udmReadResult`.
+3. Attach Host Evidence from the same full receipt, proving invocation, transaction, request, Provider record/digest, selected target, source-binding provenance and freshness.
+4. Retire the legacy `CreatedSessionUDMResult.runtime_value()` ObservationSource projection only after same-receipt Evidence parity is demonstrated. Until then, retain it as an internal v0.2 compatibility bridge over the same attempt-local artifact; never issue another UDM Get.
+
+This means no separate Host `runtime_value()` Schema is required as a vNext Skill-facing contract. The Provider result Schema is still required for static nested-field proof. The current ToolCatalog `sbi.udm.sm_data.get.outputSchema.result` remains broad `object`, and the Host adapter pins an older broad vendored v0alpha2 snapshot. After Provider acceptance, an integration follow-up must link the ToolCatalog result to the exact Provider `$id`, refresh the Host vendored schema snapshot and `RESULT_SCHEMA_SHA256`, and update the compatibility mirror under `ca-skills/lib/tools/` if that mirror remains in use.
+
+### 24.4 Capability and authorization boundary
+
+- The Skill grants qualified Capability IDs only; it does not grant individual Operations or whole Tools.
+- The trusted deployment CapabilityContracts remains the sole authority for exact Capability → Operation membership and expected Effect. Compiler must receive it as a separate trusted BuildRequest input; Runtime admission remains authoritative.
+- The three Provider assurance READs need an Owner-declared Capability membership. They may share one Provider assurance Capability only if the Provider Owner confirms that authorization boundary. PCF governance is Fabric-owned and must not be silently placed in the Provider Capability; use a separate Fabric Capability unless Fabric confirms an existing shared boundary.
+- The Host journal acquisition choice must likewise identify its Host owner/effect boundary before it is added to a Skill grant. Do not infer membership from adapter names or schema location.
+
+### 24.5 Coordinated merge and follow-up order
+
+1. **Provider PR #50:** obtain Owner review and an actual successful workflow run; accept/promote the stable versioned result `$id`. Current observation is zero check-runs, so it is not merge-ready.
+2. **Host PR #198 then #200:** these are complementary, additive Host contract bundles. Their `.github/workflows/5gc-owner-context-schemas.yml` files are byte-identical and discover whichever focused test files exist in the branch. Merge #198 first, then #200; after both land, verify the combined mainline workflow runs both test files (the separate PR runs currently report 3 and 5 passing tests). Both remain Draft pending Owner review.
+3. **Provider-to-Host integration follow-up:** after #50 is accepted, update the ToolCatalog nested result link, Host adapter vendored Provider Schema and pinned digest, and the `ca-skills/lib/tools/` compatibility mirror if still consumed. This is a distinct integration change, not part of the normalized Observation schema bundle.
+4. **Inventory PR #199:** merge/update the docs-only source inventory after the owner contracts and integration link reflect their final accepted state. Its purpose is auditability, not to create more schemas or Operations.
+5. **Then** finalize the exact four READ contracts, Host journal acquisition boundary, Capability memberships and same-receipt Evidence contract. Only after those are linked can the Skill dependency snapshot and Compiler BuildRequest be frozen for a real vNext build.
+
+Do not merge or freeze ca-skills PR #24 on the strength of focused schema tests alone. The current five PRs remain OPEN / DRAFT; no cross-repository Owner review is recorded for the bundle, and Provider #50 has no CI result. Keep v0.2 untouched until the separately reviewed breaking migration is ready.
