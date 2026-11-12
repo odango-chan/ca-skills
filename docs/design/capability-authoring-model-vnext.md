@@ -232,3 +232,9 @@ The source-based migration rehearsal is recorded in [Binding Migration Rehearsal
 ## 13. Source-backed observation mapping
 
 See [Observation Owner and Acquisition Inventory](observation-owner-inventory-vnext.md). The current 5GC source-class owners have been mapped for all **17** Predicate Observation refs (two additional `ref` entries in the file identify Script evaluators, not Observations). MAS still requires an authoritative snapshot owner/READ contract. Exact vNext replacement Operations and schema/evidence contracts remain open; no running source has been removed.
+
+## 14. Semantic field identity and pinned-fixture Compiler spike
+
+See [Semantic Field Identity Contract vNext](semantic-field-identity-vnext.md) for the proposed `x-ca-semanticId` JSON Schema annotation, owner boundaries, and eleven MAS common context field identities. These are design-level annotations, not yet supported by v0.2. An ID alone is not proof of scope, type, control-flow availability, or producer identity; exact resource handles remain explicit without stronger contracts.
+
+Compiler [Draft PR #7](https://github.com/odango-chan/ca-skill-compiler/pull/7) now includes an additional `real_fixture_test.go` intended to read pinned MAS / 5GC Procedure and ToolCatalog files and compare proposed auto-bindings with existing `with/from` mappings. Its new fixture tests have been committed but **not yet independently executed/verified**; the earlier synthetic Go unit tests passed locally. No Compiler mainline integration is claimed.
