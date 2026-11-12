@@ -339,8 +339,14 @@ nodes:
           from: input.ue-ref
         pduSessionId:
           from: input.psi
+        pti:
+          from: input.pti
+        requestType:
+          from: input.request-type
+        ingressRef:
+          from: input.ingress-ref
         pcfPolicyAssociationRef:
-          from: input.pcf-policy-association-ref
+          from: npcf-sm-policy-control-create.preconditions.resolve-pcf-create-inputs.output.pcfPolicyAssociationRef
         lifecycleRef:
           from: input.lifecycle-ref
         phase: POST_CREATE
@@ -358,8 +364,14 @@ nodes:
         from: input.ue-ref
       pduSessionId:
         from: input.psi
+      pti:
+        from: input.pti
+      requestType:
+        from: input.request-type
+      ingressRef:
+        from: input.ingress-ref
       pcfPolicyAssociationRef:
-        from: input.pcf-policy-association-ref
+        from: npcf-sm-policy-control-create.preconditions.resolve-pcf-create-inputs.output.pcfPolicyAssociationRef
       lifecycleRef:
         from: input.lifecycle-ref
       phase: POST_CREATE
