@@ -91,3 +91,12 @@ This document does not define a full semantic-type registry, new package manager
 Before final freeze: decide the exact extension-key spelling; validate the annotation against all current JSON Schema validation rules; confirm trusted context owner schemas; prove real Procedure CFG/dataflow; and compare compiled bindings with the existing explicit mappings and execution outcomes in both official Skills.
 
 Related: [Capability & Authoring Model vNext](capability-authoring-model-vnext.md), [Binding Migration Rehearsal](binding-migration-rehearsal-vnext.md), [Observation Owner Inventory](observation-owner-inventory-vnext.md), and [Compiler PR #7](https://github.com/odango-chan/ca-skill-compiler/pull/7).
+
+
+## 7. Compiler integration finding (2026-11-12)
+
+The Compiler v0.1 source already provides schema implication and control-flow availability checks (`schemasCompatible`, `bindingSourceAvailable` / `nodeOutputDominates`, and `checkBindings`). The vNext Resolver must be a candidate generator only and submit its in-memory candidates to those existing checks. A second semantic type checker or a second CFG analysis would create inconsistent sources of truth.
+
+See [Compiler Semantic Binding Integration Design](https://github.com/odango-chan/ca-skill-compiler/blob/spike/vnext-binding-resolver-20261112/docs/semantic-binding-integration-vnext.md).
+
+The pinned Compiler demo project currently lacks the declared Context Owner Schemas for some `context.subject` / `context.facts` paths referenced by the two Procedures. This is a fixture completeness gap, not permission for Compiler to infer a Host schema. Migration tests must provide the actual owner-approved schemas and declare them in SkillContract before claiming whole-Procedure compilation.
