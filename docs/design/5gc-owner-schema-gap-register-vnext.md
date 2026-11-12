@@ -1,0 +1,98 @@
+# 5GC Owner Schema Gap Register — vNext
+
+Status: **CODE-DERIVED AUDIT / NOT YET OWNER-PUBLISHED EXPORT BUNDLE**
+Audit source: odango-chan/ca-agent-demo main, commit 38012852827437185c6343c2b544acad401084e1.
+Executable baseline: conventional establish-pdu-session only. MAS is excluded.
+
+## 1. Audit conclusion
+
+The current 5GC execution path has real owner-specific contracts and Python runtime models, but it does **not** yet provide one complete, versioned, importable dependency bundle containing all Host Context, Observation, Evidence and Capability exports required by a future no-lib Compiler build.
+
+Do not create shadow copies in the Skill package to make the compiler pass. Missing owner exports are blockers to the new build, not permission to weaken schema validation.
+
+## 2. What exists today
+
+| Surface | Existing artifact / implementation | What it proves | What it does not prove |
+|---|---|---|---|
+| Tool Operation contract | tools/contracts/createdsession.tool.yaml | 12 exact Operation IDs, declared READ/MUTATION Effect, adapter binding, Input/Output/Reconcile schemas | Several nested result bodies are broad type: object; not all producer fields are statically linkable |
+| Capability → Operation | tools/contracts/capabilities/createdsession.capabilities.yaml | 6 deployment Capabilities, owner, exact Operation membership and independently expected Effect | Not a Skill-authored grant; deployment-owned authorization/effect registry |
+| Tool implementation registration | tools/registrations/default.yaml | Exact Operation → implementation selection | Not Capability membership, schema authority, authorization or READY by itself |
+| Provider Observation wire | integrations/ca_provider_5gc/contracts/provider-observation-read-request.schema.yaml and provider-observation-read-result.schema.yaml | Provider request/result envelope and six Provider Observation refs with ref-conditional payload schemas | Does not define Fabric, Host journal, or Open5GS adapter-local Observation payloads |
+| Host Observation model | runtime/observation/model.py | Implemented Python envelope: request, status, normalized value, evidence, correlation and evidence capability | No standalone versioned JSON Schema export for the generic envelope |
+| Host Context model | agent/context/base.py, projection, requirements, loader and resolvers | Implemented Python Subject / Facts / ContextFact / ContextRequirement / provenance and resolver behavior | No complete exported JSON Schema for Subject and Facts namespaces |
+| Skill Request | skills/establish-pdu-session/schemas/establishment-request.schema.yaml | Real Skill-owned public input contract | Does not substitute for Host Context or Observation schemas |
+
+## 3. Observation reference inventory
+
+The following are the exact distinct ref values in the executable 5GC Skill's PredicateSet. Two Script evaluator refs are listed separately because they are Skill-owned Script references, not Observation sources.
+
+| Predicate Observation Ref | Actual source / owner family | Current schema evidence | Gap / treatment |
+|---|---|---|---|
+| createdsession.procedure_context | Fabric ingress resident / env-fabric | Ingress observation implementation and source registration | Publish owner Output Schema and provenance/scope/freshness guarantees |
+| createdsession.udm_hold | Fabric hold-control + Open5GS hold adapter | Hold client and adapter projection | Publish exact READ result schema |
+| createdsession.pcf_hold | Fabric hold-control + Open5GS hold adapter | Hold client and adapter projection | Publish exact READ result schema |
+| createdsession.n1n2_hold | Fabric hold-control + Open5GS hold adapter | Hold client and adapter projection | Publish exact READ result schema |
+| createdsession.pcf_create_inputs | Provider-backed operation-context / PCF-input adapter | Tool Operation input/output is partly declared; local projection code exists | Close exact normalized result Schema; do not use broad object |
+| createdsession.pcf_create_governance | Fabric/hold-governance owner | Governance adapter / resident composition | Current Predicate deliberately remains UNKNOWN when required owner evidence is absent; no fabricated PASS schema |
+| createdsession.udm_subscription_resource | Host resource-evidence / reference journal | Local evidence adapter | Publish evidence projection schema and provenance |
+| createdsession.pcf_association_resource | Host resource-evidence / reference journal | Local evidence adapter | Publish evidence projection schema and provenance |
+| createdsession.n4_baseline | Open5GS N4 adapter backed by Provider SMF/UPF reads | Provider Observation result schema has N4/SMF/UPF data; adapter derives exact baseline | Publish adapter's normalized baseline schema separately from raw Provider payload |
+| createdsession.n4_initial_resources | Open5GS N4 evidence adapter | Provider N4 / PFCP / SMF payload schemas plus adapter projection | Publish normalized N4 initial resource schema |
+| createdsession.n4_forwarding_resources | Open5GS core-network evidence adapter | Provider SMF/UPF/RAN source schemas plus adapter projection | Publish normalized forwarding schema |
+| createdsession.ran_setup_result | Open5GS core-network evidence adapter | Provider smf.ran_setup.snapshot schema plus adapter projection | Publish normalized RAN setup schema |
+| createdsession.nas_delivery_context | Provider operation-context / NAS delivery preparation | Tool Operation ca.session.establishment_response.prepare gives partial source schema | Publish normalized delivery-context schema |
+| createdsession.amf_transfer_result | Host C-resident AMF transfer evidence source | C-resident transfer result / evidence projection | Publish normalized transfer-result schema and correlation guarantees |
+| createdsession.lifecycle_registration | Host lifecycle registry / journal | Host resolver and lifecycle registration implementation | Publish fact/Observation schema and lifecycle provenance |
+| createdsession.resource_responsibility | Host resource-responsibility journal | Operation contract and local evidence projection | Publish responsibility projection schema |
+| sbi.operation.result | Generic result of the exact preceding Provider Operation invocation | Operation output schemas and invocation receipt | Must be parameterized by exact Operation identity; not a global untyped result payload |
+
+Script references (not Observations): skill.evaluate-transfer-start, skill.evaluate-udm-read.
+
+## 4. Critical semantic distinction: three schema layers
+
+Do not collapse these into one context-observations.schema.yaml:
+
+1. **Generic Host Observation / Evidence Envelope** — Host-owned: observationRef, status (AVAILABLE / KNOWN_ABSENT / UNKNOWN), normalized value presence rules, provenance, source fact refs, correlation refs, world/snapshot lineage, observed-at/freshness and evidence capability.
+2. **Owner READ Operation Output Schema** — owned by the Provider / Fabric / Host / adapter that exposes the read. Declares its exact request scope, normalized output shape, and guarantees. Every Observation read is a READ Operation and belongs to exactly one Capability.
+3. **Skill Predicate consumption contract** — Skill-owned: which Observation ref it requires, scope expression, freshness requirement and evaluator. It consumes materialized facts; it does not own the producer payload schema or acquire the Observation itself.
+
+An ObservationSource implementation can remain an internal Runtime adapter behind a READ Operation. Do not expose both an independently callable Tool and a second parallel Observation tool identity for the same read.
+
+## 5. Capability / Tool relationship
+
+The executable 5GC deployment currently has six Capability groups and twelve Operations. The independent Capability contract maps each Operation to exactly one Capability and expected Effect. ToolCatalog owns callable Operation schemas and declared Effect. The Compiler's future static link must:
+
+- load ToolCatalog and CapabilityContracts from the resolved dependency set;
+- reject an Operation missing from either contract;
+- reject duplicate Operation membership across Capabilities;
+- reject Tool Effect versus Capability expected Effect disagreement;
+- reject a Procedure call whose Operation is not in exactly one Capability granted by the Skill;
+- keep deployment authorization, runtime admission and backend READY outside Compiler's claims.
+
+The current 5GC Skill's allowedResources.capabilities contains direct Operation IDs for compatibility. Do not silently reinterpret these as Capability IDs. A separate language migration must replace them with the real Capability IDs while preserving the exact set of callable Operations.
+
+## 6. Required Owner publications before WP3
+
+| Owner | Required export |
+|---|---|
+| Agent Host | Versioned Subject Schema; Facts / ContextFact Schema; generic Observation/Evidence Envelope Schema; lifecycle/resource responsibility projection schemas |
+| ca-provider-5gc | Versioned READ Operation contracts and exact normalized result schemas for Provider-backed Observation reads; tighten UDM nested subscription result |
+| env-fabric | Versioned ingress, hold and governance READ result schemas with scope, lifecycle, status and provenance semantics |
+| Open5GS adapter owner | Versioned normalized N4 baseline, N4 initial resources, forwarding resources and RAN setup result schemas |
+| Host C-resident owner | Versioned AMF transfer result and evidence schema |
+| Capability contract owner | Versioned CapabilityContracts export with exact Capability → Operation → Effect mapping |
+
+Each export must have stable Schema/Capability identity and a version. A JSON Schema $id alone is not sufficient to establish owner trust; source provenance and publication ownership must be explicit in the resolved dependency snapshot metadata managed by Studio.
+
+## 7. WP2 acceptance gates
+
+1. Every one of the 17 Observation refs is assigned to one actual owner and one READ Operation / Capability (or explicitly marked as an internal observation projection that will be surfaced by a READ Operation).
+2. Each READ Operation has exact request and result schemas; no generic object placeholders for fields consumed by Predicate or Procedure.
+3. Generic Host envelope is separated from each owner-specific normalized payload.
+4. Capability membership is exact, unique and Effect-consistent with ToolCatalog.
+5. Missing or UNKNOWN evidence remains UNKNOWN; schemas do not claim that a source can prove what its implementation cannot.
+6. No MAS schema or unverified design artifact enters the executable 5GC dependency set.
+
+## 8. Non-goals
+
+This register does not create owner schemas, change the 5GC Runtime, replace ObservationSource, turn the currently blocked governance Predicate into PASS, or assert the 5GC Skill is newly compiled by the vNext Compiler. It records the code-derived gaps to close before the no-lib compile acceptance.
