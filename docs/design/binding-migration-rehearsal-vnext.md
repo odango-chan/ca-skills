@@ -121,7 +121,7 @@ This is the clearest candidate for vNext authoring reduction. However, the MAS T
 
 ### 4.2 What remains explicit
 
-The remaining 54 `from:` mappings in the MAS Procedure are Operation-output dependencies, including:
+After subtracting the 11 top-level context-to-Procedure input projections and the 176 repeated context-forwarding mappings, the remaining **43 `from:` mappings** in the MAS Procedure are Operation-output dependencies, including:
 - subscription state → secondary-auth/context creation;
 - context state and session keys → UECM/policy;
 - policy state, anchor, address, and updated policy outputs;
@@ -188,7 +188,7 @@ Do not interpret “Predicate is pure” as “all current observation acquisiti
 |---|---|---|---|
 | Context → Procedure input | Present, typed | Present, typed | Keep as declared context projection |
 | Procedure context → repeated Operation inputs | Many repeated aliases | 176 repeated mappings | Primary auto-binding target, after semantic contract IDs exist |
-| Operation output → Operation input | Exact handles and artifacts | 54 mappings | Auto only with unique semantic producer + definite path; otherwise explicit |
+| Operation output → Operation input | Exact handles and artifacts | 43 mappings | Auto only with unique semantic producer + definite path; otherwise explicit |
 | Operation output → Predicate | Present through postcondition/evaluation patterns | State snapshot predicates | Same Binding Plan; no hidden acquisition |
 | Observation Ref → Predicate | 19 unique refs | 1 shared ref across 17 predicates | Requires owner/acquisition inventory before migration |
 | Constant/profile value | A few explicit values | Several constrained profile constants | Keep explicit or move to separately owned versioned profile contract |
