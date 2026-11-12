@@ -38,14 +38,14 @@ The lexical `with` count includes node calls, nested precondition/script calls, 
 
 | Metric | `establish-pdu-session` | `establish-pdu-session-mas` |
 |---|---:|---:|
-| Predicate definitions | 19 | 17 |
+| Predicate definitions | 17 | 17 |
 | Unique Observation Refs | 17 | 1 |
 | Observation scope | Predicate-specific, several scope shapes | Same session scope repeated |
 | Freshness examples | 5s and 1h | 5s |
 
 The 17 MAS Predicates all refer to `mas.establishment.snapshot` with the same general UE/PDU-session/ingress/lifecycle scope and 5s freshness. This strongly suggests a shared acquired snapshot/projection with multiple pure evaluations, not 17 separate reads.
 
-The 5GC Predicates use 17 distinct Observation Refs, including procedure context, UDM/PCF/N1N2 holds, PCF create inputs/governance, N4 baseline/resources, delivery context, AMF transfer, RAN setup, forwarding, resource responsibility, operation result, and lifecycle registration. These refs represent materially different authorities and assurance questions; they must not be collapsed into one generic snapshot.
+The 5GC Skill has 17 Predicate definitions and 18 Procedure `verify` occurrences (`createdsession.lifecycle.ready` is checked at two distinct mutation gates). Its PredicateSet contains 19 `ref` values: 17 distinct Observation Refs plus two Script evaluator paths. The 17 Observation Refs include procedure context, UDM/PCF/N1N2 holds, PCF create inputs/governance, N4 baseline/resources, delivery context, AMF transfer, RAN setup, forwarding, resource responsibility, operation result, and lifecycle registration. These refs represent materially different authorities and assurance questions; they must not be collapsed into one generic snapshot.
 
 ## 3. 5GC rehearsal: what can and cannot be simplified
 
