@@ -211,7 +211,7 @@ Runtime:
 - Do not claim current Compiler/Host supports proposed syntax.
 - Do not remove current Observation Source registration/schemas until every existing Observation Ref/fact is mapped to an authoritative producer, acquisition Operation where applicable, owner, input/output contract, evidence guarantee, and regression coverage.
 - Event/journal-backed facts map to their actual producer/projection owner; do not fabricate a network READ for facts already authoritatively captured.
-- Both establish-pdu-session and establish-session-mas are mandatory migration fixtures.
+- `establish-pdu-session` is the mandatory executable migration fixture. `establish-session-mas` is a structural/reference fixture for shared Context and future multi-Skill boundaries only; it is not required to run end-to-end for this feasibility review.
 - Preserve deterministic 5GC behavior and live E2E guarantees.
 - Compiler and Studio consume the same canonical contracts/examples; neither redefines semantics independently.
 - Compare old/new execution plans and demonstrate equivalent or intentionally corrected data/evidence lineage.
@@ -219,7 +219,7 @@ Runtime:
 ## 12. Open decisions before syntax freeze
 
 The following remain open pending 5GC/MAS migration examples and Compiler feasibility review:
-- exact YAML shape for Predicate input declarations and references to explicitly scheduled READ Operations; the migration rehearsal found 17 distinct 5GC Observation Refs and one shared MAS snapshot Ref used by 17 Predicates, whose acquisition owners/contracts still need a complete inventory;
+- exact YAML shape for Predicate input declarations and explicit READ scheduling; the 17 5GC refs are now classified as 1 ingress projection, 9 prior-Operation-result projections, 2 Host journal projections, and 5 independent owner-read acquisitions across 4 read shapes. MAS shared-snapshot semantics remain a structural reference question, not an executable acceptance gate;
 - how explicit acquisition supplies the materialized Observation payload and Evidence to a pure Predicate; current 5GC `evidence.await` returns only evidence refs and PredicateEngine performs a subsequent acquisition, so the migration must preserve or deliberately reconcile both acquisition points;
 - the canonical Skill-owned Script contract: stable Script identity, whether Predicate evaluator inputs have explicit Skill-owned projection Schemas, whether Procedure Script inputs are derived from call-site bindings, and one authoritative output-schema source; current ca-agent-demo `localTools` / metadata is not identical to ca-skills v0.2 Script semantics;
 - exact representation/location of Procedure context projection;
@@ -231,7 +231,7 @@ The following remain open pending 5GC/MAS migration examples and Compiler feasib
 - normalized projection contract and lineage representation;
 - whether procedure.yaml remains under assurance/ or moves in a separately justified directory redesign.
 
-The source-based migration rehearsal is recorded in [Binding Migration Rehearsal — 5GC and MAS](binding-migration-rehearsal-vnext.md). It supports shared Context projection plus contract-backed fan-out as the first auto-binding target, while keeping exact producer handles and assurance-sensitive references explicit until semantic output identities exist. The rehearsal traces 17 of the 19 5GC Observation Refs to concrete current owners (two Skill evaluation refs remain untraced), and identifies the MAS shared snapshot owner/READ contract as unresolved. It also confirms that v0.2 currently performs Observation acquisition inside PredicateEngine evaluation, so pure Predicate migration needs explicit acquisition scheduling rather than a syntax-only rewrite.\n\nThese syntax/contract decisions do not permit hidden Runtime behavior, ambiguous binding, or weakened Evidence guarantees.
+The source-based migration rehearsal is recorded in [Binding Migration Rehearsal — 5GC and MAS](binding-migration-rehearsal-vnext.md). It supports shared Context projection plus contract-backed fan-out as the first auto-binding target, while keeping exact producer handles and assurance-sensitive references explicit until semantic output identities exist. The rehearsal maps all 17 5GC Predicate Observation refs to concrete current acquisition paths; the two other `ref` entries are Skill Script evaluator identities, not Observations. MAS shared-snapshot ownership remains a future structural question. It also confirms that v0.2 currently performs Observation acquisition inside PredicateEngine evaluation, so pure Predicate migration needs explicit acquisition scheduling rather than a syntax-only rewrite.\n\nThese syntax/contract decisions do not permit hidden Runtime behavior, ambiguous binding, or weakened Evidence guarantees.
 
 ## 13. Source-backed observation mapping
 
