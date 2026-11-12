@@ -290,7 +290,7 @@ The current `ca-agent-demo` files therefore serve as the **behavior and executio
 
 Recommended semantic boundary for vNext (syntax remains open): a Script is Skill-owned deterministic local computation, **not** a Tool, Operation or Capability. The current `localTools` list and `skill.*` identities must not become a second authorization/operation namespace. Keep one stable package-relative Script identity. Procedure Script inputs may be derived from the call-site bindings; Predicate evaluator inputs need a declared Skill-owned projection of the Host-supplied evaluation context. Script outputs need one strict contract source (authored or generated, not two competing schemas). Sandbox, timeout and execution permissions remain Host-owned, never Python-comment metadata.
 
-The 5GC Skill already contains Skill-owned consumer contracts for the UDM path:
+The runnable `ca-agent-demo` 5GC copy contains legacy Skill-owned consumer projections for the UDM path (not part of official `ca-skills` v0.2 source):
 - `selection-input.schema.yaml` constrains the subscription result consumed by `select_establishment_configuration.py`;
 - `udm-read-evaluation-input.schema.yaml` constrains the exact receipt/result consumed by `evaluate_udm_read.py`;
 - `predicate-evaluation-result.schema.yaml` constrains the evaluator's PASS / FAIL / UNKNOWN result.
