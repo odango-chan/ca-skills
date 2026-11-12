@@ -130,3 +130,25 @@ The runnable `ca-agent-demo` 5GC copy contains legacy Skill-owned consumer schem
 The current Compiler PR #5 implementation imports only `lib/tools/*.yaml`, resolves project-local references from files supplied in memory, and does not load Host, Observation or CapabilityContracts exports. The CapabilityContracts schema is defined in Compiler PR #4, but the v0.1 Compiler has no CapabilityContracts linker; Runtime Host performs the current 6-Capability / 12-Operation / Effect consistency check. Compile-time Capability → Operation → Effect proof remains an explicit vNext implementation gate, not an existing Compiler feature.
 
 See [5GC Owner Schema Gap Register — vNext](5gc-owner-schema-gap-register-vnext.md) for the consolidated Owner Export Map, exact contract identities and remaining dependency order.
+
+
+## 13. Runnable Skill consumer-contract sync (2026-11-12)
+
+The vNext design branch now carries the six Skill-owned consumer contracts from the current runnable `ca-agent-demo/main` 5GC Skill:
+
+- `n1n2-delivery-input.schema.yaml`
+- `pcf-policy-inputs-input.schema.yaml`
+- `predicate-evaluation-result.schema.yaml`
+- `selection-input.schema.yaml`
+- `transfer-start-evaluation-input.schema.yaml`
+- `udm-read-evaluation-input.schema.yaml`
+
+The existing `establishment-request.schema.yaml` was already present. This brings the official 5GC example's Skill-owned input/evaluation contract set into line with the runnable behavior baseline.
+
+Intentionally not copied:
+- `n1n2-delivery.schema.yaml` and `pcf-policy-inputs.schema.yaml`: output-side contracts are currently generated/validated at the Script/Tool boundary and should not be duplicated as a second authored authority during the vNext design.
+- Current Script files and their Python metadata: ca-agent-demo's `connectionagent-tool` metadata / `localTools` identity is not the official v0.2 Script dialect.
+- `contract.yaml`, `predicates.yaml` and `procedure.yaml`: the latter is byte-identical between the two repositories, while contract/Predicate differences are dialect-specific and must be migrated deliberately, not overwritten.
+- `SKILL.md`: requires a deliberate wording refresh after the vNext Script/Predicate syntax decisions.
+
+The six copied schemas currently retain their source relative-filename `$id` values. Treat them as synchronized Skill consumer contracts, not yet as final globally addressable vNext Schema export identities. Stable package/schema identity and reference resolution remain part of the design gate.
