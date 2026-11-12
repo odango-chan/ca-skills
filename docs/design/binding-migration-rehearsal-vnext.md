@@ -272,3 +272,48 @@ The prototype is tracked as [ca-skill-compiler PR #7](https://github.com/odango-
 A locally executed Go 1.23 standalone test of the proposed algorithm passed: synthetic consumer inputs using the **11 actual MAS field names** across 16 call sites yielded **176 deterministic candidate mappings**; representative 5GC UE/Ingress/Lifecycle aliases and negative cases also passed. The semantic identifiers in those tests are deliberately proposed annotations, not current ca-skills v0.2 schema fields. Producer definite availability is supplied by fixtures, not yet computed from the actual CFG; type checking is a strict primitive comparison rather than current Compiler's full JSON Schema reasoning.
 
 **Interpretation:** the spike supports feasibility of context fan-out with explicit semantic contracts. It does not authorize removing any current `with` mappings yet. Actual YAML source ingestion, semantic-field ownership, CFG dominance, complete schema checks, Compilation IR output, and old-vs-new execution/evidence equivalence remain acceptance gates.
+
+
+## 13. Executable 5GC baseline versus current v0.2 source dialect (2026-11-12)
+
+A file-level comparison was made between the runnable `ca-agent-demo/main` Skill and the official `ca-skills/main` Skill. This is a **semantic/source-contract divergence**, not just a missing-file sync.
+
+| Surface | Runnable `ca-agent-demo` baseline | Official `ca-skills` v0.2 contract | vNext decision needed |
+|---|---|---|---|
+| Skill-local scripts | `contract.yaml` lists `localTools`; Predicate evaluator refs use `skill.evaluate-*` identities | No `localTools`; evaluator refs are package-relative `scripts/*.py` | Keep Scripts as Skill-owned local computation, not a Tool/Operation/Capability; define one stable Script reference form |
+| Script declaration | Python metadata block `connectionagent-tool` declares name, input/output schema, effect and sandbox; input/output classes are empty `dict` subclasses | Metadata block is forbidden; `main(input: dict) -> TypedDict`; sandbox policy is Host-owned | Decide the vNext Script contract without creating a second Tool identity or source-controlled execution policy |
+| Script schemas | Explicit Skill-owned Script input/output Schema files are present in `ca-agent-demo` | Procedure Script input is derived per call site; output Schema is generated from strict `TypedDict`; no authored Script Input Schema | Decide which inputs need explicit Skill-owned projections (especially Predicate evaluator input) and which are derived from Procedure bindings |
+| Context Owner schemas | Current executable `contract.yaml` omits `context.schemas`; Host exports are proposed separately in ca-agent-demo PR #198 | v0.2 requires explicit Owner Schema references when those namespaces are used | vNext should use exact versioned Owner `$id` references, not copy physical `lib/` paths |
+| Capability grant | The 12 Operation IDs appear in `allowedResources.capabilities` | v0.2 permits direct Operation grants for compatibility | vNext grants the six actual Capability IDs and links each Procedure call to one exact member Operation |
+
+The current `ca-agent-demo` files therefore serve as the **behavior and execution baseline**, but they must not be copied wholesale into `ca-skills` and declared v0.2-conformant. The difference is precisely what the vNext migration must resolve. The Procedure's business ordering and exact producer paths remain the baseline; the authoring representation is what is under review.
+
+The 5GC Skill already contains Skill-owned consumer contracts for the UDM path:
+- `selection-input.schema.yaml` constrains the subscription result consumed by `select_establishment_configuration.py`;
+- `udm-read-evaluation-input.schema.yaml` constrains the exact receipt/result consumed by `evaluate_udm_read.py`;
+- `predicate-evaluation-result.schema.yaml` constrains the evaluator's PASS / FAIL / UNKNOWN result.
+
+These are **consumer input/output contracts**, not the Provider's Operation Output Schema. For the current feasibility review, the Provider's nested GetSmData result Schema may remain deferred: the existing Skill contracts already constrain what the business logic consumes. The consequence is explicit: until the Provider Output Schema is available, a future Compiler cannot statically prove nested producer fields from the broad ToolCatalog `result: object`; keep those bindings explicit and do not auto-infer their fields. Do not duplicate the Skill consumer projection into the Provider contract.
+
+## 14. Predicate acquisition timing: actual 5GC behavior
+
+The current implementation has two distinct acquisition points that a pure-Predicate migration must account for:
+
+1. `PredicateEngine.evaluate()` evaluates the declared `when` and `scope`, calls `ObservationSource.acquire()`, validates correlation/freshness/evidence capability, then passes the normalized payload and evidence references to CEL or the Script evaluator.
+2. `ca.session.evidence.await` uses `BoundedEvidenceWaiter` to call the same ObservationSource while waiting. Its Operation output contains only `evidenceRefs`; it does **not** return the normalized Observation payload. The subsequent Predicate evaluation therefore acquires the Observation again.
+
+This is not a reason to keep acquisition hidden in Predicate. It is a migration constraint: the vNext Procedure must explicitly represent the bounded wait and the Predicate's actual input acquisition. It must not mistake `evidenceRefs` for the Observation payload or silently remove the second verification read. A later design may consolidate the two only after an old/new execution comparison proves equivalent timing, freshness, correlation, trace and UNKNOWN behavior.
+
+For the N4 initial-resource path, preserve the distinction between `KNOWN_ABSENT` and `AVAILABLE`: the wait's `CONTINUE` policy treats a proven pre-convergence absence as “not yet”, while the Predicate decides whether the final acquired state satisfies the condition. This must not become a generic Boolean wait.
+
+## 15. Minimal 5GC feasibility slice before syntax freeze
+
+Use three existing paths to prove the new model, without implementing a Compiler:
+
+| Slice | Existing behavior to preserve | vNext proof required |
+|---|---|---|
+| UDM Get → selection / `subscription_usable` | One exact GetSmData invocation; selection Script and evaluator consume its result/receipt; PASS / FAIL / UNKNOWN and provenance checks | Model prior Operation output plus exact invocation evidence as Predicate inputs; no fabricated second READ; keep nested result binding explicit while Provider Output Schema is deferred |
+| Hold bind → hold-bound Predicate | A bind Operation returns a handle; the Observation source independently confirms the held request's exact identity/current binding | Decide whether the bind output is sufficient under the same evidence guarantees; otherwise schedule a distinct owner READ at the same point |
+| N4 bounded wait → initial-resources Predicate | Exact Pre-N4 policy-association scope; bounded retries; `KNOWN_ABSENT` with `CONTINUE`; final Predicate verifies actual resources | Represent wait/acquisition explicitly and supply the final typed Observation + Evidence to a pure Predicate without losing the wait policy or changing the verdict |
+
+These three slices exercise the key vNext claims: direct producer reuse, an independent owner read, and a bounded/eventual Observation. The remaining 5GC refs can then be mapped using the same alternatives in the Owner Inventory. No MAS execution is required for this first executable feasibility decision.
