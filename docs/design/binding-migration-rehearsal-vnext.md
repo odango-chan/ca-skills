@@ -260,3 +260,7 @@ The rehearsal supports these decisions:
 - No current Observation Source is deleted or replaced.
 - No automatic binding is approved solely by matching property names.
 - No claim is made that the current Compiler can generate this proposed Binding Plan.
+
+## 11. Follow-up owner inventory
+
+See [Observation Owner and Acquisition Inventory](observation-owner-inventory-vnext.md) for the 17/17 current 5GC source-class registrations, deployment conditions, evidence caveats, and unresolved MAS Snapshot authority. This corrects the earlier lexical 19 count that included two evaluator Script refs.
