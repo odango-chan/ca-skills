@@ -169,7 +169,7 @@ The earlier statement that several owner schemas were simply absent was too broa
 - The six Provider Observation schemas are real owner files in ca-provider-5gc main, not only Host-local mirrors.
 - Fabric already has proposed held-request, PCF governance, lifecycle-isolation and AMF transfer schemas. Do not create duplicate schemas in ca-agent-demo.
 - Provider already has proposed operation-context and PCF-create-inputs schemas. They cover specific operation outputs, not generic Host Context.
-- The remaining major gap is the **Host-owned generic envelope and context export**, plus normalized Host Observation projections for Fabric/Provider/adapter results and a stable release/publication boundary for proposed owner contracts.
+- PR #198 and PR #200 now propose the narrow Host surfaces needed by the Skill: Subject/Facts, Script-facing Evidence refs, ingress procedure context, and two reference-journal payload projections. The full Runtime `ObservationEvidence` dataclasses remain Host-internal by design; they are not a required Skill export. The remaining gaps are stable Owner publication/aliasing, the normalized Host `sbi.operation.result` projection, exact adapter-facing READ Operation contracts, and the separate Fabric loopback pending/claim wire Schema.
 - A proposed schema is not automatically a stable exported contract. Compiler should only link a schema included in the selected dependency snapshot with explicit owner identity/version and a supported contract status.
 
 
@@ -187,7 +187,7 @@ The following parallel Owner work is now verified and must be treated as the imp
 
 PR #50 is specifically intended to close the upstream Provider wire-schema blocker for `sbi.operation.result`. It does **not** by itself publish the Host adapter's normalized `AcquiredObservation.value` Schema. That Host projection still needs to be added after the Provider schema is accepted, the Agent consumer snapshot is refreshed, and the ToolCatalog output contract is linked to the imported Provider schema.
 
-PR #200 currently runs the dedicated normalized-Schema/fixture test file (**5 passed**); it does not re-run the live 5GC flow or claim every ObservationSource output has been revalidated. PR #198 runs the Host Owner Schema tests (**3 passed**); it publishes the Subject/Facts and Script-facing Evidence-reference projections, not the full Runtime ObservationEvidence envelope.
+PR #200 currently runs the dedicated normalized-Schema/fixture test file (**5 passed**); it does not re-run the live 5GC flow or claim every ObservationSource output has been revalidated. The focused suite validates the 15 Schema shapes/fixtures and exercises a real UDM Hold source projection; it is not an exhaustive 15-source replay. PR #198 runs the Host Owner Schema tests (**3 passed**); it publishes Subject/Facts and Script-facing Evidence-reference projections, not the full Runtime ObservationEvidence envelope or the three domain payloads proposed separately in PR #200.
 
 The two Agent PRs now carry byte-identical, narrow CI workflow definitions, avoiding a same-path workflow-add conflict. Each branch runs the dedicated schema test files that are present there; no additional source-output conformance suite is required for the current feasibility review.
 
@@ -213,7 +213,7 @@ This is the cross-repository export inventory for the runnable conventional 5GC 
 | Fabric PCF governance | `env-fabric/contracts/proposed/createdsession-pcf-create-governance/v0alpha1/result.schema.yaml` | `https://connectionagent.io/proposed/env-fabric/createdsession-pcf-create-governance/v0alpha1/result.schema.yaml` | Proposed Fabric Owner result; required fields match `demoHoldGovernance`'s current JSON response, the Go governance test's wire struct and Agent's strict manual parser; Agent mirror is byte-identical. However `scripts/contract_gate.py` scans only canonical `schemas/v1alpha1`, not `contracts/proposed`, and the Go test does not validate its captured JSON against this Schema. Add a proposed-contract schema gate. Normalized Observation projection is a separate PR #200 Schema |
 | Fabric held-request read | `env-fabric/contracts/proposed/createdsession-held-request-read/v0alpha1/result.schema.yaml` | `https://connectionagent.io/proposed/env-fabric/createdsession-held-request-read/v0alpha1/result.schema.yaml` | Proposed Provider-facing read contract; not the loopback pending/claim API currently consumed by Agent |
 | Fabric loopback Hold control | Actual `GET /demo/hold/v1/pending` and `POST /demo/hold/v1/claim` in `env-fabric/internal/inline/sbi/demo_hold_http.go` | No published Schema identity | Missing Owner export. Agent currently parses the wire shape manually. Do not pretend the held-request-read contract covers this API |
-| Host normalized `sbi.operation.result` | `ca-agent-demo` `CreatedSessionUDMObservationSource.runtime_value()` | Not yet exported | Blocked on Provider's exact nested subscription result; after Provider #50 is accepted, publish a separate Host Observation projection Schema and test the real source |
+| Host normalized `sbi.operation.result` | `ca-agent-demo` `CreatedSessionUDMObservationSource.runtime_value()` | Not yet exported | Provider PR #50 proposes the full upstream GetSmData result Schema with an absolute versioned `$id`, but remains Draft/unaccepted. After that Owner contract is accepted, publish the separate narrower Host `runtime_value()` Predicate-payload Schema; do not confuse the two shapes |
 
 ### 11.1 Complete normalized Observation export identities
 
@@ -254,7 +254,7 @@ Therefore the answer to “can Capability authorization be statically validated?
 
 ## 13. Current vNext feasibility gates
 
-1. Use the existing Skill-owned UDM consumer schemas for the first migration rehearsal: `selection-input.schema.yaml`, `udm-read-evaluation-input.schema.yaml` and `predicate-evaluation-result.schema.yaml`. Do not block this review on Provider PR #50 or create a duplicate Skill schema for the Provider result.
-2. Keep nested `sbi.operation.result` producer bindings explicit while the Provider Output Schema remains broad. No field inference or automatic binding is allowed without the Owner contract.
+1. Use the runnable `ca-agent-demo` legacy UDM consumer schemas only as behavior/field-shape references. They are not present in authoritative `ca-skills/main` and must not be imported as official Skill contracts or treated as Provider Output Schemas. Do not create a duplicate Skill schema for the Provider result.
+2. Keep nested `sbi.operation.result` producer bindings explicit while Provider PR #50 remains unaccepted and the separate Host-normalized `runtime_value()` Schema is unpublished. No field inference or automatic binding is allowed without the relevant Owner contract.
 3. Model the exact stored-result acquisition and its evidence when migrating `createdsession.udm.subscription_usable` to a pure Predicate. Reuse the prior Operation output only if its data and evidence prove the same invocation/transaction identity; do not issue another external UDM Get merely to satisfy the authoring syntax.
 4. Keep Capability → Operation → Effect linking as a contract requirement for the new model. Compiler implementation is a later consumer task; this design review does not add or reimplement Compiler behavior.
