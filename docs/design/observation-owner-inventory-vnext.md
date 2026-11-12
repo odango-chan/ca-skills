@@ -90,14 +90,14 @@ Do not freeze a final Predicate YAML shape or remove `ObservationSource` until M
 
 ## 7. Normalized output schema follow-up (2026-11-12)
 
-The owner-side field-level audit is now recorded in [ca-agent-demo Draft PR #199](https://github.com/odango-chan/ca-agent-demo/pull/199), pinned to the same 5GC implementation snapshot. It enumerates the normalized `AcquiredObservation.value` fields for all 17 refs and distinguishes those values from Provider/Fabric wire schemas. No Observation output schemas are claimed as published by that PR; it is an inventory only. The next work must publish adapter-owned output Schemas and validate them by running the actual ObservationSource implementations with deterministic owner clients/stores.
+The owner-side field-level audit is recorded in [ca-agent-demo Draft PR #199](https://github.com/odango-chan/ca-agent-demo/pull/199), pinned to the runnable 5GC implementation snapshot. It enumerates the normalized `AcquiredObservation.value` fields for all 17 refs and distinguishes them from Provider/Fabric wire schemas. Treat this as a migration inventory, not a requirement to create 17 new callable READ Operations or to re-run every source. Reuse an existing Operation output or owner projection when its exact data, scope and evidence are sufficient; introduce a distinct acquisition contract only where the vNext Predicate input actually requires one.
 
-The Host Subject/Facts and Predicate Evidence-reference schemas are separately proposed in [ca-agent-demo Draft PR #198](https://github.com/odango-chan/ca-agent-demo/pull/198), with focused schema tests passing. They are not on `main` until merged.
+The Host Subject/Facts and Script-facing Predicate Evidence-reference schemas are separately proposed in [ca-agent-demo Draft PR #198](https://github.com/odango-chan/ca-agent-demo/pull/198). Its focused schema workflow currently passes 3 tests. These exports remain unmerged.
 
 
 ## 8. Normalized output Schema publication update (2026-11-12)
 
-ca-agent-demo Draft PR [#200](https://github.com/odango-chan/ca-agent-demo/pull/200) now proposes 15 exported Schema files covering 16 of the 17 conventional 5GC Observation refs (the two resource-ownership refs share a structural Schema while retaining distinct fact identities). It includes strict normalized projections and a two-branch schema for N4 initial resources. The remaining `sbi.operation.result` output is intentionally blocked by the Provider UDM nested `subscription` Output Schema gap; no broad `object` fallback is introduced. PR #200 is not merged and its focused CI is pending, so these are proposed exports only.
+ca-agent-demo Draft PR [#200](https://github.com/odango-chan/ca-agent-demo/pull/200) proposes 15 normalized projection Schemas covering 16 of the 17 legacy Observation refs (the two resource-ownership refs share a structural Schema while retaining distinct fact identities). These describe the current adapter projections; they are not yet the final vNext READ Operation contract set. The focused Schema/fixture workflow passes 5 tests. The remaining `sbi.operation.result` Provider Output Schema is deferred from the first vNext feasibility slice because the Skill already owns the consumer-side UDM input/evaluation schemas. PR #200 remains unmerged and must not be treated as a frozen vNext Operation API.
 
 
 ## 9. Provider nested UDM Output Schema follow-up (2026-11-12)
