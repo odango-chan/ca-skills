@@ -4,17 +4,17 @@ Status: **SOURCE REVIEW COMPLETE / SEMANTIC MAPPING PARTIAL**
 Date: 2026-11-12  
 Target design: [Capability & Authoring Model vNext](capability-authoring-model-vnext.md)  
 Source repository: `odango-chan/ca-agent-demo`, `main`  
-Source tree commit observed during review: `4395982fa6efb97714b97901603b2dfb7018c4d0`
+Source tree commit audited for the official sample sync: `38012852827437185c6343c2b544acad401084e1`
 
 > This is a read-only source rehearsal. No Skill source, ToolCatalog, Runtime, or live 5GC environment was modified. Counts below are lexical counts from the six YAML files and should not be interpreted as a compiler-derived count of removable mappings.
 
 ## 1. Executive result
 
-The two real Skills support the proposed direction, but they expose an important distinction:
+The executable conventional 5GC Skill supports the proposed direction. MAS is retained only as a structural/reference fixture because it does not yet have a runnable end-to-end path. The comparison exposes an important distinction:
 
 - **MAS** contains substantial repeated forwarding of the same Procedure context into every Operation. This is the strongest candidate for contract-backed automatic binding.
 - **5GC** has a useful Procedure input projection already, but it also has deeply intentional, identity-sensitive bindings involving Fabric holds, exact UDM/PCF transactions, lifecycle, invocation, policy association, and N1/N2 artifacts. These must not be simplified merely because their types are strings or their field names match.
-- **Both Skills** still use Predicate-level Observation Ref declarations. They cannot be migrated by simply replacing `observations:` with an Operation call. The actual acquisition owners, source contracts, freshness semantics, and evidence guarantees must first be mapped.
+- **5GC and the MAS design fixture** both use Predicate-level Observation Ref declarations. They cannot be migrated by simply replacing `observations:` with an Operation call. For executable acceptance, only 5GC is authoritative; MAS remains a structural reference.
 - Existing Tool contracts largely declare JSON Schema names and types. They do not yet provide a sufficiently rich, shared semantic-field identity vocabulary to safely infer every same-named field. Automatic binding cannot be enabled by property-name equality alone.
 
 Conclusion: retain the proposed Binding Plan, but make the first implementation target **shared context projection + contract-backed fan-out**, not unrestricted producer inference. Keep exact producer handles and assurance-sensitive references explicit until contracts prove their semantic identity.
@@ -395,3 +395,19 @@ The vNext migration can preserve those 12 callable identities and change the Ski
 - one Fabric PCF governance READ Operation, added to the existing Fabric hold Capability only if that is the Owner-approved authorization boundary; otherwise it requires a separate Capability.
 
 That gives a candidate 16 unique callable Operations if `ca.session.evidence.await` remains a Host orchestration Operation. If bounded wait becomes a Procedure control-flow construct, it gives 15. This count is an impact estimate, not a frozen Capability/Operation contract.
+
+
+## 17. Official 5GC source synchronization result (2026-11-12)
+
+The official source comparison between `ca-agent-demo/main@38012852827437185c6343c2b544acad401084e1` and `ca-skills/main@3fce09aca32b6a6faf6ec3e9a204d38cc129ec38` found:
+
+- 50 shared files: **42 byte-identical**, 8 different.
+- The Procedure, all 36 Cases, all three Reference documents and the public Request Schema are byte-identical.
+- All five Script `main()` business bodies are equivalent. Differences are the legacy Agent-side `connectionagent-tool` metadata/input-class annotations versus the official v0.2 `main(input: dict) -> TypedDict` form. Keep the official typed declarations; no behavior rewrite is needed.
+- `assurance/contract.yaml` intentionally differs: official v0.2 has explicit Host/Observation Schema references and no `localTools`; do not copy the Agent-side legacy `localTools` list.
+- `assurance/predicates.yaml` differs only in Script evaluator identity: keep package-relative `scripts/*.py` refs, not legacy `skill.*` IDs.
+- The Agent tree contains 11 additional legacy Script input/output Schema files. They are not copied: v0.2 derives Procedure Script inputs per call site, generates Script output Schemas from strict `TypedDict`, and retains only genuinely Skill-owned authored Schemas. Their shapes are migration evidence for the still-open vNext Predicate-input projection decision, not a reason to restore the old metadata contract.
+
+The only business-source refresh needed was `SKILL.md`, which has been synchronized in [ca-skills PR #25](https://github.com/odango-chan/ca-skills/pull/25). Its source-hygiene workflow passes. The sync updates current Harness prerequisites, decision facts, opaque context ownership, exact occurrence/evidence rules, integration boundary, completion and recovery guidance, while redirecting maintainer links to the authoritative ca-skills docs.
+
+This confirms the official 5GC sample's deterministic Procedure and Script business logic were already aligned with the runnable baseline. Remaining source differences are intentional language-boundary differences or unresolved Owner dependency exports—not stale Procedure behavior.
