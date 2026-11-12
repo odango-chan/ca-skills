@@ -64,7 +64,7 @@ The Compiler does not need a second dependency manifest or exported-contract lis
 
 For current v0.2 source compatibility, existing `lib/...` values in `spec.context.schemas` are temporary locators matched against an exact snapshot-relative path across supplied snapshots; zero matches is missing and multiple matches is ambiguous. This does not recreate a global `lib/**` namespace or require a physical `lib/` folder. The vNext language replaces these locators with exact Owner-controlled Schema `$id` strings. It never places dependency IDs/aliases or source metadata in Skill YAML.
 
-BuildResult returns selected Skill source/generated Skill files and a sorted `dependencyClosure` of the exact dependencyId + digest pairs used. It does not copy dependency bytes into `outputFiles`; Studio remains responsible for persistence/export and can package the locked snapshots alongside the build result.
+BuildResult returns selected Skill source/generated Skill files and a sorted `dependencyClosure` of the dependency aliases actually used. Snapshot digests are verified BuildRequest inputs and are not exported. It does not copy dependency bytes into `outputFiles`; Studio remains responsible for persistence/export and can package the locked snapshots alongside the build result.
 
 This wire change is still a **Draft design**, not an implemented Compiler API. The current Go/WASM v0 API remains the compatibility baseline until the implementation Goal updates both Native and WASM and passes the digest vectors.
 
@@ -117,7 +117,7 @@ This proposal does not create missing Host/Observation schemas, does not define 
 
 ## Observation output Schema status
 
-The owner-side proposal [ca-agent-demo PR #200](https://github.com/odango-chan/ca-agent-demo/pull/200) covers 16/17 normalized 5GC Observation outputs. `sbi.operation.result` remains blocked on the Provider UDM nested subscription Schema. This is a real remaining Owner contract gap, not a Compiler or Skill workaround. Do not claim the 5GC dependency set is complete until the Provider schema is completed and the Owner PR is merged.
+The owner-side proposal [ca-agent-demo PR #200](https://github.com/odango-chan/ca-agent-demo/pull/200) covers 16/17 normalized 5GC Observation outputs. The upstream Provider nested subscription schema now has a proposal in [ca-provider-5gc PR #50](https://github.com/odango-chan/ca-provider-5gc/pull/50), but it is still OPEN / DRAFT and has no reported CI run. After it is accepted, the Host adapter's normalized `sbi.operation.result` schema must still be published separately. Do not claim the 5GC dependency set is complete until both owner contracts are merged and the Host projection is tested.
 
 
 ## 8. Reference identity correction
@@ -127,6 +127,6 @@ The logical dependency alias **is part of a Skill reference namespace**, as requ
 
 ## 8. Capability / Operation relation and digest output boundary
 
-A Tool is not an independent permission. The Capability owner contract groups exact Operations and their expected effects; ToolCatalog defines callable Operation schemas/effects. Skill grants Capability IDs; Procedure calls Operation IDs; Compiler links the Operation to exactly one granted Capability and cross-checks the independently declared Effect. Observation reads follow the same rule: a READ Operation under a Capability, not a parallel tool namespace.
+A Tool is not an independent permission. The Capability owner contract groups exact Operations and their expected effects; ToolCatalog defines callable Operation schemas/effects. Skill grants qualified Capability IDs; Procedure calls qualified Operation IDs; Compiler links each Operation to exactly one granted Capability in the same dependency snapshot and cross-checks the independently declared Effect. Observation remains a separate read-only source/evidence contract and is not automatically promoted to a callable Tool Operation. If an Observation read is explicitly exposed as a Tool Operation, that Operation must belong to exactly one Capability and be authorized by the Skill.
 
 Compiler may verify snapshot digests supplied in BuildRequest as part of integrity validation, but **does not export digest values in BuildResult**. The proposed BuildResult reports only the dependency aliases actually used, diagnostics and generated files. Studio remains the sole owner of dependency lock/digest display and persistence.
