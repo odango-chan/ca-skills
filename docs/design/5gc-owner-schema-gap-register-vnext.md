@@ -1,6 +1,6 @@
 # 5GC Owner Schema Gap Register — vNext
 
-Status: **CODE-DERIVED AUDIT / NOT YET OWNER-PUBLISHED EXPORT BUNDLE**
+Status: **CODE-DERIVED AUDIT / OWNER EXPORTS IN DRAFT; COMPLETE IMPORTABLE BUNDLE NOT YET AVAILABLE**
 Audit source: odango-chan/ca-agent-demo main, commit 38012852827437185c6343c2b544acad401084e1.
 Executable baseline: conventional establish-pdu-session only. MAS is excluded.
 
@@ -156,12 +156,13 @@ The earlier statement that several owner schemas were simply absent was too broa
 | ca-provider-5gc | `schemas/provider-observation-read-request.schema.yaml`, `schemas/provider-observation-read-result.schema.yaml` | Owner schema present on main | Six raw Provider Observation refs: UE registration, SMF PDU context, UPF PFCP resources, N4 initial resources, SMF RAN setup, N4 forwarding resources |
 | ca-provider-5gc | `contracts/proposed/createdsession-operation-context/v0alpha1/{request,result}.schema.yaml` | Proposed | Supports operation-context facts used by PCF/NAS preparation; not a general Host Context schema |
 | ca-provider-5gc | `contracts/proposed/createdsession-pcf-create-inputs/v0alpha2/{request,result}.schema.yaml` | Proposed | Exact PCF input-read readiness, held-request lineage, allocated address, field provenance; not PCF create governance or association ownership |
-| env-fabric | `contracts/proposed/createdsession-held-request-read/v0alpha1/{request,result}.schema.yaml` | Proposed | Exact held SMF request, hold/lifecycle/current instance, request digest and deadline; does not prove sender authorization, create or delivery |
+| env-fabric | `contracts/proposed/createdsession-held-request-read/v0alpha1/{request,result}.schema.yaml` | Proposed | Exact held SMF request, hold/lifecycle/current instance, request digest and deadline; does not prove sender authorization, create or delivery. This is a Provider-facing read path, not the Agent's loopback `/demo/hold/v1/pending` / `/claim` API |
+| env-fabric | `contracts/proposed/createdsession-agent-ingress/v0.1/agent-message.schema.yaml` | Candidate / not approved product API | Flat Agent ingress message; its `sd` field allows the full 24-bit range, but the `0xFFFFFF` no-SD sentinel semantics were not explicit in the owner README at the audit point |
 | env-fabric | `contracts/proposed/createdsession-pcf-create-governance/v0alpha1/result.schema.yaml` | Proposed | Hold state, sender authorization, competing-create state, lifecycle isolation and evidence refs; matches the semantic owner for `createdsession.pcf_create_governance` |
 | env-fabric | `contracts/proposed/createdsession-lifecycle-isolation/v0alpha1/evidence.schema.yaml` | Proposed | Operator-owned isolation declaration consumed by Fabric; not an Agent business fact |
 | env-fabric | `contracts/proposed/createdsession-amf-n1n2-transfer/v0.1/transfer-result.schema.yaml` | Proposed candidate | Detailed Fabric transfer attempt record; needs an explicit normalized Host Observation projection and lifecycle/correlation mapping |
-| ca-agent-demo / Host | `src/ca_agent_host/runtime/observation/model.py`; `agent/context/base.py`, `loader.py`, `projection.py` | Runtime implementation on main | Python value models exist for ObservationEvidence, SourceFactEvidence, ContextFact, BaseContext, PlanningContext, ContextRequirement, ContextOffer and ModelVisibleContext; no complete versioned JSON Schema export bundle |
-| ca-agent-demo / Host | `src/ca_agent_host/integrations/env_fabric/contracts/createdsession-pcf-create-governance-result.schema.yaml` and Provider mirrored wire schemas | Host-side integration mirrors/projections | These are Host integration contracts, not replacements for the Fabric/Provider source-of-truth schemas |
+| ca-agent-demo / Host | `src/ca_agent_host/agent/host/schemas/*` and `src/ca_agent_host/integrations/fivegc/contracts/observations/*` | Draft Owner exports: PR #198 (3 schemas) and PR #200 (15 schemas, 16/17 Observation refs) | Real Subject/Facts/Script Evidence-reference and normalized Observation projections are proposed; PR #198 CI 38 passed, PR #200 CI 45 passed; both remain unmerged |
+| ca-agent-demo / Host | `src/ca_agent_host/integrations/env_fabric/contracts/createdsession-pcf-create-governance-result.schema.yaml` and Provider mirrored wire schemas | Consumer snapshots / projections | The PCF governance mirror is byte-identical to Fabric's proposed result Schema; mirrors are not replacements for the Fabric/Provider source-of-truth schemas |
 
 ### 9.1 Corrections to the initial gap classification
 
@@ -179,13 +180,83 @@ The following parallel Owner work is now verified and must be treated as the imp
 
 | PR | Owner repository | Contribution | Latest observed status |
 |---|---|---|---|
-| [ca-agent-demo #198](https://github.com/odango-chan/ca-agent-demo/pull/198) | Agent Host | Host Subject, Facts and Script-facing Predicate Evidence reference schemas | OPEN / DRAFT; focused CI PASS (3 tests) |
-| [ca-agent-demo #199](https://github.com/odango-chan/ca-agent-demo/pull/199) | Agent Host | Code-derived normalized output inventory for all 17 refs | OPEN / DRAFT; docs-only |
-| [ca-agent-demo #200](https://github.com/odango-chan/ca-agent-demo/pull/200) | Agent Host + Open5GS adapters | 15 normalized output Schema files covering 16/17 refs; real N4 AVAILABLE / KNOWN_ABSENT branches | OPEN / DRAFT; focused CI PASS (3 tests) |
-| [ca-provider-5gc #50](https://github.com/odango-chan/ca-provider-5gc/pull/50) | Provider | Exact nested UDM GetSmData subscription Output Schema; removes broad object placeholders | OPEN / DRAFT; CI has not yet reported a run |
+| [ca-agent-demo #198](https://github.com/odango-chan/ca-agent-demo/pull/198) | Agent Host | Host Subject, Facts and Script-facing Predicate Evidence reference schemas | OPEN / DRAFT; focused CI **38 passed, 0 failed** |
+| [ca-agent-demo #199](https://github.com/odango-chan/ca-agent-demo/pull/199) | Agent Host | Code-derived normalized output inventory for all 17 refs | OPEN / DRAFT; docs-only, refreshed with UDM SD semantics |
+| [ca-agent-demo #200](https://github.com/odango-chan/ca-agent-demo/pull/200) | Agent Host + Open5GS adapters | 15 normalized output Schema files covering 16/17 refs; real N4 AVAILABLE / KNOWN_ABSENT branches | OPEN / DRAFT; focused CI **45 passed, 0 failed** |
+| [ca-provider-5gc #50](https://github.com/odango-chan/ca-provider-5gc/pull/50) | Provider | Exact nested UDM GetSmData subscription Output Schema; removes broad object placeholders | OPEN / DRAFT; **no GitHub check-runs observed** |
 
-PR #50 is specifically intended to close the upstream Provider wire-schema blocker for `sbi.operation.result`. It does **not** by itself publish the Host adapter's normalized `AcquiredObservation.value` Schema. That Host projection still needs to be added after the Provider schema is accepted and the pinned consumer copy is refreshed.
+PR #50 is specifically intended to close the upstream Provider wire-schema blocker for `sbi.operation.result`. It does **not** by itself publish the Host adapter's normalized `AcquiredObservation.value` Schema. That Host projection still needs to be added after the Provider schema is accepted, the Agent consumer snapshot is refreshed, and the ToolCatalog output contract is linked to the imported Provider schema.
 
-PR #200's current CI evidence is limited to Draft 2020-12 schema/fixture validation (3 passed); it is not a full ObservationSource execution test or live 5GC E2E. PR #198 likewise validates the actual Subject/Facts materialization path and Script-facing evidence refs only; it does not publish the full Runtime ObservationEvidence envelope.
+PR #200 now goes beyond fixture-only validation: it validates the real `CreatedSessionUdmHoldObservationSource` projection, UDM Hold identity matching, Provider request omission, both N4 initial-resource branches, and strict RFC 3339 date-time rejection. Its 45 passing tests are focused conformance, not a full ObservationSource suite for all 17 refs or live 5GC E2E. PR #198's 38 passing tests validate the actual Subject/Facts materialization and Script-facing Evidence refs; they do not publish the full Runtime ObservationEvidence envelope.
+
+The two Agent PRs now carry byte-identical CI workflow definitions, avoiding a same-path workflow-add conflict. The workflow watches producer/adapter source paths as well as the schema/test files.
 
 The generic Runtime ObservationEvidence dataclasses remain Host-internal. This is intentional until a separate cross-runtime consumer needs that envelope; do not publish it merely to satisfy a Compiler file-count target.
+
+
+## 11. Consolidated Owner Export Map (2026-11-12)
+
+This is the cross-repository export inventory for the runnable conventional 5GC Skill. Repository paths below are **audit locators only**; they are not proposed Skill syntax. The vNext Skill references a stable exported contract identity qualified by a logical dependency alias. Studio resolves aliases to owner-published snapshots; Compiler receives the resolved bytes and does not fetch, lock, cache, or manage packages.
+
+| Contract / export | Owner and source locator | Identity / scope | Current state and consumer rule |
+|---|---|---|---|
+| Skill Request Schema | `ca-skills/skills/establish-pdu-session/schemas/establishment-request.schema.yaml` | `$id: establishment-request.schema.yaml` | Skill-owned authority for `context.request`; do not duplicate in Host or Observation exports |
+| ToolCatalog | `ca-agent-demo/tools/contracts/createdsession.tool.yaml`; mirrored in `ca-skills/lib/tools/createdsession.tool.yaml` | `ca-agent-demo.tool/v1 ToolCatalog`, metadata name `createdsession` | 12 Operations. `sbi.udm.sm_data.get.outputSchema.result` remains broad `type: object`; after Provider #50 is accepted, link the imported Provider result schema rather than duplicating nested fields |
+| CapabilityContracts data | `ca-agent-demo/tools/contracts/capabilities/createdsession.capabilities.yaml` | `ca-agent-host.capability-contracts/v1 CapabilityContracts`, metadata name `5gc-createdsession-capabilities` | Deployment-owned mapping: 6 Capability groups / 12 Operation memberships. Runtime Host checks it; Compiler PR5 does not import or statically link it yet |
+| Host Subject | `ca-agent-demo` PR #198: `src/ca_agent_host/integrations/fivegc/contracts/skill-subject.schema.yaml` | `urn:connectionagent:5gc:skill-context:subject:v1` | Draft Owner export; CI 38 passed with the combined Host/UDM test workflow |
+| Host Facts | `ca-agent-demo` PR #198: `src/ca_agent_host/integrations/fivegc/contracts/skill-facts.schema.yaml` | `urn:connectionagent:5gc:skill-context:facts:v1` | Draft Owner export; exact ingress/lifecycle handles, no inferred business facts |
+| Script Evidence refs | `ca-agent-demo` PR #198: `src/ca_agent_host/agent/host/schemas/predicate-evidence-refs.schema.yaml` | `urn:connectionagent:host:predicate-evidence-refs:v1` | Draft Host projection; not the full Runtime ObservationEvidence envelope |
+| Normalized Observation outputs | `ca-agent-demo` PR #200: `src/ca_agent_host/integrations/fivegc/contracts/observations/procedure-context.schema.yaml` plus `tools/adapters/open5gs/contracts/observations/*.schema.yaml` | 15 identities: `createdsession.procedure_context`, `createdsession.amf_transfer_result`, `createdsession.lifecycle_registration`, `createdsession.n1n2_hold`, `createdsession.n4_baseline`, `createdsession.n4_forwarding_resources`, `createdsession.n4_initial_resources`, `createdsession.nas_delivery_context`, `createdsession.pcf_create_governance`, `createdsession.pcf_create_inputs`, `createdsession.pcf_hold`, `createdsession.ran_setup_result`, `createdsession.resource_ownership`, `createdsession.resource_responsibility`, `createdsession.udm_hold` (all `urn:connectionagent:5gc:observation:*:v1`) | Draft normalized-output bundle; 15 Schemas cover 16/17 refs because resource ownership shares one structural Schema; 45 focused tests pass. `sbi.operation.result` remains absent |
+| Provider UDM GetSmData result | `ca-provider-5gc/schemas/proposed/provider-udm-get-v0alpha2-result.schema.yaml`, PR #50 | `https://connectionagent.io/proposed/provider-udm-get/v0alpha2/result.schema.yaml` | Proposed Owner schema; PR #50 Draft, no CI check-runs. Not a stable export yet |
+| Fabric Agent ingress | `env-fabric/contracts/proposed/createdsession-agent-ingress/v0.1/agent-message.schema.yaml` | `https://service-fabric.io/contracts/createdsession-agent-ingress/v0.1/agent-message.schema.yaml` | Candidate, explicitly not an approved product API. Wire `sd=0xFFFFFF` semantics need to be stated by the Fabric Owner; Agent PR #200 currently normalizes it at the consumer boundary |
+| Fabric PCF governance | `env-fabric/contracts/proposed/createdsession-pcf-create-governance/v0alpha1/result.schema.yaml` | `https://connectionagent.io/proposed/env-fabric/createdsession-pcf-create-governance/v0alpha1/result.schema.yaml` | Proposed Fabric Owner result; Agent mirror is byte-identical. Normalized Observation projection is a separate PR #200 Schema |
+| Fabric held-request read | `env-fabric/contracts/proposed/createdsession-held-request-read/v0alpha1/result.schema.yaml` | `https://connectionagent.io/proposed/env-fabric/createdsession-held-request-read/v0alpha1/result.schema.yaml` | Proposed Provider-facing read contract; not the loopback pending/claim API currently consumed by Agent |
+| Fabric loopback Hold control | Actual `GET /demo/hold/v1/pending` and `POST /demo/hold/v1/claim` in `env-fabric/internal/inline/sbi/demo_hold_http.go` | No published Schema identity | Missing Owner export. Agent currently parses the wire shape manually. Do not pretend the held-request-read contract covers this API |
+| Host normalized `sbi.operation.result` | `ca-agent-demo` `CreatedSessionUDMObservationSource.runtime_value()` | Not yet exported | Blocked on Provider's exact nested subscription result; after Provider #50 is accepted, publish a separate Host Observation projection Schema and test the real source |
+
+### 11.1 Complete normalized Observation export identities
+
+The 15 proposed Observation Schema identities in PR #200 are:
+
+- `urn:connectionagent:5gc:observation:createdsession.procedure_context:v1`
+- `urn:connectionagent:5gc:observation:createdsession.amf_transfer_result:v1`
+- `urn:connectionagent:5gc:observation:createdsession.lifecycle_registration:v1`
+- `urn:connectionagent:5gc:observation:createdsession.n1n2_hold:v1`
+- `urn:connectionagent:5gc:observation:createdsession.n4_baseline:v1`
+- `urn:connectionagent:5gc:observation:createdsession.n4_forwarding_resources:v1`
+- `urn:connectionagent:5gc:observation:createdsession.n4_initial_resources:v1`
+- `urn:connectionagent:5gc:observation:createdsession.nas_delivery_context:v1`
+- `urn:connectionagent:5gc:observation:createdsession.pcf_create_governance:v1`
+- `urn:connectionagent:5gc:observation:createdsession.pcf_create_inputs:v1`
+- `urn:connectionagent:5gc:observation:createdsession.pcf_hold:v1`
+- `urn:connectionagent:5gc:observation:createdsession.ran_setup_result:v1`
+- `urn:connectionagent:5gc:observation:createdsession.resource_ownership:v1`
+- `urn:connectionagent:5gc:observation:createdsession.resource_responsibility:v1`
+- `urn:connectionagent:5gc:observation:createdsession.udm_hold:v1`
+
+### 11.2 UDM SD semantic correction
+
+The 24-bit flat ingress value `0xFFFFFF` is the reserved no-SD sentinel. Provider's own UDM parser tests map the corresponding `"ffffff"` response value to absent SD, and Provider request construction rejects `0xFFFFFF` as an ordinary SD. The Agent PR #200 now normalizes this sentinel to absence before Hold identity matching and Provider dispatch. The normalized `createdsession.udm_hold` Observation Schema uses six uppercase hexadecimal characters or `null`. This is a raw-wire versus normalized-value distinction, not a schema-type preference.
+
+## 12. Compiler consumption and Capability static-link audit
+
+The current Compiler v0.1 implementation does not yet consume the complete Owner export set:
+
+- `internal/compiler/library.go` imports only `lib/tools/*.yaml` ToolCatalog files. It does not load Host, Observation, or CapabilityContracts exports.
+- `internal/compiler/schema_refs.go` resolves project-local JSON Pointer references from imported files and explicitly forbids remote/absolute references. This is appropriate for a no-network Compiler, but the caller must supply the exact referenced Owner schemas in the resolved dependency snapshot.
+- `internal/compiler/skills.go` checks that `context.schemas.subject/facts/observations/evidence` paths are present for Script Predicates. The current v0.2 path-based `lib/...` compatibility model is not yet the vNext identity-based Owner export model.
+- Compiler PR #4 defines a CapabilityContracts JSON Schema, but the current PR #5 core has no CapabilityContracts loader/linker. `allowedResources.capabilities` is currently checked as a string sequence; it is not statically resolved from Capability IDs to Operations and Effects.
+- Runtime Host does load the deployment-owned CapabilityContracts file and cross-checks it with ToolCatalog operation/effect declarations before execution. The current source audit found 12/12 Tool Operations mapped, 6 Capability groups, no missing/duplicate memberships and no Effect mismatches. This is runtime/deployment validation, not Compiler static proof.
+- Compiler PR #7 is a candidate-only semantic binding resolver spike; PR #8 is a schema-engine spike. Neither currently integrates CapabilityContracts linking into the v0.1 build path.
+
+Therefore the answer to “can Capability authorization be statically validated?” is: **the contract model is designed to support it, and the Host validates it at runtime, but the current Compiler implementation does not yet prove it at compile time.** Do not claim static authorization until the Compiler imports CapabilityContracts and proves every called Operation belongs to exactly one granted Capability with matching Effect.
+
+## 13. Current UDM / Compiler closeout gates
+
+1. Get Provider PR #50's focused CI to execute and pass; it remains Draft with no check-runs.
+2. After Provider acceptance, refresh the Agent's pinned Provider UDM result schema and its consumer validation tests.
+3. Link the Provider result schema into the ToolCatalog output contract using an imported local dependency snapshot; do not keep `result: {type: object}`.
+4. Publish and test the separate Host `sbi.operation.result` normalized Observation Schema from the real `runtime_value()` projection.
+5. Ask Fabric to publish the exact loopback pending/claim wire contract or migrate Agent to an already-published Owner API; do not reuse the different held-request-read schema.
+6. Update the Fabric ingress Owner description for the `0xFFFFFF` no-SD sentinel; the Agent consumer normalization is already tested in PR #200.
+7. Align Compiler vNext dependency alias/export identity resolution with the Skill vNext model, then add CapabilityContracts import/link validation. Do not add package management or remote schema fetching to Compiler.
