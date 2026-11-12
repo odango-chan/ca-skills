@@ -16,7 +16,7 @@ Unify Capability, Operation, Procedure, Predicate, data binding, Schema ownershi
 - Initial Effects remain READ and MUTATION.
 - Tool is an implementation/registration unit exposing Operations, not a second authoring-level capability identity.
 - Procedure calls and Predicate data dependencies use the same exact Operation ID namespace.
-- A Capability does not automatically authorize every Operation beneath it unless its contract explicitly defines that expansion. Effective permissions must resolve to exact Operations and be checked by Runtime.
+- The Capability contract explicitly enumerates the exact Operations grouped under each Capability. A Skill grant authorizes only that declared membership; no hierarchy, naming convention, Tool display name, or implicit expansion may add Operations. Compiler verifies exact membership and Effect agreement; Runtime still performs deployment admission and authorization.
 
 ### 2.2 Fact, Observation, acquisition
 
