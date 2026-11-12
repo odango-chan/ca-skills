@@ -575,3 +575,59 @@ The current `ca-agent-demo/main` and `ca-skills/main` sources remain unchanged. 
 
 This answers the feasibility question narrowly: the semantic model has enough concepts to describe the 5GC flow, but the current draft is not yet a complete vNext contract package. The next useful step is to close the specific Owner exports and freeze only the shared input/Evidence/wait boundary—not to build a Compiler or expand the abstraction surface.
 
+
+## 22. Behavior-preserving target Procedure outline (syntax-neutral; NOT FROZEN)
+
+This is the target **semantic Procedure**, not proposed final YAML syntax. It keeps the current 5GC order, exact handles, mutations, failure branches, reconciliation and terminal responsibility transfer. It changes only where Predicate data is acquired and how it is passed to a pure Predicate.
+
+### 22.1 Main path
+
+| Stage | Ordered producer / action steps | Pure Predicate input and gate | Continue on PASS |
+|---|---|---|---|
+| Entry / UDM read | Use the already-captured Host ingress context; call existing `sbi.udm.sm_data.get` | `udmReadReceipt.result` is the exact producer result; attach Evidence for the same `invocationId` / transaction. Evaluate `createdsession.udm.subscription_usable` | UDM Subscribe |
+| UDM Subscribe preparation | Run `select_establishment_configuration.py`; call `ca.session.udm_hold.bind` | Project `udmHold` from the exact bound hold plus its validated scope/deadline and Evidence. Evaluate `createdsession.udm.hold_bound`; separately evaluate `createdsession.ingress.eligible` from captured `ingressContext`; acquire a fresh Host journal projection for `createdsession.lifecycle.ready` | Call existing `sbi.udm.sdm_subscription.create` |
+| UDM ownership | Keep the existing Subscribe mutation and exact subscription resource handle | Project `udmSubscriptionResource` from the exact committed mutation result / resource-evidence store and Evidence. Evaluate `createdsession.udm.subscription_owned` | PCF Create preparation |
+| PCF Create preparation | Call `ca.session.pcf_hold.bind`; call existing `ca.session.pcf_create_inputs.read`; run `build_pcf_policy_inputs.py` | Evaluate `createdsession.pcf.hold_bound` from `pcfHold`; evaluate `createdsession.pcf.create_inputs.ready` from the typed 11-field `pcfCreateInputs` projection over the same stored Provider result; acquire N4 baseline using the exact N4 READ with phase `PRE_CREATE` and evaluate `createdsession.n4.baseline_clear`; acquire Fabric governance for the exact hold and evaluate `createdsession.pcf.create_governed`; acquire a **fresh** lifecycle journal projection and evaluate `createdsession.lifecycle.ready` again | Call existing `sbi.pcf.sm_policy.create` |
+| PCF ownership | Keep the existing PCF Create mutation and exact association handle | Project `pcfAssociationResource` from the exact committed mutation result / resource-evidence store and Evidence. Evaluate `createdsession.pcf.association_owned` | Bounded wait for initial N4 resources |
+| Initial N4 convergence | Bounded wait over the exact Provider N4 initial-resources READ, phase `POST_CREATE`, with the existing deadline/budget and `KNOWN_ABSENT / CONTINUE` behavior; after convergence, perform one final READ | Bind the final typed payload as `n4InitialResources` with its final-read Evidence. Evaluate `createdsession.n4.initial_resources_ready` | NAS/N2 delivery preparation |
+| NAS/N2 preparation | Call existing `ca.session.operation_context.read` for `nas-and-n2-delivery`; resolve its exact stored result; call existing `ca.session.establishment_response.prepare`; run `build_n1n2_delivery.py`; call existing `ca.session.n1n2_hold.bind` | Evaluate `createdsession.delivery_context.ready` from the five-field `deliveryContext` projection; evaluate `createdsession.n1n2.hold_bound` from `n1n2Hold` plus exact hold checks and Evidence | Call existing `sbi.amf.n1n2.transfer` |
+| AMF transfer | Keep the existing single-sender / exact hold claim and Provider mutation | Bind the nested transfer result plus expected `operationRef` as `amfTransferResult`, attach transfer Evidence, and evaluate `createdsession.amf.transfer_initiated` | Bounded wait for RAN setup |
+| RAN setup | Bounded wait over the exact Provider SMF RAN-setup READ; after convergence, perform one final READ | Bind the final result and Evidence as `ranSetup`. Evaluate `createdsession.ran.setup_accepted` | Bounded wait for N4 forwarding |
+| N4 forwarding | Bounded wait over the exact Provider UPF N4-forwarding READ; after convergence, perform one final READ | Bind the final result and Evidence as `n4Forwarding`. Evaluate `createdsession.n4.forwarding_ready` | Successful finalization |
+| Finalization | Keep the existing `ca.session.resource_responsibility.transfer` mutation with its exact lifecycle and disposition | Read the Host reference-journal projection as `resourceResponsibility`; evaluate `createdsession.resources.managed` | `done` on PASS; preserve `safe-stopped` / `unresolved` outcomes on failure |
+
+### 22.2 Exact Predicate input inventory
+
+The 17 Predicate definitions consume these named business inputs. The two `createdsession.lifecycle.ready` call sites intentionally consume **two different fresh acquisitions** of the same logical input:
+
+- Captured Host input: `ingressContext`.
+- Existing Operation outputs / local projections: `udmReadReceipt`, `udmHold`, `pcfHold`, `pcfCreateInputs`, `udmSubscriptionResource`, `pcfAssociationResource`, `n1n2Hold`, `deliveryContext`, `amfTransferResult`.
+- Independent owner READ results: `governance`, `n4Baseline`, `n4InitialResources`, `ranSetup`, `n4Forwarding`.
+- Host journal projections: `lifecycleRegistration`, `resourceResponsibility`.
+
+The `resourceOwnership` Schema may be shared structurally by the UDM subscription and PCF association values, but the two Predicate inputs retain distinct producer identity, resource handle and Evidence. Likewise, `n4Baseline` and `n4InitialResources` remain distinct named inputs even if one phase-discriminated READ Operation supplies both.
+
+For every producer-backed input, Host attaches the Evidence projection separately. The business payload is not nested inside or reconstructed from Evidence. Predicate Scripts receive neither a generic `observations` map nor hidden `subject/request/facts` fallbacks. Their effective input contract is derived from the declared Predicate interface, all Procedure call sites and the resolved producer/Context schemas.
+
+### 22.3 Wait and acquisition rules
+
+1. The three current waits remain three explicit orchestration points: post-PCF N4 convergence, SMF RAN setup, and UPF N4 forwarding.
+2. A wait targets one exact owner READ identity and exact scope. It preserves the current bounded deadline/budget and `KNOWN_ABSENT / CONTINUE` semantics.
+3. A wait result is only a convergence/control result. It is **not** the final Predicate business payload.
+4. After convergence, the Procedure performs the final typed READ and passes that exact payload plus its Evidence to the pure Predicate. No hidden acquisition occurs during Predicate evaluation.
+5. The N4 READ may use one Operation identity with a discriminated `PRE_CREATE` / `POST_CREATE` input/output union. If an Owner cannot guarantee that union contract, use two exact READ identities instead. Either way, the baseline and post-create semantics remain separate.
+6. Do not introduce a generic `observation.read` Operation and do not expose raw Provider `observationRef` selectors in Skill source.
+
+### 22.4 Authorization and failure behavior
+
+- The existing twelve Operation grants migrate to the six current Capability IDs as recorded in §18. The three Provider assurance READs require one new Provider-owned Capability membership set. Fabric governance is added to the existing Hold Capability only if Fabric confirms the same authorization boundary; otherwise it gets its own Capability.
+- If Procedure-level `wait` replaces `ca.session.evidence.await`, the latter leaves the Skill's callable Operation set. The candidate is then **15 callable Operations** (11 retained + 4 new READs); retaining the Host wait Operation yields **16**. This is a design count, not a frozen registry.
+- Every existing Predicate keeps its PASS / FAIL / UNKNOWN meaning and route. Operation failure, denial and unresolved mutation outcomes retain their current failed / unresolved paths.
+- Keep all exact resource and lifecycle handles explicit: UE, PSI, PTI, ingress, lifecycle, hold, policy association, UDM invocation/transaction, operation, response artifact, and confirmed N4 instance. Do not infer one handle from another or from matching field names.
+- Keep all existing reconciliation nodes for UDM Subscribe, PCF Create, AMF transfer and resource-responsibility transfer. Keep the three finalization paths (`success`, `failed`, `unresolved`) and their safe-stop behavior. The migration must not simplify away uncertainty or late-result responsibility.
+
+### 22.5 What this outline proves—and does not prove
+
+This outline demonstrates that the current 5GC Procedure can be expressed with pure Predicates and explicit acquisition without creating 17 new READ Operations, without a generic Observation tool, and without changing the business order.
+
+It does **not** freeze the YAML placement of `Predicate.inputs`, the `wait` syntax, exact new Operation IDs, dependency aliases, or the trusted CapabilityContracts BuildRequest binding. It also does not claim the missing Owner READ contracts or Host `sbi.operation.result` projection have been published. Those remain the gates in §21.1. The next design review should validate this semantic outline against the existing 36 Cases and three Reference documents; those behavior examples remain unchanged.
