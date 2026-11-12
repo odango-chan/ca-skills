@@ -76,9 +76,9 @@ The exact registered owner map is assembled by `integrations/fivegc/provider_res
 
 ## 6. Generic Host Context and Evidence model
 
-`src/ca_agent_host/agent/context/base.py` defines the current Python model: immutable `BaseContext`, `PlanningContext`, `ContextFact`, `ContextRequirement`, visibility, grounded subject, provenance (`authority`, `source_ref`, `freshness`), and resolver lineage. `context/loader.py` accepts only registered read-only resolvers and checks the exact requirement/fact identity. `requirements.py` derives missing exact facts from grounded Predicate atoms.
+`src/ca_agent_host/agent/context/base.py` defines the generic planning model (`BaseContext`, `PlanningContext`, `ContextFact`, `ContextRequirement`, visibility, grounded subject, authority/source/freshness and resolver lineage). It is not the same object as the 5GC Skill invocation context materialized by `FabricResidentSource._materialize()`. The latter's exact Subject/Facts schemas are proposed in ca-agent-demo Draft PR #198.
 
-`src/ca_agent_host/runtime/observation/model.py` defines the acquired Observation/evidence envelope, correlation refs, source fact evidence, and evidence capability. These Python dataclasses are the implemented Host model; do not claim there is already a complete shared JSON Schema for every ContextFact or Observation payload. Domain-specific normalized Observation values are governed by each source owner's schema.
+`src/ca_agent_host/runtime/observation/model.py` defines the full internal acquired Observation/evidence envelope, correlation refs, source fact evidence, and evidence capability. Predicate Scripts do not receive this full dataclass; `PredicateEngine.evaluate()` projects only `{refs: source_fact_ids}` per observation name. The proposed Host schema for that narrow projection is in ca-agent-demo Draft PR #198. Domain-specific normalized Observation values still require per-owner schemas.
 
 ## 7. What this means for Semantic Field Identity / Binding Resolver
 
@@ -95,3 +95,8 @@ This inventory does not create new Host or Observation schemas, does not promote
 ## 9. Audit pin
 
 This inventory was derived from `ca-agent-demo` commit `38012852827437185c6343c2b544acad401084e1`. Any schema refresh must compare the target owner schema and implementation against this exact pin (or a newer explicitly reviewed commit), then record the new commit and schema digests. Do not treat the moving `main` name alone as reproducible provenance.
+
+
+## 10. Host context export update (2026-11-12)
+
+ca-agent-demo Draft PR [#198](https://github.com/odango-chan/ca-agent-demo/pull/198) now publishes three source-backed schemas: 5GC invocation Subject, 5GC invocation Facts, and the Host Predicate Evidence reference projection. Its focused test workflow passed on commit `bab7ac60d481c5efb6c53c9bca27afa1bb706e91`. The PR is still Draft / unmerged, so these schemas are proposed owner exports and must not yet be treated as present in the official `ca-agent-demo/main` dependency snapshot. The full Runtime `ObservationEvidence` model remains internal and is not the Skill's Script-facing Evidence schema.
