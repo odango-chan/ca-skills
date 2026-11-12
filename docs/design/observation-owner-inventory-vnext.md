@@ -93,3 +93,8 @@ Do not freeze a final Predicate YAML shape or remove `ObservationSource` until M
 The owner-side field-level audit is now recorded in [ca-agent-demo Draft PR #199](https://github.com/odango-chan/ca-agent-demo/pull/199), pinned to the same 5GC implementation snapshot. It enumerates the normalized `AcquiredObservation.value` fields for all 17 refs and distinguishes those values from Provider/Fabric wire schemas. No Observation output schemas are claimed as published by that PR; it is an inventory only. The next work must publish adapter-owned output Schemas and validate them by running the actual ObservationSource implementations with deterministic owner clients/stores.
 
 The Host Subject/Facts and Predicate Evidence-reference schemas are separately proposed in [ca-agent-demo Draft PR #198](https://github.com/odango-chan/ca-agent-demo/pull/198), with focused schema tests passing. They are not on `main` until merged.
+
+
+## 8. Normalized output Schema publication update (2026-11-12)
+
+ca-agent-demo Draft PR [#200](https://github.com/odango-chan/ca-agent-demo/pull/200) now proposes 15 exported Schema files covering 16 of the 17 conventional 5GC Observation refs (the two resource-ownership refs share a structural Schema while retaining distinct fact identities). It includes strict normalized projections and a two-branch schema for N4 initial resources. The remaining `sbi.operation.result` output is intentionally blocked by the Provider UDM nested `subscription` Output Schema gap; no broad `object` fallback is introduced. PR #200 is not merged and its focused CI is pending, so these are proposed exports only.
