@@ -17,7 +17,7 @@ Do not create shadow copies in the Skill package to make the compiler pass. Miss
 | Tool Operation contract | tools/contracts/createdsession.tool.yaml | 12 exact Operation IDs, declared READ/MUTATION Effect, adapter binding, Input/Output/Reconcile schemas | Several nested result bodies are broad type: object; not all producer fields are statically linkable |
 | Capability → Operation | tools/contracts/capabilities/createdsession.capabilities.yaml | 6 deployment Capabilities, owner, exact Operation membership and independently expected Effect | Not a Skill-authored grant; deployment-owned authorization/effect registry |
 | Tool implementation registration | tools/registrations/default.yaml | Exact Operation → implementation selection | Not Capability membership, schema authority, authorization or READY by itself |
-| Provider Observation wire | integrations/ca_provider_5gc/contracts/provider-observation-read-request.schema.yaml and provider-observation-read-result.schema.yaml | Provider request/result envelope and six Provider Observation refs with ref-conditional payload schemas | Does not define Fabric, Host journal, or Open5GS adapter-local Observation payloads |
+| Provider Observation wire | ca-provider-5gc main: schemas/provider-observation-read-request.schema.yaml and provider-observation-read-result.schema.yaml (mirrored into Host integration) | Owner-published request/result envelope and six Provider Observation refs with ref-conditional payload schemas | Does not define Fabric, Host journal, or Host adapter-normalized Observation payloads |
 | Host Observation model | runtime/observation/model.py | Implemented Python envelope: request, status, normalized value, evidence, correlation and evidence capability | No standalone versioned JSON Schema export for the generic envelope |
 | Host Context model | agent/context/base.py, projection, requirements, loader and resolvers | Implemented Python Subject / Facts / ContextFact / ContextRequirement / provenance and resolver behavior | No complete exported JSON Schema for Subject and Facts namespaces |
 | Skill Request | skills/establish-pdu-session/schemas/establishment-request.schema.yaml | Real Skill-owned public input contract | Does not substitute for Host Context or Observation schemas |
@@ -112,3 +112,29 @@ This register does not create owner schemas, change the 5GC Runtime, replace Obs
 ### 5.1 Verified Capability coverage result
 
 Audit script comparison of the two source YAML documents returned: Tool Operations = 12; Capability membership entries = 12; Capability groups = 6; Tool-only = 0; Capability-only = 0; duplicate membership = 0; Effect mismatches = 0. This is a source-contract consistency result, not a Runtime authorization or READY assertion.
+
+
+## 9. Owner repository source audit (2026-11-12)
+
+The earlier statement that several owner schemas were simply absent was too broad. The source repositories already contain substantial **proposed** owner contracts. They must be consumed as owner-owned sources (and promoted/versioned through their own release process), not copied into the Skill or Compiler repository.
+
+| Owner | Existing source contract | Maturity | Mapping / limitation |
+|---|---|---|---|
+| ca-provider-5gc | `schemas/provider-observation-read-request.schema.yaml`, `schemas/provider-observation-read-result.schema.yaml` | Owner schema present on main | Six raw Provider Observation refs: UE registration, SMF PDU context, UPF PFCP resources, N4 initial resources, SMF RAN setup, N4 forwarding resources |
+| ca-provider-5gc | `contracts/proposed/createdsession-operation-context/v0alpha1/{request,result}.schema.yaml` | Proposed | Supports operation-context facts used by PCF/NAS preparation; not a general Host Context schema |
+| ca-provider-5gc | `contracts/proposed/createdsession-pcf-create-inputs/v0alpha2/{request,result}.schema.yaml` | Proposed | Exact PCF input-read readiness, held-request lineage, allocated address, field provenance; not PCF create governance or association ownership |
+| env-fabric | `contracts/proposed/createdsession-held-request-read/v0alpha1/{request,result}.schema.yaml` | Proposed | Exact held SMF request, hold/lifecycle/current instance, request digest and deadline; does not prove sender authorization, create or delivery |
+| env-fabric | `contracts/proposed/createdsession-pcf-create-governance/v0alpha1/result.schema.yaml` | Proposed | Hold state, sender authorization, competing-create state, lifecycle isolation and evidence refs; matches the semantic owner for `createdsession.pcf_create_governance` |
+| env-fabric | `contracts/proposed/createdsession-lifecycle-isolation/v0alpha1/evidence.schema.yaml` | Proposed | Operator-owned isolation declaration consumed by Fabric; not an Agent business fact |
+| env-fabric | `contracts/proposed/createdsession-amf-n1n2-transfer/v0.1/transfer-result.schema.yaml` | Proposed candidate | Detailed Fabric transfer attempt record; needs an explicit normalized Host Observation projection and lifecycle/correlation mapping |
+| ca-agent-demo / Host | `src/ca_agent_host/runtime/observation/model.py`; `agent/context/base.py`, `loader.py`, `projection.py` | Runtime implementation on main | Python value models exist for ObservationEvidence, SourceFactEvidence, ContextFact, BaseContext, PlanningContext, ContextRequirement, ContextOffer and ModelVisibleContext; no complete versioned JSON Schema export bundle |
+| ca-agent-demo / Host | `src/ca_agent_host/integrations/env_fabric/contracts/createdsession-pcf-create-governance-result.schema.yaml` and Provider mirrored wire schemas | Host-side integration mirrors/projections | These are Host integration contracts, not replacements for the Fabric/Provider source-of-truth schemas |
+
+### 9.1 Corrections to the initial gap classification
+
+- The six Provider Observation schemas are real owner files in ca-provider-5gc main, not only Host-local mirrors.
+- Fabric already has proposed held-request, PCF governance, lifecycle-isolation and AMF transfer schemas. Do not create duplicate schemas in ca-agent-demo.
+- Provider already has proposed operation-context and PCF-create-inputs schemas. They cover specific operation outputs, not generic Host Context.
+- The remaining major gap is the **Host-owned generic envelope and context export**, plus normalized Host Observation projections for Fabric/Provider/adapter results and a stable release/publication boundary for proposed owner contracts.
+- A proposed schema is not automatically a stable exported contract. Compiler should only link a schema included in the selected dependency snapshot with explicit owner identity/version and a supported contract status.
+
