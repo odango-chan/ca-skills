@@ -307,6 +307,7 @@ Semantics:
 - `inputs` is a named map of ordinary source bindings. `from` uses the same source-reference vocabulary and Binding Plan as Procedure `with/from`.
 - The evaluator receives only the declared values. The Compiler derives the Predicate Script input projection from those producer schemas and Context contracts; no author-authored Script Input Schema file is required.
 - Runtime attaches the Host Evidence projection to each producer-backed input under `input.evidence.<alias>`. Evidence is a separate provenance object, not merged into the business payload and not an arbitrary Skill-authored value.
+- The Binding Plan records parallel lineage for each consumed value and its Evidence: exact producer, source path, schema/owner, invocation/scope, and the Evidence refs/guarantees attached to that producer. A Script cannot invent or rewrite Evidence refs.
 - The Script changes from reading `input.observations.response` / implicit `input.subject` to the declared `input.response` / `input.receipt`. Its strict Output TypedDict remains unchanged.
 - A CEL Predicate uses the same `inputs` map and evaluates those declared names. No acquisition occurs inside `verify`.
 
@@ -357,7 +358,7 @@ Semantics:
 
 - `wait` is a Runtime orchestration node, not a Tool Operation or Capability. It reuses the current bounded waiter policy (invocation deadline/budget, cancellation, exact scope/correlation and `KNOWN_ABSENT/CONTINUE`) but calls the exact declared READ Operation instead of routing through `ObservationSource`.
 - The referenced READ Operation must be exact, Effect=READ, present in the resolved Tool/Capability contract set, and covered by the Skill's Capability grant. Compiler validates the reference and input mapping; Runtime rechecks authorization.
-- The wait returns only its bounded-wait outcome and audit/evidence refs. It does not pass its last payload as the Predicate input.
+- The wait returns only its bounded-wait outcome and audit/evidence refs. It does not pass its last payload as the Predicate input. `KNOWN_ABSENT` follows the declared absence policy; `UNKNOWN` remains non-PASS and is retried only within the same invocation budget/deadline, then routes unresolved.
 - The following explicit READ call obtains the final typed payload and Evidence; the Predicate consumes those declared inputs. This preserves the current wait acquisition followed by final Predicate acquisition and does not treat Evidence refs as payload.
 - The wait uses the same declared freshness/correlation requirements as the final Predicate input; the exact syntax for sharing that declaration remains open. Budget and deadline remain invocation-inherited Runtime controls, not arbitrary Skill overrides.
 
