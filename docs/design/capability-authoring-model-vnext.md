@@ -366,7 +366,11 @@ nodes:
             resources:
               from: read-initial-resources.output
 
-# Predicate interface (the evaluator consumes only the declared input):
+```
+
+Predicate interface (the evaluator consumes only the declared input):
+
+```yaml
 predicates:
   createdsession.n4.initial_resources_ready:
     inputs:
