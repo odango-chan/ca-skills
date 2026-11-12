@@ -171,3 +171,21 @@ The earlier statement that several owner schemas were simply absent was too broa
 - The remaining major gap is the **Host-owned generic envelope and context export**, plus normalized Host Observation projections for Fabric/Provider/adapter results and a stable release/publication boundary for proposed owner contracts.
 - A proposed schema is not automatically a stable exported contract. Compiler should only link a schema included in the selected dependency snapshot with explicit owner identity/version and a supported contract status.
 
+
+
+## 10. Cross-repository schema publication status (2026-11-12)
+
+The following parallel Owner work is now verified and must be treated as the implementation baseline, not re-created:
+
+| PR | Owner repository | Contribution | Latest observed status |
+|---|---|---|---|
+| [ca-agent-demo #198](https://github.com/odango-chan/ca-agent-demo/pull/198) | Agent Host | Host Subject, Facts and Script-facing Predicate Evidence reference schemas | OPEN / DRAFT; focused CI PASS (3 tests) |
+| [ca-agent-demo #199](https://github.com/odango-chan/ca-agent-demo/pull/199) | Agent Host | Code-derived normalized output inventory for all 17 refs | OPEN / DRAFT; docs-only |
+| [ca-agent-demo #200](https://github.com/odango-chan/ca-agent-demo/pull/200) | Agent Host + Open5GS adapters | 15 normalized output Schema files covering 16/17 refs; real N4 AVAILABLE / KNOWN_ABSENT branches | OPEN / DRAFT; focused CI PASS (3 tests) |
+| [ca-provider-5gc #50](https://github.com/odango-chan/ca-provider-5gc/pull/50) | Provider | Exact nested UDM GetSmData subscription Output Schema; removes broad object placeholders | OPEN / DRAFT; CI has not yet reported a run |
+
+PR #50 is specifically intended to close the upstream Provider wire-schema blocker for `sbi.operation.result`. It does **not** by itself publish the Host adapter's normalized `AcquiredObservation.value` Schema. That Host projection still needs to be added after the Provider schema is accepted and the pinned consumer copy is refreshed.
+
+PR #200's current CI evidence is limited to Draft 2020-12 schema/fixture validation (3 passed); it is not a full ObservationSource execution test or live 5GC E2E. PR #198 likewise validates the actual Subject/Facts materialization path and Script-facing evidence refs only; it does not publish the full Runtime ObservationEvidence envelope.
+
+The generic Runtime ObservationEvidence dataclasses remain Host-internal. This is intentional until a separate cross-runtime consumer needs that envelope; do not publish it merely to satisfy a Compiler file-count target.
