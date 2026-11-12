@@ -40,31 +40,33 @@ The Skill source should contain only language-level references to the exported c
 
 For Tools, continue to use globally stable exact Operation IDs in Procedure calls and Capability grants. The selected dependency snapshot must export the exact Operation ID and ToolCatalog contract. For MCP collisions, Studio's dependency identity/alias distinguishes source snapshots; the Operation ID within each snapshot must still be linked unambiguously under the Compiler's versioned reference rules. Never guess based on server discovery order or tool display name.
 
-## 3. Compiler input contract: current v0.1 mismatch to resolve
+## 3. Compiler input contract: proposed v0.1 alignment
 
-The current Compiler v0.1 Draft #4 defines:
-`BuildRequest { files: File[], targets?: string[] }`
-and restricts file paths to `skills/**` and logical `lib/**`. It describes `lib/**` as a caller-assembled in-memory namespace, so it does not require a physical workspace folder. However, the frozen Studio v0.1 design explicitly calls for the new Go BuildRequest and logical Tool references, and says no `lib/` fallback. A path-only `lib/**` namespace loses the dependency identity and immutable snapshot boundary that Studio must pass and Compiler must verify.
+Compiler Draft #4 has been revised on its design branch to separate Skill source from resolved dependencies. The proposed wire shape is:
 
-Before Compiler v0.1 implementation is accepted, align the wire contract with a versioned resolved-dependency input. The conceptual shape should be:
+```typescript
+type File = { path: string; bytes: Uint8Array };
+type ResolvedDependency = {
+  dependencyId: string;       // opaque Studio Workspace Configuration ID
+  digest: `sha256:${string}`; // canonical snapshot content digest
+  files: Array<{ path: string; bytes: Uint8Array }>; // snapshot-relative paths
+};
+type BuildRequest = {
+  files: File[]; // skills/** only
+  resolvedDependencies: ResolvedDependency[];
+  targets?: string[];
+};
+```
 
-- authored Skill files, with paths rooted only in the Skill source namespace;
-- a collection of resolved dependency snapshots, each identified by stable dependency identity and canonical content digest;
-- each snapshot carries its immutable file bytes / exported contracts, with paths local to that snapshot rather than globally mounted beneath `lib/`;
-- selected Skill targets.
+The Compiler owns the canonical snapshot digest algorithm and verifies it; Studio computes and stores the same digest in its lock. The digest is SHA-256 over a versioned binary preimage containing sorted UTF-8 snapshot-relative paths and raw file bytes. It deliberately excludes dependencyId, source URL, revision and other mutable acquisition metadata. See Compiler Draft #4's [dependency snapshot digest contract](https://github.com/odango-chan/ca-skill-compiler/blob/docs/plugin-managed-contract-v01-20261111/docs/design/dependency-snapshot-digest-v0.1.md) and its golden vector.
 
-The exact JSON shape, digest preimage/canonicalization, duplicate-ID rules, size limits, and schema-reference spelling are owned by the Compiler contract and must be frozen with cross-language golden vectors. Studio implements the same digest algorithm and supplies the lock-pinned bytes. This proposal does not prescribe an unreviewed wire schema or create a second ProjectContext object.
+The Compiler does not need a second dependency manifest or exported-contract list: it indexes exact Operation IDs from ToolCatalog files and stable Schema IDs from JSON Schema `$id` values inside the supplied snapshots. Duplicate dependency IDs, duplicate file paths within a snapshot, digest mismatches, duplicate Operation IDs / Schema IDs, missing exports and ambiguous legacy paths fail closed.
 
-The Compiler must reject:
-- missing dependency identity or digest;
-- duplicate dependency IDs or duplicate exported contract IDs;
-- a digest mismatch;
-- an export that does not contain the exact referenced Operation / Schema;
-- ambiguous references across snapshots;
-- incompatible versions or unsupported schema dialects;
-- dependency bytes that are not included in the normalized request.
+For current v0.2 source compatibility, existing `lib/...` values in `spec.context.schemas` are temporary locators matched against an exact snapshot-relative path across supplied snapshots; zero matches is missing and multiple matches is ambiguous. This does not recreate a global `lib/**` namespace or require a physical `lib/` folder. The vNext language replaces these locators with exact Owner-controlled Schema `$id` strings. It never places dependency IDs/aliases or source metadata in Skill YAML.
 
-No live Git/MCP/URL lookup is permitted during Check, LSP analysis, or Build.
+BuildResult returns selected Skill source/generated Skill files and a sorted `dependencyClosure` of the exact dependencyId + digest pairs used. It does not copy dependency bytes into `outputFiles`; Studio remains responsible for persistence/export and can package the locked snapshots alongside the build result.
+
+This wire change is still a **Draft design**, not an implemented Compiler API. The current Go/WASM v0 API remains the compatibility baseline until the implementation Goal updates both Native and WASM and passes the digest vectors.
 
 ## 4. 5GC dependency inventory: actual owner, not a Skill-owned copy
 
