@@ -48,6 +48,39 @@ The following are the exact distinct ref values in the executable 5GC Skill's Pr
 
 Script references (not Observations): skill.evaluate-transfer-start, skill.evaluate-udm-read.
 
+## 3.1 Exact Host implementation mapping
+
+This mapping was checked against ca-agent-demo/main source files. These are Runtime ObservationSource projections and adapters; the source files do not imply that every ref is a separately callable Tool.
+
+| Observation Ref | Actual Host implementation | Owner wire/source contract currently consumed | Export status |
+|---|---|---|---|
+| createdsession.procedure_context | integrations/env_fabric/ingress_observation.py + createdsession_ingress.py / resident ingress | Flat Fabric Agent ingress contract; HTTP action ref/revision metadata | Fabric contract schema exists under contracts/proposed/createdsession-agent-ingress/v0.1; adapter consumes flat message + headers |
+| createdsession.udm_hold | tools/adapters/open5gs/udm_hold.py + fabric_hold.py | Fabric GET /demo/hold/v1/pending holdView | No exact versioned JSON Schema for current pending/claim wire; proposed held-request-read schema is not a byte-for-byte replacement |
+| createdsession.pcf_hold | tools/adapters/open5gs/pcf_hold.py + fabric_hold.py | Same pending/claim wire, PCF-specific exact selector | Same gap |
+| createdsession.n1n2_hold | tools/adapters/open5gs/n1n2_hold.py + fabric_hold.py | Same pending/claim wire, N1/N2-specific scope | Same gap |
+| createdsession.pcf_create_inputs | integrations/ca_provider_5gc/createdsession_pcf_create_inputs.py | Provider proposed PCF-create-inputs v0alpha2 request/result | Owner schema exists; Host validates pinned vendored copy |
+| createdsession.pcf_create_governance | tools/adapters/open5gs/pcf_governance.py | Fabric POST /demo/hold/v1/governance | Proposed Fabric result schema exists; exact Host mirror is pinned in env_fabric/contracts |
+| createdsession.udm_subscription_resource | tools/adapters/open5gs/resource_evidence.py + integrations/ca_provider_5gc/createdsession_dispatch.py | Provider operation-dispatch v0alpha1 result + Fabric transaction evidence | Provider proposed result schema exists; Host joins exact committed result into a local Observation |
+| createdsession.pcf_association_resource | tools/adapters/open5gs/resource_evidence.py + integrations/ca_provider_5gc/createdsession_dispatch.py | Same dispatch result, PCF-specific result validation | Same |
+| createdsession.n4_baseline | tools/adapters/open5gs/n4_evidence.py | Provider N4 initial-resource Observation plus pre-mutation exact read | Raw Provider schema exists; normalized baseline projection has no separate exported Schema |
+| createdsession.n4_initial_resources | tools/adapters/open5gs/n4_evidence.py | Provider n4.initial_resources.snapshot | Raw Provider schema exists; normalized Host projection has no separate exported Schema |
+| createdsession.n4_forwarding_resources | tools/adapters/open5gs/core_network_evidence.py | Provider n4.forwarding_resources.snapshot + confirmed N4 instance join | Raw Provider schema exists; normalized Host projection has no separate exported Schema |
+| createdsession.ran_setup_result | tools/adapters/open5gs/core_network_evidence.py | Provider smf.ran_setup.snapshot + confirmed N4 instance join | Raw Provider schema exists; normalized Host projection has no separate exported Schema |
+| createdsession.nas_delivery_context | integrations/ca_provider_5gc/createdsession_operation_context.py | Provider operation-context v0alpha1 purpose=nas-and-n2-delivery | Proposed Provider schema exists; Host predicate projection is narrower |
+| createdsession.amf_transfer_result | tools/adapters/open5gs/n1n2_evidence.py + integrations/ca_provider_5gc/createdsession_transfer.py | Provider resident-transfer result / Fabric transfer evidence | Provider has Go validation and proposed schemas; exact Host-normalized projection schema is missing |
+| createdsession.lifecycle_registration | tools/adapters/open5gs/responsibility.py | Host CreatedSession reference journal | Host-local prototype contract identity only; no exported payload Schema |
+| createdsession.resource_responsibility | tools/adapters/open5gs/responsibility.py | Host CreatedSession reference journal | Host-local prototype contract identity only; no exported payload Schema |
+| sbi.operation.result | tools/adapters/open5gs/udm_evidence.py and resource_evidence.py | Exact invocation + transaction-keyed Provider result evidence | Not a global payload: it is a source selector over operation-specific result records; needs a discriminated/parameterized owner contract if exported |
+
+### 3.2 Fabric pending/claim contract mismatch (important)
+
+The Host's current hold adapter uses the actual Demo wire implemented in env-fabric main:
+- GET /demo/hold/v1/pending returns {holds:[holdView,...]}.
+- POST /demo/hold/v1/claim returns a hold/grant/binding/heldRequest result.
+- POST /demo/hold/v1/governance returns the PCF governance projection.
+
+The proposed Fabric `createdsession-held-request-read/v0alpha1` request/result is a separate read-only contract for one holdRef. It is useful owner material but it is **not** the exact schema for the current pending/claim endpoints. Do not mark the hold adapter schema gap closed until the current wire is published or the adapter is explicitly migrated to the proposed contract and verified against Fabric implementation.
+
 ## 4. Critical semantic distinction: three schema layers
 
 Do not collapse these into one context-observations.schema.yaml:
