@@ -343,6 +343,9 @@ nodes:
           from: input.pcf-policy-association-ref
         lifecycleRef:
           from: input.lifecycle-ref
+        phase: POST_CREATE
+        baselineRef:
+          from: read-n4-baseline.output.baselineRef
       absencePolicy: CONTINUE
     'on':
       SUCCEEDED: read-initial-resources
@@ -359,6 +362,9 @@ nodes:
         from: input.pcf-policy-association-ref
       lifecycleRef:
         from: input.lifecycle-ref
+      phase: POST_CREATE
+      baselineRef:
+        from: read-n4-baseline.output.baselineRef
     postconditions:
       steps:
         - verify: createdsession.n4.initial_resources_ready
@@ -384,11 +390,11 @@ Semantics:
 
 - `wait` is a Runtime orchestration node, not a Tool Operation or Capability. It reuses the current bounded waiter policy (invocation deadline/budget, cancellation, exact scope/correlation and `KNOWN_ABSENT/CONTINUE`) but calls the exact declared READ Operation instead of routing through `ObservationSource`.
 - The referenced READ Operation must be exact, Effect=READ, present in the resolved Tool/Capability contract set, and covered by the Skill's Capability grant. Compiler validates the reference and input mapping; Runtime rechecks authorization.
-- The wait returns only its bounded-wait outcome and audit/evidence refs. It does not pass its last payload as the Predicate input. `KNOWN_ABSENT` follows the declared absence policy; `UNKNOWN` remains non-PASS and is retried only within the same invocation budget/deadline, then routes unresolved.
+- The wait returns only its bounded-wait outcome and audit/evidence refs. It does not pass its last payload as the Predicate input. `KNOWN_ABSENT` follows the declared absence policy; `UNKNOWN` remains non-PASS and is retried only within the same invocation budget/deadline, then routes unresolved. For the N4 example, `POST_CREATE` wait and final READ both consume the exact `baselineRef` captured by the earlier `PRE_CREATE` READ; the final result must echo it as `baselineEvidenceRef` and provide the confirmed `currentSessionInstanceRef`.
 - The following explicit READ call obtains the final typed payload and Evidence; the Predicate consumes those declared inputs. This preserves the current wait acquisition followed by final Predicate acquisition and does not treat Evidence refs as payload.
 - The wait uses the same declared freshness/correlation requirements as the final Predicate input; the exact syntax for sharing that declaration remains open. Budget and deadline remain invocation-inherited Runtime controls, not arbitrary Skill overrides.
 
-The three current `ca.session.evidence.await` nodes map to waits over N4 initial resources, RAN setup and N4 forwarding. N4 baseline and post-N4 initial-resource checks share one exact READ Operation identity and a discriminated output (`ABSENT` vs `ESTABLISHED`), while remaining separate Procedure points with different business meaning. PCF governance is a direct Fabric READ Operation, not a wait.
+The three current `ca.session.evidence.await` nodes map to waits over N4 initial resources, RAN setup and N4 forwarding. N4 baseline and post-N4 initial-resource checks may share one exact READ Operation identity only with a phase-discriminated input/output contract: `PRE_CREATE` preserves `NO_N4_PAIR / EXISTING_PAIR`; `POST_CREATE` preserves `NO_N4_PAIR / NEW_PAIR`, including the corresponding `KNOWN_ABSENT / AVAILABLE` distinction. They remain separate Procedure points with different business meaning. The Pre-Create read returns `baselineRef`; the Post-Create read consumes that exact handle, returns matching `baselineEvidenceRef` and the confirmed `currentSessionInstanceRef`. RAN setup and N4-forwarding reads must then consume that exact instance ref. If the Owner cannot guarantee the discriminated contract, use two exact READ identities instead. PCF governance is a direct Fabric READ Operation, not a wait.
 
 ### 16.3 What this candidate does not solve yet
 
