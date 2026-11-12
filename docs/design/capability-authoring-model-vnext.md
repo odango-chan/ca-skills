@@ -293,23 +293,28 @@ Candidate:
 predicates:
   createdsession.udm.subscription_usable:
     inputs:
-      udmReadReceipt:
-        from: nudm-sdm-get.output
+      udmReadReceipt: {}
     evaluator:
       type: script
       ref: scripts/evaluate_udm_read.py
+
+# In the Procedure postcondition:
+- verify: createdsession.udm.subscription_usable
+  with:
+    udmReadReceipt:
+      from: nudm-sdm-get.output
 ```
 
 Semantics:
 
-- `inputs` is a named map of ordinary source bindings. `from` uses the same source-reference vocabulary and Binding Plan as Procedure `with/from`.
-- The evaluator receives only the declared values. The Compiler derives the Predicate Script input projection from those producer schemas and Context contracts; no author-authored Script Input Schema file is required.
+- `Predicate.inputs` declares the Predicate's named input interface. The Procedure's `verify.with/from` supplies those values using the same source-reference vocabulary and Binding Plan as ordinary Operation inputs. This keeps Predicate logic reusable and keeps producer-specific node names out of the Predicate definition.
+- The evaluator receives only the declared values. The Compiler derives the effective Predicate input projection from the Predicate interface plus all Procedure `verify.with/from` call sites and their producer schemas/Context contracts; multiple call sites must provide compatible inputs. No separate Script Input Schema file is required.
 - Runtime attaches the Host Evidence projection to each producer-backed input under `input.evidence.<alias>`. Evidence is a separate provenance object, not merged into the business payload and not an arbitrary Skill-authored value.
 - The Binding Plan records parallel lineage for each consumed value and its Evidence: exact producer, source path, schema/owner, invocation/scope, and the Evidence refs/guarantees attached to that producer. A Script cannot invent or rewrite Evidence refs.
 - The Script changes from reading `input.observations.response` / implicit `input.subject.udmReadReceipt` to the declared `input.udmReadReceipt`. Its strict Output TypedDict remains unchanged.
 - A CEL Predicate uses the same `inputs` map and evaluates those declared names. No acquisition occurs inside `verify`.
 
-The current Procedure explicitly passes `nudm-sdm-get.output` into the Predicate as `udmReadReceipt`; this is a Predicate-local binding, not a field of `context.subject`. The vNext input declaration keeps that exact source. The prior `sbi.operation.result` ObservationSource reads the same immutable `CreatedSessionUDMResult` from an attempt-local store and adds Provider Evidence; it is not another network Get.
+The current Procedure explicitly passes `nudm-sdm-get.output` into the Predicate as `udmReadReceipt`; this is a call-site binding, not a field of `context.subject`. The vNext Predicate declares only the input name, while the Procedure keeps the exact producer path. The prior `sbi.operation.result` ObservationSource reads the same immutable `CreatedSessionUDMResult` from an attempt-local store and adds Provider Evidence; it is not another network Get.
 
 To retire that local projection, Runtime must attach equivalent Provider Evidence to the original READ Operation result using its exact invocation/transaction/record provenance. The Predicate then consumes one result plus its Evidence, rather than comparing two copies of the same result. If Evidence parity cannot be shown, retain the local projection as a typed source over the same stored artifact—never issue another UDM Get.
 
@@ -354,6 +359,18 @@ nodes:
     postconditions:
       steps:
         - verify: createdsession.n4.initial_resources_ready
+          with:
+            resources:
+              from: read-initial-resources.output
+
+# Predicate interface (the evaluator consumes only the declared input):
+predicates:
+  createdsession.n4.initial_resources_ready:
+    inputs:
+      resources: {}
+    evaluator:
+      type: cel
+      expression: input.resources.bindingStatus == "CURRENT"
 ```
 
 Semantics:
