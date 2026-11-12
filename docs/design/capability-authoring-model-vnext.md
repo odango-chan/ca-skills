@@ -248,7 +248,7 @@ The frozen Skill Studio Plugin-managed Configuration v0.1 already owns project d
 
 Separate three concerns:
 
-- **Skill source**: names the language-level exported contract it consumes (an exact Operation ID or a stable exported Schema `$id`). This is *what* the Skill consumes. It does not select the dependency source, dependency alias, repository, version, revision, digest, cache key, or local path.
+- **Skill source**: names the qualified exported contract it consumes as `<dependency-alias>::<exported-contract-id>` (for example `fivegc-tools::sbi.udm.sm_data.get` or `host-contracts::ca.host.context/subject.v1`). The alias is a stable logical namespace for the locked dependency snapshot, not acquisition configuration. Skill source does not select a source, repository, version, revision, digest, cache key, or local path.
 - **Studio Workspace Configuration**: owns dependency selection and source acquisition (Upload, MCP discovery, Git, Built-in), dependency aliases/identity, pinned source revision, lock/integrity metadata, immutable snapshot persistence, import/refresh/Update Lock, export and cache. It maps the Skill's exported contract references to the exact locked snapshot(s). Credentials never enter Skill source or Compiler input.
 - **Compiler**: receives Skill source plus already-resolved immutable dependency snapshots through its versioned in-memory BuildRequest. It verifies canonical snapshot digests and links exact exported contract identities. It does not fetch, select, lock, cache, update or persist dependencies.
 
@@ -265,8 +265,13 @@ For the vNext schema-reference design, use the exported JSON Schema `$id` as the
 
 The generic Observation/Evidence envelope and domain Observation payloads remain distinct. A READ Operation's Output Schema owns its domain payload; the shared Host/Runtime contract owns only the generic envelope/provenance fields. Do not invent one aggregate Observation Schema ID that claims to describe all 5GC payloads. The exact treatment of legacy `spec.context.schemas.observations` is part of the Predicate/READ acquisition migration, not a shortcut in this dependency change.
 
-No dependency ID, alias, repository, source, revision, digest, cache key, or physical path is authored in Skill YAML. Studio Workspace Configuration maps these contract IDs and exact Operation IDs to locked snapshots. Compiler receives the snapshot bytes and verifies their digest.
+A logical dependency alias may appear only as the namespace prefix of an exported contract reference; Skill YAML never contains a dependency source locator, repository, source kind, revision, digest, cache key, or physical path. Studio Workspace Configuration maps aliases to locked snapshots. Compiler receives snapshot bytes and verifies their input digest. Compiler does not export digest values in BuildResult.
 
 The current 5GC Host Subject / Facts / Evidence and Observation contracts remain external Owner dependencies. Skill must not copy their bodies into its own package, and Studio must not fabricate missing owner files. See [Dependency Identity & 5GC Owner Schema Resolution](dependency-identity-and-owner-schema-resolution-vnext.md) for the cross-repository inventory and acceptance gates.
 
 The stable Schema identity rule (`$id`) is the selected vNext direction; the complete Skill Language syntax and breaking migration are not yet frozen. Existing v0.2 source and Compiler behavior remain authoritative until a separately reviewed migration is implemented.
+
+
+### Capability grants and Tool Operation linking
+
+The Skill grants Capability identities in `allowedResources.capabilities`; a Procedure node calls one exact Operation. The independent Capability contract maps each Capability to its owner and exact Operations with expected Effects, while ToolCatalog declares each callable Operation's schemas and declared Effect. Compiler must prove every Procedure Operation belongs to exactly one Capability granted by the Skill and cross-check Effects. Existing 5GC source currently places Operation IDs in `allowedResources.capabilities` as a compatibility-era representation; do not silently reinterpret them as Capability IDs. A separately reviewed language migration must change these grants to the six real 5GC Capability IDs while preserving exact Operation coverage. Observation reads are READ Operations under Capabilities, not a parallel unowned tool mechanism.
