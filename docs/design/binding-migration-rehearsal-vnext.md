@@ -323,3 +323,63 @@ These three slices exercise the key vNext claims: reuse of a prior Operation res
 The N4 wait remains different: it repeatedly acquires the owner fact and returns only evidence refs; the following Predicate reacquires the payload. Preserve that explicit wait-plus-final-read sequence initially. Do not collapse it to one sample unless a separate old/new comparison proves equivalent behavior.
 
 The remaining 5GC refs can then be mapped using the same alternatives in the Owner Inventory. No MAS execution is required for this first executable feasibility decision.
+
+
+## 16. Concrete 5GC first-slice mapping (behavior-preserving, syntax-neutral)
+
+This section records what the current runnable code actually does. It is a semantic migration rehearsal, not final YAML syntax.
+
+### 16.1 UDM Get result → selection and pure Predicate
+
+Current path:
+
+- `sbi.udm.sm_data.get` performs the one external Provider GetSmData call and returns `invocationId` plus the Skill-facing `result` projection.
+- The same immutable `CreatedSessionUDMResult` is stored under exact `(ueRef, invocationRef, transactionRef)`.
+- The legacy `sbi.operation.result` ObservationSource reads that attempt-local store and constructs Provider SourceFactEvidence. It does **not** perform another external UDM Get.
+- `evaluate_udm_read.py` compares the Host-composed `subject.udmReadReceipt.result` with `observations.response`, then classifies the exact response as PASS / FAIL / UNKNOWN.
+- `selection-input.schema.yaml` separately constrains the value consumed by `select_establishment_configuration.py`; `udm-read-evaluation-input.schema.yaml` constrains the Predicate input; `predicate-evaluation-result.schema.yaml` constrains the evaluator result.
+
+vNext mapping:
+
+- Keep the UDM Get as one READ Operation.
+- Make the exact Operation result and its Provider Evidence available to the pure Predicate as declared inputs. The current attempt-local result-store projection may remain as an internal materialization step if needed to preserve the independent receipt-vs-result comparison; it must not become another network call.
+- Preserve exact invocation, transaction, request, Provider record, selected target and source-binding checks. If the Operation output does not carry enough information to construct equivalent Evidence, enrich the Host Operation result/Evidence projection rather than inventing another Provider request.
+- Defer the Provider's full nested result Output Schema from this first feasibility slice. The existing Skill consumer schemas already constrain the business logic; keep nested producer paths explicit until the Provider Owner Schema is available.
+
+### 16.2 UDM Hold bind → hold-bound pure Predicate
+
+Current path:
+
+- `ca.session.udm_hold.bind` performs the one Fabric pending-Hold lookup and stores the exact immutable `FabricUdmHold` in `CreatedSessionUdmHoldStore`.
+- The Operation returns the hold/request/current-instance refs, digest, operation kind, scope and deadline.
+- The legacy `CreatedSessionUdmHoldObservationSource` reads the **same local stored record**, checks exact selector/lifecycle/hold correlation and deadline, adds `bindingStatus: CURRENT`, and constructs the Fabric SourceFactEvidence. It does not issue a second Fabric request.
+
+vNext mapping:
+
+- Treat `ca.session.udm_hold.bind` as the READ Operation that acquires the hold.
+- Supply its exact output plus a Host-generated Evidence projection to the pure Predicate. Preserve the current selector, lifecycle, hold ref, current instance, request digest, deadline and correlation checks.
+- Do not add a second Fabric READ Operation just to replace the legacy Observation Ref. The current source is a local evidence projection over the bind result, not an independent owner read.
+
+### 16.3 N4 bounded wait → final pure Predicate
+
+Current path:
+
+- `ca.session.evidence.await` repeatedly calls the N4 ObservationSource under the admitted wait scope, deadline and observation budget. For initial N4 resources, `KNOWN_ABSENT` means “not yet” and the declaration uses `CONTINUE`.
+- The wait Operation returns only `evidenceRefs`, not the normalized N4 payload.
+- The subsequent PredicateEngine evaluation calls the ObservationSource again, validates freshness/correlation/evidence, and passes the final normalized payload to CEL.
+
+vNext mapping:
+
+- Preserve the bounded wait as an explicit step with its exact scope, deadline, budget and `KNOWN_ABSENT/CONTINUE` policy.
+- Preserve the final acquisition as an explicit READ step after the wait; its typed payload and Evidence become the pure Predicate inputs. This mirrors the current two acquisition points and avoids treating evidence refs as payload.
+- Do not collapse wait and final read into one sample in the first migration. That would change the current timing semantics and requires a separate old/new equivalence decision.
+
+### 16.4 Result of the first-slice rehearsal
+
+These three existing paths show that pure Predicate is feasible without turning all 17 legacy Observation refs into new network Operations:
+
+- UDM result: reuse one prior external READ Operation plus its exact stored-result Evidence projection.
+- UDM Hold: reuse one Fabric READ Operation plus a local Host Evidence projection.
+- N4 convergence: preserve an explicit bounded wait followed by a final owner READ.
+
+This is enough to validate the core model boundary. The remaining refs should be classified using the same three categories—prior Operation result, local/event/journal projection, or genuinely independent owner READ—before any broad source migration.
