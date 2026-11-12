@@ -180,16 +180,16 @@ The following parallel Owner work is now verified and must be treated as the imp
 
 | PR | Owner repository | Contribution | Latest observed status |
 |---|---|---|---|
-| [ca-agent-demo #198](https://github.com/odango-chan/ca-agent-demo/pull/198) | Agent Host | Host Subject, Facts and Script-facing Predicate Evidence reference schemas | OPEN / DRAFT; focused CI **38 passed, 0 failed** |
+| [ca-agent-demo #198](https://github.com/odango-chan/ca-agent-demo/pull/198) | Agent Host | Host Subject, Facts and Script-facing Predicate Evidence reference schemas | OPEN / DRAFT; focused CI **220 passed, 0 failed** |
 | [ca-agent-demo #199](https://github.com/odango-chan/ca-agent-demo/pull/199) | Agent Host | Code-derived normalized output inventory for all 17 refs | OPEN / DRAFT; docs-only, refreshed with UDM SD semantics |
-| [ca-agent-demo #200](https://github.com/odango-chan/ca-agent-demo/pull/200) | Agent Host + Open5GS adapters | 15 normalized output Schema files covering 16/17 refs; real N4 AVAILABLE / KNOWN_ABSENT branches | OPEN / DRAFT; focused CI **45 passed, 0 failed** |
+| [ca-agent-demo #200](https://github.com/odango-chan/ca-agent-demo/pull/200) | Agent Host + Open5GS adapters | 15 normalized output Schema files covering 16/17 refs; real N4 AVAILABLE / KNOWN_ABSENT branches | OPEN / DRAFT; focused CI **227 passed, 0 failed** |
 | [ca-provider-5gc #50](https://github.com/odango-chan/ca-provider-5gc/pull/50) | Provider | Exact nested UDM GetSmData subscription Output Schema; removes broad object placeholders | OPEN / DRAFT; **no GitHub check-runs observed** |
 
 PR #50 is specifically intended to close the upstream Provider wire-schema blocker for `sbi.operation.result`. It does **not** by itself publish the Host adapter's normalized `AcquiredObservation.value` Schema. That Host projection still needs to be added after the Provider schema is accepted, the Agent consumer snapshot is refreshed, and the ToolCatalog output contract is linked to the imported Provider schema.
 
 PR #200 now goes beyond fixture-only validation: it validates the real `CreatedSessionUdmHoldObservationSource` projection, UDM Hold identity matching, Provider request omission, both N4 initial-resource branches, and strict RFC 3339 date-time rejection. Its 45 passing tests are focused conformance, not a full ObservationSource suite for all 17 refs or live 5GC E2E. PR #198's 38 passing tests validate the actual Subject/Facts materialization and Script-facing Evidence refs; they do not publish the full Runtime ObservationEvidence envelope.
 
-The two Agent PRs now carry byte-identical CI workflow definitions, avoiding a same-path workflow-add conflict. The workflow watches producer/adapter source paths as well as the schema/test files.
+The two Agent PRs now carry byte-identical CI workflow definitions, avoiding a same-path workflow-add conflict. The workflow watches producer/adapter source paths as well as the schema/test files and includes PCF Governance conformance plus the shared schema helper.
 
 The generic Runtime ObservationEvidence dataclasses remain Host-internal. This is intentional until a separate cross-runtime consumer needs that envelope; do not publish it merely to satisfy a Compiler file-count target.
 
