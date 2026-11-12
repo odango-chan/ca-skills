@@ -54,9 +54,9 @@ A unique semantic ID is a necessary **but not sufficient** condition for auto-bi
 - Missing/unknown ID for a required automatic binding: **no auto-binding**; explicit `with/from` remains valid and required.
 - Unsupported/malformed annotations fail closed; no string similarity fallback.
 
-## 4. Illustrative 11 common MAS context semantics
+## 4. Deferred MAS example — not an executable acceptance baseline
 
-These are candidate identities to validate against the actual owner contracts, not modifications to the existing ToolCatalog:
+The following table is retained only as a design exercise. `establish-pdu-session-mas` is not currently end-to-end runnable, and its ToolCatalog is explicitly proposed / NOT_READY. These rows are **not verified owner contracts**, must not be used to claim MAS schema completeness, and are not the first Compiler acceptance target:
 
 | MAS Procedure input | MAS Operation input | Candidate semantic ID |
 |---|---|---|
@@ -72,11 +72,17 @@ These are candidate identities to validate against the actual owner contracts, n
 | `requestedPduSessionType` | `requestedPduSessionType` | `session.requestedPduSessionType` |
 | `requestedSscMode` | `requestedSscMode` | `session.requestedSscMode` |
 
-Source: actual `establish-pdu-session-mas` Procedure and proposed MAS ToolCatalog. These are **test annotations**, not an assertion that the proposed MAS ToolCatalog is an approved owner contract.
+Source: the current MAS draft Procedure and proposed ToolCatalog. The values below are merely proposed annotations for synthetic feasibility tests. They are not sourced from a successful MAS execution, and they are not approved owner declarations.
 
 The exact common field names are not an instruction to bind every field to matching context paths globally. The context projection is still scoped by the invoked Procedure.
 
-## 5. Automatic and explicit bindings
+## 5. First executable baseline: real 5GC
+
+The first executable acceptance target is `ca-agent-demo`'s runnable `establish-pdu-session` 5GC Skill, not MAS. See [5GC Schema & Observation Source Inventory](5gc-schema-source-inventory-vnext.md) for the code-derived owner map. Semantic IDs for 5GC must be assigned only after the exact Host Context, Provider Operation, Fabric ingress/hold, and Open5GS evidence contracts are traced to their real owners. Similar names or primitive types are not sufficient.
+
+Until the actual owner schemas and their provenance are available, keep existing 5GC `with/from` mappings unchanged. Do not infer new semantic identities for exact attempt handles (`ingressRef`, `lifecycleRef`, hold refs, invocation refs, N4 instance refs, evidence refs).
+
+## 6. Automatic and explicit bindings
 
 - Contract-derived common context inputs may be auto-bound when unique and statically available.
 - Resource handles and produced results such as `subscriptionStateRef`, `policyStateRef`, `n4Seid`, and `stateRef` remain explicit unless an output's semantic identity **plus exact producer instance and control-flow guarantees** prove the source unique.
@@ -84,7 +90,7 @@ The exact common field names are not an instruction to bind every field to match
 - Preserve `with/from` for intentional override, selection, and exact lineage; do not introduce a new mandatory `bindings.yaml`.
 - The compiler emits a complete Binding Plan with source path, semantic identity, owner contract, source producer identity, and proof/diagnostic of availability.
 
-## 6. Scope and unresolved design
+## 7. Scope and unresolved design
 
 This document does not define a full semantic-type registry, new package manager, new Host data structure, or a new Operation identity. It does **not** modify v0.2 or authorize runtime inference.
 
@@ -100,3 +106,8 @@ The Compiler v0.1 source already provides schema implication and control-flow av
 See [Compiler Semantic Binding Integration Design](https://github.com/odango-chan/ca-skill-compiler/blob/spike/vnext-binding-resolver-20261112/docs/semantic-binding-integration-vnext.md).
 
 The pinned Compiler demo project currently lacks the declared Context Owner Schemas for some `context.subject` / `context.facts` paths referenced by the two Procedures. This is a fixture completeness gap, not permission for Compiler to infer a Host schema. Migration tests must provide the actual owner-approved schemas and declare them in SkillContract before claiming whole-Procedure compilation.
+
+
+## 8. Acceptance status correction (2026-11-12)
+
+The earlier MAS 11 × 16 = 176 candidate count is a synthetic feasibility example only. MAS is not runnable and its ToolCatalog is NOT_READY; it is explicitly excluded from executable acceptance. The first real migration/equivalence test must use the runnable 5GC Skill and the owner contracts inventoried in `5gc-schema-source-inventory-vnext.md`. The Compiler's pinned demo fixture must not substitute a stale or proposed MAS contract for that baseline.
