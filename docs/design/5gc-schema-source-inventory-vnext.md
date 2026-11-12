@@ -100,3 +100,8 @@ This inventory was derived from `ca-agent-demo` commit `38012852827437185c6343c2
 ## 10. Host context export update (2026-11-12)
 
 ca-agent-demo Draft PR [#198](https://github.com/odango-chan/ca-agent-demo/pull/198) now publishes three source-backed schemas: 5GC invocation Subject, 5GC invocation Facts, and the Host Predicate Evidence reference projection. Its focused test workflow passed on commit `bab7ac60d481c5efb6c53c9bca27afa1bb706e91`. The PR is still Draft / unmerged, so these schemas are proposed owner exports and must not yet be treated as present in the official `ca-agent-demo/main` dependency snapshot. The full Runtime `ObservationEvidence` model remains internal and is not the Skill's Script-facing Evidence schema.
+
+
+## 11. Observation output Schema publication update (2026-11-12)
+
+ca-agent-demo Draft PR [#200](https://github.com/odango-chan/ca-agent-demo/pull/200) proposes normalized output Schemas for 16/17 Observation refs. The remaining `sbi.operation.result` requires the Provider Owner to complete the nested UDM subscription result Schema before a strict Skill-facing output Schema can be published. PR #200 is unmerged and CI is not yet confirmed; do not import these proposed files into the official lock until merged and reviewed.
