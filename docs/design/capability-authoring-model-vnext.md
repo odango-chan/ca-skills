@@ -377,7 +377,7 @@ predicates:
       resources: {}
     evaluator:
       type: cel
-      expression: input.resources.bindingStatus == "CURRENT"
+      expression: input.resources.bindingStatus == "CURRENT" && input.resources.defaultFlowInstalled == true && input.resources.uplinkEndpointBound == true
 ```
 
 Semantics:
