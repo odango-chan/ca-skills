@@ -113,3 +113,8 @@ Do not remove the current ObservationSource registry or rewrite Predicate syntax
 ## 7. Non-goals
 
 This proposal does not create missing Host/Observation schemas, does not define MAS contracts, does not change current v0.2 Skill YAML, does not authorize a Compiler merge, and does not claim a successful 5GC build with the new dependency model. It defines the cross-repository alignment required before implementation.
+
+
+## Observation output Schema status
+
+The owner-side proposal [ca-agent-demo PR #200](https://github.com/odango-chan/ca-agent-demo/pull/200) covers 16/17 normalized 5GC Observation outputs. `sbi.operation.result` remains blocked on the Provider UDM nested subscription Schema. This is a real remaining Owner contract gap, not a Compiler or Skill workaround. Do not claim the 5GC dependency set is complete until the Provider schema is completed and the Owner PR is merged.
