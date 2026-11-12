@@ -434,7 +434,7 @@ The current executable 5GC deployment has **six Capability groups and twelve uni
 
 ### 18.1 Exact old → new grant transformation
 
-Current compatibility source lists the twelve Operation IDs above under `allowedResources.capabilities`. The vNext Skill grant must instead list the six Capability IDs, qualified by the logical alias that resolves the Owner's CapabilityContracts snapshot:
+Current compatibility source lists the twelve Operation IDs above under `allowedResources.capabilities`. The vNext Skill grant must instead list the six Capability IDs, qualified by an alias bound to the deployment's immutable, trusted CapabilityContracts build input:
 
 - `<capability-contract-alias>::provider-5gc.createdsession.udm`
 - `<capability-contract-alias>::provider-5gc.createdsession.pcf`
@@ -443,9 +443,9 @@ Current compatibility source lists the twelve Operation IDs above under `allowed
 - `<capability-contract-alias>::ca-provider-5gc.createdsession.transfer`
 - `<capability-contract-alias>::ca-agent-host.createdsession.runtime`
 
-Procedure calls continue to name one exact Operation, qualified by the alias resolving its ToolCatalog contract. The Compiler must link each call to exactly one Capability membership in the resolved contract set and cross-check the Tool Effect against the independently declared expected Effect. The Skill does not grant an entire Tool by display name, owner name, prefix, or implicit hierarchy.
+Procedure calls continue to name one exact Operation, qualified by the alias resolving its ToolCatalog contract. The Compiler must link each call to exactly one Capability membership across the resolved ToolCatalog contracts and the separately supplied trusted CapabilityContracts input, then cross-check the Tool Effect against the independently declared expected Effect. If the trusted CapabilityContracts input is absent, static authorization proof cannot be claimed; Runtime admission remains authoritative. The Skill does not grant an entire Tool by display name, owner name, prefix, or implicit hierarchy.
 
-The alias is a Workspace Configuration namespace, not a repository/path/revision field in Skill YAML. The exact alias value is not frozen here because the CapabilityContracts and ToolCatalog snapshots may be supplied by different configured dependencies.
+The CapabilityContracts alias is a logical build-input binding, not a normal Skill dependency locator: the deployment-owned CapabilityContracts must be supplied as a separate trusted Compiler input, not inferred from ordinary Skill dependency snapshots. The ToolCatalog alias resolves the Operation contracts from the ordinary resolved dependency set. Neither alias is a repository/path/revision field in Skill YAML. The exact alias values are not frozen here.
 
 The deployment-owned `budgetExemptOperations` entry for `ca.session.resource_responsibility.transfer` is not an additional Skill grant and is not an Effect. It remains a separate Runtime budget policy.
 
