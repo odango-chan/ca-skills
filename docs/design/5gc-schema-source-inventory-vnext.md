@@ -116,8 +116,8 @@ The follow-up code-derived audit is maintained in [5GC Owner Schema Gap Register
 
 The code-derived source inventory remains pinned to `ca-agent-demo/main@38012852827437185c6343c2b544acad401084e1`; proposed exports below are separate candidate branches and are not yet part of the official main snapshots.
 
-- Host Context / Script Evidence refs: ca-agent-demo Draft PR #198; three Owner schemas; focused CI **38 passed**.
-- Normalized Observation outputs: ca-agent-demo Draft PR #200; 15 Schema identities cover 16/17 refs; focused CI **45 passed**. The test set now includes the real UDM Hold ObservationSource projection, UDM Hold identity matching, Provider request omission and RFC 3339 format enforcement.
+- Host Context / Script Evidence refs: ca-agent-demo Draft PR #198; three Owner schemas; focused CI **220 passed**.
+- Normalized Observation outputs: ca-agent-demo Draft PR #200; 15 Schema identities cover 16/17 refs; focused CI **227 passed**. The test set now includes the real UDM Hold ObservationSource projection, UDM Hold identity matching, Provider request omission and RFC 3339 format enforcement.
 - Provider GetSmData nested subscription result: ca-provider-5gc Draft PR #50; exact schema and validation script proposed, but no GitHub check-runs observed. The Host-normalized `sbi.operation.result` projection remains a separate missing Schema.
 - Fabric ingress, PCF governance and held-request-read contracts remain proposed/candidate sources. The loopback `GET /demo/hold/v1/pending` and `POST /demo/hold/v1/claim` endpoints consumed by Agent still lack a distinct Owner-published wire Schema; the Provider-facing held-request-read contract is not interchangeable with them.
 
