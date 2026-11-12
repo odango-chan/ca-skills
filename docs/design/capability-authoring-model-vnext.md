@@ -224,7 +224,7 @@ The following remain open pending 5GC/MAS migration examples and Compiler feasib
 - exact location of exceptional mappings (node-level with vs Procedure-level bindings);
 - stable semantic-field identity vocabulary for automatic binding (must not rely on property-name equality); first required use: shared Context fields and Operation input parameters, validated against the 11 common MAS context inputs and representative 5GC aliases;
 - whether Deployment binding overlays are needed and how they are versioned/identified;
-- exact Capability-to-Operation authorization expansion semantics;
+- exact Capability-to-Operation authorization expansion semantics, including how the deployment-owned CapabilityContracts currently used by 5GC is supplied to a build: Skill source grants Capability IDs only and must not define membership/Effects; if static membership proof is claimed, the target deployment's immutable CapabilityContracts must be an explicit trusted build input (separate from ordinary Skill dependencies), otherwise only runtime admission can be claimed;
 - Evidence vocabulary and temporal fields;
 - normalized projection contract and lineage representation;
 - whether procedure.yaml remains under assurance/ or moves in a separately justified directory redesign.
