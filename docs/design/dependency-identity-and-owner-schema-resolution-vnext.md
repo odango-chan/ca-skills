@@ -15,7 +15,7 @@ Related frozen/authoritative designs:
 
 1. Skill source must not name physical workspace paths such as `lib/host/subject.schema.yaml`.
 2. Do not add a `dependency:` locator, repository URL, source kind, revision, digest, cache key, or local path to SkillContract. Those belong to Plugin-managed Workspace Configuration and its lock.
-3. Skill source may name a stable **exported contract identity** when a contract must be referenced explicitly. That identity names *what* is consumed, not *where* bytes are stored.
+3. Skill source may name a stable **dependency alias + exported contract identity** when a contract must be referenced explicitly. The alias is a logical namespace, not acquisition configuration. It names *which locked dependency snapshot* supplies the export, not *where* bytes are stored.
 4. The Workspace Configuration maps the declared dependency set to source acquisition, exact revision, selected exported contracts, immutable snapshot digest and snapshot bytes. It owns Add / Refresh / Update Lock / Remove.
 5. Compiler receives Skill source and already-resolved immutable dependency snapshots through a versioned in-memory BuildRequest. It verifies the canonical snapshot digest and links stable exported contract identities. It does not fetch, select, lock, cache, or update dependencies.
 6. A Studio `Dependencies` TreeView is the user-facing view of these dependencies. A physical `lib/` folder is neither required nor the source of truth. If an implementation renders a read-only virtual tree, that is presentation only.
@@ -36,9 +36,9 @@ Therefore:
 - Do **not** use physical `lib/**` paths as the vNext dependency identity.
 - Do not confuse dependency presence with Agent Host Provider Binding, authorization, Runtime readiness, or tool execution permission.
 
-The Skill source should contain only language-level references to the exported contract it consumes. For example, a future schema-reference syntax may identify a stable owner contract ID such as `ca.host.context/subject`; this is illustrative only and is **not frozen YAML syntax**. The dependency settings resolve that exported ID to a pinned immutable snapshot.
+The Skill source may contain a qualified exported-contract reference in the form `<dependency-alias>::<exported-contract-id>`. For example, `host-contracts::ca.host.context/subject.v1` identifies one exported Host Schema; `fivegc-tools::sbi.udm.sm_data.get` identifies one exact Operation. The alias is a stable logical namespace configured by Studio, not a repository, URL, MCP connection, revision, digest, or path. The exact YAML positions and escaping/validation rules are part of the versioned Skill language contract.
 
-For Tools, continue to use globally stable exact Operation IDs in Procedure calls and Capability grants. The selected dependency snapshot must export the exact Operation ID and ToolCatalog contract. For MCP collisions, Studio's dependency identity/alias distinguishes source snapshots; the Operation ID within each snapshot must still be linked unambiguously under the Compiler's versioned reference rules. Never guess based on server discovery order or tool display name.
+For Tools, use the exact qualified reference `<dependency-alias>::<operation-id>` in Procedure calls and direct-Operation resource grants. The selected dependency snapshot must export that exact Operation ID in its ToolCatalog. Two MCP servers may expose the same Operation ID under different aliases without collision; duplicate aliases, duplicate exports within one snapshot, or unresolved qualified references are errors. Never guess based on server discovery order or tool display name. Deployment Capability IDs remain a separate owner-defined identity and are not silently converted into Operation references.
 
 ## 3. Compiler input contract: proposed v0.1 alignment
 
@@ -118,3 +118,8 @@ This proposal does not create missing Host/Observation schemas, does not define 
 ## Observation output Schema status
 
 The owner-side proposal [ca-agent-demo PR #200](https://github.com/odango-chan/ca-agent-demo/pull/200) covers 16/17 normalized 5GC Observation outputs. `sbi.operation.result` remains blocked on the Provider UDM nested subscription Schema. This is a real remaining Owner contract gap, not a Compiler or Skill workaround. Do not claim the 5GC dependency set is complete until the Provider schema is completed and the Owner PR is merged.
+
+
+## 8. Reference identity correction
+
+The logical dependency alias **is part of a Skill reference namespace**, as required by Skill Studio Plugin-managed Configuration v0.1 for MCP source collisions. It is not dependency acquisition configuration. The stable reference is `<dependency-alias>::<exported-contract-id>`; the alias maps to the locked snapshot in workspace settings. Changing the alias is a source refactor, while changing the locked snapshot behind an alias is an explicit dependency Update Lock operation. Do not claim that Skill source contains no dependency alias at all; the correct prohibition is against source locators and lifecycle metadata.
