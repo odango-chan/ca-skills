@@ -242,20 +242,20 @@ Compiler [Draft PR #7](https://github.com/odango-chan/ca-skill-compiler/pull/7) 
 
 ## 15. Dependency identity versus local `lib/` layout
 
-**Decision: a Skill must not bind itself to a physical `lib/` path.**
+**Decision: Skill source must not bind to physical `lib/` paths, and must not become a second dependency manifest.**
 
-A Skill declares the external contract it consumes by stable logical dependency / contract identity and the required exported contract identity (for example an exact Operation ID or a named Schema within that dependency). It does not declare where the dependency is downloaded, cached, mounted, or displayed in a workspace.
+The frozen Skill Studio Plugin-managed Configuration v0.1 already owns project dependencies and locks through native resource-scoped Workspace Configuration (`connectionAgent.skillStudio.dependencies` and `connectionAgent.skillStudio.dependencyLock`). Therefore do not add `dependency:`, repository/source/revision/digest/cache fields, `skill-project.yaml`, or `skill.lock.yaml` to Skill source.
 
-Responsibilities are split as follows:
+Separate three concerns:
 
-- **Skill source**: declares semantic dependencies on owner-controlled contracts. It may refer to a stable dependency ID plus an exported Operation / Schema identity. It must not contain machine-local paths, sibling-repository paths, absolute paths, cache paths, or assumptions that a `lib/` directory exists.
-- **Skill Studio Plugin / workspace configuration**: owns dependency source selection (Git, upload, MCP discovery, registry, URL, built-in, etc.), version / revision selection, integrity metadata, lock state, import / refresh, and local cache management. This is plugin-managed project configuration, not Skill source syntax.
-- **Resolved dependency snapshot**: the Plugin supplies Compiler with immutable, already-resolved dependency bytes under a deterministic logical namespace keyed by dependency identity and exported contract identity. A UI may render these snapshots under a read-only `lib/` tree for discoverability, but that tree is a workspace presentation / materialization detail, not a path contract authored by the Skill.
-- **Compiler**: receives Skill source files plus resolved dependency snapshots. It resolves logical IDs against that supplied immutable set and fails closed on missing, ambiguous, incompatible, or digest-mismatched dependencies. It does not fetch, import, update, lock, or manage packages.
-- **Build output**: Compiler returns an in-memory immutable artifact/file set. The Plugin decides whether and where to persist or display it; a physical `output/` directory is not a required Compiler input or Skill-authored reference.
+- **Skill source**: names the language-level exported contract it consumes (for example an exact Operation ID or, in a future versioned schema-reference syntax, a stable exported Schema identity). This is *what* the Skill consumes. It does not select the dependency source, dependency alias, repository, version, revision, digest, cache key, or local path.
+- **Studio Workspace Configuration**: owns dependency selection and source acquisition (Upload, MCP discovery, Git, Built-in), dependency aliases/identity, pinned source revision, lock/integrity metadata, immutable snapshot persistence, import/refresh/Update Lock, export and cache. It maps the Skill's exported contract references to the exact locked snapshot(s). Credentials never enter Skill source or Compiler input.
+- **Compiler**: receives Skill source plus already-resolved immutable dependency snapshots through its versioned in-memory BuildRequest. It verifies canonical snapshot digests and links exact exported contract identities. It does not fetch, select, lock, cache, update or persist dependencies.
 
-The current v0.2 `spec.context.schemas.*: lib/...` syntax is therefore a **compatibility-era local source locator**, not the desired vNext dependency model. Preserve its existing behavior until a separately reviewed migration is implemented; do not silently reinterpret or remove it in this design PR.
+A snapshot may be displayed in a read-only **Dependencies** TreeView. A virtual `lib/` tree is optional presentation only; a physical `lib/` directory is neither required nor the source of truth. The Compiler must not require a global `lib/**` path namespace as the identity of a dependency.
 
-For the current 5GC example, the Host Subject / Facts / Evidence and Observation schemas are externally owned dependencies. The Skill must not copy their schema bodies into its own `skills/establish-pdu-session/` tree, and the Plugin must not fabricate missing owner files. Until their owners publish the required schemas and the workspace resolves them, Compiler must report the missing dependency precisely.
+The current v0.2 `spec.context.schemas.*: lib/...` syntax is a **compatibility-era source locator**, not the target vNext language model. Preserve its existing behavior until a separately reviewed breaking migration; do not silently reinterpret or remove it. In vNext, context Schema references must identify the exported Owner contract, while Workspace Configuration resolves that identity to pinned bytes. The exact YAML spelling and Compiler BuildRequest wire shape must be frozen together with the Studio contract; do not add an unreviewed `dependency` field to SkillContract.
 
-The exact YAML spelling for dependency declarations is intentionally **not frozen here**. It must be designed together with the already accepted Plugin-managed configuration contract; avoid introducing a second Skill manifest or a mandatory `skill-project.yaml` / `skill.lock.yaml` solely to carry dependency paths.
+The current 5GC Host Subject / Facts / Evidence and Observation contracts remain external Owner dependencies. Skill must not copy their bodies into its own package, and Studio must not fabricate missing owner files. See [Dependency Identity & 5GC Owner Schema Resolution](dependency-identity-and-owner-schema-resolution-vnext.md) for the cross-repository inventory and acceptance gates.
+
+The exact vNext syntax is intentionally **not frozen**. Existing v0.2 source and Compiler behavior remain authoritative until a separately reviewed migration is implemented.
