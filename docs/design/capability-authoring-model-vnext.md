@@ -254,7 +254,18 @@ Separate three concerns:
 
 A snapshot may be displayed in a read-only **Dependencies** TreeView. A virtual `lib/` tree is optional presentation only; a physical `lib/` directory is neither required nor the source of truth. The Compiler must not require a global `lib/**` path namespace as the identity of a dependency.
 
-The current v0.2 `spec.context.schemas.*: lib/...` syntax is a **compatibility-era source locator**, not the target vNext language model. Preserve its existing behavior until a separately reviewed breaking migration; do not silently reinterpret or remove it. In vNext, context Schema references must identify the exported Owner contract, while Workspace Configuration resolves that identity to pinned bytes. The exact YAML spelling and Compiler BuildRequest wire shape must be frozen together with the Studio contract; do not add an unreviewed `dependency` field to SkillContract.
+The current v0.2 `spec.context.schemas.*: lib/...` syntax is a **compatibility-era source locator**, not the target vNext language model. Preserve its existing behavior until a separately reviewed breaking migration; do not silently reinterpret or remove it.
+
+For the vNext schema-reference design, use the exported JSON Schema `$id` as the stable contract identity:
+- each externally owned standalone Schema declares a globally unique, versioned absolute `$id` (URN form is recommended, e.g. `urn:connectionagent:host:context:subject:v1`);
+- `spec.context.schemas.subject/facts/evidence` reference those exact IDs, not dependency IDs or paths;
+- Compiler indexes only the supplied immutable snapshots and resolves exact `$id` matches; it never performs network resolution;
+- duplicate IDs, missing IDs, duplicate exports, unsupported dialects and incompatible schemas fail closed;
+- the Owner controls and versions the ID. A changed incompatible contract requires a new versioned ID.
+
+The generic Observation/Evidence envelope and domain Observation payloads remain distinct. A READ Operation's Output Schema owns its domain payload; the shared Host/Runtime contract owns only the generic envelope/provenance fields. Do not invent one aggregate Observation Schema ID that claims to describe all 5GC payloads. The exact treatment of legacy `spec.context.schemas.observations` is part of the Predicate/READ acquisition migration, not a shortcut in this dependency change.
+
+No dependency ID, alias, repository, source, revision, digest, cache key, or physical path is authored in Skill YAML. Studio Workspace Configuration maps these contract IDs and exact Operation IDs to locked snapshots. Compiler receives the snapshot bytes and verifies their digest.
 
 The current 5GC Host Subject / Facts / Evidence and Observation contracts remain external Owner dependencies. Skill must not copy their bodies into its own package, and Studio must not fabricate missing owner files. See [Dependency Identity & 5GC Owner Schema Resolution](dependency-identity-and-owner-schema-resolution-vnext.md) for the cross-repository inventory and acceptance gates.
 
