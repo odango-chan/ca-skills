@@ -156,10 +156,10 @@ The adapter can expose exact READ Operation identities over that generic Provide
 
 | Candidate Operation surface | Fixed Provider selector | Procedure use |
 |---|---|---|
-| N4 initial-resources read | `n4.initial_resources.snapshot` | Called once before the mutation to capture the baseline and again after convergence to acquire the post-N4 resources |
-| SMF RAN-setup read | `smf.ran_setup.snapshot` | Acquires the current session's accepted RAN setup result |
-| UPF N4-forwarding read | `n4.forwarding_resources.snapshot` | Acquires the exact UPF forwarding state for the confirmed N4 pair |
-| Fabric PCF-governance read | Exact `holdRef` lookup using the proposed PCF governance result contract | Acquires current hold/sender/competing-create/lifecycle-isolation facts |
+| N4 initial-resources read | `n4.initial_resources.snapshot` | `PRE_CREATE` takes exact `pcfPolicyAssociationRef` + `fabricHoldRef` and returns `baselineRef`; `POST_CREATE` takes that exact `baselineRef` plus the same policy-association handle, returns `baselineEvidenceRef` and the confirmed `currentSessionInstanceRef` |
+| SMF RAN-setup read | `smf.ran_setup.snapshot` | Takes the exact `currentSessionInstanceRef` from the final post-N4 result plus lifecycle; output must echo and prove that same instance |
+| UPF N4-forwarding read | `n4.forwarding_resources.snapshot` | Takes the same exact `currentSessionInstanceRef` from the final post-N4 result plus lifecycle; output proves exactly one matching SMF/UPF pair for that instance |
+| Fabric PCF-governance read | Exact `holdRef` from the bound `pcfHold`, plus lifecycle and invocation scope | Acquires current hold/sender/competing-create/lifecycle-isolation facts; Capability grouping remains an Owner decision |
 
 These are semantic candidates, not frozen Operation IDs. Each adapter-facing Operation should have an exact Input/Output contract and a Capability membership. Its adapter fixes the Provider selector; Skill source does not pass a generic `observationRef`.
 
