@@ -383,3 +383,15 @@ These three existing paths show that pure Predicate is feasible without turning 
 - N4 convergence: preserve an explicit bounded wait followed by a final owner READ.
 
 This is enough to validate the core model boundary. The full 17-ref source classification is now recorded in [Observation Owner and Acquisition Inventory](observation-owner-inventory-vnext.md): 1 Host ingress projection, 9 prior-Operation-result projections, 2 Host journal projections, and 5 independent owner-read acquisitions across 4 distinct read shapes. Therefore the vNext model does not require 17 new callable READ Operations. The remaining migration work is to expose the typed Operation result/Evidence projections and make the four genuinely independent owner-read shapes explicit under the correct Capabilities.
+
+
+### 16.5 Capability and Operation count check
+
+The current 5GC Procedure calls **12 unique Operation IDs** across 14 call nodes; `ca.session.evidence.await` is called three times. The deployment CapabilityContracts currently maps all 12 Operations into six Capability groups with exact READ/MUTATION Effect agreement.
+
+The vNext migration can preserve those 12 callable identities and change the Skill grant from the compatibility-era 12 Operation IDs to the six actual Capability IDs. The four independent owner-read shapes identified above are the only candidate additions:
+
+- three Provider READ Operations (N4 initial resources, SMF RAN setup, UPF N4 forwarding), grouped under one new Provider assurance Capability;
+- one Fabric PCF governance READ Operation, added to the existing Fabric hold Capability only if that is the Owner-approved authorization boundary; otherwise it requires a separate Capability.
+
+That gives a candidate 16 unique callable Operations if `ca.session.evidence.await` remains a Host orchestration Operation. If bounded wait becomes a Procedure control-flow construct, it gives 15. This count is an impact estimate, not a frozen Capability/Operation contract.
