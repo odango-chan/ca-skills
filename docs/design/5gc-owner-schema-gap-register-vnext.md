@@ -53,7 +53,7 @@ Script references (not Observations): skill.evaluate-transfer-start, skill.evalu
 Do not collapse these into one context-observations.schema.yaml:
 
 1. **Generic Host Observation / Evidence Envelope** — Host-owned: observationRef, status (AVAILABLE / KNOWN_ABSENT / UNKNOWN), normalized value presence rules, provenance, source fact refs, correlation refs, world/snapshot lineage, observed-at/freshness and evidence capability.
-2. **Owner READ Operation Output Schema** — owned by the Provider / Fabric / Host / adapter that exposes the read. Declares its exact request scope, normalized output shape, and guarantees. Every Observation read is a READ Operation and belongs to exactly one Capability.
+2. **Owner READ Operation Output Schema** — owned by the Provider / Fabric / Host / adapter that exposes the read. Declares its exact request scope, normalized output shape, and guarantees. Observation payloads are owner-published read-only source contracts. They are not automatically callable Tool Operations. If an owner explicitly exposes an Observation read as a Tool Operation, that Operation must belong to exactly one Capability.
 3. **Skill Predicate consumption contract** — Skill-owned: which Observation ref it requires, scope expression, freshness requirement and evaluator. It consumes materialized facts; it does not own the producer payload schema or acquire the Observation itself.
 
 An ObservationSource implementation can remain an internal Runtime adapter behind a READ Operation. Do not expose both an independently callable Tool and a second parallel Observation tool identity for the same read.
@@ -97,7 +97,7 @@ Each export must have stable Schema/Capability identity and a version. A JSON Sc
 
 ## 7. WP2 acceptance gates
 
-1. Every one of the 17 Observation refs is assigned to one actual owner and one READ Operation / Capability (or explicitly marked as an internal observation projection that will be surfaced by a READ Operation).
+1. Every one of the 17 Observation refs is assigned to its actual owner and exact source contract. Record whether it is an internal ObservationSource projection or an explicitly callable Tool Operation; only the latter requires Capability membership. Do not manufacture Operations merely to force an Observation into the Tool model.
 2. Each READ Operation has exact request and result schemas; no generic object placeholders for fields consumed by Predicate or Procedure.
 3. Generic Host envelope is separated from each owner-specific normalized payload.
 4. Capability membership is exact, unique and Effect-consistent with ToolCatalog.
