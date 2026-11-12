@@ -39,13 +39,13 @@ The lexical `with` count includes node calls, nested precondition/script calls, 
 | Metric | `establish-pdu-session` | `establish-pdu-session-mas` |
 |---|---:|---:|
 | Predicate definitions | 19 | 17 |
-| Unique Observation Refs | 19 | 1 |
+| Unique Observation Refs | 17 | 1 |
 | Observation scope | Predicate-specific, several scope shapes | Same session scope repeated |
 | Freshness examples | 5s and 1h | 5s |
 
 The 17 MAS Predicates all refer to `mas.establishment.snapshot` with the same general UE/PDU-session/ingress/lifecycle scope and 5s freshness. This strongly suggests a shared acquired snapshot/projection with multiple pure evaluations, not 17 separate reads.
 
-The 5GC Predicates use 19 distinct refs, including procedure context, UDM/PCF/N1N2 holds, PCF create inputs/governance, N4 baseline/resources, delivery context, AMF transfer, RAN setup, forwarding, resource responsibility, operation result, and lifecycle registration. These refs represent materially different authorities and assurance questions; they must not be collapsed into one generic snapshot.
+The 5GC Predicates use 17 distinct Observation Refs, including procedure context, UDM/PCF/N1N2 holds, PCF create inputs/governance, N4 baseline/resources, delivery context, AMF transfer, RAN setup, forwarding, resource responsibility, operation result, and lifecycle registration. These refs represent materially different authorities and assurance questions; they must not be collapsed into one generic snapshot.
 
 ## 3. 5GC rehearsal: what can and cannot be simplified
 
@@ -168,7 +168,7 @@ All 17 MAS Predicates refer to the same `mas.establishment.snapshot`. The source
 
 ### 5.3 5GC
 
-The 19 refs span multiple authorities and phases. The current repository includes distinct Provider, Fabric, and simulation observation-source implementations, but the Predicate source alone does not prove a complete one-to-one mapping from all 19 refs to exact registered source implementations and semantic READ Operation contracts.
+The 17 Observation refs span multiple authorities and phases. The current repository includes distinct Provider, Fabric, and simulation observation-source implementations. The registered source-class mapping for all 17 current 5GC Predicate Observation refs is recorded separately in the owner inventory. This does not yet establish corresponding formally declared READ Operation contracts.
 
 **Migration blocker:** build an Observation inventory with, for every ref:
 - authoritative fact producer;
@@ -193,7 +193,7 @@ Do not interpret “Predicate is pure” as “all current observation acquisiti
 | Procedure context → repeated Operation inputs | Many repeated aliases | 176 repeated mappings | Primary auto-binding target, after semantic contract IDs exist |
 | Operation output → Operation input | Exact handles and artifacts | 43 mappings | Auto only with unique semantic producer + definite path; otherwise explicit |
 | Operation output → Predicate | Present through postcondition/evaluation patterns | State snapshot predicates | Same Binding Plan; no hidden acquisition |
-| Observation Ref → Predicate | 19 unique refs | 1 shared ref across 17 predicates | Requires owner/acquisition inventory before migration |
+| Observation Ref → Predicate | 17 unique Observation Refs | 1 shared ref across 17 predicates | Requires owner/acquisition inventory before migration |
 | Constant/profile value | A few explicit values | Several constrained profile constants | Keep explicit or move to separately owned versioned profile contract |
 | Script input/output | Skill-owned projections | No local scripts in current MAS Procedure | Keep explicit and contract-checked |
 
