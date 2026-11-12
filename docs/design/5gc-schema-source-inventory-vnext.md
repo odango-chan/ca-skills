@@ -123,7 +123,7 @@ The code-derived source inventory remains pinned to `ca-agent-demo/main@38012852
 
 ### 12.1 UDM result deferral
 
-The current 5GC Skill already has Skill-owned consumer schemas for the UDM selection Script and UDM Predicate evaluator, plus the shared Predicate evaluation result schema. Those contracts validate what the existing business logic consumes. The Provider's full nested GetSmData Output Schema and the Host-normalized `sbi.operation.result` projection remain separate owner contracts and are deferred from the first vNext feasibility slice. Keep nested producer bindings explicit; do not infer fields from the consumer Schema or block the current Skill review on Provider PR #50.
+The runnable `ca-agent-demo` 5GC copy contains legacy Skill-owned consumer schemas for the UDM selection Script and UDM Predicate evaluator, plus a shared Predicate evaluation result schema. They validate what that executable copy's legacy Script metadata contract consumes; they are not part of official `ca-skills` v0.2 source, which derives Procedure Script inputs per call site and generates Script outputs from TypedDict. Treat these legacy schemas as evidence for the vNext Predicate-input projection design, not as v0.2 imports. The Provider's full nested GetSmData Output Schema and the Host-normalized `sbi.operation.result` projection remain separate Owner contracts and are deferred from the first vNext feasibility slice. Keep nested producer bindings explicit; do not infer fields from consumer code or block the current Skill review on Provider PR #50.
 
 ### 12.2 Compiler consumption status
 
