@@ -60,7 +60,18 @@ An ObservationSource implementation can remain an internal Runtime adapter behin
 
 ## 5. Capability / Tool relationship
 
-The executable 5GC deployment currently has six Capability groups and twelve Operations. The independent Capability contract maps each Operation to exactly one Capability and expected Effect. ToolCatalog owns callable Operation schemas and declared Effect. The Compiler's future static link must:
+The executable 5GC deployment currently has six Capability groups and twelve Operations. A direct comparison of ca-agent-demo/main confirms: ToolCatalog declares 12 Operations; CapabilityContracts maps 12/12 Operations; there are no Tool-only or Capability-only Operations, no duplicate Operation membership, and all 12 declared READ/MUTATION Effects match exactly. The groups are:
+
+| Capability | Operations |
+|---|---|
+| provider-5gc.createdsession.udm | sbi.udm.sm_data.get; sbi.udm.sdm_subscription.create |
+| provider-5gc.createdsession.pcf | sbi.pcf.sm_policy.create |
+| provider-5gc.createdsession.context | ca.session.operation_context.read; ca.session.pcf_create_inputs.read; ca.session.establishment_response.prepare |
+| env-fabric.createdsession.hold | ca.session.pcf_hold.bind; ca.session.udm_hold.bind; ca.session.n1n2_hold.bind |
+| ca-provider-5gc.createdsession.transfer | sbi.amf.n1n2.transfer |
+| ca-agent-host.createdsession.runtime | ca.session.evidence.await; ca.session.resource_responsibility.transfer |
+
+This exact map is verified in the current audited 5GC source. The independent Capability contract maps each Operation to exactly one Capability and expected Effect. ToolCatalog owns callable Operation schemas and declared Effect. The Compiler's future static link must:
 
 - load ToolCatalog and CapabilityContracts from the resolved dependency set;
 - reject an Operation missing from either contract;
@@ -96,3 +107,8 @@ Each export must have stable Schema/Capability identity and a version. A JSON Sc
 ## 8. Non-goals
 
 This register does not create owner schemas, change the 5GC Runtime, replace ObservationSource, turn the currently blocked governance Predicate into PASS, or assert the 5GC Skill is newly compiled by the vNext Compiler. It records the code-derived gaps to close before the no-lib compile acceptance.
+
+
+### 5.1 Verified Capability coverage result
+
+Audit script comparison of the two source YAML documents returned: Tool Operations = 12; Capability membership entries = 12; Capability groups = 6; Tool-only = 0; Capability-only = 0; duplicate membership = 0; Effect mismatches = 0. This is a source-contract consistency result, not a Runtime authorization or READY assertion.
