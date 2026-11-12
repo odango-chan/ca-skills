@@ -132,23 +132,16 @@ The current Compiler PR #5 implementation imports only `lib/tools/*.yaml`, resol
 See [5GC Owner Schema Gap Register — vNext](5gc-owner-schema-gap-register-vnext.md) for the consolidated Owner Export Map, exact contract identities and remaining dependency order.
 
 
-## 13. Runnable Skill consumer-contract sync (2026-11-12)
+## 13. Runnable Skill contract reconciliation (2026-11-12)
 
-The vNext design branch now carries the six Skill-owned consumer contracts from the current runnable `ca-agent-demo/main` 5GC Skill:
+The first sync attempt copied five Script input Schema files from `ca-agent-demo/main` into the official Skill package. The `ca-skills` Source Hygiene workflow correctly rejected them: v0.2 derives Script input Schemas from Procedure call-site bindings and forbids separately authored Script input Schema files. Those five files were removed from the vNext branch.
 
-- `n1n2-delivery-input.schema.yaml`
-- `pcf-policy-inputs-input.schema.yaml`
-- `predicate-evaluation-result.schema.yaml`
-- `selection-input.schema.yaml`
-- `transfer-start-evaluation-input.schema.yaml`
-- `udm-read-evaluation-input.schema.yaml`
+This is the intended source-of-truth reconciliation:
 
-The existing `establishment-request.schema.yaml` was already present. This brings the official 5GC example's Skill-owned input/evaluation contract set into line with the runnable behavior baseline.
+- Keep the runnable `ca-agent-demo` files as **behavior/field-shape references** for the migration rehearsal.
+- Do not copy `selection-input`, `udm-read-evaluation-input`, `transfer-start-evaluation-input`, `pcf-policy-inputs-input` or `n1n2-delivery-input` into the official Skill package.
+- The Compiler must derive Script inputs from the Procedure call-site binding graph; it must not require an independently authored mirror Schema.
+- Keep the current `predicate-evaluation-result.schema.yaml` as a separate Skill-owned Predicate result contract for now; it is not one of the five Script input Schema files rejected by the rule.
+- Do not copy output-side placeholders `n1n2-delivery.schema.yaml` / `pcf-policy-inputs.schema.yaml`; the official v0.2 Script output contract is derived from strict TypedDict output declarations and validated at the Tool boundary.
 
-Intentionally not copied:
-- `n1n2-delivery.schema.yaml` and `pcf-policy-inputs.schema.yaml`: output-side contracts are currently generated/validated at the Script/Tool boundary and should not be duplicated as a second authored authority during the vNext design.
-- Current Script files and their Python metadata: ca-agent-demo's `connectionagent-tool` metadata / `localTools` identity is not the official v0.2 Script dialect.
-- `contract.yaml`, `predicates.yaml` and `procedure.yaml`: the latter is byte-identical between the two repositories, while contract/Predicate differences are dialect-specific and must be migrated deliberately, not overwritten.
-- `SKILL.md`: requires a deliberate wording refresh after the vNext Script/Predicate syntax decisions.
-
-The six copied schemas currently retain their source relative-filename `$id` values. Treat them as synchronized Skill consumer contracts, not yet as final globally addressable vNext Schema export identities. Stable package/schema identity and reference resolution remain part of the design gate.
+The Procedure is already byte-identical between `ca-agent-demo/main` and `ca-skills/main`. The Script files and their legacy metadata, plus `contract.yaml` and `predicates.yaml`, still require deliberate dialect migration. No source overwrite was performed for those files.
