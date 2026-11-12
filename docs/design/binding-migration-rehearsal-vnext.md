@@ -12,12 +12,12 @@ Source tree commit audited for the official sample sync: `38012852827437185c6343
 
 The executable conventional 5GC Skill supports the proposed direction. MAS is retained only as a structural/reference fixture because it does not yet have a runnable end-to-end path. The comparison exposes an important distinction:
 
-- **MAS** contains substantial repeated forwarding of the same Procedure context into every Operation. This is the strongest candidate for contract-backed automatic binding.
+- **The MAS draft** appears to repeat the same Procedure context across many Operation calls, which is a useful design hypothesis for contract-backed automatic binding. Its ToolCatalog is NOT_READY and the Skill is not end-to-end runnable, so this is not executable evidence or the first acceptance target.
 - **5GC** has a useful Procedure input projection already, but it also has deeply intentional, identity-sensitive bindings involving Fabric holds, exact UDM/PCF transactions, lifecycle, invocation, policy association, and N1/N2 artifacts. These must not be simplified merely because their types are strings or their field names match.
 - **5GC and the MAS design fixture** both use Predicate-level Observation Ref declarations. They cannot be migrated by simply replacing `observations:` with an Operation call. For executable acceptance, only 5GC is authoritative; MAS remains a structural reference.
 - Existing Tool contracts largely declare JSON Schema names and types. They do not yet provide a sufficiently rich, shared semantic-field identity vocabulary to safely infer every same-named field. Automatic binding cannot be enabled by property-name equality alone.
 
-Conclusion: retain the proposed Binding Plan, but make the first implementation target **shared context projection + contract-backed fan-out**, not unrestricted producer inference. Keep exact producer handles and assurance-sensitive references explicit until contracts prove their semantic identity.
+Conclusion: retain the proposed Binding Plan, but validate its first executable use against the real 5GC shared context projection and contract-backed fan-out, not the MAS draft or unrestricted producer inference. Keep exact producer handles and assurance-sensitive references explicit until contracts prove their semantic identity.
 
 ## 2. Source inventory and counts
 
