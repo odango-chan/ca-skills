@@ -1610,23 +1610,54 @@ Case 是场景声明，不是执行图。可以记录场景输入、预期业务
 
 ## 34. Dependencies 与 BuildRequest
 
-Skill 源码引用 Skill 自有文件的包内路径，或 Dependency Alias + Owner 精确导出身份。不得包含 Git URL、branch、仓库路径、下载地址、digest、lockfile、registry 地址或依赖获取指令。
+Skill 源码只引用本包拥有的文件，或通过 Contract 声明的 Alias 访问 Owner 发布的精确 Schema / Callable 身份。不得携带 Git URL、分支、下载地址、依赖版本锁、digest、注册表地址或依赖获取指令。
 
-Compiler 概念输入：
+### 34.0 最小依赖身份与链接规则
+
+`contract.yaml` 中的 `dependencies` 是 Alias 到 **稳定 Package ID** 的映射：
+
+~~~yaml
+dependencies:
+  host-context:
+    id: urn:example:connectionagent:host-context
+  ca:
+    id: urn:example:connectionagent:5gc-tool-contracts
+~~~
+
+本版 `DependencySnapshot` 至少需要 `alias`、`id`、`files`，并包含一份由依赖发布方提供的只读 `dependency.yaml` 身份 Manifest：
+
+~~~yaml
+# 某个 Snapshot 内的 dependency.yaml；属于外部 Owner 产物，不在 Skill 内
+id: urn:example:connectionagent:5gc-tool-contracts
+owners: [provider-5gc, smf-owner]
+~~~
 
 ~~~typescript
 type File = { path: string; bytes: Uint8Array };
-type DependencySnapshot = { alias: string; files: File[] };
+type DependencySnapshot = {
+  alias: string;
+  id: string;        // published stable Package ID, not version/URL
+  files: File[];     // MUST include dependency.yaml
+};
 type BuildRequest = {
   languageVersion: string;
   files: File[];
   dependencies: DependencySnapshot[];
-  capabilityContracts: File;
+  capabilityContracts: File;  // trusted, separate from ordinary dependencies
   targets?: string[];
 };
 ~~~
 
-Contract 的 `dependencies` 将 Skill 内部 Alias 映射到 Owner 发布的稳定依赖身份；Procedure / Predicate / Context Schema 引用使用这些 Alias 定位精确导出。BuildRequest 提供的 DependencySnapshot 必须与 Contract 声明的 Alias 和依赖身份一致。缺失、重复、身份不匹配的依赖必须产生阻断构建的诊断；未在 Contract 声明的快照不得因为“已被传入”就自动对 Skill 源码可见。
+链接算法（确定性、失败关闭）：
+
+1. 从 `assurance/contract.yaml` 读取每个 Alias 和 Stable Package ID；Alias 大小写敏感，同名不得重复，同一 Alias 不得指向两个 Package。
+2. 对每个实际使用的 Alias 恰好找到一个 BuildRequest Snapshot，要求 `Contract.dependencies[alias].id == Snapshot.id == Snapshot.dependency.yaml.id`；未声明 Alias、Manifest 缺失、重复或身份不等均为编译错误。
+3. 从 Manifest 的 `owners` 集合及已发布文件的精确 Owner 身份核对 ToolCatalog 和 Schema 的来源。Manifest 不能让某个 ToolCatalog 自行越权声称其他 Owner 身份；签发、来源可信性由提供 Snapshot 的 Studio / Build Caller 保证，Compiler 仅验证输入内的结构一致性，不伪称在无证据时完成密码学认证。
+4. 将 `alias::exportId` 解析为该 Package 内唯一精确导出，检查 Owner、Schema $id、kind、Effect 及关联的 Schema 闭包；不存在、重复或含歧义均失败。
+5. 将 Tool Operation / Observation 的精确稳定 Owner + callable ID + kind 与 **可信且独立传入** 的 CapabilityContracts 对照；每次外部调用必须且只能归属一个已 Grant Capability，Effect 必须匹配。Procedure Script 不需要外部 Capability。
+6. 合法但尚未被源码引用的 Contract 依赖应产生 Warning；不得因为构建输入里额外出现别的 Snapshot 就自动把它暴露给 Skill。
+
+`dependency.yaml` 是发布者为本次不可变依赖快照提供的识别元数据，不是 Skill 的新可编辑文件，更不是 Compiler 的在线 Package Manager。Builder / Studio 对真实来源与快照 revision 负责；Compiler 只消费已提供的字节。上面的 `urn:example` 与 `owners` 为**教学示例**，并非已经验收的 5GC Owner 发布身份。真实 Manifest 的最小模型需由 Owner / Compiler 在本 PR 正式冻结前确认。
 
 Compiler MUST 只消费调用方提供的字节；验证路径、重复文件、重复 Alias、重复导出身份、Schema、引用、Binding、Capability 和 Effect；返回诊断和生成文件。语言版本由 BuildRequest 指定，编译产物记录实际语言/API 版本。
 
