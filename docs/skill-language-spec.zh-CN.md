@@ -1115,14 +1115,25 @@ Environment
 | SOURCE_PATH_INVALID | SourcePath 使用未支持的根、索引或动态表达式 | 阻止构建 |
 | CONTROL_FLOW_DANGLING | 路由指向不存在 Node | 阻止构建 |
 | CONTROL_FLOW_AMBIGUOUS | 多个主动作 | 阻止构建 |
-| DEPENDENCY_ALIAS_MISSING | Alias 不存在 | 阻止构建 |
+| DEPENDENCY_ALIAS_MISSING | SourcePath / Schema 引用的 Alias 未在 Contract 声明 | 阻止构建 |
+| DEPENDENCY_SNAPSHOT_MISSING | Contract 声明的实际使用依赖没有 Snapshot | 阻止构建 |
+| DEPENDENCY_MANIFEST_INVALID | Snapshot 缺少 dependency.yaml 或 Manifest 格式错误 | 阻止构建 |
+| DEPENDENCY_ID_MISMATCH | Contract、Snapshot 和 Manifest 的 Package ID 不相同 | 阻止构建 |
+| DEPENDENCY_OWNER_MISMATCH | Export Owner 不属于经过验证的发布方 Owner 集合 | 阻止构建 |
+| DEPENDENCY_DUPLICATE | 同一 Alias 多份快照、或同一身份被歧义覆盖 | 阻止构建 |
+| CONTEXT_SCHEMA_UNDECLARED | Context SourcePath 对应的 Projection 未在 Contract 声明 | 阻止构建 |
+| CONTEXT_SCHEMA_MISMATCH | Context Schema、Alias 或 Owner 不一致 | 阻止构建 |
+| REQUEST_SCHEMA_MISSING | 使用 context.request 但 Contract 未声明 Request Schema | 阻止构建 |
+| ACTION_LIMIT_INVALID | limits.maxActions 不是正整数 | 阻止构建 |
 | EXPORT_ID_MISSING | callable / Schema 不存在 | 阻止构建 |
 | EXPORT_ID_AMBIGUOUS | 导出身份歧义 | 阻止构建 |
 | SCHEMA_MISSING / INVALID | 缺失或非法 Schema | 阻止构建 |
 | INPUT_REQUIRED_MISSING | 缺少必填输入 | 阻止构建 |
 | INPUT_TYPE_MISMATCH | Source 不可赋给 Target | 阻止构建 |
 | INPUT_NULLABILITY_MISMATCH | nullable Source 绑定非 nullable Target | 阻止构建 |
-| SOURCE_NOT_AVAILABLE | Producer 非所有路径可用 | 阻止构建 |
+| SOURCE_NOT_AVAILABLE | Producer 非所有路径可用，例如 Reconcile COMMITTED 后引用丢失的原始成功输出 | 阻止构建 |
+| RECONCILE_OUTPUT_UNAVAILABLE | Reconcile 后使用未由 Owner 声明可恢复的输出 | 阻止构建 |
+| ROUTE_OUTCOME_MISSING | 精确 Owner Outcome 中要求处理的结果没有路由 | 阻止构建 |
 | PREDICATE_ARITY_MISMATCH | 参数数量不一致 | 阻止构建 |
 | PREDICATE_TYPE_MISMATCH | 参数类型不兼容 | 阻止构建 |
 | CAPABILITY_NOT_GRANTED | 未授予 Capability | 阻止构建 |
@@ -1156,6 +1167,8 @@ Compiler 不得为让文件编译而创建不存在的 Schema、用 object 逃�
 | STALE_LIFECYCLE | 停止当前尝试 |
 | PARTIAL_COMPLETION | 明确资源责任和恢复策略 |
 | OWNER_CONTRACT_UNAVAILABLE | UNKNOWN / unresolved |
+| ADMISSION_FACT_MISSING | Contract.requiredFacts 在 Host 准入时缺失，拒绝/阻塞；不应通过 Procedure 假装已获得 | 
+| ACTION_BUDGET_EXCEEDED | 不启动下一次 Action；保留已发生的外部副作用、必要时 Reconcile |
 | CONCURRENT_MODIFICATION | 重新验证 Scope 和版本，不覆盖未知状态 |
 
 ## 25. 典型业务异常
