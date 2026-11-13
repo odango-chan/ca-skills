@@ -68,7 +68,7 @@ The current 17 legacy 5GC Predicate Observation refs are migration inputs, not 1
 - 1 captured ingress projection from Host Invocation Context;
 - 9 prior-Operation/local projections;
 - 2 Host journal projections;
-- 5 independent acquisition points across four read shapes (N4 baseline, post-create N4 resources, RAN setup, N4 forwarding, PCF governance).
+- 5 independent query points across four Observation Tool query shapes (N4 baseline, post-create N4 resources, RAN setup, N4 forwarding, PCF governance).
 
 The exact vNext Observation Tool query identities, schemas and Capability membership must be derived from the Owner-published ToolCatalogs and the 17-ref migration mapping. Do not maintain a speculative aggregate Operation count here. In particular, the three legacy `ca.session.evidence.await` nodes are removed from the Skill model; their asynchronous completion responsibilities move inside `UPN.CREATE_UP_SESSION`, `SSM.SIGNAL_UE_AN` and `UPN.MODIFY_UP_SESSION`. There is no vNext Skill-level Wait Tool or polling contract.
 
