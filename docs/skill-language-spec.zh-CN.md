@@ -258,7 +258,7 @@ Tool Owner 必须发布 callable 的 Input、Output，以及 Mutation 所需的 
 
 Observation Owner 发布 QueryContext / Input 和规范化 Output Schema。不得在 Skill Package 或平行 Observation Registry 中复制第二份。
 
-Host / Context Owner 发布 Subject、Facts、Ingress 等 Projection Schema。SkillContract 声明可使用哪些 Projection，但它们不会自动注入 Procedure 或 Operation 输入。
+Host / Context Owner 发布 Subject、Facts、Ingress 等 Projection Schema。Skill 通过 Procedure 的 SourcePath 显式使用 context.subject、context.facts、context.ingress 等投影；Compiler 从实际使用的命名空间解析本次 DependencySnapshot 中唯一的 Owner Schema。投影不会自动注入 Procedure 或 Operation 输入。
 
 Script 输入和输出：
 - Python Script 仅作为 Predicate 的确定性 evaluator，不是独立 Procedure Node；
@@ -1101,36 +1101,48 @@ properties:
 
 UE 身份来自 Host Subject，而不是调用方任意伪造的 UE Ref。
 
-## 28. SkillContract
+## 28. 5GC Skill Procedure 源码根
 
 ~~~yaml
-apiVersion: connectionagent.io/v1alpha2
-kind: SkillContract
-metadata:
-  name: establish-pdu-session
-spec:
-  skillType: executable
-  goal: pdu_session.initial_request_fulfilled
-  entryProcedure: establish
-  inputs:
-    requestSchema: schemas/establishment-request.schema.yaml
-  context:
-    projections:
-      subject: host-context::urn:connectionagent:5gc:skill-context:subject:v1
-      ingress: host-context::urn:connectionagent:5gc:skill-context:ingress:v1
-      facts: host-context::urn:connectionagent:5gc:skill-context:facts:v1
-    evidenceSchema: host-context::urn:connectionagent:host:predicate-evidence-refs:v1
-  allowedResources:
-    capabilities:
-      - fivegc-session-read
-      - fivegc-session-mutation
-      - fivegc-session-assurance
-  postconditions:
-    - predicate: createdsession.session.established
-      expect: PASS
+# assurance/procedure.yaml
+goal: pdu_session.initial_request_fulfilled
+requestSchema: schemas/establishment-request.schema.yaml
+capabilities:
+  - fivegc-session-read
+  - fivegc-session-mutation
+  - fivegc-session-assurance
+
+inputs:
+  ueRef: context.subject.ueRef
+  pduSessionId: context.request.pduSessionId
+  pti: context.request.pti
+  dnn: context.request.dnn
+  sNssai: context.request.sNssai
+start: observe-ue-registration
+nodes:
+  observe-ue-registration:
+    observation: fivegc-observations::ue.registration.current
+    arguments:
+      ueRef: input.ueRef
+    'on':
+      SUCCEEDED: check-ue-registration
+      FAILED: failed
+      UNKNOWN: unresolved
+  check-ue-registration:
+    precondition:
+      predicate: createdsession.ue.registered
+      arguments:
+        - observe-ue-registration.output
+    'on':
+      PASS: read-udm-subscription
+      FAIL: failed
+      UNKNOWN: unresolved
+  # 其余业务节点略
 ~~~
 
-Skill 不直接 grant Operation，只授予部署侧定义的 Capability。
+Skill 不直接 Grant Operation，只在源码根字段中声明所需 Capability。每个 Operation / Observation callable 必须由 ToolCatalog 精确解析，并由可信 CapabilityContracts 证明属于恰好一个已 Grant Capability 且 Effect 一致。
+
+最终业务条件不再在 SkillContract 中重复声明。它必须作为 Procedure 图中的最终 Postcondition 节点，并且所有 SUCCEEDED Terminal 都只能从该节点的 PASS 路径到达。
 
 ## 29. PredicateSet
 
