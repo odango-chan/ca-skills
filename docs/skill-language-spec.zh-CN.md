@@ -265,7 +265,7 @@ Tool Owner 必须发布 callable 的 Input、Output，以及 Mutation 所需的 
 
 Observation Owner 发布 QueryContext / Input 和规范化 Output Schema。不得在 Skill Package 或平行 Observation Registry 中复制第二份。
 
-Host / Context Owner 发布 Subject、Facts、Ingress 等 Projection Schema。Skill 通过 Procedure 的 SourcePath 显式使用 context.subject、context.facts、context.ingress 等投影；Compiler 从实际使用的命名空间解析本次 DependencySnapshot 中唯一的 Owner Schema。投影不会自动注入 Procedure 或 Operation 输入。
+Host / Context Owner 发布 Subject、Facts、Ingress 等 Projection Schema。Contract.context.schemas 显式引用这些 Owner 的精确 Schema ID，Procedure 使用 context.subject、context.facts、context.ingress 等 SourcePath。Compiler 对每个实际使用的 Host Projection 交叉验证 Contract 声明、Alias、DependencySnapshot、Manifest 和精确 Owner Schema；未声明或身份不一致必须 fail-closed。Projection 不会自动注入 Procedure 或 Operation 输入。
 
 Script 输入和输出：
 - Procedure Script 作为 Operation 节点的本地纯执行目标，输入由该节点 arguments 派生，输出 Schema 由严格返回 TypedDict 生成；
@@ -1817,11 +1817,12 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 7. Predicate.parameters、CEL / Predicate Script 与 Procedure Script 类型环境定稿；
 8. Procedure 四种节点、入口 / 最终门禁、DAG、SourcePath 和路由正负例；
 9. 三个 5GC 异步完成 Operation 的 Owner 契约确认；
-10. 完整 5GC PDU Skill 迁移演练；
-11. Compiler 正负例与诊断验收；
-12. Skill Studio 语义体验验收；
-13. Native / WASM / Studio 语义一致性验证；
-14. 独立确定 Compiler Artifact 的 Schema 序列化与外部依赖闭包策略。
+10. Owner 批准稳定依赖 Manifest 身份规则，Contract/Snapshot/Owner 链接正反例以及 Appendix E 联合 Fixture；
+11. 完整 5GC PDU Skill 迁移演练；
+12. Compiler 正负例与诊断验收；
+13. Skill Studio 语义体验验收；
+14. Native / WASM / Studio 语义一致性验证；
+15. 独立确定 Compiler Artifact 的 Schema 序列化与外部依赖闭包策略。
 
 在以上事项完成之前，状态保持 DESIGN REVIEW。不得把候选 YAML 结构描述为已发布 Owner 契约。
 
@@ -1978,6 +1979,12 @@ requiredFacts 是 Host 在 Admission 时必须已经提供的可信事实。UE �
 | D-21 | Observation 遵循结果充分性原则 | Operation Result 足够时直接验证，不强制 Observation |
 | D-22 | 调用参数统一使用 arguments | Operation / Observation 具名映射；Predicate 有序位置参数；删除 with/from/value 包装 |
 | D-23 | Reconcile 是 Operation 的受约束模式 | 不设独立 Reconcile Node |
+| D-24 | 保留作者维护的 contract.yaml | 公共 Goal、Request、Context、Dependencies 和 Capability Grants 不由 Compiler 猜测 |
+| D-25 | Contract 与 Procedure 分离 | Procedure 只声明执行图与最终 Postcondition，禁止重复根字段 |
+| D-26 | 三方依赖身份校验 | Contract Package ID、BuildRequest Snapshot ID、Owner Manifest ID 一致；可信调用方保证来源 |
+| D-27 | Reconcile 结果不隐式恢复原成功输出 | 原始响应缺失时使用 Owner 明确保证的恢复输出或独立 Observation |
+| D-28 | Admission 事实与执行中 Observation 分离 | requiredFacts 仅 Host 准入前提，动态状态由显式查询取得 |
+| D-29 | 可选 limits.maxActions | 只允许收紧 Host 强制正数预算，不得增加授权或重试权限 |
 
 # 附录 B：当前状态与待评审事项
 
