@@ -1,4 +1,4 @@
-apiVersion: connectionagent.io/v1alpha1
+apiVersion: connectionagent.io/vnext
 kind: SkillContract
 metadata:
   name: establish-pdu-session
@@ -13,24 +13,20 @@ spec:
     - createdsession_ingress
     - createdsession_lifecycle
     schemas:
-      subject: lib/host/subject.schema.yaml
-      facts: lib/host/facts.schema.yaml
-      observations: lib/observations/context-observations.schema.yaml
-      evidence: lib/host/evidence.schema.yaml
+      subject: urn:connectionagent:5gc:skill-context:subject:v1
+      facts: urn:connectionagent:5gc:skill-context:facts:v1
+      ingress: urn:connectionagent:5gc:skill-context:ingress:v1
+      evidence: urn:connectionagent:host:predicate-evidence-refs:v1
   allowedResources:
     capabilities:
-    - sbi.udm.sm_data.get
-    - ca.session.operation_context.read
-    - ca.session.pcf_hold.bind
-    - ca.session.udm_hold.bind
-    - ca.session.n1n2_hold.bind
-    - ca.session.pcf_create_inputs.read
-    - sbi.udm.sdm_subscription.create
-    - sbi.pcf.sm_policy.create
-    - sbi.amf.n1n2.transfer
-    - ca.session.resource_responsibility.transfer
-    - ca.session.evidence.await
-    - ca.session.establishment_response.prepare
+    - deployment-capabilities::provider-5gc.createdsession.udm
+    - deployment-capabilities::provider-5gc.createdsession.pcf
+    - deployment-capabilities::provider-5gc.createdsession.context
+    - deployment-capabilities::env-fabric.createdsession.hold
+    - deployment-capabilities::ca-provider-5gc.createdsession.transfer
+    - deployment-capabilities::ca-agent-host.createdsession.runtime
+    - deployment-capabilities::provider-5gc.createdsession.assurance
+    - deployment-capabilities::env-fabric.createdsession.governance
   postconditions:
   - predicate: createdsession.ran.setup_accepted
     expect: PASS
