@@ -12,12 +12,12 @@ Unify Capability, Operation, Procedure, Predicate, data binding, Schema ownershi
 ### 2.1 Capability, Operation, Tool
 
 - Capability is a stable logical ability identity and authorization/grouping boundary.
-- Operation is the exact callable interface exposed under a Capability; it declares Effect and Input/Output contracts.
+- Operation is the exact callable interface for a business action exposed under a Capability; it declares Effect and Input/Output contracts.
 - Initial Effects remain READ and MUTATION.
-- Tool is the common implementation/registration and contract unit; it exposes callable interfaces through ToolCatalog and is not a second authoring-level authorization identity.
-- An Observation Tool is a specialized read-only Tool. Its query interface follows the same contract shape and publication path as other Tool callable interfaces; READ is its Effect. It is not a parallel registry.
-- Procedure calls and Predicate data dependencies use the same exact Operation ID namespace.
-- The Capability contract explicitly enumerates the exact Operations grouped under each Capability. A Skill grant authorizes only that declared membership; no hierarchy, naming convention, Tool display name, or implicit expansion may add Operations. Compiler verifies exact membership and Effect agreement; Runtime still performs deployment admission and authorization.
+- Tool is the common implementation/registration and contract unit. Its ToolCatalog may publish Operation interfaces and specialized Observation query interfaces; Tool itself is not a second authoring-level authorization identity.
+- An Observation Tool is a specialized read-only Tool contract. Its query interface uses the same contract shape, dependency publication, Schema ownership and Capability authorization as other callable Tool interfaces; its Effect is READ. It is not a parallel registry.
+- Procedure calls and Predicate data dependencies resolve through the same ToolCatalog/dependency identity system. Operation IDs and Observation query IDs remain distinct exact exported identities; neither is inferred from the other.
+- The Capability contract explicitly enumerates every exact callable interface grouped under each Capability: business Operations and Observation query interfaces. A Skill grant authorizes only that declared membership; no hierarchy, naming convention, Tool display name, or implicit expansion may add callables. Compiler verifies exact membership and Effect agreement; Runtime still performs deployment admission and authorization.
 
 ### 2.2 Fact, Observation, acquisition
 
@@ -53,7 +53,7 @@ An Operation output and an Observation are distinct sources. A prior Operation o
 
 ## 3. Unified authoring and reference rules
 
-- Procedure call and Predicate input dependencies reference the same exact Operation ID namespace.
+- Procedure Operation calls and Observation Tool queries resolve through the same ToolCatalog/dependency identity system; Predicate inputs bind explicitly to either producer.
 - No independent Observation Ref namespace is introduced for callable fact acquisition.
 - Procedure and Predicate use the same source-reference vocabulary and Binding Plan machinery.
 - with/from remains available for exceptional mappings, overrides, and disambiguation; it is not routine boilerplate.
@@ -390,7 +390,7 @@ The stable Schema identity rule (`$id`) is the selected vNext direction; the com
 
 ### Capability grants and Tool Operation linking
 
-The Skill grants qualified Capability identities in `allowedResources.capabilities` (`capability-contract-alias::capability-id`); a Procedure node calls one exact qualified Operation (`tool-dependency-alias::operation-id`). The independent, deployment-owned CapabilityContracts maps each Capability to its owner and exact Operations with expected Effects, while ToolCatalog declares each callable Operation's schemas and declared Effect. For static proof, the Compiler BuildRequest must receive the target deployment's immutable CapabilityContracts as an explicit trusted input **separate from ordinary Skill dependency snapshots**; the ToolCatalog remains part of the resolved dependency set. Compiler then proves every Procedure Operation belongs to exactly one Capability, that the Skill grants that qualified Capability, and that the Tool Effect matches the independently declared expected Effect. If the trusted CapabilityContracts input is absent, the Compiler cannot claim static authorization proof; Runtime admission remains authoritative. Observation is a specialized read-only Tool contract, not a second contract system. Its query interface, Input/Output Schemas, Owner, READ Effect and Capability membership are published through the same ToolCatalog/CapabilityContracts inputs as other Tools. The legacy ObservationSource registry is an implementation detail to retire; Skills refer to the exported Observation Tool query contract, not its adapter class.
+The Skill grants qualified Capability identities in `allowedResources.capabilities` (`capability-contract-alias::capability-id`); a Procedure node calls one exact qualified Operation (`tool-dependency-alias::operation-id`). The independent, deployment-owned CapabilityContracts maps each Capability to its owner and exact callable interfaces (Operation IDs and Observation query IDs) with expected Effects, while ToolCatalog declares each callable interface's schemas and declared Effect. For static proof, the Compiler BuildRequest must receive the target deployment's immutable CapabilityContracts as an explicit trusted input **separate from ordinary Skill dependency snapshots**; the ToolCatalog remains part of the resolved dependency set. Compiler then proves every invoked callable interface belongs to exactly one Capability, that the Skill grants that Capability, and that the Tool Effect matches the independently declared expected Effect. If the trusted CapabilityContracts input is absent, the Compiler cannot claim static authorization proof; Runtime admission remains authoritative. Observation is a specialized read-only Tool contract, not a second contract system. Its query interface, Input/Output Schemas, Owner, READ Effect and Capability membership are published through the same ToolCatalog/CapabilityContracts inputs as other Tools. The legacy ObservationSource registry is an implementation detail to retire; Skills refer to the exported Observation Tool query contract, not its adapter class.
 
 
 ## 16. Candidate 5GC Predicate inputs and Observation Tool queries (NOT FROZEN)
@@ -472,7 +472,7 @@ The following decisions supersede exploratory alternatives elsewhere in this des
 3. **Observation is a specialized Tool:** Observation is an independently addressable read-only query capability published through the same ToolCatalog, dependency, Owner Schema, CapabilityContracts and Runtime admission model as other Tools. Retire only the legacy ObservationSource implementation registry; preserve Observation query identities and contracts. No one-to-one pairing with Operations is required.
 4. **Explicit query:** when additional authoritative context is required, Agent/Procedure invokes an exact authorized Observation Tool query. Reuse an adequate prior Operation output or trusted Context projection instead of adding redundant queries. Predicate evaluation never triggers acquisition.
 5. **No Skill-level Wait:** asynchronous protocol/service completion is encapsulated by the owning Tool/SMF Operation. It returns its final result and correlated Evidence; Host deadline/cancellation/correlation remain Runtime controls.
-6. **Capability separation:** Skill grants Capability IDs only. A single deployment-owned CapabilityContracts input maps each exact Operation ID to one Capability and Effect. Compiler cross-checks that mapping against the imported ToolCatalog.
+6. **Capability separation:** Skill grants Capability IDs only. A single deployment-owned CapabilityContracts input maps each exact callable ID (Operation or Observation query) to one Capability and Effect. Compiler cross-checks that mapping against the imported ToolCatalog.
 7. **No physical library paths:** Studio supplies dependency snapshots to BuildRequest. Skill source references imported Operations/Schemas by dependency alias plus exact exported ID, never by `lib/` path.
 8. **No dependency manager in Compiler:** no resolver lifecycle, manifest, lock, cache or digest output. The caller supplies the exact bytes.
 9. **Explicit source binding:** every source expression is explicit. Named-object consumers use `with/from`; Predicate uses ordered positional `verify.arguments`. Semantic-ID-based automatic source discovery is deferred and is not required for the 5GC migration.
