@@ -261,11 +261,11 @@ Observation Owner 发布 QueryContext / Input 和规范化 Output Schema。不�
 Host / Context Owner 发布 Subject、Facts、Ingress 等 Projection Schema。Skill 通过 Procedure 的 SourcePath 显式使用 context.subject、context.facts、context.ingress 等投影；Compiler 从实际使用的命名空间解析本次 DependencySnapshot 中唯一的 Owner Schema。投影不会自动注入 Procedure 或 Operation 输入。
 
 Script 输入和输出：
-- Python Script 仅作为 Predicate 的确定性 evaluator，不是独立 Procedure Node；
-- Predicate Script 输入类型由 Predicate.parameters 派生，Host 附加只读 Evidence refs；
-- Predicate Script 的返回类型必须是 PASS、FAIL、UNKNOWN 三态之一；
-- 作者不得维护重复 Script Input Schema；
-- Compiler 不得执行 Python 函数体猜测类型。
+- Procedure Script 作为 Operation 节点的本地纯执行目标，输入由该节点 arguments 派生，输出 Schema 由严格返回 TypedDict 生成；
+- Predicate Script 作为 Predicate evaluator，输入类型由 Predicate.parameters 派生，Host 附加只读 Evidence refs；
+- Predicate Script 返回严格 PredicateEvaluationResult TypedDict，其中 result 为 PASS / FAIL / UNKNOWN，reasonCode 用于诊断，evidenceUsed 只能引用 Host 已附加的 Evidence；
+- 作者不得维护重复 Script Input / Output Schema；
+- Compiler 不得执行 Python 函数体猜测类型或行为。
 
 必须区分物理路径、Schema 身份和 Dependency Alias。外部 Schema 使用：
 
@@ -753,17 +753,23 @@ vNext 删除 Procedure Node 上的 `with` / `from` / `value` 包装，统一使�
 - Precondition / Postcondition.arguments：有序列表，位置与 Predicate.parameters 严格对应。
 
 ~~~yaml
-procedures:
-  establish:
-    inputs:
-      ueRef: context.subject.ueRef
-      dnn: context.request.dnn
-    nodes:
-      create-session:
-        operation: fivegc-tools::smf.session.create
-        arguments:
-          ueRef: input.ueRef
-          dnn: input.dnn
+goal: pdu_session.initial_request_fulfilled
+requestSchema: schemas/establishment-request.schema.yaml
+capabilities:
+  - fivegc-session-mutation
+inputs:
+  ueRef: context.subject.ueRef
+  dnn: context.request.dnn
+start: create-session
+nodes:
+  create-session:
+    operation: fivegc-tools::smf.session.create
+    arguments:
+      ueRef: input.ueRef
+      dnn: input.dnn
+    'on':
+      SUCCEEDED: verify-session
+      FAILED: failed
 ~~~
 
 ### 13.2 参数表达式与 SourcePath
@@ -1619,13 +1625,14 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 4. Observation Query 调用和 QueryContext 绑定语法定稿；
 5. Evidence 与 Predicate 参数关联模型定稿；
 6. Schema ID 和 Dependency Alias 引用规则定稿；
-7. Predicate 类型系统、CEL 和 Python 类型环境定稿；
-8. Procedure Node、Step、Pre/Postcondition 和路由正负例；
+7. Predicate.parameters、CEL / Predicate Script 与 Procedure Script 类型环境定稿；
+8. Procedure 四种节点、入口 / 最终门禁、DAG、SourcePath 和路由正负例；
 9. 三个 5GC 异步完成 Operation 的 Owner 契约确认；
 10. 完整 5GC PDU Skill 迁移演练；
 11. Compiler 正负例与诊断验收；
 12. Skill Studio 语义体验验收；
-13. Native / WASM / Studio 语义一致性验证。
+13. Native / WASM / Studio 语义一致性验证；
+14. 独立确定 Compiler Artifact 的 Schema 序列化与外部依赖闭包策略。
 
 在以上事项完成之前，状态保持 DESIGN REVIEW。不得把候选 YAML 结构描述为已发布 Owner 契约。
 
@@ -1719,9 +1726,9 @@ Build PASS 只说明本次源码和契约满足静态规则。运行还需要 Ad
 
 通用 call 把业务动作、事实查询和条件判断隐藏在同一种语法下面。CA-SL 用 Precondition、Operation、Observation、Postcondition 表达节点的业务语义，使 Compiler、LSP、Skill Studio 和 Runtime 可以在语法层区分授权、Effect、结果和路由。Terminal 仅声明终态，不是第五种业务动作。
 
-## 67. 为什么 Predicate 不是独立的 computation Node？
+## 67. 为什么不增加通用 computation Node？
 
-Predicate 是确定性计算 / 判断逻辑的定义，使用 CEL 或受约束的 Python Script 实现。Procedure 在需要判断的位置通过 Precondition 或 Postcondition 调用 Predicate。若再增加 computation Node，就会把“判断逻辑定义”和“流程节点位置”重复建模。
+判断与数据计算是两种不同的确定性职责。Predicate 定义纯判断，使用 CEL 或 Predicate Script 实现，并由 Precondition / Postcondition 节点调用。Procedure Script 则负责本地数据选择、转换和结构化结果生成，通过 Operation 节点的 script 目标执行。两者都不需要增加通用 computation 节点，也不能把数据转换伪装成 PASS / FAIL / UNKNOWN 判断。
 
 ## 68. 为什么 Operation 和 Observation 使用具名 arguments，而 Predicate 使用位置 arguments？
 
@@ -1755,7 +1762,7 @@ Reconcile 是原始 Mutation Operation 的受约束调和模式。把它表达�
 | D-10 | 第一版不支持同名自动绑定 | Studio 可以生成显式 arguments 映射 |
 | D-11 | Skill 层没有 Wait / Await / Polling | 异步完成归属 Tool / Provider Operation |
 | D-12 | Mutation UNKNOWN 必须 Reconcile | 不盲目重试 |
-| D-13 | Script 仅实现 Predicate 的确定性逻辑 | 不作为独立 Procedure 节点，不调用外部系统 |
+| D-13 | Script 仅实现确定性本地计算 | Procedure Script 是 Operation 节点的纯本地目标；Predicate Script 是 Predicate evaluator；均不调用外部系统 |
 | D-14 | Schema 归真正 Owner 所有 | Skill 不复制外部 Schema |
 | D-15 | Compiler 不管理依赖 | Studio / 调用方提供快照 |
 | D-16 | Build / Runtime / Network Acceptance 分层 | 不混淆成功含义 |
