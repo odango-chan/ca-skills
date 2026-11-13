@@ -107,7 +107,7 @@ The binding model must distinguish **available data** from **data actually passe
 - `context.projections` grants access to named Host/Owner projections. It does not inject those projections into Procedure inputs or downstream calls.
 - `Procedure.inputs` is the Procedure's actual input interface. Declare only values consumed by that Procedure or intentionally shared with its descendants; do not mirror the complete Context or Request.
 - An Operation's Input Schema is its callable interface. Its `required` properties must be supplied. Optional properties are omitted unless the call intentionally uses them.
-- A Predicate declares only the business inputs its evaluator reads. Host-attached Evidence remains a separate reserved projection and is not a reason to add business inputs.
+- A Predicate declares only the business parameters its evaluator reads. Host-attached Evidence remains a separate reserved projection and is not a reason to add business parameters.
 - A Procedure Script has no separately authored Input Schema in this model. Its call-site `with` is its input projection; keep those bindings explicit unless a future, separately reviewed Script input declaration makes a safe default possible.
 
 The proposed `with.from: input` shorthand is an **opt-in same-name projection**, not blanket argument forwarding:
@@ -222,7 +222,7 @@ This is an intentional, explainable syntax distinction based on interface owners
 - Operation input requiredness belongs to the Operation Input Schema owned by its contract owner.
 - Procedure-specific public inputs, if needed, have an explicit Procedure input contract and do not duplicate Operation requiredness.
 - Context availability belongs to the Context Contract / Procedure context projection. Existing spec.context.requiredFacts identifies required fact identifiers; it is not a field-level schema.
-- Predicate inputs inherit requiredness from their declared input contract and referenced producer outputs.
+- Predicate parameters are required positional arguments; their types are established by the referenced Producer/Context Schemas.
 - Compiler checks schema/reference validity, binding completeness, type/nullability, producer availability, and statically knowable control/data dependency order.
 - Runtime checks actual values, dynamic presence, freshness, correlation, and Evidence validity.
 - Do not repeat requiredness in every with mapping.
@@ -531,7 +531,7 @@ The complete behavior-preserving semantic Procedure outline—covering all 17 Pr
 The following decisions supersede exploratory alternatives elsewhere in this design note and are the implementation baseline:
 
 1. **Breaking version:** vNext uses `connectionagent.io/v1alpha2`. The Compiler rejects v0.2 constructs; no dual parser, field mapper or compatibility path is retained.
-2. **Pure Predicates:** Predicate definitions declare named `inputs`; they do not declare or acquire Observations. Procedure `verify.with` supplies every input explicitly. Evaluators read `input.<name>`.
+2. **Pure Predicates:** Predicate definitions declare ordered `parameters`; they do not declare or acquire Observations. Procedure `verify.arguments` supplies positional source expressions. CEL reads parameter names directly; Predicate Scripts receive `input.<parameter>`.
 3. **Explicit READs:** every domain read is a callable READ Operation with a typed output and Evidence from the same invocation. Predicate evaluation never triggers a second read.
 4. **Wait remains a Host Operation:** reuse the bounded Host Runtime wait operation, but make its target an exact READ Operation plus explicit scope/freshness/absence policy. It returns a wait summary; Procedure performs the final read separately.
 5. **Capability separation:** Skill grants Capability IDs only. A single deployment-owned CapabilityContracts input maps each exact Operation ID to one Capability and Effect. Compiler cross-checks that mapping against the imported ToolCatalog.
