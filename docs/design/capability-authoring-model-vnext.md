@@ -268,7 +268,7 @@ An Observation Tool query uses its own ToolCatalog Input/Output contract and Own
 
 ### 8.1 File names
 
-Do not rename files solely to make singular/plural forms uniform. Keep current contract.yaml, procedure.yaml, and predicates.yaml as candidate vNext entry names unless concrete tooling/authoring evidence justifies a coordinated rename. The earlier requirement to rename procedure.yaml to procedures.yaml is withdrawn. File names identify canonical entry points; the top-level YAML shape determines resource cardinality.
+Historical proposal (superseded by §25): this note previously considered contract.yaml, procedure.yaml, and predicates.yaml as parallel candidate entry files. vNext now removes authored contract.yaml; procedure.yaml is the single Skill execution source and predicates.yaml remains the PredicateSet source. The earlier requirement to rename procedure.yaml to procedures.yaml remains withdrawn.
 
 External single-resource definitions may retain descriptive suffixes such as *.tool.yaml and *.schema.yaml. Avoid superficial cross-repository churn.
 
