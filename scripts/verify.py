@@ -252,7 +252,10 @@ def validate_udm_owner_output_schema(errors: list[str]) -> None:
         return
 
     embedded_lines = []
-    for line in body[result.end():].splitlines():
+    remaining_lines = body[result.end():].splitlines()
+    if remaining_lines and not remaining_lines[0].strip():
+        remaining_lines = remaining_lines[1:]
+    for line in remaining_lines:
         if not line.strip():
             embedded_lines.append("")
             continue
