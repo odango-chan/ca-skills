@@ -351,7 +351,7 @@ The vNext Procedure binds the Predicate input directly to the Mutation Operation
 
 Thus the vNext gap is at the Host's normalized Mutation Operation output contract. The Host—not Provider—must combine the exact Provider/Fabric committed resource evidence with its successful durable journal write before asserting that the resource is created, Agent-owned and durably managed.
 
-**Implementation underway in Host PR #202:** UDM and PCF dispatch backends now add the three ownership fields only after the exact committed operation outcome is durably recorded. The ToolCatalog Output Schemas require those fields whenever `subscriptionRef` / `policyResultRef` is present. Focused tests validate the direct Procedure binding shape against the imported ToolCatalog contracts. This is deliberately separate from PR #200, which publishes legacy Observation projections and is not the output source bound by vNext.
+**Implementation underway in Host PR #202:** UDM and PCF dispatch backends now add the three ownership fields only after the exact committed operation outcome is durably recorded. The same rule is applied after an exact GET reconciliation has itself been durably recorded, because the ToolCatalog reuses the output shape for reconcile results. The ToolCatalog Output Schemas require those fields whenever `subscriptionRef` / `policyResultRef` is present. Focused tests validate original and reconciled direct Procedure binding shapes against the imported ToolCatalog contracts. This is deliberately separate from PR #200, which publishes legacy Observation projections and is not the output source bound by vNext.
 
 ## 15. Conventional 5GC qualification-case first-pass mapping
 
