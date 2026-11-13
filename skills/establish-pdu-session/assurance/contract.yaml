@@ -31,9 +31,3 @@ spec:
     expect: PASS
   - predicate: createdsession.resources.managed
     expect: PASS
-  planning:
-    maxActions: 32
-    allowDynamicProcedure: false
-  failureSemantics:
-    outcomeUnknown:
-      requireReconcile: true
