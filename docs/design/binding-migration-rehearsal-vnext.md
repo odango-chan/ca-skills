@@ -1,3 +1,5 @@
+> **Status notice (2026-11-13):** Historical source-migration analysis. Its earlier READ / Wait candidates are superseded by the [CA-SL vNext Specification](../skill-language-spec.zh-CN.md). In vNext, no Skill-level Wait exists; asynchronous completion belongs to the owning Tool / SMF Operation. Use this document for legacy source facts only, not as normative syntax.
+
 # vNext 5GC Source Audit and Migration Map
 
 Status: **PAPER AUDIT / 5GC SOURCE MAPPING RECORDED / NO MIGRATION REHEARSAL**  
