@@ -399,7 +399,7 @@ context:
     facts: host-context::urn:connectionagent:5gc:skill-context:facts:v1
 dependencies:
   host-context: <owner-published-dependency-identity>
-  fivegc-tools: <owner-published-dependency-identity>
+  ca: <owner-published-dependency-identity>
 allowedResources:
   capabilities:
     - provider-5gc.session-read
@@ -513,7 +513,7 @@ context:
 dependencies:
   host-context:
     id: <owner-published-dependency-identity>
-  fivegc-tools:
+  ca:
     id: <owner-published-dependency-identity>
 
 allowedResources:
@@ -543,7 +543,7 @@ nodes:
       FAIL: failed
       UNKNOWN: unresolved
   read-subscription:
-    operation: fivegc-tools::sbi.udm.sm_data.get
+    operation: ca::sbi.udm.sm_data.get
     arguments:
       ueRef: input.ueRef
       dnn: input.dnn
@@ -628,7 +628,7 @@ nodes:
       UNKNOWN: unresolved
 
   read-subscription:
-    operation: fivegc-tools::sbi.udm.sm_data.get
+    operation: ca::sbi.udm.sm_data.get
     arguments:
       ueRef: input.ueRef
       dnn: input.dnn
@@ -650,7 +650,7 @@ nodes:
       UNKNOWN: unresolved
 
   create-subscription:
-    operation: fivegc-tools::sbi.udm.sdm_subscription.create
+    operation: ca::sbi.udm.sdm_subscription.create
     arguments:
       ueRef: input.ueRef
       subscription: read-subscription.output.result
@@ -711,7 +711,7 @@ Operation Node 表示一个业务动作。若目标是外部 Tool Operation，�
 
 ~~~yaml
 create-policy:
-  operation: fivegc-tools::sbi.pcf.sm_policy.create
+  operation: ca::sbi.pcf.sm_policy.create
   arguments:
     ueRef: input.ueRef
     pduSessionId: input.pduSessionId
@@ -845,7 +845,7 @@ inputs:
 start: create-session
 nodes:
   create-session:
-    operation: fivegc-tools::smf.session.create
+    operation: ca::smf.session.create
     arguments:
       ueRef: input.ueRef
       dnn: input.dnn
@@ -901,7 +901,7 @@ Skill Studio 可以通过语义身份和 Schema 提供参数补全、批量生�
 predicates:
   createdsession.udm.subscription_usable:
     parameters:
-      - subscription: fivegc-tools::urn:connectionagent:5gc:tool-output:udm-subscription-result:v1
+      - subscription: ca::urn:connectionagent:5gc:tool-output:udm-subscription-result:v1
       - requestedDnn: string
     evaluator:
       type: cel
@@ -1267,7 +1267,7 @@ predicates:
 
   createdsession.udm.subscription_usable:
     parameters:
-      - subscription: fivegc-tools::urn:connectionagent:5gc:tool-output:udm-subscription-result:v1
+      - subscription: ca::urn:connectionagent:5gc:tool-output:udm-subscription-result:v1
       - requestedDnn: string
     evaluator:
       type: cel
@@ -1322,7 +1322,7 @@ nodes:
       UNKNOWN: unresolved
 
   read-udm-subscription:
-    operation: fivegc-tools::sbi.udm.sm_data.get
+    operation: ca::sbi.udm.sm_data.get
     arguments:
       ueRef: input.ueRef
       dnn: input.dnn
@@ -1345,7 +1345,7 @@ nodes:
       UNKNOWN: unresolved
 
   create-udm-subscription:
-    operation: fivegc-tools::sbi.udm.sdm_subscription.create
+    operation: ca::sbi.udm.sdm_subscription.create
     arguments:
       ueRef: input.ueRef
       subscription: read-udm-subscription.output.result
@@ -1365,7 +1365,7 @@ nodes:
       UNRESOLVED: unresolved
 
   create-pcf-association:
-    operation: fivegc-tools::sbi.pcf.sm_policy.create
+    operation: ca::sbi.pcf.sm_policy.create
     arguments:
       ueRef: input.ueRef
       pduSessionId: input.pduSessionId
@@ -1397,7 +1397,7 @@ nodes:
       UNRESOLVED: unresolved
 
   create-n4-session:
-    operation: fivegc-tools::UPN.CREATE_UP_SESSION
+    operation: ca::UPN.CREATE_UP_SESSION
     arguments:
       ueRef: input.ueRef
       pduSessionId: input.pduSessionId
@@ -1408,7 +1408,7 @@ nodes:
       DENIED: failed
 
   transfer-n1n2:
-    operation: fivegc-tools::sbi.amf.n1n2.transfer
+    operation: ca::sbi.amf.n1n2.transfer
     arguments:
       ueRef: input.ueRef
       pduSessionId: input.pduSessionId
@@ -1419,7 +1419,7 @@ nodes:
       DENIED: failed
 
   signal-ran:
-    operation: fivegc-tools::SSM.SIGNAL_UE_AN
+    operation: ca::SSM.SIGNAL_UE_AN
     arguments:
       ueRef: input.ueRef
       pduSessionId: input.pduSessionId
@@ -1430,7 +1430,7 @@ nodes:
       DENIED: failed
 
   modify-n4-forwarding:
-    operation: fivegc-tools::UPN.MODIFY_UP_SESSION
+    operation: ca::UPN.MODIFY_UP_SESSION
     arguments:
       ueRef: input.ueRef
       pduSessionId: input.pduSessionId
@@ -1488,7 +1488,7 @@ nodes:
 ~~~yaml
 # Operation：执行一个业务动作
 create-policy:
-  operation: fivegc-tools::sbi.pcf.sm_policy.create
+  operation: ca::sbi.pcf.sm_policy.create
   arguments:
     ueRef: input.ueRef
     pduSessionId: input.pduSessionId
