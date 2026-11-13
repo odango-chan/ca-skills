@@ -277,3 +277,52 @@ The initial vNext addition is therefore **six new READ Operations** (one phase-d
 Capability assignment is explicit: the three Provider reads use a new Provider assurance Capability; Fabric governance uses a Fabric-owned Capability unless Fabric confirms it belongs to the existing hold boundary; the two Host journal reads belong to the Host Runtime Capability. The Skill grants these Capability IDs, not Operation IDs.
 
 This vNext map supersedes any earlier wording in this document that treated the Host journal facts as passive Context fields, left their acquisition boundary undecided, or counted only four new Operations. It also supersedes any suggestion that the 17 legacy Observation refs should remain Predicate acquisition declarations.
+
+## 14. Live vNext source-to-Owner audit (2026-11-13)
+
+Audited against migration head 35ed77d4c9393b90608b92476dc78b97a32f8fb4, the current ca-agent-demo/main ToolCatalog and CapabilityContracts, and the open Owner PR heads listed below. This is a contract-link audit, not a Compiler build.
+
+### 14.1 Operation coverage
+
+The conventional 5GC Procedure contains 22 call sites across 18 distinct Operation IDs. The current Agent-demo ToolCatalog exports 12 Operations. Six Procedure Operations are not yet present in that catalog:
+
+| Missing Operation ID | Owner boundary | Required treatment |
+|---|---|---|
+| ca.session.lifecycle.registration.read | Agent Host | Publish exact READ Tool contract and normalized output Schema |
+| ca.session.n4.initial_resources.read | Provider / N4 adapter | Publish exact READ contract with PRE_CREATE / POST_CREATE phase and baseline lineage |
+| ca.session.pcf_create_governance.read | env-fabric | Publish exact Fabric-owned governance READ contract and result Schema |
+| ca.session.ran_setup.read | Provider / RAN adapter | Publish exact READ contract and normalized result Schema |
+| ca.session.n4.forwarding.read | Provider / N4 adapter | Publish exact READ contract and normalized result Schema |
+| ca.session.resource_responsibility.read | Agent Host | Publish exact Host journal READ contract and normalized result Schema |
+
+The existing bounded wait, responsibility transfer, and remaining 12 Operations are already represented in the current catalog. Do not create local/shadow Tool definitions in this Skill to fill the six gaps.
+
+### 14.2 Capability coverage
+
+The Skill Contract grants eight Capability IDs. The current deployment CapabilityContracts document defines six. These two grants are not yet backed by a published deployment contract:
+
+- provider-5gc.createdsession.assurance — intended for the three Provider assurance READ Operations above.
+- env-fabric.createdsession.governance — intended for the Fabric PCF governance READ.
+
+The two Host READ Operations must be added to the existing Host Runtime Capability membership only after the Host Owner publishes their exact contracts. Do not create another Host Capability or infer membership from an Operation name.
+
+The current 12 ToolCatalog Operations and 12 deployment Operation memberships are internally covered; this does not cover the six new Procedure Operations.
+
+### 14.3 UDM result Schema chain
+
+The UDM sbi.udm.sm_data.get Tool output still declares outputSchema.result: {type: object}. Provider PR #50 proposes the nested Provider response Schema but remains Draft and has no observed CI run. Host PR #200 explicitly defers the distinct Host-normalized runtime_value() projection Schema until the Provider contract is accepted. Therefore the Skill's udmReadResult binding does not yet have a closed authoritative imported Output Schema.
+
+Do not bind the Provider wire Schema directly as the Tool output Schema: Provider HTTP output and Host-normalized Tool output.result are different contracts. Required order: accept and verify Provider Schema; refresh Host's pinned Provider snapshot; publish the Host-normalized result Schema; link the ToolCatalog output to that Host Schema; then statically link the Skill Predicate input.
+
+### 14.4 Host Context and normalized outputs
+
+- Host PR #198 publishes the Invocation Context and Predicate Evidence-reference Schemas; its focused workflow passed 3 tests, but the PR remains Draft / unmerged.
+- Host PR #200 publishes 15 normalized projection Schemas covering 16 of 17 legacy refs; its focused workflow passed 5 tests, but the PR remains Draft / unmerged. It is not the final READ Operation contract set.
+- Host PR #199 is a code-derived inventory, not an exported contract.
+- These PRs must be reviewed and merged by their Owners before the aliases are treated as stable imports.
+
+### 14.5 Acceptance decision
+
+The conventional 5GC source is **partially migrated, not statically linkable and not build-accepted**. Its five Skill Scripts (three Procedure Scripts and two Predicate Scripts) have the required main(input: dict) -> NonEmptyTypedDict shape, and all 16 declared Predicates are present. Those local checks do not compensate for missing imported Operation/Capability/Schema contracts.
+
+The vNext Compiler is also not yet an acceptance gate: the current Compiler implementation targets v0.2 and does not load/link the v1alpha2 CapabilityContracts and Owner export set. Do not run a v0.2 build and label it v1alpha2 acceptance.
