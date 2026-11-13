@@ -425,3 +425,21 @@ The current Skill has 12 unique Operations, including `ca.session.evidence.await
 This is a design estimate, not a frozen ToolCatalog or Capability contract. If the existing wait Operation is retained instead, the total would be 16 and its input must explicitly identify the target READ Operation rather than a legacy Observation Ref.
 
 The complete behavior-preserving semantic Procedure outline—covering all 17 Predicate inputs, the two fresh lifecycle gates, the three bounded waits, four owner READ shapes, exact Operation reuse, and reconciliation/finalization paths—is recorded in [Binding Migration Rehearsal §22](binding-migration-rehearsal-vnext.md#22-behavior-preserving-target-procedure-outline-syntax-neutral-not-frozen). It is deliberately syntax-neutral; §16 remains a candidate, not frozen YAML.
+
+
+## 17. Implementation decisions — 2026-11-13
+
+The following decisions supersede exploratory alternatives elsewhere in this design note and are the implementation baseline:
+
+1. **Breaking version:** vNext uses `connectionagent.io/v1alpha2`. The Compiler rejects v0.2 constructs; no dual parser, field mapper or compatibility path is retained.
+2. **Pure Predicates:** Predicate definitions declare named `inputs`; they do not declare or acquire Observations. Procedure `verify.with` supplies every input explicitly. Evaluators read `input.<name>`.
+3. **Explicit READs:** every domain read is a callable READ Operation with a typed output and Evidence from the same invocation. Predicate evaluation never triggers a second read.
+4. **Wait remains a Host Operation:** reuse the bounded Host Runtime wait operation, but make its target an exact READ Operation plus explicit scope/freshness/absence policy. It returns a wait summary; Procedure performs the final read separately.
+5. **Capability separation:** Skill grants Capability IDs only. A single deployment-owned CapabilityContracts input maps each exact Operation ID to one Capability and Effect. Compiler cross-checks that mapping against the imported ToolCatalog.
+6. **No physical library paths:** Studio supplies dependency snapshots to BuildRequest. Skill source references imported Operations/Schemas by dependency alias plus exact exported ID, never by `lib/` path.
+7. **No dependency manager in Compiler:** no resolver lifecycle, manifest, lock, cache or digest output. The caller supplies the exact bytes.
+8. **Explicit binding first:** `with/from` is the only source binding in this first vNext implementation. Semantic IDs and auto-binding are deferred; they are not required for the 5GC migration.
+9. **Evidence is separate:** business payload and provenance/Evidence remain separate. Runtime validates Evidence before definite Predicate truth; Script `evidenceUsed` may only cite attached refs.
+10. **5GC-first:** migrate the 5GC Skill and its 36 Cases / three References as the business baseline. MAS remains non-executable design material and is not used to invent missing contracts.
+
+The migration rehearsal is not an acceptance gate. Paper review identifies Owner gaps; implementation and focused tests are the validation method. The first confirmed gap is now being closed in `ca-agent-demo`: Host publishes a typed `context.ingress` projection rather than requiring a Skill Predicate to acquire the same ingress through an Observation.
