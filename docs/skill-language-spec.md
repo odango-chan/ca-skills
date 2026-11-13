@@ -163,7 +163,13 @@ Predicate definitions use an ordered function-like signature:
 ~~~yaml
 predicates:
   createdsession.udm.hold_bound:
-    parameters: [hold, dnn, sst]
+    parameters:
+      - name: hold
+        schema: ca::schemas/udm-hold
+      - name: dnn
+        type: string
+      - name: sst
+        type: integer
     evaluator:
       type: cel
       expression: hold.operationKind == "UDM_SDM_SUBSCRIPTION_CREATE" &&
@@ -184,9 +190,9 @@ verify:
 
 Rules:
 
-- `parameters` is an ordered list of unique names owned by the Predicate definition. It defines evaluator-local parameter names; it does not duplicate Producer Schemas.
+- `parameters` is an ordered list of unique typed entries. Each entry has a `name` and exactly one of a primitive `type` or an authoritative `schema` reference. This is the Predicate's function signature, not a separate JSON Schema file.
 - `arguments` is an ordered list. Position i binds to parameter i. Argument count must exactly match parameter count.
-- Types are established from authoritative Producer/Context Schemas and checked across all call sites. CEL is type-checked against the resulting effective signature. No type inference from names alone.
+- The Predicate signature establishes expected types at authoring time. Producer/Context Schemas establish actual source types and must be assignable to the declared parameter type at every call site. CEL is type-checked against the declared signature independently of call sites. No type inference from names alone.
 - No optional positional parameters, skipped arguments, implicit null/default, coercion, or reordering. Missing or incompatible arguments are compile errors.
 - The evaluator sees only its declared business parameters. It cannot access caller node names, ambient Context, or hidden globals.
 - Predicate does not acquire data. Procedure schedules READ/wait operations and supplies their outputs. Host/Runtime attaches and validates Evidence separately; Evidence is not a positional business argument.
