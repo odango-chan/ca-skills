@@ -353,3 +353,45 @@ The legacy Provider resource evidence adapter deliberately constructs a separate
 **Required resolution before vNext acceptance:** the relevant Owner(s) must publish an explicit typed assurance contract that preserves the exact resource ref, committed Provider/Fabric lineage, and durable Agent ownership/management proof. This may be an Owner-published READ Operation output plus its matching Evidence, or a deliberately enriched mutation Output contract only if the Owner can prove all those facts at that boundary. Do not simply add invented fields to the ToolCatalog, treat HTTP 201 / a Location as durable ownership, or restore the retired Observation registry as a hidden Predicate acquisition path. Until this is resolved, both ownership postconditions remain statically unbound and the 5GC Skill is not acceptance-ready.
 
 This is an additional semantic contract gap beyond the six Procedure Operation IDs missing from the current ToolCatalog in §14.1.
+## 15. Conventional 5GC qualification-case first-pass mapping
+
+The current Agent-demo package contains exactly 36 case files. Its own `cases/README.md` explicitly classifies them as semantic qualification obligations, not executable Runtime fixtures; it also says their old PlanningContext / availableResources envelope is not a vNext execution contract and must not be mechanically rewritten into a new Case DSL. The following is a first-pass mapping of their business purposes to the vNext control/ownership boundary, not a claim that the expected terminal/postcondition fields have all been requalified:
+
+| Cases | Preserved business obligation | vNext boundary to review |
+|---|---|---|
+| 01 | Complete supported profile; RAN, N4 and durable responsibility all proven | Full Procedure + final Contract |
+| 02 | Missing/ambiguous ingress cannot start | Host admission before Procedure; no synthetic Skill-side ingress fallback |
+| 03–04 | Partial/ambiguous UDM result remains UNKNOWN; target rejection is a definite failure | UDM READ output + `createdsession.udm.subscription_usable` |
+| 05 | Missing address/callback or unsafe competing-create state blocks PCF creation | PCF create-input READ, Fabric governance READ, lifecycle precondition |
+| 06–07 | UDM subscription / PCF association ownership cannot be inferred from a create response or Location | Additional Owner assurance contract gap in §14.7 |
+| 08 | PCF success does not prove initial N4 resources | PRE_CREATE baseline, PCF mutation, bounded wait and POST_CREATE N4 READ |
+| 09–10 | Stale instance / missing authorization, or invalid response artifact, blocks delivery | Operation-context READ, delivery-context Predicate, response preparation and local Script |
+| 11 | AMF 202 acknowledgement is not the admitted transfer-complete result | `createdsession.amf.transfer_initiated` remains UNKNOWN outside exact accepted response |
+| 12–14 | Definite RAN failure, late/ambiguous RAN evidence, or N4 forwarding mismatch must stop | RAN READ, N4 forwarding READ, exact current-session correlation |
+| 15 | Core-network completion does not require fabricated UE-internal observation | Final Contract uses the defined core-network facts only |
+| 16 | Network success does not erase durable resource responsibility | Responsibility transfer + Host responsibility READ |
+| 17–20 | Unknown UDM/PCF/AMF mutation is reconciled exactly once; denied preparation or UDM read causes no later mutation | Native reconcile nodes; preparation and admission fail-closed paths |
+| 21–28 | Handoff/finalization uncertainty or NOT_COMMITTED must not become success or trigger blind retry | Responsibility transfer outcomes, original-operation reconciliation, SAFE_STOPPED |
+| 29–30 | Known unready lifecycle or unavailable lifecycle proof blocks first NF resource create | Host lifecycle registration READ before UDM Subscribe and PCF Create |
+| 31 | UNKNOWN read-only fact stops before mutation | READ preconditions and tri-state Predicate routing |
+| 32 | Action budget exhaustion after UDM Subscribe prevents PCF Create while preserving responsibility | Runtime action budget; resource-responsibility transfer's separately authorized budget treatment |
+| 33–34 | Missing required subscription fields fail local selection; producer/evidence mismatch remains UNKNOWN | Selection Script's derived output Schema; UDM Predicate evidence correlation |
+| 35–36 | Even reconciled COMMITTED / NOT_COMMITTED outcomes conservatively stop this invocation; no retry | Reconcile nodes terminate at SAFE_STOPPED |
+
+### 15.1 First-pass observations
+
+- The current Procedure has corresponding control-flow boundaries for the majority of these obligations; cases 06–07 expose the concrete ownership assurance mismatch in §14.7 rather than a reason to restore old Observation acquisition.
+- Case 02 is an ingress-admission test, not a Procedure input validation test. The vNext invocation Context is materialized only after Host admission.
+- Case 15 is an explicit negative requirement: do not add a UE-internal observation merely to make the success graph look more complete.
+- Cases 32, 35 and 36 are Runtime/reconciliation semantics and must remain obligations even though they are not new Procedure business steps.
+- Before declaring case review complete, compare each case's expected planning status, terminal and Contract postconditions against the actual vNext source. Do not copy the old synthetic PlanningContext or `availableResources` declarations into a vNext Case file.
+
+## 16. Reference review
+
+The three existing business References were read in the current Agent-demo source:
+
+- `3gpp-procedure.md`: actor responsibilities and causal boundaries; explicitly distinguishes AMF transfer acknowledgement, RAN acceptance, initial N4 resources, forwarding and UE acceptance.
+- `failure-handling.md`: preserves PASS/FAIL/UNKNOWN, exact-operation reconciliation, no blind retry, and durable responsibility after resource creation.
+- `session-selection.md`: separates exact UE request, subscription-constrained selection and effective policy/allocation state; disallows silent substitution.
+
+Their content remains useful as model-facing business guidance and is not an alternate executable Procedure or Evidence source. No new Case DSL or Reference copy was added to the official Skill package in this pass.
