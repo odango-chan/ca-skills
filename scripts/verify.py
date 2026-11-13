@@ -218,6 +218,54 @@ def validate_semantic_tokens(errors: list[str]) -> None:
         errors.append("semantic-token registry must classify Predicate evaluator.ref")
 
 
+def validate_udm_owner_output_schema(errors: list[str]) -> None:
+    """Keep the ToolCatalog result projection byte-for-byte aligned with its Owner Schema export."""
+    schema_path = ROOT / "lib" / "schemas" / "ca" / "createdsession-udm-runtime-value-v1alpha1.schema.yaml"
+    catalog_path = ROOT / "lib" / "tools" / "createdsession.tool.yaml"
+    if not schema_path.is_file():
+        errors.append("Host-owned normalized UDM READ result Schema is missing from lib/schemas/ca/")
+        return
+    if not catalog_path.is_file():
+        return
+
+    schema_text = schema_path.read_text(encoding="utf-8").rstrip("\\n")
+    schema_id = re.search(r"(?m)^\\$id:\\s*(\\S+)\\s*$", schema_text)
+    if not schema_id:
+        errors.append("Host-owned normalized UDM READ result Schema must declare an exact $id")
+        return
+
+    catalog_text = catalog_path.read_text(encoding="utf-8")
+    operation = re.search(
+        r"(?ms)^  - operation: sbi\\.udm\\.sm_data\\.get\\n(?P<body>.*?)(?=^  - operation:|\\Z)",
+        catalog_text,
+    )
+    if not operation:
+        errors.append("ToolCatalog is missing sbi.udm.sm_data.get")
+        return
+    body = operation.group("body")
+    if not re.search(r"(?m)^    effect: READ\\s*$", body):
+        errors.append("sbi.udm.sm_data.get must remain a READ Operation")
+    result = re.search(r"(?m)^        result:\\s*$", body)
+    if not result:
+        errors.append("sbi.udm.sm_data.get outputSchema.result must embed the Host-owned UDM Schema")
+        return
+
+    embedded_lines = []
+    for line in body[result.end():].splitlines():
+        if not line.strip():
+            embedded_lines.append("")
+            continue
+        if not line.startswith("          "):
+            break
+        embedded_lines.append(line[10:])
+    embedded = "\\n".join(embedded_lines).rstrip("\\n")
+    if embedded != schema_text:
+        errors.append(
+            "sbi.udm.sm_data.get outputSchema.result must exactly match "
+            "lib/schemas/ca/createdsession-udm-runtime-value-v1alpha1.schema.yaml"
+        )
+
+
 def main() -> None:
     errors: list[str] = []
     if not SKILLS_ROOT.is_dir():
@@ -239,6 +287,7 @@ def main() -> None:
             errors.append(f"expected 12 approved conventional PDU Operations in the pinned ToolCatalog, found {count}")
 
     validate_semantic_tokens(errors)
+    validate_udm_owner_output_schema(errors)
     fail(errors)
 
     print(f"PACKAGE_LAYOUT_OK ({len(packages)} Skill directories)")
