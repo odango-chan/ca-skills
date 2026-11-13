@@ -291,22 +291,24 @@ The syntax in this section follows the normative [Skill Language Specification](
 ### 16.1 Pure Predicate inputs
 
 ```yaml
-predicates:
-  createdsession.udm.subscription_usable:
-    inputs:
-      udmReadResult: {}
-    evaluator:
-      type: script
-      ref: scripts/evaluate_udm_read.py
+createdsession.udm.subscription_usable:
+  inputs: [udmReadResult]
+  evaluator:
+    type: script
+    ref: scripts/evaluate_udm_read.py
 
-  createdsession.n4.initial_resources_ready:
-    inputs:
-      n4InitialResources: {}
-    evaluator:
-      type: cel
-      expression: input.n4InitialResources.bindingStatus == "CURRENT" &&
-        input.n4InitialResources.defaultFlowInstalled == true &&
-        input.n4InitialResources.uplinkEndpointBound == true
+createdsession.n4.initial_resources_ready:
+  inputs: [resources]
+  evaluator:
+    type: cel
+    expression: >-
+      resources.phase == "POST_CREATE" &&
+      resources.pairState == "NEW_PAIR" &&
+      resources.bindingStatus == "CURRENT" &&
+      resources.defaultFlowInstalled == true &&
+      resources.uplinkEndpointBound == true &&
+      resources.baselineEvidenceRef != "" &&
+      resources.currentSessionInstanceRef != ""
 ```
 
 Procedure supplies every business input explicitly:
@@ -322,7 +324,7 @@ Semantics:
 
 - `Predicate.inputs` declares only named business values; it does not declare Observation refs, scope, freshness, or acquisition.
 - `verify.with` supplies every named input from an exact Context projection or Operation output. The evaluator sees only these declared names.
-- Host attaches reserved `input.evidence.<alias>.refs` separately. Skill cannot author or widen this projection.
+- Host validates Evidence for both evaluator types and may attach `input.evidence.<alias>.refs` to Python Predicate Script inputs. CEL receives only the declared business values.
 - Host/Runtime validates producer, invocation, scope/correlation, source provenance, completeness, freshness and integrity before a definite verdict is allowed. Missing, stale, ambiguous or mismatched Evidence remains UNKNOWN.
 - Predicate evaluation is pure. It cannot call an ObservationSource, Provider, Tool, network read or hidden Context global.
 - Procedure Script input is derived from the Script call site's `with`; Predicate Script input is derived from `Predicate.inputs` and its `verify.with` call sites. Script output Schema is generated from the strict return `TypedDict`.
@@ -379,7 +381,7 @@ The current ToolCatalog has 12 callable Operations, including `ca.session.eviden
 The following decisions supersede exploratory alternatives elsewhere in this design note and are the implementation baseline:
 
 1. **Breaking version:** v1alpha2 uses `connectionagent.io/v1alpha2`. The Compiler rejects v0.2 constructs; no dual parser, field mapper or compatibility path is retained.
-2. **Pure Predicates:** Predicate definitions declare named `inputs`; they do not declare or acquire Observations. Procedure `verify.with` supplies every input explicitly. Evaluators read `input.<name>`.
+2. **Pure Predicates:** Predicate definitions declare named `inputs`; they do not declare or acquire Observations. Procedure `verify.with` supplies every input explicitly. CEL uses declared input names as top-level variables. Python Scripts use the `input` dictionary.
 3. **Explicit READs:** every domain read is a callable READ Operation with a typed output and Evidence from the same invocation. Predicate evaluation never triggers a second read.
 4. **Wait remains a Host Operation:** retain `ca-agent-host::ca.session.evidence.await`, but replace its legacy Observation Ref target with an exact qualified READ Operation plus explicit bindings/freshness/absence policy. It returns a wait summary; Procedure performs the final READ separately.
 5. **Capability separation:** Skill grants Capability IDs only. A single deployment-owned CapabilityContracts input maps each exact Operation ID to one Capability and Effect. Compiler cross-checks that mapping against the imported ToolCatalog.

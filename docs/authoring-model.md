@@ -42,7 +42,7 @@ Each Operation belongs to exactly one Capability in the deployment CapabilityCon
 A Predicate declares named `inputs` and a CEL or Script evaluator. It has no Observation declaration, scope acquisition, freshness polling or hidden globals.
 
 - Procedure `verify.with` supplies all Predicate inputs.
-- CEL and Script evaluators read `input.<name>`.
+- CEL reads declared inputs directly by name. Python Scripts receive those values as keys in the `input` dictionary. Procedure `from: input.<alias>` still selects a Procedure input.
 - Host/Runtime attaches Evidence separately and validates it before allowing a definite verdict.
 - Predicate Script may return only Evidence refs attached to its own inputs.
 

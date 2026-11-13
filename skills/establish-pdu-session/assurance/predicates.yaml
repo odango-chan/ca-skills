@@ -2,98 +2,112 @@ createdsession.udm.hold_bound:
   inputs: [hold, dnn, sst]
   evaluator:
     type: cel
-    expression: input.hold.operationKind == "UDM_SDM_SUBSCRIPTION_CREATE" &&
-      input.hold.holdRef != "" && input.hold.currentInstanceRef != "" &&
-      input.hold.heldRequestDigest != "" && input.hold.dnn == input.dnn &&
-      input.hold.sst == input.sst
+    expression: >-
+      hold.operationKind == "UDM_SDM_SUBSCRIPTION_CREATE" &&
+      hold.holdRef != "" &&
+      hold.currentInstanceRef != "" &&
+      hold.heldRequestDigest != "" &&
+      hold.dnn == dnn &&
+      hold.sst == sst
 
 createdsession.pcf.hold_bound:
   inputs: [hold]
   evaluator:
     type: cel
-    expression: input.hold.operationKind == "PCF_SM_POLICY_CREATE" &&
-      input.hold.holdRef != "" &&
-      input.hold.currentInstanceRef == input.hold.policyAssociationRef &&
-      input.hold.heldRequestDigest != "" &&
-      input.hold.policyAssociationRef != ""
+    expression: >-
+      hold.operationKind == "PCF_SM_POLICY_CREATE" &&
+      hold.holdRef != "" &&
+      hold.currentInstanceRef == hold.policyAssociationRef &&
+      hold.heldRequestDigest != "" &&
+      hold.policyAssociationRef != ""
 
 createdsession.pcf.create_inputs.ready:
   inputs: [pcfCreateInputs, pcfHold]
   evaluator:
     type: cel
-    expression: input.pcfCreateInputs.pcfCreateInputsRef != "" &&
-      input.pcfCreateInputs.pcfPolicyAssociationRef == input.pcfHold.policyAssociationRef &&
-      input.pcfCreateInputs.fabricHoldRef == input.pcfHold.holdRef &&
-      input.pcfCreateInputs.allocatedIPv4 != "" &&
-      input.pcfCreateInputs.selectionDigest != ""
+    expression: >-
+      pcfCreateInputs.pcfCreateInputsRef != "" &&
+      pcfCreateInputs.pcfPolicyAssociationRef == pcfHold.policyAssociationRef &&
+      pcfCreateInputs.fabricHoldRef == pcfHold.holdRef &&
+      pcfCreateInputs.allocatedIPv4 != "" &&
+      pcfCreateInputs.selectionDigest != ""
 
 createdsession.pcf.create_governed:
   inputs: [governance]
   evaluator:
     type: cel
-    expression: input.governance.lifecycleIsolationState == "CLEAN" &&
-      input.governance.lifecycleIsolationEvidenceRef != "" &&
-      input.governance.competingCreateState == "NOT_FORWARDED" &&
-      input.governance.competingCreateGovernanceRef != "" &&
-      input.governance.agentAuthorized == true
+    expression: >-
+      governance.lifecycleIsolationState == "CLEAN" &&
+      governance.lifecycleIsolationEvidenceRef != "" &&
+      governance.competingCreateState == "NOT_FORWARDED" &&
+      governance.competingCreateGovernanceRef != "" &&
+      governance.agentAuthorized == true
 
 createdsession.udm.subscription_owned:
   inputs: [subscription]
   evaluator:
     type: cel
-    expression: input.subscription.creationState == "CREATED" &&
-      input.subscription.ownership == "AGENT" &&
-      input.subscription.managementState == "DURABLE" &&
-      input.subscription.subscriptionRef != ""
+    expression: >-
+      subscription.creationState == "CREATED" &&
+      subscription.ownership == "AGENT" &&
+      subscription.managementState == "DURABLE" &&
+      subscription.subscriptionRef != ""
 
 createdsession.pcf.association_owned:
   inputs: [association]
   evaluator:
     type: cel
-    expression: input.association.creationState == "CREATED" &&
-      input.association.ownership == "AGENT" &&
-      input.association.managementState == "DURABLE" &&
-      input.association.policyResultRef != ""
+    expression: >-
+      association.creationState == "CREATED" &&
+      association.ownership == "AGENT" &&
+      association.managementState == "DURABLE" &&
+      association.policyResultRef != ""
 
 createdsession.n4.baseline_clear:
   inputs: [baseline]
   evaluator:
     type: cel
-    expression: input.baseline.phase == "PRE_CREATE" &&
-      input.baseline.pairState == "NO_N4_PAIR" &&
-      input.baseline.baselineRef != ""
+    expression: >-
+      baseline.phase == "PRE_CREATE" &&
+      baseline.pairState == "NO_N4_PAIR" &&
+      baseline.baselineRef != ""
 
 createdsession.n4.initial_resources_ready:
   inputs: [resources]
   evaluator:
     type: cel
-    expression: input.resources.phase == "POST_CREATE" &&
-      input.resources.pairState == "NEW_PAIR" &&
-      input.resources.bindingStatus == "CURRENT" &&
-      input.resources.defaultFlowInstalled == true &&
-      input.resources.uplinkEndpointBound == true &&
-      input.resources.baselineEvidenceRef != "" &&
-      input.resources.currentSessionInstanceRef != ""
+    expression: >-
+      resources.phase == "POST_CREATE" &&
+      resources.pairState == "NEW_PAIR" &&
+      resources.bindingStatus == "CURRENT" &&
+      resources.defaultFlowInstalled == true &&
+      resources.uplinkEndpointBound == true &&
+      resources.baselineEvidenceRef != "" &&
+      resources.currentSessionInstanceRef != ""
 
 createdsession.n1n2.hold_bound:
   inputs: [hold]
   evaluator:
     type: cel
-    expression: input.hold.operationKind == "N1N2_MESSAGE_TRANSFER" &&
-      input.hold.holdRef != "" && input.hold.currentInstanceRef != "" &&
-      input.hold.heldRequestDigest != "" &&
-      input.hold.targetNfInstanceId != "" && input.hold.supi != "" &&
-      input.hold.deadline != ""
+    expression: >-
+      hold.operationKind == "N1N2_MESSAGE_TRANSFER" &&
+      hold.holdRef != "" &&
+      hold.currentInstanceRef != "" &&
+      hold.heldRequestDigest != "" &&
+      hold.targetNfInstanceId != "" &&
+      hold.supi != "" &&
+      hold.deadline != ""
 
 createdsession.delivery_context.ready:
   inputs: [context]
   evaluator:
     type: cel
-    expression: input.context.bindingStatus == "CURRENT" &&
-      input.context.addressAllocated == true &&
-      input.context.nasInputsComplete == true &&
-      input.context.delegatedCallerAuthorized == true &&
-      input.context.uniqueSenderReserved == false
+    expression: >-
+      context.bindingStatus == "CURRENT" &&
+      context.addressAllocated == true &&
+      context.nasInputsComplete == true &&
+      context.delegatedCallerAuthorized == true &&
+      context.uniqueSenderReserved == false
 
 createdsession.amf.transfer_initiated:
   inputs: [transferResult, expectedOperationRef]
@@ -105,28 +119,31 @@ createdsession.ran.setup_accepted:
   inputs: [setup]
   evaluator:
     type: cel
-    expression: input.setup.result == "ACCEPTED" &&
-      input.setup.requiredFlowMatched == true &&
-      input.setup.currentInstanceBound == true &&
-      input.setup.baselineRanEndpointPresent == false
+    expression: >-
+      setup.result == "ACCEPTED" &&
+      setup.requiredFlowMatched == true &&
+      setup.currentInstanceBound == true &&
+      setup.baselineRanEndpointPresent == false
 
 createdsession.n4.forwarding_ready:
   inputs: [resources]
   evaluator:
     type: cel
-    expression: input.resources.bindingStatus == "CURRENT" &&
-      input.resources.requiredFlowMatched == true &&
-      input.resources.downlinkTunnelMatched == true &&
-      input.resources.gatesAllowForwarding == true &&
-      input.resources.exactPairMatchCount == 1
+    expression: >-
+      resources.bindingStatus == "CURRENT" &&
+      resources.requiredFlowMatched == true &&
+      resources.downlinkTunnelMatched == true &&
+      resources.gatesAllowForwarding == true &&
+      resources.exactPairMatchCount == 1
 
 createdsession.resources.managed:
   inputs: [responsibility]
   evaluator:
     type: cel
-    expression: input.responsibility.managementState == "ACCEPTED" &&
-      input.responsibility.allResourcesCovered == true &&
-      input.responsibility.pendingResponsibilitiesRetained == true
+    expression: >-
+      responsibility.managementState == "ACCEPTED" &&
+      responsibility.allResourcesCovered == true &&
+      responsibility.pendingResponsibilitiesRetained == true
 
 createdsession.udm.subscription_usable:
   inputs: [udmReadResult]
@@ -138,7 +155,8 @@ createdsession.lifecycle.ready:
   inputs: [lifecycle, expectedLifecycleRef]
   evaluator:
     type: cel
-    expression: input.lifecycle.lifecycleRef == input.expectedLifecycleRef &&
-      input.lifecycle.registrationState == "DURABLE" &&
-      input.lifecycle.receiverState == "READY" &&
-      input.lifecycle.lateResultResponsibility == "RETAINED"
+    expression: >-
+      lifecycle.lifecycleRef == expectedLifecycleRef &&
+      lifecycle.registrationState == "DURABLE" &&
+      lifecycle.receiverState == "READY" &&
+      lifecycle.lateResultResponsibility == "RETAINED"

@@ -162,10 +162,13 @@ createdsession.udm.hold_bound:
   inputs: [hold, dnn, sst]
   evaluator:
     type: cel
-    expression: input.hold.operationKind == "UDM_SDM_SUBSCRIPTION_CREATE" &&
-      input.hold.holdRef != "" && input.hold.currentInstanceRef != "" &&
-      input.hold.heldRequestDigest != "" && input.hold.dnn == input.dnn &&
-      input.hold.sst == input.sst
+    expression: >-
+      hold.operationKind == "UDM_SDM_SUBSCRIPTION_CREATE" &&
+      hold.holdRef != "" &&
+      hold.currentInstanceRef != "" &&
+      hold.heldRequestDigest != "" &&
+      hold.dnn == dnn &&
+      hold.sst == sst
 ```
 
 The Procedure explicitly binds each input:
@@ -184,9 +187,9 @@ with:
 Rules:
 
 - Predicate input names are the only business-data names visible to its evaluator.
-- CEL reads `input.<name>`; it does not read hidden `subject`, `request`, `facts` or `observations` globals.
-- Script evaluators receive the same `input` object.
-- Host Runtime defines and validates the shared Evidence-reference format and may attach it as the reserved `input.evidence` projection. Skill `with` bindings cannot author or overwrite that projection.
+- For a CEL Predicate, each name in `inputs` is a top-level CEL variable. Compiler and Studio declare the same variables with types derived from the explicit `verify.with` bindings. Runtime binds those same names to the supplied values. Input names must be valid CEL identifiers and cannot be CEL reserved words or the reserved names `input` and `evidence`. Undeclared business variables are compile errors.
+- For a Script Predicate, the declared values are keys in the dictionary passed to `main(input: dict)`.
+- Host Runtime defines and validates the shared Evidence-reference format. CEL evaluates the business values while Runtime validates their Evidence. For Script Predicates, Host may attach the reserved `input.evidence` projection. Skill `with` bindings cannot author or overwrite it.
 - Host validates the provenance, correlation, freshness and exact producer Evidence before a definite Predicate verdict is allowed.
 - Predicate Scripts may cite only Evidence references attached to their own inputs. Their `evidenceUsed` output is a subset declaration, not an authority grant.
 - Missing, ambiguous, stale or mismatched input/Evidence produces UNKNOWN. The evaluator must not reacquire data or perform network I/O.
