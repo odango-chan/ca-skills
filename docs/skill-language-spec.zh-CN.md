@@ -261,9 +261,9 @@ Observation Owner 发布 QueryContext / Input 和规范化 Output Schema。不�
 Host / Context Owner 发布 Subject、Facts、Ingress 等 Projection Schema。SkillContract 声明可使用哪些 Projection，但它们不会自动注入 Procedure 或 Operation 输入。
 
 Script 输入和输出：
-- Procedure Script 输入由调用点显式 with 绑定派生；
-- Predicate Script 输入由 Predicate.parameters 派生，Host 附加只读 Evidence refs；
-- Script 输出由 Python 返回 TypedDict 派生 JSON Schema；
+- Python Script 仅作为 Predicate 的确定性 evaluator，不是独立 Procedure Node；
+- Predicate Script 输入类型由 Predicate.parameters 派生，Host 附加只读 Evidence refs；
+- Predicate Script 的返回类型必须是 PASS、FAIL、UNKNOWN 三态之一；
 - 作者不得维护重复 Script Input Schema；
 - Compiler 不得执行 Python 函数体猜测类型。
 
@@ -759,7 +759,7 @@ predicates:
 - 参数名唯一；
 - 类型为受支持 Primitive 或精确 Schema 引用；
 - 结构化对象必须引用 Owner Schema；
-- verify.arguments 数量必须完全一致，顺序必须一致；
+- Precondition / Postcondition 的 arguments 数量必须完全一致，顺序必须一致；
 - 不允许隐式 Optional、跳过位置、自动 null、类型猜测或重排；
 - Predicate 签名是唯一业务输入契约。
 
@@ -1120,61 +1120,60 @@ predicates:
 procedures:
   establish:
     inputs:
-      ueRef:
-        from: context.subject.ueRef
-      pduSessionId:
-        from: context.request.pduSessionId
-      pti:
-        from: context.request.pti
-      dnn:
-        from: context.request.dnn
-      sNssai:
-        from: context.request.sNssai
-    start: verify-ue-registration
+      ueRef: context.subject.ueRef
+      pduSessionId: context.request.pduSessionId
+      pti: context.request.pti
+      dnn: context.request.dnn
+      sNssai: context.request.sNssai
+    start: observe-ue-registration
     nodes:
-      verify-ue-registration:
-        call: fivegc-observations::ue.registration.current
-        with:
-          ueRef:
-            from: input.ueRef
-        postconditions:
-          steps:
-            - verify:
-                predicate: createdsession.ue.registered
-                arguments: [output]
-          'on':
-            PASS: read-udm-subscription
-            FAIL: failed
-            UNKNOWN: unresolved
+      observe-ue-registration:
+        observation: fivegc-observations::ue.registration.current
+        arguments:
+          ueRef: input.ueRef
+        'on':
+          SUCCEEDED: check-ue-registration
+          FAILED: failed
+          UNKNOWN: unresolved
+
+      check-ue-registration:
+        precondition:
+          predicate: createdsession.ue.registered
+          arguments:
+            - observe-ue-registration.output
+        'on':
+          PASS: read-udm-subscription
+          FAIL: failed
+          UNKNOWN: unresolved
 
       read-udm-subscription:
-        call: fivegc-tools::sbi.udm.sm_data.get
-        with:
-          ueRef:
-            from: input.ueRef
-          dnn:
-            from: input.dnn
-          sNssai:
-            from: input.sNssai
-        postconditions:
-          steps:
-            - verify:
-                predicate: createdsession.udm.subscription_usable
-                arguments:
-                  - output.result
-                  - input.dnn
-          'on':
-            PASS: create-udm-subscription
-            FAIL: failed
-            UNKNOWN: unresolved
+        operation: fivegc-tools::sbi.udm.sm_data.get
+        arguments:
+          ueRef: input.ueRef
+          dnn: input.dnn
+          sNssai: input.sNssai
+        'on':
+          SUCCEEDED: check-udm-subscription
+          FAILED: failed
+          DENIED: failed
+          UNKNOWN: unresolved
+
+      check-udm-subscription:
+        postcondition:
+          predicate: createdsession.udm.subscription_usable
+          arguments:
+            - read-udm-subscription.output.result
+            - input.dnn
+        'on':
+          PASS: create-udm-subscription
+          FAIL: failed
+          UNKNOWN: unresolved
 
       create-udm-subscription:
-        call: fivegc-tools::sbi.udm.sdm_subscription.create
-        with:
-          ueRef:
-            from: input.ueRef
-          subscription:
-            from: read-udm-subscription.output.result
+        operation: fivegc-tools::sbi.udm.sdm_subscription.create
+        arguments:
+          ueRef: input.ueRef
+          subscription: read-udm-subscription.output.result
         'on':
           SUCCEEDED: create-pcf-association
           NOT_COMMITTED: failed
@@ -1183,46 +1182,50 @@ procedures:
           FAILED: failed
 
       reconcile-udm-subscription:
-        reconcile:
-          operation: create-udm-subscription
+        operation:
+          reconcile: create-udm-subscription
         'on':
           COMMITTED: create-pcf-association
           NOT_COMMITTED: failed
           UNRESOLVED: unresolved
 
       create-pcf-association:
-        call: fivegc-tools::sbi.pcf.sm_policy.create
-        with:
-          ueRef:
-            from: input.ueRef
-          pduSessionId:
-            from: input.pduSessionId
-          dnn:
-            from: input.dnn
-          sNssai:
-            from: input.sNssai
+        operation: fivegc-tools::sbi.pcf.sm_policy.create
+        arguments:
+          ueRef: input.ueRef
+          pduSessionId: input.pduSessionId
+          dnn: input.dnn
+          sNssai: input.sNssai
         'on':
-          SUCCEEDED: create-n4-session
+          SUCCEEDED: verify-pcf-association
           NOT_COMMITTED: failed
           OUTCOME_UNKNOWN: reconcile-pcf-association
           DENIED: failed
           FAILED: failed
 
-      reconcile-pcf-association:
-        reconcile:
-          operation: create-pcf-association
+      verify-pcf-association:
+        postcondition:
+          predicate: createdsession.pcf.association_owned
+          arguments:
+            - create-pcf-association.output
         'on':
-          COMMITTED: create-n4-session
+          PASS: create-n4-session
+          FAIL: failed
+          UNKNOWN: unresolved
+
+      reconcile-pcf-association:
+        operation:
+          reconcile: create-pcf-association
+        'on':
+          COMMITTED: verify-pcf-association
           NOT_COMMITTED: failed
           UNRESOLVED: unresolved
 
       create-n4-session:
-        call: fivegc-tools::UPN.CREATE_UP_SESSION
-        with:
-          ueRef:
-            from: input.ueRef
-          pduSessionId:
-            from: input.pduSessionId
+        operation: fivegc-tools::UPN.CREATE_UP_SESSION
+        arguments:
+          ueRef: input.ueRef
+          pduSessionId: input.pduSessionId
         'on':
           SUCCEEDED: transfer-n1n2
           OUTCOME_UNKNOWN: unresolved
@@ -1230,12 +1233,10 @@ procedures:
           DENIED: failed
 
       transfer-n1n2:
-        call: fivegc-tools::sbi.amf.n1n2.transfer
-        with:
-          ueRef:
-            from: input.ueRef
-          pduSessionId:
-            from: input.pduSessionId
+        operation: fivegc-tools::sbi.amf.n1n2.transfer
+        arguments:
+          ueRef: input.ueRef
+          pduSessionId: input.pduSessionId
         'on':
           SUCCEEDED: signal-ran
           OUTCOME_UNKNOWN: unresolved
@@ -1243,12 +1244,10 @@ procedures:
           DENIED: failed
 
       signal-ran:
-        call: fivegc-tools::SSM.SIGNAL_UE_AN
-        with:
-          ueRef:
-            from: input.ueRef
-          pduSessionId:
-            from: input.pduSessionId
+        operation: fivegc-tools::SSM.SIGNAL_UE_AN
+        arguments:
+          ueRef: input.ueRef
+          pduSessionId: input.pduSessionId
         'on':
           SUCCEEDED: modify-n4-forwarding
           OUTCOME_UNKNOWN: unresolved
@@ -1256,24 +1255,37 @@ procedures:
           DENIED: failed
 
       modify-n4-forwarding:
-        call: fivegc-tools::UPN.MODIFY_UP_SESSION
-        with:
-          ueRef:
-            from: input.ueRef
-          pduSessionId:
-            from: input.pduSessionId
+        operation: fivegc-tools::UPN.MODIFY_UP_SESSION
+        arguments:
+          ueRef: input.ueRef
+          pduSessionId: input.pduSessionId
         'on':
-          SUCCEEDED: verify-final-state
+          SUCCEEDED: inspect-final-state
           OUTCOME_UNKNOWN: unresolved
           FAILED: failed
           DENIED: failed
 
+      # 本示例假设 Operation Result 尚不足以独立证明最终 N4 / RAN 资源一致性，
+      # 因此显式查询权威状态。若 Operation Result 已满足 Predicate 的全部要求，
+      # 可直接从 modify-n4-forwarding 路由到 verify-final-state。
+      inspect-final-state:
+        observation: fivegc-observations::session.establishment.final_state
+        arguments:
+          ueRef: input.ueRef
+          pduSessionId: input.pduSessionId
+          sessionInstanceRef: create-n4-session.output.sessionInstanceRef
+        'on':
+          SUCCEEDED: verify-final-state
+          FAILED: failed
+          UNKNOWN: unresolved
+
       verify-final-state:
-        verify:
+        postcondition:
           predicate: createdsession.session.established
           arguments:
             - signal-ran.output.result
             - modify-n4-forwarding.output.result
+            - inspect-final-state.output
         'on':
           PASS: complete
           FAIL: failed
@@ -1288,6 +1300,9 @@ procedures:
 ~~~
 
 说明：
+- 四种业务节点分别是 Precondition、Operation、Observation、Postcondition。Terminal 只是终止声明；Predicate 是被引用的确定性逻辑，不是节点。
+- Observation 不是 Operation 的必经步骤。本示例只在假设 Operation Result 不足以证明最终状态时才查询；若 Operation 已提供充分结果和 Evidence，可直接执行 Postcondition。
+- Observation 可以使用 Operation Result 中的 Session Instance Ref 作为查询参数，但查询结果必须由 Observation Owner 实际产生，不能伪装来源。
 - UPN.CREATE_UP_SESSION、SSM.SIGNAL_UE_AN、UPN.MODIFY_UP_SESSION 是目标设计中的异步完成责任映射，不代表 Owner 已发布正式 ToolCatalog。
 - 示例中的 dependency alias、Schema ID 和字段是教学示意，不是当前依赖快照的可链接声明。
 - 示例未展开 PCF Hold、UDM Hold、Lifecycle Gate、资源责任和完整 Reconcile，不得代替真实 5GC Skill。
@@ -1298,61 +1313,62 @@ procedures:
 ~~~yaml
 # Operation：执行一个业务动作
 create-policy:
-  call: fivegc-tools::sbi.pcf.sm_policy.create
-  with:
-    ueRef:
-      from: input.ueRef
-    pduSessionId:
-      from: input.pduSessionId
+  operation: fivegc-tools::sbi.pcf.sm_policy.create
+  arguments:
+    ueRef: input.ueRef
+    pduSessionId: input.pduSessionId
 
-# Observation Query：向权威 Owner 查询事实
+# Observation：只有在需要补充权威事实时才查询
 read-policy-state:
-  call: fivegc-observations::pcf.policy_association.current
-  with:
-    ueRef:
-      from: input.ueRef
-    pduSessionId:
-      from: input.pduSessionId
+  observation: fivegc-observations::pcf.policy_association.current
+  arguments:
+    ueRef: input.ueRef
+    pduSessionId: input.pduSessionId
+
+# Postcondition：如果 Operation Result 已经充分，也可以不创建 Observation 节点
+verify-policy:
+  postcondition:
+    predicate: createdsession.pcf.association_owned
+    arguments:
+      - create-policy.output
 ~~~
 
-二者共用 ToolCatalog、Capability 和 Runtime Admission，但业务语义不同。不能把 Operation 成功响应随意改名为 Observation，也不能为每个 Mutation 自动生成 Observation。
-
----
-
-# 第八部分：Script、Case、依赖与工具链
+Operation 与 Observation 共用 ToolCatalog、Capability 和 Runtime Admission，但业务语义不同。Observation 是可选的事实获取机制，不是 Operation 的固定后继。Operation Result 可以直接作为 Predicate 输入；若需要独立权威查询，则 Observation 可以使用 Operation Result 中的资源引用和关联身份作为 arguments。
 
 ## 32. Python Script
+
+Python Script 是 Predicate 的一种确定性 evaluator 实现，不是独立 Procedure Node，也不是 Tool。简单逻辑优先使用 CEL；只有当判断逻辑确实需要 Python 表达能力时，才使用 Script。
 
 唯一入口：
 
 ~~~python
-from typing import Literal, TypedDict
+from typing import Literal
 
-class SelectionOutput(TypedDict):
-    accepted: Literal[True]
-    dnn: str
+PredicateOutcome = Literal["PASS", "FAIL", "UNKNOWN"]
 
-def main(input: dict) -> SelectionOutput:
-    return {
-        "accepted": True,
-        "dnn": input["dnn"],
-    }
+def main(input: dict) -> PredicateOutcome:
+    subscription = input["subscription"]
+    requested_dnn = input["requestedDnn"]
+
+    if subscription["dnn"] != requested_dnn:
+        return "FAIL"
+    if subscription["status"] != "ACTIVE":
+        return "FAIL"
+    return "PASS"
 ~~~
 
 规则：
-- 入口必须为 main(input: dict) -> OutputType；
-- input: dict 是统一调用容器，不是开放 Input Schema；
-- 返回类型必须是同文件定义的非空 TypedDict；
-- Procedure Script 输入由调用点 with 派生；
-- Predicate Script 输入由 Predicate.parameters 派生，Host 附加只读 Evidence refs；
-- Compiler 从 TypedDict 生成严格 Output Schema；
-- 不得动态推断返回结构；
+- 入口必须为 `main(input: dict) -> PredicateOutcome`；
+- input: dict 是统一调用容器，不代表开放输入契约；
+- 业务输入类型由所属 Predicate.parameters 派生；
+- Host / Runtime 可以附加只读 Evidence refs；Script 不得创建、修改或扩大 Evidence；
+- 返回值只能是 PASS、FAIL、UNKNOWN，其他值均为契约错误；
+- Compiler / LSP 必须提供由 Predicate.parameters 派生的只读类型环境；
+- 不得动态推断参数 Schema 或执行 Python 函数体来猜测类型；
 - 不得访问网络、HTTP、MCP、Shell、数据库、文件系统、凭据、环境变量、时钟或随机源；
 - 不得声明 Tool ID、Operation ID、Capability ID 或独立 Input Schema。
 
-初始支持 str、int、float、bool、TypedDict、嵌套 TypedDict、Literal、NotRequired、list[T] 和受限 Annotated。非法 Python 标识符对应 JSON Key 使用函数式 TypedDict。
-
-禁止 Any、object、无约束 dict、动态返回结构和函数体 Schema 推断。
+Python Script 只承载 Predicate 的确定性判断。数据获取必须由显式 Operation / Observation 完成；流程分支必须由 Procedure 的 Predicate 结果路由完成。
 
 ## 33. Cases
 
