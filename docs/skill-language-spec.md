@@ -270,6 +270,6 @@ The following v0.2 forms are rejected, not translated:
 - physical `lib/**` references in Skill source;
 - direct Operation IDs in `allowedResources.capabilities`;
 - local Tools and `connectionagent-tool` Script metadata;
-- implicit or automatic data binding.
+- v0.2 implicit context/previous-node forwarding or runtime parameter guessing. vNext's opt-in `with.from: input` projection is defined in §5 and is not blanket or ambient binding.
 
 There is no compatibility layer or parallel v0.2 execution path. Existing 5GC business behavior and its verified network contracts are migrated to the new source model; obsolete implementation structure may be replaced.
