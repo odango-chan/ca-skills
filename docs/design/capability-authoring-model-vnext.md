@@ -1,3 +1,5 @@
+> **Status notice (2026-11-13):** Historical design rationale and open-decision record. The comprehensive [CA-SL vNext Specification](../skill-language-spec.zh-CN.md) is now the sole normative language document. If this design note conflicts with it, the specification takes precedence. Do not implement syntax directly from this note without checking the current specification.
+
 # Capability & Authoring Model vNext
 
 Status: **DESIGN-REVIEW (5GC semantic boundaries converged; Owner contracts and syntax not frozen)**  
