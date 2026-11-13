@@ -427,62 +427,39 @@ nodes:
   # 其余 Operation / Observation / Postcondition 节点
 ~~~
 
-规范性结构文法（抽象 EBNF；字段约束由对应对象 Schema 和本规范语义规则补充）：
+规范性结构文法（抽象对象文法；map 表示 YAML 映射，字段 Schema 和静态语义另见 §11–14）：
 
 ~~~ebnf
-SkillContractDocument = Goal, [RequestContract], [ContextRequirements],
-                        [Dependencies], [CapabilityGrants], [SkillPolicies] ;
-ProcedureDocument    = [ProcedureInputs], StartNode, NodeMap ;
-PredicateDocument    = PredicateSet ;
-
-Goal                 = "goal", GoalIdentity ;
-RequestContract      = "inputs", "requestSchema", LocalSchemaPath ;
-ContextRequirements = "context", ContextRequirementMap ;
-Dependencies         = "dependencies", DependencyMap ;
-CapabilityGrants     = "allowedResources", "capabilities", CapabilityList ;
-ProcedureInputs      = "inputs", SourceMap ;
-StartNode           = "start", NodeIdentity ;
-NodeMap             = "nodes", Map<NodeIdentity, Node> ;
-
-Node                = PreconditionNode | ToolOperationNode |
-                      ScriptOperationNode | ObservationNode |
-                      PostconditionNode | ReconcileNode | TerminalNode ;
-
-PreconditionNode    = Precondition, PredicateArguments, Routes ;
-PostconditionNode   = Postcondition, PredicateArguments, Routes ;
-ToolOperationNode   = ToolOperation, OperationArguments, Routes ;
-ScriptOperationNode = ScriptOperation, OperationArguments, Routes ;
-ObservationNode     = Observation, OperationArguments, Routes ;
-ReconcileNode       = ReconcileTarget, Routes ;
-TerminalNode        = Terminal ;
-
-Precondition        = "precondition", PredicateInvocation ;
-Postcondition       = "postcondition", PredicateInvocation ;
-PredicateInvocation = "predicate", PredicateIdentity ;
-ToolOperation       = "operation", CallableIdentity ;
-ScriptOperation    = "operation", ScriptTarget ;
-ScriptTarget        = "script", PackageRelativeScriptPath ;
-Observation         = "observation", ObservationIdentity ;
-ReconcileTarget     = "operation", "reconcile", OriginalMutationNode ;
-Terminal            = "terminal", TerminalStatus ;
-Routes              = "on", RouteMap ;
-
-OperationArguments  = "arguments", ArgumentMap ;
-PredicateArguments  = "arguments", ArgumentList ;
-SourceMap           = Map<Identifier, SourcePath> ;
-ArgumentMap         = Map<Identifier, ArgumentExpression> ;
-ArgumentList        = OrderedList<ArgumentExpression> ;
-ArgumentExpression  = SourcePath | YAMLScalarLiteral ;
-
-PredicateSet        = "predicates", PredicateMap ;
-Predicate           = OrderedParameters, Evaluator ;
-Evaluator           = CELExpression | PredicateScriptEvaluator ;
+Contract          = map(goal: GoalId,
+                        inputs?: map(requestSchema: LocalSchemaPath),
+                        context?: ContextRequirements,
+                        dependencies?: map<Alias, DependencyRequirement>,
+                        allowedResources?: map(capabilities: list<CapabilityId>),
+                        limits?: map(maxActions: PositiveInteger))
+DependencyRequirement = map(id: StablePackageId)
+Procedure         = map(inputs?: map<Name, SourcePath>,
+                        start: NodeId, nodes: map<NodeId, Node>)
+Node              = PreNode | PostNode | ToolNode | ScriptNode |
+                    ObservationNode | ReconcileNode | TerminalNode
+PredicateCall     = map(predicate: PredicateId, arguments: list<Expression>)
+PreNode           = map(precondition: PredicateCall, on: PredicateRoutes)
+PostNode          = map(postcondition: PredicateCall, on: PredicateRoutes)
+ToolNode          = map(operation: QualifiedCallableId,
+                        arguments: map<Name, Expression>, on: OperationRoutes)
+ScriptNode        = map(operation: map(script: LocalScriptPath),
+                        arguments: map<Name, Expression>, on: ScriptRoutes)
+ObservationNode   = map(observation: QualifiedQueryId,
+                        arguments: map<Name, Expression>, on: ObservationRoutes)
+ReconcileNode     = map(operation: map(reconcile: OriginalMutationNodeId),
+                        on: ReconcileRoutes)
+TerminalNode      = map(terminal: TerminalStatus)
+PredicateRoutes   = map(PASS: NodeId, FAIL: NodeId, UNKNOWN: NodeId)
+TerminalStatus    = SUCCEEDED | FAILED | UNRESOLVED | SAFE_STOPPED
 ~~~
 
-该文法定义四种业务节点：Precondition、Operation、Observation、Postcondition。Terminal 是终止声明，不是第五种业务动作。Procedure Script 作为 Operation 节点的一种本地执行目标，不增加第五种节点类型；Predicate Script 是 Predicate evaluator，不是 Procedure 节点。
+Node 必须匹配其中恰好一种结构。Predicate 的 arguments 在 precondition / postcondition 对象内部；Tool / Script / Observation 的 arguments 位于 Node 顶层；on 在 Node 顶层。Terminal 不允许 on 或 arguments；Reconcile 不允许普通 arguments。各 callable 的 Outcome 来自精确 Owner / Runtime 契约，必须校验路由完整性。静态解析拒绝未知字段和多余主动作；编译器必须保留 YAML 标量的引号风格，才能区分 SourcePath 与字符串常量。
 
-vNext 第一阶段每个 Skill 只有一个入口 Procedure 图，因此不再需要 SkillContract.entryProcedure 或 ProcedureCall 节点。不同业务路径通过同一张显式执行图的分支表达。嵌套 Procedure 调用不属于当前语法范围；若真实 Skill 证明需要可复用子流程，再单独设计，不得用通用 call 恢复隐式语义。
-
+本版仅有单一 Procedure 图，不定义 entryProcedure、嵌套 ProcedureCall、通用 call、隐式 Step 或同名自动绑定。
 ## 11. Skill Contract 与 Procedure 源码
 
 vNext 保留独立的 `assurance/contract.yaml`。它不是旧式带版本包装的 Kubernetes 风格资源对象，而是 Skill 的公共声明文件。它与 `procedure.yaml` 分工：
