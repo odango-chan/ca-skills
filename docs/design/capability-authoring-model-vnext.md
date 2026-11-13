@@ -29,7 +29,7 @@ These terms must not be collapsed:
 - A Fabric event is not itself a READ Operation. A READ Operation over Fabric's journal/projection is. Event time must remain distinguishable from receipt/acquisition time.
 - The independent Observation Ref → Observation Source registry is to be retired through behavior-preserving migration. Its useful ownership, provenance, scope, and evidence semantics must move to the relevant fact/Operation contracts and governed bindings.
 
-Thus, Observation is not synonymous with an Operation output, and not every READ output is automatically an Observation suitable for assurance. A READ Operation is a standard way to acquire one.
+Thus, Observation is not synonymous with an Operation output, and not every READ output is automatically an Observation suitable for assurance. An existing Operation output, captured event, or owned journal/projection may already provide the Observation; a new READ is needed only when the required fact must be independently acquired. The READ Operation is the governed callable mechanism for that acquisition, not a replacement name for Observation.
 
 ### 2.3 Evidence
 
@@ -44,8 +44,8 @@ Thus, Observation is not synonymous with an Operation output, and not every READ
 
 - Predicate declares a condition and deterministic evaluation logic over explicitly supplied inputs and evidence.
 - Predicate evaluation is pure with respect to external acquisition: it must not secretly call Tools, Providers, or network reads.
-- Predicate may consume a prior Operation output, an Observation acquired by a prior READ Operation, or both.
-- If a current/independent fact must be read, Procedure (or another explicit orchestration construct) schedules the READ Operation. Its output/evidence is then bound to the Predicate.
+- Predicate consumes explicitly supplied business values: a prior Operation output, a captured event/journal/projection, a value acquired by a prior READ Operation, or a combination. Each value retains its source and temporal lineage.
+- If a current/independent fact must be acquired, Procedure (or another explicit orchestration construct) schedules the exact READ Operation at the required control-flow point. Its typed output and same-invocation Evidence are then bound to the Predicate. Reuse an adequate prior output/projection rather than issuing a redundant read.
 - Predicate retains PASS / FAIL / UNKNOWN semantics and does not name Provider endpoints, Fabric routes, adapters, or implementation classes.
 - **Compatibility note:** current v0.2 Host `PredicateEngine.evaluate()` acquires each declared `observations` entry during Predicate evaluation through `CompositeObservationSource`. Making Predicate pure is therefore a breaking execution-model change. Migration must schedule equivalent acquisition at the same control-flow point and preserve scope, freshness, conditional `when`, evidence validation, UNKNOWN behavior, and trace semantics; it must not eagerly acquire all facts at Procedure entry or duplicate a shared snapshot.
 
@@ -163,12 +163,9 @@ Definition:
 predicates:
   createdsession.udm.hold_bound:
     parameters:
-      - name: hold
-        schema: ca::schemas/udm-hold
-      - name: dnn
-        type: string
-      - name: sst
-        type: integer
+      - hold: ca::schemas/udm-hold
+      - dnn: string
+      - sst: integer
     evaluator:
       type: cel
       expression: >-
@@ -193,7 +190,7 @@ verify:
 
 Semantics:
 
-- `parameters` is an ordered list of unique `{name, type}` or `{name, schema}` entries. It is the Predicate's typed function signature, not a separate JSON Schema file. Use primitive `type` for simple values and an exact authoritative Schema reference for structured values.
+- `parameters` is an ordered list of single-entry mappings: `- parameterName: primitiveType` or `- parameterName: exactSchemaRef`. Each list item must contain exactly one key; names must be unique. The value is either a supported primitive type or an authoritative Schema reference. This is the Predicate's typed function signature, not a separate JSON Schema file. List order defines positional argument order; YAML mapping order is never used.
 - `arguments` is an ordered list of source expressions. Argument i binds to parameter i. Arity mismatch, duplicate parameter names, unresolved sources, incompatible types, or unavailable producers are compile errors.
 - Parameter names are local to the Predicate definition. Procedure node names and source paths never leak into the evaluator.
 - The Predicate signature establishes the consumer's expected types at authoring time. Authoritative Producer/Context Schemas establish the actual source types at each call site. Compiler checks assignability from each source to the declared parameter and statically checks CEL against the signature. It does not infer the Predicate interface from whichever call site happens to be found first.
@@ -389,7 +386,7 @@ The stable Schema identity rule (`$id`) is the selected vNext direction; the com
 
 ### Capability grants and Tool Operation linking
 
-The Skill grants qualified Capability identities in `allowedResources.capabilities` (`capability-contract-alias::capability-id`); a Procedure node calls one exact qualified Operation (`tool-dependency-alias::operation-id`). The independent, deployment-owned CapabilityContracts maps each Capability to its owner and exact Operations with expected Effects, while ToolCatalog declares each callable Operation's schemas and declared Effect. For static proof, the Compiler BuildRequest must receive the target deployment's immutable CapabilityContracts as an explicit trusted input **separate from ordinary Skill dependency snapshots**; the ToolCatalog remains part of the resolved dependency set. Compiler then proves every Procedure Operation belongs to exactly one Capability, that the Skill grants that qualified Capability, and that the Tool Effect matches the independently declared expected Effect. If the trusted CapabilityContracts input is absent, the Compiler cannot claim static authorization proof; Runtime admission remains authoritative. Existing 5GC source currently places Operation IDs in `allowedResources.capabilities` as a compatibility-era representation; do not silently reinterpret them as Capability IDs. A separately reviewed language migration must change these grants to the six real 5GC Capability IDs while preserving exact Operation coverage. Observation is a separate read-only source/evidence contract consumed by Predicate evaluation or the bounded evidence-wait Operation. It is not automatically a Tool or Operation. If an Observation provider is deliberately exposed as a callable Tool Operation, that Operation must belong to exactly one Capability and be covered by the Skill's Capability grant.
+The Skill grants qualified Capability identities in `allowedResources.capabilities` (`capability-contract-alias::capability-id`); a Procedure node calls one exact qualified Operation (`tool-dependency-alias::operation-id`). The independent, deployment-owned CapabilityContracts maps each Capability to its owner and exact Operations with expected Effects, while ToolCatalog declares each callable Operation's schemas and declared Effect. For static proof, the Compiler BuildRequest must receive the target deployment's immutable CapabilityContracts as an explicit trusted input **separate from ordinary Skill dependency snapshots**; the ToolCatalog remains part of the resolved dependency set. Compiler then proves every Procedure Operation belongs to exactly one Capability, that the Skill grants that qualified Capability, and that the Tool Effect matches the independently declared expected Effect. If the trusted CapabilityContracts input is absent, the Compiler cannot claim static authorization proof; Runtime admission remains authoritative. Observation is a data/assurance concept, not a separately callable source contract or authorization identity. If a fact must be acquired, expose the governed acquisition as an exact READ Operation and authorize that Operation through its Capability. Existing Observation Source adapters may remain implementation details during migration, but Skills do not call or grant them.
 
 
 ## 16. Candidate 5GC Predicate inputs and explicit bounded wait (NOT FROZEN)
@@ -538,14 +535,15 @@ The complete behavior-preserving semantic Procedure outline—covering all 17 Pr
 The following decisions supersede exploratory alternatives elsewhere in this design note and are the implementation baseline:
 
 1. **Breaking version:** vNext uses `connectionagent.io/v1alpha2`. The Compiler rejects v0.2 constructs; no dual parser, field mapper or compatibility path is retained.
-2. **Pure Predicates:** Predicate definitions declare ordered `parameters`; they do not declare or acquire Observations. Procedure `verify.arguments` supplies positional source expressions. CEL reads parameter names directly; Predicate Scripts receive `input.<parameter>`.
-3. **Explicit READs:** every domain read is a callable READ Operation with a typed output and Evidence from the same invocation. Predicate evaluation never triggers a second read.
-4. **Wait remains a Host Operation:** reuse the bounded Host Runtime wait operation, but make its target an exact READ Operation plus explicit scope/freshness/absence policy. It returns a wait summary; Procedure performs the final read separately.
-5. **Capability separation:** Skill grants Capability IDs only. A single deployment-owned CapabilityContracts input maps each exact Operation ID to one Capability and Effect. Compiler cross-checks that mapping against the imported ToolCatalog.
-6. **No physical library paths:** Studio supplies dependency snapshots to BuildRequest. Skill source references imported Operations/Schemas by dependency alias plus exact exported ID, never by `lib/` path.
-7. **No dependency manager in Compiler:** no resolver lifecycle, manifest, lock, cache or digest output. The caller supplies the exact bytes.
-8. **Explicit source binding:** every source expression is explicit. Named-object consumers use `with/from`; Predicate uses ordered positional `verify.arguments`. Semantic-ID-based automatic source discovery is deferred and is not required for the 5GC migration.
-9. **Evidence is separate:** business payload and provenance/Evidence remain separate. Runtime validates Evidence before definite Predicate truth; Script `evidenceUsed` may only cite attached refs.
-10. **5GC-first:** migrate the 5GC Skill and its 36 Cases / three References as the business baseline. MAS remains non-executable design material and is not used to invent missing contracts.
+2. **Pure Predicates:** Predicate definitions declare ordered, typed `parameters` using concise single-entry mappings (`- hold: schema-ref`, `- dnn: string`). They do not declare or acquire Observations. Procedure `verify.arguments` supplies positional source expressions. CEL reads parameter names directly; Predicate Scripts receive `input.<parameter>`.
+3. **Observation without a parallel registry:** Observation remains the captured, scoped and time-qualified representation of a Fact. Retire the independent Observation Ref/ObservationSource callable registry through behavior-preserving migration; preserve its owner, scope, correlation, temporal and evidence semantics in Producer/READ contracts and Runtime lineage.
+4. **Explicit acquisition:** when a fact must be independently acquired, Procedure schedules an exact governed READ Operation at the correct control-flow point. Reuse an adequate prior Operation output, captured event or owned projection instead of adding redundant reads. Predicate evaluation never triggers acquisition.
+5. **Wait remains a Host Operation:** reuse the bounded Host Runtime wait operation, but make its target an exact READ Operation plus explicit scope/freshness/absence policy. It returns a wait summary; Procedure performs the final read separately.
+6. **Capability separation:** Skill grants Capability IDs only. A single deployment-owned CapabilityContracts input maps each exact Operation ID to one Capability and Effect. Compiler cross-checks that mapping against the imported ToolCatalog.
+7. **No physical library paths:** Studio supplies dependency snapshots to BuildRequest. Skill source references imported Operations/Schemas by dependency alias plus exact exported ID, never by `lib/` path.
+8. **No dependency manager in Compiler:** no resolver lifecycle, manifest, lock, cache or digest output. The caller supplies the exact bytes.
+9. **Explicit source binding:** every source expression is explicit. Named-object consumers use `with/from`; Predicate uses ordered positional `verify.arguments`. Semantic-ID-based automatic source discovery is deferred and is not required for the 5GC migration.
+10. **Evidence is separate:** business payload and provenance/Evidence remain separate. Runtime validates Evidence before definite Predicate truth; Script `evidenceUsed` may only cite attached refs.
+11. **5GC-first:** migrate the 5GC Skill and its 36 Cases / three References as the business baseline. MAS remains non-executable design material and is not used to invent missing contracts.
 
 The migration rehearsal is not an acceptance gate. Paper review identifies Owner gaps; implementation and focused tests are the validation method. The first confirmed gap is now being closed in `ca-agent-demo`: Host publishes a typed `context.ingress` projection rather than requiring a Skill Predicate to acquire the same ingress through an Observation.
