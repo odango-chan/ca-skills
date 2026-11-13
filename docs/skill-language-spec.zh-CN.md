@@ -364,12 +364,9 @@ CapabilityContracts 使用稳定 Owner 身份 + 精确 callable ID + kind 标识
 
 ## 10. 版本和文件
 
-目标根对象：
+vNext 作者源码不重复声明 apiVersion、kind、metadata 等机器对象包装。文件路径和内容结构决定源文件类型：procedure.yaml 是 Skill 的唯一 Procedure 源文件，predicates.yaml 是 PredicateSet 源文件，schemas/ 与 scripts/ 中的文件按其内容和引用解析。
 
-~~~yaml
-apiVersion: connectionagent.io/v1alpha2
-kind: SkillContract
-~~~
+语言版本由 BuildRequest / Compiler Target 明确指定，而不是由每个 YAML 文件重复声明。Compiler 必须严格按指定版本解析；不支持的版本必须失败，不得猜测或兼容映射。编译产物记录实际采用的语言/API 版本、Skill Package 身份和生成器版本。
 
 vNext 是破坏性版本。Compiler MUST NOT 静默把 v0.2 字段、旧路径或旧隐式输入模型转换为 vNext 语义。
 
@@ -377,18 +374,51 @@ vNext 是破坏性版本。Compiler MUST NOT 静默把 v0.2 字段、旧路径�
 
 ## 10.1 YAML 语法子集与结构文法
 
-CA-SL 使用 YAML 1.2 表达源文件。YAML 是序列化格式，不是完整语言语义。Compiler MUST 使用安全解析器，并拒绝重复 Key、未知语义字段、非预期根类型、自定义 Tag、循环 Alias 和无法确定解释的标量。
+CA-SL 使用 YAML 1.2 表达作者源码。YAML 是序列化格式，不是完整语言语义。Compiler MUST 使用安全解析器，并拒绝重复 Key、未知语义字段、非预期根类型、自定义 Tag、循环 Alias 和无法确定解释的标量。
+
+vNext 源码根结构：
+
+~~~yaml
+goal: pdu_session.initial_request_fulfilled
+requestSchema: schemas/establishment-request.schema.yaml
+capabilities:
+  - provider-5gc.session-read
+  - provider-5gc.session-mutation
+  - env-fabric.session-hold
+  - ca-agent-host.session-runtime
+inputs:
+  ueRef: context.subject.ueRef
+  dnn: context.request.dnn
+start: check-registration
+nodes:
+  check-registration:
+    precondition:
+      predicate: createdsession.ue.registered
+      arguments:
+        - input.ueRef
+    'on':
+      PASS: read-subscription
+      FAIL: failed
+      UNKNOWN: unresolved
+  # 其余 Operation / Observation / Postcondition 节点
+~~~
 
 规范性结构文法（抽象 EBNF；字段约束由对应对象 Schema 和本规范语义规则补充）：
 
 ~~~ebnf
-SkillDocument       = SkillContract ;
-ProcedureDocument   = ProcedureSet ;
+ProcedureDocument   = Goal, RequestSchema, CapabilityGrants,
+                      ProcedureInputs, StartNode, NodeMap ;
 PredicateDocument   = PredicateSet ;
 
-ProcedureSet        = "procedures", ProcedureMap ;
-Procedure           = [ProcedureInputs], StartNode, NodeMap ;
-Node                = ExactlyOne(NodeAction), [OperationArguments], [Routes] ;
+Goal                = "goal", GoalIdentity ;
+RequestSchema       = "requestSchema", LocalSchemaPath ;
+CapabilityGrants    = "capabilities", CapabilityList ;
+ProcedureInputs     = "inputs", SourceMap ;
+StartNode           = "start", NodeIdentity ;
+NodeMap             = "nodes", Map<NodeIdentity, Node> ;
+
+Node                = ExactlyOne(NodeAction), [Arguments],
+                      (Routes | TerminalWithoutRoutes) ;
 NodeAction          = Precondition | Operation | Observation |
                       Postcondition | Terminal ;
 
@@ -398,93 +428,81 @@ PredicateInvocation = "predicate", PredicateIdentity,
                       "arguments", ArgumentList ;
 
 Operation           = "operation", OperationTarget ;
-OperationTarget     = CallableIdentity | ReconcileTarget ;
-Observation         = "observation", CallableIdentity ;
-OperationArguments  = "arguments", ArgumentMap ;
+OperationTarget     = ToolOperation | ScriptOperation | ReconcileTarget ;
+ToolOperation       = CallableIdentity ;
+ScriptOperation     = "script", PackageRelativeScriptPath ;
+Observation         = "observation", ObservationIdentity ;
 ReconcileTarget     = "reconcile", OriginalMutationNode ;
 Terminal            = "terminal", TerminalStatus ;
 Routes              = "on", RouteMap ;
 
-ProcedureInputs     = "inputs", SourceMap ;
+Arguments           = OperationArguments | PredicateArguments ;
+OperationArguments  = "arguments", ArgumentMap ;
+PredicateArguments  = "arguments", ArgumentList ;
 SourceMap           = Map<Identifier, SourcePath> ;
 ArgumentMap         = Map<Identifier, ArgumentExpression> ;
 ArgumentList        = OrderedList<ArgumentExpression> ;
-ArgumentExpression = SourcePath | YAMLScalarLiteral ;
+ArgumentExpression  = SourcePath | YAMLScalarLiteral ;
 
-PredicateDocument   = "predicates", PredicateMap ;
+PredicateSet        = "predicates", PredicateMap ;
 Predicate           = OrderedParameters, Evaluator ;
 Evaluator           = CELExpression | PredicateScriptEvaluator ;
 ~~~
 
-该文法规定 Procedure 的五种结构节点：Precondition、Operation、Observation、Postcondition 和 Terminal。Terminal 是流程终止声明，不是第五种业务动作。Predicate 是独立定义的确定性逻辑，不是 Procedure 节点类型；它由 Precondition / Postcondition 引用。Operation 与 Observation 是不同类型的 Tool callable。
+该文法定义四种业务节点：Precondition、Operation、Observation、Postcondition。Terminal 是终止声明，不是第五种业务动作。Procedure Script 作为 Operation 节点的一种本地执行目标，不增加第五种节点类型；Predicate Script 是 Predicate evaluator，不是 Procedure 节点。
 
-### YAML 解析规则
+vNext 第一阶段每个 Skill 只有一个入口 Procedure 图，因此不再需要 SkillContract.entryProcedure 或 ProcedureCall 节点。不同业务路径通过同一张显式执行图的分支表达。嵌套 Procedure 调用不属于当前语法范围；若真实 Skill 证明需要可复用子流程，再单独设计，不得用通用 call 恢复隐式语义。
 
-- MUST 按 YAML 1.2 规则解析；对影响语义的标量不得依赖 YAML 1.1 隐式类型转换。
-- MUST 拒绝同一 Mapping 中的重复 Key。
-- MUST 拒绝自定义 Tag、任意对象构造、循环 Alias 和不受支持的 Merge Key。
-- 建议将 on 作为字符串键显式加引号，避免不同解析器的历史差异。
-- 字段名大小写敏感；导出身份按其 Owner 契约定义的大小写规则处理。
-- 未知字段 MUST 报诊断，不得静默忽略。
+## 11. Skill 源码根字段
 
-### 参数表达式
-
-- 在 Procedure.inputs 和 Operation / Observation 的 arguments 映射中，未加引号且符合 SourcePath 文法的标量表示来源引用，例如 `input.ueRef`、`context.subject.ueRef`、`create-session.output.sessionInstanceRef`。
-- YAML 原生 Boolean、Number、Null，以及带引号的 String 表示字面量。带引号的 `"input.dnn"` 是字符串常量，不是来源引用。
-- vNext 第一版不接受在 arguments 中内联任意对象或数组字面量；复杂值必须来自有 Schema 的输入或 Producer 输出。这样可避免参数对象和来源表达式混淆。
-- 不支持隐式同名绑定、自动转发、默认取上一个 Node 输出或从 Context 猜测参数。
-
-### Source Path 与控制流
-
-Source Path 必须解析为静态 Producer 引用。Compiler 必须构建 Procedure 控制流图，并验证 Producer 在所有到达消费者的路径上均已产生。若 Producer 仅在一个互斥分支中产生，则消费者必须位于该分支内，或通过显式控制流合并得到经过验证的值；不得用 null 代替不可用值。
-
-### Procedure Request 与 Context
-
-Procedure 可引用 Skill Invocation 的 Request Projection（例如 `context.request.dnn`），其结构由 SkillContract.inputs.requestSchema 约束。subject、facts、ingress 等 Host Projection 则由 SkillContract.context.projections 精确声明。Request Projection 与 Host Context Projection 是不同来源，不得因为都位于 context 命名空间就混淆 Owner。
-
-## 11. SkillContract
+vNext 不要求作者维护独立 SkillContract 对象或 assurance/contract.yaml。Skill 的可执行契约由 procedure.yaml 的根字段与显式 Procedure 图共同表达。
 
 ~~~yaml
-apiVersion: connectionagent.io/v1alpha2
-kind: SkillContract
-metadata:
-  name: establish-pdu-session
-spec:
-  skillType: executable
-  goal: pdu_session.initial_request_fulfilled
-  entryProcedure: ue-requested-pdu-session-establishment
-  inputs:
-    requestSchema: schemas/establishment-request.schema.yaml
-  context:
-    projections:
-      subject: host-context::urn:connectionagent:5gc:skill-context:subject:v1
-      facts: host-context::urn:connectionagent:5gc:skill-context:facts:v1
-      ingress: host-context::urn:connectionagent:5gc:skill-context:ingress:v1
-    evidenceSchema: host-context::urn:connectionagent:host:predicate-evidence-refs:v1
-  allowedResources:
-    capabilities:
-      - provider-5gc.session-read
-      - provider-5gc.session-mutation
-      - env-fabric.session-hold
-      - ca-agent-host.session-runtime
-  postconditions:
-    - predicate: createdsession.session.established
-      expect: PASS
+# assurance/procedure.yaml
+goal: pdu_session.initial_request_fulfilled
+requestSchema: schemas/establishment-request.schema.yaml
+capabilities:
+  - provider-5gc.session-read
+  - provider-5gc.session-mutation
+  - env-fabric.session-hold
+  - ca-agent-host.session-runtime
+
+inputs:
+  ueRef: context.subject.ueRef
+  dnn: context.request.dnn
+start: check-registration
+nodes:
+  check-registration:
+    precondition:
+      predicate: createdsession.ue.registered
+      arguments:
+        - input.ueRef
+    'on':
+      PASS: read-subscription
+      FAIL: failed
+      UNKNOWN: unresolved
 ~~~
 
 | 字段 | 语义 | 约束 |
 |---|---|---|
-| apiVersion | 语言/API 版本 | 必须精确支持 |
-| kind | 根对象类型 | 必须为 SkillContract |
-| metadata.name | Skill 身份 | 必须唯一 |
-| spec.skillType | Skill 类型 | 当前至少 executable |
-| spec.goal | 业务目标标识 | 不等于 Operation |
-| spec.entryProcedure | 唯一入口 | 必须链接到 Procedure |
-| inputs.requestSchema | 公共 Request Schema | Skill 自有 |
-| context.projections | 可访问 Context Projection | Owner Schema 精确引用 |
-| context.evidenceSchema | Host Evidence Ref Projection | 不代表 Skill 拥有 Evidence |
-| allowedResources.capabilities | 授权上界 | 只能列 Capability ID |
-| postconditions | 最终业务验收条件 | 不替代 Node Postconditions |
+| goal | Skill 的业务目标 | 作者显式声明；不等于某个 Operation 成功 |
+| requestSchema | 公共 Request Schema | 指向 Skill 自有 schemas/ 文件；不得复制外部 Owner Schema |
+| capabilities | Skill 请求的授权上界 | 只列 Capability ID；Compiler 对每个外部 callable 做精确 membership / Effect 校验 |
+| inputs | Procedure 入口输入投影 | 每个字段显式绑定到 Request 或 Host Context SourcePath |
+| start | 唯一入口 Node | 必须存在；入口级 Precondition 应位于该节点或其后续入口链 |
+| nodes | 唯一 Procedure 执行图 | 每个 Node 只能有一个主动作；成功路径必须经过最终 Postcondition |
+
+以下信息不再由作者重复维护：
+
+- Skill 名称 / 身份：由 Package 根目录确定，不再填写 metadata.name；
+- apiVersion / kind：由 Compiler Target 和源文件路径 / 结构确定，在编译产物中记录；
+- skillType：由可执行 Procedure 源文件确定；
+- entryProcedure：每个 Skill 只有一张入口 Procedure 图，因此不需要额外引用；
+- context.projections：由实际使用的 context.subject / context.facts / context.ingress 等 SourcePath 推导，再从本次 Host DependencySnapshot 解析精确 Schema；
+- evidenceSchema：Evidence Ref 投影由 Host / Runtime 统一定义和校验，不由 Skill 重复声明；
+- SkillContract.postconditions：最终条件就是 Procedure 图中的最终 Postcondition 节点，不再在 Contract 层重复执行或重复声明。
+
+SkillContract 若仍是某个 Host Runtime 的既有输入格式，只能由 Compiler 从上述源码生成，不是作者源文件。若 Runtime 消费统一 CompiledSkill Artifact 而不需要独立 SkillContract，则无需再生成单独文件。
 
 vNext 不允许直接把 Operation ID 放入授权列表，不允许 localTools，不允许把 Host 内部 dataclass 路径写入 Skill，不允许通过 requiredFacts 名称推断字段结构，也不允许物理 lib 路径作为外部身份。
 
