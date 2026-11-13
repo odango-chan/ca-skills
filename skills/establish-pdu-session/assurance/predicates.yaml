@@ -1,182 +1,144 @@
-apiVersion: connectionagent.io/v1alpha2
-kind: PredicateSet
-metadata:
-  skill: establish-pdu-session
-predicates:
-  createdsession.ingress.eligible:
-    inputs:
-      ingress: {}
-      request: {}
-    evaluator:
-      type: cel
-      expression: input.ingress.requestType == input.request.requestType &&
-        input.ingress.pti == input.request.pti &&
-        input.ingress.messageType == 193 &&
-        input.ingress.bindingStatus == "CURRENT" &&
-        input.ingress.actionAuthorized == true
+createdsession.udm.hold_bound:
+  inputs: [hold, dnn, sst]
+  evaluator:
+    type: cel
+    expression: input.hold.operationKind == "UDM_SDM_SUBSCRIPTION_CREATE" &&
+      input.hold.holdRef != "" && input.hold.currentInstanceRef != "" &&
+      input.hold.heldRequestDigest != "" && input.hold.dnn == input.dnn &&
+      input.hold.sst == input.sst
 
-  createdsession.udm.hold_bound:
-    inputs:
-      hold: {}
-      dnn: {}
-      sst: {}
-    evaluator:
-      type: cel
-      expression: input.hold.operationKind == "UDM_SDM_SUBSCRIPTION_CREATE" &&
-        input.hold.holdRef != "" && input.hold.currentInstanceRef != "" &&
-        input.hold.heldRequestDigest != "" && input.hold.dnn == input.dnn &&
-        input.hold.sst == input.sst
+createdsession.pcf.hold_bound:
+  inputs: [hold]
+  evaluator:
+    type: cel
+    expression: input.hold.operationKind == "PCF_SM_POLICY_CREATE" &&
+      input.hold.holdRef != "" &&
+      input.hold.currentInstanceRef == input.hold.policyAssociationRef &&
+      input.hold.heldRequestDigest != "" &&
+      input.hold.policyAssociationRef != ""
 
-  createdsession.pcf.hold_bound:
-    inputs:
-      hold: {}
-    evaluator:
-      type: cel
-      expression: input.hold.operationKind == "PCF_SM_POLICY_CREATE" &&
-        input.hold.holdRef != "" &&
-        input.hold.currentInstanceRef == input.hold.policyAssociationRef &&
-        input.hold.heldRequestDigest != "" &&
-        input.hold.policyAssociationRef != ""
+createdsession.pcf.create_inputs.ready:
+  inputs: [pcfCreateInputs, pcfHold]
+  evaluator:
+    type: cel
+    expression: input.pcfCreateInputs.pcfCreateInputsRef != "" &&
+      input.pcfCreateInputs.pcfPolicyAssociationRef == input.pcfHold.policyAssociationRef &&
+      input.pcfCreateInputs.fabricHoldRef == input.pcfHold.holdRef &&
+      input.pcfCreateInputs.allocatedIPv4 != "" &&
+      input.pcfCreateInputs.selectionDigest != ""
 
-  createdsession.pcf.create_inputs.ready:
-    inputs:
-      pcfCreateInputs: {}
-      pcfHold: {}
-    evaluator:
-      type: cel
-      expression: input.pcfCreateInputs.pcfCreateInputsRef != "" &&
-        input.pcfCreateInputs.pcfPolicyAssociationRef == input.pcfHold.policyAssociationRef &&
-        input.pcfCreateInputs.fabricHoldRef == input.pcfHold.holdRef &&
-        input.pcfCreateInputs.allocatedIPv4 != "" &&
-        input.pcfCreateInputs.selectionDigest != ""
+createdsession.pcf.create_governed:
+  inputs: [governance]
+  evaluator:
+    type: cel
+    expression: input.governance.lifecycleIsolationState == "CLEAN" &&
+      input.governance.lifecycleIsolationEvidenceRef != "" &&
+      input.governance.competingCreateState == "NOT_FORWARDED" &&
+      input.governance.competingCreateGovernanceRef != "" &&
+      input.governance.agentAuthorized == true
 
-  createdsession.pcf.create_governed:
-    inputs:
-      governance: {}
-    evaluator:
-      type: cel
-      expression: input.governance.lifecycleIsolationState == "CLEAN" &&
-        input.governance.lifecycleIsolationEvidenceRef != "" &&
-        input.governance.competingCreateState == "NOT_FORWARDED" &&
-        input.governance.competingCreateGovernanceRef != "" &&
-        input.governance.agentAuthorized == true
+createdsession.udm.subscription_owned:
+  inputs: [subscription]
+  evaluator:
+    type: cel
+    expression: input.subscription.creationState == "CREATED" &&
+      input.subscription.ownership == "AGENT" &&
+      input.subscription.managementState == "DURABLE" &&
+      input.subscription.subscriptionRef != ""
 
-  createdsession.udm.subscription_owned:
-    inputs:
-      subscription: {}
-    evaluator:
-      type: cel
-      expression: input.subscription.creationState == "CREATED" &&
-        input.subscription.ownership == "AGENT" &&
-        input.subscription.managementState == "DURABLE" &&
-        input.subscription.subscriptionRef != ""
+createdsession.pcf.association_owned:
+  inputs: [association]
+  evaluator:
+    type: cel
+    expression: input.association.creationState == "CREATED" &&
+      input.association.ownership == "AGENT" &&
+      input.association.managementState == "DURABLE" &&
+      input.association.policyResultRef != ""
 
-  createdsession.pcf.association_owned:
-    inputs:
-      association: {}
-    evaluator:
-      type: cel
-      expression: input.association.creationState == "CREATED" &&
-        input.association.ownership == "AGENT" &&
-        input.association.managementState == "DURABLE" &&
-        input.association.policyResultRef != ""
+createdsession.n4.baseline_clear:
+  inputs: [baseline]
+  evaluator:
+    type: cel
+    expression: input.baseline.phase == "PRE_CREATE" &&
+      input.baseline.pairState == "NO_N4_PAIR" &&
+      input.baseline.baselineRef != ""
 
-  createdsession.n4.baseline_clear:
-    inputs:
-      baseline: {}
-    evaluator:
-      type: cel
-      expression: input.baseline.phase == "PRE_CREATE" &&
-        input.baseline.pairState == "NO_N4_PAIR" &&
-        input.baseline.baselineRef != ""
+createdsession.n4.initial_resources_ready:
+  inputs: [resources]
+  evaluator:
+    type: cel
+    expression: input.resources.phase == "POST_CREATE" &&
+      input.resources.pairState == "NEW_PAIR" &&
+      input.resources.bindingStatus == "CURRENT" &&
+      input.resources.defaultFlowInstalled == true &&
+      input.resources.uplinkEndpointBound == true &&
+      input.resources.baselineEvidenceRef != "" &&
+      input.resources.currentSessionInstanceRef != ""
 
-  createdsession.n4.initial_resources_ready:
-    inputs:
-      resources: {}
-    evaluator:
-      type: cel
-      expression: input.resources.phase == "POST_CREATE" &&
-        input.resources.pairState == "NEW_PAIR" &&
-        input.resources.bindingStatus == "CURRENT" &&
-        input.resources.defaultFlowInstalled == true &&
-        input.resources.uplinkEndpointBound == true &&
-        input.resources.baselineEvidenceRef != "" &&
-        input.resources.currentSessionInstanceRef != ""
+createdsession.n1n2.hold_bound:
+  inputs: [hold]
+  evaluator:
+    type: cel
+    expression: input.hold.operationKind == "N1N2_MESSAGE_TRANSFER" &&
+      input.hold.holdRef != "" && input.hold.currentInstanceRef != "" &&
+      input.hold.heldRequestDigest != "" &&
+      input.hold.targetNfInstanceId != "" && input.hold.supi != "" &&
+      input.hold.deadline != ""
 
-  createdsession.n1n2.hold_bound:
-    inputs:
-      hold: {}
-    evaluator:
-      type: cel
-      expression: input.hold.operationKind == "N1N2_MESSAGE_TRANSFER" &&
-        input.hold.holdRef != "" && input.hold.currentInstanceRef != "" &&
-        input.hold.heldRequestDigest != "" &&
-        input.hold.targetNfInstanceId != "" && input.hold.supi != "" &&
-        input.hold.deadline != ""
+createdsession.delivery_context.ready:
+  inputs: [context]
+  evaluator:
+    type: cel
+    expression: input.context.bindingStatus == "CURRENT" &&
+      input.context.addressAllocated == true &&
+      input.context.nasInputsComplete == true &&
+      input.context.delegatedCallerAuthorized == true &&
+      input.context.uniqueSenderReserved == false
 
-  createdsession.delivery_context.ready:
-    inputs:
-      context: {}
-    evaluator:
-      type: cel
-      expression: input.context.bindingStatus == "CURRENT" &&
-        input.context.addressAllocated == true &&
-        input.context.nasInputsComplete == true &&
-        input.context.delegatedCallerAuthorized == true &&
-        input.context.uniqueSenderReserved == false
+createdsession.amf.transfer_initiated:
+  inputs: [transferResult, expectedOperationRef]
+  evaluator:
+    type: script
+    ref: scripts/evaluate_transfer_start.py
 
-  createdsession.amf.transfer_initiated:
-    inputs:
-      transferResult: {}
-      expectedOperationRef: {}
-    evaluator:
-      type: script
-      ref: scripts/evaluate_transfer_start.py
+createdsession.ran.setup_accepted:
+  inputs: [setup]
+  evaluator:
+    type: cel
+    expression: input.setup.result == "ACCEPTED" &&
+      input.setup.requiredFlowMatched == true &&
+      input.setup.currentInstanceBound == true &&
+      input.setup.baselineRanEndpointPresent == false
 
-  createdsession.ran.setup_accepted:
-    inputs:
-      setup: {}
-    evaluator:
-      type: cel
-      expression: input.setup.result == "ACCEPTED" &&
-        input.setup.requiredFlowMatched == true &&
-        input.setup.currentInstanceBound == true &&
-        input.setup.baselineRanEndpointPresent == false
+createdsession.n4.forwarding_ready:
+  inputs: [resources]
+  evaluator:
+    type: cel
+    expression: input.resources.bindingStatus == "CURRENT" &&
+      input.resources.requiredFlowMatched == true &&
+      input.resources.downlinkTunnelMatched == true &&
+      input.resources.gatesAllowForwarding == true &&
+      input.resources.exactPairMatchCount == 1
 
-  createdsession.n4.forwarding_ready:
-    inputs:
-      resources: {}
-    evaluator:
-      type: cel
-      expression: input.resources.bindingStatus == "CURRENT" &&
-        input.resources.requiredFlowMatched == true &&
-        input.resources.downlinkTunnelMatched == true &&
-        input.resources.gatesAllowForwarding == true &&
-        input.resources.exactPairMatchCount == 1
+createdsession.resources.managed:
+  inputs: [responsibility]
+  evaluator:
+    type: cel
+    expression: input.responsibility.managementState == "ACCEPTED" &&
+      input.responsibility.allResourcesCovered == true &&
+      input.responsibility.pendingResponsibilitiesRetained == true
 
-  createdsession.resources.managed:
-    inputs:
-      responsibility: {}
-    evaluator:
-      type: cel
-      expression: input.responsibility.managementState == "ACCEPTED" &&
-        input.responsibility.allResourcesCovered == true &&
-        input.responsibility.pendingResponsibilitiesRetained == true
+createdsession.udm.subscription_usable:
+  inputs: [udmReadResult]
+  evaluator:
+    type: script
+    ref: scripts/evaluate_udm_read.py
 
-  createdsession.udm.subscription_usable:
-    inputs:
-      udmReadResult: {}
-    evaluator:
-      type: script
-      ref: scripts/evaluate_udm_read.py
-
-  createdsession.lifecycle.ready:
-    inputs:
-      lifecycle: {}
-      expectedLifecycleRef: {}
-    evaluator:
-      type: cel
-      expression: input.lifecycle.lifecycleRef == input.expectedLifecycleRef &&
-        input.lifecycle.registrationState == "DURABLE" &&
-        input.lifecycle.receiverState == "READY" &&
-        input.lifecycle.lateResultResponsibility == "RETAINED"
+createdsession.lifecycle.ready:
+  inputs: [lifecycle, expectedLifecycleRef]
+  evaluator:
+    type: cel
+    expression: input.lifecycle.lifecycleRef == input.expectedLifecycleRef &&
+      input.lifecycle.registrationState == "DURABLE" &&
+      input.lifecycle.receiverState == "READY" &&
+      input.lifecycle.lateResultResponsibility == "RETAINED"

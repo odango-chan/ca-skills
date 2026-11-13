@@ -51,7 +51,7 @@ Dependency aliases are used only to identify an imported contract unambiguously.
 References to imported contracts use `<dependency-alias>::<exported-id>`:
 
 - Tool call: `fivegc-tools::sbi.udm.sm_data.get`
-- Owner Schema: `fivegc-context::urn:connectionagent:5gc:skill-context:ingress:v1`
+- Owner Schema: `ca-context::urn:connectionagent:ca:context:invocation:v1`
 
 The exported ID after `::` is the exact Operation ID or Schema `$id`. No Git URL, local `lib/` path, branch, registry address, digest, lockfile or source acquisition instruction appears in Skill source.
 
@@ -67,11 +67,7 @@ Canonical form:
 goal: pdu_session.initial_request_fulfilled
 entryProcedure: ue-requested-pdu-session-establishment
 requestSchema: schemas/establishment-request.schema.yaml
-context:
-  projections:
-    subject: fivegc-context::urn:connectionagent:5gc:skill-context:subject:v1
-    facts: fivegc-context::urn:connectionagent:5gc:skill-context:facts:v1
-    ingress: fivegc-context::urn:connectionagent:5gc:skill-context:ingress:v1
+contextSchema: ca-context::urn:connectionagent:ca:context:invocation:v1
 capabilities:
   - provider-5gc.createdsession.udm
   - env-fabric.createdsession.hold
@@ -87,36 +83,26 @@ Rules:
 - The fixed path `assurance/contract.yaml` determines the artifact kind. Do not repeat `apiVersion`, `kind`, `metadata`, `spec` or `skillType` wrappers. The vNext Compiler accepts only this grammar.
 - `goal` and `entryProcedure` are business-significant declarations and remain explicit.
 - `requestSchema` points to the Skill-owned public Request Schema.
-- `context.projections` is a schema-binding table for Host/integration-provided invocation context. It is not runtime data and does not instruct the Compiler to construct or fetch a projection. See **Context projections** below.
+- `contextSchema` binds the Host-owned portion of invocation context to one exact imported Owner Schema. See **Invocation context** below.
 - `capabilities[]` is the Skill's explicit Capability grant. It contains Capability IDs only; direct Operation IDs are forbidden.
 - The CapabilityContracts document maps each exact Operation ID to exactly one Capability and declares its Effect. The Compiler verifies that every called Operation is mapped, its Effect matches ToolCatalog, and its Capability is granted by this Skill.
 - Runtime repeats authorization and Effect checks at execution. A static grant is not execution authority.
 - Do not add a separate `allowedResources.localTools`, `requiredFacts` fallback, or physical `lib/` schema path.
 
-### Context projections
+### Invocation context
 
-Read `context.projections` as **namespace name → imported Schema contract**:
+`contextSchema: ca-context::urn:connectionagent:ca:context:invocation:v1` selects a Schema by exact `$id` from the caller-supplied `ca-context` snapshot. The Compiler uses its object properties for `context.*` paths and uses `requestSchema` for `context.request.*`. The name `request` is reserved for the Skill-owned value and must not be declared by the imported Schema.
 
-- The key (`subject`, `facts`, `ingress`) is the root namespace exposed to Procedure under `context.<key>`.
-- The value is `<dependency-alias>::<schema-$id>`. The alias selects a dependency snapshot supplied by the caller in BuildRequest; the exported ID is the exact Owner Schema `$id`.
-- The declaration says which context shape the Skill consumes. It does not contain the actual values, create a projection, or grant permission to perform an Operation.
-- The Host/integration materializes the values before Procedure execution. Compiler resolves the schema references and type-checks context paths; Runtime receives and validates the actual invocation values and their evidence.
-- Declare only the projections this Skill uses. Do not copy their schemas into the Skill package.
+Host materializes the invocation values after ingress admission. Runtime validates the Host-owned object and the Skill request separately against their respective Schemas, then exposes both through the Procedure's `context` binding.
 
-For the current 5GC invocation, the runtime context has four distinct roots:
+| Procedure path | 5GC source |
+|---|---|
+| `context.ueRef` | Operator-profile UE reference resolved after exact SUPI matching |
+| `context.correlation.ingressRef` | Exact Fabric HELD source reference |
+| `context.correlation.lifecycleRef` | Independently resolved lifecycle binding |
+| `context.request` | Skill-owned establishment request |
 
-| Runtime path | Meaning | Current 5GC contents / source |
-|---|---|---|
-| `context.subject` | **Who** is the target UE | `ueRef`, mapped from the operator-owned source profile after exact SUPI matching; raw SUPI is not exposed here |
-| `context.request` | **What** the UE requested | PDU Session ID, PTI, Request Type, DNN, S-NSSAI, serving PLMN, requested PDU Session Type and SSC mode; governed by the Skill-owned `requestSchema` |
-| `context.facts` | **Which invocation/lifecycle** the execution must stay bound to | `createdsession_ingress` (exact Fabric source reference) and `createdsession_lifecycle` (independently declared lifecycle identity); these are correlation handles, not current network-state claims |
-| `context.ingress` | **Which exact ingress message was admitted** | A narrow normalized HELD-message projection: Request Type, PTI, message type, current binding status and action authorization; source-fact Evidence is attached separately |
-
-The overlap of `requestType` and `pti` between `request` and `ingress` is intentional: a Predicate can check that the admitted message and the business request describe the same occurrence. `ingress` is not the full Fabric envelope and does not expose raw SUPI.
-
-The name `facts` is the current Host context namespace. In this 5GC projection its values are primarily exact handles, not facts such as “UE registered” or “N4 ready”. Those business facts must come from their authoritative READ Operation outputs and Evidence. Any future rename of this namespace must be coordinated with the Host Owner schema and materializer; a Skill must not locally rename it.
-
-The `request` root is intentionally absent from `context.projections`: it is checked against `requestSchema`, which the Skill owns. The other three roots are imported Owner contracts.
+Host owns the message and action admission checks. The invocation exposes the admitted source reference. Host retains the ingress Evidence separately. Network-state claims come from authoritative Operation outputs and Evidence.
 
 ## 5. Procedure and bindings
 
@@ -149,27 +135,17 @@ Procedure inputs are named aliases over paths in the frozen invocation context. 
 ue-requested-pdu-session-establishment:
   inputs:
     ue-ref:
-      from: context.subject.ueRef
+      from: context.ueRef
     psi:
       from: context.request.pduSessionId
     ingress-ref:
-      from: context.facts.createdsession_ingress
+      from: context.correlation.ingressRef
   start: nudm-sdm-get
   nodes:
     # ...
 ```
 
 The procedure file root is a map of Procedure IDs. Procedure input aliases remain useful because they give the graph stable, local names; their schema types are derived rather than authored.
-
-Procedure inputs are named projections from the frozen invocation context:
-
-```yaml
-inputs:
-  ueRef:
-    from: context.subject.ueRef
-  ingress:
-    from: context.ingress
-```
 
 There is no implicit previous-node binding, dynamic selector, string interpolation, hidden context injection, automatic binding or semantic-ID resolver in this initial vNext implementation. The exact `with` mapping is the contract. Semantic-ID-assisted suggestions may be considered later as editor assistance, but they do not change source semantics or replace explicit bindings.
 
@@ -182,26 +158,27 @@ Predicates no longer declare Observation references, scopes or freshness. They d
 The fixed path `assurance/predicates.yaml` identifies this artifact. Its YAML root is a map of Predicate IDs; there is no `predicates:` wrapper or repeated resource envelope. A Predicate declares only the names it consumes. The names are a list, not placeholder Schema objects; their types are derived from the producers supplied at every call site.
 
 ```yaml
-createdsession.ingress.eligible:
-  inputs: [ingress, request]
+createdsession.udm.hold_bound:
+  inputs: [hold, dnn, sst]
   evaluator:
-      type: cel
-      expression: input.ingress.requestType == input.request.requestType &&
-        input.ingress.pti == input.request.pti &&
-        input.ingress.messageType == 193 &&
-        input.ingress.bindingStatus == "CURRENT" &&
-        input.ingress.actionAuthorized == true
+    type: cel
+    expression: input.hold.operationKind == "UDM_SDM_SUBSCRIPTION_CREATE" &&
+      input.hold.holdRef != "" && input.hold.currentInstanceRef != "" &&
+      input.hold.heldRequestDigest != "" && input.hold.dnn == input.dnn &&
+      input.hold.sst == input.sst
 ```
 
-The matching Procedure node supplies both values explicitly:
+The Procedure explicitly binds each input:
 
 ```yaml
-verify: createdsession.ingress.eligible
+verify: createdsession.udm.hold_bound
 with:
-  ingress:
-    from: context.ingress
-  request:
-    from: input.request
+  hold:
+    from: preconditions.bind-udm-hold.output
+  dnn:
+    from: input.dnn
+  sst:
+    from: input.slice.sst
 ```
 
 Rules:

@@ -1,0 +1,24 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: urn:connectionagent:ca:context:invocation:v1
+title: CA Skill Invocation Context
+type: object
+additionalProperties: false
+required: [ueRef, correlation]
+properties:
+  ueRef:
+    description: Operator-profile UE reference resolved after exact SUPI matching.
+    type: string
+    minLength: 1
+  correlation:
+    type: object
+    additionalProperties: false
+    required: [ingressRef, lifecycleRef]
+    properties:
+      ingressRef:
+        type: string
+        pattern: '^sbi-source:[0-9a-f]{32}$'
+      lifecycleRef:
+        type: string
+        minLength: 1
+        maxLength: 256
+        pattern: '^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$'

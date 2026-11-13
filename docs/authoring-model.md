@@ -10,26 +10,16 @@
 
 ## 2. Procedure inputs and explicit bindings
 
-Procedure inputs are named aliases over the frozen invocation context. The Contract declares the Owner Schema for each exposed context namespace once; Procedure paths such as `context.subject.ueRef` use that declared contract. Every Operation, Script and Predicate consumer receives explicit `with/from` bindings. Input types are derived from the producer Schema, not repeated as author-written `type` fields.
+Procedure inputs are named aliases over the frozen invocation context. The Contract declares one Owner `contextSchema`. Procedure paths such as `context.ueRef` use that Schema, and `context.request.*` uses the Skill-owned `requestSchema`. Every Operation, Script and Predicate consumer receives explicit `with/from` bindings. Input types are derived from the producer Schema, not repeated as author-written `type` fields.
 
 - A binding resolves against an authoritative Producer Schema.
 - The Producer must be available on every path reaching the consumer.
 - No implicit previous-node binding, automatic semantic matching, hidden context injection or string interpolation is allowed in the initial vNext implementation.
 - A missing or ambiguous Producer is a build error, not an invitation to guess.
 
-### 2.1 Context projections are schema bindings
+### 2.1 Invocation context
 
-`SkillContract.context.projections` maps each runtime context namespace used by the Skill to one exact imported Owner Schema:
-
-- the map key is the root name used in Procedure paths, such as `context.subject`;
-- the value is an alias-qualified Schema `$id`, such as `fivegc-context::urn:connectionagent:5gc:skill-context:subject:v1`;
-- the dependency alias selects the caller-supplied BuildRequest snapshot; it is not the Schema owner or a runtime data value.
-
-The Host/integration creates the actual context before Procedure execution. The Compiler only resolves the Schema and checks paths/types; it does not construct or fetch context. Runtime receives the actual values and validates their dynamic properties and Evidence.
-
-For the 5GC entry, `subject` identifies the UE through `ueRef`; `facts` carries exact ingress/lifecycle correlation handles; and `ingress` carries a narrow projection of the admitted HELD message. These are different contracts. The `request` namespace is governed separately by the Skill-owned `requestSchema`, so it is not repeated in `context.projections`.
-
-The current `facts` projection contains handles, not assertions such as registration or forwarding readiness. Those business facts must come from their authoritative READ Operations and Evidence. Keep the Host Owner's namespace name; any rename must be coordinated with its schema and materializer.
+`contextSchema` resolves the exact Owner Schema by `<dependency-alias>::<schema-$id>`. For 5GC the reference is `ca-context::urn:connectionagent:ca:context:invocation:v1`. Host supplies `ueRef`, `correlation.ingressRef`, and `correlation.lifecycleRef` after ingress admission. The Compiler derives Procedure input types from that imported Schema and the separate Skill-owned `requestSchema`. Runtime validates actual inputs against those contracts. Ingress Evidence stays with Host.
 
 ## 3. Business-significant nodes
 

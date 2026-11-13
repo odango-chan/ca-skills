@@ -7,7 +7,7 @@ A Skill source file may reference a contract by dependency alias and exact expor
 | Contract | Owner | vNext source / treatment |
 |---|---|---|
 | Public Skill Request | Skill | `requestSchema` points to a Skill-owned file under `schemas/**` |
-| Invocation Subject / Facts / Ingress | 5GC integration Owner, materialized by Host | `context.projections.*` references exact exported Owner Schema IDs |
+| Invocation Context | CA integration Owner, materialized by Host | `contextSchema` references the exact exported Owner Schema ID |
 | Predicate Evidence refs | Host / Runtime | Host Runtime defines and validates the shared Evidence-reference format |
 | Tool Operation Input / Output / Reconcile | Tool Owner | Imported ToolCatalog contract; Procedure calls one exact Operation ID |
 | Capability-to-Operation mapping | Deployment composition owner | One CapabilityContracts input supplied separately to BuildRequest |
@@ -31,17 +31,9 @@ There is no physical `lib/` directory requirement, `lib/...` source reference, m
 ## 2. Context and Predicate ownership
 
 - The Skill owns the public Request Schema, referenced by `requestSchema`.
-- Host/integration owners publish exact schemas for trusted invocation projections such as subject, facts and ingress.
-- `context.projections` is a map from a runtime context root name to an imported Schema contract. The key is used by Procedure paths (for example, `context.subject`); the value is `<dependency-alias>::<schema-$id>`. It declares a type/ownership boundary, not the actual context value and not an instruction to acquire data.
-- The caller supplies the dependency snapshot; the Host/integration materializes the runtime context; the Compiler resolves and checks the Schema; Runtime validates actual values and Evidence.
-- The 5GC `subject` projection contains the operator-profile-derived `ueRef`; `facts` contains exact ingress/lifecycle correlation handles; and `ingress` contains the narrow normalized admitted-message projection. The `request` namespace is governed by the Skill-owned `requestSchema` and is therefore not duplicated in this map.
-- In the current 5GC projection, `facts` is a namespace name whose values are handles, not assertions of network state. Registration, policy, RAN and N4 readiness must be established through authoritative READ Operation outputs and Evidence.
-- Host Runtime defines and validates the bounded Evidence-reference format shared by Predicate Scripts. Full provenance records remain internal to Runtime.
-- Predicate definitions declare named business inputs. They do not declare Observations, scopes, freshness or hidden globals.
-- Procedure explicitly supplies Predicate inputs. Compiler validates the exact producer path and Schema at every call site.
-- Runtime validates Evidence for the same producer invocation before a definite Predicate result is accepted.
-
-No schema is copied into the Skill merely to make a missing Owner dependency compile.
+- Host publishes one Schema for the trusted invocation context. The 5GC example uses `ca-context::urn:connectionagent:ca:context:invocation:v1`.
+- The 5GC Owner supplies `ueRef` and exact ingress/lifecycle correlation handles. Host handles ingress admission and retains its Evidence. Registration, policy, RAN and N4 readiness come from authoritative Operation outputs and Evidence.
+- The Skill-owned `requestSchema` governs `context.request` separately. Studio supplies the Owner snapshot to the Compiler and language service for reference resolution and type checking.
 
 ## 3. READ Operations and prior results
 
@@ -61,7 +53,7 @@ No Script input/output schema pair is authored as a second source of truth.
 
 The 5GC migration uses these exact contract categories:
 
-- Host invocation projections: `subject`, `facts`, `ingress`;
+- Host invocation context: `ueRef` and `correlation`;
 - Host Evidence refs;
 - Provider/Fabric/Host ToolCatalogs for the exact READ and MUTATION Operations;
 - one deployment CapabilityContracts document mapping each Operation to one Capability and Effect;

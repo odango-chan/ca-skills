@@ -118,7 +118,7 @@ Field-name equality alone is not a semantic binding contract. A stable semantic-
 - Public Skill request requiredness belongs to the Skill-owned Request JSON Schema.
 - Operation input requiredness belongs to the Operation Input Schema owned by its contract owner.
 - Procedure-specific public inputs, if needed, have an explicit Procedure input contract and do not duplicate Operation requiredness.
-- Context availability belongs to the Contract's explicit `context.projections` Schema map and Procedure path bindings. There is no separate `requiredFacts` list or field-level context schema authored by the Skill.
+- Context availability belongs to the Contract's explicit `contextSchema` binding and Procedure path bindings. There is no separate `requiredFacts` list or field-level context schema authored by the Skill.
 - Predicate inputs inherit requiredness from their declared input contract and referenced producer outputs.
 - Compiler checks schema/reference validity, binding completeness, type/nullability, producer availability, and statically knowable control/data dependency order.
 - Runtime checks actual values, dynamic presence, freshness, correlation, and Evidence validity.
@@ -209,7 +209,7 @@ Runtime:
 
 - v1alpha2 replaces the v0.2 Skill authoring and execution model. The v1alpha2 Compiler rejects v0.2 source forms; do not add compatibility readers, legacy adapters, dual YAML syntax, fallback Schema paths, or compatibility-only projections.
 - Existing `ca-skills/main` and `ca-agent-demo/main` remain unchanged until the breaking migration is reviewed and merged. They are migration references, not a runtime compatibility target. The new version does not need to load or execute the old source.
-- Retire the independent Observation Ref / Observation Source registry and implicit Predicate-time acquisition from the v1alpha2 execution path. Every independent current-state acquisition is an explicit READ Operation; captured ingress data is an explicit Context projection; prior Operation data is consumed from that exact Operation output plus its same-invocation Evidence.
+- Retire the independent Observation Ref / Observation Source registry and implicit Predicate-time acquisition from the v1alpha2 execution path. Every independent current-state acquisition is an explicit READ Operation; Host admits ingress and supplies its correlation reference in invocation context; prior Operation data is consumed from that exact Operation output plus its same-invocation Evidence.
 - Operation outputs expose the authoritative Owner-published or Host-normalized typed result. Preserve domain normalization when it is part of the Host Operation contract; do not confuse a Host-facing result projection with a compatibility adapter. In particular, `sbi.udm.sm_data.get.output.result` remains the Host-normalized `CreatedSessionUDMResult.runtime_value()` payload with its own Host-owned Schema, while the Provider full result Schema validates the upstream HTTP response inside Host. Both derive from the same Provider receipt and Evidence.
 - Retire v0.2 `lib/**` physical-path references in Skill source. External dependencies are referenced by alias-qualified exported contract identity or Schema `$id`; Studio resolves dependency aliases before Compiler input.
 - Procedure Script inputs are derived from each call site's bindings. Predicate Script inputs are derived from `Predicate.inputs` and all `verify.with` call sites, with Host Evidence attached separately. Script output Schemas are generated from strict return `TypedDict` declarations. No hand-maintained Script Input/Output Schema copies.
@@ -221,7 +221,7 @@ Runtime:
 
 The v1alpha2 language semantics, including the reduced source envelope and explicit context-schema bindings, are frozen in [Skill Language Specification](../skill-language-spec.md); the 5GC source migration is now being implemented against that contract. The source/Owner mapping is consolidated in [Binding Migration Rehearsal §§18–24](binding-migration-rehearsal-vnext.md). The migration uses eight Capability grants, 18 callable Operations when the N4 READ is phase-discriminated, all 17 legacy Predicate inputs, five Skill Script identities, and all 36 Cases / three References as behavioral obligations.
 
-Current cross-repository work remains Draft/unmerged: Host PR #198 publishes Subject/Facts/Ingress/Evidence projections; Host PR #200 publishes 15 normalized legacy Observation payload Schemas; Provider PR #50 proposes the upstream GetSmData result Schema but has not yet passed CI. The Host-facing UDM `output.result` Schema is separate from the Provider wire Schema and is still a required Owner publication. The four domain READ shapes and two Host journal READ Operations still need exact Input/Output/Evidence contracts and Capability memberships.
+Current cross-repository work remains Draft/unmerged: Host PR #198 publishes Invocation Context and Script Evidence-reference Schemas; Host PR #200 publishes 15 normalized legacy Observation payload Schemas; Provider PR #50 proposes the upstream GetSmData result Schema but has not yet passed CI. The Host-facing UDM `output.result` Schema is separate from the Provider wire Schema and is still a required Owner publication. The four domain READ shapes and two Host journal READ Operations still need exact Input/Output/Evidence contracts and Capability memberships.
 
 The following are implementation gates, not unresolved authoring-language alternatives:
 
@@ -265,7 +265,7 @@ The v1alpha2 Skill source contains no physical `lib/...` dependency paths. Exter
 
 For the vNext schema-reference design, use the exported JSON Schema `$id` as the stable contract identity:
 - each externally owned standalone Schema declares a globally unique, versioned absolute `$id` (URN form is recommended, e.g. `urn:connectionagent:host:context:subject:v1`);
-- `spec.context.schemas.subject/facts/evidence` reference those exact IDs, not dependency IDs or paths;
+- `contextSchema` references its exact exported ID through the supplied dependency alias;
 - Compiler indexes only the supplied immutable snapshots and resolves exact `$id` matches; it never performs network resolution;
 - duplicate IDs, missing IDs, duplicate exports, unsupported dialects and incompatible schemas fail closed;
 - the Owner controls and versions the ID. A changed incompatible contract requires a new versioned ID.
@@ -274,7 +274,7 @@ The generic Observation/Evidence envelope and domain Observation payloads remain
 
 A logical dependency alias may appear only as the namespace prefix of an exported contract reference; Skill YAML never contains a dependency source locator, repository, source kind, revision, digest, cache key, or physical path. Studio Workspace Configuration maps aliases to locked snapshots. Compiler receives snapshot bytes and verifies their input digest. Compiler does not export digest values in BuildResult.
 
-The v1alpha2 5GC Host Subject / Facts / Ingress / Evidence contracts remain external Owner dependencies. Skill must not copy their bodies into its own package, and Studio must not fabricate missing owner files. See [Dependency Identity & 5GC Owner Schema Resolution](dependency-identity-and-owner-schema-resolution-vnext.md) for the cross-repository inventory and acceptance gates.
+The v1alpha2 5GC Host Invocation Context and Evidence-reference contracts remain external Owner dependencies. Skill must not copy their bodies into its own package, and Studio must not fabricate missing owner files. See [Dependency Identity & 5GC Owner Schema Resolution](dependency-identity-and-owner-schema-resolution-vnext.md) for the cross-repository inventory and acceptance gates.
 
 The stable Schema identity rule (`$id`) and v1alpha2 source syntax are frozen in `docs/skill-language-spec.md`. Existing v0.2 source and Compiler behavior remain only on the unchanged pre-migration mainline; no v1alpha2 compatibility behavior is required.
 

@@ -44,7 +44,7 @@ BuildResult returns diagnostics and generated Skill-owned output files. It does 
 ## 3. Imported contract identity
 
 - Tool call: `fivegc-tools::sbi.udm.sm_data.get`
-- Owner Schema: `host-context::urn:connectionagent:5gc:skill-context:ingress:v1`
+- Owner Schema: `ca-context::urn:connectionagent:ca:context:invocation:v1`
 - Capability grant: `provider-5gc.createdsession.udm`
 
 The alias selects the exact caller-supplied snapshot. The ID after `::` remains owned by the producer. Two imported snapshots that export the same ID are ambiguous and fail closed; the Skill must not rely on file order or source path to select one.
@@ -70,7 +70,7 @@ This produces 18 callable Operations total. If the N4 Owner cannot provide a pha
 
 The five independent domain acquisition points are N4 baseline, post-create N4 resources, RAN setup, N4 forwarding and PCF governance. The two Host journal reads are additional explicit acquisition points. The 17 old Predicate Observation refs are not 17 new READ Operations:
 
-- 1 captured ingress projection from Host Invocation Context;
+- 1 legacy captured ingress projection whose admission checks move to Host;
 - 9 prior-Operation local projections, passed from exact prior outputs and same-invocation Evidence;
 - 2 Host journal READs;
 - 5 independent domain acquisition points across four READ shapes.
@@ -91,7 +91,7 @@ For local projections over hold, operation-context, PCF input, resource-ownershi
 
 ## 6. 5GC-first acceptance
 
-1. Publish the Host Subject/Facts/Ingress and Evidence-reference projections from their actual owners.
+1. Publish the Host Invocation Context and Evidence-reference Schemas from their actual owners.
 2. Publish typed Tool Output Schemas for all current Operation outputs consumed by Predicates.
 3. Add the four domain READ shapes and two Host journal READ Operations with exact Input/Output contracts and Capability membership.
 4. Update the trusted CapabilityContracts map and ToolCatalog together; fail closed on missing/duplicate membership or Effect mismatch.

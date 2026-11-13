@@ -103,7 +103,7 @@ The MAS Skill must not invent a MAS operation named resources.finalize or operat
 
 ## 7. vNext source migration rules
 
-- Keep the breaking v1alpha2 source model: exact imported Operation IDs, Capability grants only, explicit Context projections, pure Predicate inputs, and explicit producer lineage.
+- Keep the breaking v1alpha2 source model: exact imported Operation IDs, Capability grants only, one explicit `contextSchema` binding, pure Predicate inputs, and explicit producer lineage.
 - Do not copy the proposed ca-agent-demo MAS ToolCatalog into the official package.
 - Do not author duplicate Operation Input Schemas or Script Input Schemas inside the Skill.
 - Do not create an aggregate MAS snapshot schema or a synthetic Observation Source.
@@ -124,3 +124,9 @@ The MAS Skill must not invent a MAS operation named resources.finalize or operat
 | v1alpha2 MAS Procedure build | **NOT RUN / BLOCKED** |
 | MAS Mock qualification | **NOT RUN** |
 | Live MAS E2E | **NOT RUN** |
+
+For the vNext MAS entry, bind `context.ueRef` and the exact ingress/lifecycle
+references under `context.correlation` once the MAS Host Owner confirms that
+its admission path produces the CA invocation Schema. Keep `context.request`
+Skill-owned. The existing MAS authoring files remain migration inputs pending
+that Owner confirmation and the exact Operation contracts.
