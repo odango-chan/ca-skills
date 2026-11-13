@@ -107,7 +107,7 @@ The binding model must distinguish **available data** from **data actually passe
 - `context.projections` grants access to named Host/Owner projections. It does not inject those projections into Procedure inputs or downstream calls.
 - `Procedure.inputs` is the Procedure's actual input interface. Declare only values consumed by that Procedure or intentionally shared with its descendants; do not mirror the complete Context or Request.
 - An Operation's Input Schema is its callable interface. Its `required` properties must be supplied. Optional properties are omitted unless the call intentionally uses them.
-- A Predicate declares only the business parameters its evaluator reads. Host-attached Evidence remains a separate reserved projection and is not a reason to add business parameters.
+- A Predicate declares an ordered, typed function signature: parameter names/order plus either a primitive type or an authoritative Schema reference. Host-attached Evidence remains a separate reserved projection and is not a reason to add business parameters.
 - A Procedure Script has no separately authored Input Schema in this model. Its call-site `with` is its input projection; keep those bindings explicit unless a future, separately reviewed Script input declaration makes a safe default possible.
 
 The proposed `with.from: input` shorthand is an **opt-in same-name projection**, not blanket argument forwarding:
@@ -155,14 +155,20 @@ The exact YAML surface remains open until the grammar review addresses reserved-
 
 ### 4.6 Predicate function signature and positional invocation (PROPOSED)
 
-A Predicate is a pure, reusable function-like resource. Its definition owns an ordered parameter signature; its Procedure call supplies positional source expressions in exactly that order.
+A Predicate is a pure, reusable function-like resource. Its definition owns an ordered, typed parameter signature; its Procedure call supplies positional source expressions in exactly that order. The signature is complete when the Predicate is authored and is independently available to CEL analysis, Python tooling and Compiler validation.
 
 Definition:
 
 ~~~yaml
 predicates:
   createdsession.udm.hold_bound:
-    parameters: [hold, dnn, sst]
+    parameters:
+      - name: hold
+        schema: ca::schemas/udm-hold
+      - name: dnn
+        type: string
+      - name: sst
+        type: integer
     evaluator:
       type: cel
       expression: >-
@@ -187,10 +193,10 @@ verify:
 
 Semantics:
 
-- `parameters` is an ordered list of unique parameter names. It is the Predicate's function signature, not a second Schema declaration.
+- `parameters` is an ordered list of unique `{name, type}` or `{name, schema}` entries. It is the Predicate's typed function signature, not a separate JSON Schema file. Use primitive `type` for simple values and an exact authoritative Schema reference for structured values.
 - `arguments` is an ordered list of source expressions. Argument i binds to parameter i. Arity mismatch, duplicate parameter names, unresolved sources, incompatible types, or unavailable producers are compile errors.
 - Parameter names are local to the Predicate definition. Procedure node names and source paths never leak into the evaluator.
-- The authoritative Producer/Context Schemas establish argument types. All call sites must be mutually compatible with the Predicate's effective parameter types; the Compiler statically checks the CEL expression against that effective signature.
+- The Predicate signature establishes the consumer's expected types at authoring time. Authoritative Producer/Context Schemas establish the actual source types at each call site. Compiler checks assignability from each source to the declared parameter and statically checks CEL against the signature. It does not infer the Predicate interface from whichever call site happens to be found first.
 - No optional positional parameters, skipped positions, implicit nulls, implicit defaults, type coercion, or argument reordering are introduced in this proposal. If a Predicate genuinely has different required inputs, define separate predicates or make the input projection explicit in a separately reviewed design.
 - The Predicate evaluator sees only its declared business parameters. Host/Runtime Evidence remains a reserved, separately attached projection for Script evaluators and assurance validation; it is not an extra positional business argument.
 - Predicate evaluation remains pure. READ acquisition, waiting, and Evidence production are scheduled explicitly by Procedure/Host.
@@ -202,7 +208,7 @@ Consistency is defined at the semantic and compiler layers, not by forcing every
 
 - **Operation** inputs are owned by an external Owner Input Schema: named object properties with types, requiredness and constraints. Do not infer positional order from JSON Schema property order. Operation calls therefore retain explicit named source bindings / the existing binding-map form.
 - **Procedure** inputs are a named Procedure interface. Child Procedure calls retain explicit named bindings unless a future ordered signature is deliberately added to the Procedure contract.
-- **Predicate** owns an explicit ordered `parameters` signature, so positional `arguments: [...]` are deterministic and concise.
+- **Predicate** owns an explicit ordered, typed `parameters` signature, so positional `arguments: [...]` are deterministic, concise and independently type-checkable.
 - **Procedure Script** has no independent parameter signature; its call-site projection defines the exact `input` object. It retains explicit named `with` bindings.
 - All forms use the same source-reference vocabulary, Producer/Consumer validation, type/nullability checks, path-availability checks, authorization boundaries, and canonical Binding Plan representation.
 - Do not add a polymorphic `arguments` field that sometimes means an ordered list and sometimes means a named map. Do not add aliases solely to make YAML look uniform.
@@ -237,10 +243,11 @@ This is an intentional, explainable syntax distinction based on interface owners
 | Generic Evidence Envelope | Host |
 | Source/evidence guarantees | Authoritative producer and trusted acquisition adapter, limited to what each can attest |
 | Normalized projection Schema | Explicit projection/normalization owner |
-| Predicate-specific evaluation projection | Skill, only for its own derived/selected view; must not redefine producer payload |
+| Predicate parameter signature | Skill Predicate; declares ordered parameter names and expected types, referencing authoritative Schemas for structured values |
+| Predicate Script input | Derived from the owning Predicate signature; no separately authored Input Schema |
 | Script input/output contract | Skill |
 
-From the Skill author's perspective, Schemas primarily constrain payloads consumed by Procedure Scripts and Predicates. When a payload is produced by a READ Operation, the same owner-published payload Schema serves as that Operation's Output Schema and the consumer's type authority; do not create a second copy just because it crosses a producer/consumer boundary. A Predicate's ordered `parameters` name the values it consumes; the Compiler derives their effective types from the authoritative Producer/Context Schemas at all call sites. This does not create a separate authored Predicate Input Schema or Script Input Schema, and it must not redefine an owner's payload.
+From the Skill author's perspective, Schemas primarily constrain payloads consumed by Procedure Scripts and Predicates. When a payload is produced by a READ Operation, the same owner-published payload Schema serves as that Operation's Output Schema and the consumer's type authority; do not create a second copy just because it crosses a producer/consumer boundary. A Predicate's ordered, typed `parameters` name the values it consumes and establish the expected types when the Predicate is authored. For structured values, they reference the authoritative Schema rather than copying it. At each call site, Compiler checks the actual Producer/Context Schema against that declared type. Predicate Script input is derived from this same signature; there is no separately authored Predicate Input Schema or Script Input Schema, and no Predicate may redefine an Owner's payload.
 
 An Observation acquired through a READ Operation uses that Operation's Output Schema. Do not duplicate the same payload schema under observations. If an event/journal/projection changes the structure, that projection owner owns its schema. Transformations require explicit input/output contracts and preserve lineage to source evidence. Host must not invent domain schemas.
 
@@ -413,12 +420,12 @@ verify:
 
 Semantics:
 
-- `parameters` declares the ordered evaluator-local parameter names. The Producer's authoritative Output Schema remains the type authority; no duplicate Predicate Input Schema is authored.
+- `parameters` declares ordered evaluator-local names and expected types. For a structured parameter, the authoritative Producer/Context Schema is referenced; it is not copied. The Predicate signature is the consumer contract, while the Producer Schema remains the source contract. No duplicate Predicate Input Schema is authored.
 - `arguments` is positional and must have exactly the same arity/order as `parameters`.
-- Compiler resolves each source expression, validates producer availability and type compatibility across every call site, and derives the effective Predicate parameter types. A CEL evaluator is checked against those types.
+- Compiler resolves each source expression and validates producer availability and assignability to the already-declared Predicate parameter type at every call site. CEL is checked against the Predicate signature at definition time, independently of Procedure call sites.
 - The evaluator receives only the declared business parameter projection. Procedure node names and source paths do not leak into the Predicate definition.
 - Runtime attaches Host Evidence to the corresponding producer-backed parameter separately from its business payload. The Binding Plan preserves parallel lineage: exact producer, source path, schema/owner, invocation/scope, and attached Evidence refs/guarantees.
-- Predicate Script receives the named parameter projection as `input.<name>`; its strict Output TypedDict remains unchanged. It cannot invent or rewrite Evidence refs.
+- Predicate Script receives the named parameter projection as `input.<name>`; its strict Output TypedDict remains unchanged. Compiler derives the Script's input type environment from the owning Predicate signature and may expose generated editor/type-checking metadata, but does not create a second authored Input Schema or ask the Script to redefine it. The Script cannot invent or rewrite Evidence refs.
 - A CEL Predicate refers to the declared parameter names directly; it does not read a hidden `input` global.
 - No acquisition occurs inside `verify`. READ and bounded-wait operations remain explicit in Procedure.
 
