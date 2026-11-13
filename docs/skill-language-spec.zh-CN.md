@@ -734,7 +734,7 @@ check-ue-registration:
     UNKNOWN: unresolved
 ~~~
 
-本片段引用 §30 的 Registration Observation 输出和 §29 的 Registration Schema。Precondition 的 Predicate 结果必须显式路由 PASS、FAIL 和 UNKNOWN。FAIL 与 UNKNOWN 不得合并。
+本片段引用 §30 的 Registration Observation 输出和 §29 的 Registration Schema。Precondition 必须为 PASS、FAIL、UNKNOWN 分别声明路由。两条边可以指向同一处理节点；Trace 和终态判定仍保留各自的原始 Outcome。
 
 ### 12.3 Operation
 
@@ -840,7 +840,7 @@ Terminal 显式声明 `SUCCEEDED`、`FAILED`、`UNRESOLVED` 或 `SAFE_STOPPED`�
 
 - SUCCEEDED：实际路径有有效 Goal PASS，所有 Mutation 提交状态均已确定，已确认资源及迟到结果均有明确责任。
 - 需要停止时，依次检查：① 有已知部分完成资源或已确认的外部变更需要保全、核实或处置，发布 SAFE_STOPPED；② 否则，关键事实或已派发调用的提交状态仍不确定，发布 UNRESOLVED；③ 否则，存在确定失败或执行错误，发布 FAILED。一个停止同时存在已知部分完成和未知提交时优先 SAFE_STOPPED，原因仍记录为不确定。
-- 显式停止 Terminal 应与到达路径的预期状态一致。当图显式选择停止且不存在第 ①、② 项时，该停止视为确定的执行错误。若实际状态与声明不同，Runtime 必须按上述顺序发布实际终态并记录 `TERMINAL_STATE_MISMATCH`，尤其不得以 FAILED 或 SUCCEEDED 掩盖未决调用或部分完成。Runtime 派发前校验失败也使用同一规则；它不进入被阻止节点的业务 Outcome 路由。
+- 显式停止 Terminal 应与到达路径的预期状态一致。当图显式选择停止且不存在第 ①、② 项时，该停止视为确定的执行错误。若实际状态与声明不同，Runtime 必须按上述顺序发布实际终态并记录 `TERMINAL_STATE_MISMATCH`，尤其不得以 FAILED 或 SUCCEEDED 掩盖未决调用或部分完成。门禁失效、全局限制或 Reconcile 无法派发时也使用同一规则；普通调用的派发前拒绝见 §24.2。
 
 Host 在派发 Mutation 前记录原调用身份和负责处理结果的 Owner / 责任引用。终态按发布时已接纳的状态判定；迟到结果由已登记责任方继续处理，并追加到责任记录。停止时持久化已有资源句柄、责任引用、未决调用与停止原因；即使没有已知资源，未知尝试的迟到结果责任也必须保留。后续清理或移交由已授权的 Owner 负责。
 
@@ -849,10 +849,10 @@ Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时不�
 ### 12.9 Procedure 入口、最终门禁与控制流
 
 - Invocation 入口 Precondition 用 `precondition.entry: true` 标记。可以先执行显式 Observation 获取事实，再执行一个或多个入口 Precondition。Compiler 必须检查从 start 到每个业务 Mutation 的所有路径都经过全部入口 Precondition 的 PASS 边。入口 FAIL 或 UNKNOWN 可以在 Mutation 前结束流程。没有 Invocation 级门禁时省略标记；局部门禁由 Procedure 的显式路由表达。
-- 每次业务 Mutation 派发前，Runtime 以当前 Scope 和校验时间复核本 Invocation 中全部入口 PASS 的原绑定及所需 Evidence（§17.2）。过期、被取代、关联失效或冲突时，不派发 Mutation，记录 `ENTRY_PRECONDITION_INVALIDATED`（仅局部门禁失效时为 `PRECONDITION_INVALIDATED`），并按 §12.8 停止。Runtime 不重新执行 Predicate，不隐式查询或刷新；会变化且需要刷新以继续执行的条件，应建模为紧邻受保护动作的局部 Observation / Precondition；Invocation 级入口门禁用于整个 Invocation 都必须持续成立的条件；局部门禁的 PASS 若直接路由到 Mutation，派发前也按同一规则复核。Reconcile 按原调用及 §20 独立准入，业务门禁证据过期本身不阻止对原调用的安全调和。
+- 每次业务 Mutation 派发前，Runtime 以当前 Scope 和校验时间复核本 Invocation 中全部入口 PASS 的原绑定及所需 Evidence（§17.2）。过期、被取代、关联失效或冲突时，所需事实在派发点未获充分证明，不派发 Mutation，记录 `ENTRY_PRECONDITION_INVALIDATED`（仅局部门禁失效时为 `PRECONDITION_INVALIDATED`），并按 §12.8 停止。Runtime 不重新执行 Predicate，不隐式查询或刷新；会变化且需要刷新以继续执行的条件，应建模为紧邻受保护动作的局部 Observation / Precondition；Invocation 级入口门禁用于整个 Invocation 都必须持续成立的条件；局部门禁的 PASS 若直接路由到 Mutation，派发前也按同一规则复核。用于保护后续 Mutation 的局部 PASS 应直接连到该 Mutation；其他局部判断只按其显式路由执行。Reconcile 按原调用及 §20 独立准入，业务门禁证据过期本身不阻止对原调用的安全调和。
 - 最终 Postcondition 用 `postcondition.goal` 标记，值必须精确等于 `contract.yaml` 的 `goal`。局部 Postcondition 省略该字段，其 PASS 不计入最终验收。该标记只声明节点证明哪个 Goal；Predicate 和 arguments 仍由节点声明，Contract 无须重复列 Predicate 或绑定。
-- 对每个从 start 可达的 SUCCEEDED Terminal，每条控制流路径都必须有一条匹配 Goal 的 Postcondition PASS 边，且该边之后只经过局部 Predicate 的 PASS 或 READ / Observation / Procedure Script 的 SUCCEEDED。出现新的匹配 Goal PASS 时，以新判定为准；Mutation、Reconcile 或任何非成功边使已有证明失效。不同路径可由不同节点证明同一个 Goal，也可共享 Terminal。Compiler 可按拓扑顺序传播“有有效证明 / 无有效证明”两种状态：入口为无，Goal PASS 置为有，Mutation、Reconcile 的所有出边及其他非成功边置为无，其余边保持状态；汇合点保留所有可达状态。SUCCEEDED 可达状态中出现“无”即为静态错误。按带 Outcome 的边计算，不能用节点可达性代替 PASS。
-- Runtime 只记录实际执行路径的有效 Goal PASS。在 SUCCEEDED 前检查该次判定的输入 lineage、Evidence 有效性和资源责任；已过期、失效或未解决时，按 §12.8 停止并记录原因。该检查复用本次判定及其证据，不再次调用 Predicate 或隐式查询外部系统。Compiler 验证标记、绑定与路径；Goal 与 Predicate 的业务含义是否相符由 Skill / 业务 Owner 评审。
+- 对每个从 start 可达的 SUCCEEDED Terminal，每条控制流路径都必须有一条匹配 Goal 的 Postcondition PASS 边，且该边之后只经过局部 Predicate 的 PASS 或 READ / Observation / Procedure Script 的 SUCCEEDED。出现新的匹配 Goal PASS 时，以新判定为准；Mutation、Reconcile 或任何非成功边使已有证明失效。不同路径可由不同节点证明同一个 Goal，也可共享 Terminal。若可达 SUCCEEDED 且没有任何可达的匹配 Goal 节点，报告 `FINAL_POSTCONDITION_MISSING`；否则按以下规则检查绕过路径。Compiler 可按拓扑顺序传播“有有效证明 / 无有效证明”两种状态：入口为无，Goal PASS 置为有，Mutation、Reconcile 的所有出边及其他非成功边置为无，其余边保持状态；汇合点保留所有可达状态。SUCCEEDED 可达状态中出现“无”即为静态错误。按带 Outcome 的边计算，不能用节点可达性代替 PASS。
+- Runtime 从实际执行路径选取最后一次仍未被后续边清除的 Goal PASS。在 SUCCEEDED 前检查该次判定的输入 lineage、Evidence 有效性和资源责任。证据过期、被取代或关联失效时，视为 Goal 未获得充分证明；资源状态或责任不明时，也按 §12.8 停止并记录原因。该检查复用本次判定及其证据，不再次调用 Predicate 或隐式查询外部系统。Compiler 验证标记、绑定与路径；Goal 与 Predicate 的业务含义是否相符由 Skill / 业务 Owner 评审。
 - 每个 SourcePath 的 Producer Output 必须在所有到达消费点的路径上实际可用。Compiler 从发布的 Outcome 契约判断输出可用性；普通成功输出只在 SUCCEEDED 边产生，Reconcile 的 COMMITTED 输出按 §12.7。运行时无效输出按 §20、§24.2 停止或路由，不进入要求该输出的成功边。
 - 第一版 Procedure 为 DAG，无隐式循环或任意 back-edge，每个 Skill 只有一张入口图。只有 §20 允许的受控新尝试可以用另一个显式 Operation 节点表达，并受 Deadline / Budget 限制。复用纯判断使用 Predicate，复用纯数据转换使用 Script。
 
@@ -1457,7 +1457,7 @@ predicates:
         responsibility.pendingResponsibilitiesRetained
 ~~~
 
-§29 中 N4 Initial、RAN、N4 Forwarding 和资源责任参数引用 Host #200 的候选类型；其余教学类型、保证与准确 callable 输出绑定仍须由 Owner 发布。UDM Get 的 `output.result` 表示本次 SM 数据读取；订阅 Create 的 `output.subscription` 与 Reconcile 后查询的 `output.subscription` 表示订阅资源状态。两种命题分别使用 Session Profile 和 Subscription Predicate。Session Profile 的 `urn:example` 结构用于教学，真实迁移以 Host 规范化 Get 输出为准。
+本节的 5GC 类型引用用于说明绑定形状。完整示例依赖 Owner 发布相应 Schema、精确 callable 输出绑定和保证；可脱离外部仓库复核的完整链接输入见附录 E。UDM Get 的 `output.result` 表示本次 SM 数据读取；订阅 Create 的 `output.subscription` 与 Reconcile 后查询的 `output.subscription` 表示订阅资源状态。两种命题分别使用 Session Profile 和 Subscription Predicate。Session Profile 的 `urn:example` 结构用于教学，真实迁移以 Host 规范化 Get 输出为准。
 
 ## 30. Procedure
 
