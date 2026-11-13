@@ -2,7 +2,7 @@ name: Source Hygiene
 
 on:
   push:
-    branches: [main]
+    branches: [main, feat/5gc-vnext-skill-migration]
   pull_request:
     branches: [main, design/capability-authoring-model-vnext]
 
