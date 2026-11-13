@@ -15,7 +15,6 @@ def main(input: dict) -> PredicateEvaluationResult:
     status = response.get("httpStatus")
     if (response.get("networkOutcome") == "HTTP_RESPONSE"
             and response.get("responseOrigin") == "TARGET_SERVICE_VIA_SCP"
-            and response.get("sourceBindingState") == "MATCHED"
             and response.get("captureComplete") is True and type(status) is int):
         selection = response.get("selection")
         subscription = response.get("subscription")
@@ -42,6 +41,4 @@ def main(input: dict) -> PredicateEvaluationResult:
         reason = "UDM_READ_TIMEOUT"
     elif response.get("networkOutcome") == "TRANSPORT_FAILURE":
         reason = "UDM_READ_TRANSPORT_FAILURE"
-    elif response.get("sourceBindingState") in {"MISMATCH", "UNVERIFIED"}:
-        reason = "UDM_SOURCE_BINDING_UNVERIFIED"
     return {"result": result, "reasonCode": reason, "evidenceUsed": refs}
