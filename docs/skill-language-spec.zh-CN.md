@@ -1042,7 +1042,7 @@ predicates:
 
   createdsession.udm.subscription_usable:
     parameters:
-      - subscription: fivegc-tools::schemas/udm-subscription-result:v1
+      - subscription: fivegc-tools::urn:connectionagent:5gc:tool-output:udm-subscription-result:v1
       - requestedDnn: string
     evaluator:
       type: cel
