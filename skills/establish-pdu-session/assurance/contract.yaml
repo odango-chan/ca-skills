@@ -13,7 +13,6 @@ spec:
       subject: host-context::urn:connectionagent:5gc:skill-context:subject:v1
       facts: host-context::urn:connectionagent:5gc:skill-context:facts:v1
       ingress: host-context::urn:connectionagent:5gc:skill-context:ingress:v1
-    evidenceSchema: host-context::urn:connectionagent:host:predicate-evidence-refs:v1
   allowedResources:
     capabilities:
     - provider-5gc.createdsession.udm
