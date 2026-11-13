@@ -36,6 +36,11 @@ procedures:
         from: context.request.requestedSscMode
     start: verify-eligible
     nodes:
+      # Preconditions: this entry assumes an AMF-admitted UE establishment
+      # request. Keep the entry eligibility check below; a separate AMF
+      # registration or CM state query is unnecessary for this entry path.
+      # If a direct entry without AMF admission is added, check AMF
+      # registration before that entry's first network mutation.
       verify-eligible:
         verify: mas.establishment.eligible
         'on':
