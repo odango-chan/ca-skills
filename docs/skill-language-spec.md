@@ -193,7 +193,7 @@ Rules:
 - The Predicate signature establishes expected types at authoring time. Producer/Context Schemas establish actual source types and must be assignable to the declared parameter type at every call site. CEL is type-checked against the declared signature independently of call sites. No type inference from names alone.
 - No optional positional parameters, skipped arguments, implicit null/default, coercion, or reordering. Missing or incompatible arguments are compile errors.
 - The evaluator sees only its declared business parameters. It cannot access caller node names, ambient Context, or hidden globals.
-- Predicate does not acquire data. Procedure schedules READ/wait operations and supplies their outputs. Host/Runtime attaches and validates Evidence separately; Evidence is not a positional business argument.
+- Predicate does not acquire data. Procedure/Agent explicitly invokes an authorized Observation Tool query when additional authoritative context is required and supplies its output. Host/Runtime attaches and validates Evidence separately; Evidence is not a positional business argument.
 - Predicate positional arguments lower into the common canonical Binding Plan.
 
 Operation and Procedure calls do not inherit positional ordering from JSON Schema object property order. They retain named bindings against their owner-declared input properties. Procedure Script calls also retain named `with` bindings because the call site defines the Script's exact input object and Script has no separate ordered parameter signature. These are intentional surface differences; all call forms share source references and Binding Plan validation. Do not introduce a polymorphic `arguments` key that changes between list and map.
@@ -206,7 +206,7 @@ A binding has exactly one of `from` or `value`. A `from` source must resolve to 
  
 ## 6. Pure PredicateSet
 
-Predicates are pure reusable functions. They do not declare legacy Observation references, scopes or freshness, and they do not acquire data. Observation remains the semantic concept for a captured, scoped and time-qualified representation of a Fact; it is not a separate callable identity or registry. Its owner, provenance, scope, correlation, temporal and evidence guarantees are carried by the actual Producer/READ contract and Runtime lineage.
+Predicates are pure reusable functions. They do not declare Predicate-private Observation references, scopes or freshness, and they do not acquire data. Observation queries are separate read-only Tool calls governed by ToolCatalog and CapabilityContracts; their owner, QueryContext, output Schema, provenance, scope, correlation, temporal/freshness and Evidence guarantees are declared by that Tool contract.
 
 A Predicate declares an ordered, typed parameter signature and an evaluator:
 
