@@ -50,7 +50,7 @@ The vNext Procedure graph has four business node types:
 
 `terminal` declares SUCCEEDED, FAILED, UNRESOLVED or SAFE_STOPPED; it is not a fifth business action. Predicate is a reusable judgment definition, not a Procedure node. No generic computation node is introduced.
 
-The Invocation-wide Precondition, when needed, is the first node. The final business Postcondition is an explicit final node before SUCCEEDED. Every successful path must pass its PASS route. Local Precondition / Postcondition nodes remain available for intermediate gates. There is no separate SkillContract.postconditions field and no second evaluation through a from reference.
+The Invocation-wide Precondition, when needed, belongs to the entry gate. If facts are not already in trusted Context, explicit Observation nodes may acquire them before the Precondition. No protected Mutation may bypass its PASS route. The final business Postcondition is an explicit final node before SUCCEEDED. Every successful path must pass its PASS route. Local Precondition / Postcondition nodes remain available for intermediate gates. There is no separate SkillContract.postconditions field and no second evaluation through a from reference.
 
 A Procedure Script is expressed as a local target of an Operation node:
 
