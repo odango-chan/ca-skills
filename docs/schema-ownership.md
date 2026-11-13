@@ -13,7 +13,8 @@ A Skill source file may reference a contract by dependency alias and exact expor
 | Capability-to-Operation mapping | Deployment composition owner | One CapabilityContracts input supplied separately to BuildRequest |
 | READ Operation payload | The READ Operation's Owner | Its Output Schema is authoritative for the normalized returned value |
 | Procedure Script input | No separate file owner | Derived per invocation from that Script call site's explicit `with/from` bindings |
-| Predicate input | Predicate consumer interface | Named `Predicate.inputs` are checked against every `verify.with/from` producer at every call site |
+| Predicate parameter signature | Skill Predicate | Ordered typed `parameters` declare names and expected types; structured parameters reference authoritative Schemas |
+| Predicate Script input | No separate file owner | Derived from the owning Predicate parameter signature; no Script-authored or separate Predicate Input Schema |
 | Predicate Evidence | Host / Runtime | Attached separately from business values; Script may cite only the attached refs |
 | Script output | Skill Script | Generated from the strict return `TypedDict`; read-only BuildResult output |
 
@@ -33,8 +34,9 @@ There is no physical `lib/` directory requirement, `lib/...` source reference, m
 - The Skill owns the public Request Schema.
 - Host/integration owners publish exact schemas for trusted invocation projections such as subject, facts and ingress.
 - Host publishes the bounded Evidence-reference projection; full provenance records remain internal to Runtime.
-- Predicate definitions declare named business inputs. They do not declare Observations, scopes, freshness or hidden globals.
-- Procedure explicitly supplies Predicate inputs. Compiler validates the exact producer path and Schema at every call site.
+- Predicate definitions declare an ordered, typed `parameters` signature. They do not declare Observations, scopes, freshness or hidden globals.
+- Procedure supplies positional `verify.arguments`. Compiler validates exact arity/order, source path, producer availability and assignability to the Predicate's declared parameter type at every call site.
+- The Predicate signature is complete at authoring time and is independently usable for CEL validation and editor tooling; it is not inferred from Procedure call sites.
 - Runtime validates Evidence for the same producer invocation before a definite Predicate result is accepted.
 
 No schema is copied into the Skill merely to make a missing Owner dependency compile.
@@ -43,15 +45,15 @@ No schema is copied into the Skill merely to make a missing Owner dependency com
 
 A domain READ is an explicit Operation. Its Owner publishes the typed normalized Output Schema and returns Evidence for the same invocation.
 
-If a later Predicate needs a prior Operation result, pass that exact result through `verify.with`. Do not reacquire the same resource from a parallel Observation source and do not infer a value from a local handle alone.
+If a later Predicate needs a prior Operation result, pass that exact result through its positional `verify.arguments`. Do not reacquire the same resource from a parallel Observation source and do not infer a value from a local handle alone.
 
 Host journal state is also read through explicit Host-owned READ Operations. The Skill does not declare Host-internal journal dataclasses.
 
 ## 4. Script ownership
 
-Procedure Script input is a per-call-site projection. Predicate Script input is the declared Predicate business input plus Host-attached Evidence refs. A Script declares only its strict output `TypedDict`; Compiler generates the output Schema.
+Procedure Script input is a per-call-site projection from explicit `with` bindings. Predicate Script input is derived from the owning Predicate's typed `parameters` signature plus Host-attached Evidence refs. Neither kind of Script authors a separate Input Schema. A Script declares only its strict output `TypedDict`; Compiler generates the output Schema.
 
-No Script input/output schema pair is authored as a second source of truth.
+For Predicate Script, the Predicate is the sole authority for business-input names and types. Compiler may generate a read-only Python type environment/stub for LSP and static analysis, but this is derived tooling output, not another schema source.
 
 ## 5. 5GC Owner contract requirements
 
