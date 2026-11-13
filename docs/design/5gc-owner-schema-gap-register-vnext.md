@@ -490,3 +490,47 @@ invocation and normalized output. Predicate Scripts may receive only the
 attached Evidence refs, never the full Evidence envelope. This is a required
 Runtime/Compiler integration gate before static-link or live acceptance can be
 claimed.
+
+### 14.11 Provider assurance READs: exact phase and instance binding
+
+The existing Demo sources provide enough concrete implementation material to
+specify the three Provider-backed READ Operation shapes, but they are still
+ObservationSource adapters, not callable vNext Tool Operations. The vNext
+Tool wrapper must reuse their exact baseline/resource joins and must not
+weaken them.
+
+| Operation | Required additional binding | Normalized output | Existing source |
+|---|---|---|---|
+| `ca.session.n4.initial_resources.read` | `phase=PRE_CREATE`: `pcfPolicyAssociationRef` + `fabricHoldRef`; `phase=POST_CREATE`: `pcfPolicyAssociationRef` + exact `baselineRef` | PRE_CREATE baseline value; POST_CREATE oneOf `NO_N4_PAIR` / `NEW_PAIR` value | `CreatedSessionN4BaselineObservationSource` and `CreatedSessionN4ObservationSource` |
+| `ca.session.ran_setup.read` | exact `currentSessionInstanceRef` from POST_CREATE N4 output | Provider RAN fields plus `currentInstanceBound`, `baselineRanEndpointPresent`, `lifecycleRef` | `CreatedSessionRANSetupObservationSource` |
+| `ca.session.n4.forwarding.read` | exact `currentSessionInstanceRef` from POST_CREATE N4 output | Provider forwarding fields plus `lifecycleRef` | `CreatedSessionN4ForwardingObservationSource` |
+
+All three share the exact attempt selector:
+`ueRef`, `pduSessionId`, `pti`, `requestType`, `ingressRef`,
+`lifecycleRef`. The operation wrapper must validate each selector field
+against the frozen invocation context; it must not accept a caller-selected
+UE/session or lifecycle.
+
+Two important checks are not currently performed by the legacy source when
+extra keys are present in the Observation scope (the source's `_scope`
+helper selects required keys and ignores extras):
+
+1. POST_CREATE must compare the supplied `baselineRef` to the exact
+   `baselineEvidenceRef` returned by the baseline store/source. A different
+   baseline is UNRESOLVED.
+2. RAN setup and N4 forwarding must compare the supplied
+   `currentSessionInstanceRef` to the exact instance confirmed by the shared
+   N4 baseline store and to the instance in the Provider response. A mismatch
+   is UNRESOLVED.
+
+The output schemas are already drafted in Host PR #200 for the legacy
+normalized values. They can be reused as the starting normalized Output
+Schemas for these READ Operations, but their contract IDs and same-invocation
+Evidence behavior must be explicitly exported for vNext. The Provider wire
+Schemas remain separate from these Host-normalized outputs.
+
+Do not implement these as a second independent read path that bypasses the
+existing Pre-N4 baseline, PCF commit time ordering, new-instance confirmation,
+SMF/UPF pair exactness, or RAN/N4 same-instance correlation. The phase router
+and the two caller-handle comparisons are mandatory parts of the vNext
+Operation implementation.
