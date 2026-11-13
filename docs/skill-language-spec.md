@@ -42,7 +42,7 @@ There is no package-local `lib/` directory. Imported contracts are supplied by S
 The caller supplies all source bytes required for one compilation:
 
 - Skill source files under `skills/**`.
-- Imported ToolCatalog and Owner Schema files grouped into dependency snapshots. Each snapshot has a caller-owned alias and a file set.
+- Imported ToolCatalogs (including specialized Observation Tool contracts) and Owner Schema files grouped into dependency snapshots. Each snapshot has a caller-owned alias and a file set.
 - One deployment-owned CapabilityContracts document, supplied separately from ordinary dependencies.
 - Optional selected Skill targets.
 
@@ -50,10 +50,11 @@ Dependency aliases are used only to identify an imported contract unambiguously.
 
 References to imported contracts use `<dependency-alias>::<exported-id>`:
 
-- Tool call: `fivegc-tools::sbi.udm.sm_data.get`
+- Operation call: `fivegc-tools::sbi.udm.sm_data.get`
+- Observation query: `fivegc-observations::ue.registration.current`
 - Owner Schema: `host-context::urn:connectionagent:5gc:skill-context:ingress:v1`
 
-The exported ID after `::` is the exact Operation ID or Schema `$id`. No Git URL, local `lib/` path, branch, registry address, digest, lockfile or source acquisition instruction appears in Skill source.
+The exported ID after `::` is the exact Operation ID, Observation query ID or Schema `$id`. No Git URL, local `lib/` path, branch, registry address, digest, lockfile or source acquisition instruction appears in Skill source.
 
 Operation IDs and Schema IDs remain Owner-defined. The alias selects the supplied snapshot; it does not rename or own the exported contract.
 
@@ -106,7 +107,7 @@ A Procedure is an explicit graph. Supported main-node actions are:
 - `reconcile`: reconciliation of the exact original mutation.
 - `terminal`: a declared Procedure terminal result.
 
-A Tool call names an Operation, not a Capability:
+A Tool call names an exact exported callable contract (Operation or Observation query), not a Capability:
 
 ```yaml
 read-subscription:
@@ -245,20 +246,15 @@ Rules:
 - Predicate Scripts may cite only Evidence references attached to their own inputs. Their `evidenceUsed` output is a subset declaration, not an authority grant.
 - Missing, ambiguous, stale or mismatched input/Evidence produces UNKNOWN. The evaluator must not reacquire data or perform network I/O.
 
-## 7. READ Operations, Evidence and waiting
+## 7. Observation Tools, Operation Results and Evidence
 
-Independent fact acquisition is explicit in Procedure as a governed READ Operation. Its output contains the normalized typed value; the same invocation returns the Evidence for that value. A Predicate consumes that exact output through its positional `verify.arguments` entry. If a preceding Operation, captured event or owned journal/projection already provides the required value and adequate Evidence, reuse it rather than issuing a duplicate READ.
+Observation is a specialized read-only Tool contract. It uses the same ToolCatalog, dependency snapshot, Owner Schema, CapabilityContracts and Runtime admission model as other Tools; its Effect is READ and its contract declares QueryContext/Input Schema, normalized Output Schema, authority, scope, temporal/freshness semantics and Evidence guarantees. It is not a separate ObservationSource registry or a Predicate-private input mechanism.
 
-Do not create a second read merely to reconstruct Evidence for a prior Tool result. Do not treat a local handle, Mutation success or a stale per-UE lookup as current network truth.
+An Observation Tool may expose one or more query identities. It is not required for every Operation, and no one-to-one mapping exists between Mutation Operations and Observation queries. Agent/Procedure invokes an authorized Observation query explicitly when additional authoritative context is needed. If a preceding Operation output or trusted Context projection already supplies the exact value with adequate correlated Evidence, reuse it rather than querying again.
 
-Bounded waiting remains a Host Runtime Operation (`ca-agent-host::ca.session.evidence.await`), not a Predicate feature and not a domain Observation identity. It receives:
+Operation Result and Observation result remain distinct: the former records what a particular invocation returned; the latter answers an explicit query about an Owner's fact/state. Mutation success alone does not establish the resulting external state. Do not use an Observation query to poll completion of an Operation whose asynchronous lifecycle belongs inside that Operation.
 
-- the exact READ Operation ID to poll;
-- the exact scope/bindings for that Operation;
-- a bounded freshness and wait budget;
-- an explicit absence policy.
-
-The wait returns only a wait/evidence summary. After the wait, Procedure performs the final READ Operation separately and passes that final output to the Predicate. The wait and final read must use the same exact attempt selector. The polled READ Operation must also be included in the Skill's Capability grants.
+There is no Skill-level `wait`, `await`, polling node, or `ca.session.evidence.await` requirement in vNext. The owning Tool/SMF Operation completes its internal asynchronous work and returns the final normalized result plus correlated Evidence. Host invocation deadline, cancellation, correlation and UNKNOWN handling remain Runtime controls, not author-authored wait loops.
 
 ## 8. Script Contract
 
