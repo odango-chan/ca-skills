@@ -1,7 +1,7 @@
 # Capability & Authoring Model vNext
 
 Status: **DESIGN-REVIEW (5GC semantic boundaries converged; Owner contracts and syntax not frozen)**  
-Scope: ca-skills authoring language and contracts. This is a design proposal, not an implementation claim. v0.2 remains authoritative until a separately reviewed migration is approved.
+Scope: ca-skills authoring language and the first 5GC vNext migration. The normative source contract is [Skill Language Specification](../skill-language-spec.md); this document records the 5GC semantic mapping and owner gates. vNext is a breaking replacement, not a v0.2 compatibility layer. The existing main branch remains untouched until the coordinated migration is accepted.
 
 ## 1. Goals
 
@@ -236,7 +236,7 @@ The source-based migration rehearsal is recorded in [Binding Migration Rehearsal
 
 ## 13. Source-backed observation mapping
 
-See [Observation Owner and Acquisition Inventory](observation-owner-inventory-vnext.md) for source ownership and [Binding Migration Rehearsal §19](binding-migration-rehearsal-vnext.md#19-complete-17-ref-predicate-input-and-acquisition-migration) for the corresponding Procedure points and target inputs. All **17** 5GC Predicate Observation refs are mapped; the two additional `ref` entries identify Script evaluators, not Observations. MAS still requires an authoritative snapshot owner/READ contract. Exact vNext READ Operations and Schema/Evidence exports remain open; no running source has been removed.
+See [Observation Owner and Acquisition Inventory](observation-owner-inventory-vnext.md) for source ownership and [Binding Migration Rehearsal §19](binding-migration-rehearsal-vnext.md#19-complete-17-ref-predicate-input-and-acquisition-migration) for the corresponding Procedure points and target inputs. All **17** legacy 5GC Predicate Observation refs are mapped to the vNext source model; the two additional evaluator references identify Script evaluators, not Observations. MAS still requires an authoritative snapshot owner/READ contract. The 5GC migration branch now carries the breaking Skill source; the existing main branch remains unchanged while Owner contracts and Runtime support are completed.
 
 ## 14. Semantic field identity and pinned-fixture Compiler spike
 
@@ -263,7 +263,7 @@ The current v0.2 `spec.context.schemas.*: lib/...` syntax is a **compatibility-e
 
 For the vNext schema-reference design, use the exported JSON Schema `$id` as the stable contract identity:
 - each externally owned standalone Schema declares a globally unique, versioned absolute `$id` (URN form is recommended, e.g. `urn:connectionagent:host:context:subject:v1`);
-- `spec.context.schemas.subject/facts/evidence` reference those exact IDs, not dependency IDs or paths;
+- `spec.context.projections.subject/facts/ingress` and `spec.context.evidenceSchema` reference those exact IDs, not dependency IDs or paths;
 - Compiler indexes only the supplied immutable snapshots and resolves exact `$id` matches; it never performs network resolution;
 - duplicate IDs, missing IDs, duplicate exports, unsupported dialects and incompatible schemas fail closed;
 - the Owner controls and versions the ID. A changed incompatible contract requires a new versioned ID.
@@ -274,7 +274,7 @@ A logical dependency alias may appear only as the namespace prefix of an exporte
 
 The current 5GC Host Subject / Facts / Evidence and Observation contracts remain external Owner dependencies. Skill must not copy their bodies into its own package, and Studio must not fabricate missing owner files. See [Dependency Identity & 5GC Owner Schema Resolution](dependency-identity-and-owner-schema-resolution-vnext.md) for the cross-repository inventory and acceptance gates.
 
-The stable Schema identity rule (`$id`) is the selected vNext direction; the complete Skill Language syntax and breaking migration are not yet frozen. Existing v0.2 source and Compiler behavior remain authoritative until a separately reviewed migration is implemented.
+The stable Schema identity rule and the breaking vNext source syntax are frozen by docs/skill-language-spec.md. The v0.2 mainline remains a separate old baseline until the coordinated vNext Skill/Owner/Compiler/Runtime migration is accepted; no compatibility reader or parallel v0.2 path is part of vNext.
 
 
 ### Capability grants and Tool Operation linking
@@ -282,164 +282,79 @@ The stable Schema identity rule (`$id`) is the selected vNext direction; the com
 The Skill grants qualified Capability identities in `allowedResources.capabilities` (`capability-contract-alias::capability-id`); a Procedure node calls one exact qualified Operation (`tool-dependency-alias::operation-id`). The independent, deployment-owned CapabilityContracts maps each Capability to its owner and exact Operations with expected Effects, while ToolCatalog declares each callable Operation's schemas and declared Effect. For static proof, the Compiler BuildRequest must receive the target deployment's immutable CapabilityContracts as an explicit trusted input **separate from ordinary Skill dependency snapshots**; the ToolCatalog remains part of the resolved dependency set. Compiler then proves every Procedure Operation belongs to exactly one Capability, that the Skill grants that qualified Capability, and that the Tool Effect matches the independently declared expected Effect. If the trusted CapabilityContracts input is absent, the Compiler cannot claim static authorization proof; Runtime admission remains authoritative. Existing 5GC source currently places Operation IDs in `allowedResources.capabilities` as a compatibility-era representation; do not silently reinterpret them as Capability IDs. A separately reviewed language migration must change these grants to the six real 5GC Capability IDs while preserving exact Operation coverage. Observation is a separate read-only source/evidence contract consumed by Predicate evaluation or the bounded evidence-wait Operation. It is not automatically a Tool or Operation. If an Observation provider is deliberately exposed as a callable Tool Operation, that Operation must belong to exactly one Capability and be covered by the Skill's Capability grant.
 
 
-## 16. Candidate 5GC Predicate inputs and explicit bounded wait (NOT FROZEN)
+## 16. 5GC vNext migration implementation baseline
 
-The source rehearsal supports a small authoring surface that reuses the existing v0.2 binding vocabulary rather than inventing a second Observation binding language.
+The exact source syntax in this branch follows the normative Skill Language Specification, Script Contract, and Authoring Model. This section records the 5GC-specific mapping and the remaining Owner/Runtime implementation work; it does not introduce a second dialect.
 
-### 16.1 Pure Predicate inputs
+### 16.1 Skill Contract and pure Predicate inputs
 
-Candidate:
+- SkillContract uses apiVersion connectionagent.io/v1alpha2, Skill-owned inputs.requestSchema, alias-qualified context.projections, context.evidenceSchema, and Capability IDs only.
+- Context projection exports are Host-owned subject, facts and ingress. The public Request remains Skill-owned and is projected as context.request at the invocation boundary.
+- Predicate inputs contains only named business values. It does not declare Observation refs, scope, freshness, acquisition policy, or an Evidence sub-object. Host/Runtime attaches the reserved input.evidence.<name>.refs projection separately and validates producer correlation, provenance, freshness and integrity before accepting a definite verdict.
+- Procedure verify.with/from binds every Predicate input explicitly. CEL and Script evaluators read only input.<name>; there are no hidden subject, request, facts or observations globals.
+- Predicate Scripts use evaluator: {type: script, ref: scripts/<name>.py}. Their input is derived from Predicate declarations and all call sites; output is generated from the strict return TypedDict. No separately authored Script Input Schema is retained.
 
-```yaml
-predicates:
-  createdsession.udm.subscription_usable:
-    inputs:
-      udmReadResult: {}
-    evaluator:
-      type: script
-      ref: scripts/evaluate_udm_read.py
-```
+### 16.2 Bounded waiting remains a Host Runtime Operation
 
-Procedure postcondition:
+The normative source language does not add a wait: Procedure node. Bounded waiting remains the existing Host Runtime Operation ca.session.evidence.await, which is granted under ca-agent-host.createdsession.runtime.
 
-```yaml
-- verify: createdsession.udm.subscription_usable
-  with:
-    udmReadResult:
-      from: nudm-sdm-get.output.result
-```
+Each wait call must supply:
+- the exact target READ Operation ID;
+- every exact target READ input/scope binding, including the attempt selector and causal handle;
+- the freshness bound used for the wait;
+- the authoritative-absence policy (CONTINUE or RETURN).
 
-Semantics:
+Deadline, cancellation and observation budget remain invocation-inherited Runtime controls. A successful wait returns only a wait/evidence summary; it does not supply a Predicate business payload. Each wait is followed by a separate final READ Operation, and that final output is bound to the Predicate.
 
-- `Predicate.inputs` declares the Predicate's named input interface. The Procedure's `verify.with/from` supplies those values using the same source-reference vocabulary and Binding Plan as ordinary Operation inputs. This keeps Predicate logic reusable and keeps producer-specific node names out of the Predicate definition.
-- The evaluator receives only the declared values. The Compiler derives the effective Predicate input projection from the Predicate interface plus all Procedure `verify.with/from` call sites and their producer schemas/Context contracts; multiple call sites must provide compatible inputs. No separate Script Input Schema file is required.
-- Runtime attaches the Host Evidence projection to each producer-backed input under `input.evidence.<alias>`. Evidence is a separate provenance object, not merged into the business payload and not an arbitrary Skill-authored value.
-- The Binding Plan records parallel lineage for each consumed value and its Evidence: exact producer, source path, schema/owner, invocation/scope, and the Evidence refs/guarantees attached to that producer. A Script cannot invent or rewrite Evidence refs.
-- The Script changes from reading `input.observations.response` / implicit `input.subject.udmReadReceipt` to the declared `input.udmReadResult`. Its strict Output TypedDict remains unchanged.
-- A CEL Predicate uses the same `inputs` map and evaluates those declared names. No acquisition occurs inside `verify`.
+The three 5GC waits are:
+1. Post-PCF N4 initial-resource convergence, phase POST_CREATE, exact baselineRef, absencePolicy CONTINUE, freshness 5 seconds.
+2. SMF RAN setup for the exact currentSessionInstanceRef from the final Post-N4 result, absencePolicy RETURN, freshness 3600 seconds.
+3. UPF N4 forwarding for that same exact currentSessionInstanceRef, absencePolicy RETURN, freshness 5 seconds.
 
-The current Procedure passes the full `nudm-sdm-get.output` receipt (invocation identity plus `result`) at the call site. The pure Predicate input is the business payload `udmReadResult`, bound from `nudm-sdm-get.output.result`; Host attaches Provider Evidence correlated to that same invocation/transaction/record. This is a call-site binding, not a field of `context.subject`. The prior `sbi.operation.result` ObservationSource reads the same immutable `CreatedSessionUDMResult` from an attempt-local store and adds Provider Evidence; it is not another network Get.
+### 16.3 Complete 17-ref source mapping
 
-Provider PR [#50](https://github.com/odango-chan/ca-provider-5gc/pull/50) proposes the full upstream GetSmData result Schema with an absolute but still proposed `$id`; it remains Draft with zero check-runs. The current Host adapter pins an older broader v0alpha2 snapshot. After Provider acceptance, refresh that pinned upstream snapshot/digest. The Host adapter's `CreatedSessionUDMResult.runtime_value()` is the actual Tool `output.result` and legacy Observation payload; it needs a separate Host-owned projection Schema. ToolCatalog `sbi.udm.sm_data.get.outputSchema.result` remains broad `object` and must reference that Host projection Schema, not the Provider wire Schema. The vNext Predicate consumes this exact Host Tool result plus same-receipt Host Evidence.
+The 17 legacy Observation refs map by source class, not one-to-one to new callable READ Operations:
 
-The selected vNext path binds the exact Host Tool `output.result` (the `runtime_value()` projection) and Host Evidence attached to the same full Provider receipt, correlated by invocation, transaction, request, record/digest, target/source provenance and freshness. This replaces the legacy duplicate payload comparison and does not issue another UDM Get. The `runtime_value()` projection is the Skill-facing payload and therefore requires its own Host-owned Schema; the Provider full-result Schema validates the upstream wire response and must not be substituted for it.
+| Legacy source class | Count | vNext treatment |
+|---|---:|---|
+| Captured ingress projection | 1 | Host context.ingress, with provenance/Evidence attached separately |
+| Prior-Operation local projections | 9 | Exact prior Operation output or a typed Host projection over the same attempt-local artifact, with Evidence from the same invocation; never issue a duplicate network read |
+| Host journal READs | 2 | Separate lifecycle-registration and resource-responsibility READ Operations at their original control-flow points |
+| Independent domain acquisition points | 5 | Four domain READ shapes: phase-discriminated N4 initial-resources, RAN setup, N4 forwarding and PCF governance |
 
-For the Hold path, the same shape consumes the preceding `ca.session.udm_hold.bind` output plus its Host Evidence. The Tool output carries the held-request details but not normalized `bindingStatus`. The current ObservationSource rechecks the exact selector, held-request correlation, lifecycle and deadline against the attempt-local record, then attaches Fabric Evidence. Preserve those checks in a typed local projection over that same stored artifact; do not synthesize `CURRENT` from call success and do not trigger another Fabric pending-Hold request.
+The two Host journal reads remain separate. A lifecycleRef or mutation receipt is only a selector/handle, not proof of current journal state. The two createdsession.lifecycle.ready checks remain separate fresh reads before UDM Subscribe and before PCF Create.
 
-### 16.2 Explicit wait over a READ Operation
+### 16.4 Callable Operation and Capability set
 
-Candidate:
+The current executable baseline has 12 unique Operations, including ca.session.evidence.await. vNext retains those 12 Operations and adds six READ Operations:
 
-```yaml
-nodes:
-  await-initial-resources:
-    wait:
-      read: fivegc-reads::n4.initial_resources.read
-      with:
-        ueRef:
-          from: input.ue-ref
-        pduSessionId:
-          from: input.psi
-        pti:
-          from: input.pti
-        requestType:
-          from: input.request-type
-        ingressRef:
-          from: input.ingress-ref
-        pcfPolicyAssociationRef:
-          from: npcf-sm-policy-control-create.preconditions.resolve-pcf-create-inputs.output.pcfPolicyAssociationRef
-        lifecycleRef:
-          from: input.lifecycle-ref
-        phase: POST_CREATE
-        baselineRef:
-          from: read-n4-baseline.output.baselineRef
-      absencePolicy: CONTINUE
-    'on':
-      SUCCEEDED: read-initial-resources
-      UNKNOWN: unresolved
+| New Operation | Owner boundary | Capability |
+|---|---|---|
+| ca.session.n4.initial_resources.read | Provider/Open5GS assurance | provider-5gc.createdsession.assurance |
+| ca.session.ran_setup.read | Provider/Open5GS assurance | provider-5gc.createdsession.assurance |
+| ca.session.n4.forwarding.read | Provider/Open5GS assurance | provider-5gc.createdsession.assurance |
+| ca.session.pcf_create_governance.read | env-fabric | env-fabric.createdsession.governance |
+| ca.session.lifecycle_registration.read | Agent Host journal | ca-agent-host.createdsession.runtime |
+| ca.session.resource_responsibility.read | Agent Host journal | ca-agent-host.createdsession.runtime |
 
-  read-initial-resources:
-    call: fivegc-reads::n4.initial_resources.read
-    with:
-      ueRef:
-        from: input.ue-ref
-      pduSessionId:
-        from: input.psi
-      pti:
-        from: input.pti
-      requestType:
-        from: input.request-type
-      ingressRef:
-        from: input.ingress-ref
-      pcfPolicyAssociationRef:
-        from: npcf-sm-policy-control-create.preconditions.resolve-pcf-create-inputs.output.pcfPolicyAssociationRef
-      lifecycleRef:
-        from: input.lifecycle-ref
-      phase: POST_CREATE
-      baselineRef:
-        from: read-n4-baseline.output.baselineRef
-    postconditions:
-      steps:
-        - verify: createdsession.n4.initial_resources_ready
-          with:
-            resources:
-              from: read-initial-resources.output
+With one phase-discriminated N4 Operation identity, the target has **18 unique callable Operations** and **8 Capability grants**: the existing six Capability groups plus one Provider assurance Capability and one separate Fabric governance Capability. The Host journal READs and bounded wait remain under the existing Host Runtime Capability, subject to explicit Owner confirmation of that boundary. If the N4 Owner cannot guarantee the discriminated PRE_CREATE / POST_CREATE contract, use two exact N4 Operation IDs and the total becomes 19.
 
-```
+The deployment-owned CapabilityContracts remains the sole authority for exact Operation membership and expected Effects. The Skill grants Capability IDs only; the Compiler must receive that trusted registry separately from ordinary dependency snapshots and must not infer membership from Operation names or adapter locations.
 
-Predicate interface (the evaluator consumes only the declared input):
+### 16.5 UDM Get output and same-receipt Evidence
 
-```yaml
-predicates:
-  createdsession.n4.initial_resources_ready:
-    inputs:
-      resources: {}
-    evaluator:
-      type: cel
-      expression: input.resources.bindingStatus == "CURRENT" && input.resources.defaultFlowInstalled == true && input.resources.uplinkEndpointBound == true
-```
+The Skill-facing UDM Predicate input is the exact Host Tool nudm-sdm-get.output.result, currently produced by CreatedSessionUDMResult.runtime_value(). This is a typed normalized Tool Output projection, not the full Provider HTTP wire response.
 
-Semantics:
+The Provider-owned GetSmData result Schema validates the upstream response inside the Host adapter. The Host-owned runtime_value() projection needs its own exported Schema because it is the actual Tool output.result consumed by the Skill. ToolCatalog sbi.udm.sm_data.get.outputSchema.result must reference the Host projection Schema, not the Provider wire Schema.
 
-- `wait` is a Runtime orchestration node, not a Tool Operation or Capability. It reuses the current bounded waiter policy (invocation deadline/budget, cancellation, exact scope/correlation and `KNOWN_ABSENT/CONTINUE`) but calls the exact declared READ Operation instead of routing through `ObservationSource`.
-- The referenced READ Operation must be exact, Effect=READ, present in the resolved Tool/Capability contract set, and covered by the Skill's Capability grant. Compiler validates the reference and input mapping; Runtime rechecks authorization.
-- The wait returns only its bounded-wait outcome and audit/evidence refs. It does not pass its last payload as the Predicate input. `KNOWN_ABSENT` follows the declared absence policy; `UNKNOWN` remains non-PASS and is retried only within the same invocation budget/deadline, then routes unresolved. For the N4 example, `POST_CREATE` wait and final READ both consume the exact `baselineRef` captured by the earlier `PRE_CREATE` READ; the final result must echo it as `baselineEvidenceRef` and provide the confirmed `currentSessionInstanceRef`.
-- The following explicit READ call obtains the final typed payload and Evidence; the Predicate consumes those declared inputs. This preserves the current wait acquisition followed by final Predicate acquisition and does not treat Evidence refs as payload.
-- The wait uses the same declared freshness/correlation requirements as the final Predicate input; the exact syntax for sharing that declaration remains open. Budget and deadline remain invocation-inherited Runtime controls, not arbitrary Skill overrides.
+Host attaches Evidence from the same full Provider receipt, proving invocation, transaction, request, Provider record/digest, selected target, source-binding provenance and freshness. Predicate consumes the exact normalized result plus that same-receipt Evidence. Retire the duplicate sbi.operation.result ObservationSource lookup only after Evidence parity is demonstrated; never issue a second UDM Get.
 
-The three current `ca.session.evidence.await` nodes map to waits over N4 initial resources, RAN setup and N4 forwarding. N4 baseline and post-N4 initial-resource checks may share one exact READ Operation identity only with a phase-discriminated input/output contract: `PRE_CREATE` preserves `NO_N4_PAIR / EXISTING_PAIR`; `POST_CREATE` preserves `NO_N4_PAIR / NEW_PAIR`, including the corresponding `KNOWN_ABSENT / AVAILABLE` distinction. They remain separate Procedure points with different business meaning. The Pre-Create read returns `baselineRef`; the Post-Create read consumes that exact handle, returns matching `baselineEvidenceRef` and the confirmed `currentSessionInstanceRef`. RAN setup and N4-forwarding reads must then consume that exact instance ref. If the Owner cannot guarantee the discriminated contract, use two exact READ identities instead. PCF governance is a direct Fabric READ Operation, not a wait.
+### 16.6 Remaining Owner and Runtime gates
 
-### 16.3 What this candidate does not solve yet
-
-The first UDM / Hold / N4 slice demonstrates the core boundary, but not all 17 refs are ready to migrate:
-
-- `createdsession.procedure_context` is a captured ingress-event projection. ca-agent-demo PR [#200](https://github.com/odango-chan/ca-agent-demo/pull/200) proposes its `procedure-context` payload Schema; PR #198 Subject/Facts still exposes only the ingress/lifecycle handles. The payload export remains Draft/unmerged and must preserve the trusted ingress event's source provenance.
-- `createdsession.lifecycle_registration` and `createdsession.resource_responsibility` read the Host reference journal. PR #200 proposes both normalized payload Schemas; their source authority is the Agent reference journal, not Provider/Open5GS state. Keep them distinct from static Subject/Facts fields. These exports remain Draft/unmerged and must use the actual Host journal owner identity.
-- The nine prior-Operation-owned local projections read attempt-local stores populated by existing Operations. Their direct Operation outputs are not all equivalent: some return only handles while the ObservationSource adds normalized fields or validates local-store state. Expose typed projections over the same stored artifact and attach its Evidence, without another external network read.
-- The full Runtime `ObservationEvidence` envelope remains Host-internal by design. Skill consumes each Owner/adapter domain Output Schema plus the narrow Host Script Evidence-reference projection; do not publish one aggregate Observation payload Schema or the full internal envelope merely to satisfy a Compiler file-count target.
-
-### 16.4 Impact on the current 5GC Operation set
-
-The current Skill has 12 unique Operations, including `ca.session.evidence.await`. Under this candidate, the three wait nodes become Procedure orchestration and the old wait Operation leaves the Skill grant. Four exact owner READ Operation identities are added: N4 initial resources, RAN setup, N4 forwarding and PCF governance. That yields **15 unique callable Operations** (11 retained + 4 new); the wait construct itself is not a Capability member.
-
-This is a design estimate, not a frozen ToolCatalog or Capability contract. If the existing wait Operation is retained instead, the total would be 16 and its input must explicitly identify the target READ Operation rather than a legacy Observation Ref.
-
-The complete behavior-preserving semantic Procedure outline—covering all 17 Predicate inputs, the two fresh lifecycle gates, the three bounded waits, four owner READ shapes, exact Operation reuse, and reconciliation/finalization paths—is recorded in [Binding Migration Rehearsal §22](binding-migration-rehearsal-vnext.md#22-behavior-preserving-target-procedure-outline-syntax-neutral-not-frozen). It is deliberately syntax-neutral; §16 remains a candidate, not frozen YAML.
-
-
-## 17. Implementation decisions — 2026-11-13
-
-The following decisions supersede exploratory alternatives elsewhere in this design note and are the implementation baseline:
-
-1. **Breaking version:** vNext uses `connectionagent.io/v1alpha2`. The Compiler rejects v0.2 constructs; no dual parser, field mapper or compatibility path is retained.
-2. **Pure Predicates:** Predicate definitions declare named `inputs`; they do not declare or acquire Observations. Procedure `verify.with` supplies every input explicitly. Evaluators read `input.<name>`.
-3. **Explicit READs:** every domain read is a callable READ Operation with a typed output and Evidence from the same invocation. Predicate evaluation never triggers a second read.
-4. **Wait remains a Host Operation:** reuse the bounded Host Runtime wait operation, but make its target an exact READ Operation plus explicit scope/freshness/absence policy. It returns a wait summary; Procedure performs the final read separately.
-5. **Capability separation:** Skill grants Capability IDs only. A single deployment-owned CapabilityContracts input maps each exact Operation ID to one Capability and Effect. Compiler cross-checks that mapping against the imported ToolCatalog.
-6. **No physical library paths:** Studio supplies dependency snapshots to BuildRequest. Skill source references imported Operations/Schemas by dependency alias plus exact exported ID, never by `lib/` path.
-7. **No dependency manager in Compiler:** no resolver lifecycle, manifest, lock, cache or digest output. The caller supplies the exact bytes.
-8. **Explicit binding first:** `with/from` is the only source binding in this first vNext implementation. Semantic IDs and auto-binding are deferred; they are not required for the 5GC migration.
-9. **Evidence is separate:** business payload and provenance/Evidence remain separate. Runtime validates Evidence before definite Predicate truth; Script `evidenceUsed` may only cite attached refs.
-10. **5GC-first:** migrate the 5GC Skill and its 36 Cases / three References as the business baseline. MAS remains non-executable design material and is not used to invent missing contracts.
-
-The migration rehearsal is not an acceptance gate. Paper review identifies Owner gaps; implementation and focused tests are the validation method. The first confirmed gap is now being closed in `ca-agent-demo`: Host publishes a typed `context.ingress` projection rather than requiring a Skill Predicate to acquire the same ingress through an Observation.
+- Publish exact Input/Output contracts for the six new READ Operations and confirm the Provider/Fabric/Host Capability boundaries.
+- Extend existing Operation Output contracts or retain a typed Host projection over the same attempt-local artifact for the nine prior-Operation projections. Do not infer CURRENT from a handle or mutation success, and do not duplicate network reads.
+- Publish and link the Host Subject/Facts/Ingress and Evidence-reference Schema exports.
+- Publish the Host UDM runtime_value() Output Schema and link it to the ToolCatalog sbi.udm.sm_data.get.outputSchema.result; separately accept the Provider wire Schema and refresh the Host pinned snapshot.
+- Update the Host wait Operation contract/runtime to target the exact READ Operation and exact input bindings, while preserving inherited deadline, cancellation and budget.
+- Rebind all 36 Cases and three References to the new source model without changing their business obligations. MAS remains outside this executable 5GC migration.
+- Implement Compiler/Runtime consumers against the normative vNext spec. This source migration alone does not claim the Skill is executable or that the live 5GC Demo is READY.
