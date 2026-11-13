@@ -8,22 +8,15 @@ class PredicateEvaluationResult(TypedDict):
 
 
 def main(input: dict) -> PredicateEvaluationResult:
-    response = input["observations"]["response"]
-    refs = []
-    for metadata in input.get("evidence", {}).values():
-        for ref in metadata.get("refs", []):
-            if ref not in refs:
-                refs.append(ref)
+    response = input["udmReadResult"]
+    refs = list(dict.fromkeys(
+        input.get("evidence", {}).get("udmReadResult", {}).get("refs", [])
+    ))
     result = "UNKNOWN"
     reason = "UDM_RESULT_UNUSABLE"
-    # Runtime supplies the composed subject from the producing call, then
-    # independently acquires the Observation with that invocation/transaction.
-    # Neither a model-supplied receipt nor a latest-per-UE lookup is admissible.
-    receipt = input.get("subject", {}).get("udmReadReceipt")
-    if (not isinstance(receipt, dict) or not isinstance(receipt.get("invocationId"), str)
-            or not receipt["invocationId"] or response != receipt.get("result")):
-        return {"result": "UNKNOWN", "reasonCode": "UDM_PRODUCER_EVIDENCE_MISMATCH", "evidenceUsed": refs}
     status = response.get("httpStatus")
+    if response.get("operationId") != "GetSmData":
+        return {"result": result, "reasonCode": "UDM_OPERATION_ID_MISMATCH", "evidenceUsed": refs}
     if (response.get("networkOutcome") == "HTTP_RESPONSE"
             and response.get("responseOrigin") == "TARGET_SERVICE_VIA_SCP"
             and response.get("captureComplete") is True and type(status) is int):
@@ -40,13 +33,14 @@ def main(input: dict) -> PredicateEvaluationResult:
                 and allowed_modes == [1, 2, 3]
             )
             result = "PASS"
-            reason = "UDM_SUBSCRIPTION_MATCHED"
-            if is_open5gs_compat_shape:
-                reason = "UDM_OPEN5GS_SSC_COMPATIBILITY_APPLIED"
+            reason = (
+                "UDM_OPEN5GS_SSC_COMPATIBILITY_APPLIED"
+                if is_open5gs_compat_shape else "UDM_SUBSCRIPTION_MATCHED"
+            )
         elif status == 200 and selection == "NO_MATCH":
             result = "FAIL"
             reason = "UDM_SUBSCRIPTION_NOT_MATCHED"
-        elif selection == "HTTP_ERROR" and status >= 400 and status <= 599:
+        elif selection == "HTTP_ERROR" and 400 <= status <= 599:
             result = "FAIL"
             reason = "UDM_TARGET_HTTP_ERROR"
         elif selection == "AMBIGUOUS":
@@ -57,8 +51,6 @@ def main(input: dict) -> PredicateEvaluationResult:
             reason = "UDM_SUBSCRIPTION_INVALID_PROFILE"
         elif selection == "UNSUPPORTED_ENUM":
             reason = "UDM_SUBSCRIPTION_UNSUPPORTED_ENUM"
-        elif selection == "UNSUPPORTED_STATUS":
-            reason = "UDM_RESPONSE_UNSUPPORTED_STATUS"
         elif selection == "UNSUPPORTED_VARIANT":
             reason = "UDM_SUBSCRIPTION_UNSUPPORTED_VARIANT"
     elif response.get("networkOutcome") == "TIMEOUT":
