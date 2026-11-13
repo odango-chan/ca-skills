@@ -75,6 +75,16 @@ The five independent domain acquisition points are N4 baseline, post-create N4 r
 - 2 Host journal READs;
 - 5 independent domain acquisition points across four READ shapes.
 
+### 4.1 Fabric PCF governance READ binding
+
+The Fabric governance READ is keyed by the exact `holdRef` returned by
+`ca.session.pcf_hold.bind`. The Procedure passes that handle directly to
+`env-fabric-tools::ca.session.pcf_create_governance.read`; it does not pass a
+UE/PDU-session tuple and does not ask Fabric to rediscover the hold. Fabric's
+loopback endpoint currently uses HTTP POST for its JSON request body, but the
+operation is semantically READ because it never claims, forwards, delivers or
+mutates the held waiter. The Tool Effect remains READ.
+
 ## 5. Evidence and prior-operation results
 
 A READ Operation returns one typed normalized value and Evidence from the same invocation. A Predicate consumes the exact prior output through `verify.with`; it never triggers a duplicate read to reconstruct provenance.
