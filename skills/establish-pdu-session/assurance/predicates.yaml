@@ -43,12 +43,13 @@ predicates:
   createdsession.pcf.create_inputs.ready:
     inputs:
       inputs: {}
+      pcfHold: {}
     evaluator:
       type: cel
       expression: input.inputs.bindingStatus == "CURRENT" &&
         input.inputs.pcfCreateInputsRef != "" &&
-        input.inputs.pcfPolicyAssociationRef != "" &&
-        input.inputs.fabricHoldRef != "" &&
+        input.inputs.pcfPolicyAssociationRef == input.pcfHold.policyAssociationRef &&
+        input.inputs.fabricHoldRef == input.pcfHold.holdRef &&
         input.inputs.allocatedIPv4 != "" &&
         input.inputs.selectionDigest != ""
 
