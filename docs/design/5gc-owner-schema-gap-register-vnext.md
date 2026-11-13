@@ -439,7 +439,7 @@ The two Host journal READs are grouped under the separate Capability
 Skill contract. They are not appended to the legacy
 `ca-agent-host.createdsession.runtime` Capability or its legacy registration.
 This keeps the READ authority independently reviewable and avoids widening the
-legacy Skill's granted Operation set. The Host publishes this Capability and
-its two Operation contracts as a separate vNext dependency snapshot; the
-deployment later composes that snapshot with Provider/Fabric snapshots and one
-complete deployment Registration.
+legacy Skill's granted Operation set. Host PR #203 is merged. It publishes this Capability and its two Operation
+contracts as a separate vNext dependency snapshot; the deployment later
+composes that snapshot with Provider/Fabric snapshots and one complete
+deployment Registration.
