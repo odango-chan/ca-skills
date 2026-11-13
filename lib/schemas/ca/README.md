@@ -12,8 +12,9 @@ The Host-owned CreatedSession UDM normalized result is imported from
 
 Its exact Schema `$id` is
 `https://connectionagent.io/ca-agent-host/createdsession/udm-runtime-value/v1alpha1/schema.yaml`.
-The `createdsession-tools::sbi.udm.sm_data.get` ToolCatalog snapshot repeats
-this schema inline at `outputSchema.properties.result` because the current
-Runtime Tool boundary validates self-contained schemas and does not resolve
-external Schema references. Keep the two parsed schemas structurally equal.
-The upstream Provider wire result Schema remains a separate Owner contract.
+The vNext Skill dependency snapshot imports this Host Schema, but the current
+ToolCatalog snapshot still has a generic `result` shape. Do not treat that as
+a completed static link: the exact Host Schema must be embedded in the vNext
+ToolCatalog `outputSchema.properties.result` when the dependency catalog is
+refreshed. The legacy ToolCatalog is intentionally unchanged. The upstream
+Provider wire result Schema remains a separate Owner contract.
