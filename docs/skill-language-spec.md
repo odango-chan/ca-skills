@@ -92,7 +92,7 @@ Rules:
 - `context.projections` declares the exact Host/Owner projections the Skill may consume. Each value is an alias-qualified exported Schema ID.
 - `context.evidenceSchema` identifies the Host-owned bounded Evidence-reference projection. Evidence is separate from business data.
 - `allowedResources.capabilities[]` contains Capability IDs only. Direct Operation IDs are forbidden here.
-- The CapabilityContracts document maps each exact Operation ID to exactly one Capability and declares its Effect. The Compiler verifies that every called Operation is mapped, its Effect matches ToolCatalog, and its Capability is granted by this Skill.
+- The CapabilityContracts document maps each exact callable ID (Tool Operation or Observation query) to exactly one Capability and declares its Effect. The Compiler verifies that every called interface is mapped, its Effect matches ToolCatalog, and its Capability is granted by this Skill.
 - Runtime repeats authorization and Effect checks at execution. A static grant is not execution authority.
 - There is no `allowedResources.localTools`, `requiredFacts` fallback, or physical `lib/` schema path.
 
