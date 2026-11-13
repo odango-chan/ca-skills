@@ -8,16 +8,25 @@ class PredicateEvaluationResult(TypedDict):
 
 
 def main(input: dict) -> PredicateEvaluationResult:
-    response = input["transferResult"]
-    refs = list(dict.fromkeys(input.get("evidence", {}).get("transferResult", {}).get("refs", [])))
+    transfer = input["transferResult"]
+    refs = list(dict.fromkeys(
+        input.get("evidence", {}).get("transferResult", {}).get("refs", [])
+    ))
+    expected_operation_ref = input["expectedOperationRef"]
+    network_result = transfer.get("result")
+    if (not isinstance(expected_operation_ref, str) or not expected_operation_ref
+            or transfer.get("operationRef") != expected_operation_ref
+            or not isinstance(network_result, dict)
+            or network_result.get("operationRef") != expected_operation_ref
+            or not refs):
+        return {
+            "result": "UNKNOWN",
+            "reasonCode": "AMF_PRODUCER_EVIDENCE_MISMATCH",
+            "evidenceUsed": refs,
+        }
+
     result = "UNKNOWN"
     reason = "TRANSFER_NOT_PROVEN"
-    operation_ref = response.get("operationRef")
-    network_result = response.get("result")
-    if (not isinstance(operation_ref, str) or not operation_ref
-            or not isinstance(network_result, dict)
-            or network_result.get("operationRef") != operation_ref):
-        return {"result": "UNKNOWN", "reasonCode": "AMF_PRODUCER_EVIDENCE_MISMATCH", "evidenceUsed": refs}
     status = network_result.get("httpStatus")
     if (network_result.get("networkOutcome") == "HTTP_RESPONSE"
             and network_result.get("responseOrigin") == "TARGET_SERVICE_VIA_SCP"
