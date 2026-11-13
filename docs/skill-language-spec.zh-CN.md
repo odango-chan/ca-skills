@@ -78,7 +78,7 @@ Build 成功不等于 Runtime READY；Runtime READY 不等于执行成功；Skil
 
 ## 5. 源码与执行分层
 
-1. **Skill 源码层：** 业务目标、公共 Request Schema、显式 Capability Grants；Skill 身份由 Package 路径确定。
+1. **Skill 契约层：** 业务目标、公共 Request Schema、Context 要求、公共依赖和显式 Capability Grants，由 contract.yaml 声明；Skill 身份由 Package 路径确定。
 2. **Procedure 层：** 单一确定性执行图，包含入口 Precondition、Operation / Observation、局部判断、最终 Postcondition、分支和终态。
 3. **Predicate 层：** 可复用的纯判断定义；CEL 或受约束的 Python evaluator。
 4. **Tool / Capability 层：** Owner 发布的 callable 契约、Schema、Effect，以及部署侧精确授权关系。
@@ -87,7 +87,8 @@ Build 成功不等于 Runtime READY；Runtime READY 不等于执行成功；Skil
 ~~~text
 Skill Package
  ├── SKILL.md
- ├── assurance/procedure.yaml  # Goal / Request Schema / Capability Grants + Procedure graph
+ ├── assurance/contract.yaml   # Goal / Request / Context / Dependencies / Capability Grants
+ ├── assurance/procedure.yaml  # Procedure graph only
  ├── assurance/predicates.yaml
  ├── schemas/                  # Skill-owned Schemas only
  ├── scripts/                  # Skill-owned deterministic Scripts
@@ -111,6 +112,7 @@ vNext 作者维护的 Package：
 skills/<skill-name>/
 ├── SKILL.md
 ├── assurance/
+│   ├── contract.yaml
 │   ├── procedure.yaml
 │   └── predicates.yaml
 ├── cases/<case-name>/case.yaml
@@ -122,22 +124,25 @@ skills/<skill-name>/
 | 资产 | 职责 |
 |---|---|
 | SKILL.md | 面向 Agent 的业务指导，不是第二份执行图 |
-| procedure.yaml | 唯一 Skill 执行源码：Goal、Request Schema、Capability Grants 和 Procedure 图 |
+| contract.yaml | Skill 公共契约：Goal、Request Schema、Context 要求、公共依赖和 Capability Grants |
+| procedure.yaml | 唯一 Procedure 执行图：入口输入投影、start、节点、路由和最终 Postcondition |
 | predicates.yaml | 可复用 Predicate 定义及其参数签名 |
 | cases/ | 业务场景和预期语义义务 |
 | schemas/ | 仅真正由 Skill 拥有的 Schema |
 | scripts/ | Skill 自有确定性 Python；可作为 Procedure 的本地 Script Operation，也可实现 Predicate |
 | references/ | 可选知识资料，不是执行契约或 Evidence |
 
-vNext 不要求作者维护独立 contract.yaml。Skill 身份从 Package 根目录确定；语言版本、根对象类型和规范化机器元数据由 Compiler 在 BuildRequest 目标版本下派生。导入契约由 Studio / 调用方通过 DependencySnapshot 提供，不放入 Skill Package 的 lib/。
+vNext 保留作者维护的 assurance/contract.yaml，但不再使用重复的 apiVersion、kind、metadata 等机器对象包装。Contract 声明 Skill 的公共业务契约、依赖需求和 Capability Grants；Skill 身份从 Package 根目录确定。语言版本由 BuildRequest / Compiler Target 决定。外部依赖的具体内容由 Studio / 调用方通过 DependencySnapshot 提供，不复制到 Skill Package 的 lib/。
 
 ### 6.2 Goal、Request、Invocation 与编译契约
 
-- **Goal：** Skill 希望达成的业务目标，在 procedure.yaml 根字段中显式声明；它不等于某个 Operation 成功。
-- **Request：** 调用方为本次执行提供的业务请求，由 procedure.yaml 的 requestSchema 指向 Skill 自有 Schema；Request 本身不证明网络状态。
-- **Capability Grants：** Skill 在 procedure.yaml 根字段中显式声明所需 Capability 身份。Compiler 逐一验证每个外部 callable 都属于已 Grant 的 Capability；不得从“源码调用了某个 Tool”自动推导授权。
+- **Goal：** Skill 希望达成的业务目标，由 contract.yaml 声明；它不等于某个 Operation 成功。
+- **Request：** 调用方为本次执行提供的业务请求，由 contract.yaml 的 inputs.requestSchema 指向 Skill 自有 Schema；Request 本身不证明网络状态。
+- **Context Requirements：** Skill 声明运行所需的公共事实和 Context Projection Schema，Compiler 校验 Procedure / Predicate 对 Context 的使用是否满足声明。
+- **Dependencies：** Skill 声明所需的公共 Owner 契约身份（例如 ToolCatalog、Host Context、Observation、共享 Schema）。声明依赖身份，不携带下载地址、版本锁或依赖内容。
+- **Capability Grants：** Skill 在 contract.yaml 中显式声明所需 Capability 身份。Compiler 逐一验证每个外部 callable 都属于已 Grant 的 Capability；不得从“源码调用了某个 Tool”自动推导授权。
 - **Skill Identity：** 由规范化 Package 根路径 / Package 名确定，不再要求作者在 YAML 重复填写 metadata.name。
-- **Compiled Skill Contract：** Compiler 可将 Goal、Request Schema、Capability Grants、入口和最终 Postcondition 归一化为 Runtime 所需的契约投影。它是派生产物，不是作者维护的第二份源码；若 Runtime 不需要独立 Contract 文件，也不必单独输出。
+- **Compiled Skill Contract：** Compiler 将 contract.yaml、Procedure 和 Predicate 定义归一化为 Runtime 所需的契约投影。它是派生产物，不是第二份作者源码；若 Runtime 不需要独立 Contract 文件，也不必单独输出。
 - **Invocation：** 一次 Skill 独立执行实例。每次 Invocation MUST 有独立运行身份和隔离上下文。不得因为 UE 相同而共享未声明的可变状态。
 
 ### 6.3 Context、Subject、Facts、Ingress
@@ -366,7 +371,7 @@ CapabilityContracts 使用稳定 Owner 身份 + 精确 callable ID + kind 标识
 
 ## 10. 版本和文件
 
-vNext 作者源码不重复声明 apiVersion、kind、metadata 等机器对象包装。文件路径和内容结构决定源文件类型：procedure.yaml 是 Skill 的唯一 Procedure 源文件，predicates.yaml 是 PredicateSet 源文件，schemas/ 与 scripts/ 中的文件按其内容和引用解析。
+vNext 作者源码保留 contract.yaml、procedure.yaml 和 predicates.yaml 三个语义明确的入口文件。文件路径与所在目录决定源文件类型；这些文件不需要重复声明 apiVersion、kind 或 metadata 包装。
 
 语言版本由 BuildRequest / Compiler Target 明确指定，而不是由每个 YAML 文件重复声明。Compiler 必须严格按指定版本解析；不支持的版本必须失败，不得猜测或兼容映射。编译产物记录实际采用的语言/API 版本、Skill Package 身份和生成器版本。
 
@@ -378,16 +383,33 @@ vNext 是破坏性版本。Compiler MUST NOT 静默把 v0.2 字段、旧路径�
 
 CA-SL 使用 YAML 1.2 表达作者源码。YAML 是序列化格式，不是完整语言语义。Compiler MUST 使用安全解析器，并拒绝重复 Key、未知语义字段、非预期根类型、自定义 Tag、循环 Alias 和无法确定解释的标量。
 
-vNext 源码根结构：
+vNext 源码由独立的 Skill Contract 和 Procedure 图组成：
 
 ~~~yaml
+# assurance/contract.yaml
 goal: pdu_session.initial_request_fulfilled
-requestSchema: schemas/establishment-request.schema.yaml
-capabilities:
-  - provider-5gc.session-read
-  - provider-5gc.session-mutation
-  - env-fabric.session-hold
-  - ca-agent-host.session-runtime
+inputs:
+  requestSchema: schemas/establishment-request.schema.yaml
+context:
+  requiredFacts:
+    - createdsession_ingress
+    - createdsession_lifecycle
+  schemas:
+    subject: host-context::urn:connectionagent:5gc:skill-context:subject:v1
+    facts: host-context::urn:connectionagent:5gc:skill-context:facts:v1
+dependencies:
+  host-context: <owner-published-dependency-identity>
+  fivegc-tools: <owner-published-dependency-identity>
+allowedResources:
+  capabilities:
+    - provider-5gc.session-read
+    - provider-5gc.session-mutation
+    - env-fabric.session-hold
+    - ca-agent-host.session-runtime
+~~~
+
+~~~yaml
+# assurance/procedure.yaml
 inputs:
   ueRef: context.subject.ueRef
   dnn: context.request.dnn
@@ -408,14 +430,17 @@ nodes:
 规范性结构文法（抽象 EBNF；字段约束由对应对象 Schema 和本规范语义规则补充）：
 
 ~~~ebnf
-ProcedureDocument   = Goal, [RequestSchema], [CapabilityGrants],
-                      [ProcedureInputs], StartNode, NodeMap ;
-PredicateDocument   = PredicateSet ;
+SkillContractDocument = Goal, [RequestContract], [ContextRequirements],
+                        [Dependencies], [CapabilityGrants], [SkillPolicies] ;
+ProcedureDocument    = [ProcedureInputs], StartNode, NodeMap ;
+PredicateDocument    = PredicateSet ;
 
-Goal                = "goal", GoalIdentity ;
-RequestSchema       = "requestSchema", LocalSchemaPath ;
-CapabilityGrants    = "capabilities", CapabilityList ;
-ProcedureInputs     = "inputs", SourceMap ;
+Goal                 = "goal", GoalIdentity ;
+RequestContract      = "inputs", "requestSchema", LocalSchemaPath ;
+ContextRequirements = "context", ContextRequirementMap ;
+Dependencies         = "dependencies", DependencyMap ;
+CapabilityGrants     = "allowedResources", "capabilities", CapabilityList ;
+ProcedureInputs      = "inputs", SourceMap ;
 StartNode           = "start", NodeIdentity ;
 NodeMap             = "nodes", Map<NodeIdentity, Node> ;
 
@@ -501,13 +526,14 @@ nodes:
 
 - Skill 名称 / 身份：由 Package 根目录确定，不再填写 metadata.name；
 - apiVersion / kind：由 Compiler Target 和源文件路径 / 结构确定，在编译产物中记录；
-- skillType：由可执行 Procedure 源文件确定；
+- skillType：由可执行 Procedure 源文件确定，是否保留为可选展示属性待评审；
 - entryProcedure：每个 Skill 只有一张入口 Procedure 图，因此不需要额外引用；
-- context.projections：由实际使用的 context.subject / context.facts / context.ingress 等 SourcePath 推导，再从本次 Host DependencySnapshot 解析精确 Schema；
-- evidenceSchema：Evidence Ref 投影由 Host / Runtime 统一定义和校验，不由 Skill 重复声明；
-- SkillContract.postconditions：最终条件就是 Procedure 图中的最终 Postcondition 节点，不再在 Contract 层重复执行或重复声明。
+- Procedure 的 start / nodes：只在 procedure.yaml 声明，不在 Contract 中重复；
+- SkillContract.postconditions：最终条件就是 Procedure 图中的最终 Postcondition 节点，不再在 Contract 层重复执行或重复声明；
+- dependency 版本、digest、下载 URL、仓库分支和锁定状态：由 Skill Studio 的依赖选择 / 快照配置管理，不写入 Skill 公共契约源码；
+- Evidence Envelope Schema：由 Host / Runtime 统一定义和校验，不由 Skill 重复声明。
 
-SkillContract 若仍是某个 Host Runtime 的既有输入格式，只能由 Compiler 从上述源码生成，不是作者源文件。若 Runtime 消费统一 CompiledSkill Artifact 而不需要独立 SkillContract，则无需再生成单独文件。
+Contract 是作者维护的公共 Skill 声明，不是 Compiler 派生物。Compiler 可基于 contract.yaml、procedure.yaml、predicates.yaml 和实际依赖快照生成 Runtime 所需的规范化 CompiledSkill / Contract 投影；是否另行输出名为 SkillContract 的文件由 Runtime 接口决定。
 
 vNext 不允许直接把 Operation ID 放入授权列表，不允许 localTools，不允许把 Host 内部 dataclass 路径写入 Skill，不允许通过 requiredFacts 名称推断字段结构，也不允许物理 lib 路径作为外部身份。
 
