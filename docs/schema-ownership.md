@@ -1,71 +1,67 @@
-# Skill Schema Ownership v0
+# Skill Schema Ownership vNext
 
-> Compatibility note (2026-11-12): this document describes the current v0.2 source-tree convention. In vNext, Skill source must not bind to physical `lib/` paths. The `lib/**` paths below are current local source locators only; see [Capability & Authoring Model vNext §15](design/capability-authoring-model-vnext.md#15-dependency-identity-versus-local-lib-layout) for the target dependency-identity model. Existing v0.2 compilation behavior remains unchanged until a separately reviewed migration.
+**Status:** Normative vNext ownership contract. Physical `lib/**` references and Predicate Observation schemas are not part of this version.
 
-The source tree must contain only schemas owned by the Skill. A file being present in a Skill folder does not make that Skill the owner of every data shape it consumes.
+A Skill source file may reference a contract by dependency alias and exact exported ID. It must not encode where the caller stores or acquired the dependency bytes.
 
-| Contract | Owner | Source / Compiler treatment |
-| --- | --- | --- |
-| Public Skill Request | Skill author | `spec.inputs.requestSchema` points to `schemas/**`; Compiler resolves `context.request.*` from it. |
-| Tool Operation Input / Output | Tool owner | Imported ToolCatalog under logical `lib/tools/**`; Compiler links exact Operation IDs and uses its Schemas. |
-| Host Subject / Facts | Agent Host owner | Explicit `spec.context.schemas.subject/facts` paths into logical `lib/host/**`; missing files are `EXTERNAL_SCHEMA_MISSING`. |
-| Observation payload | Observation source owner | Explicit `spec.context.schemas.observations` path into logical `lib/observations/**`. |
-| Predicate evidence/provenance projection | Host / Runtime owner | Explicit `spec.context.schemas.evidence` path into logical `lib/host/**`. Never infer it from a Script or Case fixture. |
-| Procedure Script input | No separate file owner | Derived per call site from `with:` Producer references. |
-| Predicate Script input | Host evaluation context + declared observations | Derived from Request, explicit Host Schemas and Predicate observation declarations. |
-| Script output | Skill Script | Generated from the Script's strict Output `TypedDict`; read-only BuildResult output, not author source. |
+| Contract | Owner | vNext source / treatment |
+|---|---|---|
+| Public Skill Request | Skill | `spec.inputs.requestSchema` points to a Skill-owned file under `schemas/**` |
+| Invocation Subject / Facts / Ingress | Host or integration Owner | `spec.context.projections.*` references exact exported Owner Schema IDs |
+| Predicate Evidence refs | Host / Runtime | `spec.context.evidenceSchema` references the bounded Host Evidence projection |
+| Tool Operation Input / Output / Reconcile | Tool Owner | Imported ToolCatalog contract; Procedure calls one exact Operation ID |
+| Capability-to-Operation mapping | Deployment composition owner | One CapabilityContracts input supplied separately to BuildRequest |
+| READ Operation payload | The READ Operation's Owner | Its Output Schema is authoritative for the normalized returned value |
+| Procedure Script input | No separate file owner | Derived per invocation from that Script call site's explicit `with/from` bindings |
+| Predicate input | Predicate consumer interface | Named `Predicate.inputs` are checked against every `verify.with/from` producer at every call site |
+| Predicate Evidence | Host / Runtime | Attached separately from business values; Script may cite only the attached refs |
+| Script output | Skill Script | Generated from the strict return `TypedDict`; read-only BuildResult output |
 
-`context.requiredFacts` is a list of required fact identifiers, **not** a field-level data Schema. `Procedure.inputs.*.type` is at most an author assertion checked against its Producer; it cannot replace a missing Producer Schema.
+## 1. Dependency references
 
-## Current PDU Session external dependencies
+Studio/caller supplies dependency snapshots in BuildRequest. Skill source uses:
 
-The current conventional PDU Contract declares these logical Owner inputs:
+- `<alias>::<operation-id>` for a callable Operation;
+- `<alias>::<schema-$id>` for an imported Owner Schema.
 
-- `lib/host/subject.schema.yaml`
-- `lib/host/facts.schema.yaml`
-- `lib/host/evidence.schema.yaml`
-- `lib/observations/context-observations.schema.yaml`
+The alias is a snapshot selector, not a path, package manager, Git locator or schema owner. The exported ID after `::` remains owned by its producer.
 
-These are references to required Owner contracts, not Schemas authored or fabricated in this repository. The current official `lib/` snapshot contains only `lib/tools/createdsession.tool.yaml` (12 Operations); the Host/Observation Schema files are not bundled. A strict build must report these missing inputs until the actual owners supply them. `root-routing-profile-v0.5.schema.json` is deployment configuration and is not a substitute.
+There is no physical `lib/` directory requirement, `lib/...` source reference, manifest, lockfile or digest protocol in Compiler.
 
-## Compiler / Studio boundary
+## 2. Context and Predicate ownership
 
-`ca-skills` owns Skill-authored contracts and official examples. Studio/caller prepares file bytes and supplies imported Owner/Tool contracts in the Compiler's logical `lib/**` namespace. Compiler parses and links supplied bytes; it does not discover, fetch, persist, version, lock or refresh dependencies. `outputFiles` are Compiler results; Studio decides how to display or export them.
+- The Skill owns the public Request Schema.
+- Host/integration owners publish exact schemas for trusted invocation projections such as subject, facts and ingress.
+- Host publishes the bounded Evidence-reference projection; full provenance records remain internal to Runtime.
+- Predicate definitions declare named business inputs. They do not declare Observations, scopes, freshness or hidden globals.
+- Procedure explicitly supplies Predicate inputs. Compiler validates the exact producer path and Schema at every call site.
+- Runtime validates Evidence for the same producer invocation before a definite Predicate result is accepted.
 
+No schema is copied into the Skill merely to make a missing Owner dependency compile.
 
-## Additional Tool Owner Schema gap
+## 3. READ Operations and prior results
 
-The pinned `lib/tools/createdsession.tool.yaml` is an approved ToolCatalog snapshot, but the `sbi.udm.sm_data.get` Operation currently declares `outputSchema.properties.result` only as `{type: object}` with no nested `properties`. The conventional selection Script reads nested fields under `udmResult.subscription` (including S-NSSAI, DNN, PDU Session Types, SSC Modes, AMBR and default QoS), as well as response and provenance fields.
+A domain READ is an explicit Operation. Its Owner publishes the typed normalized Output Schema and returns Evidence for the same invocation.
 
-That broad `object` declaration is not sufficient evidence for those nested fields. The Compiler must not infer them from the Script body or restore the removed Skill-owned `selection-input.schema.yaml` as a workaround. Until the Tool Owner supplies a complete Operation Output Schema, strict linking of those nested accesses must remain an explicit unresolved/unsupported producer-schema diagnostic.
+If a later Predicate needs a prior Operation result, pass that exact result through `verify.with`. Do not reacquire the same resource from a parallel Observation source and do not infer a value from a local handle alone.
 
-This is separate from the missing Host Subject/Facts/Evidence and Observation Owner Schemas above.
+Host journal state is also read through explicit Host-owned READ Operations. The Skill does not declare Host-internal journal dataclasses.
 
+## 4. Script ownership
 
-## vNext direction: no Skill-authored physical library paths
+Procedure Script input is a per-call-site projection. Predicate Script input is the declared Predicate business input plus Host-attached Evidence refs. A Script declares only its strict output `TypedDict`; Compiler generates the output Schema.
 
-The vNext model separates **what a Skill depends on** from **where the dependency bytes live**:
+No Script input/output schema pair is authored as a second source of truth.
 
-- Skill source declares a stable dependency / exported contract identity, not `lib/...`.
-- Plugin-managed Workspace Configuration resolves that identity to a pinned source and immutable snapshot, and manages versioning, integrity, import, refresh, and cache.
-- Compiler receives Skill source plus resolved dependency snapshots in a deterministic logical namespace. It never fetches or manages dependencies.
-- Studio may display resolved imports in a read-only `lib/` tree, but that is not a mandatory source layout or a locator authored in the Skill.
-- No new mandatory project manifest or lockfile is introduced solely to encode paths; use the accepted Plugin-managed configuration boundary.
+## 5. 5GC Owner contract requirements
 
-Until this migration is separately approved, the current v0.2 `lib/...` references remain compatibility syntax. Do not change them piecemeal or invent the missing Host / Observation owner schemas.
+The 5GC migration uses these exact contract categories:
 
+- Host invocation projections: `subject`, `facts`, `ingress`;
+- Host Evidence refs;
+- Provider/Fabric/Host ToolCatalogs for the exact READ and MUTATION Operations;
+- one deployment CapabilityContracts document mapping each Operation to one Capability and Effect;
+- Skill-owned public establishment Request Schema;
+- Skill Script output schemas generated by Compiler.
 
-## vNext Predicate and Script I/O ownership (design review)
-
-The table above remains the current v0.2 compatibility rule. For the proposed pure-Predicate vNext model, the corresponding ownership is:
-
-- **Procedure Script input:** derive the effective input projection from that Procedure Script call site's `with/from` bindings. Do not author a separate Script Input Schema.
-- **Predicate input interface:** declare named values in `Predicate.inputs`; each Procedure `verify.with/from` call site supplies them. The effective Predicate Script input is derived from that declaration, all call sites, and the producer/Context contracts. Multiple call sites must be compatible.
-- **Predicate Script Evidence:** Runtime attaches Host-generated Evidence separately to each producer-backed input. Evidence is not a Script-authored field or a substitute for the business payload.
-- **Script output:** generate the output Schema from the Script's strict return `TypedDict`. Do not maintain a parallel authored per-Script Output Schema.
-- **READ Operation output:** the Tool/adapter Owner owns the domain payload Output Schema. Host owns only the generic Evidence/provenance projection. Do not retain one aggregate Observation payload Schema as a substitute for the individual READ outputs.
-- **Execution policy:** Sandbox, timeout, budget and permissions remain Host/Runtime policy, not Script metadata.
-
-The current `spec.context.schemas.observations` path is v0.2 compatibility syntax. In vNext, Observation acquisition is scheduled explicitly and each Predicate consumes declared inputs; domain payload contracts follow their actual READ Operation or stored-artifact projection owner. The exact YAML placement and shared Context/Evidence projection syntax remain design-review items.
-
-The runnable `ca-agent-demo` compatibility copy contains a legacy `predicate-evaluation-result.schema.yaml` referenced by its `connectionagent-tool` metadata. It is not part of official `ca-skills/main` source. The official evaluator return `PredicateEvaluationResult` TypedDict requires `evidenceUsed`, while the legacy Schema leaves it optional and additionally allows `summary` and `details`. An earlier vNext draft copied that legacy Schema into the official package; the copy has been removed because it is not the official output contract. Script output Schemas remain generated from each strict return `TypedDict`; if a shared Predicate-result envelope is needed later, define its consumer and owner first and generate/validate it from the actual shared type rather than maintaining a second manual authority.
+The 36 Cases and three References remain business-semantic source material. They do not define Owner Schemas and are not substitutes for READ outputs or Evidence.
