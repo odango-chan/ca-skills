@@ -1310,6 +1310,16 @@ predicates:
       expression: subscription.dnn == requestedDnn &&
         subscription.status == "ACTIVE"
 
+  # §30 中 create-pcf-association.output 与
+  # inspect-pcf-after-reconcile.output 必须满足相同的 Owner 输出 Schema
+  createdsession.pcf.association_owned:
+    parameters:
+      - association: ca::urn:connectionagent:5gc:pcf:association-result:v1
+    evaluator:
+      type: cel
+      expression: association.owned == true &&
+        association.policyAssociationRef != ""
+
   createdsession.session.established:
     parameters:
       - ranSetup: ca::urn:connectionagent:5gc:observation:ran-setup-result:v1
@@ -1320,6 +1330,8 @@ predicates:
         n4Forwarding.forwardingReady == true &&
         ranSetup.sessionInstanceRef == n4Forwarding.sessionInstanceRef
 ~~~
+
+§29 为教学性的 Predicate 类型签名。真实 Owner 是否以同一规范化 Schema 返回 Create Result / Reconcile Observation，以及 `inspect-final-state.output.ranSetup` / `n4Forwarding` 的精确类型，都需要 Owner 发布并由 Compiler 验证；这里没有声称这些 Schema 已发布。
 
 ## 30. Procedure
 
