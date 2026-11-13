@@ -1,12 +1,12 @@
-# vNext Binding Migration Rehearsal — 5GC and MAS
+# vNext 5GC Source Audit and Migration Map
 
-Status: **SOURCE REVIEW COMPLETE / FULL 5GC SOURCE MAPPING RECORDED / OWNER-CONTRACT CLOSURE PENDING**  
+Status: **PAPER AUDIT / 5GC SOURCE MAPPING RECORDED / NO MIGRATION REHEARSAL**  
 Date: 2026-11-12  
 Target design: [Capability & Authoring Model vNext](capability-authoring-model-vnext.md)  
 Source repository: `odango-chan/ca-agent-demo`, `main`  
 Source tree commit audited for the official sample sync: `38012852827437185c6343c2b544acad401084e1`
 
-> This is a read-only source rehearsal. No Skill source, ToolCatalog, Runtime, or live 5GC environment was modified. Counts below are lexical counts from the six YAML files and should not be interpreted as a compiler-derived count of removable mappings.
+ > This is a paper audit of existing source and Owner implementations. No migration rehearsal or simulated execution was performed. The 5GC mapping below is used to drive direct implementation; lexical counts are inventory only, not a target for minimizing bindings.
 
 ## 1. Executive result
 
@@ -97,7 +97,7 @@ The 5GC source does not justify deleting `with/from`. It justifies reducing repe
 
 The target is not “fewest mappings”; it is “fewest mappings that are genuinely derivable from authoritative contracts.”
 
-## 4. MAS rehearsal: strong context fan-out opportunity
+## 4. MAS is excluded from this migration
 
 ### 4.1 Repeated common context
 
@@ -139,7 +139,7 @@ The MAS ToolCatalog also uses constrained constants (for example, profile-specif
 
 MAS provides strong evidence that Binding Plan can materially simplify YAML: common context fan-out should be declared once and resolved against Operation semantic input contracts. Producer-specific resource handles, profile constants, and side-effect ordering remain explicit.
 
-## 5. Observation / Predicate migration findings
+## 5. Legacy Observation / Predicate source findings
 
 ### 5.1 Current source model
 
@@ -185,7 +185,7 @@ Only after this inventory can a Predicate be rewritten to consume a prior Operat
 
 Do not interpret “Predicate is pure” as “all current observation acquisitions must become explicit new network calls.” Some facts are already captured by Fabric or produced by an earlier Operation. The new model must expose the correct read of the authoritative stored fact/projection, or reuse adequate existing output/evidence, without fabricating a new external read.
 
-## 6. Binding classification from this rehearsal
+## 6. Binding classification from the source audit
 
 | Binding category | 5GC | MAS | vNext treatment |
 |---|---|---|---|
@@ -371,7 +371,7 @@ vNext mapping:
 - Preserve the final acquisition as an explicit READ step after the wait; its typed payload and Evidence become the pure Predicate inputs. This mirrors the current two acquisition points and avoids treating evidence refs as payload.
 - Do not collapse wait and final read into one sample in the first migration. That would change the current timing semantics and requires a separate old/new equivalence decision.
 
-### 16.4 Result of the first-slice rehearsal
+### 16.4 Result of the first-slice paper review
 
 These three existing paths show that pure Predicate is feasible without turning all 17 legacy Observation refs into new network Operations:
 
@@ -442,22 +442,24 @@ Current compatibility source lists the twelve Operation IDs above under `allowed
 
 Procedure calls continue to name one exact Operation, qualified by the alias resolving its ToolCatalog contract. The Compiler must link each call to exactly one Capability membership across the resolved ToolCatalog contracts and the separately supplied trusted CapabilityContracts input, then cross-check the Tool Effect against the independently declared expected Effect. If the trusted CapabilityContracts input is absent, static authorization proof cannot be claimed; Runtime admission remains authoritative. The Skill does not grant an entire Tool by display name, owner name, prefix, or implicit hierarchy.
 
-The CapabilityContracts alias is a logical build-input binding, not a normal Skill dependency locator: the deployment-owned CapabilityContracts must be supplied as a separate trusted Compiler input, not inferred from ordinary Skill dependency snapshots. The ToolCatalog alias resolves the Operation contracts from the ordinary resolved dependency set. Neither alias is a repository/path/revision field in Skill YAML. The exact alias values are not frozen here.
+The deployment-owned CapabilityContracts is supplied as one separate trusted Compiler input, not inferred from ordinary dependency snapshots. Skill grants the Capability IDs directly from that trusted registry; it does not author an alias for the deployment registry. ToolCatalog Operations and Owner Schemas use dependency-alias-qualified exported IDs. Neither alias is a repository/path/revision field in Skill YAML.
 
 The deployment-owned `budgetExemptOperations` entry for `ca.session.resource_responsibility.transfer` is not an additional Skill grant and is not an Effect. It remains a separate Runtime budget policy.
 
 ### 18.2 Additional READs required by the pure-Predicate migration
 
-The six-group map above is complete for the current twelve Operations, but it is not yet the final vNext Operation set. The source inventory identifies four independent READ shapes:
+The six-group map above is complete for the current twelve Operations, but it is not the final vNext Operation set. The source inventory identifies four independent domain READ shapes plus two Host journal READs:
 
 1. Provider N4 initial-resources read. It is used at two Procedure points: Pre-N4 baseline and Post-N4 initial-resource verification. One exact Operation identity may serve both points if its Output Schema is a discriminated result that preserves the distinct temporal/business meanings.
 2. Provider SMF RAN-setup read.
 3. Provider UPF N4-forwarding read.
 4. Fabric PCF-create-governance read.
+5. Host lifecycle-registration journal read.
+6. Host resource-responsibility journal read.
 
-The first three Provider reads are candidates for one new Provider assurance Capability. The Fabric governance read may join `env-fabric.createdsession.hold` only if Fabric confirms that it is the same authorization boundary; otherwise it needs a separate Capability. These are Owner decisions, not a Skill-side grouping choice.
+The three Provider reads belong to one new Provider assurance Capability if the Provider Owner confirms that boundary. Fabric governance is a separate Fabric-owned Capability unless Fabric confirms it shares the existing hold authorization boundary. The two Host journal reads belong to the Host Runtime Capability. The existing `ca.session.evidence.await` remains the bounded Host orchestration Operation; it polls the exact granted READ Operation and returns only a wait summary. The final READ is called separately.
 
-The current `ca.session.evidence.await` is a Host orchestration/wait Operation, not one of the four owner-read shapes. If the proposed Procedure-level `wait` construct replaces it, the current Host Operation leaves the Skill grant and the candidate total is **15 unique callable Operations** (11 retained + 4 new READs). If it remains a Host orchestration Operation, the candidate total is **16**. The six existing Capability groups are therefore the migration baseline, not a frozen final count after new READ contracts are introduced.
+With N4 baseline and post-create initial resources sharing one phase-discriminated Operation identity, this adds **six READ Operations** and raises the callable total from 12 to **18**. If the Owner cannot safely expose a phase-discriminated N4 result, split baseline and post-create into two exact READ identities: seven new READ Operations and **19** total. Do not replace this with implicit Predicate acquisition or hide journal reads in a context refresh.
 
 ## 19. Complete 17-ref Predicate input and acquisition migration
 
@@ -528,7 +530,7 @@ These are migration targets, not source edits. The official v0.2 scripts remain 
 
 An earlier vNext draft copied the legacy `predicate-evaluation-result.schema.yaml` into the official Skill package. That copy was not linked by the official `ca-skills` contract and did not match the official evaluator return `TypedDict`: the TypedDict requires `evidenceUsed`, while the copied Schema did not; the copied Schema additionally allowed `summary` and `details`. The copy has therefore been removed from this branch. The legacy file remains only in the runnable `ca-agent-demo` compatibility dialect, where its `connectionagent-tool` metadata references it. Official Script output Schemas remain generated from strict return `TypedDict` declarations; any future shared result envelope must be defined from its actual shared type and consumer, not copied as a second authority.
 
-## 21. End-to-end 5GC migration rehearsal result and remaining gates
+## 21. 5GC migration paper-audit result and implementation gates
 
 The source-backed mapping now covers the complete current Skill surface:
 
@@ -564,7 +566,7 @@ At the time of this update:
 
 The current `ca-agent-demo/main` and `ca-skills/main` sources remain unchanged. No live 5GC operation, Runtime behavior, Compiler implementation or MAS execution is part of this rehearsal.
 
-### 21.3 Feasibility verdict
+### 21.3 Paper-audit verdict
 
 - **Semantic expressiveness: YES, conditionally.** The current flow can be represented without 17 new network READ Operations or a generic `observation.read` tool. The target needs the six existing Capability grants, explicit producer-backed Predicate inputs for the nine local projections, Host-owned ingress/journal projections, and four exact owner READ shapes. N4 baseline and post-N4 resources are two call points over one discriminated READ contract. The three bounded waits remain separate from the final payload READ.
 - **Contract-complete / statically buildable: NOT YET.** Three Host projections and the normalized payload/Evidence equivalence for the nine local projections are not fully exported; the four READ shapes and their Capability memberships are not Owner-approved; the shared Predicate Context/Evidence and wait syntax are not frozen; and the trusted deployment CapabilityContracts BuildRequest binding is not implemented by the current Compiler.
@@ -573,7 +575,7 @@ The current `ca-agent-demo/main` and `ca-skills/main` sources remain unchanged. 
 This answers the feasibility question narrowly: the semantic model has enough concepts to describe the 5GC flow, but the current draft is not yet a complete vNext contract package. The next useful step is to close the specific Owner exports and freeze only the shared input/Evidence/wait boundary—not to build a Compiler or expand the abstraction surface.
 
 
-## 22. Behavior-preserving target Procedure outline (syntax-neutral; NOT FROZEN)
+## 22. Behavior-preserving vNext Procedure outline
 
 This is the target **semantic Procedure**, not proposed final YAML syntax. It keeps the current 5GC order, exact handles, mutations, failure branches, reconciliation and terminal responsibility transfer. It changes only where Predicate data is acquired and how it is passed to a pure Predicate.
 
@@ -663,7 +665,7 @@ The complete 5GC fixture set was reviewed against the target Procedure outline. 
 Therefore the existing 36 Cases and three References are sufficient as **unchanged behavioral constraints** for this semantic migration, but they are not a substitute for new vNext binding/schema conformance tests. Before a future Compiler/Runtime implementation is accepted, add focused fixtures for each derived Predicate input projection, producer/Evidence correlation, the N4 phase union and exact instance lineage. Keep those new tests separate from the authored Case/Reference package; do not rewrite the existing examples merely to fit candidate syntax.
 ## 24. Owner contract convergence decision (2026-11-13)
 
-Status: **5GC semantic ownership and migration shape converged for design review; Owner publication, READ contracts, and YAML syntax remain open.** This is not an implementation or merge authorization. `ca-skills/main` v0.2 and the runnable `ca-agent-demo/main` remain unchanged and authoritative for current execution.
+Status: **5GC semantic ownership and migration shape converged; vNext source syntax is frozen in `docs/skill-language-spec.md`; Owner READ contracts and Runtime implementation remain in progress.** This is a paper-audit record, not a separate migration rehearsal.
 
 ### 24.1 One authoritative contract per boundary
 
@@ -683,10 +685,10 @@ The runnable `ca-agent-demo` compatibility copy does contain three legacy UDM sc
 |---|---:|---|
 | Captured ingress projection | 1 | Bind the trusted captured event / Host `procedure-context` projection. This is not a network READ and must preserve source event provenance and receipt/acquisition time separately |
 | Prior-Operation local projections | 9 | Reuse the exact preceding Operation artifact plus its evidence where equivalent. If the Operation returns only handles, keep a typed Host projection over that same stored artifact and attach its evidence. Never add a second external read merely to replace an Observation Ref |
-| Host journal projections | 2 | Keep lifecycle-registration and resource-responsibility as Host-owned journal facts. A `lifecycleRef` or transfer receipt is only a selector/handle, not proof of current journal state. Their exact fresh acquisition boundary (Host READ Operation versus an explicitly scheduled Host projection) still needs Owner approval; do not silently promote them to static Subject/Facts fields |
+| Host journal READ Operations | 2 | Call exact Host-owned lifecycle-registration and resource-responsibility READ Operations at their original control-flow points. A `lifecycleRef` or transfer receipt is only a selector/handle, not proof of current journal state |
 | Independent owner-read acquisition points | 5 | Four distinct READ shapes: N4 baseline/initial-resource (one shared identity only if phase-discriminated), RAN setup, N4 forwarding, and PCF governance. These require exact owner Input/Output contracts, scope/freshness/correlation guarantees, Effect and Capability membership |
 
-Thus the current migration has **five independent acquisition points across four READ shapes**, not 17 new network reads. The three Provider assurance READs are N4, RAN setup and N4 forwarding; PCF governance is a Fabric-owned READ. N4 baseline (`PRE_CREATE`) and post-create initial resources (`POST_CREATE`) may share one exact READ identity only if the result is phase-discriminated and preserves `baselineRef` → `baselineEvidenceRef` → exact `currentSessionInstanceRef` lineage. Otherwise they must remain two exact READ identities. The bounded `wait` is Runtime orchestration over the exact N4 READ, not another Tool Operation; the final READ after the wait remains explicit.
+Thus the current migration has **five independent owner acquisition points across four domain READ shapes**, plus **two Host journal READs**. The four domain shapes are Provider N4 initial-resources, Provider RAN setup, Provider N4 forwarding, and Fabric PCF governance. N4 baseline (`PRE_CREATE`) and post-create initial resources (`POST_CREATE`) may share one exact READ identity only if the result is phase-discriminated and preserves `baselineRef` → `baselineEvidenceRef` → exact `currentSessionInstanceRef` lineage. Otherwise they remain two exact READ identities. The bounded `ca.session.evidence.await` is a Host orchestration Operation over an exact READ Operation; it returns only a wait summary, and the final READ after the wait remains explicit. With a phase-discriminated N4 Operation, six new READ Operations raise the current 12-Operation set to 18; splitting N4 raises it to 19.
 
 ### 24.3 UDM `sbi.operation.result`: direct prior-Operation binding
 

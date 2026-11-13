@@ -258,3 +258,23 @@ Therefore the answer to “can Capability authorization be statically validated?
 2. Keep nested `sbi.operation.result` producer bindings explicit while Provider PR #50 remains unaccepted and the ToolCatalog still exposes broad `result: object`. Once the Provider Schema is accepted, refresh the Host pinned wire snapshot; publish the separate Host `runtime_value()` projection Schema and link ToolCatalog `outputSchema.result` to it. Bind the exact Host Tool output plus same-receipt Evidence.
 3. Model the exact stored-result acquisition and its evidence when migrating `createdsession.udm.subscription_usable` to a pure Predicate. Reuse the prior Operation output only if its data and evidence prove the same invocation/transaction identity; do not issue another external UDM Get merely to satisfy the authoring syntax.
 4. Keep Capability → Operation → Effect linking as a contract requirement for the new model. Compiler implementation is a later consumer task; this design review does not add or reimplement Compiler behavior.
+
+
+## 8. vNext acquisition map — implementation authority
+
+The 17 entries in §3 are a legacy Predicate Observation inventory, **not** a target count of callable READ Operations. For vNext they map as follows:
+
+| Legacy source class | Count | New source model |
+|---|---:|---|
+| Captured ingress projection | 1 | Host Invocation Context `context.ingress`, with Host Evidence attached separately |
+| Prior-Operation local projections | 9 | Exact prior Operation output / stored artifact plus Evidence from that same invocation; no duplicate network READ |
+| Host journal facts | 2 | Explicit Host READ Operations: lifecycle registration and resource responsibility |
+| Independent domain acquisition points | 5 | Provider N4 baseline, Provider post-create N4 resources, Provider RAN setup, Provider N4 forwarding, Fabric PCF governance |
+
+There are four domain READ shapes if the Provider N4 Operation uses a required `phase: PRE_CREATE | POST_CREATE` discriminator and preserves the distinct `baselineRef` / `baselineEvidenceRef` / `currentSessionInstanceRef` lineage. If that contract cannot be made exact, split baseline and post-create into separate Operation IDs.
+
+The initial vNext addition is therefore **six new READ Operations** (one phase-discriminated N4, RAN, forwarding, Fabric governance, Host lifecycle journal, Host responsibility journal), raising the existing 12 Operations to 18. If N4 must be split, the total is 19. The existing bounded `ca.session.evidence.await` remains a Host orchestration Operation; it polls an exact granted READ Operation, returns only a wait summary, and is followed by a separate final READ.
+
+Capability assignment is explicit: the three Provider reads use a new Provider assurance Capability; Fabric governance uses a Fabric-owned Capability unless Fabric confirms it belongs to the existing hold boundary; the two Host journal reads belong to the Host Runtime Capability. The Skill grants these Capability IDs, not Operation IDs.
+
+This vNext map supersedes any earlier wording in this document that treated the Host journal facts as passive Context fields, left their acquisition boundary undecided, or counted only four new Operations. It also supersedes any suggestion that the 17 legacy Observation refs should remain Predicate acquisition declarations.
