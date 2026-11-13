@@ -534,3 +534,30 @@ existing Pre-N4 baseline, PCF commit time ordering, new-instance confirmation,
 SMF/UPF pair exactness, or RAN/N4 same-instance correlation. The phase router
 and the two caller-handle comparisons are mandatory parts of the vNext
 Operation implementation.
+
+### 14.12 Host-normalized UDM READ result export
+
+Host PR #205 is merged to `ca-agent-demo/main` at
+`fdd9c7dffbef6ffbeaa2797b363632a0b20ed1a5`. It publishes the exact
+Host-owned Schema for `CreatedSessionUDMResult.runtime_value()` at:
+
+`https://connectionagent.io/ca-agent-host/createdsession/udm-runtime-value/v1alpha1/schema.yaml`
+
+The export is intentionally distinct from Provider PR #50's upstream wire
+Schema. It contains the Skill-facing business value only:
+`operationId`, transaction/request/Fabric record handles, record digest,
+event time, network outcome, selection, HTTP metadata and selected
+subscription. Provider deployment-binding identity, responder identity,
+response-body digest and NF instance identity remain outside that projection.
+
+The vNext Skill dependency snapshot now imports the exact Host Schema under
+`lib/schemas/ca/createdsession-udm-runtime-value-v1alpha1.schema.yaml` and
+repeats it inline at
+`lib/tools/createdsession.tool.yaml` →
+`sbi.udm.sm_data.get.outputSchema.properties.result`. The inline duplication
+is required by the current self-contained Tool Schema boundary; the imported
+Owner Schema and inline Tool result must remain structurally identical.
+
+The legacy Host ToolCatalog on `ca-agent-demo/main` is deliberately unchanged:
+its stand-in registration tests require the existing open result object. The
+new binding is in the vNext dependency snapshot, not the legacy catalog.
