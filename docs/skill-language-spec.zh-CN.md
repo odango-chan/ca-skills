@@ -1207,186 +1207,190 @@ predicates:
 ## 30. Procedure
 
 ~~~yaml
-procedures:
-  establish:
-    inputs:
-      ueRef: context.subject.ueRef
-      pduSessionId: context.request.pduSessionId
-      pti: context.request.pti
-      dnn: context.request.dnn
-      sNssai: context.request.sNssai
-    start: observe-ue-registration
-    nodes:
-      observe-ue-registration:
-        observation: fivegc-observations::ue.registration.current
+goal: pdu_session.initial_request_fulfilled
+requestSchema: schemas/establishment-request.schema.yaml
+capabilities:
+  - fivegc-session-read
+  - fivegc-session-mutation
+  - fivegc-session-assurance
+  inputs:
+    ueRef: context.subject.ueRef
+    pduSessionId: context.request.pduSessionId
+    pti: context.request.pti
+    dnn: context.request.dnn
+    sNssai: context.request.sNssai
+  start: observe-ue-registration
+  nodes:
+    observe-ue-registration:
+      observation: fivegc-observations::ue.registration.current
+      arguments:
+        ueRef: input.ueRef
+      'on':
+        SUCCEEDED: check-ue-registration
+        FAILED: failed
+        UNKNOWN: unresolved
+
+    check-ue-registration:
+      precondition:
+        predicate: createdsession.ue.registered
         arguments:
-          ueRef: input.ueRef
-        'on':
-          SUCCEEDED: check-ue-registration
-          FAILED: failed
-          UNKNOWN: unresolved
+          - observe-ue-registration.output
+      'on':
+        PASS: read-udm-subscription
+        FAIL: failed
+        UNKNOWN: unresolved
 
-      check-ue-registration:
-        precondition:
-          predicate: createdsession.ue.registered
-          arguments:
-            - observe-ue-registration.output
-        'on':
-          PASS: read-udm-subscription
-          FAIL: failed
-          UNKNOWN: unresolved
+    read-udm-subscription:
+      operation: fivegc-tools::sbi.udm.sm_data.get
+      arguments:
+        ueRef: input.ueRef
+        dnn: input.dnn
+        sNssai: input.sNssai
+      'on':
+        SUCCEEDED: check-udm-subscription
+        FAILED: failed
+        DENIED: failed
+        UNKNOWN: unresolved
 
-      read-udm-subscription:
-        operation: fivegc-tools::sbi.udm.sm_data.get
+    check-udm-subscription:
+      postcondition:
+        predicate: createdsession.udm.subscription_usable
         arguments:
-          ueRef: input.ueRef
-          dnn: input.dnn
-          sNssai: input.sNssai
-        'on':
-          SUCCEEDED: check-udm-subscription
-          FAILED: failed
-          DENIED: failed
-          UNKNOWN: unresolved
+          - read-udm-subscription.output.result
+          - input.dnn
+      'on':
+        PASS: create-udm-subscription
+        FAIL: failed
+        UNKNOWN: unresolved
 
-      check-udm-subscription:
-        postcondition:
-          predicate: createdsession.udm.subscription_usable
-          arguments:
-            - read-udm-subscription.output.result
-            - input.dnn
-        'on':
-          PASS: create-udm-subscription
-          FAIL: failed
-          UNKNOWN: unresolved
+    create-udm-subscription:
+      operation: fivegc-tools::sbi.udm.sdm_subscription.create
+      arguments:
+        ueRef: input.ueRef
+        subscription: read-udm-subscription.output.result
+      'on':
+        SUCCEEDED: create-pcf-association
+        NOT_COMMITTED: failed
+        OUTCOME_UNKNOWN: reconcile-udm-subscription
+        DENIED: failed
+        FAILED: failed
 
-      create-udm-subscription:
-        operation: fivegc-tools::sbi.udm.sdm_subscription.create
+    reconcile-udm-subscription:
+      operation:
+        reconcile: create-udm-subscription
+      'on':
+        COMMITTED: create-pcf-association
+        NOT_COMMITTED: failed
+        UNRESOLVED: unresolved
+
+    create-pcf-association:
+      operation: fivegc-tools::sbi.pcf.sm_policy.create
+      arguments:
+        ueRef: input.ueRef
+        pduSessionId: input.pduSessionId
+        dnn: input.dnn
+        sNssai: input.sNssai
+      'on':
+        SUCCEEDED: verify-pcf-association
+        NOT_COMMITTED: failed
+        OUTCOME_UNKNOWN: reconcile-pcf-association
+        DENIED: failed
+        FAILED: failed
+
+    verify-pcf-association:
+      postcondition:
+        predicate: createdsession.pcf.association_owned
         arguments:
-          ueRef: input.ueRef
-          subscription: read-udm-subscription.output.result
-        'on':
-          SUCCEEDED: create-pcf-association
-          NOT_COMMITTED: failed
-          OUTCOME_UNKNOWN: reconcile-udm-subscription
-          DENIED: failed
-          FAILED: failed
+          - create-pcf-association.output
+      'on':
+        PASS: create-n4-session
+        FAIL: failed
+        UNKNOWN: unresolved
 
-      reconcile-udm-subscription:
-        operation:
-          reconcile: create-udm-subscription
-        'on':
-          COMMITTED: create-pcf-association
-          NOT_COMMITTED: failed
-          UNRESOLVED: unresolved
+    reconcile-pcf-association:
+      operation:
+        reconcile: create-pcf-association
+      'on':
+        COMMITTED: verify-pcf-association
+        NOT_COMMITTED: failed
+        UNRESOLVED: unresolved
 
-      create-pcf-association:
-        operation: fivegc-tools::sbi.pcf.sm_policy.create
+    create-n4-session:
+      operation: fivegc-tools::UPN.CREATE_UP_SESSION
+      arguments:
+        ueRef: input.ueRef
+        pduSessionId: input.pduSessionId
+      'on':
+        SUCCEEDED: transfer-n1n2
+        OUTCOME_UNKNOWN: unresolved
+        FAILED: failed
+        DENIED: failed
+
+    transfer-n1n2:
+      operation: fivegc-tools::sbi.amf.n1n2.transfer
+      arguments:
+        ueRef: input.ueRef
+        pduSessionId: input.pduSessionId
+      'on':
+        SUCCEEDED: signal-ran
+        OUTCOME_UNKNOWN: unresolved
+        FAILED: failed
+        DENIED: failed
+
+    signal-ran:
+      operation: fivegc-tools::SSM.SIGNAL_UE_AN
+      arguments:
+        ueRef: input.ueRef
+        pduSessionId: input.pduSessionId
+      'on':
+        SUCCEEDED: modify-n4-forwarding
+        OUTCOME_UNKNOWN: unresolved
+        FAILED: failed
+        DENIED: failed
+
+    modify-n4-forwarding:
+      operation: fivegc-tools::UPN.MODIFY_UP_SESSION
+      arguments:
+        ueRef: input.ueRef
+        pduSessionId: input.pduSessionId
+      'on':
+        SUCCEEDED: inspect-final-state
+        OUTCOME_UNKNOWN: unresolved
+        FAILED: failed
+        DENIED: failed
+
+    # 本示例假设 Operation Result 尚不足以独立证明最终 N4 / RAN 资源一致性，
+    # 因此显式查询权威状态。若 Operation Result 已满足 Predicate 的全部要求，
+    # 可直接从 modify-n4-forwarding 路由到 verify-final-state。
+    inspect-final-state:
+      observation: fivegc-observations::session.establishment.final_state
+      arguments:
+        ueRef: input.ueRef
+        pduSessionId: input.pduSessionId
+        sessionInstanceRef: create-n4-session.output.sessionInstanceRef
+      'on':
+        SUCCEEDED: verify-final-state
+        FAILED: failed
+        UNKNOWN: unresolved
+
+    verify-final-state:
+      postcondition:
+        predicate: createdsession.session.established
         arguments:
-          ueRef: input.ueRef
-          pduSessionId: input.pduSessionId
-          dnn: input.dnn
-          sNssai: input.sNssai
-        'on':
-          SUCCEEDED: verify-pcf-association
-          NOT_COMMITTED: failed
-          OUTCOME_UNKNOWN: reconcile-pcf-association
-          DENIED: failed
-          FAILED: failed
+          - signal-ran.output.result
+          - modify-n4-forwarding.output.result
+          - inspect-final-state.output
+      'on':
+        PASS: complete
+        FAIL: failed
+        UNKNOWN: unresolved
 
-      verify-pcf-association:
-        postcondition:
-          predicate: createdsession.pcf.association_owned
-          arguments:
-            - create-pcf-association.output
-        'on':
-          PASS: create-n4-session
-          FAIL: failed
-          UNKNOWN: unresolved
-
-      reconcile-pcf-association:
-        operation:
-          reconcile: create-pcf-association
-        'on':
-          COMMITTED: verify-pcf-association
-          NOT_COMMITTED: failed
-          UNRESOLVED: unresolved
-
-      create-n4-session:
-        operation: fivegc-tools::UPN.CREATE_UP_SESSION
-        arguments:
-          ueRef: input.ueRef
-          pduSessionId: input.pduSessionId
-        'on':
-          SUCCEEDED: transfer-n1n2
-          OUTCOME_UNKNOWN: unresolved
-          FAILED: failed
-          DENIED: failed
-
-      transfer-n1n2:
-        operation: fivegc-tools::sbi.amf.n1n2.transfer
-        arguments:
-          ueRef: input.ueRef
-          pduSessionId: input.pduSessionId
-        'on':
-          SUCCEEDED: signal-ran
-          OUTCOME_UNKNOWN: unresolved
-          FAILED: failed
-          DENIED: failed
-
-      signal-ran:
-        operation: fivegc-tools::SSM.SIGNAL_UE_AN
-        arguments:
-          ueRef: input.ueRef
-          pduSessionId: input.pduSessionId
-        'on':
-          SUCCEEDED: modify-n4-forwarding
-          OUTCOME_UNKNOWN: unresolved
-          FAILED: failed
-          DENIED: failed
-
-      modify-n4-forwarding:
-        operation: fivegc-tools::UPN.MODIFY_UP_SESSION
-        arguments:
-          ueRef: input.ueRef
-          pduSessionId: input.pduSessionId
-        'on':
-          SUCCEEDED: inspect-final-state
-          OUTCOME_UNKNOWN: unresolved
-          FAILED: failed
-          DENIED: failed
-
-      # 本示例假设 Operation Result 尚不足以独立证明最终 N4 / RAN 资源一致性，
-      # 因此显式查询权威状态。若 Operation Result 已满足 Predicate 的全部要求，
-      # 可直接从 modify-n4-forwarding 路由到 verify-final-state。
-      inspect-final-state:
-        observation: fivegc-observations::session.establishment.final_state
-        arguments:
-          ueRef: input.ueRef
-          pduSessionId: input.pduSessionId
-          sessionInstanceRef: create-n4-session.output.sessionInstanceRef
-        'on':
-          SUCCEEDED: verify-final-state
-          FAILED: failed
-          UNKNOWN: unresolved
-
-      verify-final-state:
-        postcondition:
-          predicate: createdsession.session.established
-          arguments:
-            - signal-ran.output.result
-            - modify-n4-forwarding.output.result
-            - inspect-final-state.output
-        'on':
-          PASS: complete
-          FAIL: failed
-          UNKNOWN: unresolved
-
-      complete:
-        terminal: SUCCEEDED
-      failed:
-        terminal: FAILED
-      unresolved:
-        terminal: UNRESOLVED
+    complete:
+      terminal: SUCCEEDED
+    failed:
+      terminal: FAILED
+    unresolved:
+      terminal: UNRESOLVED
 ~~~
 
 说明：
