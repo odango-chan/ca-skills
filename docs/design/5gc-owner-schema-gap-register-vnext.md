@@ -432,3 +432,14 @@ Owner-side rules:
 - The output Schemas are Host-owned normalized values, not copies of the SQLite row or the full journal/evidence envelope.
 
 **Why these Operations are not added to the current legacy ToolCatalog in isolation:** the current Demo registration test intentionally requires exact equality between the legacy Skill's allowed Operation set, the ToolCatalog Operation set and the frozen registration map. Adding vNext-only Operations to that catalog would either expand the legacy Skill's grant surface or break its exact registration invariant. Publish these READ exports together with the vNext deployment ToolCatalog/CapabilityContracts snapshot and its registration transition; do not silently widen the legacy Skill's authority merely to make the new source link.
+
+
+The two Host journal READs are grouped under the separate Capability
+`ca-agent-host.createdsession.reference`, granted explicitly by the vNext
+Skill contract. They are not appended to the legacy
+`ca-agent-host.createdsession.runtime` Capability or its legacy registration.
+This keeps the READ authority independently reviewable and avoids widening the
+legacy Skill's granted Operation set. The Host publishes this Capability and
+its two Operation contracts as a separate vNext dependency snapshot; the
+deployment later composes that snapshot with Provider/Fabric snapshots and one
+complete deployment Registration.
