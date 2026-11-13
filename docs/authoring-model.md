@@ -25,7 +25,7 @@ There are four business node types:
 
 terminal declares an explicit terminal state; it is not a business action. Predicate is the reusable deterministic judgment definition, not a separate Procedure node. There is no computation node.
 
-Invocation-wide preconditions belong at the beginning of the graph. The final business Postcondition belongs at the end, before every successful terminal. All SUCCEEDED paths must pass its PASS route. There is no separate SkillContract.postconditions declaration and no second evaluation through a from reference. Local Precondition / Postcondition nodes remain available where needed.
+Invocation-wide preconditions belong to the entry gate. If their facts are already in trusted Context, the gate can start with a Precondition; if facts must be acquired, explicit Observation nodes may precede it. No protected Mutation may bypass the required Precondition PASS. The final business Postcondition belongs at the end, before every successful terminal. All SUCCEEDED paths must pass its PASS route. There is no separate SkillContract.postconditions declaration and no second evaluation through a from reference. Local Precondition / Postcondition nodes remain available where needed.
 
 The first vNext version has one entry Procedure graph per Skill and does not define nested ProcedureCall or graph cycles. Branches and recovery are explicit nodes and routes.
 
