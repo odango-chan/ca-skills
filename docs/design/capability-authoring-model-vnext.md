@@ -134,6 +134,15 @@ Here the required same-name inputs are projected from the caller's `input`; the 
 
 Requiredness is not a suggestion: if an Operation declares a parameter required but the business operation genuinely does not need it, correct the Owner's Operation contract rather than fabricating a value or weakening the call-site check. An omitted optional property is distinct from an explicit `null`; `null` is valid only when the consumer Schema allows it. JSON Schema `default` annotations do not cause the Compiler or Runtime to synthesize values. Any operational default must be defined by the contract owner.
 
+Conditional availability and semantic identity need separate treatment:
+
+- The same-name shorthand is an author-selected projection, not a heuristic that searches arbitrary fields. If source and target contracts publish semantic-field identities, those identities must agree; a conflict is an error. Similar names or compatible primitive types alone never authorize global auto-binding.
+- If semantic-field identities are not yet published, `with.from: input` records the author's explicit same-name intent, while Compiler still validates the declared schemas and types. It must not generalize that intent to other namespaces or other consumers.
+- A source produced only on one branch may satisfy a consumer only when control-flow analysis proves it is available on every path reaching that consumer. Prefer placing the consumer inside the branch that establishes the value. Do not silently turn a missing value into `null`.
+- An optional target may be omitted only when its contract defines absence as valid. If a conditionally produced value is required for a particular branch, make that branch's requirement explicit and prove the producer dominates the consumer.
+- Nested object projection, field extraction, coercion and normalization are not implied by same-name binding. Use an explicit source path and a declared deterministic transform where a shape or type change is required.
+
+
 The exact YAML surface remains open until the grammar review addresses reserved-key collisions (for example, a target input literally named `from`), and positive/negative fixtures cover required-only defaults, optional opt-in, explicit override, absent required input, extra caller fields, null-versus-omitted, and Script exclusion.
 
 ### 4.4 Source versus generated plan
