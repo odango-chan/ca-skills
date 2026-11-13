@@ -606,74 +606,61 @@ Procedure 是确定性的有向执行图。每个 Node 必须且只能声明一�
 terminal 是显式终态声明，不是业务动作。Predicate、CEL 和 Python Script 都不是独立 Procedure 节点；Predicate Script 是 Predicate 的 evaluator，Procedure Script 是 Operation 节点的本地执行目标。
 
 ~~~yaml
-goal: pdu_session.initial_request_fulfilled
-requestSchema: schemas/establishment-request.schema.yaml
-capabilities:
-  - provider-5gc.session-read
-  - provider-5gc.session-mutation
-
+# assurance/procedure.yaml：仅展示 UDM 子流程
 inputs:
   ueRef: context.subject.ueRef
   dnn: context.request.dnn
-start: check-registration
+start: create-subscription
 nodes:
-  check-registration:
-    precondition:
-      predicate: createdsession.ue.registered
-      arguments:
-        - input.ueRef
-    'on':
-      PASS: read-subscription
-      FAIL: failed
-      UNKNOWN: unresolved
-
-  read-subscription:
-    operation: ca::sbi.udm.sm_data.get
-    arguments:
-      ueRef: input.ueRef
-      dnn: input.dnn
-    'on':
-      SUCCEEDED: check-subscription
-      FAILED: failed
-      DENIED: failed
-      UNKNOWN: unresolved
-
-  check-subscription:
-    postcondition:
-      predicate: createdsession.udm.subscription_usable
-      arguments:
-        - read-subscription.output.result
-        - input.dnn
-    'on':
-      PASS: create-subscription
-      FAIL: failed
-      UNKNOWN: unresolved
-
   create-subscription:
     operation: ca::sbi.udm.sdm_subscription.create
     arguments:
       ueRef: input.ueRef
-      subscription: read-subscription.output.result
+      dnn: input.dnn
     'on':
-      SUCCEEDED: verify-final-state
+      SUCCEEDED: verify-direct
       NOT_COMMITTED: failed
       OUTCOME_UNKNOWN: reconcile-subscription
       DENIED: failed
       FAILED: failed
 
+  # 已收到有充分 Evidence 的成功结果：不重复 Observation
+  verify-direct:
+    postcondition:
+      predicate: createdsession.udm.subscription_usable
+      arguments:
+        - create-subscription.output.subscription
+        - input.dnn
+    'on':
+      PASS: complete
+      FAIL: failed
+      UNKNOWN: unresolved
+
   reconcile-subscription:
     operation:
       reconcile: create-subscription
     'on':
-      COMMITTED: verify-final-state
+      COMMITTED: inspect-after-reconcile
       NOT_COMMITTED: failed
       UNRESOLVED: unresolved
 
-  verify-final-state:
+  # 原请求响应丢失：不能假设 create-subscription.output 存在
+  inspect-after-reconcile:
+    observation: ca::udm.subscription.current
+    arguments:
+      ueRef: input.ueRef
+      dnn: input.dnn
+    'on':
+      SUCCEEDED: verify-reconciled
+      FAILED: failed
+      UNKNOWN: unresolved
+
+  verify-reconciled:
     postcondition:
-      predicate: createdsession.udm.subscription_owned
+      predicate: createdsession.udm.subscription_usable
       arguments:
-        - create-subscription.output
+        - inspect-after-reconcile.output.subscription
+        - input.dnn
     'on':
       PASS: complete
       FAIL: failed
@@ -686,6 +673,8 @@ nodes:
   unresolved:
     terminal: UNRESOLVED
 ~~~
+
+本例假设 Tool Owner 明确保证 Create 成功输出和独立 Observation 输出中的 subscription 均符合相同规范化 Subscription Schema；该假设须由正式 Owner Schema 确认，不能靠 Compiler 猜测。COMMITTED 只证明原 Mutation 已提交，不保证其原始成功响应可用。两条成功路径分别通过有充分输入的 Postcondition PASS。
 
 ### 12.2 Precondition
 
