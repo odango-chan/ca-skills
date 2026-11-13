@@ -85,7 +85,7 @@ procedures:
                 requestedSscMode:
                   from: input.requested-ssc
                 udmResult:
-                  from: nudm-sdm-get.output
+                  from: nudm-sdm-get.output.result
 
             # UDM Subscribe is answered from UDM-owned evidence only. A PCF
             # create inputs handle cannot exist yet: the SMF only starts the
@@ -132,7 +132,7 @@ procedures:
             - verify: createdsession.lifecycle.ready
               with:
                 lifecycle:
-                  from: preconditions.read-lifecycle-before-udm-subscribe.output.lifecycleRegistration
+                  from: preconditions.read-lifecycle-before-udm-subscribe.output
                 expectedLifecycleRef:
                   from: input.lifecycle-ref
           'on':
@@ -147,9 +147,9 @@ procedures:
           ueRef:
             from: input.ue-ref
           udmInvocationRef:
-            from: nudm-sdm-get.output.runtimeInvocationRef
+            from: nudm-sdm-get.output.invocationId
           udmTransactionRef:
-            from: nudm-sdm-get.output.transactionRef
+            from: nudm-sdm-get.output.result.transactionRef
           selection:
             from: preconditions.select-subscription-configuration.output
           ingressRef:
@@ -166,7 +166,7 @@ procedures:
             - verify: createdsession.udm.subscription_owned
               with:
                 subscription:
-                  from: nudm-sdm-subscribe.output
+                  from: nudm-sdm-subscribe.output.resourceOwnership
           'on':
             PASS: npcf-sm-policy-control-create
             FAIL: finalize-failed
@@ -196,6 +196,8 @@ procedures:
                   from: input.ingress-ref
                 lifecycleRef:
                   from: input.lifecycle-ref
+                holdRef:
+                  from: preconditions.bind-pcf-hold.output.holdRef
 
             - verify: createdsession.pcf.hold_bound
               with:
@@ -306,7 +308,7 @@ procedures:
             - verify: createdsession.lifecycle.ready
               with:
                 lifecycle:
-                  from: preconditions.read-lifecycle-before-pcf-create.output.lifecycleRegistration
+                  from: preconditions.read-lifecycle-before-pcf-create.output
                 expectedLifecycleRef:
                   from: input.lifecycle-ref
           'on':
@@ -339,9 +341,9 @@ procedures:
             - verify: createdsession.pcf.association_owned
               with:
                 association:
-                  from: npcf-sm-policy-control-create.output
+                  from: npcf-sm-policy-control-create.output.resourceOwnership
           'on':
-            PASS: n4-session-establishment
+            PASS: wait-initial-resources
             FAIL: finalize-failed
             UNKNOWN: finalize-unresolved
         'on':
@@ -451,7 +453,7 @@ procedures:
             - verify: createdsession.delivery_context.ready
               with:
                 context:
-                  from: preconditions.resolve-effective-session-configuration.output
+                  from: preconditions.resolve-effective-session-configuration.output.deliveryContext
 
             - name: prepare-establishment-response
               call: createdsession-tools::ca.session.establishment_response.prepare
@@ -552,7 +554,7 @@ procedures:
                 transferResult:
                   from: namf-communication-n1n2-message-transfer.output
           'on':
-            PASS: pdu-session-resource-setup
+            PASS: wait-ran-setup
             FAIL: finalize-failed
             UNKNOWN: finalize-unresolved
         'on':
