@@ -659,6 +659,69 @@ UNKNOWN 不是 FAIL 的别名，也不是“先通过再说”。Evidence 缺失
 
 # 第五部分：Observation 与 Evidence
 
+
+## 14.1 YAML 语法子集与结构文法
+
+CA-SL 使用 YAML 1.2 表达源文件，但 YAML 只是序列化语法，不是完整语言语义。Compiler MUST 使用安全解析器，并拒绝重复 Key、未知语义字段、非预期根类型、自定义 Tag、循环 Alias 和无法确定解释的标量。
+
+规范性结构文法（抽象 EBNF；JSONValue 和 YAML Scalar 按 YAML 1.2 Core Schema 定义）：
+
+~~~ebnf
+SkillDocument       = SkillContract ;
+ProcedureDocument   = ProcedureSet ;
+PredicateDocument   = PredicateSet ;
+
+SkillContract       = RootHeader, SkillSpec ;
+RootHeader          = "apiVersion", "kind", "metadata" ;
+SkillSpec           = "spec", SkillType, Goal, EntryProcedure,
+                      Inputs, Context, CapabilityGrants, [FinalConditions] ;
+
+ProcedureSet        = "procedures", ProcedureMap ;
+Procedure           = [ProcedureInputs], StartNode, NodeMap ;
+Node                = ExactlyOne(MainAction), [Bindings],
+                      [Preconditions], [Postconditions], [Routes] ;
+MainAction          = Call | ScriptCall | ProcedureCall |
+                      Verify | Reconcile | Terminal ;
+Call                = "call", CallableIdentity ;
+ScriptCall          = "script", SkillRelativeScriptPath ;
+Verify              = "verify", PredicateIdentity, OrderedArguments ;
+Reconcile           = "reconcile", OriginalMutationNode ;
+Terminal            = "terminal", TerminalStatus ;
+
+Bindings            = "with", BindingMap ;
+Binding             = SourceBinding | LiteralBinding ;
+SourceBinding       = "from", SourcePath ;
+LiteralBinding      = "value", JSONValue ;
+
+Preconditions       = "preconditions", OrderedSteps, [Routes] ;
+Postconditions      = "postconditions", OrderedSteps, [Routes] ;
+Step                = [StepName], ExactlyOne(StepAction), [Bindings] ;
+StepAction          = Call | ScriptCall | Verify ;
+Routes              = "on", RouteMap ;
+PredicateDocument   = "predicates", PredicateMap ;
+Predicate           = OrderedParameters, Evaluator ;
+Evaluator           = CELExpression | ScriptEvaluator ;
+~~~
+
+该文法规定结构边界，不取代字段 Schema。字段类型、必填性、枚举、引用和跨文件链接仍由本规范的语义规则及正式 JSON Schema 定义。任何未列出的 Node 主动作均不属于本版语言。
+
+### YAML 解析规则
+
+- MUST 按 YAML 1.2 规则解析；对影响语义的标量不得依赖 YAML 1.1 隐式类型转换。
+- MUST 拒绝同一 Mapping 中的重复 Key。
+- MUST 拒绝自定义 Tag、任意对象构造、循环 Alias 和不受支持的 Merge Key。
+- 建议将 on 作为字符串键显式加引号，避免不同解析器的历史差异。
+- 字段名大小写敏感；导出身份按其 Owner 契约定义的大小写规则处理。
+- 未知字段 MUST 报诊断，不得静默忽略。
+
+### Source Path 与控制流
+
+Source Path 必须解析为静态 Producer 引用。Compiler 必须构建 Procedure 控制流图，并验证 Producer 在所有到达消费者的路径上均已产生。若 Producer 仅在一个互斥分支中产生，则消费者必须位于该分支内，或通过显式控制流合并得到经过验证的值；不得用 null 代替不可用值。
+
+### Procedure Request 与 Context
+
+Procedure 可引用 Skill Invocation 的 Request Projection（示例中的 context.request），其结构由 SkillContract.inputs.requestSchema 约束。subject、facts、ingress 等 Host Projection 则由 SkillContract.context.projections 精确声明。Request Projection 与 Host Context Projection 是不同来源，不得因为都写在 context 命名空间就混淆 Owner。
+
 ## 15. Observation Query 调用时机
 
 仅在以下情况执行 Observation Query：
