@@ -55,7 +55,7 @@ CapabilityContracts is not a normal dependency snapshot. It is deployment-owned 
 
 The current executable deployment has six Capability groups and twelve Operations, with exact 1:1 Operation membership and matching READ/MUTATION Effects.
 
-The pure-Predicate migration adds six READ Operations if N4 baseline and post-create initial resources share one phase-discriminated Operation identity:
+The pure-Predicate migration adds six READ Operations if N4 baseline and post-create initial resources share one phase-discriminated Operation identity. It adds three Capability groups: Provider assurance, Fabric governance, and the separately granted Host reference READ boundary:
 
 | New READ | Owner | Capability boundary |
 |---|---|---|
@@ -63,10 +63,10 @@ The pure-Predicate migration adds six READ Operations if N4 baseline and post-cr
 | RAN setup read | Provider/Open5GS adapter | Same Provider assurance Capability |
 | N4 forwarding read | Provider/Open5GS adapter | Same Provider assurance Capability |
 | PCF create-governance read | env-fabric | Separate Fabric governance Capability unless Fabric confirms it is the same boundary as existing hold binding |
-| Lifecycle registration read | Agent Host | Existing Host Runtime Capability |
-| Resource responsibility read | Agent Host | Existing Host Runtime Capability |
+| Lifecycle registration read | Agent Host | New `ca-agent-host.createdsession.reference` Capability |
+| Resource responsibility read | Agent Host | New `ca-agent-host.createdsession.reference` Capability |
 
-This produces 18 callable Operations total. If the N4 Owner cannot provide a phase-discriminated result that preserves the PRE_CREATE baseline and POST_CREATE instance lineage, use two exact N4 Operation IDs; the total becomes 19. The existing bounded Host `ca.session.evidence.await` remains an orchestration READ Operation and is not counted as a new domain READ shape.
+This produces 18 callable Operations total and nine Capability groups in the vNext deployment. If the N4 Owner cannot provide a phase-discriminated result that preserves the PRE_CREATE baseline and POST_CREATE instance lineage, use two exact N4 Operation IDs; the total becomes 19. The existing bounded Host `ca.session.evidence.await` remains an orchestration READ Operation and is not counted as a new domain READ shape.
 
 The five independent domain acquisition points are N4 baseline, post-create N4 resources, RAN setup, N4 forwarding and PCF governance. The two Host journal reads are additional explicit acquisition points. The 17 old Predicate Observation refs are not 17 new READ Operations:
 
