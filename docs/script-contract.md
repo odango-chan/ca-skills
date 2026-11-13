@@ -28,6 +28,8 @@ Scripts do not author their own Input Schema. Compiler derives a closed input pr
 
 For `script: scripts/foo.py`, the keys in that node/step's `with:` object form the Script business input. Every `from:` resolves to an exact Producer Schema and must be available on every path reaching the call. Every `value:` is a JSON literal checked against the inferred consumer type.
 
+The call-site map is also the Script's input contract: pass only fields the Script actually consumes. Do not forward an entire Producer object or Procedure input for convenience. The proposed `with.from: input` shorthand is not supported for Scripts because no independent declared Script input-name contract exists from which the Compiler could safely select fields. Do not infer a Script interface from dynamic Python behavior.
+
 Two calls to the same Script may have different input projections. `input: dict` does not authorize arbitrary field access.
 
 ### Predicate Script
