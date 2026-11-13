@@ -196,8 +196,6 @@ procedures:
                   from: input.ingress-ref
                 lifecycleRef:
                   from: input.lifecycle-ref
-                holdRef:
-                  from: preconditions.bind-pcf-hold.output.holdRef
 
             - verify: createdsession.pcf.hold_bound
               with:
@@ -291,6 +289,8 @@ procedures:
                   from: input.ingress-ref
                 lifecycleRef:
                   from: input.lifecycle-ref
+                holdRef:
+                  from: preconditions.bind-pcf-hold.output.holdRef
 
             - verify: createdsession.pcf.create_governed
               with:
