@@ -40,15 +40,15 @@ predicates:
 
   createdsession.pcf.create_inputs.ready:
     inputs:
-      inputs: {}
+      pcfCreateInputs: {}
       pcfHold: {}
     evaluator:
       type: cel
-      expression: input.inputs.pcfCreateInputsRef != "" &&
-        input.inputs.pcfPolicyAssociationRef == input.pcfHold.policyAssociationRef &&
-        input.inputs.fabricHoldRef == input.pcfHold.holdRef &&
-        input.inputs.allocatedIPv4 != "" &&
-        input.inputs.selectionDigest != ""
+      expression: input.pcfCreateInputs.pcfCreateInputsRef != "" &&
+        input.pcfCreateInputs.pcfPolicyAssociationRef == input.pcfHold.policyAssociationRef &&
+        input.pcfCreateInputs.fabricHoldRef == input.pcfHold.holdRef &&
+        input.pcfCreateInputs.allocatedIPv4 != "" &&
+        input.pcfCreateInputs.selectionDigest != ""
 
   createdsession.pcf.create_governed:
     inputs:
