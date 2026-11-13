@@ -494,7 +494,7 @@ nodes:
 | requestSchema | 公共 Request Schema | 有调用方 Request 时声明；指向 Skill 自有 schemas/ 文件，不得复制外部 Owner Schema |
 | capabilities | Skill 请求的授权上界 | 使用外部 Tool Operation 时显式声明；只列 Capability ID，Compiler 做精确 membership / Effect 校验 |
 | inputs | Procedure 入口输入投影 | 有输入时声明；每个字段显式绑定到 Request 或 Host Context SourcePath |
-| start | 唯一入口 Node | 必须存在；入口级 Precondition 应位于该节点或其后续入口链 |
+| start | 唯一入口 Node | 必须存在；入口门禁可由显式 Observation 获取事实，再由 Precondition 作出判断；受保护 Mutation 不得绕过 Precondition PASS |
 | nodes | 唯一 Procedure 执行图 | 每个 Node 只能有一个主动作；成功路径必须经过最终 Postcondition |
 
 以下信息不再由作者重复维护：
@@ -733,7 +733,7 @@ Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时不�
 
 ### 12.9 Procedure 入口、最终门禁与控制流
 
-- 若 Skill 有 Invocation 级别的前置条件，必须将其放在 Procedure 图入口处，作为 start 指向的 Precondition 节点。多个入口条件可使用一个复合 Predicate，或按顺序串联多个 Precondition 节点；不得在每个 Operation 内隐式复制。
+- 若 Skill 有 Invocation 级别的前置条件，必须将其放在 Procedure 图的入口门禁中。若所需事实已在可信 Context 中，start 可以直接指向 Precondition；若需要向 Owner 获取事实，则先显式执行必要的 Observation，再进入 Precondition。多个入口条件可使用一个复合 Predicate，或按顺序串联多个 Precondition 节点；在所有必需入口 Precondition PASS 之前，不得执行受保护的业务 Mutation。不得在每个 Operation 内隐式复制。
 - 最终 Postcondition 必须是显式图节点，位于所有成功路径汇合处、SUCCEEDED Terminal 之前。它消费本次执行中已经产生的 Operation Result / Observation Result / Context，并显式声明 Predicate arguments。
 - Contract 层不再重复声明 predicate + expect，也不再通过 from 引用另一个 Postcondition 后再次验证。最终 Postcondition 节点本身就是业务验收；只有其 PASS 路径可以进入 SUCCEEDED。
 - 中间 Postcondition 仍可用于局部结果判断；中间 Precondition 仍可用于局部动作门禁。它们与入口门禁、最终门禁使用相同节点语义。
@@ -937,7 +937,7 @@ State 不自动等于 Evidence；Handle 不自动等于 State；Mutation 成功�
 3. Root Router 选择唯一 Skill；
 4. Host 校验入口、授权和运行条件；
 5. Runtime 创建隔离 Invocation；
-6. Procedure 从 start 指定的入口 Node 执行；若存在 Invocation 级入口 Precondition，它就是 start 指向的首个门禁；
+6. Procedure 从 start 指定的入口 Node 执行；Invocation 级入口门禁可以由显式 Observation 获取所需事实，再由 Precondition 作出判断；
 7. 每个 Node 只执行其声明的一个主动作、显式 arguments 和 on 路由，不存在隐式的 Node 内部 Preconditions / Postconditions；
 8. 必要时显式执行 Observation Query，Predicate 只消费已物化输入和 Host 附加 Evidence；
 9. Mutation 结果不确定时对原 Mutation Reconcile；
