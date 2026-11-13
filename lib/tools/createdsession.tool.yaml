@@ -111,7 +111,2019 @@ spec:
       required: [invocationId, result]
       properties:
         invocationId: *ref
+        result:
+          $schema: https://json-schema.org/draft/2020-12/schema
+          $id: https://connectionagent.io/ca-agent-host/createdsession/udm-runtime-value/v1alpha1/schema.yaml
+          title: Host-normalized CreatedSession UDM READ result
+          description: Exact business-value projection returned by CreatedSessionUDMResult.runtime_value(). Provider wire identity, deployment binding, responder evidence and response-body digest remain outside this Skill-facing value.
+          type: object
+          additionalProperties: false
+          required: [operationId, transactionRef, requestRef, fabricRecordRef, fabricRecordDigest, eventTime, networkOutcome, selection]
+          properties:
+            operationId: {const: GetSmData}
+            transactionRef: {type: string, minLength: 1, maxLength: 512}
+            requestRef: {type: string, minLength: 1, maxLength: 512}
+            fabricRecordRef: {type: string, minLength: 1, maxLength: 512}
+            fabricRecordDigest: {type: string, pattern: '^sha256:[0-9a-f]{64}
+
+  - operation: ca.session.udm_hold.bind
+    adapter: env-fabric-http
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ueRef, dnn, snssai, ingressRef, lifecycleRef]
+      properties:
+        ueRef: *ref
+        dnn: {type: string, minLength: 1}
+        snssai: *snssai
+        ingressRef: *ref
+        lifecycleRef: *ref
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - holdRef
+      - requestRef
+      - currentInstanceRef
+      - heldRequestDigest
+      - operationKind
+      - dnn
+      - sst
+      - sd
+      - environmentRef
+      - lifecycleRef
+      - deadline
+      properties:
+        holdRef: *ref
+        requestRef: *ref
+        currentInstanceRef: *ref
+        heldRequestDigest: *digest
+        operationKind: {type: string, minLength: 1}
+        dnn: {type: string, minLength: 1}
+        sst: {type: integer, minimum: 0, maximum: 255}
+        sd: {type: [string, "null"]}
+        environmentRef: *ref
+        lifecycleRef: *ref
+        deadline: {type: string, minLength: 1}
+
+  - operation: sbi.udm.sdm_subscription.create
+    adapter: ca-provider-5gc-http
+    effect: MUTATION
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - ueRef
+      - udmInvocationRef
+      - udmTransactionRef
+      - selection
+      - ingressRef
+      - lifecycleRef
+      - waiterRef
+      properties:
+        ueRef: *ref
+        udmInvocationRef: *ref
+        udmTransactionRef: *ref
+        selection: *selection
+        ingressRef: *ref
+        lifecycleRef: *ref
+        waiterRef: *ref
+    outputSchema: &operation-output
+      type: object
+      additionalProperties: false
+      required: [operationRef, correlation, result]
+      properties:
+        operationRef: *ref
+        correlation: *refObject
         result: {type: object}
+        subscriptionRef: *ref
+        responseBodyLength: {type: integer, minimum: 0}
+    reconcileOutputSchema: *operation-output
+
+  - operation: ca.session.pcf_hold.bind
+    adapter: env-fabric-http
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ueRef, pduSessionId, ingressRef, lifecycleRef]
+      properties:
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        ingressRef: *ref
+        lifecycleRef: *ref
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - holdRef
+      - requestRef
+      - currentInstanceRef
+      - policyAssociationRef
+      - heldRequestDigest
+      - operationKind
+      - environmentRef
+      - lifecycleRef
+      - deadline
+      properties:
+        holdRef: *ref
+        requestRef: *ref
+        currentInstanceRef: *ref
+        policyAssociationRef: *ref
+        heldRequestDigest: *digest
+        operationKind: {type: string, minLength: 1}
+        environmentRef: *ref
+        lifecycleRef: *ref
+        deadline: {type: string, minLength: 1}
+
+  - operation: ca.session.n1n2_hold.bind
+    adapter: env-fabric-http
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ueRef, pduSessionId, ingressRef, lifecycleRef]
+      properties:
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        ingressRef: *ref
+        lifecycleRef: *ref
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - holdRef
+      - requestRef
+      - currentInstanceRef
+      - heldRequestDigest
+      - operationKind
+      - targetNfInstanceId
+      - supi
+      - environmentRef
+      - lifecycleRef
+      - deadline
+      properties:
+        holdRef: *ref
+        requestRef: *ref
+        currentInstanceRef: *ref
+        heldRequestDigest: *digest
+        operationKind: {type: string, minLength: 1}
+        targetNfInstanceId: *ref
+        supi: *ref
+        environmentRef: *ref
+        lifecycleRef: *ref
+        deadline: {type: string, minLength: 1}
+
+  - operation: ca.session.pcf_create_inputs.read
+    adapter: ca-provider-5gc-http
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - ueRef
+      - pduSessionId
+      - pti
+      - requestType
+      - ingressRef
+      - lifecycleRef
+      - fabricHoldRef
+      - selection
+      properties:
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        pti: {type: integer, minimum: 1, maximum: 254}
+        requestType: {type: integer, minimum: 0, maximum: 255}
+        ingressRef: *ref
+        lifecycleRef: *ref
+        fabricHoldRef: *ref
+        selection: *selection
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - pcfCreateInputsRef
+      - runtimeInvocationRef
+      - pcfPolicyAssociationRef
+      - fabricHoldRef
+      - fabricHoldRequestDigest
+      - selectionDigest
+      properties:
+        pcfCreateInputsRef: *ref
+        runtimeInvocationRef: *ref
+        pcfPolicyAssociationRef: *ref
+        fabricHoldRef: *ref
+        fabricHoldRequestDigest: *digest
+        selectionDigest: *digest
+
+  - operation: sbi.pcf.sm_policy.create
+    adapter: ca-provider-5gc-http
+    effect: MUTATION
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - ueRef
+      - pcfCreateInputsRef
+      - selection
+      - policyInputs
+      - lifecycleRef
+      - sdmSubscriptionRef
+      - waiterRef
+      properties:
+        ueRef: *ref
+        pcfCreateInputsRef: *ref
+        selection: *selection
+        policyInputs: *policyInputs
+        lifecycleRef: *ref
+        sdmSubscriptionRef: *ref
+        waiterRef: *ref
+    outputSchema: &pcf-create-output
+      type: object
+      additionalProperties: false
+      required: [operationRef, correlation, result]
+      properties:
+        operationRef: *ref
+        correlation:
+          type: object
+          additionalProperties: false
+          required:
+          - environmentRef
+          - subjectRef
+          - runtimeInvocationRef
+          - transactionRef
+          - operationRef
+          - lifecycleRef
+          properties:
+            environmentRef: *ref
+            subjectRef: *ref
+            runtimeInvocationRef: *ref
+            transactionRef: *ref
+            operationRef: *ref
+            lifecycleRef: *ref
+        result: {type: object}
+        policyResultRef: *ref
+        responseBodyLength: {type: integer, minimum: 0}
+        association:
+          type: object
+          additionalProperties: false
+          required: [waiterRef, agentOperationDigest]
+          properties:
+            waiterRef: *ref
+            agentOperationDigest: *digest
+    reconcileOutputSchema: *pcf-create-output
+
+  - operation: ca.session.operation_context.read
+    adapter: ca-provider-5gc-http
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - ueRef
+      - pduSessionId
+      - pti
+      - requestType
+      - ingressRef
+      - lifecycleRef
+      - selection
+      - policyResultRef
+      - purpose
+      properties:
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        pti: {type: integer, minimum: 1, maximum: 254}
+        requestType: {type: integer, minimum: 0, maximum: 255}
+        ingressRef: *ref
+        lifecycleRef: *ref
+        selection: *selection
+        policyResultRef: *ref
+        purpose: {type: string, minLength: 1}
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required: [contextRef, runtimeInvocationRef]
+      properties:
+        contextRef: *ref
+        runtimeInvocationRef: *ref
+
+  - operation: ca.session.establishment_response.prepare
+    adapter: ca-provider-5gc-http
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - operationContextRef
+      - runtimeInvocationRef
+      - ueRef
+      - pduSessionId
+      - pti
+      - lifecycleRef
+      - selection
+      - policyResultRef
+      properties:
+        operationContextRef: *ref
+        runtimeInvocationRef: *ref
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        pti: {type: integer, minimum: 1, maximum: 254}
+        lifecycleRef: *ref
+        selection: *selection
+        policyResultRef: *ref
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - responseArtifactRef
+      - artifactDigest
+      - profileRef
+      - validUntil
+      - nasDigest
+      - n2Digest
+      properties:
+        responseArtifactRef: {type: string, pattern: '^csa:v1:[0-9a-f]{64}$'}
+        artifactDigest: *digest
+        profileRef: {const: createdsession-n1n2-sm@0.1.0}
+        validUntil: {type: string, format: date-time}
+        nasDigest: *digest
+        n2Digest: *digest
+
+  - operation: sbi.amf.n1n2.transfer
+    adapter: ca-provider-5gc-http
+    effect: MUTATION
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - operationContextRef
+      - runtimeInvocationRef
+      - ueRef
+      - pduSessionId
+      - lifecycleRef
+      - responseArtifactRef
+      - waiterRef
+      - delivery
+      properties:
+        operationContextRef: *ref
+        runtimeInvocationRef: *ref
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        lifecycleRef: *ref
+        responseArtifactRef: {type: string, pattern: '^csa:v1:[0-9a-f]{64}$'}
+        waiterRef: *ref
+        # Constructed by the admitted Skill Script.  The adapter independently
+        # proves every value against its durable prepared-response record.
+        delivery:
+          type: object
+          additionalProperties: false
+          required:
+          - profileRef
+          - responseArtifactRef
+          - artifactDigest
+          - nasDigest
+          - n2Digest
+          - validUntil
+          - operationContextRef
+          - policyResultRef
+          properties:
+            profileRef: {const: createdsession-n1n2-sm@0.1.0}
+            responseArtifactRef: {type: string, pattern: '^csa:v1:[0-9a-f]{64}$'}
+            artifactDigest: *digest
+            nasDigest: *digest
+            n2Digest: *digest
+            validUntil: {type: string, format: date-time}
+            operationContextRef: *ref
+            policyResultRef: *ref
+    outputSchema: &transfer-output
+      type: object
+      additionalProperties: false
+      required: [operationRef, correlation, result]
+      properties:
+        operationRef: *ref
+        correlation:
+          type: object
+          additionalProperties: false
+          required:
+          - environmentRef
+          - subjectRef
+          - runtimeInvocationRef
+          - transactionRef
+          - operationRef
+          - lifecycleRef
+          - operationContextRef
+          - responseArtifactRef
+          properties:
+            environmentRef: *ref
+            subjectRef: *ref
+            runtimeInvocationRef: *ref
+            transactionRef: *ref
+            operationRef: *ref
+            lifecycleRef: *ref
+            operationContextRef: *ref
+            responseArtifactRef: *ref
+        result:
+          type: object
+          required: [networkOutcome, targetAmfRef, targetBindingDigest]
+          properties:
+            operationRef: *ref
+            environmentRef: *ref
+            subjectRef: *ref
+            transactionRef: *ref
+            networkOutcome:
+              type: string
+              enum: [HTTP_RESPONSE, TIMEOUT, TRANSPORT_FAILURE, NOT_SENT, OUTCOME_UNKNOWN]
+            targetAmfRef: *ref
+            targetBindingDigest: *digest
+        association:
+          type: object
+          additionalProperties: false
+          required: [waiterRef, agentOperationDigest, n1n2InstanceRef]
+          properties:
+            waiterRef: *ref
+            agentOperationDigest: *digest
+            n1n2InstanceRef: *ref
+    reconcileOutputSchema: *transfer-output
+
+  - operation: ca.session.evidence.await
+    adapter: ca-agent-demo-runtime
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ueRef, pduSessionId, pti, requestType, ingressRef, lifecycleRef]
+      anyOf:
+      - required: [pcfPolicyAssociationRef]
+      - required: [operationContextRef, afterOperationRef]
+      properties:
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        pti: {type: integer, minimum: 1, maximum: 254}
+        requestType: {type: integer, minimum: 0, maximum: 255}
+        ingressRef: *ref
+        lifecycleRef: *ref
+        pcfPolicyAssociationRef: *ref
+        absencePolicy: {type: string, enum: [CONTINUE]}
+        operationContextRef: *ref
+        afterOperationRef: *ref
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required: [evidenceRefs]
+      properties:
+        evidenceRefs:
+          type: array
+          items: {type: string, minLength: 1}
+
+  - operation: ca.session.resource_responsibility.transfer
+    adapter: ca-agent-demo-runtime
+    effect: MUTATION
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [lifecycleRef, disposition]
+      properties:
+        lifecycleRef: *ref
+        disposition: {type: string, enum: [success, failed, unresolved]}
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required: [lifecycleRef, recipientRef, disposition, transferRef, evidenceRef]
+      properties:
+        lifecycleRef: *ref
+        recipientRef: *ref
+        disposition: {type: string, enum: [success, failed, unresolved]}
+        transferRef: *ref
+        evidenceRef: *ref
+    reconcileOutputSchema:
+      type: object
+      additionalProperties: false
+}
+            eventTime: {type: string, format: date-time}
+            networkOutcome: {enum: [HTTP_RESPONSE, TIMEOUT, TRANSPORT_FAILURE]}
+            selection: {enum: [MATCHED, NO_MATCH, AMBIGUOUS, INVALID_PAYLOAD, INVALID_PROFILE_DATA, UNSUPPORTED_VARIANT, UNSUPPORTED_ENUM, HTTP_ERROR, NOT_EVALUATED]}
+            httpStatus: {type: integer, minimum: 200, maximum: 599}
+            responseOrigin: {enum: [TARGET_SERVICE_VIA_SCP, SCP, FABRIC, UNKNOWN]}
+            captureComplete: {type: boolean}
+            responseRef: {type: string, minLength: 1, maxLength: 512}
+            subscription:
+              type: object
+              additionalProperties: false
+              required: [sNssai, dnn, pduSessionTypes, sscModes]
+              properties:
+                sNssai:
+                  type: object
+                  additionalProperties: false
+                  required: [sst]
+                  properties:
+                    sst: {type: integer, minimum: 0, maximum: 255}
+                    sd: {type: integer, minimum: 0, maximum: 16777214}
+                dnn:
+                  type: string
+                  minLength: 1
+                  maxLength: 253
+                  pattern: '^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*
+
+  - operation: ca.session.udm_hold.bind
+    adapter: env-fabric-http
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ueRef, dnn, snssai, ingressRef, lifecycleRef]
+      properties:
+        ueRef: *ref
+        dnn: {type: string, minLength: 1}
+        snssai: *snssai
+        ingressRef: *ref
+        lifecycleRef: *ref
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - holdRef
+      - requestRef
+      - currentInstanceRef
+      - heldRequestDigest
+      - operationKind
+      - dnn
+      - sst
+      - sd
+      - environmentRef
+      - lifecycleRef
+      - deadline
+      properties:
+        holdRef: *ref
+        requestRef: *ref
+        currentInstanceRef: *ref
+        heldRequestDigest: *digest
+        operationKind: {type: string, minLength: 1}
+        dnn: {type: string, minLength: 1}
+        sst: {type: integer, minimum: 0, maximum: 255}
+        sd: {type: [string, "null"]}
+        environmentRef: *ref
+        lifecycleRef: *ref
+        deadline: {type: string, minLength: 1}
+
+  - operation: sbi.udm.sdm_subscription.create
+    adapter: ca-provider-5gc-http
+    effect: MUTATION
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - ueRef
+      - udmInvocationRef
+      - udmTransactionRef
+      - selection
+      - ingressRef
+      - lifecycleRef
+      - waiterRef
+      properties:
+        ueRef: *ref
+        udmInvocationRef: *ref
+        udmTransactionRef: *ref
+        selection: *selection
+        ingressRef: *ref
+        lifecycleRef: *ref
+        waiterRef: *ref
+    outputSchema: &operation-output
+      type: object
+      additionalProperties: false
+      required: [operationRef, correlation, result]
+      properties:
+        operationRef: *ref
+        correlation: *refObject
+        result: {type: object}
+        subscriptionRef: *ref
+        responseBodyLength: {type: integer, minimum: 0}
+    reconcileOutputSchema: *operation-output
+
+  - operation: ca.session.pcf_hold.bind
+    adapter: env-fabric-http
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ueRef, pduSessionId, ingressRef, lifecycleRef]
+      properties:
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        ingressRef: *ref
+        lifecycleRef: *ref
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - holdRef
+      - requestRef
+      - currentInstanceRef
+      - policyAssociationRef
+      - heldRequestDigest
+      - operationKind
+      - environmentRef
+      - lifecycleRef
+      - deadline
+      properties:
+        holdRef: *ref
+        requestRef: *ref
+        currentInstanceRef: *ref
+        policyAssociationRef: *ref
+        heldRequestDigest: *digest
+        operationKind: {type: string, minLength: 1}
+        environmentRef: *ref
+        lifecycleRef: *ref
+        deadline: {type: string, minLength: 1}
+
+  - operation: ca.session.n1n2_hold.bind
+    adapter: env-fabric-http
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ueRef, pduSessionId, ingressRef, lifecycleRef]
+      properties:
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        ingressRef: *ref
+        lifecycleRef: *ref
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - holdRef
+      - requestRef
+      - currentInstanceRef
+      - heldRequestDigest
+      - operationKind
+      - targetNfInstanceId
+      - supi
+      - environmentRef
+      - lifecycleRef
+      - deadline
+      properties:
+        holdRef: *ref
+        requestRef: *ref
+        currentInstanceRef: *ref
+        heldRequestDigest: *digest
+        operationKind: {type: string, minLength: 1}
+        targetNfInstanceId: *ref
+        supi: *ref
+        environmentRef: *ref
+        lifecycleRef: *ref
+        deadline: {type: string, minLength: 1}
+
+  - operation: ca.session.pcf_create_inputs.read
+    adapter: ca-provider-5gc-http
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - ueRef
+      - pduSessionId
+      - pti
+      - requestType
+      - ingressRef
+      - lifecycleRef
+      - fabricHoldRef
+      - selection
+      properties:
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        pti: {type: integer, minimum: 1, maximum: 254}
+        requestType: {type: integer, minimum: 0, maximum: 255}
+        ingressRef: *ref
+        lifecycleRef: *ref
+        fabricHoldRef: *ref
+        selection: *selection
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - pcfCreateInputsRef
+      - runtimeInvocationRef
+      - pcfPolicyAssociationRef
+      - fabricHoldRef
+      - fabricHoldRequestDigest
+      - selectionDigest
+      properties:
+        pcfCreateInputsRef: *ref
+        runtimeInvocationRef: *ref
+        pcfPolicyAssociationRef: *ref
+        fabricHoldRef: *ref
+        fabricHoldRequestDigest: *digest
+        selectionDigest: *digest
+
+  - operation: sbi.pcf.sm_policy.create
+    adapter: ca-provider-5gc-http
+    effect: MUTATION
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - ueRef
+      - pcfCreateInputsRef
+      - selection
+      - policyInputs
+      - lifecycleRef
+      - sdmSubscriptionRef
+      - waiterRef
+      properties:
+        ueRef: *ref
+        pcfCreateInputsRef: *ref
+        selection: *selection
+        policyInputs: *policyInputs
+        lifecycleRef: *ref
+        sdmSubscriptionRef: *ref
+        waiterRef: *ref
+    outputSchema: &pcf-create-output
+      type: object
+      additionalProperties: false
+      required: [operationRef, correlation, result]
+      properties:
+        operationRef: *ref
+        correlation:
+          type: object
+          additionalProperties: false
+          required:
+          - environmentRef
+          - subjectRef
+          - runtimeInvocationRef
+          - transactionRef
+          - operationRef
+          - lifecycleRef
+          properties:
+            environmentRef: *ref
+            subjectRef: *ref
+            runtimeInvocationRef: *ref
+            transactionRef: *ref
+            operationRef: *ref
+            lifecycleRef: *ref
+        result: {type: object}
+        policyResultRef: *ref
+        responseBodyLength: {type: integer, minimum: 0}
+        association:
+          type: object
+          additionalProperties: false
+          required: [waiterRef, agentOperationDigest]
+          properties:
+            waiterRef: *ref
+            agentOperationDigest: *digest
+    reconcileOutputSchema: *pcf-create-output
+
+  - operation: ca.session.operation_context.read
+    adapter: ca-provider-5gc-http
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - ueRef
+      - pduSessionId
+      - pti
+      - requestType
+      - ingressRef
+      - lifecycleRef
+      - selection
+      - policyResultRef
+      - purpose
+      properties:
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        pti: {type: integer, minimum: 1, maximum: 254}
+        requestType: {type: integer, minimum: 0, maximum: 255}
+        ingressRef: *ref
+        lifecycleRef: *ref
+        selection: *selection
+        policyResultRef: *ref
+        purpose: {type: string, minLength: 1}
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required: [contextRef, runtimeInvocationRef]
+      properties:
+        contextRef: *ref
+        runtimeInvocationRef: *ref
+
+  - operation: ca.session.establishment_response.prepare
+    adapter: ca-provider-5gc-http
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - operationContextRef
+      - runtimeInvocationRef
+      - ueRef
+      - pduSessionId
+      - pti
+      - lifecycleRef
+      - selection
+      - policyResultRef
+      properties:
+        operationContextRef: *ref
+        runtimeInvocationRef: *ref
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        pti: {type: integer, minimum: 1, maximum: 254}
+        lifecycleRef: *ref
+        selection: *selection
+        policyResultRef: *ref
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - responseArtifactRef
+      - artifactDigest
+      - profileRef
+      - validUntil
+      - nasDigest
+      - n2Digest
+      properties:
+        responseArtifactRef: {type: string, pattern: '^csa:v1:[0-9a-f]{64}$'}
+        artifactDigest: *digest
+        profileRef: {const: createdsession-n1n2-sm@0.1.0}
+        validUntil: {type: string, format: date-time}
+        nasDigest: *digest
+        n2Digest: *digest
+
+  - operation: sbi.amf.n1n2.transfer
+    adapter: ca-provider-5gc-http
+    effect: MUTATION
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - operationContextRef
+      - runtimeInvocationRef
+      - ueRef
+      - pduSessionId
+      - lifecycleRef
+      - responseArtifactRef
+      - waiterRef
+      - delivery
+      properties:
+        operationContextRef: *ref
+        runtimeInvocationRef: *ref
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        lifecycleRef: *ref
+        responseArtifactRef: {type: string, pattern: '^csa:v1:[0-9a-f]{64}$'}
+        waiterRef: *ref
+        # Constructed by the admitted Skill Script.  The adapter independently
+        # proves every value against its durable prepared-response record.
+        delivery:
+          type: object
+          additionalProperties: false
+          required:
+          - profileRef
+          - responseArtifactRef
+          - artifactDigest
+          - nasDigest
+          - n2Digest
+          - validUntil
+          - operationContextRef
+          - policyResultRef
+          properties:
+            profileRef: {const: createdsession-n1n2-sm@0.1.0}
+            responseArtifactRef: {type: string, pattern: '^csa:v1:[0-9a-f]{64}$'}
+            artifactDigest: *digest
+            nasDigest: *digest
+            n2Digest: *digest
+            validUntil: {type: string, format: date-time}
+            operationContextRef: *ref
+            policyResultRef: *ref
+    outputSchema: &transfer-output
+      type: object
+      additionalProperties: false
+      required: [operationRef, correlation, result]
+      properties:
+        operationRef: *ref
+        correlation:
+          type: object
+          additionalProperties: false
+          required:
+          - environmentRef
+          - subjectRef
+          - runtimeInvocationRef
+          - transactionRef
+          - operationRef
+          - lifecycleRef
+          - operationContextRef
+          - responseArtifactRef
+          properties:
+            environmentRef: *ref
+            subjectRef: *ref
+            runtimeInvocationRef: *ref
+            transactionRef: *ref
+            operationRef: *ref
+            lifecycleRef: *ref
+            operationContextRef: *ref
+            responseArtifactRef: *ref
+        result:
+          type: object
+          required: [networkOutcome, targetAmfRef, targetBindingDigest]
+          properties:
+            operationRef: *ref
+            environmentRef: *ref
+            subjectRef: *ref
+            transactionRef: *ref
+            networkOutcome:
+              type: string
+              enum: [HTTP_RESPONSE, TIMEOUT, TRANSPORT_FAILURE, NOT_SENT, OUTCOME_UNKNOWN]
+            targetAmfRef: *ref
+            targetBindingDigest: *digest
+        association:
+          type: object
+          additionalProperties: false
+          required: [waiterRef, agentOperationDigest, n1n2InstanceRef]
+          properties:
+            waiterRef: *ref
+            agentOperationDigest: *digest
+            n1n2InstanceRef: *ref
+    reconcileOutputSchema: *transfer-output
+
+  - operation: ca.session.evidence.await
+    adapter: ca-agent-demo-runtime
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ueRef, pduSessionId, pti, requestType, ingressRef, lifecycleRef]
+      anyOf:
+      - required: [pcfPolicyAssociationRef]
+      - required: [operationContextRef, afterOperationRef]
+      properties:
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        pti: {type: integer, minimum: 1, maximum: 254}
+        requestType: {type: integer, minimum: 0, maximum: 255}
+        ingressRef: *ref
+        lifecycleRef: *ref
+        pcfPolicyAssociationRef: *ref
+        absencePolicy: {type: string, enum: [CONTINUE]}
+        operationContextRef: *ref
+        afterOperationRef: *ref
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required: [evidenceRefs]
+      properties:
+        evidenceRefs:
+          type: array
+          items: {type: string, minLength: 1}
+
+  - operation: ca.session.resource_responsibility.transfer
+    adapter: ca-agent-demo-runtime
+    effect: MUTATION
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [lifecycleRef, disposition]
+      properties:
+        lifecycleRef: *ref
+        disposition: {type: string, enum: [success, failed, unresolved]}
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required: [lifecycleRef, recipientRef, disposition, transferRef, evidenceRef]
+      properties:
+        lifecycleRef: *ref
+        recipientRef: *ref
+        disposition: {type: string, enum: [success, failed, unresolved]}
+        transferRef: *ref
+        evidenceRef: *ref
+    reconcileOutputSchema:
+      type: object
+      additionalProperties: false
+
+                pduSessionTypes:
+                  type: object
+                  additionalProperties: false
+                  required: [defaultSessionType]
+                  properties:
+                    defaultSessionType: {enum: [IPV4, IPV6, IPV4V6]}
+                    allowedSessionTypes:
+                      type: array
+                      minItems: 1
+                      uniqueItems: true
+                      items: {enum: [IPV4, IPV6, IPV4V6]}
+                sscModes:
+                  type: object
+                  additionalProperties: false
+                  required: [defaultSscMode]
+                  properties:
+                    defaultSscMode: {type: integer, minimum: 1, maximum: 3}
+                    allowedSscModes:
+                      type: array
+                      minItems: 1
+                      uniqueItems: true
+                      items: {type: integer, minimum: 1, maximum: 3}
+                sessionAmbr:
+                  type: object
+                  additionalProperties: false
+                  required: [uplink, downlink]
+                  properties:
+                    uplink:
+                      type: string
+                      pattern: '^[0-9]+(?:\.[0-9]+)? (?:bps|Kbps|Mbps|Gbps|Tbps)
+
+  - operation: ca.session.udm_hold.bind
+    adapter: env-fabric-http
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ueRef, dnn, snssai, ingressRef, lifecycleRef]
+      properties:
+        ueRef: *ref
+        dnn: {type: string, minLength: 1}
+        snssai: *snssai
+        ingressRef: *ref
+        lifecycleRef: *ref
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - holdRef
+      - requestRef
+      - currentInstanceRef
+      - heldRequestDigest
+      - operationKind
+      - dnn
+      - sst
+      - sd
+      - environmentRef
+      - lifecycleRef
+      - deadline
+      properties:
+        holdRef: *ref
+        requestRef: *ref
+        currentInstanceRef: *ref
+        heldRequestDigest: *digest
+        operationKind: {type: string, minLength: 1}
+        dnn: {type: string, minLength: 1}
+        sst: {type: integer, minimum: 0, maximum: 255}
+        sd: {type: [string, "null"]}
+        environmentRef: *ref
+        lifecycleRef: *ref
+        deadline: {type: string, minLength: 1}
+
+  - operation: sbi.udm.sdm_subscription.create
+    adapter: ca-provider-5gc-http
+    effect: MUTATION
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - ueRef
+      - udmInvocationRef
+      - udmTransactionRef
+      - selection
+      - ingressRef
+      - lifecycleRef
+      - waiterRef
+      properties:
+        ueRef: *ref
+        udmInvocationRef: *ref
+        udmTransactionRef: *ref
+        selection: *selection
+        ingressRef: *ref
+        lifecycleRef: *ref
+        waiterRef: *ref
+    outputSchema: &operation-output
+      type: object
+      additionalProperties: false
+      required: [operationRef, correlation, result]
+      properties:
+        operationRef: *ref
+        correlation: *refObject
+        result: {type: object}
+        subscriptionRef: *ref
+        responseBodyLength: {type: integer, minimum: 0}
+    reconcileOutputSchema: *operation-output
+
+  - operation: ca.session.pcf_hold.bind
+    adapter: env-fabric-http
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ueRef, pduSessionId, ingressRef, lifecycleRef]
+      properties:
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        ingressRef: *ref
+        lifecycleRef: *ref
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - holdRef
+      - requestRef
+      - currentInstanceRef
+      - policyAssociationRef
+      - heldRequestDigest
+      - operationKind
+      - environmentRef
+      - lifecycleRef
+      - deadline
+      properties:
+        holdRef: *ref
+        requestRef: *ref
+        currentInstanceRef: *ref
+        policyAssociationRef: *ref
+        heldRequestDigest: *digest
+        operationKind: {type: string, minLength: 1}
+        environmentRef: *ref
+        lifecycleRef: *ref
+        deadline: {type: string, minLength: 1}
+
+  - operation: ca.session.n1n2_hold.bind
+    adapter: env-fabric-http
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ueRef, pduSessionId, ingressRef, lifecycleRef]
+      properties:
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        ingressRef: *ref
+        lifecycleRef: *ref
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - holdRef
+      - requestRef
+      - currentInstanceRef
+      - heldRequestDigest
+      - operationKind
+      - targetNfInstanceId
+      - supi
+      - environmentRef
+      - lifecycleRef
+      - deadline
+      properties:
+        holdRef: *ref
+        requestRef: *ref
+        currentInstanceRef: *ref
+        heldRequestDigest: *digest
+        operationKind: {type: string, minLength: 1}
+        targetNfInstanceId: *ref
+        supi: *ref
+        environmentRef: *ref
+        lifecycleRef: *ref
+        deadline: {type: string, minLength: 1}
+
+  - operation: ca.session.pcf_create_inputs.read
+    adapter: ca-provider-5gc-http
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - ueRef
+      - pduSessionId
+      - pti
+      - requestType
+      - ingressRef
+      - lifecycleRef
+      - fabricHoldRef
+      - selection
+      properties:
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        pti: {type: integer, minimum: 1, maximum: 254}
+        requestType: {type: integer, minimum: 0, maximum: 255}
+        ingressRef: *ref
+        lifecycleRef: *ref
+        fabricHoldRef: *ref
+        selection: *selection
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - pcfCreateInputsRef
+      - runtimeInvocationRef
+      - pcfPolicyAssociationRef
+      - fabricHoldRef
+      - fabricHoldRequestDigest
+      - selectionDigest
+      properties:
+        pcfCreateInputsRef: *ref
+        runtimeInvocationRef: *ref
+        pcfPolicyAssociationRef: *ref
+        fabricHoldRef: *ref
+        fabricHoldRequestDigest: *digest
+        selectionDigest: *digest
+
+  - operation: sbi.pcf.sm_policy.create
+    adapter: ca-provider-5gc-http
+    effect: MUTATION
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - ueRef
+      - pcfCreateInputsRef
+      - selection
+      - policyInputs
+      - lifecycleRef
+      - sdmSubscriptionRef
+      - waiterRef
+      properties:
+        ueRef: *ref
+        pcfCreateInputsRef: *ref
+        selection: *selection
+        policyInputs: *policyInputs
+        lifecycleRef: *ref
+        sdmSubscriptionRef: *ref
+        waiterRef: *ref
+    outputSchema: &pcf-create-output
+      type: object
+      additionalProperties: false
+      required: [operationRef, correlation, result]
+      properties:
+        operationRef: *ref
+        correlation:
+          type: object
+          additionalProperties: false
+          required:
+          - environmentRef
+          - subjectRef
+          - runtimeInvocationRef
+          - transactionRef
+          - operationRef
+          - lifecycleRef
+          properties:
+            environmentRef: *ref
+            subjectRef: *ref
+            runtimeInvocationRef: *ref
+            transactionRef: *ref
+            operationRef: *ref
+            lifecycleRef: *ref
+        result: {type: object}
+        policyResultRef: *ref
+        responseBodyLength: {type: integer, minimum: 0}
+        association:
+          type: object
+          additionalProperties: false
+          required: [waiterRef, agentOperationDigest]
+          properties:
+            waiterRef: *ref
+            agentOperationDigest: *digest
+    reconcileOutputSchema: *pcf-create-output
+
+  - operation: ca.session.operation_context.read
+    adapter: ca-provider-5gc-http
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - ueRef
+      - pduSessionId
+      - pti
+      - requestType
+      - ingressRef
+      - lifecycleRef
+      - selection
+      - policyResultRef
+      - purpose
+      properties:
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        pti: {type: integer, minimum: 1, maximum: 254}
+        requestType: {type: integer, minimum: 0, maximum: 255}
+        ingressRef: *ref
+        lifecycleRef: *ref
+        selection: *selection
+        policyResultRef: *ref
+        purpose: {type: string, minLength: 1}
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required: [contextRef, runtimeInvocationRef]
+      properties:
+        contextRef: *ref
+        runtimeInvocationRef: *ref
+
+  - operation: ca.session.establishment_response.prepare
+    adapter: ca-provider-5gc-http
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - operationContextRef
+      - runtimeInvocationRef
+      - ueRef
+      - pduSessionId
+      - pti
+      - lifecycleRef
+      - selection
+      - policyResultRef
+      properties:
+        operationContextRef: *ref
+        runtimeInvocationRef: *ref
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        pti: {type: integer, minimum: 1, maximum: 254}
+        lifecycleRef: *ref
+        selection: *selection
+        policyResultRef: *ref
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - responseArtifactRef
+      - artifactDigest
+      - profileRef
+      - validUntil
+      - nasDigest
+      - n2Digest
+      properties:
+        responseArtifactRef: {type: string, pattern: '^csa:v1:[0-9a-f]{64}$'}
+        artifactDigest: *digest
+        profileRef: {const: createdsession-n1n2-sm@0.1.0}
+        validUntil: {type: string, format: date-time}
+        nasDigest: *digest
+        n2Digest: *digest
+
+  - operation: sbi.amf.n1n2.transfer
+    adapter: ca-provider-5gc-http
+    effect: MUTATION
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - operationContextRef
+      - runtimeInvocationRef
+      - ueRef
+      - pduSessionId
+      - lifecycleRef
+      - responseArtifactRef
+      - waiterRef
+      - delivery
+      properties:
+        operationContextRef: *ref
+        runtimeInvocationRef: *ref
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        lifecycleRef: *ref
+        responseArtifactRef: {type: string, pattern: '^csa:v1:[0-9a-f]{64}$'}
+        waiterRef: *ref
+        # Constructed by the admitted Skill Script.  The adapter independently
+        # proves every value against its durable prepared-response record.
+        delivery:
+          type: object
+          additionalProperties: false
+          required:
+          - profileRef
+          - responseArtifactRef
+          - artifactDigest
+          - nasDigest
+          - n2Digest
+          - validUntil
+          - operationContextRef
+          - policyResultRef
+          properties:
+            profileRef: {const: createdsession-n1n2-sm@0.1.0}
+            responseArtifactRef: {type: string, pattern: '^csa:v1:[0-9a-f]{64}$'}
+            artifactDigest: *digest
+            nasDigest: *digest
+            n2Digest: *digest
+            validUntil: {type: string, format: date-time}
+            operationContextRef: *ref
+            policyResultRef: *ref
+    outputSchema: &transfer-output
+      type: object
+      additionalProperties: false
+      required: [operationRef, correlation, result]
+      properties:
+        operationRef: *ref
+        correlation:
+          type: object
+          additionalProperties: false
+          required:
+          - environmentRef
+          - subjectRef
+          - runtimeInvocationRef
+          - transactionRef
+          - operationRef
+          - lifecycleRef
+          - operationContextRef
+          - responseArtifactRef
+          properties:
+            environmentRef: *ref
+            subjectRef: *ref
+            runtimeInvocationRef: *ref
+            transactionRef: *ref
+            operationRef: *ref
+            lifecycleRef: *ref
+            operationContextRef: *ref
+            responseArtifactRef: *ref
+        result:
+          type: object
+          required: [networkOutcome, targetAmfRef, targetBindingDigest]
+          properties:
+            operationRef: *ref
+            environmentRef: *ref
+            subjectRef: *ref
+            transactionRef: *ref
+            networkOutcome:
+              type: string
+              enum: [HTTP_RESPONSE, TIMEOUT, TRANSPORT_FAILURE, NOT_SENT, OUTCOME_UNKNOWN]
+            targetAmfRef: *ref
+            targetBindingDigest: *digest
+        association:
+          type: object
+          additionalProperties: false
+          required: [waiterRef, agentOperationDigest, n1n2InstanceRef]
+          properties:
+            waiterRef: *ref
+            agentOperationDigest: *digest
+            n1n2InstanceRef: *ref
+    reconcileOutputSchema: *transfer-output
+
+  - operation: ca.session.evidence.await
+    adapter: ca-agent-demo-runtime
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ueRef, pduSessionId, pti, requestType, ingressRef, lifecycleRef]
+      anyOf:
+      - required: [pcfPolicyAssociationRef]
+      - required: [operationContextRef, afterOperationRef]
+      properties:
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        pti: {type: integer, minimum: 1, maximum: 254}
+        requestType: {type: integer, minimum: 0, maximum: 255}
+        ingressRef: *ref
+        lifecycleRef: *ref
+        pcfPolicyAssociationRef: *ref
+        absencePolicy: {type: string, enum: [CONTINUE]}
+        operationContextRef: *ref
+        afterOperationRef: *ref
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required: [evidenceRefs]
+      properties:
+        evidenceRefs:
+          type: array
+          items: {type: string, minLength: 1}
+
+  - operation: ca.session.resource_responsibility.transfer
+    adapter: ca-agent-demo-runtime
+    effect: MUTATION
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [lifecycleRef, disposition]
+      properties:
+        lifecycleRef: *ref
+        disposition: {type: string, enum: [success, failed, unresolved]}
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required: [lifecycleRef, recipientRef, disposition, transferRef, evidenceRef]
+      properties:
+        lifecycleRef: *ref
+        recipientRef: *ref
+        disposition: {type: string, enum: [success, failed, unresolved]}
+        transferRef: *ref
+        evidenceRef: *ref
+    reconcileOutputSchema:
+      type: object
+      additionalProperties: false
+
+                    downlink:
+                      type: string
+                      pattern: '^[0-9]+(?:\.[0-9]+)? (?:bps|Kbps|Mbps|Gbps|Tbps)
+
+  - operation: ca.session.udm_hold.bind
+    adapter: env-fabric-http
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ueRef, dnn, snssai, ingressRef, lifecycleRef]
+      properties:
+        ueRef: *ref
+        dnn: {type: string, minLength: 1}
+        snssai: *snssai
+        ingressRef: *ref
+        lifecycleRef: *ref
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - holdRef
+      - requestRef
+      - currentInstanceRef
+      - heldRequestDigest
+      - operationKind
+      - dnn
+      - sst
+      - sd
+      - environmentRef
+      - lifecycleRef
+      - deadline
+      properties:
+        holdRef: *ref
+        requestRef: *ref
+        currentInstanceRef: *ref
+        heldRequestDigest: *digest
+        operationKind: {type: string, minLength: 1}
+        dnn: {type: string, minLength: 1}
+        sst: {type: integer, minimum: 0, maximum: 255}
+        sd: {type: [string, "null"]}
+        environmentRef: *ref
+        lifecycleRef: *ref
+        deadline: {type: string, minLength: 1}
+
+  - operation: sbi.udm.sdm_subscription.create
+    adapter: ca-provider-5gc-http
+    effect: MUTATION
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - ueRef
+      - udmInvocationRef
+      - udmTransactionRef
+      - selection
+      - ingressRef
+      - lifecycleRef
+      - waiterRef
+      properties:
+        ueRef: *ref
+        udmInvocationRef: *ref
+        udmTransactionRef: *ref
+        selection: *selection
+        ingressRef: *ref
+        lifecycleRef: *ref
+        waiterRef: *ref
+    outputSchema: &operation-output
+      type: object
+      additionalProperties: false
+      required: [operationRef, correlation, result]
+      properties:
+        operationRef: *ref
+        correlation: *refObject
+        result: {type: object}
+        subscriptionRef: *ref
+        responseBodyLength: {type: integer, minimum: 0}
+    reconcileOutputSchema: *operation-output
+
+  - operation: ca.session.pcf_hold.bind
+    adapter: env-fabric-http
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ueRef, pduSessionId, ingressRef, lifecycleRef]
+      properties:
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        ingressRef: *ref
+        lifecycleRef: *ref
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - holdRef
+      - requestRef
+      - currentInstanceRef
+      - policyAssociationRef
+      - heldRequestDigest
+      - operationKind
+      - environmentRef
+      - lifecycleRef
+      - deadline
+      properties:
+        holdRef: *ref
+        requestRef: *ref
+        currentInstanceRef: *ref
+        policyAssociationRef: *ref
+        heldRequestDigest: *digest
+        operationKind: {type: string, minLength: 1}
+        environmentRef: *ref
+        lifecycleRef: *ref
+        deadline: {type: string, minLength: 1}
+
+  - operation: ca.session.n1n2_hold.bind
+    adapter: env-fabric-http
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ueRef, pduSessionId, ingressRef, lifecycleRef]
+      properties:
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        ingressRef: *ref
+        lifecycleRef: *ref
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - holdRef
+      - requestRef
+      - currentInstanceRef
+      - heldRequestDigest
+      - operationKind
+      - targetNfInstanceId
+      - supi
+      - environmentRef
+      - lifecycleRef
+      - deadline
+      properties:
+        holdRef: *ref
+        requestRef: *ref
+        currentInstanceRef: *ref
+        heldRequestDigest: *digest
+        operationKind: {type: string, minLength: 1}
+        targetNfInstanceId: *ref
+        supi: *ref
+        environmentRef: *ref
+        lifecycleRef: *ref
+        deadline: {type: string, minLength: 1}
+
+  - operation: ca.session.pcf_create_inputs.read
+    adapter: ca-provider-5gc-http
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - ueRef
+      - pduSessionId
+      - pti
+      - requestType
+      - ingressRef
+      - lifecycleRef
+      - fabricHoldRef
+      - selection
+      properties:
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        pti: {type: integer, minimum: 1, maximum: 254}
+        requestType: {type: integer, minimum: 0, maximum: 255}
+        ingressRef: *ref
+        lifecycleRef: *ref
+        fabricHoldRef: *ref
+        selection: *selection
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - pcfCreateInputsRef
+      - runtimeInvocationRef
+      - pcfPolicyAssociationRef
+      - fabricHoldRef
+      - fabricHoldRequestDigest
+      - selectionDigest
+      properties:
+        pcfCreateInputsRef: *ref
+        runtimeInvocationRef: *ref
+        pcfPolicyAssociationRef: *ref
+        fabricHoldRef: *ref
+        fabricHoldRequestDigest: *digest
+        selectionDigest: *digest
+
+  - operation: sbi.pcf.sm_policy.create
+    adapter: ca-provider-5gc-http
+    effect: MUTATION
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - ueRef
+      - pcfCreateInputsRef
+      - selection
+      - policyInputs
+      - lifecycleRef
+      - sdmSubscriptionRef
+      - waiterRef
+      properties:
+        ueRef: *ref
+        pcfCreateInputsRef: *ref
+        selection: *selection
+        policyInputs: *policyInputs
+        lifecycleRef: *ref
+        sdmSubscriptionRef: *ref
+        waiterRef: *ref
+    outputSchema: &pcf-create-output
+      type: object
+      additionalProperties: false
+      required: [operationRef, correlation, result]
+      properties:
+        operationRef: *ref
+        correlation:
+          type: object
+          additionalProperties: false
+          required:
+          - environmentRef
+          - subjectRef
+          - runtimeInvocationRef
+          - transactionRef
+          - operationRef
+          - lifecycleRef
+          properties:
+            environmentRef: *ref
+            subjectRef: *ref
+            runtimeInvocationRef: *ref
+            transactionRef: *ref
+            operationRef: *ref
+            lifecycleRef: *ref
+        result: {type: object}
+        policyResultRef: *ref
+        responseBodyLength: {type: integer, minimum: 0}
+        association:
+          type: object
+          additionalProperties: false
+          required: [waiterRef, agentOperationDigest]
+          properties:
+            waiterRef: *ref
+            agentOperationDigest: *digest
+    reconcileOutputSchema: *pcf-create-output
+
+  - operation: ca.session.operation_context.read
+    adapter: ca-provider-5gc-http
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - ueRef
+      - pduSessionId
+      - pti
+      - requestType
+      - ingressRef
+      - lifecycleRef
+      - selection
+      - policyResultRef
+      - purpose
+      properties:
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        pti: {type: integer, minimum: 1, maximum: 254}
+        requestType: {type: integer, minimum: 0, maximum: 255}
+        ingressRef: *ref
+        lifecycleRef: *ref
+        selection: *selection
+        policyResultRef: *ref
+        purpose: {type: string, minLength: 1}
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required: [contextRef, runtimeInvocationRef]
+      properties:
+        contextRef: *ref
+        runtimeInvocationRef: *ref
+
+  - operation: ca.session.establishment_response.prepare
+    adapter: ca-provider-5gc-http
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - operationContextRef
+      - runtimeInvocationRef
+      - ueRef
+      - pduSessionId
+      - pti
+      - lifecycleRef
+      - selection
+      - policyResultRef
+      properties:
+        operationContextRef: *ref
+        runtimeInvocationRef: *ref
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        pti: {type: integer, minimum: 1, maximum: 254}
+        lifecycleRef: *ref
+        selection: *selection
+        policyResultRef: *ref
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - responseArtifactRef
+      - artifactDigest
+      - profileRef
+      - validUntil
+      - nasDigest
+      - n2Digest
+      properties:
+        responseArtifactRef: {type: string, pattern: '^csa:v1:[0-9a-f]{64}$'}
+        artifactDigest: *digest
+        profileRef: {const: createdsession-n1n2-sm@0.1.0}
+        validUntil: {type: string, format: date-time}
+        nasDigest: *digest
+        n2Digest: *digest
+
+  - operation: sbi.amf.n1n2.transfer
+    adapter: ca-provider-5gc-http
+    effect: MUTATION
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required:
+      - operationContextRef
+      - runtimeInvocationRef
+      - ueRef
+      - pduSessionId
+      - lifecycleRef
+      - responseArtifactRef
+      - waiterRef
+      - delivery
+      properties:
+        operationContextRef: *ref
+        runtimeInvocationRef: *ref
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        lifecycleRef: *ref
+        responseArtifactRef: {type: string, pattern: '^csa:v1:[0-9a-f]{64}$'}
+        waiterRef: *ref
+        # Constructed by the admitted Skill Script.  The adapter independently
+        # proves every value against its durable prepared-response record.
+        delivery:
+          type: object
+          additionalProperties: false
+          required:
+          - profileRef
+          - responseArtifactRef
+          - artifactDigest
+          - nasDigest
+          - n2Digest
+          - validUntil
+          - operationContextRef
+          - policyResultRef
+          properties:
+            profileRef: {const: createdsession-n1n2-sm@0.1.0}
+            responseArtifactRef: {type: string, pattern: '^csa:v1:[0-9a-f]{64}$'}
+            artifactDigest: *digest
+            nasDigest: *digest
+            n2Digest: *digest
+            validUntil: {type: string, format: date-time}
+            operationContextRef: *ref
+            policyResultRef: *ref
+    outputSchema: &transfer-output
+      type: object
+      additionalProperties: false
+      required: [operationRef, correlation, result]
+      properties:
+        operationRef: *ref
+        correlation:
+          type: object
+          additionalProperties: false
+          required:
+          - environmentRef
+          - subjectRef
+          - runtimeInvocationRef
+          - transactionRef
+          - operationRef
+          - lifecycleRef
+          - operationContextRef
+          - responseArtifactRef
+          properties:
+            environmentRef: *ref
+            subjectRef: *ref
+            runtimeInvocationRef: *ref
+            transactionRef: *ref
+            operationRef: *ref
+            lifecycleRef: *ref
+            operationContextRef: *ref
+            responseArtifactRef: *ref
+        result:
+          type: object
+          required: [networkOutcome, targetAmfRef, targetBindingDigest]
+          properties:
+            operationRef: *ref
+            environmentRef: *ref
+            subjectRef: *ref
+            transactionRef: *ref
+            networkOutcome:
+              type: string
+              enum: [HTTP_RESPONSE, TIMEOUT, TRANSPORT_FAILURE, NOT_SENT, OUTCOME_UNKNOWN]
+            targetAmfRef: *ref
+            targetBindingDigest: *digest
+        association:
+          type: object
+          additionalProperties: false
+          required: [waiterRef, agentOperationDigest, n1n2InstanceRef]
+          properties:
+            waiterRef: *ref
+            agentOperationDigest: *digest
+            n1n2InstanceRef: *ref
+    reconcileOutputSchema: *transfer-output
+
+  - operation: ca.session.evidence.await
+    adapter: ca-agent-demo-runtime
+    effect: READ
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ueRef, pduSessionId, pti, requestType, ingressRef, lifecycleRef]
+      anyOf:
+      - required: [pcfPolicyAssociationRef]
+      - required: [operationContextRef, afterOperationRef]
+      properties:
+        ueRef: *ref
+        pduSessionId: {type: integer, minimum: 1, maximum: 15}
+        pti: {type: integer, minimum: 1, maximum: 254}
+        requestType: {type: integer, minimum: 0, maximum: 255}
+        ingressRef: *ref
+        lifecycleRef: *ref
+        pcfPolicyAssociationRef: *ref
+        absencePolicy: {type: string, enum: [CONTINUE]}
+        operationContextRef: *ref
+        afterOperationRef: *ref
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required: [evidenceRefs]
+      properties:
+        evidenceRefs:
+          type: array
+          items: {type: string, minLength: 1}
+
+  - operation: ca.session.resource_responsibility.transfer
+    adapter: ca-agent-demo-runtime
+    effect: MUTATION
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [lifecycleRef, disposition]
+      properties:
+        lifecycleRef: *ref
+        disposition: {type: string, enum: [success, failed, unresolved]}
+    outputSchema:
+      type: object
+      additionalProperties: false
+      required: [lifecycleRef, recipientRef, disposition, transferRef, evidenceRef]
+      properties:
+        lifecycleRef: *ref
+        recipientRef: *ref
+        disposition: {type: string, enum: [success, failed, unresolved]}
+        transferRef: *ref
+        evidenceRef: *ref
+    reconcileOutputSchema:
+      type: object
+      additionalProperties: false
+
+                defaultQos:
+                  type: object
+                  additionalProperties: false
+                  required: [fiveQi, arp]
+                  properties:
+                    fiveQi: {type: integer, minimum: 0, maximum: 255}
+                    arp:
+                      type: object
+                      additionalProperties: false
+                      required: [priorityLevel, preemptCap, preemptVuln]
+                      properties:
+                        priorityLevel: {type: integer, minimum: 1, maximum: 15}
+                        preemptCap: {enum: [MAY_PREEMPT, NOT_PREEMPT]}
+                        preemptVuln: {enum: [PREEMPTABLE, NOT_PREEMPTABLE]}
+          allOf:
+            - if:
+                properties: {networkOutcome: {const: HTTP_RESPONSE}}
+                required: [networkOutcome]
+              then:
+                required: [httpStatus, responseOrigin, captureComplete, responseRef]
+            - if:
+                properties: {networkOutcome: {enum: [TIMEOUT, TRANSPORT_FAILURE]}}
+                required: [networkOutcome]
+              then:
+                not:
+                  anyOf:
+                    - required: [httpStatus]
+                    - required: [responseOrigin]
+                    - required: [captureComplete]
+                    - required: [responseRef]
+            - if:
+                properties: {selection: {const: MATCHED}}
+                required: [selection]
+              then:
+                required: [subscription]
+            - if:
+                properties: {selection: {enum: [NO_MATCH, AMBIGUOUS, INVALID_PAYLOAD, INVALID_PROFILE_DATA, UNSUPPORTED_VARIANT, UNSUPPORTED_ENUM, HTTP_ERROR, NOT_EVALUATED]}}
+                required: [selection]
+              then:
+                not:
+                  required: [subscription]
+          
 
   - operation: ca.session.udm_hold.bind
     adapter: env-fabric-http
