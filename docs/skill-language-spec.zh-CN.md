@@ -1564,6 +1564,22 @@ Build PASS 只说明本次源码和契约满足静态规则。运行还需要 Ad
 
 评审意见必须归入：规范语义错误、语法表达不清、Owner 契约缺失、Compiler 无法静态验证、Studio 无法正确呈现、Runtime 尚未实现、业务流程尚未验证。不得把所有问题归结为“Compiler 再支持一下”，也不得让 Skill 源码承担其他 Owner 的缺失契约。
 
+
+# 附录 D：对上一轮评审意见的逐项答复
+
+| 评审意见 | 本规范答复 | 当前结论 |
+|---|---|---|
+| Observation ToolCatalog 表达不明确 | 提出在同一个 ToolCatalog 的 contracts 中使用 kind=operation / kind=observation 的类型化 callable；Observation 有独立 id、QueryContext Schema、Output Schema 和 guarantees | 方向已提出，字段仍待 Owner / Compiler 冻结 |
+| Observation Query 调用语法不明确 | Operation 和 Observation Query 共用 Procedure call 节点；精确身份由依赖快照解析，kind 由 ToolCatalog 决定；QueryContext 使用同一显式 Binding Plan | 语义已明确，正式 Schema / Fixture 待冻结 |
+| Evidence 与 Predicate 参数的关联不明确 | Evidence 按业务参数分别关联；每个参数可无 Evidence、一个或多个 refs；input.evidence 是 Host 保留命名空间，业务参数 evidence 禁止 | 基数原则已明确；具体 Host Evidence Projection 和 Runtime 校验结构待 Owner 发布 |
+| Predicate Script 类型派生不明确 | Predicate.parameters 是唯一业务输入签名；Script 入口 input: dict 仅为调用容器；Compiler / LSP 必须提供派生只读类型环境 | 语义已明确；生成 stub / overlay 的工具链方式待验证 |
+| Schema ID 与路径混淆 | 外部引用使用 dependency-alias::精确 Schema $id；Skill 自有 Schema 使用包内路径；路径不是公共身份 | 规则已明确；需要 Compiler 正负例验证 |
+| primitive 类型兼容、nullable 和 CEL 规则不完整 | 由 Compiler 类型兼容矩阵和正负例冻结，未支持关键字不得静默忽略 | 未冻结 |
+| 自动同名绑定保留键冲突 | vNext 第一版建议不支持 with.from: input；Studio 可生成显式绑定 | 本规范提议关闭该语法，待语言评审确认 |
+| 三个异步 Operation 的 Owner 契约尚未确认 | 责任目标映射到 UPN.CREATE_UP_SESSION、SSM.SIGNAL_UE_AN、UPN.MODIFY_UP_SESSION | 仅为目标责任；ToolCatalog / Output / Evidence 仍待 Owner 确认 |
+
+本附录是评审答复记录，不表示所有问题已实现或已冻结。评审者若不同意某项决定，应指出所影响的术语、语法、静态语义、运行语义或 Owner 边界，并提供正例和反例。
+
 # 附录 C：参考规范
 
 1. RFC 2119 — https://www.rfc-editor.org/rfc/rfc2119
