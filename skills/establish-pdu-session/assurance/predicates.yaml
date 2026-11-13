@@ -8,10 +8,11 @@ predicates:
       ingress:
         evidence:
           freshness: 5s
-      request: {}
+      requestType: {}
+      pti: {}
     evaluator:
       type: cel
-      expression: input.ingress.requestType == input.request.requestType && input.ingress.pti == input.request.pti &&
+      expression: input.ingress.requestType == input.requestType && input.ingress.pti == input.pti &&
         input.ingress.messageType == 193 && input.ingress.bindingStatus == "CURRENT" &&
         input.ingress.actionAuthorized == true
 
@@ -20,12 +21,13 @@ predicates:
       hold:
         evidence:
           freshness: 5s
-      request: {}
+      dnn: {}
+      sst: {}
     evaluator:
       type: cel
       expression: input.hold.operationKind == "UDM_SDM_SUBSCRIPTION_CREATE" && input.hold.holdRef != "" &&
         input.hold.currentInstanceRef != "" && input.hold.heldRequestDigest != "" &&
-        input.hold.dnn == input.request.dnn && input.hold.sst == input.request.sNssai.sst
+        input.hold.dnn == input.dnn && input.hold.sst == input.sst
 
   createdsession.pcf.hold_bound:
     inputs:
