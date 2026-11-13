@@ -326,3 +326,16 @@ Do not bind the Provider wire Schema directly as the Tool output Schema: Provide
 The conventional 5GC source is **partially migrated, not statically linkable and not build-accepted**. Its five Skill Scripts (three Procedure Scripts and two Predicate Scripts) have the required main(input: dict) -> NonEmptyTypedDict shape, and all 16 declared Predicates are present. Those local checks do not compensate for missing imported Operation/Capability/Schema contracts.
 
 The vNext Compiler is also not yet an acceptance gate: the current Compiler implementation targets v0.2 and does not load/link the v1alpha2 CapabilityContracts and Owner export set. Do not run a v0.2 build and label it v1alpha2 acceptance.
+### 14.6 Strict Script source-shape audit
+
+All five Script assets referenced by the conventional 5GC Procedure and PredicateSet were fetched from the migration head and checked:
+
+| Script | Entry point | Return contract | Legacy metadata |
+|---|---|---|---|
+| scripts/select_establishment_configuration.py | main(input: dict) | EstablishmentSelectionOutput (TypedDict) | none found |
+| scripts/build_pcf_policy_inputs.py | main(input: dict) | PcfPolicyInputsOutput (TypedDict) | none found |
+| scripts/build_n1n2_delivery.py | main(input: dict) | N1N2DeliveryOutput (TypedDict) | none found |
+| scripts/evaluate_udm_read.py | main(input: dict) | PredicateEvaluationResult (TypedDict) | none found |
+| scripts/evaluate_transfer_start.py | main(input: dict) | PredicateEvaluationResult (TypedDict) | none found |
+
+The return types are non-empty TypedDicts. The nested output fields use the supported Literal / Annotated / list / nested TypedDict / NotRequired forms, including the functional TypedDict form for PCF QoS. No authored Script Input Schema, `# /// connectionagent-tool` metadata, or per-Script execution policy was found. This closes the source-shape audit only; it does not replace Compiler-generated schema validation or the still-blocked vNext static link.
