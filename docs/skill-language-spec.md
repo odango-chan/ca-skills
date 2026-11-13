@@ -242,7 +242,7 @@ Rules:
 
 ## 7. READ Operations, Evidence and waiting
 
-Data acquisition is explicit in Procedure as a READ Operation. Its output contains the normalized typed value; the same invocation returns the Evidence for that value. A Predicate consumes that exact output through `verify.with`.
+Data acquisition is explicit in Procedure as a READ Operation. Its output contains the normalized typed value; the same invocation returns the Evidence for that value. A Predicate consumes that exact output through its positional `verify.arguments` entry.
 
 Do not create a second read merely to reconstruct Evidence for a prior Tool result. Do not treat a local handle, Mutation success or a stale per-UE lookup as current network truth.
 
@@ -266,7 +266,7 @@ def main(input: dict) -> OutputType:
 
 - The parameter is named `input` and annotated exactly `dict`.
 - Procedure Script input is derived from that call site's `with` bindings.
-- Predicate Script input is the declared Predicate input projection plus Host-attached Evidence refs.
+- Predicate Script input is the named projection of declared Predicate parameters plus Host-attached Evidence refs.
 - The return annotation names a non-empty `TypedDict` declared in the same file.
 - Compiler statically derives a closed Draft 2020-12 Output Schema from supported type declarations. It does not execute Python.
 - `Any`, `object`, open `dict` outputs, empty output types, unsupported unions and inferred function-body schemas are forbidden.
