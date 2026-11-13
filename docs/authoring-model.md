@@ -17,8 +17,8 @@ Contract is author-maintained source, not a compiler-generated file. The source 
 ## Contract and dependency semantics
 
 - Goal and public Request belong to Contract, not the Procedure graph.
-- `requiredFacts` are trusted Host facts mandatory at Admission, not dynamic business facts later queried by Observation. Every accessed Host Context projection must be declared in `context.schemas` and resolve through an explicit dependency.
-- Public dependencies declare a stable Package ID per Alias. They do not contain source URLs, version locks, digests or downloaded bytes. Each BuildRequest Snapshot carries the same Alias and ID plus a publisher `dependency.yaml` Manifest; Compiler checks all three identities and exact Owner exports.
+- `requiredFacts` resolves each Admission Fact ID through a trusted Host descriptor to an exact Context Projection Schema and field path. Declare the projections used by SourcePaths or Admission descriptors in `context.schemas`.
+- Public dependencies declare a stable Package ID per Alias. The trusted build caller binds the Package ID and allowed Owners to the existing snapshot alias and verified digest. Compiler links exact Owner exports.
 - Capability Grants are separate from dependencies. Dependencies make contracts available; grants request authorization.
 - Studio guides creation by selecting dependencies and Capabilities from available public catalogs, writes stable identities into Contract and obtains exact dependency snapshots for the BuildRequest.
 - Compiler receives exact bytes and trusted CapabilityContracts as inputs. It never downloads dependencies, manages versions or infers authorization from the set of imported Tools.
@@ -35,7 +35,7 @@ There are four business node types:
 
 terminal declares an explicit terminal state; it is not a business action. Predicate is the reusable deterministic judgment definition, not a separate Procedure node. There is no generic computation node.
 
-Invocation-wide preconditions belong to the entry gate. If their facts are not already available in trusted Context, explicit Observation nodes may acquire them before the Precondition. No protected Mutation may bypass the required Precondition PASS. The final business Postcondition belongs at the end, before every successful terminal. All SUCCEEDED paths must pass its PASS route. There is no Contract-level duplicate postconditions declaration and no second evaluation through a from reference. Local Precondition / Postcondition nodes remain available where needed.
+Mark Invocation-wide entry gates with `precondition.entry: true`. Explicit Observation nodes may acquire the facts first. Every path to a Mutation must pass all marked entry gates. Mark a final Postcondition with `postcondition.goal` equal to the Contract Goal. Each SUCCEEDED path needs a valid PASS for that Goal; separate proof nodes may share the same success terminal. See §12.9.
 
 The first vNext version has one entry Procedure graph per Skill and does not define nested ProcedureCall or graph cycles. Branches and recovery are explicit nodes and routes.
 
@@ -52,7 +52,7 @@ The first vNext version has one entry Procedure graph per Skill and does not def
 
 A Procedure Script is a pure local data transformation / selection invoked through an Operation node. It is not a Tool, Capability, or external READ / MUTATION effect.
 
-A Predicate Script implements a Predicate evaluator and returns the structured PredicateEvaluationResult. Its business inputs derive from Predicate.parameters; Evidence remains Host-attached and read-only.
+A Predicate Script implements a Predicate evaluator and returns the structured PredicateEvaluationResult. Its business inputs derive from Predicate.parameters. Runtime verifies the Predicate's `evidence.requires` independently of the Script's `evidenceUsed` report.
 
 ## Generated artifacts and policies
 
@@ -62,6 +62,6 @@ Compiler derives normalized contracts, execution graph, type bindings and genera
 - Final Postcondition is an executable Procedure node, not a duplicate Contract list.
 - Dynamic Procedure generation is forbidden by the static DAG language rule.
 - Runtime enforces a positive Host action budget; Contract may optionally set a stricter `limits.maxActions` upper bound (counting dispatched Tool, Observation, Script and Reconcile actions). Effective limit is the minimum, and missing/zero Host budget fails closed.
-- Mutation UNKNOWN reconciliation is a general Runtime safety invariant; it is not a per-Skill on/off switch.
+- For Mutation UNKNOWN, reconcile the original attempt when a safe Owner contract and runtime conditions allow it. Otherwise stop and retain the original attempt and responsibility (§20).
 
 Generated Schema serialization and whether a deployment bundle embeds the reachable external dependency closure or keeps exact external references belong to the separate Compiler / Deployment Artifact Contract—not the CA-SL node grammar.

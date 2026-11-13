@@ -52,7 +52,7 @@ Rules:
 - Business input types derive from the owning Predicate's ordered parameters.
 - Host / Runtime may attach a reserved, read-only Evidence projection; it is not an extra positional business parameter.
 - result is the only field that controls PASS / FAIL / UNKNOWN routing.
-- evidenceUsed may cite only Evidence refs already attached to this Predicate Invocation. Script cannot create, modify, rebind or widen Evidence.
+- `evidenceUsed` may cite only Evidence refs already attached to this Predicate Invocation. Runtime separately verifies the guarantees in `evidence.requires` before accepting a definite result. See CA-SL §17.
 - The strict return TypedDict generates the evaluator Output Schema; no competing hand-maintained Script Output Schema is allowed.
 - CEL Predicate evaluation follows the same tri-state semantics; Runtime normalizes its result and preserves the input / Evidence lineage.
 

@@ -519,13 +519,13 @@ This section records the latest review direction and supersedes earlier authorin
 
 - SourcePath roots are limited to input, explicit context projections (request / subject / facts / ingress), and exact prior-node output references.
 - vNext first version supports static dot paths only; no dynamic selectors, interpolation, function calls or array indexing.
-- The Procedure graph is a DAG. Compiler validates producer availability, entry-gate dominance over protected mutations and final-postcondition dominance over every SUCCEEDED terminal.
+- The Procedure graph is a DAG. Compiler validates producer availability, entry-gate PASS coverage over protected mutations and Goal Postcondition PASS coverage on every successful path. Distinct final nodes may share a Terminal (§12.9).
 - Terminal outcomes include SUCCEEDED, FAILED, UNRESOLVED and SAFE_STOPPED. SAFE_STOPPED preserves partial resource / responsibility state and must not collapse into ordinary Predicate FAIL.
 
 ### 25.5 Schema and external dependency artifact boundary
 
 - Skill-owned source Schemas remain YAML-authoritative JSON Schema files. Generated Schema serialization is a Compiler Artifact Contract decision; canonical JSON is the recommended machine-output format but is not frozen here.
-- Compiler receives DependencySnapshot bytes with Alias, stable Package ID and an Owner-published dependency.yaml Manifest. Contract/Snapshot/Manifest IDs and published Owner/export identities must match; trusted caller owns provenance. Compiler resolves only referenced exports and must not copy the whole external library.
+- The trusted build caller binds the stable Package ID and allowed Owners to the existing snapshot alias and verified digest. Compiler resolves exact Owner exports and referenced Schema closure (§34.0).
 - If a deployment bundle must be self-contained, only the transitive dependency closure reachable from the compiled Skill may be embedded. Otherwise exact external dependency identities may remain references.
 - Serialization and dependency-closure packaging are separate Compiler / Deployment Artifact design topics; they do not block this language-source review.
 
@@ -538,11 +538,11 @@ The single [CA-SL specification](../skill-language-spec.zh-CN.md) contains the a
 | P0 Contract/Procedure | Goal, Request, Context, dependencies and Capability Grants only in Contract; Procedure contains start/inputs/nodes |
 | P0 Predicate arguments | Align every sample call's arity, order and type to its Predicate signature |
 | P0 Reconcile branches | COMMITTED does not restore an original lost success response; explicit recoverable typed output or independent Observation required |
-| P0 Dependency linking | Contract stable Package ID by Alias; BuildRequest Snapshot carries Alias/ID and publisher dependency.yaml; Compiler checks exact identity and Owner/export mappings |
+| P0 Dependency linking | Stable Package ID by Alias; trusted binding keyed to snapshot alias and verified digest; exact Owner/export links |
 | P0 Node grammar | Define precise nested mapping shape for Predicate versus Tool/Observation/Script arguments and forbid extra Reconcile/Terminal fields |
 | P1 Context | requiredFacts are Host Admission prerequisites; dynamic facts come from explicit Observation; all accessed Context projections require matching Contract Schema declarations |
 | P1 Script | Procedure Script and Predicate Script are distinct pure local computation roles |
 | P1 Budget | Optional limits.maxActions is a stricter upper bound on the mandatory positive Host action budget |
 | P1 Fixtures | Added a synthetic complete Contract/Procedure/Predicate/Owner/Capability fixture and 16 candidate cases in Appendix E |
 
-The Manifest is Owner-published dependency identity information, not a new author-maintained Skill file or a Package Manager. Studio/Build Caller owns source provenance and revision selection. Current executable v0.2 Skills are unchanged; the vNext language remains DESIGN REVIEW / NOT FROZEN.
+The trusted build caller owns source provenance and revision selection. The vNext language remains DESIGN REVIEW / NOT FROZEN.

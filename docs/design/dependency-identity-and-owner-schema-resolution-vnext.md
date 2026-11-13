@@ -13,7 +13,7 @@ This document is aligned with [Skill Language Specification](../skill-language-s
 2. Skill source references imported Tool Operations, Observation Tool query contracts and Owner Schemas by `<dependency-alias>::<exact-exported-id>`.
 3. The alias is a logical namespace mapped by Plugin-managed Workspace Configuration to one supplied dependency snapshot. It is not a repository URL, local path, source kind, revision, digest, cache key or acquisition instruction.
 4. Studio owns dependency selection, acquisition, immutable snapshot persistence, locking, refresh and cache. Compiler receives the exact bytes and does not acquire or manage them.
-5. Compiler BuildRequest contains Skill source files, dependency snapshots grouped by alias, one separate trusted deployment CapabilityContracts document, and optional targets.
+5. Compiler BuildRequest contains Skill source files and immutable dependency snapshots. The trusted caller also provides Package ID / Owner bindings for those snapshots and separate deployment CapabilityContracts (§34.0).
 6. Capability IDs in `allowedResources.capabilities` are unqualified exact IDs from that single trusted CapabilityContracts input. Tool/Schema aliases do not qualify or own deployment authorization.
 7. Compiler links each exact callable contract (Operation or Observation query) to exactly one Capability and cross-checks its ToolCatalog Effect against the independently declared Capability Effect. Runtime repeats authorization and Effect admission.
 8. No project manifest, lockfile, package resolver, Compiler dependency digest output, or physical `lib/` source layout is introduced.
@@ -22,25 +22,26 @@ This document is aligned with [Skill Language Specification](../skill-language-s
 
 ## 2. Compiler input boundary
 
-The caller supplies all source bytes required for one build. Conceptual shape:
+The caller supplies all source bytes required for one build. Reuse the existing v0.1 snapshot shape:
 
 ```typescript
 type File = { path: string; bytes: Uint8Array };
 
 type DependencySnapshot = {
-  alias: string;
+  dependencyId: string; // Workspace alias
+  digest: string; // verified against canonical snapshot bytes
   files: File[]; // paths are relative to this snapshot
 };
 
 type BuildRequest = {
   files: File[]; // Skill source only, under skills/**
-  dependencies: DependencySnapshot[];
+  resolvedDependencies: DependencySnapshot[];
   capabilityContracts: File; // trusted deployment composition, separate input
   targets?: string[];
 };
 ```
 
-This is an implementation boundary, not a package-manager API. Compiler validates normalized paths, duplicate files/aliases/export IDs, schema structure and exact links. It does not fetch, pin, update, cache or persist any dependency.
+The sketch reuses the v0.1 snapshot fields. The vNext transport for trusted Package ID and Owner bindings is pending; the caller supplies them keyed by alias and verified digest. Compiler validates paths, bytes, digest, identity and exact exports. See CA-SL §34.0.
 
 BuildResult returns diagnostics and generated Skill-owned output files. It does not export dependency digests or copy dependency snapshots into generated Skill source. Studio owns dependency lock and persistence.
 
@@ -51,7 +52,7 @@ BuildResult returns diagnostics and generated Skill-owned output files. It does 
 - Owner Schema: `host-context::urn:connectionagent:5gc:skill-context:ingress:v1`
 - Capability grant: `provider-5gc.createdsession.udm`
 
-The alias selects the exact caller-supplied snapshot. The ID after `::` remains owned by the producer. Observation query IDs are exported by the Observation Tool Owner through the same dependency snapshot and ToolCatalog contract model. Two imported snapshots that export the same ID are ambiguous and fail closed; the Skill must not rely on file order or source path to select one.
+The alias selects the exact caller-supplied snapshot. The exported ID remains Owner-defined. Resolve the export uniquely within the selected snapshot; enforce any additional Schema or Capability identity uniqueness constraints during linking.
 
 CapabilityContracts is not a normal dependency snapshot. It is deployment-owned trusted input. The Skill may grant a Capability ID but cannot define its owner, callable membership (Operations and Observation queries), Effect or budget policy.
 
@@ -76,7 +77,7 @@ The exact vNext Observation Tool query identities, schemas and Capability member
 
 ## 5. Evidence and prior-operation results
 
-An Observation Tool query returns its typed normalized value and the declared Evidence/lineage for that query. A Predicate consumes the exact explicitly bound Operation output, Context projection or Observation query result through positional `verify.arguments`; it never triggers acquisition itself.
+An Observation Tool returns its normalized value and declared Evidence guarantees. A Predicate consumes explicitly bound values through positional `precondition.arguments` or `postcondition.arguments`. Compiler and Runtime verify `evidence.requires` as described in CA-SL §17.
 
 For UDM Get:
 

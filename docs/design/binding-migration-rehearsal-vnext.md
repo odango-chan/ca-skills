@@ -668,7 +668,7 @@ The complete 5GC fixture set was reviewed against the target Procedure outline. 
 Therefore the existing 36 Cases and three References are sufficient as **unchanged behavioral constraints** for this semantic migration, but they are not a substitute for new vNext binding/schema conformance tests. Before a future Compiler/Runtime implementation is accepted, add focused fixtures for each derived Predicate input projection, producer/Evidence correlation, the N4 phase union and exact instance lineage. Keep those new tests separate from the authored Case/Reference package; do not rewrite the existing examples merely to fit candidate syntax.
 ## 24. Owner contract convergence decision (2026-11-13)
 
-Status: **5GC semantic ownership and migration shape converged; vNext source syntax is frozen in `docs/skill-language-spec.md`; Owner READ contracts and Runtime implementation remain in progress.** This is a paper-audit record, not a separate migration rehearsal.
+Status: **5GC migration mapping recorded; vNext source syntax remains under public review in `docs/skill-language-spec.zh-CN.md`. Owner READ contracts and Runtime implementation are still open.** This is a paper-audit record.
 
 ### 24.1 One authoritative contract per boundary
 
@@ -706,7 +706,7 @@ The Host `runtime_value()` projection **does require its own exported Schema** b
 
 ### 24.4 Capability and authorization boundary
 
-- The Skill grants qualified Capability IDs only; it does not grant individual Operations or whole Tools.
+- The Skill grants exact, unqualified Capability IDs from trusted CapabilityContracts. Membership refers to exact Owner callable identities.
 - The trusted deployment CapabilityContracts remains the sole authority for exact Capability → Operation membership and expected Effect. Compiler must receive it as a separate trusted BuildRequest input; Runtime admission remains authoritative.
 - The three Provider assurance READs need an Owner-declared Capability membership. They may share one Provider assurance Capability only if the Provider Owner confirms that authorization boundary. PCF governance is Fabric-owned and must not be silently placed in the Provider Capability; use a separate Fabric Capability unless Fabric confirms an existing shared boundary.
 - The Host journal acquisition choice must likewise identify its Host owner/effect boundary before it is added to a Skill grant. Do not infer membership from adapter names or schema location.

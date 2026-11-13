@@ -74,7 +74,7 @@ At Skill creation, Studio should offer a guided selection flow over the availabl
 
 These selections remain editable later in a dedicated Dependencies / Capabilities view. Studio fetches the chosen dependency bytes and supplies exact immutable `DependencySnapshot` inputs plus the trusted CapabilityContracts to Compiler. Compiler only parses, links and validates; it does not search registries, download dependencies, manage locks or resolve versions.
 
-The Contract records stable Package IDs by Alias and grants, not the currently downloaded copies. Every selected BuildRequest Snapshot provides `{alias,id,files}` and an Owner-published `dependency.yaml` identity Manifest; Compiler verifies exact Contract/Snapshot/Manifest identity, Owner and export match. Snapshot provenance trust is the Studio/build caller's responsibility. Exact selected dependency snapshots / revisions belong to Studio project configuration or Build input. If a dependency changes, Studio can show the impact and re-run linking without silently rewriting the Skill's declared public requirements.
+The Contract records stable Package IDs by Alias and requested Capability Grants. Studio supplies the exact immutable snapshots and trusted Package ID / Owner bindings keyed to their aliases and verified digests. Exact revisions belong to Studio project configuration or the Build input. If a dependency changes, Studio can show the impact and re-run linking without silently rewriting the Skill's declared public requirements.
 
 ## Imported external contracts
 

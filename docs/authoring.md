@@ -42,7 +42,7 @@ The Contract remains author-maintained source. Only redundant wrapper fields and
 | `apiVersion`, `kind` | Omit from source; selected by Compiler Target / file structure |
 | `metadata.name` | Derive from Skill Package root |
 | `entryProcedure` | Omit: one Procedure entry per Skill |
-| `postconditions` | Move to the final Postcondition node in Procedure |
+| `postconditions` | Procedure nodes mark the Goal they prove with `postcondition.goal`; each success path must carry a valid Goal PASS |
 | `planning.allowDynamicProcedure` | Omit: static DAG is a language invariant |
 | `planning.maxActions` | Superseded; optional `limits.maxActions` imposes a stricter Skill action bound. Host's positive budget is mandatory |
 | `failureSemantics.outcomeUnknown.requireReconcile` | General safety rule for Mutation UNKNOWN, not a per-Skill toggle |
@@ -61,7 +61,7 @@ Studio should guide authors through selection rather than requiring manual entry
 
 Selections remain editable later in Dependencies / Capabilities views. Studio fetches exact dependency snapshots and supplies them to Compiler. Compiler parses, links and validates only; it does not download dependencies or manage dependency versions.
 
-The Contract maps each dependency Alias to a stable Package ID. BuildRequest snapshots include `{alias,id,files}` and a publisher `dependency.yaml` identity Manifest; Compiler matches Contract, Snapshot, Manifest and Owner exports. Contract does not store download URLs, branches, version locks or digests. If an Owner Schema ID itself contains an immutable revision marker (for example `...:v1`), preserve it exactly.
+The Contract maps each dependency Alias to a stable Package ID. The build caller binds that identity and the allowed Owners to the existing snapshot alias and verified digest. Compiler links exact Owner exports. The Contract does not store download locations, version locks or digests. Preserve immutable version markers in Owner Schema IDs.
 
 ## 5. Further reading
 
