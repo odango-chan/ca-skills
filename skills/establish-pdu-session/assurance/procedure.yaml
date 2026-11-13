@@ -678,14 +678,6 @@ procedures:
         with:
           ue-ref:
             from: input.ue-ref
-          psi:
-            from: input.psi
-          pti:
-            from: input.pti
-          request-type:
-            from: input.request-type
-          ingress-ref:
-            from: input.ingress-ref
           lifecycle-ref:
             from: input.lifecycle-ref
           disposition:
@@ -701,14 +693,6 @@ procedures:
         with:
           ue-ref:
             from: input.ue-ref
-          psi:
-            from: input.psi
-          pti:
-            from: input.pti
-          request-type:
-            from: input.request-type
-          ingress-ref:
-            from: input.ingress-ref
           lifecycle-ref:
             from: input.lifecycle-ref
           disposition:
@@ -724,14 +708,6 @@ procedures:
         with:
           ue-ref:
             from: input.ue-ref
-          psi:
-            from: input.psi
-          pti:
-            from: input.pti
-          request-type:
-            from: input.request-type
-          ingress-ref:
-            from: input.ingress-ref
           lifecycle-ref:
             from: input.lifecycle-ref
           disposition:
@@ -774,27 +750,9 @@ procedures:
 
   finalize-resource-responsibility:
     inputs:
-      ue-ref:
-        type: string
-        from: context.subject.ueRef
-      psi:
-        type: integer
-        from: context.request.pduSessionId
-      pti:
-        type: integer
-        from: context.request.pti
-      request-type:
-        type: integer
-        from: context.request.requestType
-      ingress-ref:
-        type: string
-        from: context.facts.createdsession_ingress
-      lifecycle-ref:
-        type: string
-        from: context.facts.createdsession_lifecycle
-      disposition:
-        type: string
-        from: context.subject.resourceDisposition
+      ue-ref: {}
+      lifecycle-ref: {}
+      disposition: {}
     start: transfer
     nodes:
       transfer:
@@ -804,18 +762,35 @@ procedures:
             from: input.lifecycle-ref
           disposition:
             from: input.disposition
+        'on':
+          SUCCEEDED: read-resource-responsibility
+          NOT_COMMITTED: safe-stopped
+          OUTCOME_UNKNOWN: reconcile-transfer
+          FAILED: safe-stopped
+          DENIED: safe-stopped
+          UNKNOWN: unresolved
+
+      read-resource-responsibility:
+        call: createdsession-tools::ca.session.lifecycle.read
+        with:
+          ueRef:
+            from: input.ue-ref
+          lifecycleRef:
+            from: input.lifecycle-ref
         postconditions:
           steps:
             - verify: createdsession.resources.managed
+              with:
+                responsibility:
+                  from: read-resource-responsibility.output.resourceResponsibility
           'on':
             PASS: done
             FAIL: safe-stopped
             UNKNOWN: unresolved
         'on':
-          NOT_COMMITTED: safe-stopped
-          OUTCOME_UNKNOWN: reconcile-transfer
-          FAILED: safe-stopped
+          FAILED: unresolved
           DENIED: safe-stopped
+          UNKNOWN: unresolved
 
       reconcile-transfer:
         reconcile: transfer
