@@ -8,14 +8,19 @@
 - `SKILL.md` is model-facing business guidance; it is not a second execution graph.
 - Cases record semantic obligations and scenarios; they are not executable workflow or runtime evidence.
 
-## 2. Procedure inputs and explicit bindings
+## 2. Procedure inputs and minimal bindings
 
-Procedure inputs are named projections from the frozen invocation context. Every Operation, Script and Predicate consumer receives explicit `with/from` bindings.
+Procedure inputs are the Procedure's actual interface, not a mirror of the entire invocation Context. Declare only values the Procedure consumes or intentionally shares with descendants.
 
-- A binding resolves against an authoritative Producer Schema.
-- The Producer must be available on every path reaching the consumer.
-- No implicit previous-node binding, automatic semantic matching, hidden context injection or string interpolation is allowed in the initial vNext implementation.
+- `context.projections` grants access to approved Context projections; it does not inject them into Procedure or Operation inputs.
+- Every consumer receives only its declared input projection. Extra caller fields are never forwarded.
+- Operation requiredness comes from the Owner Input Schema. Required inputs must be bound; optional inputs are omitted unless deliberately supplied.
+- `with.from: input` is a proposed opt-in same-name shorthand for declared-contract consumers. It binds same-named required inputs only. Optional inputs require explicit bindings; explicit bindings override the shorthand.
+- The shorthand never reads Context, parent state or prior-node outputs. Missing required same-name input is an error, not a fallback.
+- Procedure and Predicate consumers may use the shorthand because they declare input names. Script calls remain explicitly bound because Script has no separate input-name contract.
+- A binding resolves against an authoritative Producer Schema. The Producer must be available on every path reaching the consumer.
 - A missing or ambiguous Producer is a build error, not an invitation to guess.
+- Omitted and explicit `null` are distinct. Schema `default` annotations do not authorize synthesized values.
 
 ## 3. Business-significant nodes
 
