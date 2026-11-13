@@ -153,11 +153,67 @@ The exact YAML surface remains open until the grammar review addresses reserved-
 - Studio displays generated and authored mappings, their origin, and validation state. Editing a generated mapping persists a source-level override/projection, never Studio-only state.
 - A “materialize/fix binding” action may write a generated choice to source when a stable explicit override is desired; it is not required for deterministic builds.
 
+### 4.6 Predicate function signature and positional invocation (PROPOSED)
+
+A Predicate is a pure, reusable function-like resource. Its definition owns an ordered parameter signature; its Procedure call supplies positional source expressions in exactly that order.
+
+Definition:
+
+~~~yaml
+predicates:
+  createdsession.udm.hold_bound:
+    parameters: [hold, dnn, sst]
+    evaluator:
+      type: cel
+      expression: >-
+        hold.operationKind == "UDM_SDM_SUBSCRIPTION_CREATE" &&
+        hold.holdRef != "" &&
+        hold.currentInstanceRef != "" &&
+        hold.heldRequestDigest != "" &&
+        hold.dnn == dnn &&
+        hold.sst == sst
+~~~
+
+Call:
+
+~~~yaml
+verify:
+  predicate: createdsession.udm.hold_bound
+  arguments:
+    - node.udm-hold.output
+    - input.dnn
+    - input.sst
+~~~
+
+Semantics:
+
+- `parameters` is an ordered list of unique parameter names. It is the Predicate's function signature, not a second Schema declaration.
+- `arguments` is an ordered list of source expressions. Argument i binds to parameter i. Arity mismatch, duplicate parameter names, unresolved sources, incompatible types, or unavailable producers are compile errors.
+- Parameter names are local to the Predicate definition. Procedure node names and source paths never leak into the evaluator.
+- The authoritative Producer/Context Schemas establish argument types. All call sites must be mutually compatible with the Predicate's effective parameter types; the Compiler statically checks the CEL expression against that effective signature.
+- No optional positional parameters, skipped positions, implicit nulls, implicit defaults, type coercion, or argument reordering are introduced in this proposal. If a Predicate genuinely has different required inputs, define separate predicates or make the input projection explicit in a separately reviewed design.
+- The Predicate evaluator sees only its declared business parameters. Host/Runtime Evidence remains a reserved, separately attached projection for Script evaluators and assurance validation; it is not an extra positional business argument.
+- Predicate evaluation remains pure. READ acquisition, waiting, and Evidence production are scheduled explicitly by Procedure/Host.
+- The call lowers to the same canonical Binding Plan used by other consumers. Runtime does not infer argument sources.
+
+### 4.7 Invocation syntax consistency
+
+Consistency is defined at the semantic and compiler layers, not by forcing every resource into positional arguments.
+
+- **Operation** inputs are owned by an external Owner Input Schema: named object properties with types, requiredness and constraints. Do not infer positional order from JSON Schema property order. Operation calls therefore retain explicit named source bindings / the existing binding-map form.
+- **Procedure** inputs are a named Procedure interface. Child Procedure calls retain explicit named bindings unless a future ordered signature is deliberately added to the Procedure contract.
+- **Predicate** owns an explicit ordered `parameters` signature, so positional `arguments: [...]` are deterministic and concise.
+- **Procedure Script** has no independent parameter signature; its call-site projection defines the exact `input` object. It retains explicit named `with` bindings.
+- All forms use the same source-reference vocabulary, Producer/Consumer validation, type/nullability checks, path-availability checks, authorization boundaries, and canonical Binding Plan representation.
+- Do not add a polymorphic `arguments` field that sometimes means an ordered list and sometimes means a named map. Do not add aliases solely to make YAML look uniform.
+
+This is an intentional, explainable syntax distinction based on interface ownership. Revisit only if a real Operation/Procedure contract introduces a stable ordered signature without duplicating its Schema.
+
 ### 4.5 Procedure and Predicate share the model
 
-- Procedure Operation inputs and Predicate evaluator inputs use the same Binding Plan machinery.
+- Procedure Operation inputs and Predicate evaluator inputs use the same Binding Plan machinery. Predicate's positional arguments are normalized into that shared plan.
 - Predicate has no separate Observation Binding registry or binding dialect.
-- Predicate inputs come from declared context/producers or explicitly scheduled READ Operations.
+- Predicate parameters are bound positionally from declared Context/producers or explicitly scheduled READ Operations.
 - READ acquisition is visible in the execution/dataflow plan and audit trail; it is never hidden inside verify.
 
 ## 5. Requiredness and validation
