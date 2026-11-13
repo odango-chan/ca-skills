@@ -443,3 +443,21 @@ legacy Skill's granted Operation set. Host PR #203 is merged. It publishes this 
 contracts as a separate vNext dependency snapshot; the deployment later
 composes that snapshot with Provider/Fabric snapshots and one complete
 deployment Registration.
+
+
+### 14.9 Fabric PCF governance READ owner export
+
+Fabric already implements a read-only governance projection for one exact held
+PCF create. The HTTP route is POST-based for its JSON request body, but it does
+not claim, forward, deliver or mutate the hold; its Tool Effect is READ. The
+vNext Procedure now binds the exact `holdRef` from the preceding
+`ca.session.pcf_hold.bind` output rather than asking Fabric to rediscover the
+hold from a broader UE/session selector.
+
+Fabric PR #81 publishes the exact `holdRef` request Schema and the
+`ca.session.pcf_create_governance.read` Tool contract. Its output Schema is
+kept identical to the existing Fabric-owned
+`createdsession-pcf-create-governance/v0alpha1/result.schema.yaml`. Focused
+CI is pending. This closes the contract declaration gap only; the full
+deployment CapabilityContracts and Tool Registration still need to bind the
+Fabric operation to its HTTP implementation.
