@@ -11,7 +11,9 @@ A Skill source file may reference a contract by dependency alias and exact expor
 | Predicate Evidence refs | Host / Runtime | `spec.context.evidenceSchema` references the bounded Host Evidence projection |
 | Tool Operation Input / Output / Reconcile | Tool Owner | Imported ToolCatalog contract; Procedure calls one exact Operation ID |
 | Capability-to-Operation mapping | Deployment composition owner | One CapabilityContracts input supplied separately to BuildRequest |
-| READ Operation payload | The READ Operation's Owner | Its Output Schema is authoritative for the normalized returned value |
+| Operation Input / Output | Tool Owner | ToolCatalog Input/Output Schemas are authoritative for every callable Operation |
+| Observation query Input / Output | Observation Tool Owner | Same ToolCatalog/Owner Schema contract as other Tools; READ-only QueryContext and normalized result |
+| Observation authority / freshness / scope | Observation Tool Owner, validated by Host/Runtime | Declared as Tool contract guarantees; no parallel ObservationSource registry |
 | Procedure Script input | No separate file owner | Derived per invocation from that Script call site's explicit `with/from` bindings |
 | Predicate parameter signature | Skill Predicate | Ordered typed `parameters` declare names and expected types; structured parameters reference authoritative Schemas |
 | Predicate Script input | No separate file owner | Derived from the owning Predicate parameter signature; no Script-authored or separate Predicate Input Schema |
@@ -43,17 +45,17 @@ No schema is copied into the Skill merely to make a missing Owner dependency com
 
 ## 3. Fact, Observation and acquisition
 
-A Fact is the domain/environment/execution statement. An Observation is a captured, scoped representation of a Fact with source and temporal context. Evidence is the separately validated support for that claim. These are distinct concepts and payloads.
+A Fact is the domain/environment/execution statement. An Observation is an independently addressable read-only query capability over an Owner's fact/state, exposed as a specialized Tool contract. Its query result is a captured, scoped representation with source and temporal context. Evidence is the separately validated support for that result. These concepts and payloads remain distinct.
 
-Observation is retained as a data/assurance concept, but the independent Observation Ref → ObservationSource registry is retired in vNext. Skills do not call or grant Observation Sources. Preserve the useful owner, provenance, scope, correlation, freshness, temporal and evidence guarantees in the authoritative Producer/READ contracts and Runtime lineage. Existing ObservationSource adapters may remain internal implementation details during the breaking migration.
+Observation Tools use the same ToolCatalog, dependency alias/snapshot, Owner Schema, CapabilityContracts and Runtime admission model as other Tools. Their Effect is READ; their contract declares QueryContext/Input Schema, normalized Output Schema, authority, provenance, scope, correlation, temporal/freshness semantics and Evidence guarantees. The legacy Observation Ref → ObservationSource implementation registry is retired; it is not replaced by a second public registry or Schema system. Existing adapters may remain internal implementations of the published Observation Tool contract during migration.
 
 ## 4. READ Operations and prior results
 
-A domain fact that must be independently acquired uses an explicit READ Operation. Its Owner publishes the typed normalized Output Schema and returns Evidence for the same invocation. This does not imply that every Predicate input needs a new READ: a prior Operation output, captured event or owned journal/projection may already provide the required Observation and lineage.
+An independently queried fact uses an explicit Observation Tool query. Its Owner publishes the typed QueryContext/Input and normalized Output Schemas through the same ToolCatalog contract and declares the READ Effect and Evidence guarantees. This does not imply that every Operation or Predicate needs an Observation query: a prior Operation output or trusted Context projection may already provide the exact value and adequate correlated Evidence.
 
 If a later Predicate needs a prior Operation result, pass that exact result through its positional `verify.arguments`. Do not reacquire the same resource from a parallel legacy Observation Source and do not infer a value from a local handle alone.
 
-Host journal state is also read through explicit Host-owned READ Operations. The Skill does not declare Host-internal journal dataclasses.
+Host journal-backed facts, when independently queried, are exposed through Host-owned Observation Tool contracts. The Skill does not declare Host-internal journal dataclasses.
 
 ## 5. Script ownership
 
