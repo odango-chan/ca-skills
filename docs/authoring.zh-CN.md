@@ -35,7 +35,7 @@ skills/<name>/
 |---|---|
 | `goal` | 保留，声明业务目标 |
 | `inputs.requestSchema` | 保留，声明 Skill 自有公共输入 |
-| `context.requiredFacts` | 保留，声明运行需要的事实 |
+| `context.requiredFacts` | 保留，专指 Admission 时 Host 已拥有的可信事实；不包含执行中 Observation 才获取的状态 |
 | `context.schemas` | 保留，引用 Host 发布的精确 Context Schema |
 | `dependencies` | 保留，声明依赖的公共 Owner 契约身份 |
 | `allowedResources.capabilities` | 保留，声明所请求的 Capability 授权 |
@@ -44,7 +44,7 @@ skills/<name>/
 | `entryProcedure` | 单一 Procedure 入口，不需要重复字段 |
 | `postconditions` | 移到 Procedure 最终 Postcondition 节点 |
 | `planning.allowDynamicProcedure` | 静态 DAG 规则已禁止动态执行图，无需重复 |
-| `planning.maxActions` | 暂归 Runtime / Deployment Budget Policy，待进一步评审 |
+| `planning.maxActions` | 旧字段取消；可选 `limits.maxActions` 只设 Skill 更严格的上界，Host 必须另有正数预算且不可被放宽 |
 | `failureSemantics.outcomeUnknown.requireReconcile` | 作为 Mutation UNKNOWN 的通用安全规则，不由每个 Skill 重复开关 |
 
 依赖身份与 Capability Grants 不是一回事：依赖让 Studio / Compiler 获得并链接 Owner 契约；Grant 才是授权请求。依赖存在不等于有权执行，Grant 也不能替代 ToolCatalog / Schema 依赖。
@@ -61,7 +61,7 @@ skills/<name>/
 
 后续可在 Dependencies / Capabilities 视图继续调整。Studio 获取精确依赖快照并作为 Build 输入传给 Compiler。Compiler 只解析、链接和校验，不联网下载或管理依赖版本。
 
-Contract 保存稳定的公共依赖身份，不保存下载 URL、分支、版本锁或 digest。Owner Schema ID 自身若含不可变版本标识（例如 `...:v1`），仍须原样保留。
+Contract 将依赖 Alias 映射到稳定 Package ID；BuildRequest 的 `{alias,id,files}` 快照还必须包含发布方的 `dependency.yaml` 身份 Manifest，Compiler 交叉核对 Contract、Snapshot、Manifest、Owner 和导出身份。Contract 不保存下载 URL、分支、版本锁或 digest。Owner Schema ID 自身若含不可变版本标识（例如 `...:v1`），仍须原样保留。
 
 ## 5. 其余规范入口
 
