@@ -74,7 +74,7 @@ At Skill creation, Studio should offer a guided selection flow over the availabl
 
 These selections remain editable later in a dedicated Dependencies / Capabilities view. Studio fetches the chosen dependency bytes and supplies exact immutable `DependencySnapshot` inputs plus the trusted CapabilityContracts to Compiler. Compiler only parses, links and validates; it does not search registries, download dependencies, manage locks or resolve versions.
 
-The Contract records stable dependency identities and grants, not the currently downloaded copies. Exact selected dependency snapshots / revisions belong to Studio project configuration or Build input. If a dependency changes, Studio can show the impact and re-run linking without silently rewriting the Skill's declared public requirements.
+The Contract records stable Package IDs by Alias and grants, not the currently downloaded copies. Every selected BuildRequest Snapshot provides `{alias,id,files}` and an Owner-published `dependency.yaml` identity Manifest; Compiler verifies exact Contract/Snapshot/Manifest identity, Owner and export match. Snapshot provenance trust is the Studio/build caller's responsibility. Exact selected dependency snapshots / revisions belong to Studio project configuration or Build input. If a dependency changes, Studio can show the impact and re-run linking without silently rewriting the Skill's declared public requirements.
 
 ## Imported external contracts
 
@@ -85,7 +85,7 @@ Compiler receives imported contracts as exact immutable DependencySnapshot input
 - Observation-owner dependencies define query payload Schemas and guarantees.
 - Deployment-owned CapabilityContracts define exact callable membership and Effect and are supplied separately from ordinary dependencies.
 
-Do not maintain a second field-level Schema map when the Contract already references the exact Context Schema identities. Do not infer a Schema from `requiredFacts`.
+Do not maintain a second field-level Schema map when the Contract already references the exact Context Schema identities. `requiredFacts` are Admission-time Host prerequisites; dynamic facts should come from explicit Observation or already-sufficient Operation Result. Compiler checks that each accessed Context projection has a matching Contract declaration and Owner Schema.
 
 ## Compiler output and external dependency closure
 
