@@ -1,8 +1,5 @@
 procedures:
   ue-requested-pdu-session-establishment:
-    applicability:
-      predicates:
-        createdsession.ingress.eligible: PASS
     inputs:
       ue-ref:
         from: context.subject.ueRef
@@ -48,7 +45,7 @@ procedures:
             - verify: createdsession.udm.subscription_usable
               with:
                 udmReadResult:
-                  from: nudm-sdm-get.output
+                  from: nudm-sdm-get.output.result
           'on':
             PASS: nudm-sdm-subscribe
             FAIL: failed
@@ -121,7 +118,7 @@ procedures:
                   from: input.pti
 
             - name: read-lifecycle-before-udm-subscribe
-              call: createdsession-tools::ca.session.lifecycle.read
+              call: ca-agent-host::ca.session.lifecycle.registration.read
               with:
                 ueRef:
                   from: input.ue-ref
@@ -130,8 +127,8 @@ procedures:
 
             - verify: createdsession.lifecycle.ready
               with:
-                lifecycle:
-                  from: preconditions.read-lifecycle-before-udm-subscribe.output.lifecycleRegistration
+                lifecycleRegistration:
+                  from: preconditions.read-lifecycle-before-udm-subscribe.output
                 expectedLifecycleRef:
                   from: input.lifecycle-ref
           'on':
@@ -146,9 +143,9 @@ procedures:
           ueRef:
             from: input.ue-ref
           udmInvocationRef:
-            from: nudm-sdm-get.output.runtimeInvocationRef
+            from: nudm-sdm-get.output.invocationId
           udmTransactionRef:
-            from: nudm-sdm-get.output.transactionRef
+            from: nudm-sdm-get.output.result.transactionRef
           selection:
             from: preconditions.select-subscription-configuration.output
           ingressRef:
@@ -225,7 +222,7 @@ procedures:
 
             - verify: createdsession.pcf.create_inputs.ready
               with:
-                inputs:
+                pcfCreateInputs:
                   from: preconditions.resolve-pcf-create-inputs.output
                 pcfHold:
                   from: preconditions.bind-pcf-hold.output
@@ -249,7 +246,7 @@ procedures:
             # being guessed. The baseline is keyed to this exact Pre-N4 policy
             # association and lifecycle, not to an N4 instance.
             - name: read-n4-baseline
-              call: createdsession-tools::ca.session.n4.resources.read
+              call: createdsession-tools::ca.session.n4.initial_resources.read
               with:
                 ueRef:
                   from: input.ue-ref
@@ -272,13 +269,13 @@ procedures:
 
             - verify: createdsession.n4.baseline_clear
               with:
-                baseline:
+                n4Baseline:
                   from: preconditions.read-n4-baseline.output
 
             # Create safety is a direct Fabric-owned governance READ. Its result
             # is scoped to this exact ingress, lifecycle, UE and PDU Session.
             - name: read-pcf-create-governance
-              call: createdsession-tools::ca.session.pcf_create_governance.read
+              call: env-fabric-tools::ca.session.pcf_create_governance.read
               with:
                 ueRef:
                   from: input.ue-ref
@@ -304,8 +301,8 @@ procedures:
 
             - verify: createdsession.lifecycle.ready
               with:
-                lifecycle:
-                  from: preconditions.read-lifecycle-before-pcf-create.output.lifecycleRegistration
+                lifecycleRegistration:
+                  from: preconditions.read-lifecycle-before-pcf-create.output
                 expectedLifecycleRef:
                   from: input.lifecycle-ref
           'on':
@@ -350,33 +347,35 @@ procedures:
           DENIED: finalize-failed
 
       wait-initial-resources:
-        wait:
-          read: createdsession-tools::ca.session.n4.resources.read
-          predicate: createdsession.n4.initial_resources_ready
-          input: resources
-          with:
-            ueRef:
-              from: input.ue-ref
-            pduSessionId:
-              from: input.psi
-            pti:
-              from: input.pti
-            requestType:
-              from: input.request-type
-            ingressRef:
-              from: input.ingress-ref
-            lifecycleRef:
-              from: input.lifecycle-ref
-            pcfPolicyAssociationRef:
-              from: npcf-sm-policy-control-create.preconditions.resolve-pcf-create-inputs.output.pcfPolicyAssociationRef
-            phase:
-              value: POST_CREATE
-            baselineRef:
-              from: npcf-sm-policy-control-create.preconditions.read-n4-baseline.output.baselineRef
-          absencePolicy: CONTINUE
+        call: ca-agent-host::ca.session.evidence.await
+        with:
+          targetOperationId:
+            value: createdsession-tools::ca.session.n4.initial_resources.read
+          ueRef:
+            from: input.ue-ref
+          pduSessionId:
+            from: input.psi
+          pti:
+            from: input.pti
+          requestType:
+            from: input.request-type
+          ingressRef:
+            from: input.ingress-ref
+          lifecycleRef:
+            from: input.lifecycle-ref
+          pcfPolicyAssociationRef:
+            from: npcf-sm-policy-control-create.preconditions.resolve-pcf-create-inputs.output.pcfPolicyAssociationRef
+          phase:
+            value: POST_CREATE
+          baselineRef:
+            from: npcf-sm-policy-control-create.preconditions.read-n4-baseline.output.baselineRef
+          freshnessSeconds:
+            value: 5
+          absencePolicy:
+            value: CONTINUE
         'on':
           SUCCEEDED: read-initial-resources
-          UNKNOWN: finalize-unresolved
+          UNRESOLVED: finalize-unresolved
 
       read-initial-resources:
         call: createdsession-tools::ca.session.n4.resources.read
@@ -403,7 +402,7 @@ procedures:
           steps:
             - verify: createdsession.n4.initial_resources_ready
               with:
-                resources:
+                n4InitialResources:
                   from: read-initial-resources.output
           'on':
             PASS: namf-communication-n1n2-message-transfer
@@ -443,7 +442,7 @@ procedures:
 
             - verify: createdsession.delivery_context.ready
               with:
-                context:
+                deliveryContext:
                   from: preconditions.resolve-effective-session-configuration.output
 
             - name: prepare-establishment-response
@@ -555,29 +554,31 @@ procedures:
           DENIED: finalize-failed
 
       wait-ran-setup:
-        wait:
-          read: createdsession-tools::ca.session.ran_setup.read
-          predicate: createdsession.ran.setup_accepted
-          input: setup
-          with:
-            ueRef:
-              from: input.ue-ref
-            pduSessionId:
-              from: input.psi
-            pti:
-              from: input.pti
-            requestType:
-              from: input.request-type
-            ingressRef:
-              from: input.ingress-ref
-            lifecycleRef:
-              from: input.lifecycle-ref
-            currentSessionInstanceRef:
-              from: read-initial-resources.output.currentSessionInstanceRef
-          absencePolicy: RETURN
+        call: ca-agent-host::ca.session.evidence.await
+        with:
+          targetOperationId:
+            value: createdsession-tools::ca.session.ran_setup.read
+          ueRef:
+            from: input.ue-ref
+          pduSessionId:
+            from: input.psi
+          pti:
+            from: input.pti
+          requestType:
+            from: input.request-type
+          ingressRef:
+            from: input.ingress-ref
+          lifecycleRef:
+            from: input.lifecycle-ref
+          currentSessionInstanceRef:
+            from: read-initial-resources.output.currentSessionInstanceRef
+          freshnessSeconds:
+            value: 3600
+          absencePolicy:
+            value: RETURN
         'on':
           SUCCEEDED: read-ran-setup
-          UNKNOWN: finalize-unresolved
+          UNRESOLVED: finalize-unresolved
 
       read-ran-setup:
         call: createdsession-tools::ca.session.ran_setup.read
@@ -600,7 +601,7 @@ procedures:
           steps:
             - verify: createdsession.ran.setup_accepted
               with:
-                setup:
+                ranSetup:
                   from: read-ran-setup.output
           'on':
             PASS: wait-n4-forwarding
@@ -612,29 +613,31 @@ procedures:
           UNKNOWN: finalize-unresolved
 
       wait-n4-forwarding:
-        wait:
-          read: createdsession-tools::ca.session.n4.forwarding.read
-          predicate: createdsession.n4.forwarding_ready
-          input: resources
-          with:
-            ueRef:
-              from: input.ue-ref
-            pduSessionId:
-              from: input.psi
-            pti:
-              from: input.pti
-            requestType:
-              from: input.request-type
-            ingressRef:
-              from: input.ingress-ref
-            lifecycleRef:
-              from: input.lifecycle-ref
-            currentSessionInstanceRef:
-              from: read-initial-resources.output.currentSessionInstanceRef
-          absencePolicy: RETURN
+        call: ca-agent-host::ca.session.evidence.await
+        with:
+          targetOperationId:
+            value: createdsession-tools::ca.session.n4.forwarding.read
+          ueRef:
+            from: input.ue-ref
+          pduSessionId:
+            from: input.psi
+          pti:
+            from: input.pti
+          requestType:
+            from: input.request-type
+          ingressRef:
+            from: input.ingress-ref
+          lifecycleRef:
+            from: input.lifecycle-ref
+          currentSessionInstanceRef:
+            from: read-initial-resources.output.currentSessionInstanceRef
+          freshnessSeconds:
+            value: 5
+          absencePolicy:
+            value: RETURN
         'on':
           SUCCEEDED: read-n4-forwarding
-          UNKNOWN: finalize-unresolved
+          UNRESOLVED: finalize-unresolved
 
       read-n4-forwarding:
         call: createdsession-tools::ca.session.n4.forwarding.read
@@ -657,7 +660,7 @@ procedures:
           steps:
             - verify: createdsession.n4.forwarding_ready
               with:
-                resources:
+                n4Forwarding:
                   from: read-n4-forwarding.output
           'on':
             PASS: finalize-success
@@ -771,7 +774,7 @@ procedures:
           UNKNOWN: unresolved
 
       read-resource-responsibility:
-        call: createdsession-tools::ca.session.lifecycle.read
+        call: ca-agent-host::ca.session.resource_responsibility.read
         with:
           ueRef:
             from: input.ue-ref
@@ -781,8 +784,8 @@ procedures:
           steps:
             - verify: createdsession.resources.managed
               with:
-                responsibility:
-                  from: read-resource-responsibility.output.resourceResponsibility
+                resourceResponsibility:
+                  from: read-resource-responsibility.output
           'on':
             PASS: done
             FAIL: safe-stopped
