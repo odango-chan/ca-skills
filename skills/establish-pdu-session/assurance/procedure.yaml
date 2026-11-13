@@ -349,33 +349,70 @@ procedures:
           FAILED: finalize-failed
           DENIED: finalize-failed
 
-      n4-session-establishment:
-        procedure: await-initial-n4-session-establishment
+      wait-initial-resources:
+        wait:
+          read: createdsession-tools::ca.session.n4.resources.read
+          predicate: createdsession.n4.initial_resources_ready
+          input: resources
+          with:
+            ueRef:
+              from: input.ue-ref
+            pduSessionId:
+              from: input.psi
+            pti:
+              from: input.pti
+            requestType:
+              from: input.request-type
+            ingressRef:
+              from: input.ingress-ref
+            lifecycleRef:
+              from: input.lifecycle-ref
+            pcfPolicyAssociationRef:
+              from: npcf-sm-policy-control-create.preconditions.resolve-pcf-create-inputs.output.pcfPolicyAssociationRef
+            phase:
+              value: POST_CREATE
+            baselineRef:
+              from: npcf-sm-policy-control-create.preconditions.read-n4-baseline.output.baselineRef
+          absencePolicy: CONTINUE
+        'on':
+          SUCCEEDED: read-initial-resources
+          UNKNOWN: finalize-unresolved
+
+      read-initial-resources:
+        call: createdsession-tools::ca.session.n4.resources.read
         with:
-          ue-ref:
+          ueRef:
             from: input.ue-ref
-          psi:
+          pduSessionId:
             from: input.psi
           pti:
             from: input.pti
-          request-type:
+          requestType:
             from: input.request-type
-          ingress-ref:
+          ingressRef:
             from: input.ingress-ref
-          # The N4 wait is anchored on the Pre-N4 policy association this
-          # attempt created. It deliberately does NOT receive a session
-          # instance: the N4 SEID pair does not exist yet, and a Pre-N4 value
-          # must never be presented as the Post-N4 identity. Resolving the
-          # policy association to the N4 pair is the Post-N4 observation
-          # source's job.
-          pcf-policy-association-ref:
-            from: npcf-sm-policy-control-create.preconditions.resolve-pcf-create-inputs.output.pcfPolicyAssociationRef
-          lifecycle-ref:
+          lifecycleRef:
             from: input.lifecycle-ref
+          pcfPolicyAssociationRef:
+            from: npcf-sm-policy-control-create.preconditions.resolve-pcf-create-inputs.output.pcfPolicyAssociationRef
+          phase:
+            value: POST_CREATE
+          baselineRef:
+            from: npcf-sm-policy-control-create.preconditions.read-n4-baseline.output.baselineRef
+        postconditions:
+          steps:
+            - verify: createdsession.n4.initial_resources_ready
+              with:
+                resources:
+                  from: read-initial-resources.output
+          'on':
+            PASS: namf-communication-n1n2-message-transfer
+            FAIL: finalize-failed
+            UNKNOWN: finalize-unresolved
         'on':
-          SUCCEEDED: namf-communication-n1n2-message-transfer
-          FAILED: finalize-failed
-          UNRESOLVED: finalize-unresolved
+          FAILED: finalize-unresolved
+          DENIED: finalize-failed
+          UNKNOWN: finalize-unresolved
 
       namf-communication-n1n2-message-transfer:
         preconditions:
@@ -517,53 +554,119 @@ procedures:
           FAILED: finalize-failed
           DENIED: finalize-failed
 
-      pdu-session-resource-setup:
-        procedure: await-pdu-session-resource-setup
-        with:
-          ue-ref:
-            from: input.ue-ref
-          psi:
-            from: input.psi
-          pti:
-            from: input.pti
-          request-type:
-            from: input.request-type
-          ingress-ref:
-            from: input.ingress-ref
-          operation-context-ref:
-            from: namf-communication-n1n2-message-transfer.preconditions.resolve-effective-session-configuration.output.contextRef
-          after-operation-ref:
-            from: namf-communication-n1n2-message-transfer.output.operationRef
-          lifecycle-ref:
-            from: input.lifecycle-ref
+      wait-ran-setup:
+        wait:
+          read: createdsession-tools::ca.session.ran_setup.read
+          predicate: createdsession.ran.setup_accepted
+          input: setup
+          with:
+            ueRef:
+              from: input.ue-ref
+            pduSessionId:
+              from: input.psi
+            pti:
+              from: input.pti
+            requestType:
+              from: input.request-type
+            ingressRef:
+              from: input.ingress-ref
+            lifecycleRef:
+              from: input.lifecycle-ref
+            currentSessionInstanceRef:
+              from: read-initial-resources.output.currentSessionInstanceRef
+          absencePolicy: RETURN
         'on':
-          SUCCEEDED: n4-session-modification
-          FAILED: finalize-failed
-          UNRESOLVED: finalize-unresolved
+          SUCCEEDED: read-ran-setup
+          UNKNOWN: finalize-unresolved
 
-      n4-session-modification:
-        procedure: await-n4-forwarding-convergence
+      read-ran-setup:
+        call: createdsession-tools::ca.session.ran_setup.read
         with:
-          ue-ref:
+          ueRef:
             from: input.ue-ref
-          psi:
+          pduSessionId:
             from: input.psi
           pti:
             from: input.pti
-          request-type:
+          requestType:
             from: input.request-type
-          ingress-ref:
+          ingressRef:
             from: input.ingress-ref
-          operation-context-ref:
-            from: namf-communication-n1n2-message-transfer.preconditions.resolve-effective-session-configuration.output.contextRef
-          after-operation-ref:
-            from: namf-communication-n1n2-message-transfer.output.operationRef
-          lifecycle-ref:
+          lifecycleRef:
             from: input.lifecycle-ref
+          currentSessionInstanceRef:
+            from: read-initial-resources.output.currentSessionInstanceRef
+        postconditions:
+          steps:
+            - verify: createdsession.ran.setup_accepted
+              with:
+                setup:
+                  from: read-ran-setup.output
+          'on':
+            PASS: wait-n4-forwarding
+            FAIL: finalize-failed
+            UNKNOWN: finalize-unresolved
         'on':
-          SUCCEEDED: finalize-success
-          FAILED: finalize-failed
-          UNRESOLVED: finalize-unresolved
+          FAILED: finalize-unresolved
+          DENIED: finalize-failed
+          UNKNOWN: finalize-unresolved
+
+      wait-n4-forwarding:
+        wait:
+          read: createdsession-tools::ca.session.n4.forwarding.read
+          predicate: createdsession.n4.forwarding_ready
+          input: resources
+          with:
+            ueRef:
+              from: input.ue-ref
+            pduSessionId:
+              from: input.psi
+            pti:
+              from: input.pti
+            requestType:
+              from: input.request-type
+            ingressRef:
+              from: input.ingress-ref
+            lifecycleRef:
+              from: input.lifecycle-ref
+            currentSessionInstanceRef:
+              from: read-initial-resources.output.currentSessionInstanceRef
+          absencePolicy: RETURN
+        'on':
+          SUCCEEDED: read-n4-forwarding
+          UNKNOWN: finalize-unresolved
+
+      read-n4-forwarding:
+        call: createdsession-tools::ca.session.n4.forwarding.read
+        with:
+          ueRef:
+            from: input.ue-ref
+          pduSessionId:
+            from: input.psi
+          pti:
+            from: input.pti
+          requestType:
+            from: input.request-type
+          ingressRef:
+            from: input.ingress-ref
+          lifecycleRef:
+            from: input.lifecycle-ref
+          currentSessionInstanceRef:
+            from: read-initial-resources.output.currentSessionInstanceRef
+        postconditions:
+          steps:
+            - verify: createdsession.n4.forwarding_ready
+              with:
+                resources:
+                  from: read-n4-forwarding.output
+          'on':
+            PASS: finalize-success
+            FAIL: finalize-failed
+            UNKNOWN: finalize-unresolved
+        'on':
+          FAILED: finalize-unresolved
+          DENIED: finalize-failed
+          UNKNOWN: finalize-unresolved
 
       # Success is decided by the two core-network facts already verified above:
       # the SMF adopted the RAN resources and the SMF/UPF downlink forwarding
@@ -668,215 +771,6 @@ procedures:
         terminal: UNRESOLVED
       safe-stopped:
         terminal: SAFE_STOPPED
-
-  await-initial-n4-session-establishment:
-    inputs:
-      ue-ref:
-        type: string
-        from: context.subject.ueRef
-      psi:
-        type: integer
-        from: context.request.pduSessionId
-      pti:
-        type: integer
-        from: context.request.pti
-      request-type:
-        type: integer
-        from: context.request.requestType
-      ingress-ref:
-        type: string
-        from: context.facts.createdsession_ingress
-      # Pre-N4 anchor of this attempt. It is not a session instance: the N4 pair
-      # is created by the SMF after the policy association.
-      pcf-policy-association-ref:
-        type: string
-        from: context.facts.createdsession_policy_association
-      lifecycle-ref:
-        type: string
-        from: context.facts.createdsession_lifecycle
-    start: await-initial-resources
-    nodes:
-      await-initial-resources:
-        call: createdsession-tools::ca.session.evidence.await
-        with:
-          ueRef:
-            from: input.ue-ref
-          pduSessionId:
-            from: input.psi
-          pti:
-            from: input.pti
-          requestType:
-            from: input.request-type
-          ingressRef:
-            from: input.ingress-ref
-          pcfPolicyAssociationRef:
-            from: input.pcf-policy-association-ref
-          lifecycleRef:
-            from: input.lifecycle-ref
-          # A proven initial-N4 absence is a real "not yet" owner answer, not an
-          # establishment and not a terminal failure. The bounded wait keeps
-          # polling until evidence appears or its budget/deadline ends; the
-          # Predicate below still decides whether the acquired fact passes.
-          absencePolicy:
-            value: CONTINUE
-        postconditions:
-          steps:
-            - verify: createdsession.n4.initial_resources_ready
-              with:
-                pcfPolicyAssociationRef:
-                  from: input.pcf-policy-association-ref
-          'on':
-            PASS: done
-            FAIL: failed
-            UNKNOWN: unresolved
-        'on':
-          FAILED: unresolved
-          UNKNOWN: unresolved
-          DENIED: failed
-      done:
-        terminal: SUCCEEDED
-      failed:
-        terminal: FAILED
-      unresolved:
-        terminal: UNRESOLVED
-
-  await-pdu-session-resource-setup:
-    inputs:
-      ue-ref:
-        type: string
-        from: context.subject.ueRef
-      psi:
-        type: integer
-        from: context.request.pduSessionId
-      pti:
-        type: integer
-        from: context.request.pti
-      request-type:
-        type: integer
-        from: context.request.requestType
-      ingress-ref:
-        type: string
-        from: context.facts.createdsession_ingress
-      operation-context-ref:
-        type: string
-        from: context.subject.operationContextRef
-      after-operation-ref:
-        type: string
-        from: context.subject.afterOperationRef
-      lifecycle-ref:
-        type: string
-        from: context.facts.createdsession_lifecycle
-    start: await-ran-result
-    nodes:
-      await-ran-result:
-        call: createdsession-tools::ca.session.evidence.await
-        with:
-          operationContextRef:
-            from: input.operation-context-ref
-          afterOperationRef:
-            from: input.after-operation-ref
-          lifecycleRef:
-            from: input.lifecycle-ref
-          # The SMF-owned RAN adoption state belongs to exactly one attempt
-          # session. The wait must therefore carry the same attempt selector the
-          # createdsession.ran.setup_accepted Predicate uses; an
-          # operation-context handle alone cannot be attributed to a session.
-          ueRef:
-            from: input.ue-ref
-          pduSessionId:
-            from: input.psi
-          pti:
-            from: input.pti
-          requestType:
-            from: input.request-type
-          ingressRef:
-            from: input.ingress-ref
-        postconditions:
-          steps:
-            - verify: createdsession.ran.setup_accepted
-          'on':
-            PASS: done
-            FAIL: failed
-            UNKNOWN: unresolved
-        'on':
-          FAILED: unresolved
-          UNKNOWN: unresolved
-          DENIED: failed
-      done:
-        terminal: SUCCEEDED
-      failed:
-        terminal: FAILED
-      unresolved:
-        terminal: UNRESOLVED
-
-  await-n4-forwarding-convergence:
-    inputs:
-      ue-ref:
-        type: string
-        from: context.subject.ueRef
-      psi:
-        type: integer
-        from: context.request.pduSessionId
-      pti:
-        type: integer
-        from: context.request.pti
-      request-type:
-        type: integer
-        from: context.request.requestType
-      ingress-ref:
-        type: string
-        from: context.facts.createdsession_ingress
-      operation-context-ref:
-        type: string
-        from: context.subject.operationContextRef
-      after-operation-ref:
-        type: string
-        from: context.subject.afterOperationRef
-      lifecycle-ref:
-        type: string
-        from: context.facts.createdsession_lifecycle
-    start: await-forwarding
-    nodes:
-      await-forwarding:
-        call: createdsession-tools::ca.session.evidence.await
-        with:
-          operationContextRef:
-            from: input.operation-context-ref
-          afterOperationRef:
-            from: input.after-operation-ref
-          lifecycleRef:
-            from: input.lifecycle-ref
-          # Same attempt selector as the createdsession.n4.forwarding_ready
-          # Predicate: the SMF/UPF forwarding state is read for exactly this
-          # UE/PDU Session/PTI/ingress attempt, never for the environment.
-          ueRef:
-            from: input.ue-ref
-          pduSessionId:
-            from: input.psi
-          pti:
-            from: input.pti
-          requestType:
-            from: input.request-type
-          ingressRef:
-            from: input.ingress-ref
-        postconditions:
-          steps:
-            - verify: createdsession.n4.forwarding_ready
-          'on':
-            PASS: done
-            FAIL: failed
-            UNKNOWN: unresolved
-        'on':
-          FAILED: unresolved
-          UNKNOWN: unresolved
-          DENIED: failed
-      done:
-        terminal: SUCCEEDED
-      failed:
-        terminal: FAILED
-      unresolved:
-        terminal: UNRESOLVED
-
 
   finalize-resource-responsibility:
     inputs:
