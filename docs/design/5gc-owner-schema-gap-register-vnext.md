@@ -551,14 +551,12 @@ subscription. Provider deployment-binding identity, responder identity,
 response-body digest and NF instance identity remain outside that projection.
 
 The vNext Skill dependency snapshot imports the exact Host Schema under
-`lib/schemas/ca/createdsession-udm-runtime-value-v1alpha1.schema.yaml`.
-However, the current `lib/tools/createdsession.tool.yaml` still declares a
-generic `result` object. The vNext ToolCatalog's
-`sbi.udm.sm_data.get.outputSchema.properties.result` must still be linked to
-the Host Schema; this is an explicit remaining static-link/dependency-snapshot
-task, not a completed integration.
-
-The legacy Host ToolCatalog on `ca-agent-demo/main` is deliberately unchanged:
-its stand-in registration tests require the existing open result object. The
-vNext dependency snapshot must be tightened independently without changing
-the legacy catalog.
+`lib/schemas/ca/createdsession-udm-runtime-value-v1alpha1.schema.yaml` and
+embeds that exact document at
+`lib/tools/createdsession.tool.yaml` →
+`sbi.udm.sm_data.get.outputSchema.properties.result`. The repository source
+hygiene validator enforces byte-for-byte identity between the imported Owner
+Schema and the ToolCatalog result projection. This static link is complete in
+the Skill dependency snapshot; the legacy Host ToolCatalog on
+`ca-agent-demo/main` remains deliberately unchanged because its stand-in
+registration tests still require the existing open result object.
