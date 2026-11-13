@@ -488,14 +488,17 @@ The source migration rehearsal remains required to prove that the new Observatio
 
 This section records the latest review direction and supersedes earlier authoring syntax and source-layout proposals in this design note. It remains a public design-review decision, not an implementation claim.
 
-### 25.1 No authored SkillContract wrapper
+### 25.1 Retain the authored Skill Contract; remove only redundant wrapper fields
 
-- vNext authors do not maintain a separate SkillContract YAML object or assurance/contract.yaml.
-- procedure.yaml is the single Skill execution source. Its root declares goal, requestSchema, explicit Capability grants, Procedure inputs, start and nodes.
-- Package identity is derived from the canonical Skill Package root. Repeated metadata.name, skillType and entryProcedure fields are removed from authored YAML.
-- apiVersion and kind are not repeated in authored source. BuildRequest / Compiler Target selects the language version; Compiler records the exact language/API version, generated kind and normalized identity in its compiled artifact.
-- A SkillContract-shaped object may be generated only if a downstream Host / Runtime contract explicitly requires it. Otherwise the normalized CompiledSkill artifact is sufficient; do not create a redundant generated file merely to preserve the old object name.
-
+- vNext **retains** `assurance/contract.yaml` as author-maintained public Skill contract. It is not deleted and is not wholly Compiler-generated.
+- Contract keeps Goal, public Request Schema, required Host Context facts / exact Context Schema identities, public dependency identities, and `allowedResources.capabilities`.
+- Contract and Procedure have distinct ownership: Contract declares what the Skill requires and is allowed to request; Procedure declares how the goal is deterministically achieved, including the final executable Postcondition.
+- `apiVersion`, `kind`, and `metadata.name` are omitted from authored source because BuildRequest / Compiler Target selects the language version, file path determines source kind, and Package root determines Skill identity.
+- `entryProcedure` is unnecessary while one Skill has exactly one entry Procedure graph. Contract-level `postconditions` move to the final Postcondition node in Procedure.
+- Public dependency declarations contain stable Owner / Package identities only. They do not contain download URLs, branches, version locks, digests or dependency bytes. Skill Studio selects dependencies and Capability grants from available public catalogs, writes stable declarations into Contract, and supplies exact immutable snapshots to BuildRequest.
+- Compiler may derive a normalized Runtime contract projection from Contract + Procedure + Predicates + resolved dependency snapshots. It does not replace the author-maintained Contract. A separately named generated SkillContract file is emitted only if a concrete Host / Runtime interface requires it.
+- Runtime policy candidates such as action budgets and universal Mutation-UNKNOWN reconciliation are not repeated in each Skill unless a later review proves a Skill-specific semantic need.
+ 
 ### 25.2 Procedure owns entry and final assurance
 
 - Invocation-wide Precondition belongs at the beginning of the Procedure graph, as an explicit Precondition node.
