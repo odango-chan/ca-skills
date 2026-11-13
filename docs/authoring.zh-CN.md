@@ -1,34 +1,76 @@
 # ConnectionAgent Skill 编写指南
 
-**规范权威：** [ConnectionAgent Skill Language Specification（CA-SL）](skill-language-spec.zh-CN.md)
+**语言权威：** [CA-SL vNext 综合规范](skill-language-spec.zh-CN.md)。本指南只做导航，不另行定义语法。
 
-本文件不单独定义语言语法。所有术语、YAML 语法、绑定、Tool / Observation / Capability、Schema、Evidence、异常和使用示例均以 CA-SL 综合规范为准。
+## 1. 当前正式源码基线
 
-当前仓库中的传统 5GC Skill 仍是 v0.2 业务行为基线，尚未完成 vNext 迁移。MAS 是设计候选，不是第一阶段真实执行验收基线。
+当前 5GC 可执行 Skill 仍以 v0.2 为业务行为基线，尚未完成 vNext 迁移。MAS 是设计候选，不是第一阶段真实执行验收基线。迁移前不改写现有可运行源码。
 
-vNext 推荐源码目录：
+## 2. vNext Skill Package
 
 ~~~text
 skills/<name>/
 ├── SKILL.md
 ├── assurance/
+│   ├── contract.yaml
 │   ├── procedure.yaml
 │   └── predicates.yaml
-├── cases/
+├── cases/<case>/case.yaml
+├── references/
 ├── schemas/
-├── scripts/
-└── references/
+└── scripts/
 ~~~
 
-vNext 不要求作者维护独立的 contract.yaml 或 SkillContract YAML 对象。procedure.yaml 根字段包含 goal、requestSchema、capabilities 和唯一 Procedure 图；入口 Precondition 与最终 Postcondition 都是图中的显式节点。Compiler 生成 Runtime 所需的规范化契约和执行产物。
+三个 assurance 文件各司其职：
 
-编写时先阅读 CA-SL 规范中的：
-1. 概念模型与源码布局；
-2. Procedure 四种节点、入口 / 最终门禁和控制流；
-3. Predicate.parameters 与显式 arguments；
-4. ToolCatalog、Capability 和 Schema 所有权；
-5. Procedure Script 与 Predicate Script；
-6. Observation、Evidence、Reconcile 和并发隔离；
-7. PDU Session 示例和 FAQ。
+- `contract.yaml`：Skill 的公共声明，包括 Goal、公共 Request Schema、Context 需求、公共依赖身份和 Capability Grants。
+- `procedure.yaml`：唯一执行图，包括入口输入投影、start、Precondition / Operation / Observation / Postcondition 节点、路由和最终验收。
+- `predicates.yaml`：可复用 Predicate 的参数签名和 CEL / Python evaluator。
 
-本指南是导航页，不得作为独立语言规范或 Compiler 验收依据。
+**Contract 保留为作者维护的源码。** 只移除冗余包装字段和可由其他信息确定的字段，不删除它承载的公共声明。Compiler 可从 Contract、Procedure、Predicate 和依赖快照生成规范化 Runtime 契约，但不以生成物取代作者源文件。
+
+## 3. Contract 保留什么
+
+| 字段 | 处理 |
+|---|---|
+| `goal` | 保留，声明业务目标 |
+| `inputs.requestSchema` | 保留，声明 Skill 自有公共输入 |
+| `context.requiredFacts` | 保留，声明运行需要的事实 |
+| `context.schemas` | 保留，引用 Host 发布的精确 Context Schema |
+| `dependencies` | 保留，声明依赖的公共 Owner 契约身份 |
+| `allowedResources.capabilities` | 保留，声明所请求的 Capability 授权 |
+| `apiVersion`、`kind` | 不写入源码，由 Compiler Target 和文件结构确定 |
+| `metadata.name` | 由 Skill Package 根目录确定 |
+| `entryProcedure` | 单一 Procedure 入口，不需要重复字段 |
+| `postconditions` | 移到 Procedure 最终 Postcondition 节点 |
+| `planning.allowDynamicProcedure` | 静态 DAG 规则已禁止动态执行图，无需重复 |
+| `planning.maxActions` | 暂归 Runtime / Deployment Budget Policy，待进一步评审 |
+| `failureSemantics.outcomeUnknown.requireReconcile` | 作为 Mutation UNKNOWN 的通用安全规则，不由每个 Skill 重复开关 |
+
+依赖身份与 Capability Grants 不是一回事：依赖让 Studio / Compiler 获得并链接 Owner 契约；Grant 才是授权请求。依赖存在不等于有权执行，Grant 也不能替代 ToolCatalog / Schema 依赖。
+
+## 4. Skill Studio 创建流程
+
+创建 Skill 时，Studio 应提供引导式选择，而不是让作者手工填写一堆 Owner ID：
+
+1. 从公共依赖目录选择 Host Context、ToolCatalog、Observation 和共享 Schema。
+2. 选择本 Skill 需要的 Context Projection / Facts。
+3. 从可信 CapabilityContracts 选择允许请求的 Capability。
+4. 创建或选择 Skill 自有 Request Schema。
+5. Studio 生成 / 更新 `contract.yaml`；编写 Procedure 时再绑定具体导出接口。
+
+后续可在 Dependencies / Capabilities 视图继续调整。Studio 获取精确依赖快照并作为 Build 输入传给 Compiler。Compiler 只解析、链接和校验，不联网下载或管理依赖版本。
+
+Contract 保存稳定的公共依赖身份，不保存下载 URL、分支、版本锁或 digest。Owner Schema ID 自身若含不可变版本标识（例如 `...:v1`），仍须原样保留。
+
+## 5. 其余规范入口
+
+请以 CA-SL 综合规范为准，重点阅读：
+
+1. 概念模型与所有权边界；
+2. Contract、Dependency 与 Capability Grants；
+3. Procedure 四种节点、入口 / 最终门禁和 DAG；
+4. Predicate.parameters 与显式 arguments；
+5. ToolCatalog、Observation、Evidence 和 Schema 所有权；
+6. Procedure Script 与 Predicate Script；
+7. PDU Session 示例、异常场景和 FAQ。
