@@ -23,8 +23,8 @@ skills/<name>/
 
 The three assurance files have separate responsibilities:
 
-- `contract.yaml`: public Skill declaration — Goal, public Request Schema, Context requirements, public dependency identities and Capability Grants.
-- `procedure.yaml`: the single execution graph — input projections, start, Precondition / Operation / Observation / Postcondition nodes, routes and final assurance.
+- `contract.yaml`: public Skill declaration — Goal, public Request Schema, Host Invocation Context Schema, public dependency identities and Capability Grants.
+- `procedure.yaml`: the single execution graph — start, Precondition / Operation / Observation / Postcondition nodes, routes and final assurance.
 - `predicates.yaml`: reusable Predicate parameter signatures and CEL / Python evaluators.
 
 The Contract remains author-maintained source. Only redundant wrapper fields and values derivable elsewhere are removed; the public declarations it owns are not deleted. Compiler may derive a normalized Runtime contract from Contract, Procedure, Predicates and dependency snapshots, but that artifact does not replace the source Contract.
@@ -34,11 +34,10 @@ The Contract remains author-maintained source. Only redundant wrapper fields and
 | Field | Treatment |
 |---|---|
 | `goal` | Keep: business goal |
-| `inputs.requestSchema` | Keep: Skill-owned public Request |
-| `context.requiredFacts` | Keep: trusted Host facts required at Admission; dynamic facts are queried by Observation |
-| `context.schemas` | Keep: exact Host-owned Context Schema identities |
-| `dependencies` | Keep: public Owner contract identities required by the Skill |
-| `allowedResources.capabilities` | Keep: requested Capability authorization |
+| `requestSchema` | Skill-owned public Request Schema |
+| `contextSchema` | Exact Host-owned Invocation Context Schema |
+| `dependencies` | Alias → stable Package ID string |
+| `capabilities` | Requested Capability IDs |
 | `apiVersion`, `kind` | Omit from source; selected by Compiler Target / file structure |
 | `metadata.name` | Derive from Skill Package root |
 | `entryProcedure` | Omit: one Procedure entry per Skill |
@@ -54,7 +53,7 @@ Dependencies and Capability Grants are different: dependencies make Owner contra
 Studio should guide authors through selection rather than requiring manual entry of Owner IDs:
 
 1. Select public dependencies (Host Context, ToolCatalog, Observation and shared Schema packages).
-2. Select required Context projections / Facts.
+2. Select the Host-owned Invocation Context Schema.
 3. Select requested Capabilities from trusted CapabilityContracts.
 4. Create or select the Skill-owned Request Schema.
 5. Generate / update `contract.yaml`; bind exact callable exports while authoring Procedure.

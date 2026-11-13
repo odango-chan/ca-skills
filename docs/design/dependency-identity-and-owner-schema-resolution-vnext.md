@@ -14,7 +14,7 @@ This document is aligned with [Skill Language Specification](../skill-language-s
 3. The alias is a logical namespace mapped by Plugin-managed Workspace Configuration to one supplied dependency snapshot. It is not a repository URL, local path, source kind, revision, digest, cache key or acquisition instruction.
 4. Studio owns dependency selection, acquisition, immutable snapshot persistence, locking, refresh and cache. Compiler receives the exact bytes and does not acquire or manage them.
 5. Compiler BuildRequest contains Skill source files and immutable dependency snapshots. The trusted caller also provides Package ID / Owner bindings for those snapshots and separate deployment CapabilityContracts (§34.0).
-6. Capability IDs in `allowedResources.capabilities` are unqualified exact IDs from that single trusted CapabilityContracts input. Tool/Schema aliases do not qualify or own deployment authorization.
+6. Capability IDs in `capabilities` are unqualified exact IDs from that single trusted CapabilityContracts input. Tool/Schema aliases do not qualify or own deployment authorization.
 7. Compiler links each exact callable contract (Operation or Observation query) to exactly one Capability and cross-checks its ToolCatalog Effect against the independently declared Capability Effect. Runtime repeats authorization and Effect admission.
 8. No project manifest, lockfile, package resolver, Compiler dependency digest output, or physical `lib/` source layout is introduced.
 9. vNext is a breaking replacement. The Compiler rejects v0.2 `lib/**` paths, direct callable grants and Predicate-owned Observation declarations. Observation query contracts are imported through ToolCatalog; no compatibility parser or field mapping remains.
@@ -91,7 +91,7 @@ For local projections over hold, operation-context, PCF input, resource-ownershi
 
 ## 6. 5GC-first acceptance
 
-1. Publish the Host Subject/Facts/Ingress and Evidence-reference projections from their actual owners.
+1. Use the exact Host-owned Invocation Context Schema and the Host Evidence-reference projection.
 2. Publish typed Tool Output Schemas for all current Operation outputs consumed by Predicates.
 3. Publish exact Observation Tool query contracts only for the independent fact queries still required after direct Operation-output and Context-projection reuse is proven.
 4. Update the trusted CapabilityContracts map and ToolCatalog together for both Operations and Observation query identities; fail closed on missing/duplicate membership or Effect mismatch.

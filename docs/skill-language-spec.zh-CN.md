@@ -395,16 +395,13 @@ goal: pdu_session.initial_request_fulfilled
 requestSchema: schemas/establishment-request.schema.yaml
 contextSchema: ca-context::urn:connectionagent:ca:context:invocation:v1
 dependencies:
-  ca-context:
-    id: urn:example:connectionagent:host-context
-  ca:
-    id: urn:example:connectionagent:5gc-tool-contracts
-allowedResources:
-  capabilities:
-    - provider-5gc.session-read
-    - provider-5gc.session-mutation
-    - env-fabric.session-hold
-    - ca-agent-host.session-runtime
+  ca-context: urn:example:connectionagent:host-context
+  ca: urn:example:connectionagent:5gc-tool-contracts
+capabilities:
+  - provider-5gc.session-read
+  - provider-5gc.session-mutation
+  - env-fabric.session-hold
+  - ca-agent-host.session-runtime
 ~~~
 
 ~~~yaml
@@ -438,10 +435,9 @@ nodes:
 Contract          = map(goal: GoalId,
                         requestSchema?: LocalSchemaPath,
                         contextSchema?: QualifiedSchemaId,
-                        dependencies?: map<Alias, DependencyRequirement>,
-                        allowedResources?: map(capabilities: list<CapabilityId>),
+                        dependencies?: map<Alias, StablePackageId>,
+                        capabilities?: list<CapabilityId>,
                         limits?: map(maxActions: PositiveInteger))
-DependencyRequirement = map(id: StablePackageId)
 Procedure         = map(start: NodeId, nodes: map<NodeId, Node>)
 Node              = PreNode | PostNode | ToolNode | ScriptNode |
                     ObservationNode | ReconcileNode | TerminalNode
@@ -488,17 +484,14 @@ contextSchema: ca-context::urn:connectionagent:ca:context:invocation:v1
 # 仅声明稳定依赖身份；alias 是本 Skill 内部引用名。
 # 不写 Git URL、版本锁、digest、分支或下载指令。
 dependencies:
-  ca-context:
-    id: urn:example:connectionagent:host-context
-  ca:
-    id: urn:example:connectionagent:5gc-tool-contracts
+  ca-context: urn:example:connectionagent:host-context
+  ca: urn:example:connectionagent:5gc-tool-contracts
 
-allowedResources:
-  capabilities:
-    - provider-5gc.session-read
-    - provider-5gc.session-mutation
-    - env-fabric.session-hold
-    - ca-agent-host.session-runtime
+capabilities:
+  - provider-5gc.session-read
+  - provider-5gc.session-mutation
+  - env-fabric.session-hold
+  - ca-agent-host.session-runtime
 ~~~
 
 ### 11.2 Procedure 示例
@@ -571,7 +564,7 @@ nodes:
 | requestSchema | 公共 Request Schema | 有调用方 Request 时声明；指向 Skill 自有 `schemas/` 文件 |
 | contextSchema | Host 提供的 Invocation Context | 引用已声明依赖别名的精确 Owner Schema ID；使用 Host Context 字段时必须声明 |
 | dependencies | 公共依赖声明 | Alias → 精确稳定 Package ID，必须与可信调用方提供的快照身份绑定核对；不声明 URL、digest 或获取方式 |
-| allowedResources.capabilities | Skill 请求的授权上界 | 只列 Capability ID；Compiler 对每个外部 callable 做精确 membership / Effect 校验 |
+| capabilities | Skill 请求的授权上界 | 只列 Capability ID；Compiler 对每个外部 callable 做精确 membership / Effect 校验 |
 | limits.maxActions | 可选的 Skill 业务动作预算上界 | 正整数；Host 的实际预算只可进一步收紧，不能被该字段放宽 |
 
 ### 11.4 字段归属与省略规则
@@ -1124,6 +1117,7 @@ Environment
 | SOURCE_PATH_INVALID | SourcePath 使用未支持的根、索引、动态表达式，或 Node ID 使用保留的根名 | 阻止构建 |
 | CONTROL_FLOW_DANGLING | 路由指向不存在 Node | 阻止构建 |
 | CONTROL_FLOW_AMBIGUOUS | 多个主动作 | 阻止构建 |
+| DEPENDENCY_REQUIREMENT_INVALID | dependencies 的值不是稳定 Package ID 字符串 | 阻止构建 |
 | DEPENDENCY_ALIAS_MISSING | SourcePath / Schema 引用的 Alias 未在 Contract 声明 | 阻止构建 |
 | DEPENDENCY_SNAPSHOT_MISSING | Contract 声明的实际使用依赖没有 Snapshot | 阻止构建 |
 | DEPENDENCY_IDENTITY_UNVERIFIED | 缺少与别名、快照摘要绑定的可信身份元数据 | 阻止构建 |
@@ -1262,16 +1256,13 @@ goal: pdu_session.initial_request_fulfilled
 requestSchema: schemas/establishment-request.schema.yaml
 contextSchema: ca-context::urn:connectionagent:ca:context:invocation:v1
 dependencies:
-  ca-context:
-    id: urn:example:connectionagent:host-context
-  ca:
-    id: urn:example:connectionagent:5gc-tool-contracts
-allowedResources:
-  capabilities:
-    - fivegc-session-read
-    - fivegc-session-mutation
-    - fivegc-session-assurance
-    - fivegc-session-responsibility
+  ca-context: urn:example:connectionagent:host-context
+  ca: urn:example:connectionagent:5gc-tool-contracts
+capabilities:
+  - fivegc-session-read
+  - fivegc-session-mutation
+  - fivegc-session-assurance
+  - fivegc-session-responsibility
 ~~~
 
 ~~~yaml
@@ -1790,19 +1781,17 @@ Skill 源码只引用本包拥有的文件，或通过 Contract 声明的 Alias 
 
 ### 34.0 最小依赖身份与链接规则
 
-`contract.yaml` 将 Alias 映射到稳定 Package ID。版本、下载位置和快照内容不写进 Skill 源码。
+`contract.yaml` 的 `dependencies` 将每个别名直接映射到一个稳定 Package ID 字符串。版本、下载位置和快照内容不写进 Skill 源码。
 
 ~~~yaml
 dependencies:
-  ca-context:
-    id: urn:example:connectionagent:host-context
-  ca:
-    id: urn:example:connectionagent:5gc-tool-contracts
+  ca-context: urn:example:connectionagent:host-context
+  ca: urn:example:connectionagent:5gc-tool-contracts
 ~~~
 
 复用 Compiler v0.1 已有的逻辑快照形状 `{dependencyId, digest, files}`。其中 `dependencyId` 是 Workspace 别名，`digest` 由 Compiler 从规范化文件集重算，二者均不能证明 Package ID 或 Owner。可信调用方依据既有来源配置、锁定快照和已验证 Owner 元数据，为同一 `(dependencyId, digest)` 提供稳定 Package ID 与允许的 Owner 身份。来源绑定可由 Studio 依赖目录或部署配置提供；上传内容或 MCP discovery 自报身份本身不构成可信绑定。
 
-1. 对每个被引用的 Alias 链接唯一快照，并校验规范化路径、文件集及摘要。按同一 Alias 和实测摘要获取可信身份绑定，与 `Contract.dependencies[alias].id` 精确比较。无可信绑定、同一 Alias 对应多个快照或身份不匹配均阻断构建。
+1. 对每个被引用的 Alias 链接唯一快照，并校验规范化路径、文件集及摘要。按同一 Alias 和实测摘要获取可信身份绑定，与 `Contract.dependencies[alias]` 精确比较。无可信绑定、同一 Alias 对应多个快照或身份不匹配均阻断构建。
 2. 在该快照内解析唯一精确的 `alias::exportId`。用可信绑定核对导出 Owner，再校验 callable kind、Effect、Schema `$id`、引用闭包和 Evidence 保证。没有 Owner 字段的 Schema 由可信绑定关联到确切导出；多 Owner 时须能唯一确定该导出的 Owner。依赖文件不能自行授予 Owner 身份。
 3. 外部 callable 还须在独立可信 CapabilityContracts 中，以精确 Owner、callable ID、kind、Effect 找到唯一归属的 Capability，并被 Skill Grant。单纯链接成功不授予执行权。
 4. 合法但未使用的 Contract 依赖产生 Warning。构建输入里的额外快照不得自动进入 Skill 链接范围。
@@ -2175,13 +2164,10 @@ Invocation Context 提供 Host 在准入时已经确认的 UE 和入口、生命
 goal: ue.registration_verified
 contextSchema: ca-context::urn:example:ca:invocation-context:v1
 dependencies:
-  ca-context:
-    id: urn:example:ca:host-context
-  ca:
-    id: urn:example:ca:tools
-allowedResources:
-  capabilities:
-    - example.registration-read
+  ca-context: urn:example:ca:host-context
+  ca: urn:example:ca:tools
+capabilities:
+  - example.registration-read
 ~~~
 
 ~~~yaml
@@ -2404,8 +2390,8 @@ expected:
 | 场景 | 应产生的结果 |
 |---|---|
 | E01：上面的全套文件、精确 Owner / Alias / Schema 匹配 | 静态链接 PASS（目标行为，待实现验证） |
-| E02：把 procedure.yaml 根加入 goal / allowedResources | SOURCE_ROOT_INVALID |
-| E03：把 Contract 的 ca.id 改成另一个 Package ID | DEPENDENCY_ID_MISMATCH |
+| E02：把 procedure.yaml 根加入 goal / capabilities | SOURCE_ROOT_INVALID |
+| E03：把 Contract 的 `dependencies.ca` 改成另一个 Package ID | DEPENDENCY_ID_MISMATCH |
 | E04：摘要有效，但可信身份绑定缺失，或绑定到另一份快照摘要 | DEPENDENCY_IDENTITY_UNVERIFIED |
 | E05：ToolCatalog metadata.owner 不在可信绑定的授权 Owner 中 | DEPENDENCY_OWNER_MISMATCH |
 | E06：删除 Contract 的 example.registration-read Grant | CAPABILITY_NOT_GRANTED |
@@ -2437,6 +2423,7 @@ expected:
 | E32：不同证据 Ref 指向同一底层记录，但 Predicate 要求两个独立来源 | UNKNOWN |
 | E33：Reconcile 已确认提交但其承诺恢复的资源 Ref 无效 | 保留已提交状态并 SAFE_STOPPED，后续节点不可读取该 Ref |
 | E34：Procedure 使用旧的根字段 inputs，或以 input.ueRef 绑定参数；另测节点 ID 为 context | 分别拒绝未知根字段、非法 SourcePath 和保留节点名 |
+| E35：Contract 使用 `allowedResources` 包装，或用对象作为 `dependencies.ca` 的值 | 分别为 UNKNOWN_FIELD 和 DEPENDENCY_REQUIREMENT_INVALID |
 
 此表是待落地的评审与 Compiler Fixture 契约，不是现有 CI 的实际通过记录。正式冻结必须由相应 Owner 提供发布的导出身份，并让 Native、WASM 和 Skill Studio 使用同一组正负例。
 

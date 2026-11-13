@@ -21,8 +21,8 @@ skills/<skill-name>/
 
 The three assurance files have separate responsibilities:
 
-- `contract.yaml` — public Skill declaration: Goal, public Request Schema, required Host Context facts / Schemas, shared dependency identities, and Capability Grants.
-- `procedure.yaml` — one deterministic execution graph: Procedure input projections, start, four business node types, routes, Reconcile edges and final Postcondition.
+- `contract.yaml` — public Skill declaration: Goal, public Request Schema, Host Invocation Context Schema, shared dependency identities, and Capability Grants.
+- `procedure.yaml` — one deterministic execution graph: start, four business node types, routes, Reconcile edges and final Postcondition.
 - `predicates.yaml` — reusable Predicate definitions, ordered parameter signatures and CEL / Predicate Script evaluators.
 
 The Contract is authored source. It is not deleted or wholly generated. The Compiler may derive a normalized Runtime contract projection from Contract + Procedure + Predicate + resolved dependencies, but that is a build artifact, not a replacement for the author-facing Contract.
@@ -31,10 +31,10 @@ The Contract is authored source. It is not deleted or wholly generated. The Comp
 
 Keep business declarations that matter to authoring and review:
 
-- Goal and public Request Schema.
-- Required Context facts and exact Context Projection Schema identities.
-- Public dependency identities needed by the Skill (ToolCatalog, Host Context, Observation and shared Schema exports).
-- Exact Capability grants selected from trusted deployment CapabilityContracts.
+- `goal` and the public `requestSchema`.
+- `contextSchema` for the exact Host-owned Invocation Context Schema.
+- `dependencies` mapping aliases directly to stable Package ID strings.
+- `capabilities` listing exact IDs selected from trusted deployment CapabilityContracts.
 
 Do not repeat machine wrapper fields that are determined elsewhere:
 
@@ -67,7 +67,7 @@ Dependencies and grants are separate declarations:
 At Skill creation, Studio should offer a guided selection flow over the available public dependency catalog and trusted CapabilityContracts:
 
 1. Select required shared dependencies (Host Context, ToolCatalog / Observation contracts, shared Schema libraries).
-2. Select the exact Context projections / facts the Skill needs.
+2. Select the Host-owned Invocation Context Schema.
 3. Select Capability grants from the trusted Capability catalog.
 4. Create or select the Skill-owned public Request Schema.
 5. Generate / update `contract.yaml`; add exact call references as the Procedure is authored.
@@ -78,14 +78,14 @@ The Contract records stable Package IDs by Alias and requested Capability Grants
 
 ## Imported external contracts
 
-Compiler receives imported contracts as exact immutable DependencySnapshot inputs. A logical dependency alias is used in source references (for example `host-context::urn:...` or `ca::sbi.udm.sm_data.get`); it is not a physical folder path or a stable Owner identity.
+Compiler receives imported contracts as exact immutable DependencySnapshot inputs. A logical dependency alias is used in source references (for example `ca-context::urn:...` or `ca::sbi.udm.sm_data.get`); it is not a physical folder path or a stable Owner identity.
 
 - Imported ToolCatalog contracts define exact Operation and Observation callable identities.
-- Host dependencies define Subject / Facts / Ingress Context Projection Schemas and Evidence handling.
+- Host dependencies publish the Invocation Context Schema. Host owns admission and Evidence handling.
 - Observation-owner dependencies define query payload Schemas and guarantees.
 - Deployment-owned CapabilityContracts define exact callable membership and Effect and are supplied separately from ordinary dependencies.
 
-Do not maintain a second field-level Schema map when the Contract already references the exact Context Schema identities. `requiredFacts` are Admission-time Host prerequisites; dynamic facts should come from explicit Observation or already-sufficient Operation Result. Compiler checks that each accessed Context projection has a matching Contract declaration and Owner Schema.
+Node arguments bind directly to fields in the declared Context or prior outputs. Compiler checks Host fields against `contextSchema` and `context.request` paths against `requestSchema`. Dynamic facts come from explicit Observation or an Operation Result with sufficient Evidence.
 
 ## Compiler output and external dependency closure
 

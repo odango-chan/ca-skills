@@ -23,8 +23,8 @@ skills/<name>/
 
 三个 assurance 文件各司其职：
 
-- `contract.yaml`：Skill 的公共声明，包括 Goal、公共 Request Schema、Context 需求、公共依赖身份和 Capability Grants。
-- `procedure.yaml`：唯一执行图，包括入口输入投影、start、Precondition / Operation / Observation / Postcondition 节点、路由和最终验收。
+- `contract.yaml`：Skill 的公共声明，包括 Goal、公共 Request Schema、Host Invocation Context Schema、公共依赖身份和 Capability Grants。
+- `procedure.yaml`：唯一执行图，包括start、Precondition / Operation / Observation / Postcondition 节点、路由和最终验收。
 - `predicates.yaml`：可复用 Predicate 的参数签名和 CEL / Python evaluator。
 
 **Contract 保留为作者维护的源码。** 只移除冗余包装字段和可由其他信息确定的字段，不删除它承载的公共声明。Compiler 可从 Contract、Procedure、Predicate 和依赖快照生成规范化 Runtime 契约，但不以生成物取代作者源文件。
@@ -34,11 +34,10 @@ skills/<name>/
 | 字段 | 处理 |
 |---|---|
 | `goal` | 保留，声明业务目标 |
-| `inputs.requestSchema` | 保留，声明 Skill 自有公共输入 |
-| `context.requiredFacts` | 保留 Host 准入 Fact ID；由 Host 契约关联到精确 Projection Schema 和字段路径 |
-| `context.schemas` | 保留，引用 Host 发布的精确 Context Schema |
-| `dependencies` | 保留，声明依赖的公共 Owner 契约身份 |
-| `allowedResources.capabilities` | 保留，声明所请求的 Capability 授权 |
+| `requestSchema` | Skill 自有的公共请求 Schema |
+| `contextSchema` | Host 发布的精确 Invocation Context Schema |
+| `dependencies` | 别名 → 稳定包 ID 字符串 |
+| `capabilities` | Skill 请求授权的 Capability ID 列表 |
 | `apiVersion`、`kind` | 不写入源码，由 Compiler Target 和文件结构确定 |
 | `metadata.name` | 由 Skill Package 根目录确定 |
 | `entryProcedure` | 单一 Procedure 入口，不需要重复字段 |
@@ -54,7 +53,7 @@ skills/<name>/
 创建 Skill 时，Studio 应提供引导式选择，而不是让作者手工填写一堆 Owner ID：
 
 1. 从公共依赖目录选择 Host Context、ToolCatalog、Observation 和共享 Schema。
-2. 选择本 Skill 需要的 Context Projection / Facts。
+2. 选择 Host 发布的 Invocation Context Schema。
 3. 从可信 CapabilityContracts 选择允许请求的 Capability。
 4. 创建或选择 Skill 自有 Request Schema。
 5. Studio 生成 / 更新 `contract.yaml`；编写 Procedure 时再绑定具体导出接口。

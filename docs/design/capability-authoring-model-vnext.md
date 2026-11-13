@@ -1,4 +1,4 @@
-> **Status notice (2026-11-13):** Historical design rationale and open-decision record. The comprehensive [CA-SL vNext Specification](../skill-language-spec.zh-CN.md) is the sole normative language document. The authoring/source simplification recorded in §25 supersedes earlier source layouts and YAML candidates in this note. In particular, §25 retains an authored contract.yaml but removes redundant apiVersion / kind / metadata wrappers; it also supersedes the old Procedure binding syntax and earlier Script placement. Do not implement syntax directly from this note.
+> **Status notice (2026-11-13):** Historical design rationale and open-decision record. The comprehensive [CA-SL vNext Specification](../skill-language-spec.zh-CN.md) is the sole normative language document. Sections 1–24 record historical proposals and implementation evidence. The current authoring summary is in §§25–26. In particular, §25 retains an authored contract.yaml but removes redundant apiVersion / kind / metadata wrappers; it also supersedes the old Procedure binding syntax and earlier Script placement. Do not implement syntax directly from this note.
 
 # Capability & Authoring Model vNext
 
@@ -109,7 +109,7 @@ The binding model must distinguish **available data** from **data actually passe
 
 - A Skill Request Schema describes the public request surface; it does not require every field to be projected into every Procedure.
 - `context.projections` grants access to named Host/Owner projections. It does not inject those projections into Procedure inputs or downstream calls.
-- `Procedure.inputs` is the Procedure's actual input interface. Declare only values consumed by that Procedure or intentionally shared with its descendants; do not mirror the complete Context or Request.
+- In this earlier proposal, `Procedure.inputs` is the Procedure's actual input interface. Declare only values consumed by that Procedure or intentionally shared with its descendants; do not mirror the complete Context or Request.
 - An Operation's Input Schema is its callable interface. Its `required` properties must be supplied. Optional properties are omitted unless the call intentionally uses them.
 - A Predicate declares an ordered, typed function signature: parameter names/order plus either a primitive type or an authoritative Schema reference. Host-attached Evidence remains a separate reserved projection and is not a reason to add business parameters.
 - A Procedure Script has no separately authored Input Schema in this model. Its call-site `with` is its input projection; keep those bindings explicit unless a future, separately reviewed Script input declaration makes a safe default possible.
@@ -392,7 +392,7 @@ The stable Schema identity rule (`$id`) is the selected vNext direction; the com
 
 ### Capability grants and Tool Operation linking
 
-The Skill grants stable Capability IDs in `allowedResources.capabilities`; these IDs are resolved against the separately supplied trusted deployment CapabilityContracts. A Procedure node calls one exact qualified Operation (`tool-dependency-alias::operation-id`). The independent, deployment-owned CapabilityContracts maps each Capability to its owner and exact callable interfaces (Operation IDs and Observation query IDs) with expected Effects, while ToolCatalog declares each callable interface's schemas and declared Effect. For static proof, the Compiler BuildRequest must receive the target deployment's immutable CapabilityContracts as an explicit trusted input **separate from ordinary Skill dependency snapshots**; the ToolCatalog remains part of the resolved dependency set. Compiler then proves every invoked callable interface belongs to exactly one Capability, that the Skill grants that Capability, and that the Tool Effect matches the independently declared expected Effect. If the trusted CapabilityContracts input is absent, the Compiler cannot claim static authorization proof; Runtime admission remains authoritative. Observation is a specialized read-only Tool contract, not a second contract system. Its query interface, Input/Output Schemas, Owner, READ Effect and Capability membership are published through the same ToolCatalog/CapabilityContracts inputs as other Tools. The legacy ObservationSource registry is an implementation detail to retire; Skills refer to the exported Observation Tool query contract, not its adapter class.
+Under the earlier authoring layout, the Skill grants stable Capability IDs in `allowedResources.capabilities`; these IDs are resolved against the separately supplied trusted deployment CapabilityContracts. A Procedure node calls one exact qualified Operation (`tool-dependency-alias::operation-id`). The independent, deployment-owned CapabilityContracts maps each Capability to its owner and exact callable interfaces (Operation IDs and Observation query IDs) with expected Effects, while ToolCatalog declares each callable interface's schemas and declared Effect. For static proof, the Compiler BuildRequest must receive the target deployment's immutable CapabilityContracts as an explicit trusted input **separate from ordinary Skill dependency snapshots**; the ToolCatalog remains part of the resolved dependency set. Compiler then proves every invoked callable interface belongs to exactly one Capability, that the Skill grants that Capability, and that the Tool Effect matches the independently declared expected Effect. If the trusted CapabilityContracts input is absent, the Compiler cannot claim static authorization proof; Runtime admission remains authoritative. Observation is a specialized read-only Tool contract, not a second contract system. Its query interface, Input/Output Schemas, Owner, READ Effect and Capability membership are published through the same ToolCatalog/CapabilityContracts inputs as other Tools. The legacy ObservationSource registry is an implementation detail to retire; Skills refer to the exported Observation Tool query contract, not its adapter class.
 
 
 ## 16. Candidate 5GC Predicate inputs and Observation Tool queries (NOT FROZEN)
@@ -491,7 +491,7 @@ This section records the latest review direction and supersedes earlier authorin
 ### 25.1 Retain the authored Skill Contract; remove only redundant wrapper fields
 
 - vNext **retains** `assurance/contract.yaml` as author-maintained public Skill contract. It is not deleted and is not wholly Compiler-generated.
-- Contract keeps Goal, public Request Schema, required Host Context facts / exact Context Schema identities, public dependency identities, and `allowedResources.capabilities`.
+- Contract declares `goal`, `requestSchema`, `contextSchema`, a direct alias-to-Package-ID `dependencies` mapping, and the `capabilities` list.
 - Contract and Procedure have distinct ownership: Contract declares what the Skill requires and is allowed to request; Procedure declares how the goal is deterministically achieved, including the final executable Postcondition.
 - `apiVersion`, `kind`, and `metadata.name` are omitted from authored source because BuildRequest / Compiler Target selects the language version, file path determines source kind, and Package root determines Skill identity.
 - `entryProcedure` is unnecessary while one Skill has exactly one entry Procedure graph. Contract-level `postconditions` move to the final Postcondition node in Procedure.
@@ -504,7 +504,7 @@ This section records the latest review direction and supersedes earlier authorin
 - Invocation-wide Precondition belongs to the Procedure's entry gate. If necessary, explicit Observation can precede it to acquire trusted facts. Protected Mutation proceeds only on PASS.
 - The final business Postcondition belongs at the end of the graph, before SUCCEEDED Terminal. It consumes explicit arguments from already-produced Operation / Observation / Context values.
 - There is no separate SkillContract.postconditions declaration, no from reference to a second evaluation, and no duplicate Predicate execution. The final Postcondition node is the contract's executable proof.
-- All SUCCEEDED terminals must be dominated by the final Postcondition PASS route. Local Precondition / Postcondition nodes remain available for intermediate business gates.
+- Every SUCCEEDED path must carry a valid Goal Postcondition PASS. Different Postconditions can prove the same Goal across branches. Local Precondition / Postcondition nodes remain available for intermediate business gates.
 - The first version has one entry Procedure graph per Skill. It does not define nested ProcedureCall or graph cycles; business paths are represented by branches in the same graph.
 
 ### 25.3 Four business node types; Script placement
@@ -517,7 +517,7 @@ This section records the latest review direction and supersedes earlier authorin
 
 ### 25.4 SourcePath and graph safety
 
-- SourcePath roots are limited to input, explicit context projections (request / subject / facts / ingress), and exact prior-node output references.
+- Node `arguments` bind directly to admitted `context` fields or exact prior-node outputs.
 - vNext first version supports static dot paths only; no dynamic selectors, interpolation, function calls or array indexing.
 - The Procedure graph is a DAG. Compiler validates producer availability, entry-gate PASS coverage over protected mutations and Goal Postcondition PASS coverage on every successful path. Distinct final nodes may share a Terminal (§12.9).
 - Terminal outcomes include SUCCEEDED, FAILED, UNRESOLVED and SAFE_STOPPED. SAFE_STOPPED preserves partial resource / responsibility state and must not collapse into ordinary Predicate FAIL.
@@ -535,14 +535,14 @@ The single [CA-SL specification](../skill-language-spec.zh-CN.md) contains the a
 
 | Issue | Updated decision |
 |---|---|
-| P0 Contract/Procedure | Goal, Request, Context, dependencies and Capability Grants only in Contract; Procedure contains start/inputs/nodes |
+| P0 Contract/Procedure | Goal, Request, Context, dependencies and Capability Grants only in Contract; Procedure contains `start` and `nodes` |
 | P0 Predicate arguments | Align every sample call's arity, order and type to its Predicate signature |
 | P0 Reconcile branches | COMMITTED does not restore an original lost success response; explicit recoverable typed output or independent Observation required |
 | P0 Dependency linking | Stable Package ID by Alias; trusted binding keyed to snapshot alias and verified digest; exact Owner/export links |
 | P0 Node grammar | Define precise nested mapping shape for Predicate versus Tool/Observation/Script arguments and forbid extra Reconcile/Terminal fields |
-| P1 Context | requiredFacts are Host Admission prerequisites; dynamic facts come from explicit Observation; all accessed Context projections require matching Contract Schema declarations |
+| P1 Context | Host validates its admitted data against the Owner `contextSchema`; request fields use `requestSchema`; dynamic state comes from explicit Observation or sufficient Operation Results |
 | P1 Script | Procedure Script and Predicate Script are distinct pure local computation roles |
 | P1 Budget | Optional limits.maxActions is a stricter upper bound on the mandatory positive Host action budget |
-| P1 Fixtures | Added a synthetic complete Contract/Procedure/Predicate/Owner/Capability fixture and 16 candidate cases in Appendix E |
+| P1 Fixtures | Added a synthetic complete Contract/Procedure/Predicate/Owner/Capability fixture and candidate cases in Appendix E |
 
 The trusted build caller owns source provenance and revision selection. The vNext language remains DESIGN REVIEW / NOT FROZEN.

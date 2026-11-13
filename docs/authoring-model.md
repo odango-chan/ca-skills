@@ -8,8 +8,8 @@ The comprehensive specification is the sole normative language authority. If thi
 
 vNext retains three assurance source files with distinct responsibilities:
 
-- `assurance/contract.yaml`: Skill's public contract — Goal, public Request Schema, required Context facts / Schemas, shared dependency identities and Capability Grants.
-- `assurance/procedure.yaml`: the single deterministic execution graph — input projections, start, nodes, routes, reconciliation and final Postcondition.
+- `assurance/contract.yaml`: Skill's public contract — Goal, public Request Schema, the Host Invocation Context Schema, shared dependency identities and Capability Grants.
+- `assurance/procedure.yaml`: the single deterministic execution graph — start, nodes, routes, reconciliation and final Postcondition.
 - `assurance/predicates.yaml`: reusable Predicate definitions and ordered parameter signatures.
 
 Contract is author-maintained source, not a compiler-generated file. The source omits redundant `apiVersion`, `kind` and `metadata.name`; language version comes from BuildRequest / Compiler Target and Skill identity comes from the Package root.
@@ -17,9 +17,9 @@ Contract is author-maintained source, not a compiler-generated file. The source 
 ## Contract and dependency semantics
 
 - Goal and public Request belong to Contract, not the Procedure graph.
-- `requiredFacts` resolves each Admission Fact ID through a trusted Host descriptor to an exact Context Projection Schema and field path. Declare the projections used by SourcePaths or Admission descriptors in `context.schemas`.
-- Public dependencies declare a stable Package ID per Alias. The trusted build caller binds the Package ID and allowed Owners to the existing snapshot alias and verified digest. Compiler links exact Owner exports.
-- Capability Grants are separate from dependencies. Dependencies make contracts available; grants request authorization.
+- Top-level `requestSchema` declares the Skill-owned Request. Top-level `contextSchema` links the exact Host-owned Invocation Context Schema. The Host validates the admitted Context and its references.
+- `dependencies` maps each alias directly to a stable Package ID string. The trusted build caller binds the Package ID and allowed Owners to the existing snapshot alias and verified digest. Compiler links exact Owner exports.
+- Top-level `capabilities` lists the requested grants. Dependencies make contracts available; grants request authorization.
 - Studio guides creation by selecting dependencies and Capabilities from available public catalogs, writes stable identities into Contract and obtains exact dependency snapshots for the BuildRequest.
 - Compiler receives exact bytes and trusted CapabilityContracts as inputs. It never downloads dependencies, manages versions or infers authorization from the set of imported Tools.
 - The exact dependency snapshot / revision selected by Studio belongs to project/build configuration. Owner Schema IDs that intrinsically encode immutable revisions must be preserved exactly.
@@ -44,7 +44,7 @@ The first vNext version has one entry Procedure graph per Skill and does not def
 - Tool Operation and Observation use a named arguments mapping defined by the Owner Input / Query Schema.
 - Procedure Script uses a named arguments mapping as its exact local input projection; its output Schema is derived from strict return TypedDict.
 - Precondition and Postcondition use an ordered arguments list matching the Predicate.parameters signature.
-- Procedure inputs use direct SourcePath mappings.
+- Nodes bind `arguments` directly to admitted `context` fields or prior-node outputs.
 - No implicit previous-node binding, parent Procedure state, ambient Context forwarding, or field-name guessing.
 - Reconcile is a constrained Operation mode targeting the original Mutation, not a separate business node. A COMMITTED result does not make the original successful output available: use only an Owner-guaranteed reconciled output or a separately acquired authoritative Observation.
 

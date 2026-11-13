@@ -434,14 +434,14 @@ The current executable 5GC deployment has **six Capability groups and twelve uni
 
 ### 18.1 Exact old → new grant transformation
 
-Current compatibility source lists the twelve Operation IDs above under `allowedResources.capabilities`. The vNext Skill grant must instead list the six Capability IDs, qualified by an alias bound to the deployment's immutable, trusted CapabilityContracts build input:
+Current compatibility source lists the twelve Operation IDs above under `allowedResources.capabilities`. The vNext Skill lists the six exact Capability IDs in top-level `capabilities`; the independent trusted deployment CapabilityContracts input resolves them:
 
-- `<capability-contract-alias>::provider-5gc.createdsession.udm`
-- `<capability-contract-alias>::provider-5gc.createdsession.pcf`
-- `<capability-contract-alias>::provider-5gc.createdsession.context`
-- `<capability-contract-alias>::env-fabric.createdsession.hold`
-- `<capability-contract-alias>::ca-provider-5gc.createdsession.transfer`
-- `<capability-contract-alias>::ca-agent-host.createdsession.runtime`
+- `provider-5gc.createdsession.udm`
+- `provider-5gc.createdsession.pcf`
+- `provider-5gc.createdsession.context`
+- `env-fabric.createdsession.hold`
+- `ca-provider-5gc.createdsession.transfer`
+- `ca-agent-host.createdsession.runtime`
 
 Procedure calls continue to name one exact Operation, qualified by the alias resolving its ToolCatalog contract. The Compiler must link each call to exactly one Capability membership across the resolved ToolCatalog contracts and the separately supplied trusted CapabilityContracts input, then cross-check the Tool Effect against the independently declared expected Effect. If the trusted CapabilityContracts input is absent, static authorization proof cannot be claimed; Runtime admission remains authoritative. The Skill does not grant an entire Tool by display name, owner name, prefix, or implicit hierarchy.
 
@@ -497,7 +497,7 @@ The matrix yields the following complete classification:
 - **3 Host-owned projections**: one captured ingress payload plus two reference-journal views. PR #200 now proposes normalized payload Schemas for all three; PR #198 separately proposes Subject/Facts handles and Script Evidence refs. These remain draft/unmerged and must be exported under the actual Host ingress/reference-journal owner identities, not mistaken for Provider or Open5GS source facts. A journal reference is not the journal state.
 - **5 independent owner Observation query points across 4 shapes**: PCF governance, N4 baseline, N4 initial resources, RAN setup, and N4 forwarding. N4 baseline and post-N4 initial resources can share one exact query identity only if its QueryContext/result is phase-discriminated and the two Procedure points remain distinct. N4 convergence itself is completed inside `UPN.CREATE_UP_SESSION`.
 
-Every Predicate must receive its business payload through its declared typed `Predicate.parameters` and explicit positional `verify.arguments` from Operation outputs, Context projections or Observation Tool query results. Existing implicit `observations.*`, `subject`, `request` and `facts` access must not survive as hidden evaluator inputs. The current entry Procedure's context projection remains the natural source for request/subject/fact fields; the exact shared Predicate context-projection syntax is still open and must not be replaced by repeated ad-hoc copies.
+Every Predicate must receive its business payload through its declared typed `Predicate.parameters` and explicit positional `precondition.arguments` or `postcondition.arguments` from Operation outputs, Context projections or Observation Tool query results. Existing implicit `observations.*`, `subject`, `request` and `facts` access must not survive as hidden evaluator inputs. Procedure nodes bind admitted Context paths explicitly under the rules in CA-SL §§11 and 13.
 
 The current scope and freshness declarations are part of the assurance contract. They must move to the exact READ/producer binding and Predicate input contract without widening scope, substituting a different resource handle, or relabeling acquisition time as source observation time. Host-generated Evidence remains a separate projection at `input.evidence.<alias>`; Scripts cannot author or rewrite it.
 
@@ -539,8 +539,8 @@ The source-backed mapping now covers the complete current Skill surface:
 
 | Source surface | Current baseline | vNext semantic transformation | Status |
 |---|---|---|---|
-| Skill contract | Request Schema; two required fact IDs; twelve direct Operation grants; physical `lib/` Host/Observation Schema paths | Keep the Skill-owned Request Schema and fact requirements; replace direct grants with qualified Capability IDs; reference exact versioned Host Subject/Facts/Evidence identities; remove the aggregate Predicate Observation payload schema and import owner-published Observation Tool contracts/Output Schemas where independent queries are required | Semantically mapped; trusted CapabilityContracts binding and Owner exports remain open |
-| Procedure | Existing typed context projection, 12 unique Operations / 14 call nodes, explicit resource/transaction handles, reconciliation and terminal branches | Preserve order and explicit handles; allow only contract-proven context auto-binding; reuse Operation outputs and Context projections; invoke owner-published Observation Tool queries only where independent context is required; remove the three Skill-level waits by moving asynchronous completion inside the owning SMF/Tool Operations | Semantically mapped; exact query identities/contracts remain open |
+| Skill contract | Request Schema; two required fact IDs; twelve direct Operation grants; physical `lib/` Host/Observation Schema paths | Declare `requestSchema` and the exact Host `contextSchema`; use top-level Capability IDs and direct alias-to-Package-ID dependencies; import exact Owner Observation contracts where independent queries are required | Semantically mapped; trusted CapabilityContracts binding and Owner exports remain open |
+| Procedure | Existing typed context projection, 12 unique Operations / 14 call nodes, explicit resource/transaction handles, reconciliation and terminal branches | Preserve order and explicit handles; bind node arguments directly to admitted Context fields or exact Operation outputs; invoke owner-published Observation Tool queries only where independent context is required; remove the three Skill-level waits by moving asynchronous completion inside the owning SMF/Tool Operations | Semantically mapped; exact query identities/contracts remain open |
 | PredicateSet | 17 Observation Refs, per-ref scope/freshness, CEL or two Script evaluators | Replace acquisition-coupled Predicate `observations` with declared typed `parameters`; invoke Observation Tools explicitly where needed; keep Predicate evaluation pure and preserve tri-state outcomes | All 17 refs mapped; Owner contracts and shared context/Evidence input syntax remain open |
 | Scripts | Three Procedure Scripts and two Predicate evaluator Scripts; official paths already package-relative | Keep one path identity; derive Procedure Script inputs from call-site Binding, Predicate Script inputs from Predicate declaration plus every call site, and output Schemas from strict TypedDict | Source mapping complete; evaluator input migration awaits Predicate syntax |
 | Cases / References | 36 Cases and three Reference documents are already byte-identical across the two repositories | Keep them unchanged as behavior/failure examples; use them to review old/new outcome and recovery equivalence, not as schema owners | No source refresh required |

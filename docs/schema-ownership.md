@@ -9,9 +9,8 @@ The comprehensive specification is the sole normative source for Schema ownershi
 - Skill owns its public Request Schema and genuinely Skill-owned data. The Request Schema lives under `schemas/**` and is referenced by `assurance/contract.yaml`.
 - Tool Owner owns Operation Input / Output / Reconcile Schemas.
 - Observation Owner publishes Query Input and normalized Output Schemas through ToolCatalog.
-- Host / Context Owner owns Subject, Facts, Ingress and Evidence-reference projections.
-- `Contract.context.requiredFacts` lists Host Admission Fact IDs. Host-owned descriptors resolve them to exact Context Projection Schemas and paths. Declare projections used by Admission descriptors or Procedure SourcePaths in `context.schemas`.
-- Contract declares stable public dependency identities and Capability Grants separately. Dependency identity is not a version lock or download instruction; a Grant is not a dependency.
+- Host owns the Invocation Context Schema and Evidence-reference projection. `contract.yaml` references the exact Host export in `contextSchema`. Host validates required fields and references at admission.
+- Contract declares a direct alias-to-Package-ID map in `dependencies` and requested grants in `capabilities`. Dependency identity is not a version lock or download instruction; a Grant is not a dependency.
 - Operation / Observation arguments are named mappings checked against Owner Schemas.
 - Procedure Script arguments are named mappings that define the exact local input projection; strict return TypedDict generates the output Schema.
 - Predicate arguments are ordered positional values checked against Predicate.parameters.
