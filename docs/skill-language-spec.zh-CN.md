@@ -398,8 +398,10 @@ context:
     subject: host-context::urn:connectionagent:5gc:skill-context:subject:v1
     facts: host-context::urn:connectionagent:5gc:skill-context:facts:v1
 dependencies:
-  host-context: <owner-published-dependency-identity>
-  ca: <owner-published-dependency-identity>
+  host-context:
+    id: urn:example:connectionagent:host-context
+  ca:
+    id: urn:example:connectionagent:5gc-tool-contracts
 allowedResources:
   capabilities:
     - provider-5gc.session-read
@@ -413,18 +415,26 @@ allowedResources:
 inputs:
   ueRef: context.subject.ueRef
   dnn: context.request.dnn
-start: check-registration
+start: observe-registration
 nodes:
+  observe-registration:
+    observation: ca::ue.registration.current
+    arguments:
+      ueRef: input.ueRef
+    'on':
+      SUCCEEDED: check-registration
+      FAILED: failed
+      UNKNOWN: unresolved
   check-registration:
     precondition:
       predicate: createdsession.ue.registered
       arguments:
-        - input.ueRef
+        - observe-registration.output
     'on':
       PASS: read-subscription
       FAIL: failed
       UNKNOWN: unresolved
-  # 其余 Operation / Observation / Postcondition 节点
+  # 本段为入口语法片段；后续 Node 见 §30
 ~~~
 
 规范性结构文法（抽象对象文法；map 表示 YAML 映射，字段 Schema 和静态语义另见 §11–14）：
@@ -489,7 +499,7 @@ context:
 # 不写 Git URL、版本锁、digest、分支或下载指令。
 dependencies:
   host-context:
-    id: <owner-published-dependency-identity>
+    id: urn:example:connectionagent:host-context
   ca:
     id: <owner-published-dependency-identity>
 
@@ -568,10 +578,11 @@ nodes:
 |---|---|---|
 | goal | Skill 的业务目标 | 必须声明；不等于某个 Operation 成功 |
 | inputs.requestSchema | 公共 Request Schema | 有调用方 Request 时声明；指向 Skill 自有 `schemas/` 文件 |
-| context.requiredFacts | 运行前必须可用的事实标识 | 只声明事实身份，不代替字段 Schema；缺失时 Admission / Runtime 必须明确拒绝或阻塞 |
-| context.schemas | 使用的 Host Context Projection Schema | 引用 Owner 发布的精确 Schema 身份；不得复制到 Skill 包 |
-| dependencies | 公共依赖声明 | 声明依赖 Alias 对应的稳定 Owner / Package 身份；不声明版本、URL、digest 或获取方式 |
+| context.requiredFacts | Admission 时 Host 已发布、必须存在的可信事实标识 | 缺失或不符合 Schema 时拒绝/阻塞；不包括 Procedure 启动后才由 Observation 获取的业务状态 |
+| context.schemas | 使用的 Host Context Projection Schema | 引用已声明依赖 Alias 的精确 Schema ID；每个被访问的 Subject/Facts/Ingress 投影必须匹配 |
+| dependencies | 公共依赖声明 | Alias → 精确稳定 Package ID，必须与 BuildRequest Snapshot 和 Owner Manifest 双向核对；不声明 URL、digest 或获取方式 |
 | allowedResources.capabilities | Skill 请求的授权上界 | 只列 Capability ID；Compiler 对每个外部 callable 做精确 membership / Effect 校验 |
+| limits.maxActions | 可选的 Skill 业务动作预算上界 | 正整数；Host 的实际预算只可进一步收紧，不能被该字段放宽 |
 
 ### 11.4 字段归属与省略规则
 
@@ -583,12 +594,23 @@ nodes:
 - `context.projections`：不另建第二份字段级投影表。实际使用的 `context.subject` / `context.facts` / `context.ingress` SourcePath 由 Procedure 显式声明；对应 Schema 身份仍在 Contract 的 `context.schemas` 中声明。
 - `evidenceSchema`：通用 Evidence Envelope 由 Host / Runtime 统一定义和校验，不由 Skill 重复声明。
 - `planning.allowDynamicProcedure`：不再需要。vNext Procedure 是静态 DAG，动态生成执行图不属于语言能力。
-- `planning.maxActions`：暂不放入 Skill Contract；执行预算属于 Host / Deployment Runtime Policy，除非后续证明它是 Skill 业务语义的一部分。
+- `planning.maxActions`：旧名称删除。若 Skill 需要明确的业务动作上界，可在 Contract 中声明可选 `limits.maxActions`，与 Host / Deployment 的强制预算取较小值。
 - `failureSemantics.outcomeUnknown.requireReconcile`：Mutation UNKNOWN 后必须对原 Mutation 进行 Reconcile，是通用运行安全规则，不应由每个 Skill 重复开关。Operation Owner 必须发布 Reconcile 契约；无法安全 Reconcile 时不得把 UNKNOWN 当作可重试失败。
 
 Contract 中的依赖身份与 Capability Grants 是两件不同的事：Dependency 让 Compiler / Studio 获得并链接 Owner 契约；Capability Grant 才表达 Skill 被允许请求的业务能力。依赖存在不等于获得执行权限，Grant 也不能替代 ToolCatalog / Schema 依赖。
 
 Skill Studio 创建 Skill 时应让作者从可用的公共依赖目录和可信 CapabilityContracts 中选择依赖与授权，再将稳定身份写入 `contract.yaml`。Studio 负责获取所选依赖的确切快照并把字节交给 Compiler；Compiler 只校验和链接，不联网解析、不下载依赖，也不管理版本锁。依赖快照 / 版本选择属于 Studio 项目配置或 Build 输入，不属于 Skill 公共 Contract。Owner Schema ID 如果自身包含不可变版本标识（例如 `...:v1`），该身份仍必须原样保留；这与在 Contract 顶层重复声明 `apiVersion` 不同。
+
+### 11.5 Contract 与 Context 的静态一致性
+
+- `requiredFacts` 只声明 **Admission 前 Host 必须持有的可信输入事实**。例如来自 SBI 可信入口的 `createdsession_ingress` 和 Host 已冻结的生命周期引用。UE 当前是否注册、N4 资源是否已经建立等需要实时查询的事实不应列入 `requiredFacts`；它们由 Procedure 中的显式 Observation 获取，或由已有的充分 Operation Result 提供。
+- 每个 Procedure / Predicate 使用到的 `context.subject`、`context.facts`、`context.ingress` Projection 必须在 `context.schemas` 中找到恰好一个声明，并且 Schema 必须通过已声明的依赖 Alias 链接到正确的 Owner。未声明、歧义、Owner 不匹配或 Schema 不兼容均阻断构建。未被任何 SourcePath 消费的声明应产生 Warning；不可被静默当作额外上下文权限。
+- `context.request` 由 Skill 自有的 `inputs.requestSchema` 约束，不是 Host Projection，也不要求额外 `context.schemas.request`。缺少公共 Request 时，不得引用 `context.request.*`。
+- `dependencies` 只使导出接口可链接，不赋予调用权限；`allowedResources.capabilities` 只授予请求权限，不让缺失的依赖 Schema 自动出现。二者均由 Compiler 独立检查。
+
+### 11.6 动作预算
+
+`limits.maxActions` 可省略；省略时采用 Runtime 提供的强制预算。若声明，必须是大于 0 的整数；定义一次 Action 为一次实际派发的外部 Operation、Observation、Procedure Script 或 Reconcile（包括失败或 UNKNOWN 的尝试）。Predicate / Terminal 不计 Action，但仍消耗 Runtime 的总节点和时间预算。有效上限为 Skill 上界与 Host 上界的较小值；Host 预算缺失、不合法或为 0 时 Admission 必须 fail-closed。该字段不影响 Capability Grant，不提供额外重试权限，也不能覆盖 Runtime 的 Deadline / Cancellation。
 
 vNext 不允许直接把 Operation ID 放入 Capability 授权列表，不允许 localTools，不允许把 Host 内部 dataclass 路径写入 Skill，不允许通过 requiredFacts 名称推断字段结构，也不允许使用物理 lib 路径充当公共依赖身份。
 
