@@ -766,14 +766,29 @@ procedures:
           dnn: input.dnn
 ~~~
 
-### 13.2 参数表达式
+### 13.2 参数表达式与 SourcePath
 
-- 未加引号且符合 Source Path 语法的标量表示引用，例如 `input.ueRef`、`context.subject.ueRef`、`create-session.output.sessionInstanceRef`。
-- YAML 原生 Boolean、Number、Null 和带引号的 String 表示字面量。例如 `phase: "POST_CREATE"` 是字符串常量；`phase: input.phase` 是来源引用。
+- 未加引号且符合 SourcePath 语法的标量表示引用，例如 input.ueRef、context.subject.ueRef、read-subscription.output.result、read-subscription.output.result.subscription.dnn。
+- YAML 原生 Boolean、Number、Null 和带引号的 String 表示字面量。例如 phase: "POST_CREATE" 是字符串常量；phase: input.phase 是来源引用。
 - vNext 第一版不允许在 arguments 中内联任意对象或数组字面量；复杂对象必须来自一个有 Schema 的 Request、Context 或 Producer Output。
-- Predicate.arguments 必须是列表，不接受具名映射；参数名和类型由 Predicate.parameters 定义。
-- Operation / Observation.arguments 必须是映射，不接受位置列表；参数名和类型由 Owner Input / Query Schema 定义。
+- Predicate.arguments 必须是有序列表，位置与 Predicate.parameters 严格对应。
+- Tool Operation、Procedure Script Operation 和 Observation.arguments 必须是具名映射。Tool / Observation 的键由 Owner Schema 定义；Procedure Script 的键构成该次 Script 调用的精确输入投影。
+- Reconcile 不接受 arguments；其唯一输入是被引用的原始 Mutation Invocation。
 
+抽象 SourcePath 文法：
+
+~~~ebnf
+SourcePath          = InputPath | ContextPath | ProducerOutputPath ;
+InputPath           = "input", { ".", Identifier } ;
+ContextPath         = "context", ".", ContextRoot, { ".", Identifier } ;
+ContextRoot         = "request" | "subject" | "facts" | "ingress" ;
+ProducerOutputPath  = NodeIdentity, ".output", { ".", Identifier } ;
+Identifier          = Letter, { Letter | Digit | "_" | "-" } ;
+~~~
+
+SourcePath 只能引用本 Procedure 的 input、明确开放的 Context Projection 或一个已执行 Producer Node 的 output。不得引用父 Procedure 隐式变量、全局变量、其他 Invocation、Runtime 私有字段或未声明的环境变量。
+
+vNext 第一版只支持静态点路径，不支持数组索引、动态下标、字符串插值、函数调用、通配符或运行时路径拼接。Owner Schema 中需要被 Skill 直接访问的字段必须使用可由 Identifier 表达的字段名；不符合该规则的外部字段应由 Owner 在规范化输出中提供稳定字段名。
 ### 13.3 静态校验
 
 Compiler 必须验证：
@@ -916,11 +931,11 @@ State 不自动等于 Evidence；Handle 不自动等于 State；Mutation 成功�
 4. Host 校验入口、授权和运行条件；
 5. Runtime 创建隔离 Invocation；
 6. Procedure 从明确入口执行；
-7. 每个 Node 按绑定、Preconditions、主动作、Postconditions 和路由执行；
-8. 必要时显式执行 Observation Query；
-9. Predicate 消费已物化输入和 Evidence；
+7. Procedure 从 start 指定的入口 Node 执行；若存在 Invocation 级入口 Precondition，它就是 start 指向的首个门禁；
+8. 每个 Node 只执行其声明的一个主动作、显式 arguments 和 on 路由，不存在隐式的 Node 内部 Preconditions / Postconditions；
+9. 必要时显式执行 Observation Query，Predicate 只消费已物化输入和 Host 附加 Evidence；
 10. Mutation 结果不确定时对原 Mutation Reconcile；
-11. 执行 Skill 最终 Postconditions；
+11. 所有成功路径必须经过最终 Postcondition 的 PASS 路径，随后才能进入 SUCCEEDED Terminal；
 12. Host 记录结果、Evidence、Trace 和资源责任。
 
 必需步骤不得静默跳过。
@@ -992,11 +1007,15 @@ Environment
 | 错误 | 示例 | 要求 |
 |---|---|---|
 | YAML_PARSE_ERROR | 缩进、重复 Key、非法类型 | 阻止构建 |
-| ROOT_KIND_INVALID | 根 kind 错误 | 阻止构建 |
-| API_VERSION_UNSUPPORTED | 不支持版本 | 阻止构建 |
+| SOURCE_ROOT_INVALID | 文件根结构与文件角色不匹配 | 阻止构建 |
+| LANGUAGE_TARGET_UNSUPPORTED | BuildRequest 指定的语言目标不受支持 | 阻止构建 |
 | UNKNOWN_FIELD | 未定义语义字段 | 阻止构建 |
 | DUPLICATE_ID | Procedure / Node / Predicate 重名 | 阻止构建 |
-| ENTRY_PROCEDURE_MISSING | 入口不存在 | 阻止构建 |
+| PROCEDURE_START_MISSING | Procedure start 指向的入口节点不存在 | 阻止构建 |
+| FINAL_POSTCONDITION_MISSING | 不存在成功路径最终 Postcondition | 阻止构建 |
+| SUCCESS_BYPASSES_FINAL_POSTCONDITION | SUCCEEDED Terminal 可绕过最终 Postcondition PASS | 阻止构建 |
+| CONTROL_FLOW_CYCLE | vNext DAG 中出现循环或 back-edge | 阻止构建 |
+| SOURCE_PATH_INVALID | SourcePath 使用未支持的根、索引或动态表达式 | 阻止构建 |
 | CONTROL_FLOW_DANGLING | 路由指向不存在 Node | 阻止构建 |
 | CONTROL_FLOW_AMBIGUOUS | 多个主动作 | 阻止构建 |
 | DEPENDENCY_ALIAS_MISSING | Alias 不存在 | 阻止构建 |
@@ -1402,39 +1421,60 @@ Operation 与 Observation 共用 ToolCatalog、Capability 和 Runtime Admission�
 
 ## 32. Python Script
 
-Python Script 是 Predicate 的一种确定性 evaluator 实现，不是独立 Procedure Node，也不是 Tool。简单逻辑优先使用 CEL；只有当判断逻辑确实需要 Python 表达能力时，才使用 Script。
+Skill 自有 Python Script 有两种用途，但都不是 Tool、Capability 或自由执行环境：
 
-唯一入口：
+1. **Procedure Script：** 承载确定性的本地数据计算、选择、转换和结构化结果生成。它通过 Operation 节点调用，不增加第五种 Procedure 节点。
+2. **Predicate Script：** 承载 CEL 不适合表达的纯判断逻辑，由 Predicate 的 evaluator 引用。
 
-~~~python
-from typing import Literal
+### 32.1 Procedure Script
 
-PredicateOutcome = Literal["PASS", "FAIL", "UNKNOWN"]
-
-def main(input: dict) -> PredicateOutcome:
-    subscription = input["subscription"]
-    requested_dnn = input["requestedDnn"]
-
-    if subscription["dnn"] != requested_dnn:
-        return "FAIL"
-    if subscription["status"] != "ACTIVE":
-        return "FAIL"
-    return "PASS"
+~~~yaml
+prepare-policy-inputs:
+  operation:
+    script: scripts/build_pcf_policy_inputs.py
+  arguments:
+    subscriptionData: select-establishment-configuration.output.subscriptionData
+    subscriptionSource: select-establishment-configuration.output.subscriptionSource
+  'on':
+    SUCCEEDED: create-policy
+    FAILED: failed
 ~~~
 
-规则：
-- 入口必须为 `main(input: dict) -> PredicateOutcome`；
-- input: dict 是统一调用容器，不代表开放输入契约；
-- 业务输入类型由所属 Predicate.parameters 派生；
-- Host / Runtime 可以附加只读 Evidence refs；Script 不得创建、修改或扩大 Evidence；
-- 返回值只能是 PASS、FAIL、UNKNOWN，其他值均为契约错误；
-- Compiler / LSP 必须提供由 Predicate.parameters 派生的只读类型环境；
-- 不得动态推断参数 Schema 或执行 Python 函数体来猜测类型；
-- 不得访问网络、HTTP、MCP、Shell、数据库、文件系统、凭据、环境变量、时钟或随机源；
-- 不得声明 Tool ID、Operation ID、Capability ID 或独立 Input Schema。
+- 唯一入口为 main(input: dict)。
+- arguments 是该调用点的完整输入投影；Compiler 根据 Source Schema 推导只读输入类型环境，不要求作者另写 Script Input Schema。
+- Script 必须返回严格 TypedDict；Compiler 从返回类型（包括 Annotated、Literal、NotRequired 等受支持声明）生成 Output Schema。
+- 输出通过 node.output 暴露给后续 Producer / Consumer。
+- Procedure Script 是纯本地 Operation：不得访问网络、HTTP、MCP、Shell、数据库、文件系统、凭据、环境变量、时钟或随机源；不得执行外部副作用。
+- Procedure Script 不属于 ToolCatalog callable，不需要 Capability Grant，也不得声明 READ / MUTATION Effect。Host 仍负责沙箱、资源预算、超时和异常治理。
+- Script 抛出异常、返回结构不符合 TypedDict 或输出 Schema 校验失败时，不得作为成功输出供后续节点消费。
 
-Python Script 只承载 Predicate 的确定性判断。数据获取必须由显式 Operation / Observation 完成；流程分支必须由 Procedure 的 Predicate 结果路由完成。
+### 32.2 Predicate Script
 
+Predicate Script 的业务输入签名唯一来源是所属 Predicate.parameters；所有调用点的 arguments 必须按顺序、类型兼容地绑定这些参数。
+
+~~~python
+from typing import Annotated, Literal, TypedDict
+
+class PredicateEvaluationResult(TypedDict):
+    result: Literal["PASS", "FAIL", "UNKNOWN"]
+    reasonCode: Annotated[str, {"minLength": 1}]
+    evidenceUsed: list[str]
+
+def main(input: dict) -> PredicateEvaluationResult:
+    # input 中只有声明的业务参数和 Host 附加的只读 Evidence projection
+    ...
+~~~
+
+- result 是驱动 Procedure PASS / FAIL / UNKNOWN 路由的唯一业务结果。
+- reasonCode 是可诊断原因，不得改变三态语义。
+- evidenceUsed 只能引用 Host 已附加给本次 Predicate Invocation 的 Evidence Ref 子集；不得创建、重绑或扩大 Evidence。
+- Predicate Script 的 Output Schema 从严格返回 TypedDict 生成；不得再手工维护竞争性的 Output Schema。
+- CEL Predicate 也遵循相同的三态语义；Runtime 负责将其规范化为统一 Predicate Evaluation Result，并保留本次输入与 Evidence lineage。
+- Compiler / LSP 必须提供由 Predicate.parameters 派生的只读类型环境；不得执行 Python 函数体来猜测类型或行为。
+
+### 32.3 通用安全边界
+
+所有 Script 都必须确定性、可审查、可静态检查。不得动态导入、反射执行任意代码、访问外部系统或读取非显式输入。Script 只能实现 Skill 内部纯计算；数据获取必须由显式 Operation / Observation 完成，流程分支必须由 Procedure 的 Predicate 结果路由完成。
 ## 33. Cases
 
 Case 是场景声明，不是执行图。可以记录场景输入、预期业务语义、路由、资源不变量、失败 / UNKNOWN 条件。Case 不得自行授予 Capability、定义 Tool Schema、代替 Owner Evidence 或声称已执行通过。
@@ -1449,6 +1489,7 @@ Compiler 概念输入：
 type File = { path: string; bytes: Uint8Array };
 type DependencySnapshot = { alias: string; files: File[] };
 type BuildRequest = {
+  languageVersion: string;
   files: File[];
   dependencies: DependencySnapshot[];
   capabilityContracts: File;
@@ -1456,10 +1497,26 @@ type BuildRequest = {
 };
 ~~~
 
-Compiler MUST 只消费调用方提供的字节；验证路径、重复文件、重复 Alias、重复导出身份、Schema、引用、Binding、Capability 和 Effect；返回诊断和生成文件。
+Compiler MUST 只消费调用方提供的字节；验证路径、重复文件、重复 Alias、重复导出身份、Schema、引用、Binding、Capability 和 Effect；返回诊断和生成文件。语言版本由 BuildRequest 指定，编译产物记录实际语言/API 版本。
+
+### 34.1 Schema 的源格式与编译格式
+
+Schema 的语义标准是受支持子集的 JSON Schema；JSON 与 YAML 只是同一数据模型的两种序列化形式。
+
+- Skill 自有 Request Schema 的作者源码可以使用 YAML（例如 schemas/establishment-request.schema.yaml），并继续作为唯一可编辑源。
+- Compiler 解析后必须先归一化到同一 Schema Model，再进行引用解析、组合、类型检查和生成。
+- BuildResult 的 Schema 文件究竟输出 YAML 还是 canonical JSON，属于 Compiler Artifact Contract，不是 CA-SL 节点语法。建议机器消费的生成 Schema 使用 canonical JSON，以便稳定序列化和比较；但本 PR 不冻结该输出格式。
+- 生成文件不得反向覆盖作者 YAML 源码。
+
+### 34.2 外部 DependencySnapshot 与 Schema 闭包
+
+- DependencySnapshot 是调用方为本次 Build 提供的不可变输入；Compiler 只解析实际引用的精确导出身份和 Schema $id。
+- 不把整个外部 lib / DependencySnapshot 无差别复制到 Skill 或 Build Artifact。
+- 若下游 Runtime / 部署包要求自包含，打包层最多收集本次构建实际可达的 Tool、Observation、Context、Capability 和 Schema 依赖闭包，并保留 Owner 身份、版本和来源；不得把未引用资源一并打包。
+- 若 Runtime 支持按已锁定依赖身份解析，也可以在 Artifact 中保留精确外部引用，不嵌入所有依赖内容。
+- “嵌入可达闭包还是保留外部引用”以及具体文件序列化格式属于独立的 Compiler / Deployment Artifact 设计，不阻塞本轮 CA-SL 语法评审。
 
 Compiler MUST NOT 联网获取依赖、管理版本 / Lock / Cache / Workspace、执行 Python、执行 Tool 或声称 Runtime READY。
-
 ## 35. Skill Studio 与 LSP
 
 Skill Studio 是 CA-SL 作者工作环境，不是第二个语言实现。应提供：
@@ -1471,7 +1528,7 @@ Skill Studio 是 CA-SL 作者工作环境，不是第二个语言实现。应提
 5. Hover：Owner、Effect、Schema、Capability、Scope / Freshness / Evidence 保证；
 6. Completion：只补全当前依赖快照中真实存在的导出身份；
 7. Diagnostics：区分语法、链接、类型、授权和业务警告；
-8. Procedure Designer：显示真实执行图、Node、Step、Predicate 和分支；
+8. Procedure Designer：显示真实执行图、入口 / 最终门禁、Node、Predicate 和分支；
 9. Data Flow：展示 Context / Operation / Observation 到 Predicate 的值流和 Evidence 关联；
 10. Package View：区分 Skill 自有文件、只读依赖和生成 Artifact；
 11. Case View：展示语义义务，不伪装成 Runtime 结果；
