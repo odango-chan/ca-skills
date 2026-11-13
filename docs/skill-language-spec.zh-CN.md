@@ -388,20 +388,19 @@ PredicateDocument   = PredicateSet ;
 
 ProcedureSet        = "procedures", ProcedureMap ;
 Procedure           = [ProcedureInputs], StartNode, NodeMap ;
-Node                = ExactlyOne(NodeAction), [Arguments], [Routes] ;
+Node                = ExactlyOne(NodeAction), [OperationArguments], [Routes] ;
 NodeAction          = Precondition | Operation | Observation |
                       Postcondition | Terminal ;
 
 Precondition        = "precondition", PredicateInvocation ;
 Postcondition       = "postcondition", PredicateInvocation ;
-PredicateInvocation = PredicateIdentity, OrderedArguments ;
+PredicateInvocation = "predicate", PredicateIdentity,
+                      "arguments", ArgumentList ;
 
-Operation           = "operation", CallableIdentity, [NamedArguments] ;
-Observation         = "observation", CallableIdentity, [NamedArguments] ;
-NamedArguments      = "arguments", ArgumentMap ;
-OrderedArguments    = "arguments", ArgumentList ;
-
-ReconcileOperation = "operation", ReconcileTarget ;
+Operation           = "operation", OperationTarget ;
+OperationTarget     = CallableIdentity | ReconcileTarget ;
+Observation         = "observation", CallableIdentity ;
+OperationArguments  = "arguments", ArgumentMap ;
 ReconcileTarget     = "reconcile", OriginalMutationNode ;
 Terminal            = "terminal", TerminalStatus ;
 Routes              = "on", RouteMap ;
@@ -1592,6 +1591,30 @@ Build PASS 只说明本次源码和契约满足静态规则。运行还需要 Ad
 规范可以定义“必须有什么契约”，但不能代替 Owner 证明实际系统真的提供这些契约。N4、RAN、PCF 的状态字段、Correlation 和 Freshness 必须由 SMF / Provider / Fabric / Host 的真实实现负责，Skill 作者不能编造。
 
 ---
+
+## 66. 为什么 Procedure 不再使用通用 call？
+
+通用 call 把业务动作、事实查询和条件判断隐藏在同一种语法下面。CA-SL 用 Precondition、Operation、Observation、Postcondition 表达节点的业务语义，使 Compiler、LSP、Skill Studio 和 Runtime 可以在语法层区分授权、Effect、结果和路由。Terminal 仅声明终态，不是第五种业务动作。
+
+## 67. 为什么 Predicate 不是独立的 computation Node？
+
+Predicate 是确定性计算 / 判断逻辑的定义，使用 CEL 或受约束的 Python Script 实现。Procedure 在需要判断的位置通过 Precondition 或 Postcondition 调用 Predicate。若再增加 computation Node，就会把“判断逻辑定义”和“流程节点位置”重复建模。
+
+## 68. 为什么 Operation 和 Observation 使用具名 arguments，而 Predicate 使用位置 arguments？
+
+Operation / Observation 的输入由 Owner 发布的 JSON Schema 定义，字段名是接口契约的一部分，因此使用具名映射。Predicate 声明有序参数签名，调用时按签名位置传入，因此使用列表。两者都省略 from/value 包装，但静态类型和来源检查不变。
+
+## 69. Operation Result 足够时为什么不执行 Observation？
+
+Observation 是可选的事实获取机制。若 Operation Result 已包含目标 Predicate 所需的业务事实、Scope、Correlation、Freshness 和 Evidence，额外查询只会增加延迟和失败面。只有信息不足或业务明确要求独立权威观察时，才执行 Observation。
+
+## 70. Operation Result 能否作为 Observation 的输入？
+
+可以。Operation Result 可以提供 Observation Query 所需的资源引用、Session Instance、SEID 或 Correlation。但 Observation Result 必须由 Observation Owner 实际查询产生，不能把 Operation Result 包装成 Observation Result，也不能丢失其原始 Producer 身份。
+
+## 71. 为什么 Reconcile 不是独立节点类型？
+
+Reconcile 是原始 Mutation Operation 的受约束调和模式。把它表达为 operation.reconcile: <original-node>，可以复用 Operation 的授权、Owner 契约和 Runtime Admission，同时明确只能调和原始 Mutation，不能发起新的业务 Mutation。
 
 # 附录 A：关键设计决定
 
