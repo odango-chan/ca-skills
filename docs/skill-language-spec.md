@@ -77,7 +77,6 @@ spec:
       subject: host-context::urn:connectionagent:5gc:skill-context:subject:v1
       facts: host-context::urn:connectionagent:5gc:skill-context:facts:v1
       ingress: host-context::urn:connectionagent:5gc:skill-context:ingress:v1
-    evidenceSchema: host-context::urn:connectionagent:host:predicate-evidence-refs:v1
   allowedResources:
     capabilities:
       - provider-5gc.createdsession.udm
@@ -89,7 +88,6 @@ Rules:
 
 - `inputs.requestSchema` is a Skill-owned public Request Schema path.
 - `context.projections` declares the exact Host/Owner projections the Skill may consume. Each value is an alias-qualified exported Schema ID.
-- `context.evidenceSchema` identifies the Host-owned bounded Evidence-reference projection. Evidence is separate from business data.
 - `allowedResources.capabilities[]` contains Capability IDs only. Direct Operation IDs are forbidden here.
 - The CapabilityContracts document maps each exact Operation ID to exactly one Capability and declares its Effect. The Compiler verifies that every called Operation is mapped, its Effect matches ToolCatalog, and its Capability is granted by this Skill.
 - Runtime repeats authorization and Effect checks at execution. A static grant is not execution authority.
@@ -171,7 +169,7 @@ Rules:
 - Predicate input names are the only business-data names visible to its evaluator.
 - CEL reads `input.<name>`; it does not read hidden `subject`, `request`, `facts` or `observations` globals.
 - Script evaluators receive the same `input` object.
-- The Host may attach a reserved `input.evidence` projection. It is not business data and cannot be authored or overwritten by Skill `with` bindings.
+- Host Runtime defines and validates the shared Evidence-reference format and may attach it as the reserved `input.evidence` projection. Skill `with` bindings cannot author or overwrite that projection.
 - Host validates the provenance, correlation, freshness and exact producer Evidence before a definite Predicate verdict is allowed.
 - Predicate Scripts may cite only Evidence references attached to their own inputs. Their `evidenceUsed` output is a subset declaration, not an authority grant.
 - Missing, ambiguous, stale or mismatched input/Evidence produces UNKNOWN. The evaluator must not reacquire data or perform network I/O.
