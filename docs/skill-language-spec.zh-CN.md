@@ -76,28 +76,26 @@ Build 成功不等于 Runtime READY；Runtime READY 不等于执行成功；Skil
 
 # 第二部分：概念模型与术语
 
-## 5. 五层模型
+## 5. 源码与执行分层
 
-1. **Skill 层：** 业务目标、输入契约、Context Projection、Capability Grants、最终条件。
-2. **Procedure 层：** 确定性流程图、Operation / Observation 调用、Script、Predicate、分支和恢复。
-3. **Tool / Observation 层：** Owner 发布的可调用契约、输入输出 Schema、Effect 和数据来源。
-4. **Capability 层：** 部署授权边界，将精确 callable 归入授权单元。
-5. **Host / Runtime 层：** 执行隔离、调用、Evidence、Correlation、Freshness、Deadline、Cancellation 和最终状态。
+1. **Skill 源码层：** 业务目标、公共 Request Schema、显式 Capability Grants；Skill 身份由 Package 路径确定。
+2. **Procedure 层：** 单一确定性执行图，包含入口 Precondition、Operation / Observation、局部判断、最终 Postcondition、分支和终态。
+3. **Predicate 层：** 可复用的纯判断定义；CEL 或受约束的 Python evaluator。
+4. **Tool / Capability 层：** Owner 发布的 callable 契约、Schema、Effect，以及部署侧精确授权关系。
+5. **Host / Runtime 层：** 执行隔离、Admission、Evidence、Correlation、Freshness、Deadline、Cancellation 和最终状态。
 
 ~~~text
-Skill
- ├── SkillContract
- ├── Procedure
- │    ├── Operation calls
- │    ├── Observation queries
- │    ├── Scripts
- │    ├── Predicate evaluations
- │    ├── Reconciliation
- │    └── Explicit routes
- ├── PredicateSet / Schemas / Cases / References
-ToolCatalog ── Operations + Observation query contracts
-Owner Schemas ── authoritative data structures
-CapabilityContracts ── callable → Capability + Effect
+Skill Package
+ ├── SKILL.md
+ ├── assurance/procedure.yaml  # Goal / Request Schema / Capability Grants + Procedure graph
+ ├── assurance/predicates.yaml
+ ├── schemas/                  # Skill-owned Schemas only
+ ├── scripts/                  # Skill-owned deterministic Scripts
+ └── cases/ / references/
+Compiler
+ └── normalized Skill artifact / execution graph / generated Schemas
+DependencySnapshot ── ToolCatalog + Owner Schemas
+CapabilityContracts ── exact callable → Capability + Effect
 Host / Runtime ── admission, execution, correlation, Evidence
 ~~~
 
@@ -107,39 +105,39 @@ Host / Runtime ── admission, execution, correlation, Evidence
 
 Skill 是具有明确业务目标、输入契约、授权范围和执行入口的可复用业务能力包。Skill 不是 Tool；一个 Skill 可以调用多个 Tool，也可以被 Agent Router 选择。
 
-标准 Package：
+vNext 作者维护的 Package：
 
 ~~~text
 skills/<skill-name>/
 ├── SKILL.md
 ├── assurance/
-│   ├── contract.yaml
 │   ├── procedure.yaml
 │   └── predicates.yaml
 ├── cases/<case-name>/case.yaml
-├── schemas/
-├── scripts/
-└── references/
+├── schemas/       # 仅 Skill 自有 Schema，例如公共 Request Schema
+├── scripts/       # Skill 自有确定性 Python
+└── references/    # 可选知识资料
 ~~~
 
 | 资产 | 职责 |
 |---|---|
 | SKILL.md | 面向 Agent 的业务指导，不是第二份执行图 |
-| contract.yaml | SkillContract |
-| procedure.yaml | Procedure 源码 |
-| predicates.yaml | PredicateSet |
+| procedure.yaml | 唯一 Skill 执行源码：Goal、Request Schema、Capability Grants 和 Procedure 图 |
+| predicates.yaml | 可复用 Predicate 定义及其参数签名 |
 | cases/ | 业务场景和预期语义义务 |
 | schemas/ | 仅真正由 Skill 拥有的 Schema |
-| scripts/ | Skill 自有确定性 Python |
+| scripts/ | Skill 自有确定性 Python；可作为 Procedure 的本地 Script Operation，也可实现 Predicate |
 | references/ | 可选知识资料，不是执行契约或 Evidence |
 
-vNext 不使用 package-local lib/ 存放导入契约，也不使用 output/ 作为 Compiler 输入。导入契约由 Studio / 调用方通过 BuildRequest 的 DependencySnapshot 提供。
+vNext 不要求作者维护独立 contract.yaml。Skill 身份从 Package 根目录确定；语言版本、根对象类型和规范化机器元数据由 Compiler 在 BuildRequest 目标版本下派生。导入契约由 Studio / 调用方通过 DependencySnapshot 提供，不放入 Skill Package 的 lib/。
 
-### 6.2 SkillContract、Goal、Request、Invocation
+### 6.2 Goal、Request、Invocation 与编译契约
 
-- **SkillContract：** Skill 根契约，声明身份、目标、入口、输入、Context Projection、Capability 授权上界和最终条件。
-- **Goal：** Skill 希望达成的业务目标，不等于某个 Operation 成功。
-- **Request：** 调用方为本次执行提供的业务请求，由 Skill 自有 Request Schema 约束；Request 本身不证明网络状态。
+- **Goal：** Skill 希望达成的业务目标，在 procedure.yaml 根字段中显式声明；它不等于某个 Operation 成功。
+- **Request：** 调用方为本次执行提供的业务请求，由 procedure.yaml 的 requestSchema 指向 Skill 自有 Schema；Request 本身不证明网络状态。
+- **Capability Grants：** Skill 在 procedure.yaml 根字段中显式声明所需 Capability 身份。Compiler 逐一验证每个外部 callable 都属于已 Grant 的 Capability；不得从“源码调用了某个 Tool”自动推导授权。
+- **Skill Identity：** 由规范化 Package 根路径 / Package 名确定，不再要求作者在 YAML 重复填写 metadata.name。
+- **Compiled Skill Contract：** Compiler 可将 Goal、Request Schema、Capability Grants、入口和最终 Postcondition 归一化为 Runtime 所需的契约投影。它是派生产物，不是作者维护的第二份源码；若 Runtime 不需要独立 Contract 文件，也不必单独输出。
 - **Invocation：** 一次 Skill 独立执行实例。每次 Invocation MUST 有独立运行身份和隔离上下文。不得因为 UE 相同而共享未声明的可变状态。
 
 ### 6.3 Context、Subject、Facts、Ingress
@@ -149,11 +147,13 @@ vNext 不使用 package-local lib/ 存放导入契约，也不使用 output/ 作
 - **Facts：** Host / Owner 已知、可引用的事实或事实句柄集合。句柄本身不等于事实成立。
 - **Ingress：** 本次 Invocation 接收的原始或规范化请求入口上下文，例如被 Host 接纳的网络消息、请求类型、序列号和关联身份。Skill 不得伪造 Ingress。
 
-### 6.4 Procedure、Node、Step
+### 6.4 Procedure 与 Node
 
-Procedure 是有向、确定性的执行图，定义入口、节点、输入、动作、路由、前置后置条件、恢复和终态。
+Procedure 是有向、确定性的执行图，定义输入、入口节点、动作、路由、恢复和终态。
 
-Node 是主流程中的业务显著步骤。Step 是 Node 内部有序的前置或后置步骤。局部计算不必为每个小动作增加主流程 Node。
+Node 是图中的一个原子业务步骤，必须且只能声明一个主动作。Node 内不再嵌套隐式 Step，也不为每个 Operation 自动附加一套 Preconditions / Postconditions。需要判断时，显式使用 Precondition 或 Postcondition 节点。
+
+Invocation 级别的入口 Precondition 放在执行图最前面；最终 Postcondition 放在所有成功路径汇合处、成功 Terminal 之前。局部 Precondition / Postcondition 仍可出现在图中间。
 
 ### 6.5 Tool 与 Operation
 
