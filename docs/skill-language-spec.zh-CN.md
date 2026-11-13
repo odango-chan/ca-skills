@@ -377,48 +377,47 @@ vNext 是破坏性版本。Compiler MUST NOT 静默把 v0.2 字段、旧路径�
 
 ## 10.1 YAML 语法子集与结构文法
 
-CA-SL 使用 YAML 1.2 表达源文件，但 YAML 只是序列化语法，不是完整语言语义。Compiler MUST 使用安全解析器，并拒绝重复 Key、未知语义字段、非预期根类型、自定义 Tag、循环 Alias 和无法确定解释的标量。
+CA-SL 使用 YAML 1.2 表达源文件。YAML 是序列化格式，不是完整语言语义。Compiler MUST 使用安全解析器，并拒绝重复 Key、未知语义字段、非预期根类型、自定义 Tag、循环 Alias 和无法确定解释的标量。
 
-规范性结构文法（抽象 EBNF；JSONValue 和 YAML Scalar 按 YAML 1.2 Core Schema 定义）：
+规范性结构文法（抽象 EBNF；字段约束由对应对象 Schema 和本规范语义规则补充）：
 
 ~~~ebnf
 SkillDocument       = SkillContract ;
 ProcedureDocument   = ProcedureSet ;
 PredicateDocument   = PredicateSet ;
 
-SkillContract       = RootHeader, SkillSpec ;
-RootHeader          = "apiVersion", "kind", "metadata" ;
-SkillSpec           = "spec", SkillType, Goal, EntryProcedure,
-                      Inputs, Context, CapabilityGrants, [FinalConditions] ;
-
 ProcedureSet        = "procedures", ProcedureMap ;
 Procedure           = [ProcedureInputs], StartNode, NodeMap ;
-Node                = ExactlyOne(MainAction), [Bindings],
-                      [Preconditions], [Postconditions], [Routes] ;
-MainAction          = Call | ScriptCall | ProcedureCall |
-                      Verify | Reconcile | Terminal ;
-Call                = "call", CallableIdentity ;
-ScriptCall          = "script", SkillRelativeScriptPath ;
-Verify              = "verify", PredicateIdentity, OrderedArguments ;
-Reconcile           = "reconcile", OriginalMutationNode ;
+Node                = ExactlyOne(NodeAction), [Arguments], [Routes] ;
+NodeAction          = Precondition | Operation | Observation |
+                      Postcondition | Terminal ;
+
+Precondition        = "precondition", PredicateInvocation ;
+Postcondition       = "postcondition", PredicateInvocation ;
+PredicateInvocation = PredicateIdentity, OrderedArguments ;
+
+Operation           = "operation", CallableIdentity, [NamedArguments] ;
+Observation         = "observation", CallableIdentity, [NamedArguments] ;
+NamedArguments      = "arguments", ArgumentMap ;
+OrderedArguments    = "arguments", ArgumentList ;
+
+ReconcileOperation = "operation", ReconcileTarget ;
+ReconcileTarget     = "reconcile", OriginalMutationNode ;
 Terminal            = "terminal", TerminalStatus ;
-
-Bindings            = "with", BindingMap ;
-Binding             = SourceBinding | LiteralBinding ;
-SourceBinding       = "from", SourcePath ;
-LiteralBinding      = "value", JSONValue ;
-
-Preconditions       = "preconditions", OrderedSteps, [Routes] ;
-Postconditions      = "postconditions", OrderedSteps, [Routes] ;
-Step                = [StepName], ExactlyOne(StepAction), [Bindings] ;
-StepAction          = Call | ScriptCall | Verify ;
 Routes              = "on", RouteMap ;
+
+ProcedureInputs     = "inputs", SourceMap ;
+SourceMap           = Map<Identifier, SourcePath> ;
+ArgumentMap         = Map<Identifier, ArgumentExpression> ;
+ArgumentList        = OrderedList<ArgumentExpression> ;
+ArgumentExpression = SourcePath | YAMLScalarLiteral ;
+
 PredicateDocument   = "predicates", PredicateMap ;
 Predicate           = OrderedParameters, Evaluator ;
-Evaluator           = CELExpression | ScriptEvaluator ;
+Evaluator           = CELExpression | PredicateScriptEvaluator ;
 ~~~
 
-该文法规定结构边界，不取代字段 Schema。字段类型、必填性、枚举、引用和跨文件链接仍由本规范的语义规则及正式 JSON Schema 定义。任何未列出的 Node 主动作均不属于本版语言。
+该文法规定 Procedure 的五种结构节点：Precondition、Operation、Observation、Postcondition 和 Terminal。Terminal 是流程终止声明，不是第五种业务动作。Predicate 是独立定义的确定性逻辑，不是 Procedure 节点类型；它由 Precondition / Postcondition 引用。Operation 与 Observation 是不同类型的 Tool callable。
 
 ### YAML 解析规则
 
@@ -429,14 +428,20 @@ Evaluator           = CELExpression | ScriptEvaluator ;
 - 字段名大小写敏感；导出身份按其 Owner 契约定义的大小写规则处理。
 - 未知字段 MUST 报诊断，不得静默忽略。
 
+### 参数表达式
+
+- 在 Procedure.inputs 和 Operation / Observation 的 arguments 映射中，未加引号且符合 SourcePath 文法的标量表示来源引用，例如 `input.ueRef`、`context.subject.ueRef`、`create-session.output.sessionInstanceRef`。
+- YAML 原生 Boolean、Number、Null，以及带引号的 String 表示字面量。带引号的 `"input.dnn"` 是字符串常量，不是来源引用。
+- vNext 第一版不接受在 arguments 中内联任意对象或数组字面量；复杂值必须来自有 Schema 的输入或 Producer 输出。这样可避免参数对象和来源表达式混淆。
+- 不支持隐式同名绑定、自动转发、默认取上一个 Node 输出或从 Context 猜测参数。
+
 ### Source Path 与控制流
 
 Source Path 必须解析为静态 Producer 引用。Compiler 必须构建 Procedure 控制流图，并验证 Producer 在所有到达消费者的路径上均已产生。若 Producer 仅在一个互斥分支中产生，则消费者必须位于该分支内，或通过显式控制流合并得到经过验证的值；不得用 null 代替不可用值。
 
 ### Procedure Request 与 Context
 
-Procedure 可引用 Skill Invocation 的 Request Projection（示例中的 context.request），其结构由 SkillContract.inputs.requestSchema 约束。subject、facts、ingress 等 Host Projection 则由 SkillContract.context.projections 精确声明。Request Projection 与 Host Context Projection 是不同来源，不得因为都写在 context 命名空间就混淆 Owner。
-
+Procedure 可引用 Skill Invocation 的 Request Projection（例如 `context.request.dnn`），其结构由 SkillContract.inputs.requestSchema 约束。subject、facts、ingress 等 Host Projection 则由 SkillContract.context.projections 精确声明。Request Projection 与 Host Context Projection 是不同来源，不得因为都位于 context 命名空间就混淆 Owner。
 
 ## 11. SkillContract
 
@@ -486,61 +491,77 @@ vNext 不允许直接把 Operation ID 放入授权列表，不允许 localTools�
 
 ## 12. Procedure
 
-### 12.1 基本结构
+### 12.1 核心结构
+
+Procedure 是确定性的有向执行图。每个 Node 必须且只能声明一个主动作。vNext 的业务节点只有四种：
+
+1. `precondition`：调用 Predicate 判断执行前置条件；
+2. `operation`：调用 ToolCatalog 中的 Operation；
+3. `observation`：调用 ToolCatalog 中的只读 Observation Query；
+4. `postcondition`：调用 Predicate 判断执行结果。
+
+`terminal` 是显式终态声明，不是业务动作。Predicate、CEL 和 Python Script 都不是独立 Procedure 节点。
 
 ~~~yaml
 procedures:
   establish:
     inputs:
-      ueRef:
-        from: context.subject.ueRef
-      pduSessionId:
-        from: context.request.pduSessionId
-      dnn:
-        from: context.request.dnn
-    start: read-subscription
+      ueRef: context.subject.ueRef
+      dnn: context.request.dnn
+    start: check-registration
     nodes:
-      read-subscription:
-        call: fivegc-tools::sbi.udm.sm_data.get
-        with:
-          ueRef:
-            from: input.ueRef
-          dnn:
-            from: input.dnn
+      check-registration:
+        precondition:
+          predicate: createdsession.ue.registered
+          arguments:
+            - input.ueRef
         'on':
-          SUCCEEDED: verify-subscription
+          PASS: read-subscription
+          FAIL: failed
+          UNKNOWN: unresolved
+
+      read-subscription:
+        operation: fivegc-tools::sbi.udm.sm_data.get
+        arguments:
+          ueRef: input.ueRef
+          dnn: input.dnn
+        'on':
+          SUCCEEDED: check-subscription
           FAILED: failed
           DENIED: failed
           UNKNOWN: unresolved
-      verify-subscription:
-        verify:
+
+      check-subscription:
+        postcondition:
           predicate: createdsession.udm.subscription_usable
           arguments:
             - read-subscription.output.result
+            - input.dnn
         'on':
           PASS: create-subscription
           FAIL: failed
           UNKNOWN: unresolved
+
       create-subscription:
-        call: fivegc-tools::sbi.udm.sdm_subscription.create
-        with:
-          ueRef:
-            from: input.ueRef
-          dnn:
-            from: input.dnn
+        operation: fivegc-tools::sbi.udm.sdm_subscription.create
+        arguments:
+          ueRef: input.ueRef
+          subscription: read-subscription.output.result
         'on':
           SUCCEEDED: complete
           NOT_COMMITTED: failed
           OUTCOME_UNKNOWN: reconcile-subscription
           DENIED: failed
           FAILED: failed
+
       reconcile-subscription:
-        reconcile:
-          operation: create-subscription
+        operation:
+          reconcile: create-subscription
         'on':
           COMMITTED: complete
           NOT_COMMITTED: failed
           UNRESOLVED: unresolved
+
       complete:
         terminal: SUCCEEDED
       failed:
@@ -549,141 +570,174 @@ procedures:
         terminal: UNRESOLVED
 ~~~
 
-### 12.2 主节点
+### 12.2 Precondition
 
-| 动作 | 语义 |
-|---|---|
-| call | 调用精确 Operation 或 Observation Query |
-| script | 调用 Skill 自有确定性 Script |
-| procedure | 调用本地或显式指定的子 Procedure |
-| verify | 执行 Predicate |
-| reconcile | 调和原始 Mutation |
-| terminal | 结束当前 Procedure |
-
-一个 Node MUST 只有一个主动作。未知动作或多个主动作并存时必须报错。
-
-### 12.3 Call
+Precondition 在受保护的业务动作之前执行 Predicate。它可以检查 Host Context、Request、此前 Operation Result 或 Observation Result。Precondition 不得隐式查询外部系统；若缺少事实，应先通过显式 Observation 获取，再调用 Predicate。
 
 ~~~yaml
-read-registration:
-  call: fivegc-observations::ue.registration.current
-  with:
-    ueRef:
-      from: input.ueRef
-~~~
-
-同一个 call 语法可调用 Operation 或 Observation Query；callable kind 由 ToolCatalog 决定，不由 Skill 作者或 Compiler 猜测。两者导出身份不同。
-
-### 12.4 Script
-
-~~~yaml
-select-policy:
-  script: scripts/select_policy.py
-  with:
-    subscription:
-      from: read-subscription.output.result
-    requestedDnn:
-      from: input.dnn
-~~~
-
-Script 输入由 with 显式构成。不得传入整个 Context 或整个上游 Node 作为方便参数。
-
-### 12.5 Verify
-
-~~~yaml
-verify-subscription:
-  verify:
-    predicate: createdsession.udm.subscription_usable
+check-ue-registration:
+  precondition:
+    predicate: createdsession.ue.registered
     arguments:
-      - read-subscription.output.result
+      - context.subject.ueRef
+  'on':
+    PASS: create-session
+    FAIL: reject-request
+    UNKNOWN: unresolved
 ~~~
 
-Predicate 使用有序参数列表，位置必须一一对应。
+Precondition 的 Predicate 结果必须显式路由 PASS、FAIL 和 UNKNOWN。FAIL 与 UNKNOWN 不得合并。
 
-### 12.6 Preconditions / Postconditions
+### 12.3 Operation
+
+Operation 表示一个有副作用或无副作用的业务动作，由 Tool Owner 在 ToolCatalog 中发布精确 callable 身份、Effect、Input / Output Schema 和必要的 Reconcile 契约。
 
 ~~~yaml
 create-policy:
-  preconditions:
-    steps:
-      - name: bind-held-request
-        call: fabric-tools::session.pcf_hold.bind
-        with:
-          ueRef:
-            from: input.ueRef
-          pduSessionId:
-            from: input.pduSessionId
-      - verify:
-          predicate: createdsession.pcf.hold_bound
-          arguments:
-            - preconditions.bind-held-request.output
-    'on':
-      FAILED: failed
-      UNKNOWN: unresolved
-  call: provider-tools::sbi.pcf.sm_policy.create
-  with:
-    ueRef:
-      from: input.ueRef
-  postconditions:
-    steps:
-      - verify:
-          predicate: createdsession.pcf.association_owned
-          arguments:
-            - output
-    'on':
-      PASS: next-step
-      FAIL: failed
-      UNKNOWN: unresolved
+  operation: fivegc-tools::sbi.pcf.sm_policy.create
+  arguments:
+    ueRef: input.ueRef
+    pduSessionId: input.pduSessionId
+    dnn: input.dnn
+    sNssai: input.sNssai
+  'on':
+    SUCCEEDED: verify-policy
+    NOT_COMMITTED: failed
+    OUTCOME_UNKNOWN: reconcile-policy
+    DENIED: failed
+    FAILED: failed
 ~~~
 
-Preconditions 按顺序执行；任一步失败或 UNKNOWN 时不得继续主 Mutation。Postconditions 在主动作之后执行，只有明确 PASS 才能进入成功路径。FAIL 和 UNKNOWN 必须分别路由。Node Postconditions 不等于 SkillContract 最终 Postconditions。Step 输出只在明确作用域内可引用。
+Operation 的 arguments 是具名映射，键必须是 Owner Input Schema 中的字段名；值是显式来源表达式或 YAML 标量字面量。Compiler 按 Schema 检查 Required、类型、Optional、Nullability 和额外字段。Operation 的 Effect 由 ToolCatalog 和 CapabilityContracts 决定，Skill 不得自行声明或覆盖。
 
-### 12.7 Terminal 与 Applicability
+### 12.4 Observation
+
+Observation 是 ToolCatalog 中由权威 Owner 发布的只读查询能力。它是可选节点，不是每个 Operation 的必经步骤。
+
+~~~yaml
+inspect-policy:
+  observation: fivegc-observations::pcf.policy_association.current
+  arguments:
+    ueRef: input.ueRef
+    pduSessionId: input.pduSessionId
+  'on':
+    SUCCEEDED: verify-policy
+    FAILED: failed
+    UNKNOWN: unresolved
+~~~
+
+Observation 的 arguments 同样是具名映射，并按 Query Input Schema 校验。Observation Query 可以使用前序 Operation Result 作为查询依据，例如：
+
+~~~yaml
+inspect-n4-resources:
+  observation: fivegc-observations::smf.session.n4_resources
+  arguments:
+    sessionInstanceRef: create-n4-session.output.sessionInstanceRef
+    smfSeid: create-n4-session.output.smfSeid
+~~~
+
+这里 Operation Result 只提供查询目标和关联身份；Observation 必须由其权威 Owner 实际执行查询并返回自己的 Result / Evidence，不得把 Operation Result 包装或改名成 Observation Result。
+
+### 12.5 Postcondition
+
+Postcondition 调用 Predicate 判断业务结果是否成立。其参数可以来自 Operation Result、Observation Result、Invocation Context 或多个来源的组合。
+
+~~~yaml
+verify-n4-session:
+  postcondition:
+    predicate: createdsession.n4.established
+    arguments:
+      - create-n4-session.output
+  'on':
+    PASS: next-step
+    FAIL: failed
+    UNKNOWN: unresolved
+~~~
+
+如果 Operation Result 已包含满足 Predicate 所需的事实、Scope、Correlation、Freshness 和 Evidence，可以直接作为 Postcondition 输入，不需要 Observation。
+
+### 12.6 Operation Result 充分性原则
+
+**Result Sufficiency Principle（结果充分性原则）：** Procedure MUST 优先复用已有且满足当前判断要求的 Operation Result、Context 和 Evidence。只有当现有信息不足以支持目标 Predicate，或业务规则明确要求独立权威观察时，才执行 Observation。
+
+- Operation Result 已满足业务判断和 Evidence 要求时，不得为了形式上的配对增加重复 Observation。
+- Operation Result 只证明请求已接受、未证明目标状态时，应根据业务需要执行 Observation 或等待由 Operation Owner 提供最终完成结果。
+- Postcondition 可以同时接收 Operation Result 和 Observation Result，以验证二者之间的一致性。
+- Operation 与 Observation 必须保留真实 Producer 身份；不得将 Operation Result 伪装成 Observation Result。
+- Observation 的 Freshness 和 Scope 必须满足当前 Predicate 要求；“曾经观察到”不等于“当前仍成立”。
+
+### 12.7 Reconcile
+
+Reconcile 是 Mutation Operation 的受约束调和模式，不是独立业务节点类型。它必须指向本次 Procedure 中一个已执行的原始 Mutation Node：
+
+~~~yaml
+reconcile-policy:
+  operation:
+    reconcile: create-policy
+  'on':
+    COMMITTED: next-step
+    NOT_COMMITTED: safe-to-retry-or-fail
+    UNRESOLVED: unresolved
+~~~
+
+Runtime 必须使用原始 Mutation 的不可变 Invocation、Operation 身份、输入、Scope 和 Correlation 执行对应 Owner 契约的 Reconcile。Reconcile 不得变成新的 Create / Update 请求，不得接受另一组业务参数来改变原操作目标。Compiler 必须验证目标存在、目标确为 MUTATION、Reconcile 路径可达且引用的是当前 Invocation 的原始操作。
+
+### 12.8 Terminal 与 Applicability
 
 Terminal 声明明确终态，例如 SUCCEEDED、FAILED、UNRESOLVED。不得通过缺失边或最后一个节点自然结束来隐式推断。
 
 Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时不得随机选择或默认执行。Procedure Predicate 负责业务条件，不负责猜测 Skill 身份。完整 Applicability YAML 语法需要与 Root Routing 契约统一冻结；历史 applicability.when 不作为隐式兼容语法。
 
-## 13. Binding
+## 13. Arguments 与数据来源
 
-### 13.1 显式绑定
+### 13.1 统一表达
+
+vNext 删除 Procedure Node 上的 `with` / `from` / `value` 包装，统一使用直接表达式：
+
+- Procedure.inputs：具名映射，值为 Source Path；
+- Operation.arguments：具名映射，键为 Owner Input Schema 字段，值为来源表达式或标量字面量；
+- Observation.arguments：具名映射，键为 Query Input Schema 字段，值为来源表达式或标量字面量；
+- Precondition / Postcondition.arguments：有序列表，位置与 Predicate.parameters 严格对应。
 
 ~~~yaml
-with:
-  ueRef:
-    from: input.ueRef
-  phase:
-    value: POST_CREATE
-  n4Baseline:
-    from: read-n4-baseline.output
+procedures:
+  establish:
+    inputs:
+      ueRef: context.subject.ueRef
+      dnn: context.request.dnn
+    nodes:
+      create-session:
+        operation: fivegc-tools::smf.session.create
+        arguments:
+          ueRef: input.ueRef
+          dnn: input.dnn
 ~~~
 
-每个绑定必须且只能有 from 或 value。
+### 13.2 参数表达式
 
-### 13.2 Source Path
+- 未加引号且符合 Source Path 语法的标量表示引用，例如 `input.ueRef`、`context.subject.ueRef`、`create-session.output.sessionInstanceRef`。
+- YAML 原生 Boolean、Number、Null 和带引号的 String 表示字面量。例如 `phase: "POST_CREATE"` 是字符串常量；`phase: input.phase` 是来源引用。
+- vNext 第一版不允许在 arguments 中内联任意对象或数组字面量；复杂对象必须来自一个有 Schema 的 Request、Context 或 Producer Output。
+- Predicate.arguments 必须是列表，不接受具名映射；参数名和类型由 Predicate.parameters 定义。
+- Operation / Observation.arguments 必须是映射，不接受位置列表；参数名和类型由 Owner Input / Query Schema 定义。
 
-Source Path 必须指向已知且可达的 Producer，例如 input.ueRef、context.subject.ueRef、read-subscription.output.result、preconditions.bind-held-request.output.holdRef 或 script-step.output。
+### 13.3 静态校验
 
-Compiler 必须验证来源唯一、Schema 存在、控制流可用、类型兼容、Scope 合法并保留必要 Evidence 关联。
+Compiler 必须验证：
+- 参数名在目标 Schema 中存在；
+- 所有 Required 参数均提供；
+- 不得传入未声明字段；
+- Source Path 在当前控制流路径上可用；
+- Source Schema 可赋给目标字段 Schema；
+- Optional、Nullability、enum、const、范围和数组元素约束兼容；
+- 来源的 Subject、Session、Lifecycle 和 Evidence Scope 没有被不安全地扩大；
+- Reconcile 不接受普通 arguments，而引用原始 Mutation Invocation。
 
-### 13.3 最小输入
+### 13.4 最小输入与无隐式转发
 
-- Callee Schema 决定允许的目标字段；
-- 只绑定真正需要的字段；
-- 不得自动转发调用方全部字段；
-- 不得从 Context、父 Procedure 或上一个 Node 猜字段；
-- Optional 默认省略；省略不等于 null；
-- JSON Schema default 不授权 Compiler 自动生成值；
-- 缺少 Required 字段必须编译失败；
-- 重命名、提取或转换必须显式声明路径或 Script。
+只传递目标契约实际需要的字段。不得自动转发调用方全部字段，不得从父 Procedure、Context 或上一个 Node 猜字段，不得根据字段同名自动绑定。Optional 字段默认省略；省略不等于 null；JSON Schema default 不授权 Compiler 自动生成值。
 
-### 13.4 同名自动绑定
-
-早期提出过 with.from: input 同名默认绑定，但它会引入保留键冲突、Optional 行为和隐藏投影规则。
-
-**本规范建议 vNext 第一版不支持同名自动绑定简写，所有绑定显式写出。**
-
-Skill Studio 可以提供语义 ID 建议和批量生成显式映射，但保存后的源文件必须能直接审查最终数据流。未来如要增加自动绑定，必须另行提案并提供完整正负例。
+Skill Studio 可以通过语义身份和 Schema 提供参数补全、批量生成显式映射，但保存后的源码必须完整呈现最终参数映射。
 
 ## 14. PredicateSet
 
