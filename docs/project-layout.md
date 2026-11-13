@@ -78,7 +78,7 @@ The Contract records stable dependency identities and grants, not the currently 
 
 ## Imported external contracts
 
-Compiler receives imported contracts as exact immutable DependencySnapshot inputs. A logical dependency alias is used in source references (for example `host-context::urn:...` or `fivegc-tools::sbi.udm.sm_data.get`); it is not a physical folder path or a stable Owner identity.
+Compiler receives imported contracts as exact immutable DependencySnapshot inputs. A logical dependency alias is used in source references (for example `host-context::urn:...` or `ca::sbi.udm.sm_data.get`); it is not a physical folder path or a stable Owner identity.
 
 - Imported ToolCatalog contracts define exact Operation and Observation callable identities.
 - Host dependencies define Subject / Facts / Ingress Context Projection Schemas and Evidence handling.
