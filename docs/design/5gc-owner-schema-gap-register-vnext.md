@@ -461,3 +461,32 @@ contract. Its output Schema is kept identical to the existing Fabric-owned
 passed. This closes the contract declaration gap only; the full deployment
 CapabilityContracts and Tool Registration still need to bind the Fabric
 operation to its HTTP implementation.
+
+### 14.10 Runtime Operation Evidence seam is not implemented by the current Host
+
+A final source audit found a distinct Runtime blocker that must not be confused
+with Tool Output Schema publication:
+
+- The current Host `CallExecution` contains `outcome`, `output`,
+  `provenance`, `effect_kind` and uncertainty metadata. It has no structured
+  Operation Evidence field.
+- The current Runtime engine copies `CallExecution.provenance` into trace
+  material as `owner_result`. That is diagnostic trace material, not the
+  Predicate Evidence channel.
+- Operation output values are made available to later Procedure bindings, but
+  the current Predicate evaluation path does not attach same-invocation Owner
+  Evidence refs to those values.
+- The vNext Language Spec requires a READ Operation to return one normalized
+  value and Evidence from the same invocation, and requires the Host to attach
+  Evidence separately from business values before a Predicate may return a
+  definite verdict.
+
+Therefore PR #202 and PR #203 close important Owner output / READ contracts,
+but they do **not** complete the vNext Evidence path. Do not smuggle Evidence
+into business output fields, Script globals or trace payloads. The Runtime needs
+a generic typed Operation Evidence result seam, exact producer-to-Predicate
+attachment, and validation that the Evidence belongs to the same operation
+invocation and normalized output. Predicate Scripts may receive only the
+attached Evidence refs, never the full Evidence envelope. This is a required
+Runtime/Compiler integration gate before static-link or live acceptance can be
+claimed.
