@@ -124,8 +124,7 @@ spec:
             transactionRef: {type: string, minLength: 1, maxLength: 512}
             requestRef: {type: string, minLength: 1, maxLength: 512}
             fabricRecordRef: {type: string, minLength: 1, maxLength: 512}
-            fabricRecordDigest: {type: string, pattern: '^sha256:[0-9a-f]{64}
-}
+            fabricRecordDigest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
             eventTime: {type: string, format: date-time}
             networkOutcome: {enum: [HTTP_RESPONSE, TIMEOUT, TRANSPORT_FAILURE]}
             selection: {enum: [MATCHED, NO_MATCH, AMBIGUOUS, INVALID_PAYLOAD, INVALID_PROFILE_DATA, UNSUPPORTED_VARIANT, UNSUPPORTED_ENUM, HTTP_ERROR, NOT_EVALUATED]}
@@ -149,8 +148,7 @@ spec:
                   type: string
                   minLength: 1
                   maxLength: 253
-                  pattern: '^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*
-
+                  pattern: '^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$'
                 pduSessionTypes:
                   type: object
                   additionalProperties: false
@@ -180,12 +178,10 @@ spec:
                   properties:
                     uplink:
                       type: string
-                      pattern: '^[0-9]+(?:\.[0-9]+)? (?:bps|Kbps|Mbps|Gbps|Tbps)
-
+                      pattern: '^[0-9]+(?:\.[0-9]+)? (?:bps|Kbps|Mbps|Gbps|Tbps)$'
                     downlink:
                       type: string
-                      pattern: '^[0-9]+(?:\.[0-9]+)? (?:bps|Kbps|Mbps|Gbps|Tbps)
-
+                      pattern: '^[0-9]+(?:\.[0-9]+)? (?:bps|Kbps|Mbps|Gbps|Tbps)$'
                 defaultQos:
                   type: object
                   additionalProperties: false
@@ -227,7 +223,6 @@ spec:
               then:
                 not:
                   required: [subscription]
-
   - operation: ca.session.udm_hold.bind
     adapter: env-fabric-http
     effect: READ
