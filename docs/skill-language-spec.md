@@ -100,7 +100,7 @@ Rules:
 
 A Procedure is an explicit graph. Supported main-node actions are:
 
-- `call`: one exact imported Operation.
+- `call`: one exact imported callable contract (Tool Operation or Observation Tool query).
 - `script`: one Skill-owned Script.
 - `procedure`: one local or explicitly identified cross-Skill Procedure.
 - `verify`: one Predicate over already-materialized inputs.
