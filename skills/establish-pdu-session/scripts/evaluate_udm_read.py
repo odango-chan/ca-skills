@@ -9,7 +9,16 @@ class PredicateEvaluationResult(TypedDict):
 
 def main(input: dict) -> PredicateEvaluationResult:
     response = input["udmReadResult"]
-    refs = list(dict.fromkeys(input.get("evidence", {}).get("udmReadResult", {}).get("refs", [])))
+    refs = list(dict.fromkeys(
+        input.get("evidence", {}).get("udmReadResult", {}).get("refs", [])
+    ))
+    if not refs:
+        return {
+            "result": "UNKNOWN",
+            "reasonCode": "UDM_PRODUCER_EVIDENCE_MISSING",
+            "evidenceUsed": refs,
+        }
+
     result = "UNKNOWN"
     reason = "UDM_RESULT_UNUSABLE"
     status = response.get("httpStatus")
@@ -19,8 +28,19 @@ def main(input: dict) -> PredicateEvaluationResult:
         selection = response.get("selection")
         subscription = response.get("subscription")
         if status == 200 and selection == "MATCHED" and isinstance(subscription, dict):
+            ssc_modes = subscription.get("sscModes")
+            allowed_modes = ssc_modes.get("allowedSscModes") if isinstance(ssc_modes, dict) else None
+            is_open5gs_default_included = (
+                isinstance(ssc_modes, dict)
+                and type(ssc_modes.get("defaultSscMode")) is int
+                and ssc_modes["defaultSscMode"] == 1
+                and type(allowed_modes) is list
+                and allowed_modes == [1, 2, 3]
+            )
             result = "PASS"
             reason = "UDM_SUBSCRIPTION_MATCHED"
+            if is_open5gs_default_included:
+                reason = "UDM_OPEN5GS_DEFAULT_SSC_MODE_INCLUDED"
         elif status == 200 and selection == "NO_MATCH":
             result = "FAIL"
             reason = "UDM_SUBSCRIPTION_NOT_MATCHED"
@@ -35,6 +55,8 @@ def main(input: dict) -> PredicateEvaluationResult:
             reason = "UDM_SUBSCRIPTION_INVALID_PROFILE"
         elif selection == "UNSUPPORTED_ENUM":
             reason = "UDM_SUBSCRIPTION_UNSUPPORTED_ENUM"
+        elif selection == "UNSUPPORTED_STATUS":
+            reason = "UDM_RESPONSE_UNSUPPORTED_STATUS"
         elif selection == "UNSUPPORTED_VARIANT":
             reason = "UDM_SUBSCRIPTION_UNSUPPORTED_VARIANT"
     elif response.get("networkOutcome") == "TIMEOUT":
