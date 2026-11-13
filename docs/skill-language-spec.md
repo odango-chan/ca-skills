@@ -140,6 +140,15 @@ The shorthand is a compile-time projection rule. It does not forward all fields,
 - JSON Schema `default` is an annotation and does not authorize Compiler/Runtime value synthesis. Operational defaults must be defined by the contract owner.
 - A caller may expose more fields than a callee consumes. Unused fields remain outside the callee's input projection.
 
+### 5.2.1 Conditional availability and semantic identity
+
+- A same-name default is an author-selected projection, not a heuristic search. Where source and target contracts publish semantic-field identities, they must agree; a conflict is a compile error.
+- If semantic-field identities are absent, `with.from: input` records the author's explicit same-name intent for that one call site. This does not authorize name-based matching across Context, prior nodes or unrelated consumers.
+- A source produced only on one control-flow branch may satisfy a consumer only when it is available on every path reaching that consumer. Prefer placing the consumer inside the branch that establishes the value.
+- Do not replace an unavailable value with `null`. Optional absence is valid only when the consumer contract explicitly permits omission.
+- Same-name binding does not flatten nested objects, extract nested properties, coerce types or normalize values. Such changes require explicit paths and declared deterministic transforms.
+
+
 ### 5.3 Procedure inputs and Context projections
 
 - `context.projections` declares which approved Context projections a Skill may access; it does not inject them into Procedure or Operation inputs.
