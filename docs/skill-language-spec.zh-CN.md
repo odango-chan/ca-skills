@@ -217,14 +217,14 @@ Payload 是 Predicate 判断的业务值；Evidence 是 Host 判断该值是否�
 
 ### 6.9 Predicate、Capability、Effect、Reconcile
 
-- **Predicate：** 纯、可重复、无副作用的业务判断函数，声明有序类型参数，使用 CEL 或受限 Script，返回 PASS / FAIL / UNKNOWN。
+- **Predicate：** 纯、可重复、无副作用的确定性计算 / 判断函数，声明有序类型参数，使用 CEL 或受限 Python Script 实现，返回 PASS / FAIL / UNKNOWN。它由 Procedure 的 Precondition 或 Postcondition 节点调用，不是独立 Procedure Node。
 - **Capability：** 部署侧授权分组和资源边界，不是 callable，也不是 Operation 别名。一个 Capability 可以包含多个 Operation 和 Observation Query。Skill 只声明 Capability Grant。
 - **Effect：** 初始支持 READ 和 MUTATION。READ 仍需要授权、Scope 和审计。
-- **Reconcile：** 对已经发起但结果不确定的原始 Mutation 进行调和。必须针对原始身份、Operation Ref、Correlation 和 Scope，不得偷偷创建新 Mutation。
+- **Reconcile：** 对已经发起但结果不确定的原始 Mutation 进行调和。它是 Operation 的受约束执行模式，不是独立业务节点类型；必须针对原始身份、Operation Ref、Correlation 和 Scope，不得偷偷创建新 Mutation。
 
 ### 6.10 Script、Case、Reference
 
-- **Script：** Skill Package 自有确定性 Python，仅用于本地转换、选择和计算，不是 Tool / Operation / Capability。
+- **Script：** Skill Package 自有确定性 Python，仅作为 Predicate 的 evaluator 实现，不是独立 Procedure Node，也不是 Tool / Operation / Capability。
 - **Case：** 业务场景和预期语义义务声明，不是执行器，不证明真实运行通过。
 - **Reference：** 给 Agent 阅读的补充知识，不是 Tool Schema、Evidence 或自动 Runtime 输入。
 
@@ -1557,11 +1557,11 @@ Adapter 是 Tool Owner 的实现细节。Skill 应引用稳定契约身份，而
 
 ## 57. 为什么 Script 入口是 input: dict？
 
-dict 只是统一 Python 调用容器，不代表开放输入契约。Procedure Script 输入由调用点绑定派生；Predicate Script 输入由 Predicate 类型签名派生。Compiler / LSP 应提供派生类型环境，不让作者维护重复 Schema。
+dict 只是统一 Python 调用容器，不代表开放输入契约。Script 只实现 Predicate；其业务输入由 Predicate.parameters 派生，Host 可附加只读 Evidence refs。Compiler / LSP 应提供派生类型环境，不让作者维护重复 Schema。
 
 ## 58. 为什么不自动把前一个 Node 输出传给下一个？
 
-隐式前序绑定会让节点移动改变语义，使分支路径难以静态验证，也会让同名字段的来源、Scope 和生命周期不明确。每个消费者必须声明数据来源。
+隐式前序绑定会让节点移动改变语义，使分支路径难以静态验证，也会让同名字段的来源、Scope 和生命周期不明确。Operation / Observation 使用 arguments 具名映射，Precondition / Postcondition 使用有序 arguments 列表；每个消费者必须明确声明数据来源。
 
 ## 59. 为什么第一版不保留自动同名绑定？
 
@@ -1605,8 +1605,8 @@ Build PASS 只说明本次源码和契约满足静态规则。运行还需要 Ad
 | D-06 | Operation Result 与 Observation Result 不混淆 | 复用充分 Operation Result |
 | D-07 | Predicate 是纯函数 | 不获取数据、不调用 Tool |
 | D-08 | Evidence 与业务 Payload 分离 | Host / Runtime 关联与校验 |
-| D-09 | 输入显式绑定 | 不做隐式前序传递 |
-| D-10 | 第一版不支持同名自动绑定简写 | Studio 可以生成显式 Binding |
+| D-09 | 使用 arguments 显式声明数据来源 | Operation / Observation 具名映射，Predicate 位置参数；不做隐式前序传递 |
+| D-10 | 第一版不支持同名自动绑定 | Studio 可以生成显式 arguments 映射 |
 | D-11 | Skill 层没有 Wait / Await / Polling | 异步完成归属 Tool / Provider Operation |
 | D-12 | Mutation UNKNOWN 必须 Reconcile | 不盲目重试 |
 | D-13 | Script 只做确定性本地计算 | 不调用外部系统 |
@@ -1615,6 +1615,11 @@ Build PASS 只说明本次源码和契约满足静态规则。运行还需要 Ad
 | D-16 | Build / Runtime / Network Acceptance 分层 | 不混淆成功含义 |
 | D-17 | 多 UE / 多 Session 使用精确 Scope | 不用全局最新状态猜测 |
 | D-18 | MAS 不作为第一可执行验收基线 | 先以真实 5GC Skill 验证 |
+| D-19 | Procedure 使用四种业务节点 | Precondition / Operation / Observation / Postcondition；Terminal 是终态声明 |
+| D-20 | Predicate 是确定性计算 / 判断定义 | 由 Precondition / Postcondition 调用；CEL 或 Python 实现，不设 computation Node |
+| D-21 | Observation 遵循结果充分性原则 | Operation Result 足够时直接验证，不强制 Observation |
+| D-22 | 调用参数统一使用 arguments | Operation / Observation 具名映射；Predicate 有序位置参数；删除 with/from/value 包装 |
+| D-23 | Reconcile 是 Operation 的受约束模式 | 不设独立 Reconcile Node |
 
 # 附录 B：当前状态与待评审事项
 
