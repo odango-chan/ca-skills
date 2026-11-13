@@ -1,6 +1,6 @@
 # Dependency Identity & Owner Schema Resolution — Skill Language vNext
 
-**Status:** Normative cross-repository implementation boundary (2026-11-13).
+**Status:** Proposed cross-repository implementation boundary; DESIGN-REVIEW, not frozen (2026-11-13).
 **Scope:** `ca-skills`, Skill Studio Plugin-managed Configuration, `ca-skill-compiler`, and the executable conventional 5GC Skill.
 
 This document is aligned with [Skill Language Specification](../skill-language-spec.md) and the current DESIGN-REVIEW [Capability & Authoring Model](capability-authoring-model-vnext.md). It replaces the earlier v0.2 compatibility/path proposal; the vNext contract is not yet frozen.
@@ -51,7 +51,7 @@ BuildResult returns diagnostics and generated Skill-owned output files. It does 
 
 The alias selects the exact caller-supplied snapshot. The ID after `::` remains owned by the producer. Observation query IDs are exported by the Observation Tool Owner through the same dependency snapshot and ToolCatalog contract model. Two imported snapshots that export the same ID are ambiguous and fail closed; the Skill must not rely on file order or source path to select one.
 
-CapabilityContracts is not a normal dependency snapshot. It is deployment-owned trusted input. The Skill may grant a Capability ID but cannot define its owner, Operation membership, Effect or budget policy.
+CapabilityContracts is not a normal dependency snapshot. It is deployment-owned trusted input. The Skill may grant a Capability ID but cannot define its owner, callable membership (Operations and Observation queries), Effect or budget policy.
 
 ## 4. Tool and Observation contract inventory
 
