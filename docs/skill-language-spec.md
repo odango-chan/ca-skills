@@ -164,12 +164,9 @@ Predicate definitions use an ordered function-like signature:
 predicates:
   createdsession.udm.hold_bound:
     parameters:
-      - name: hold
-        schema: ca::schemas/udm-hold
-      - name: dnn
-        type: string
-      - name: sst
-        type: integer
+      - hold: ca::schemas/udm-hold
+      - dnn: string
+      - sst: integer
     evaluator:
       type: cel
       expression: hold.operationKind == "UDM_SDM_SUBSCRIPTION_CREATE" &&
@@ -190,7 +187,7 @@ verify:
 
 Rules:
 
-- `parameters` is an ordered list of unique typed entries. Each entry has a `name` and exactly one of a primitive `type` or an authoritative `schema` reference. This is the Predicate's function signature, not a separate JSON Schema file.
+- `parameters` is an ordered list of single-entry mappings: `- parameterName: primitiveType` or `- parameterName: exactSchemaRef`. Every item must contain exactly one key and parameter names must be unique. The value is either a supported primitive type or an authoritative Schema reference. This is the Predicate's function signature, not a separate JSON Schema file. List order defines positional order.
 - `arguments` is an ordered list. Position i binds to parameter i. Argument count must exactly match parameter count.
 - The Predicate signature establishes expected types at authoring time. Producer/Context Schemas establish actual source types and must be assignable to the declared parameter type at every call site. CEL is type-checked against the declared signature independently of call sites. No type inference from names alone.
 - No optional positional parameters, skipped arguments, implicit null/default, coercion, or reordering. Missing or incompatible arguments are compile errors.
@@ -208,7 +205,7 @@ A binding has exactly one of `from` or `value`. A `from` source must resolve to 
  
 ## 6. Pure PredicateSet
 
-Predicates are pure reusable functions. They do not declare Observation references, scopes or freshness, and they do not acquire data.
+Predicates are pure reusable functions. They do not declare legacy Observation references, scopes or freshness, and they do not acquire data. Observation remains the semantic concept for a captured, scoped and time-qualified representation of a Fact; it is not a separate callable identity or registry. Its owner, provenance, scope, correlation, temporal and evidence guarantees are carried by the actual Producer/READ contract and Runtime lineage.
 
 A Predicate declares an ordered, typed parameter signature and an evaluator:
 
@@ -216,10 +213,8 @@ A Predicate declares an ordered, typed parameter signature and an evaluator:
 predicates:
   createdsession.ingress.eligible:
     parameters:
-      - name: ingress
-        schema: host-context::urn:connectionagent:5gc:skill-context:ingress:v1
-      - name: request
-        schema: schemas/establishment-request.schema.yaml
+      - ingress: host-context::urn:connectionagent:5gc:skill-context:ingress:v1
+      - request: schemas/establishment-request.schema.yaml
     evaluator:
       type: cel
       expression: ingress.requestType == request.requestType &&
@@ -241,7 +236,7 @@ verify:
 
 Rules:
 
-- Predicate parameter names are the only business-data names visible to the evaluator. Each parameter declares exactly one of a primitive `type` or an authoritative `schema` reference.
+- Predicate parameter names are the only business-data names visible to the evaluator. Each ordered list item is a single-entry mapping from parameter name to either a primitive type or an authoritative Schema reference.
 - Argument order and arity must exactly match the ordered `parameters` declaration.
 - CEL refers to parameter names directly. Predicate Script receives the same parameter projection as `input.<name>`.
 - The Predicate signature establishes expected types at authoring time. Producer/Context Schemas establish actual source types; Compiler checks assignability at every call site and checks CEL against the declared signature independently of call sites.
@@ -252,7 +247,7 @@ Rules:
 
 ## 7. READ Operations, Evidence and waiting
 
-Data acquisition is explicit in Procedure as a READ Operation. Its output contains the normalized typed value; the same invocation returns the Evidence for that value. A Predicate consumes that exact output through its positional `verify.arguments` entry.
+Independent fact acquisition is explicit in Procedure as a governed READ Operation. Its output contains the normalized typed value; the same invocation returns the Evidence for that value. A Predicate consumes that exact output through its positional `verify.arguments` entry. If a preceding Operation, captured event or owned journal/projection already provides the required value and adequate Evidence, reuse it rather than issuing a duplicate READ.
 
 Do not create a second read merely to reconstruct Evidence for a prior Tool result. Do not treat a local handle, Mutation success or a stale per-UE lookup as current network truth.
 
