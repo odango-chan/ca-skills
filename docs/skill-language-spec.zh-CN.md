@@ -417,26 +417,29 @@ ProcedureInputs     = "inputs", SourceMap ;
 StartNode           = "start", NodeIdentity ;
 NodeMap             = "nodes", Map<NodeIdentity, Node> ;
 
-Node                = ExactlyOne(NodeAction), [Arguments],
-                      (Routes | TerminalWithoutRoutes) ;
-NodeAction          = Precondition | Operation | Observation |
-                      Postcondition | Terminal ;
+Node                = PreconditionNode | ToolOperationNode |
+                      ScriptOperationNode | ObservationNode |
+                      PostconditionNode | ReconcileNode | TerminalNode ;
+
+PreconditionNode    = Precondition, PredicateArguments, Routes ;
+PostconditionNode   = Postcondition, PredicateArguments, Routes ;
+ToolOperationNode   = ToolOperation, OperationArguments, Routes ;
+ScriptOperationNode = ScriptOperation, OperationArguments, Routes ;
+ObservationNode     = Observation, OperationArguments, Routes ;
+ReconcileNode       = ReconcileTarget, Routes ;
+TerminalNode        = Terminal ;
 
 Precondition        = "precondition", PredicateInvocation ;
 Postcondition       = "postcondition", PredicateInvocation ;
-PredicateInvocation = "predicate", PredicateIdentity,
-                      "arguments", ArgumentList ;
-
-Operation           = "operation", OperationTarget ;
-OperationTarget     = ToolOperation | ScriptOperation | ReconcileTarget ;
-ToolOperation       = CallableIdentity ;
-ScriptOperation     = "script", PackageRelativeScriptPath ;
+PredicateInvocation = "predicate", PredicateIdentity ;
+ToolOperation       = "operation", CallableIdentity ;
+ScriptOperation    = "operation", ScriptTarget ;
+ScriptTarget        = "script", PackageRelativeScriptPath ;
 Observation         = "observation", ObservationIdentity ;
-ReconcileTarget     = "reconcile", OriginalMutationNode ;
+ReconcileTarget     = "operation", "reconcile", OriginalMutationNode ;
 Terminal            = "terminal", TerminalStatus ;
 Routes              = "on", RouteMap ;
 
-Arguments           = OperationArguments | PredicateArguments ;
 OperationArguments  = "arguments", ArgumentMap ;
 PredicateArguments  = "arguments", ArgumentList ;
 SourceMap           = Map<Identifier, SourcePath> ;
