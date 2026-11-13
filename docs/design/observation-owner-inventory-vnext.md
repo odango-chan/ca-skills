@@ -138,14 +138,9 @@ These are not all full payloads in the current ToolCatalog output: several curre
 
 The current `ca.session.evidence.await` is a Host READ/wait primitive. It polls the declared ObservationSources under a bounded wait plan and returns only `evidenceRefs`. The subsequent PredicateEngine evaluation performs the final acquisition and receives the normalized value. For N4 this means a bounded series of Provider reads followed by a separate final Provider read.
 
-The vNext authoring model must decide whether this remains a Host orchestration Operation or becomes a Procedure-level bounded-wait construct over an exact owner READ Operation. Either representation must:
+The v1alpha2 decision is frozen: `ca.session.evidence.await` remains a Host orchestration Operation. Its input names one exact qualified READ Operation, exact selector/bindings, freshness bound and authoritative-absence policy. It polls that READ Operation within invocation-inherited budget/deadline/cancellation and returns only a wait/evidence summary. Procedure then performs the final READ separately and passes that exact typed output plus same-invocation Evidence to a pure Predicate.
 
-- declare the owner READ and exact scope rather than hide a source lookup behind Predicate evaluation;
-- preserve the bounded budget/deadline and `KNOWN_ABSENT/CONTINUE` policy;
-- keep the final typed READ result and Evidence separate from the wait's evidence-reference summary;
-- pass the final result to a pure Predicate without another hidden acquisition.
-
-Do not create a generic `observation.read` callable identity or one new Operation per legacy Observation ref just to remove the old registry. The exact four owner-read shapes above are the starting point; confirm their owner contracts and Capability grouping during the first 5GC migration slice.
+Do not create a generic `observation.read` callable identity or one new Operation per legacy Observation ref. The v1alpha2 surface is six new READ Operations: four domain shapes (phase-discriminated N4 initial resources, RAN setup, N4 forwarding, PCF-create governance) plus two Host journal reads (lifecycle registration and resource responsibility).
 
 
 ### 10.2 Candidate explicit READ Operation surface
@@ -154,18 +149,21 @@ The Provider Owner currently exposes one generic `ProviderObservationReadRequest
 
 The adapter can expose exact READ Operation identities over that generic Provider API:
 
-| Candidate Operation surface | Fixed Provider selector | Procedure use |
+| Frozen Operation identity | Fixed owner selector | Procedure use |
 |---|---|---|
-| N4 initial-resources read | `n4.initial_resources.snapshot` | `PRE_CREATE` takes exact `pcfPolicyAssociationRef` + `fabricHoldRef` and returns `baselineRef`; `POST_CREATE` takes that exact `baselineRef` plus the same policy-association handle, returns `baselineEvidenceRef` and the confirmed `currentSessionInstanceRef` |
-| SMF RAN-setup read | `smf.ran_setup.snapshot` | Takes the exact `currentSessionInstanceRef` from the final post-N4 result plus lifecycle; output must echo and prove that same instance |
-| UPF N4-forwarding read | `n4.forwarding_resources.snapshot` | Takes the same exact `currentSessionInstanceRef` from the final post-N4 result plus lifecycle; output proves exactly one matching SMF/UPF pair for that instance |
-| Fabric PCF-governance read | Exact `holdRef` from the bound `pcfHold`, plus lifecycle and invocation scope | Acquires current hold/sender/competing-create/lifecycle-isolation facts; Capability grouping remains an Owner decision |
+| `createdsession-tools::ca.session.n4.initial_resources.read` | Provider `n4.initial_resources.snapshot` | `PRE_CREATE` takes exact `pcfPolicyAssociationRef` + `fabricHoldRef` and returns `baselineRef`; `POST_CREATE` takes that exact `baselineRef` plus the same policy-association handle, returns `baselineEvidenceRef` and the confirmed `currentSessionInstanceRef` |
+| `createdsession-tools::ca.session.ran_setup.read` | Provider `smf.ran_setup.snapshot` | Takes the exact `currentSessionInstanceRef` from the final post-N4 result plus lifecycle; output echoes and proves that same instance |
+| `createdsession-tools::ca.session.n4.forwarding.read` | Provider `n4.forwarding_resources.snapshot` | Takes the same exact `currentSessionInstanceRef` from the final post-N4 result plus lifecycle; output proves exactly one matching SMF/UPF pair for that instance |
+| `env-fabric-tools::ca.session.pcf_create_governance.read` | Exact `holdRef` from the bound `pcfHold`, plus lifecycle and invocation scope | Acquires current hold/sender/competing-create/lifecycle-isolation facts |
+| `ca-agent-host::ca.session.lifecycle.registration.read` | Exact `ueRef` + `lifecycleRef` | Reads the durable Host lifecycle-registration journal projection |
+| `ca-agent-host::ca.session.resource_responsibility.read` | Exact `ueRef` + `lifecycleRef` | Reads the durable Host resource-responsibility journal projection |
 
-These are semantic candidates, not frozen Operation IDs. Each adapter-facing Operation should have an exact Input/Output contract and a Capability membership. Its adapter fixes the Provider selector; Skill source does not pass a generic `observationRef`.
+These are the v1alpha2 Operation identities. Each Owner must publish an exact Input/Output contract and Capability membership. The adapter fixes the Provider selector; Skill source does not pass a generic `observationRef`.
 
-Candidate Capability grouping:
-- group the three Provider assurance reads under one Provider-owned CreatedSession assurance Capability;
-- include the PCF governance read in the existing Fabric CreatedSession hold Capability only if Fabric confirms that governance is part of that same authorization boundary; otherwise publish a separate Fabric governance Capability.
+Frozen Capability grouping for v1alpha2:
+- group the three Provider assurance reads under `provider-5gc.createdsession.assurance`;
+- group the Fabric PCF governance read under the separate `env-fabric.createdsession.governance` Capability;
+- group both Host journal reads with the existing `ca-agent-host.createdsession.runtime` Capability, alongside the bounded wait and responsibility transfer.
 
 The existing Provider main generic Observation request/result schemas still use relative filename `$id` values. Provider PR #50 separately proposes an absolute URL `$id` for the UDM v0alpha2 result, but it remains Draft/unaccepted; the N4/RAN/forwarding exports still need stable absolute versioned identities (or an equivalent explicit export identity). The Fabric PCF governance Schema already has an absolute URL `$id`, but it is still proposed and not yet an approved stable export.
 
