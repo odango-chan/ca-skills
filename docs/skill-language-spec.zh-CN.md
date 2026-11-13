@@ -1568,6 +1568,18 @@ Build PASS 只说明本次源码和契约满足静态规则。运行还需要 Ad
 评审意见必须归入：规范语义错误、语法表达不清、Owner 契约缺失、Compiler 无法静态验证、Studio 无法正确呈现、Runtime 尚未实现、业务流程尚未验证。不得把所有问题归结为“Compiler 再支持一下”，也不得让 Skill 源码承担其他 Owner 的缺失契约。
 
 
+# 附录 C：参考规范
+
+1. RFC 2119 — https://www.rfc-editor.org/rfc/rfc2119
+2. RFC 8174 — https://www.rfc-editor.org/rfc/rfc8174
+3. CUE Language Specification — https://cuelang.org/docs/reference/spec/
+4. Temporal Workflow Definition — https://docs.temporal.io/workflow-definition
+5. Temporal Workflows — https://docs.temporal.io/workflows
+6. Temporal Retry Policies — https://docs.temporal.io/encyclopedia/retry-policies
+7. OpenAPI Specification — https://spec.openapis.org/oas/latest.html
+8. AsyncAPI Specification — https://www.asyncapi.com/docs/concepts/asyncapi-document/structure
+
+
 # 附录 D：对上一轮评审意见的逐项答复
 
 | 评审意见 | 本规范答复 | 当前结论 |
@@ -1582,17 +1594,6 @@ Build PASS 只说明本次源码和契约满足静态规则。运行还需要 Ad
 | 三个异步 Operation 的 Owner 契约尚未确认 | 责任目标映射到 UPN.CREATE_UP_SESSION、SSM.SIGNAL_UE_AN、UPN.MODIFY_UP_SESSION | 仅为目标责任；ToolCatalog / Output / Evidence 仍待 Owner 确认 |
 
 本附录是评审答复记录，不表示所有问题已实现或已冻结。评审者若不同意某项决定，应指出所影响的术语、语法、静态语义、运行语义或 Owner 边界，并提供正例和反例。
-
-# 附录 C：参考规范
-
-1. RFC 2119 — https://www.rfc-editor.org/rfc/rfc2119
-2. RFC 8174 — https://www.rfc-editor.org/rfc/rfc8174
-3. CUE Language Specification — https://cuelang.org/docs/reference/spec/
-4. Temporal Workflow Definition — https://docs.temporal.io/workflow-definition
-5. Temporal Workflows — https://docs.temporal.io/workflows
-6. Temporal Retry Policies — https://docs.temporal.io/encyclopedia/retry-policies
-7. OpenAPI Specification — https://spec.openapis.org/oas/latest.html
-8. AsyncAPI Specification — https://www.asyncapi.com/docs/concepts/asyncapi-document/structure
 
 ---
 
