@@ -118,7 +118,7 @@ The proposed `with.from: input` shorthand is an **opt-in same-name projection**,
 - A per-field binding overrides the default for that target input, including an intentional source rename.
 - If a required target has no same-named caller input under this shorthand, compilation fails. It does not fall back to another namespace or guess another source.
 - The shorthand does not read `context.*`, prior-node outputs, parent Procedure state, or any other ambient source.
-- It is valid only where the callee has a declared input contract (Operation, Predicate, or Procedure). It is not available for a Script until Script input names can be established without guessing.
+- It is limited to named-object binding contracts (Operation and Procedure). Predicate uses its ordered `parameters` / positional `arguments` form. Script retains explicit call-site `with` because it has no independent parameter signature.
 - Every generated binding receives the same schema, type/nullability, producer-availability, scope, authorization and control-flow checks as an explicit binding.
 
 Example:
@@ -240,7 +240,7 @@ This is an intentional, explainable syntax distinction based on interface owners
 | Predicate-specific evaluation projection | Skill, only for its own derived/selected view; must not redefine producer payload |
 | Script input/output contract | Skill |
 
-From the Skill author's perspective, Schemas primarily constrain **inputs consumed by Procedure Scripts and Predicates**. When that payload is produced by a READ Operation, the same owner-published payload Schema serves as that Operation's Output Schema and the consumer's input contract; do not create a second copy just because it crosses a producer/consumer boundary. A Predicate interface may declare the semantic fields it consumes when it combines several sources or reshapes Host Context plus Evidence; the Compiler derives the effective Script input contract from those declarations and all call sites. This does not create a separate authored Script Input Schema, and it must not redefine an owner's payload.
+From the Skill author's perspective, Schemas primarily constrain payloads consumed by Procedure Scripts and Predicates. When a payload is produced by a READ Operation, the same owner-published payload Schema serves as that Operation's Output Schema and the consumer's type authority; do not create a second copy just because it crosses a producer/consumer boundary. A Predicate's ordered `parameters` name the values it consumes; the Compiler derives their effective types from the authoritative Producer/Context Schemas at all call sites. This does not create a separate authored Predicate Input Schema or Script Input Schema, and it must not redefine an owner's payload.
 
 An Observation acquired through a READ Operation uses that Operation's Output Schema. Do not duplicate the same payload schema under observations. If an event/journal/projection changes the structure, that projection owner owns its schema. Transformations require explicit input/output contracts and preserve lineage to source evidence. Host must not invent domain schemas.
 
@@ -325,7 +325,7 @@ The 5GC semantic mapping itself is now consolidated in [Binding Migration Rehear
 
 The following syntax and owner-publication gates remain open:
 - how the candidate `wait` construct targets an exact READ Operation, uses the same freshness/correlation contract as its final Predicate input, and preserves the current wait-plus-final-read sequence; current 5GC `evidence.await` returns only evidence refs and PredicateEngine performs a subsequent acquisition;
-- the canonical Predicate Script input projection: source mapping is complete for the two 5GC evaluator Scripts; derive their effective inputs from declared Predicate `inputs`, every `verify.with/from` call site and the Host Evidence projection, without authoring a second Script Input Schema file. Procedure Script inputs remain derived per call site and Script outputs remain strict TypedDict-generated schemas. The exact input syntax remains open; current ca-agent-demo `localTools` / metadata is not the official v0.2 Script dialect;
+- the canonical Predicate Script input projection: source mapping is complete for the two 5GC evaluator Scripts; derive their named `input.<parameter>` projection from the Predicate `parameters` signature and every positional `verify.arguments` call site, plus the Host Evidence projection, without authoring a second Script Input Schema file. Procedure Script inputs remain derived per call site and Script outputs remain strict TypedDict-generated schemas. The Predicate call syntax is now proposed; current ca-agent-demo `localTools` / metadata is not the official v0.2 Script dialect;
 - exact representation/location of Procedure context projection;
 - exact location of exceptional mappings (node-level with vs Procedure-level bindings);
 - stable semantic-field identity vocabulary for automatic binding (must not rely on property-name equality); first executable use should be actual 5GC shared Context fields and Operation input parameters. The 11 MAS common-context names remain a structural candidate list only, not owner-backed evidence or an acceptance gate;
@@ -537,7 +537,7 @@ The following decisions supersede exploratory alternatives elsewhere in this des
 5. **Capability separation:** Skill grants Capability IDs only. A single deployment-owned CapabilityContracts input maps each exact Operation ID to one Capability and Effect. Compiler cross-checks that mapping against the imported ToolCatalog.
 6. **No physical library paths:** Studio supplies dependency snapshots to BuildRequest. Skill source references imported Operations/Schemas by dependency alias plus exact exported ID, never by `lib/` path.
 7. **No dependency manager in Compiler:** no resolver lifecycle, manifest, lock, cache or digest output. The caller supplies the exact bytes.
-8. **Explicit binding first:** `with/from` is the only source binding in this first vNext implementation. Semantic IDs and auto-binding are deferred; they are not required for the 5GC migration.
+8. **Explicit source binding:** every source expression is explicit. Named-object consumers use `with/from`; Predicate uses ordered positional `verify.arguments`. Semantic-ID-based automatic source discovery is deferred and is not required for the 5GC migration.
 9. **Evidence is separate:** business payload and provenance/Evidence remain separate. Runtime validates Evidence before definite Predicate truth; Script `evidenceUsed` may only cite attached refs.
 10. **5GC-first:** migrate the 5GC Skill and its 36 Cases / three References as the business baseline. MAS remains non-executable design material and is not used to invent missing contracts.
 
