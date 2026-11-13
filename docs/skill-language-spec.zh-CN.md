@@ -1632,7 +1632,7 @@ Reconcile 是原始 Mutation Operation 的受约束调和模式。把它表达�
 | D-10 | 第一版不支持同名自动绑定 | Studio 可以生成显式 arguments 映射 |
 | D-11 | Skill 层没有 Wait / Await / Polling | 异步完成归属 Tool / Provider Operation |
 | D-12 | Mutation UNKNOWN 必须 Reconcile | 不盲目重试 |
-| D-13 | Script 只做确定性本地计算 | 不调用外部系统 |
+| D-13 | Script 仅实现 Predicate 的确定性逻辑 | 不作为独立 Procedure 节点，不调用外部系统 |
 | D-14 | Schema 归真正 Owner 所有 | Skill 不复制外部 Schema |
 | D-15 | Compiler 不管理依赖 | Studio / 调用方提供快照 |
 | D-16 | Build / Runtime / Network Acceptance 分层 | 不混淆成功含义 |
@@ -1683,7 +1683,7 @@ Reconcile 是原始 Mutation Operation 的受约束调和模式。把它表达�
 | 评审意见 | 本规范答复 | 当前结论 |
 |---|---|---|
 | Observation ToolCatalog 表达不明确 | 提出在同一个 ToolCatalog 的 contracts 中使用 kind=operation / kind=observation 的类型化 callable；Observation 有独立 id、QueryContext Schema、Output Schema 和 guarantees | 方向已提出，字段仍待 Owner / Compiler 冻结 |
-| Observation Query 调用语法不明确 | Operation 和 Observation Query 共用 Procedure call 节点；精确身份由依赖快照解析，kind 由 ToolCatalog 决定；QueryContext 使用同一显式 Binding Plan | 语义已明确，正式 Schema / Fixture 待冻结 |
+| Observation Query 调用语法不明确 | Operation 和 Observation Query 使用不同的 Procedure 节点关键字；精确身份由依赖快照解析，kind 由 ToolCatalog 决定；Query Input 使用具名 arguments 映射 | 语义已明确，正式 Schema / Fixture 待冻结 |
 | Evidence 与 Predicate 参数的关联不明确 | Evidence 按业务参数分别关联；每个参数可无 Evidence、一个或多个 refs；input.evidence 是 Host 保留命名空间，业务参数 evidence 禁止 | 基数原则已明确；具体 Host Evidence Projection 和 Runtime 校验结构待 Owner 发布 |
 | Predicate Script 类型派生不明确 | Predicate.parameters 是唯一业务输入签名；Script 入口 input: dict 仅为调用容器；Compiler / LSP 必须提供派生只读类型环境 | 语义已明确；生成 stub / overlay 的工具链方式待验证 |
 | Schema ID 与路径混淆 | 外部引用使用 dependency-alias::精确 Schema $id；Skill 自有 Schema 使用包内路径；路径不是公共身份 | 规则已明确；需要 Compiler 正负例验证 |
