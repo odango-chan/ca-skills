@@ -38,22 +38,30 @@ Do not create main-flow nodes merely for a local projection or deterministic cal
 
 Each Operation belongs to exactly one Capability in the deployment CapabilityContracts. The Skill grants Capability IDs; Procedure calls exact Operation IDs.
 
-## 5. Pure Predicate
+## 5. Fact, Observation and Evidence
 
-A Predicate declares an ordered, typed `parameters` signature and a CEL or Script evaluator. Procedure invokes it with positional `verify.arguments`, in exactly the declared order. The Predicate signature establishes expected types at authoring time; Producer/Context Schemas establish actual source types, which Compiler checks for assignability at every call site. Predicate has no Observation declaration, scope acquisition, freshness polling or hidden globals.
+- A Fact is a domain, environment or execution-state statement.
+- An Observation is a captured, scoped representation of a Fact with source and temporal context. It is data/assurance semantics, not a separate callable identity or registry.
+- Evidence is validated support for the claim and remains separate from the business payload.
+- Acquisition is an execution action. Use an explicit READ Operation when an independent/current fact must be acquired; reuse adequate prior Operation outputs, captured events or owned projections where possible.
+- Retire the legacy Observation Ref → ObservationSource registry through behavior-preserving migration. Preserve source ownership, scope, correlation, freshness, temporal semantics and evidence guarantees in Producer/READ contracts and Runtime lineage.
+
+## 6. Pure Predicate
+
+A Predicate declares an ordered, typed `parameters` signature and a CEL or Script evaluator. Procedure invokes it with positional `verify.arguments`, in exactly the declared order. The Predicate signature establishes expected types at authoring time; Producer/Context Schemas establish actual source types, which Compiler checks for assignability at every call site. Predicate has no legacy Observation Ref declaration, acquisition, scope polling, freshness polling or hidden globals.
 
 - CEL refers to the declared parameter names directly; Predicate Script receives the same named projection as `input.<name>`. Its input type environment is derived from the Predicate signature, not separately authored by the Script.
 - Predicate arguments lower into the common canonical Binding Plan.
 - Host/Runtime attaches Evidence separately and validates it before allowing a definite verdict.
 - Predicate Script may return only Evidence refs attached to its own inputs.
 
-## 6. Waiting
+## 7. Waiting
 
 Bounded waiting is a Host Runtime Operation, not a Predicate feature. It targets one exact READ Operation and explicit scope. It returns a wait summary only. Procedure then performs a final READ Operation and supplies that final result to the Predicate.
 
 Wait and final read must share the exact attempt selector. The wait target must also be covered by a granted Capability.
 
-## 7. Node preconditions and postconditions
+## 8. Node preconditions and postconditions
 
 `preconditions` are ordered node-entry steps. They complete immediately before the main Operation and stop on the first non-success result.
 
