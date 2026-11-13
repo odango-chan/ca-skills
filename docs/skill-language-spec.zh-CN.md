@@ -1588,6 +1588,8 @@ type BuildRequest = {
 };
 ~~~
 
+Contract 的 `dependencies` 将 Skill 内部 Alias 映射到 Owner 发布的稳定依赖身份；Procedure / Predicate / Context Schema 引用使用这些 Alias 定位精确导出。BuildRequest 提供的 DependencySnapshot 必须与 Contract 声明的 Alias 和依赖身份一致。缺失、重复、身份不匹配的依赖必须产生阻断构建的诊断；未在 Contract 声明的快照不得因为“已被传入”就自动对 Skill 源码可见。
+
 Compiler MUST 只消费调用方提供的字节；验证路径、重复文件、重复 Alias、重复导出身份、Schema、引用、Binding、Capability 和 Effect；返回诊断和生成文件。语言版本由 BuildRequest 指定，编译产物记录实际语言/API 版本。
 
 ### 34.1 Schema 的源格式与编译格式
