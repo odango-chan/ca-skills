@@ -8,6 +8,8 @@ Source tree commit audited for the official sample sync: `38012852827437185c6343
 
  > This is a paper audit of existing source and Owner implementations. No migration rehearsal or simulated execution was performed. The 5GC mapping below is used to drive direct implementation; lexical counts are inventory only, not a target for minimizing bindings.
 
+The source audit below remains scoped to the conventional 5GC Skill. MAS source mapping is maintained separately in [MAS vNext Source Migration](mas-vnext-source-migration.md); that parallel design work does not change the first executable acceptance target or imply MAS Owner contracts are ready.
+
 ## 1. Executive result
 
 The executable conventional 5GC Skill supports the proposed direction. MAS is retained only as a structural/reference fixture because it does not yet have a runnable end-to-end path. The comparison exposes an important distinction:
