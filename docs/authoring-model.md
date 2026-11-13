@@ -69,7 +69,7 @@ Wait and final read must share the exact attempt selector. The wait target must 
 
 Node postconditions differ from `SkillContract.spec.postconditions`, which are final Skill acceptance conditions.
 
-## 8. Script and Schema ownership
+## 9. Script and Schema ownership
 
 - A Script identity is Skill package plus relative Python path.
 - Procedure Script input comes from its call-site `with`.
