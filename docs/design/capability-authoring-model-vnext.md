@@ -389,45 +389,41 @@ The Skill grants qualified Capability identities in `allowedResources.capabiliti
 
 The source rehearsal supports a small authoring surface that reuses the existing v0.2 binding vocabulary rather than inventing a second Observation binding language.
 
-### 16.1 Pure Predicate inputs
+### 16.1 Pure Predicate function signature and invocation
 
-Candidate:
+Candidate definition:
 
-```yaml
+~~~yaml
 predicates:
   createdsession.udm.subscription_usable:
-    inputs:
-      udmReadResult: {}
+    parameters: [udmReadResult]
     evaluator:
       type: script
       ref: scripts/evaluate_udm_read.py
-```
+~~~
 
 Procedure postcondition:
 
-```yaml
-- verify: createdsession.udm.subscription_usable
-  with:
-    udmReadResult:
-      from: nudm-sdm-get.output.result
-```
+~~~yaml
+verify:
+  predicate: createdsession.udm.subscription_usable
+  arguments:
+    - nudm-sdm-get.output.result
+~~~
 
 Semantics:
 
-- `Predicate.inputs` declares the Predicate's named input interface. The Procedure's `verify.with/from` supplies those values using the same source-reference vocabulary and Binding Plan as ordinary Operation inputs. This keeps Predicate logic reusable and keeps producer-specific node names out of the Predicate definition.
-- The evaluator receives only the declared values. The Compiler derives the effective Predicate input projection from the Predicate interface plus all Procedure `verify.with/from` call sites and their producer schemas/Context contracts; multiple call sites must provide compatible inputs. No separate Script Input Schema file is required.
-- Runtime attaches the Host Evidence projection to each producer-backed input under `input.evidence.<alias>`. Evidence is a separate provenance object, not merged into the business payload and not an arbitrary Skill-authored value.
-- The Binding Plan records parallel lineage for each consumed value and its Evidence: exact producer, source path, schema/owner, invocation/scope, and the Evidence refs/guarantees attached to that producer. A Script cannot invent or rewrite Evidence refs.
-- The Script changes from reading `input.observations.response` / implicit `input.subject.udmReadReceipt` to the declared `input.udmReadResult`. Its strict Output TypedDict remains unchanged.
-- A CEL Predicate uses the same `inputs` map and evaluates those declared names. No acquisition occurs inside `verify`.
+- `parameters` declares the ordered evaluator-local parameter names. The Producer's authoritative Output Schema remains the type authority; no duplicate Predicate Input Schema is authored.
+- `arguments` is positional and must have exactly the same arity/order as `parameters`.
+- Compiler resolves each source expression, validates producer availability and type compatibility across every call site, and derives the effective Predicate parameter types. A CEL evaluator is checked against those types.
+- The evaluator receives only the declared business parameter projection. Procedure node names and source paths do not leak into the Predicate definition.
+- Runtime attaches Host Evidence to the corresponding producer-backed parameter separately from its business payload. The Binding Plan preserves parallel lineage: exact producer, source path, schema/owner, invocation/scope, and attached Evidence refs/guarantees.
+- Predicate Script receives the named parameter projection as `input.<name>`; its strict Output TypedDict remains unchanged. It cannot invent or rewrite Evidence refs.
+- A CEL Predicate refers to the declared parameter names directly; it does not read a hidden `input` global.
+- No acquisition occurs inside `verify`. READ and bounded-wait operations remain explicit in Procedure.
 
-The current Procedure passes the full `nudm-sdm-get.output` receipt (invocation identity plus `result`) at the call site. The pure Predicate input is the business payload `udmReadResult`, bound from `nudm-sdm-get.output.result`; Host attaches Provider Evidence correlated to that same invocation/transaction/record. This is a call-site binding, not a field of `context.subject`. The prior `sbi.operation.result` ObservationSource reads the same immutable `CreatedSessionUDMResult` from an attempt-local store and adds Provider Evidence; it is not another network Get.
+For the UDM example, the Predicate consumes the business payload `udmReadResult`, bound from `nudm-sdm-get.output.result`; Host attaches Provider Evidence correlated to the same full receipt/invocation/transaction/record. The prior `sbi.operation.result` ObservationSource reads the same immutable `CreatedSessionUDMResult` from an attempt-local store and adds Provider Evidence; it is not another network Get.
 
-Provider PR [#50](https://github.com/odango-chan/ca-provider-5gc/pull/50) proposes the full upstream GetSmData result Schema with an absolute but still proposed `$id`; it remains Draft with zero check-runs. The current Host adapter pins an older broader v0alpha2 snapshot. After Provider acceptance, refresh that pinned upstream snapshot/digest. The Host adapter's `CreatedSessionUDMResult.runtime_value()` is the actual Tool `output.result` and legacy Observation payload; it needs a separate Host-owned projection Schema. ToolCatalog `sbi.udm.sm_data.get.outputSchema.result` remains broad `object` and must reference that Host projection Schema, not the Provider wire Schema. The vNext Predicate consumes this exact Host Tool result plus same-receipt Host Evidence.
-
-The selected vNext path binds the exact Host Tool `output.result` (the `runtime_value()` projection) and Host Evidence attached to the same full Provider receipt, correlated by invocation, transaction, request, record/digest, target/source provenance and freshness. This replaces the legacy duplicate payload comparison and does not issue another UDM Get. The `runtime_value()` projection is the Skill-facing payload and therefore requires its own Host-owned Schema; the Provider full-result Schema validates the upstream wire response and must not be substituted for it.
-
-For the Hold path, the same shape consumes the preceding `ca.session.udm_hold.bind` output plus its Host Evidence. The Tool output carries the held-request details but not normalized `bindingStatus`. The current ObservationSource rechecks the exact selector, held-request correlation, lifecycle and deadline against the attempt-local record, then attaches Fabric Evidence. Preserve those checks in a typed local projection over that same stored artifact; do not synthesize `CURRENT` from call success and do not trigger another Fabric pending-Hold request.
 
 ### 16.2 Explicit wait over a READ Operation
 
