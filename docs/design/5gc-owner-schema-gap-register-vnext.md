@@ -454,10 +454,10 @@ vNext Procedure now binds the exact `holdRef` from the preceding
 `ca.session.pcf_hold.bind` output rather than asking Fabric to rediscover the
 hold from a broader UE/session selector.
 
-Fabric PR #81 publishes the exact `holdRef` request Schema and the
-`ca.session.pcf_create_governance.read` Tool contract. Its output Schema is
-kept identical to the existing Fabric-owned
-`createdsession-pcf-create-governance/v0alpha1/result.schema.yaml`. Focused
-CI is pending. This closes the contract declaration gap only; the full
-deployment CapabilityContracts and Tool Registration still need to bind the
-Fabric operation to its HTTP implementation.
+Fabric PR #81 is merged to env-fabric/main (`a8d3f621`). It publishes the exact
+`holdRef` request Schema and the `ca.session.pcf_create_governance.read` Tool
+contract. Its output Schema is kept identical to the existing Fabric-owned
+`createdsession-pcf-create-governance/v0alpha1/result.schema.yaml`; focused CI
+passed. This closes the contract declaration gap only; the full deployment
+CapabilityContracts and Tool Registration still need to bind the Fabric
+operation to its HTTP implementation.
