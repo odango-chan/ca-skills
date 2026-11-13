@@ -483,20 +483,51 @@ Evaluator           = CELExpression | PredicateScriptEvaluator ;
 
 vNext 第一阶段每个 Skill 只有一个入口 Procedure 图，因此不再需要 SkillContract.entryProcedure 或 ProcedureCall 节点。不同业务路径通过同一张显式执行图的分支表达。嵌套 Procedure 调用不属于当前语法范围；若真实 Skill 证明需要可复用子流程，再单独设计，不得用通用 call 恢复隐式语义。
 
-## 11. Skill 源码根字段
+## 11. Skill Contract 与 Procedure 源码
 
-vNext 不要求作者维护独立 SkillContract 对象或 assurance/contract.yaml。Skill 的可执行契约由 procedure.yaml 的根字段与显式 Procedure 图共同表达。
+vNext 保留独立的 `assurance/contract.yaml`。它不是旧式带版本包装的 Kubernetes 风格资源对象，而是 Skill 的公共声明文件。它与 `procedure.yaml` 分工：
+
+- Contract 声明 Skill 对外的业务目标、公共输入、Context 要求、公共依赖和 Capability Grants。
+- Procedure 声明如何确定性地完成目标：入口输入投影、start、四种业务节点、路由和最终 Postcondition。
+- PredicateSet 声明可复用的判断定义和参数签名。
+
+### 11.1 Contract 示例
+
+~~~yaml
+# assurance/contract.yaml
+goal: pdu_session.initial_request_fulfilled
+
+inputs:
+  requestSchema: schemas/establishment-request.schema.yaml
+
+context:
+  requiredFacts:
+    - createdsession_ingress
+    - createdsession_lifecycle
+  schemas:
+    subject: host-context::urn:connectionagent:5gc:skill-context:subject:v1
+    facts: host-context::urn:connectionagent:5gc:skill-context:facts:v1
+
+# 仅声明稳定依赖身份；alias 是本 Skill 内部引用名。
+# 不写 Git URL、版本锁、digest、分支或下载指令。
+dependencies:
+  host-context:
+    id: <owner-published-dependency-identity>
+  fivegc-tools:
+    id: <owner-published-dependency-identity>
+
+allowedResources:
+  capabilities:
+    - provider-5gc.session-read
+    - provider-5gc.session-mutation
+    - env-fabric.session-hold
+    - ca-agent-host.session-runtime
+~~~
+
+### 11.2 Procedure 示例
 
 ~~~yaml
 # assurance/procedure.yaml
-goal: pdu_session.initial_request_fulfilled
-requestSchema: schemas/establishment-request.schema.yaml
-capabilities:
-  - provider-5gc.session-read
-  - provider-5gc.session-mutation
-  - env-fabric.session-hold
-  - ca-agent-host.session-runtime
-
 inputs:
   ueRef: context.subject.ueRef
   dnn: context.request.dnn
@@ -511,31 +542,55 @@ nodes:
       PASS: read-subscription
       FAIL: failed
       UNKNOWN: unresolved
+  read-subscription:
+    operation: fivegc-tools::sbi.udm.sm_data.get
+    arguments:
+      ueRef: input.ueRef
+      dnn: input.dnn
+    'on':
+      SUCCEEDED: verify-final-state
+      FAILED: failed
+      UNKNOWN: unresolved
+  verify-final-state:
+    postcondition:
+      predicate: createdsession.session.established
+      arguments:
+        - read-subscription.output.result
+    'on':
+      PASS: succeeded
+      FAIL: failed
+      UNKNOWN: unresolved
 ~~~
+
+### 11.3 Contract 字段
 
 | 字段 | 语义 | 约束 |
 |---|---|---|
-| goal | Skill 的业务目标 | 作者显式声明；不等于某个 Operation 成功 |
-| requestSchema | 公共 Request Schema | 有调用方 Request 时声明；指向 Skill 自有 schemas/ 文件，不得复制外部 Owner Schema |
-| capabilities | Skill 请求的授权上界 | 使用外部 Tool Operation 时显式声明；只列 Capability ID，Compiler 做精确 membership / Effect 校验 |
-| inputs | Procedure 入口输入投影 | 有输入时声明；每个字段显式绑定到 Request 或 Host Context SourcePath |
-| start | 唯一入口 Node | 必须存在；入口门禁可由显式 Observation 获取事实，再由 Precondition 作出判断；受保护 Mutation 不得绕过 Precondition PASS |
-| nodes | 唯一 Procedure 执行图 | 每个 Node 只能有一个主动作；成功路径必须经过最终 Postcondition |
+| goal | Skill 的业务目标 | 必须声明；不等于某个 Operation 成功 |
+| inputs.requestSchema | 公共 Request Schema | 有调用方 Request 时声明；指向 Skill 自有 `schemas/` 文件 |
+| context.requiredFacts | 运行前必须可用的事实标识 | 只声明事实身份，不代替字段 Schema；缺失时 Admission / Runtime 必须明确拒绝或阻塞 |
+| context.schemas | 使用的 Host Context Projection Schema | 引用 Owner 发布的精确 Schema 身份；不得复制到 Skill 包 |
+| dependencies | 公共依赖声明 | 声明依赖 Alias 对应的稳定 Owner / Package 身份；不声明版本、URL、digest 或获取方式 |
+| allowedResources.capabilities | Skill 请求的授权上界 | 只列 Capability ID；Compiler 对每个外部 callable 做精确 membership / Effect 校验 |
 
-以下信息不再由作者重复维护：
+### 11.4 字段归属与省略规则
 
-- Skill 名称 / 身份：由 Package 根目录确定，不再填写 metadata.name；
-- apiVersion / kind：由 Compiler Target 和源文件路径 / 结构确定，在编译产物中记录；
-- skillType：由可执行 Procedure 源文件确定，是否保留为可选展示属性待评审；
-- entryProcedure：每个 Skill 只有一张入口 Procedure 图，因此不需要额外引用；
-- Procedure 的 start / nodes：只在 procedure.yaml 声明，不在 Contract 中重复；
-- SkillContract.postconditions：最终条件就是 Procedure 图中的最终 Postcondition 节点，不再在 Contract 层重复执行或重复声明；
-- dependency 版本、digest、下载 URL、仓库分支和锁定状态：由 Skill Studio 的依赖选择 / 快照配置管理，不写入 Skill 公共契约源码；
-- Evidence Envelope Schema：由 Host / Runtime 统一定义和校验，不由 Skill 重复声明。
+- `apiVersion`、`kind`：不写入作者源码。语言版本由 BuildRequest / Compiler Target 决定；文件路径和内容结构决定源文件类型。
+- `metadata.name`：由 Skill Package 根目录确定，不重复维护。
+- `skillType`：vNext Skill 都使用统一执行模型；除非未来出现有实质语义差异的 Skill 类型，否则不作为必填字段。
+- `entryProcedure`：每个 Skill 只有一张入口 Procedure 图，入口由唯一 `procedure.yaml` 确定。
+- `postconditions`：不在 Contract 重复声明。最终 Postcondition 是 Procedure 图中的真实节点，具有显式 arguments、执行位置、Evidence lineage 和 PASS / FAIL / UNKNOWN 路由。
+- `context.projections`：不另建第二份字段级投影表。实际使用的 `context.subject` / `context.facts` / `context.ingress` SourcePath 由 Procedure 显式声明；对应 Schema 身份仍在 Contract 的 `context.schemas` 中声明。
+- `evidenceSchema`：通用 Evidence Envelope 由 Host / Runtime 统一定义和校验，不由 Skill 重复声明。
+- `planning.allowDynamicProcedure`：不再需要。vNext Procedure 是静态 DAG，动态生成执行图不属于语言能力。
+- `planning.maxActions`：暂不放入 Skill Contract；执行预算属于 Host / Deployment Runtime Policy，除非后续证明它是 Skill 业务语义的一部分。
+- `failureSemantics.outcomeUnknown.requireReconcile`：Mutation UNKNOWN 后必须对原 Mutation 进行 Reconcile，是通用运行安全规则，不应由每个 Skill 重复开关。Operation Owner 必须发布 Reconcile 契约；无法安全 Reconcile 时不得把 UNKNOWN 当作可重试失败。
 
-Contract 是作者维护的公共 Skill 声明，不是 Compiler 派生物。Compiler 可基于 contract.yaml、procedure.yaml、predicates.yaml 和实际依赖快照生成 Runtime 所需的规范化 CompiledSkill / Contract 投影；是否另行输出名为 SkillContract 的文件由 Runtime 接口决定。
+Contract 中的依赖身份与 Capability Grants 是两件不同的事：Dependency 让 Compiler / Studio 获得并链接 Owner 契约；Capability Grant 才表达 Skill 被允许请求的业务能力。依赖存在不等于获得执行权限，Grant 也不能替代 ToolCatalog / Schema 依赖。
 
-vNext 不允许直接把 Operation ID 放入授权列表，不允许 localTools，不允许把 Host 内部 dataclass 路径写入 Skill，不允许通过 requiredFacts 名称推断字段结构，也不允许物理 lib 路径作为外部身份。
+Skill Studio 创建 Skill 时应让作者从可用的公共依赖目录和可信 CapabilityContracts 中选择依赖与授权，再将稳定身份写入 `contract.yaml`。Studio 负责获取所选依赖的确切快照并把字节交给 Compiler；Compiler 只校验和链接，不联网解析、不下载依赖，也不管理版本锁。依赖快照 / 版本选择属于 Studio 项目配置或 Build 输入，不属于 Skill 公共 Contract。Owner Schema ID 如果自身包含不可变版本标识（例如 `...:v1`），该身份仍必须原样保留；这与在 Contract 顶层重复声明 `apiVersion` 不同。
+
+vNext 不允许直接把 Operation ID 放入 Capability 授权列表，不允许 localTools，不允许把 Host 内部 dataclass 路径写入 Skill，不允许通过 requiredFacts 名称推断字段结构，也不允许使用物理 lib 路径充当公共依赖身份。
 
 ## 12. Procedure
 
