@@ -35,7 +35,7 @@ The Contract remains author-maintained source. Only redundant wrapper fields and
 |---|---|
 | `goal` | Keep: business goal |
 | `inputs.requestSchema` | Keep: Skill-owned public Request |
-| `context.requiredFacts` | Keep: required runtime facts |
+| `context.requiredFacts` | Keep: trusted Host facts required at Admission; dynamic facts are queried by Observation |
 | `context.schemas` | Keep: exact Host-owned Context Schema identities |
 | `dependencies` | Keep: public Owner contract identities required by the Skill |
 | `allowedResources.capabilities` | Keep: requested Capability authorization |
@@ -44,7 +44,7 @@ The Contract remains author-maintained source. Only redundant wrapper fields and
 | `entryProcedure` | Omit: one Procedure entry per Skill |
 | `postconditions` | Move to the final Postcondition node in Procedure |
 | `planning.allowDynamicProcedure` | Omit: static DAG is a language invariant |
-| `planning.maxActions` | Runtime / Deployment Budget Policy for now; pending further review |
+| `planning.maxActions` | Superseded; optional `limits.maxActions` imposes a stricter Skill action bound. Host's positive budget is mandatory |
 | `failureSemantics.outcomeUnknown.requireReconcile` | General safety rule for Mutation UNKNOWN, not a per-Skill toggle |
 
 Dependencies and Capability Grants are different: dependencies make Owner contracts available for linking; grants express the Skill's authorization request. A dependency does not grant permission, and a grant does not provide the ToolCatalog / Schema contract needed to compile a reference.
@@ -61,7 +61,7 @@ Studio should guide authors through selection rather than requiring manual entry
 
 Selections remain editable later in Dependencies / Capabilities views. Studio fetches exact dependency snapshots and supplies them to Compiler. Compiler parses, links and validates only; it does not download dependencies or manage dependency versions.
 
-The Contract stores stable public dependency identities, not download URLs, branches, version locks or digests. If an Owner Schema ID itself contains an immutable revision marker (for example `...:v1`), preserve it exactly.
+The Contract maps each dependency Alias to a stable Package ID. BuildRequest snapshots include `{alias,id,files}` and a publisher `dependency.yaml` identity Manifest; Compiler matches Contract, Snapshot, Manifest and Owner exports. Contract does not store download URLs, branches, version locks or digests. If an Owner Schema ID itself contains an immutable revision marker (for example `...:v1`), preserve it exactly.
 
 ## 5. Further reading
 
