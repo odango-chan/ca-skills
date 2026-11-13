@@ -414,3 +414,21 @@ All 36 `expect` blocks were also read. Every case currently declares `planningSt
 The expected Contract postconditions intentionally distinguish `PASS`, `FAIL`, `UNKNOWN`, and `NOT_EVALUATED`; notably, a stopped or failed invocation may still require `createdsession.resources.managed = PASS` if a resource was already created and the responsibility handoff completed. Case 16 specifically expects the responsibility predicate to remain UNKNOWN when the manager receipt is missing. These values must not be normalized into one generic failure result.
 
 The complete expected postcondition inventory remains in the original case files in ca-agent-demo; the official vNext Skill does not duplicate those legacy YAML envelopes. Case 32 remains the one identified unresolved expected-outcome conflict (§15.2).
+### 14.8 Host-owned READ Operation contracts: exact source and migration boundary
+
+The two missing Host READ Operations already have a concrete source of truth in the Demo Host: `CreatedSessionReferenceJournal.lifecycle(lifecycleRef)`. The current legacy adapter `CreatedSessionReferenceObservationSource` projects the same journal state into Observation values, but vNext must expose it through the Owner's READ Operation output because the Procedure binds the Operation output directly.
+
+| Operation | Input | Output (normalized Host value) | Effect |
+|---|---|---|---|
+| `ca.session.lifecycle.registration.read` | `ueRef`, `lifecycleRef` | `lifecycleRef`, `registrationState`, `receiverState`, `lateResultResponsibility` | READ |
+| `ca.session.resource_responsibility.read` | `ueRef`, `lifecycleRef` | `lifecycleRef`, `managementState`, `allResourcesCovered`, `pendingResponsibilitiesRetained`, optional `transferRef` | READ |
+
+Owner-side rules:
+
+- Both supplied identifiers must exactly match the frozen invocation context (`subject.ueRef` and `facts.createdsession_lifecycle`); they are selectors, not caller assertions.
+- The source is the durable Host reference journal. No Provider/Fabric request is made, no resource mutation occurs, and no old Observation registry is consulted.
+- Lifecycle output reports the journal's durable registration and receiver readiness. A missing record or missing freshness metadata returns unresolved, never a fabricated READY value.
+- Responsibility output maps journal state to `ACCEPTED` only for the exact recorded transfer; otherwise it reports `RETAINED`. `allResourcesCovered` is true only after that transfer. Pending late-result responsibility remains independently represented.
+- The output Schemas are Host-owned normalized values, not copies of the SQLite row or the full journal/evidence envelope.
+
+**Why these Operations are not added to the current legacy ToolCatalog in isolation:** the current Demo registration test intentionally requires exact equality between the legacy Skill's allowed Operation set, the ToolCatalog Operation set and the frozen registration map. Adding vNext-only Operations to that catalog would either expand the legacy Skill's grant surface or break its exact registration invariant. Publish these READ exports together with the vNext deployment ToolCatalog/CapabilityContracts snapshot and its registration transition; do not silently widen the legacy Skill's authority merely to make the new source link.
