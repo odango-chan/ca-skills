@@ -15,7 +15,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS_ROOT = ROOT / "skills"
-CURRENT_SKILLS = ("establish-pdu-session", "establish-pdu-session-mas")
+CURRENT_SKILLS = ("establish-pdu-session",)
+DESIGN_CANDIDATES = frozenset({"establish-pdu-session-mas"})
 ASSURANCE_FILES = ("contract.yaml", "procedure.yaml", "predicates.yaml")
 SCRIPT_REF_RE = re.compile(r"(?m)^\s*(?:script|ref):\s*(scripts/[^\s#]+)\s*(?:#.*)?$")
 RUN_PRODUCED_FACT_IDS = ("virtual_group.id",)
@@ -36,10 +37,10 @@ def validate_package_layout(skill: Path, errors: list[str]) -> None:
             errors.append(f"{skill.name}: assurance must be a directory")
         else:
             present = {name for name in ASSURANCE_FILES if (assurance / name).is_file()}
-            if present and present != set(ASSURANCE_FILES):
+            if present and present != set(ASSURANCE_FILES) and skill.name not in DESIGN_CANDIDATES:
                 missing = ", ".join(sorted(set(ASSURANCE_FILES) - present))
                 errors.append(f"{skill.name}: partial assurance package; missing {missing}")
-            if not present:
+            if not present and skill.name not in DESIGN_CANDIDATES:
                 errors.append(f"{skill.name}: empty assurance/ is ambiguous; remove it or provide the complete contract/procedure/predicates trio")
             if (assurance / "evidence.yaml").exists():
                 errors.append(f"{skill.name}: legacy assurance/evidence.yaml is forbidden; observations and predicates belong in predicates.yaml")
@@ -291,7 +292,8 @@ def main() -> None:
     fail(errors)
 
     print(f"PACKAGE_LAYOUT_OK ({len(packages)} Skill directories)")
-    print("CURRENT_5GC_SOURCE_OK (2 official packages)")
+    print("CURRENT_5GC_SOURCE_OK (1 executable official package)")
+    print(f"DESIGN_CANDIDATES_RETAINED ({len(DESIGN_CANDIDATES)})")
     print("SCRIPT_CONTRACT_SHAPE_OK")
     print("IMPORTED_TOOL_CATALOG_OK (12 Operations)")
     print("SEMANTIC_TOKEN_REGISTRY_OK (v0.2.0)")
