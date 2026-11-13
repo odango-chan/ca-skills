@@ -1,0 +1,111 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: https://connectionagent.io/ca-agent-host/createdsession/udm-runtime-value/v1alpha1/schema.yaml
+title: Host-normalized CreatedSession UDM READ result
+description: Exact business-value projection returned by CreatedSessionUDMResult.runtime_value(). Provider wire identity, deployment binding, responder evidence and response-body digest remain outside this Skill-facing value.
+type: object
+additionalProperties: false
+required: [operationId, transactionRef, requestRef, fabricRecordRef, fabricRecordDigest, eventTime, networkOutcome, selection]
+properties:
+  operationId: {const: GetSmData}
+  transactionRef: {type: string, minLength: 1, maxLength: 512}
+  requestRef: {type: string, minLength: 1, maxLength: 512}
+  fabricRecordRef: {type: string, minLength: 1, maxLength: 512}
+  fabricRecordDigest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
+  eventTime: {type: string, format: date-time}
+  networkOutcome: {enum: [HTTP_RESPONSE, TIMEOUT, TRANSPORT_FAILURE]}
+  selection: {enum: [MATCHED, NO_MATCH, AMBIGUOUS, INVALID_PAYLOAD, INVALID_PROFILE_DATA, UNSUPPORTED_VARIANT, UNSUPPORTED_ENUM, HTTP_ERROR, NOT_EVALUATED]}
+  httpStatus: {type: integer, minimum: 200, maximum: 599}
+  responseOrigin: {enum: [TARGET_SERVICE_VIA_SCP, SCP, FABRIC, UNKNOWN]}
+  captureComplete: {type: boolean}
+  responseRef: {type: string, minLength: 1, maxLength: 512}
+  subscription:
+    type: object
+    additionalProperties: false
+    required: [sNssai, dnn, pduSessionTypes, sscModes]
+    properties:
+      sNssai:
+        type: object
+        additionalProperties: false
+        required: [sst]
+        properties:
+          sst: {type: integer, minimum: 0, maximum: 255}
+          sd: {type: integer, minimum: 0, maximum: 16777214}
+      dnn:
+        type: string
+        minLength: 1
+        maxLength: 253
+        pattern: '^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$'
+      pduSessionTypes:
+        type: object
+        additionalProperties: false
+        required: [defaultSessionType]
+        properties:
+          defaultSessionType: {enum: [IPV4, IPV6, IPV4V6]}
+          allowedSessionTypes:
+            type: array
+            minItems: 1
+            uniqueItems: true
+            items: {enum: [IPV4, IPV6, IPV4V6]}
+      sscModes:
+        type: object
+        additionalProperties: false
+        required: [defaultSscMode]
+        properties:
+          defaultSscMode: {type: integer, minimum: 1, maximum: 3}
+          allowedSscModes:
+            type: array
+            minItems: 1
+            uniqueItems: true
+            items: {type: integer, minimum: 1, maximum: 3}
+      sessionAmbr:
+        type: object
+        additionalProperties: false
+        required: [uplink, downlink]
+        properties:
+          uplink:
+            type: string
+            pattern: '^[0-9]+(?:\.[0-9]+)? (?:bps|Kbps|Mbps|Gbps|Tbps)$'
+          downlink:
+            type: string
+            pattern: '^[0-9]+(?:\.[0-9]+)? (?:bps|Kbps|Mbps|Gbps|Tbps)$'
+      defaultQos:
+        type: object
+        additionalProperties: false
+        required: [fiveQi, arp]
+        properties:
+          fiveQi: {type: integer, minimum: 0, maximum: 255}
+          arp:
+            type: object
+            additionalProperties: false
+            required: [priorityLevel, preemptCap, preemptVuln]
+            properties:
+              priorityLevel: {type: integer, minimum: 1, maximum: 15}
+              preemptCap: {enum: [MAY_PREEMPT, NOT_PREEMPT]}
+              preemptVuln: {enum: [PREEMPTABLE, NOT_PREEMPTABLE]}
+allOf:
+  - if:
+      properties: {networkOutcome: {const: HTTP_RESPONSE}}
+      required: [networkOutcome]
+    then:
+      required: [httpStatus, responseOrigin, captureComplete, responseRef]
+  - if:
+      properties: {networkOutcome: {enum: [TIMEOUT, TRANSPORT_FAILURE]}}
+      required: [networkOutcome]
+    then:
+      not:
+        anyOf:
+          - required: [httpStatus]
+          - required: [responseOrigin]
+          - required: [captureComplete]
+          - required: [responseRef]
+  - if:
+      properties: {selection: {const: MATCHED}}
+      required: [selection]
+    then:
+      required: [subscription]
+  - if:
+      properties: {selection: {enum: [NO_MATCH, AMBIGUOUS, INVALID_PAYLOAD, INVALID_PROFILE_DATA, UNSUPPORTED_VARIANT, UNSUPPORTED_ENUM, HTTP_ERROR, NOT_EVALUATED]}}
+      required: [selection]
+    then:
+      not:
+        required: [subscription]
