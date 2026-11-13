@@ -1613,17 +1613,25 @@ Compiler MUST NOT 联网获取依赖、管理版本 / Lock / Cache / Workspace�
 Skill Studio 是 CA-SL 作者工作环境，不是第二个语言实现。应提供：
 
 1. YAML 语法、缩进、字段补全和非法字段提示；
-2. Skill / Procedure / Node / Operation / Observation / Capability / Predicate / Schema / Script 语义高亮；
-3. Definition：跳转 ToolCatalog、Owner Schema 和 Python Script；
-4. References：查询调用点；
-5. Hover：Owner、Effect、Schema、Capability、Scope / Freshness / Evidence 保证；
-6. Completion：只补全当前依赖快照中真实存在的导出身份；
-7. Diagnostics：区分语法、链接、类型、授权和业务警告；
-8. Procedure Designer：显示真实执行图、入口 / 最终门禁、Node、Predicate 和分支；
-9. Data Flow：展示 Context / Operation / Observation 到 Predicate 的值流和 Evidence 关联；
-10. Package View：区分 Skill 自有文件、只读依赖和生成 Artifact；
-11. Case View：展示语义义务，不伪装成 Runtime 结果；
-12. Owner Inspection：展示 Schema / Tool / Observation 的 Owner 和导出身份。
+2. Skill 创建向导：选择模板 / 空白 Skill、定义 Goal、创建或选择公共 Request Schema；
+3. Dependencies 视图：从可用公共目录选择 Host Context、ToolCatalog、Observation 和共享 Schema 契约；显示 Owner、稳定身份、导出内容和依赖影响；
+4. Capabilities 视图：从可信部署 CapabilityContracts 选择授权范围，解释每个 Capability 包含的精确 callable 与 Effect；不得把依赖选择误当成授权；
+5. Context Requirements 视图：选择 required Facts 和 Subject / Facts / Ingress 等 Host Projection，并将稳定 Schema 身份写入 Contract；
+6. Contract 编辑器：将 Goal、Request、Context、Dependencies 和 Capability Grants 持久化到 `assurance/contract.yaml`；
+7. Dependency Resolution：获取作者选择的确切依赖快照并将其作为 BuildRequest 输入；版本 / 快照状态保存在 Studio 项目配置或 Build 输入，不写入 Skill 公共 Contract；
+8. Skill / Procedure / Node / Operation / Observation / Capability / Predicate / Schema / Script 语义高亮；
+9. Definition：跳转 ToolCatalog、Owner Schema 和 Python Script；
+10. References：查询调用点；
+11. Hover：Owner、Effect、Schema、Capability、Scope / Freshness / Evidence 保证；
+12. Completion：只补全当前已选依赖快照中真实存在的导出身份；
+13. Diagnostics：区分语法、链接、类型、授权和业务警告；
+14. Procedure Designer：显示真实执行图、入口 / 最终门禁、Node、Predicate 和分支；
+15. Data Flow：展示 Context / Operation / Observation 到 Predicate 的值流和 Evidence 关联；
+16. Package View：区分 Skill 自有文件、只读依赖和生成 Artifact；
+17. Case View：展示语义义务，不伪装成 Runtime 结果；
+18. Owner Inspection：展示 Schema / Tool / Observation 的 Owner 和导出身份。
+
+依赖和 Capability 选择不是一次性的创建向导行为；作者后续可以在 Dependencies / Capabilities 视图增删声明、检查影响并重新解析。Studio 不得静默改变 Skill 的公共依赖或 Capability Grants。
 
 语法颜色不代表链接成功；Definition 能跳转不代表 Runtime 已授权；Schema Completion 不代表 Tool 已部署；Build PASS 不代表真实 5GC PASS；Case 已定义不代表已执行；Evidence Ref 可见不代表校验通过。
 
