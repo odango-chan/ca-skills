@@ -1289,12 +1289,7 @@ predicates:
 ## 30. Procedure
 
 ~~~yaml
-goal: pdu_session.initial_request_fulfilled
-requestSchema: schemas/establishment-request.schema.yaml
-capabilities:
-  - fivegc-session-read
-  - fivegc-session-mutation
-  - fivegc-session-assurance
+# assurance/procedure.yaml — 公共声明仅在 §28 contract.yaml 中
 inputs:
   ueRef: context.subject.ueRef
   pduSessionId: context.request.pduSessionId
@@ -1393,9 +1388,30 @@ nodes:
     operation:
       reconcile: create-pcf-association
     'on':
-      COMMITTED: verify-pcf-association
+      COMMITTED: inspect-pcf-after-reconcile
       NOT_COMMITTED: failed
       UNRESOLVED: unresolved
+
+  # Reconcile 已确认提交，但原 Create 成功响应不一定存在
+  inspect-pcf-after-reconcile:
+    observation: ca::pcf.policy_association.current
+    arguments:
+      ueRef: input.ueRef
+      pduSessionId: input.pduSessionId
+    'on':
+      SUCCEEDED: verify-reconciled-pcf
+      FAILED: failed
+      UNKNOWN: unresolved
+
+  verify-reconciled-pcf:
+    postcondition:
+      predicate: createdsession.pcf.association_owned
+      arguments:
+        - inspect-pcf-after-reconcile.output
+    'on':
+      PASS: create-n4-session
+      FAIL: failed
+      UNKNOWN: unresolved
 
   create-n4-session:
     operation: ca::UPN.CREATE_UP_SESSION
@@ -1442,8 +1458,8 @@ nodes:
       DENIED: failed
 
   # 本示例假设 Operation Result 尚不足以独立证明最终 N4 / RAN 资源一致性，
-  # 因此显式查询权威状态。若 Operation Result 已满足 Predicate 的全部要求，
-  # 可直接从 modify-n4-forwarding 路由到 verify-final-state。
+  # 因此显式查询权威状态。若 Operation Result 足够，需改写 Predicate
+  # 输入绑定并删除 Observation 节点，不得直接绕过尚未产生的输出。
   inspect-final-state:
     observation: ca::session.establishment.final_state
     arguments:
@@ -1459,9 +1475,8 @@ nodes:
     postcondition:
       predicate: createdsession.session.established
       arguments:
-        - signal-ran.output.result
-        - modify-n4-forwarding.output.result
-        - inspect-final-state.output
+        - inspect-final-state.output.ranSetup
+        - inspect-final-state.output.n4Forwarding
     'on':
       PASS: complete
       FAIL: failed
@@ -1480,8 +1495,8 @@ nodes:
 - Observation 不是 Operation 的必经步骤。本示例只在假设 Operation Result 不足以证明最终状态时才查询；若 Operation 已提供充分结果和 Evidence，可直接执行 Postcondition。
 - Observation 可以使用 Operation Result 中的 Session Instance Ref 作为查询参数，但查询结果必须由 Observation Owner 实际产生，不能伪装来源。
 - UPN.CREATE_UP_SESSION、SSM.SIGNAL_UE_AN、UPN.MODIFY_UP_SESSION 是目标设计中的异步完成责任映射，不代表 Owner 已发布正式 ToolCatalog。
-- 示例中的 dependency alias、Schema ID 和字段是教学示意，不是当前依赖快照的可链接声明。
-- 示例未展开 PCF Hold、UDM Hold、Lifecycle Gate、资源责任和完整 Reconcile，不得代替真实 5GC Skill。
+- 示例中的 dependency alias、Schema ID 和字段是教学示意，不是当前依赖快照的可链接声明。尤其 inspect-final-state.output.ranSetup / n4Forwarding 必须由 Owner 提供与 §29 参数类型相符的精确 Schema。
+- 示例未展开 PCF Hold、UDM Hold、Lifecycle Gate、资源责任和全部 Mutation 的 Reconcile，不得代替真实 5GC Skill；未有 Owner Reconcile 契约的 UNKNOWN 路由只能 UNRESOLVED / SAFE_STOPPED，不得盲目重试。
 - 真实主线必须保留既有业务顺序和 Owner 约束，不能因示例简化而移除 Hold / Lifecycle / Correlation。
 
 ## 31. Operation 与 Observation 对照
