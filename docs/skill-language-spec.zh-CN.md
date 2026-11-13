@@ -346,15 +346,17 @@ spec:
     - id: provider-5gc.session-mutation
       owner: deployment
       callables:
-        - id: provider-5gc::sbi.udm.sdm_subscription.create
+        - owner: provider-5gc
+          id: sbi.udm.sdm_subscription.create
           kind: operation
           effect: MUTATION
-        - id: provider-5gc::smf.session.n4_resources
+        - owner: smf-owner
+          id: smf.session.n4_resources
           kind: observation
           effect: READ
 ~~~
 
-每个被调用 callable 必须且只能映射到一个 Capability；Effect 必须与 ToolCatalog 一致；Skill 只能 grant Capability ID；缺失、重复或 Effect 不一致必须 fail-closed；Runtime 必须重新执行授权和 Effect Admission。该 YAML 是候选表达，必须与部署侧真实 CapabilityContracts 结构统一。
+CapabilityContracts 使用稳定 Owner 身份 + 精确 callable ID + kind 标识成员，不得使用 BuildRequest 中临时的 Dependency Alias。Compiler 先通过 Skill 源码中的 Alias 找到 ToolCatalog，再以其 metadata.owner 和 callable 身份链接到 CapabilityContracts。每个被调用 callable 必须且只能映射到一个 Capability；Effect 必须与 ToolCatalog 一致；Skill 只能 grant Capability ID；缺失、重复或 Effect 不一致必须 fail-closed；Runtime 必须重新执行授权和 Effect Admission。该 YAML 是候选表达，必须与部署侧真实 CapabilityContracts 结构统一。
 
 ---
 
@@ -689,7 +691,7 @@ Skill Studio 可以提供语义 ID 建议和批量生成显式映射，但保存
 predicates:
   createdsession.udm.subscription_usable:
     parameters:
-      - subscription: fivegc-tools::schemas/udm-subscription-result:v1
+      - subscription: fivegc-tools::urn:connectionagent:5gc:tool-output:udm-subscription-result:v1
       - requestedDnn: string
     evaluator:
       type: cel
@@ -1032,7 +1034,7 @@ Skill 不直接 grant Operation，只授予部署侧定义的 Capability。
 predicates:
   createdsession.ue.registered:
     parameters:
-      - registration: fivegc-observations::schemas/ue-registration:v1
+      - registration: fivegc-observations::urn:connectionagent:5gc:observation:ue-registration:v1
     evaluator:
       type: cel
       expression: registration.state == "REGISTERED" &&
@@ -1049,8 +1051,8 @@ predicates:
 
   createdsession.session.established:
     parameters:
-      - ranSetup: fivegc-observations::schemas/ran-setup-result:v1
-      - n4Forwarding: fivegc-observations::schemas/n4-forwarding-result:v1
+      - ranSetup: fivegc-observations::urn:connectionagent:5gc:observation:ran-setup-result:v1
+      - n4Forwarding: fivegc-observations::urn:connectionagent:5gc:observation:n4-forwarding-result:v1
     evaluator:
       type: cel
       expression: ranSetup.accepted == true &&
