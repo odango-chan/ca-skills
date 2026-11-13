@@ -722,7 +722,7 @@ Observation 是 ToolCatalog 中由权威 Owner 发布的只读查询能力。它
 
 ~~~yaml
 inspect-policy:
-  observation: fivegc-observations::pcf.policy_association.current
+  observation: ca::pcf.policy_association.current
   arguments:
     ueRef: input.ueRef
     pduSessionId: input.pduSessionId
@@ -736,7 +736,7 @@ Observation 的 arguments 同样是具名映射，并按 Query Input Schema 校�
 
 ~~~yaml
 inspect-n4-resources:
-  observation: fivegc-observations::smf.session.n4_resources
+  observation: ca::smf.session.n4_resources
   arguments:
     sessionInstanceRef: create-n4-session.output.sessionInstanceRef
     smfSeid: create-n4-session.output.smfSeid
@@ -1198,17 +1198,32 @@ properties:
 
 UE 身份来自 Host Subject，而不是调用方任意伪造的 UE Ref。
 
-## 28. 5GC Skill Procedure 源码根
+## 28. 5GC Skill 公共契约与 Procedure 入口
 
 ~~~yaml
-# assurance/procedure.yaml
+# assurance/contract.yaml（Owner ID 为教学占位，非已发布契约）
 goal: pdu_session.initial_request_fulfilled
-requestSchema: schemas/establishment-request.schema.yaml
-capabilities:
-  - fivegc-session-read
-  - fivegc-session-mutation
-  - fivegc-session-assurance
+inputs:
+  requestSchema: schemas/establishment-request.schema.yaml
+context:
+  requiredFacts: [createdsession_ingress, createdsession_lifecycle]
+  schemas:
+    subject: host-context::urn:connectionagent:5gc:skill-context:subject:v1
+    facts: host-context::urn:connectionagent:5gc:skill-context:facts:v1
+dependencies:
+  host-context:
+    id: urn:example:connectionagent:host-context
+  ca:
+    id: urn:example:connectionagent:5gc-tool-contracts
+allowedResources:
+  capabilities:
+    - fivegc-session-read
+    - fivegc-session-mutation
+    - fivegc-session-assurance
+~~~
 
+~~~yaml
+# assurance/procedure.yaml（只展示入口；完整简化流程见 §30）
 inputs:
   ueRef: context.subject.ueRef
   pduSessionId: context.request.pduSessionId
@@ -1218,7 +1233,7 @@ inputs:
 start: observe-ue-registration
 nodes:
   observe-ue-registration:
-    observation: fivegc-observations::ue.registration.current
+    observation: ca::ue.registration.current
     arguments:
       ueRef: input.ueRef
     'on':
@@ -1234,12 +1249,10 @@ nodes:
       PASS: read-udm-subscription
       FAIL: failed
       UNKNOWN: unresolved
-  # 其余业务节点略
+  # 后续节点见 §30；此片段不能单独作为完整 Procedure 编译
 ~~~
 
-Skill 不直接 Grant Operation，只在源码根字段中声明所需 Capability。每个 Operation / Observation callable 必须由 ToolCatalog 精确解析，并由可信 CapabilityContracts 证明属于恰好一个已 Grant Capability 且 Effect 一致。
-
-最终业务条件不再在 SkillContract 中重复声明。它必须作为 Procedure 图中的最终 Postcondition 节点，并且所有 SUCCEEDED Terminal 都只能从该节点的 PASS 路径到达。
+这两个文件的职责不能合并：只有 Contract 可以声明 Goal、公共 Schema、依赖与 Capability Grants；只有 Procedure 承载执行图和最终 Postcondition。此处的 urn:example 身份是教学样例，不宣称真实 Owner 已发布或可以通过当前 Compiler 链接。完整可链接的目标样例需要 Owner 正式快照和 §34 的身份校验。
 
 ## 29. PredicateSet
 
@@ -1247,7 +1260,7 @@ Skill 不直接 Grant Operation，只在源码根字段中声明所需 Capabilit
 predicates:
   createdsession.ue.registered:
     parameters:
-      - registration: fivegc-observations::urn:connectionagent:5gc:observation:ue-registration:v1
+      - registration: ca::urn:connectionagent:5gc:observation:ue-registration:v1
     evaluator:
       type: cel
       expression: registration.state == "REGISTERED" &&
@@ -1264,8 +1277,8 @@ predicates:
 
   createdsession.session.established:
     parameters:
-      - ranSetup: fivegc-observations::urn:connectionagent:5gc:observation:ran-setup-result:v1
-      - n4Forwarding: fivegc-observations::urn:connectionagent:5gc:observation:n4-forwarding-result:v1
+      - ranSetup: ca::urn:connectionagent:5gc:observation:ran-setup-result:v1
+      - n4Forwarding: ca::urn:connectionagent:5gc:observation:n4-forwarding-result:v1
     evaluator:
       type: cel
       expression: ranSetup.accepted == true &&
@@ -1291,7 +1304,7 @@ inputs:
 start: observe-ue-registration
 nodes:
   observe-ue-registration:
-    observation: fivegc-observations::ue.registration.current
+    observation: ca::ue.registration.current
     arguments:
       ueRef: input.ueRef
     'on':
@@ -1432,7 +1445,7 @@ nodes:
   # 因此显式查询权威状态。若 Operation Result 已满足 Predicate 的全部要求，
   # 可直接从 modify-n4-forwarding 路由到 verify-final-state。
   inspect-final-state:
-    observation: fivegc-observations::session.establishment.final_state
+    observation: ca::session.establishment.final_state
     arguments:
       ueRef: input.ueRef
       pduSessionId: input.pduSessionId
@@ -1483,7 +1496,7 @@ create-policy:
 
 # Observation：只有在需要补充权威事实时才查询
 read-policy-state:
-  observation: fivegc-observations::pcf.policy_association.current
+  observation: ca::pcf.policy_association.current
   arguments:
     ueRef: input.ueRef
     pduSessionId: input.pduSessionId
