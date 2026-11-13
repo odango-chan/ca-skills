@@ -824,10 +824,7 @@ vNext 删除 Procedure Node 上的 `with` / `from` / `value` 包装，统一使�
 - Precondition / Postcondition.arguments：有序列表，位置与 Predicate.parameters 严格对应。
 
 ~~~yaml
-goal: pdu_session.initial_request_fulfilled
-requestSchema: schemas/establishment-request.schema.yaml
-capabilities:
-  - fivegc-session-mutation
+# assurance/procedure.yaml 的语法片段；Goal/授权属于 contract.yaml
 inputs:
   ueRef: context.subject.ueRef
   dnn: context.request.dnn
@@ -842,6 +839,8 @@ nodes:
       SUCCEEDED: verify-session
       FAILED: failed
 ~~~
+
+该片段仅示范参数表达，不是完整可执行图：所有跳转目标以及最终 Postcondition / Terminal 必须在完整源文件中定义。
 
 ### 13.2 参数表达式与 SourcePath
 
