@@ -1,13 +1,14 @@
-# Skill-owned Python Script Contract — Companion Specification
+# Skill-owned Python Predicate Evaluator Contract
 
-**Status:** Detailed companion contract. The [CA-SL vNext Specification](skill-language-spec.zh-CN.md) is the sole normative language authority. If any wording here conflicts with it, the CA-SL specification takes precedence.
+**Status:** Companion implementation contract. The [CA-SL vNext Specification](skill-language-spec.zh-CN.md) is the sole normative language authority. If any wording here conflicts with it, the specification takes precedence.
 
-This document may retain implementation-level detail for supported Python annotations, TypedDict output derivation and static restrictions. It must not introduce a second Script input schema, separate Tool identity, or semantics that differ from CA-SL.
+Python Script is an implementation of a Predicate evaluator, not an independent Procedure node, Tool, Operation, or general-purpose computation step.
 
 Core rules:
-- The only entry point is main(input: dict) -> OutputTypedDict.
-- Procedure Script input derives from its explicit call-site with bindings.
-- Predicate Script input derives from its owning Predicate parameters signature.
-- Host / Runtime attaches reserved Evidence refs; Script cannot create or widen them.
-- Compiler generates Output Schema from the return TypedDict and does not execute Python.
-- Scripts are deterministic local computation only and cannot call external systems.
+- The only entry point is `main(input: dict) -> PredicateOutcome`.
+- `PredicateOutcome` is exactly `Literal["PASS", "FAIL", "UNKNOWN"]`.
+- Business input types derive from the owning Predicate's ordered `parameters` signature.
+- Host / Runtime may attach reserved, read-only Evidence refs; Script cannot create, modify, rebind, or widen them.
+- Compiler / LSP provides the derived read-only input type environment; authors do not maintain a duplicate Script Input Schema.
+- Script cannot access network, HTTP, MCP, shell, database, filesystem, credentials, environment variables, clock, or randomness.
+- Compiler validates annotations and restrictions without executing Python to infer schemas or behavior.
