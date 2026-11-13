@@ -12,6 +12,8 @@ The first executable migration/acceptance baseline remains the conventional 5GC 
 
 The existing Agent-demo MAS ToolCatalog is explicitly marked **NOT_READY**. It is useful as a gap inventory, not as an imported ToolCatalog, Capability registry, or source of authoritative Schemas. Do not copy its broad object outputs, inferred stateRef projections, or proposed ca.pdu_session.* Operation identities into the official vNext package.
 
+The legacy `skills/establish-pdu-session-mas/assurance/procedure.yaml` has been removed from the active Skill source package because it still used the v1alpha1 `procedures:` wrapper, hand-authored input types, and legacy Context paths. Its business mapping is retained in this document. Do not restore an executable `assurance/contract.yaml`, `procedure.yaml`, `predicates.yaml`, or request Schema until the exact Owner ToolCatalog, typed Schemas, CapabilityContracts, and Host ingress/context contracts are available. This is an intentional **not-yet-migrated** state, not a v1alpha2 stub and not a buildable Skill.
+
 ## 2. Authoritative business sequence
 
 The source mapping uses the Scheme C v0.3.3 certified Establish Plan and its Catalog version sm-mas-ops/3.2 as the business-order reference. The operation inventory below is a design-backed interface inventory; it is not a substitute for the SMF Owner's versioned vNext ToolCatalog export.
