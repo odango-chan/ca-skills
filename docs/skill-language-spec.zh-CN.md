@@ -231,7 +231,7 @@ Payload 是 Predicate 判断的业务值；Evidence 是 Host 判断该值是否�
 
 ### 6.10 Script、Case、Reference
 
-- **Script：** Skill Package 自有确定性 Python，仅作为 Predicate 的 evaluator 实现，不是独立 Procedure Node，也不是 Tool / Operation / Capability。
+- **Script：** Skill Package 自有确定性 Python。Procedure Script 是 Operation 节点的纯本地数据转换/选择目标，Predicate Script 是 Predicate 的 evaluator；两者均非独立 Procedure 节点或外部 Tool / Capability。
 - **Case：** 业务场景和预期语义义务声明，不是执行器，不证明真实运行通过。
 - **Reference：** 给 Agent 阅读的补充知识，不是 Tool Schema、Evidence 或自动 Runtime 输入。
 
@@ -1050,7 +1050,7 @@ MUTATION 可能产生外部副作用。执行前 Runtime 必须验证授权、Ef
 - 保留原始 Operation Ref / Invocation / Transaction / Correlation；
 - Reconcile 原 Mutation；
 - 只有明确证明未提交且业务契约允许时，才能发起新的受控尝试；
-- Reconcile 仍无法判断时，结果保持 UNKNOWN / UNRESOLVED。
+- Reconcile 仍无法判断时，结果保持 UNKNOWN / UNRESOLVED。若 Owner 未发布安全的 Reconcile 契约，Runtime 必须保留 UNKNOWN 并安全停止，不得臆造成功结果或隐式发起重试。
 
 Reconcile 不是普通重试。它必须指向原 Mutation，保留原 Scope / Correlation，不得产生新的业务 Mutation。
 
@@ -1175,7 +1175,7 @@ Compiler 不得为让文件编译而创建不存在的 Schema、用 object 逃�
 
 - **UE 尚未注册：** 必须通过可信 Host Context 或 Owner Observation 证明。请求中有 SUPI 不代表 UE 已注册。明确未注册按业务规则 FAIL；无法查询则 UNKNOWN。
 - **UDM 无数据：** 明确无订阅数据可按业务规则 FAIL；UDM 不可用则 UNKNOWN；UE / DNN / S-NSSAI 不匹配则拒绝结果；不得用上一个 UE 缓存补齐。
-- **UDM Subscribe 响应丢失：** 不得重新发送新 Subscribe。必须 Reconcile 原始 Mutation。确认已提交则复用原结果；确认未提交且业务契约允许才可新尝试；无法判断则 UNRESOLVED。
+- **UDM Subscribe 响应丢失：** 不得重新发送新 Subscribe。对原 Mutation 执行可用的 Owner Reconcile。确认已提交不等于原成功 Response 可用；只能使用 Reconcile 保证恢复的类型化结果，或再次独立 Observation 验证当前状态。确认未提交且业务契约允许才可发起受控新尝试；无法判断则 UNRESOLVED。
 - **PCF Association 已存在：** Create 前验证准确的 Pre-N4 状态。已有冲突 Association 必须停止 Create。查询为空与查询失败不能混为一谈。
 - **N4 尚未完成：** N4 异步建立属于 UPN.CREATE_UP_SESSION 内部完成责任。不得在最终完成前返回成功。结果必须关联本次 Policy Association、Lifecycle 和 Session Instance。Skill 不定义 Wait Loop。
 - **AMF N1/N2 Transfer 部分失败：** 区分请求未发送、已发送但未知、明确失败和明确成功。传输超时不能解释为 AMF 未收到。保留 Operation Ref、目标 AMF、Response Artifact 和 Evidence。
@@ -1922,6 +1922,22 @@ Observation 是可选的事实获取机制。若 Operation Result 已包含目�
 ## 71. 为什么 Reconcile 不是独立节点类型？
 
 Reconcile 是原始 Mutation Operation 的受约束调和模式。把它表达为 operation.reconcile: <original-node>，可以复用 Operation 的授权、Owner 契约和 Runtime Admission，同时明确只能调和原始 Mutation，不能发起新的业务 Mutation。
+
+## 72. 为什么 Contract 仍需要 dependencies？
+
+Skill Studio 和 Compiler 需要知道作者实际依赖哪些公共 Owner 契约；不能仅从 Procedure 中偶然出现的 callable 反向推断全部 Context / Schema 要求。Contract 声明稳定 Package 身份，BuildRequest 提供具体快照与 Manifest；依赖可链接不意味着已经获得 Capability 授权。
+
+## 73. 为什么不在 Contract 中写具体版本和下载地址？
+
+这是作者希望使用哪个公共契约，与工作空间当前解析出哪份字节的分离。Contract 固定稳定 Package / Owner 语义，Studio 或 Build 调用方提供确切快照。Schema 本身的精确 $id 若含不可变版本分量必须保留；不等于在 YAML 根重复 apiVersion。
+
+## 74. Reconcile 确认 COMMITTED 后为什么还需要检查输出？
+
+COMMITTED 证明已经发生的外部副作用，不证明丢失的成功响应已被找回。只有 Owner 明确提供同类型的 Reconcile Output Schema 和结果恢复保证，后续才可消费 reconcile-node.output；否则需要使用独立权威 Observation，或在无法恢复时保持 UNRESOLVED。绝不允许从 UNKNOWN 分支偷偷使用原 create-node.output。
+
+## 75. requiredFacts 与入口 Observation 有何区别？
+
+requiredFacts 是 Host 在 Admission 时必须已经提供的可信事实。UE 注册、N4 当前资源等可变权威业务状态可能只有执行 Procedure 后才知道，应由显式 Observation 获取，不应放入 Admission 前提。两者不能因都叫“事实”而混淆。
 
 # 附录 A：关键设计决定
 
