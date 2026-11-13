@@ -2030,4 +2030,202 @@ requiredFacts 是 Host 在 Admission 时必须已经提供的可信事实。UE �
 
 ---
 
+# 附录 E：独立的最小链接样例与负例清单
+
+本附录是供语言评审、Compiler 和 Skill Studio 共同使用的**虚构 Owner Fixture 候选**。它不宣称真实 5GC Owner 已发布以下包或 Tool，也不宣称当前 Compiler 已通过验收。这里所有 `urn:example` 身份属于同一人工构造的 Fixture，不能作为生产身份。
+
+## E.1 Skill 作者源码
+
+~~~yaml
+# skills/verify-ue-registration/assurance/contract.yaml
+goal: ue.registration_verified
+context:
+  schemas:
+    subject: host-context::urn:example:ca:subject:v1
+dependencies:
+  host-context:
+    id: urn:example:ca:host-context
+  ca:
+    id: urn:example:ca:tools
+allowedResources:
+  capabilities:
+    - example.registration-read
+~~~
+
+~~~yaml
+# skills/verify-ue-registration/assurance/procedure.yaml
+inputs:
+  ueRef: context.subject.ueRef
+start: inspect-registration
+nodes:
+  inspect-registration:
+    observation: ca::ue.registration.current
+    arguments:
+      ueRef: input.ueRef
+    'on':
+      SUCCEEDED: verify-registration
+      FAILED: failed
+      UNKNOWN: unresolved
+
+  verify-registration:
+    postcondition:
+      predicate: example.ue.registered
+      arguments:
+        - inspect-registration.output
+    'on':
+      PASS: complete
+      FAIL: failed
+      UNKNOWN: unresolved
+
+  complete:
+    terminal: SUCCEEDED
+  failed:
+    terminal: FAILED
+  unresolved:
+    terminal: UNRESOLVED
+~~~
+
+~~~yaml
+# skills/verify-ue-registration/assurance/predicates.yaml
+predicates:
+  example.ue.registered:
+    parameters:
+      - registration: ca::urn:example:ca:registration:v1
+    evaluator:
+      type: cel
+      expression: >-
+        registration.state == "REGISTERED" &&
+        registration.accessState == "ACTIVE"
+~~~
+
+## E.2 Host Context 依赖快照
+
+~~~yaml
+# BuildRequest.dependencies[alias=host-context]/dependency.yaml
+id: urn:example:ca:host-context
+owners: [example-host-owner]
+~~~
+
+~~~yaml
+# Host Owner 发布的 Schema，且由 host-context Snapshot 提供
+$id: urn:example:ca:subject:v1
+type: object
+additionalProperties: false
+required: [ueRef]
+properties:
+  ueRef:
+    type: string
+    minLength: 1
+~~~
+
+## E.3 Observation Tool 依赖快照
+
+~~~yaml
+# BuildRequest.dependencies[alias=ca]/dependency.yaml
+id: urn:example:ca:tools
+owners: [example-ue-owner]
+~~~
+
+~~~yaml
+# Observation Input Schema，随 ca Snapshot 发布
+$id: urn:example:ca:registration-query:v1
+type: object
+additionalProperties: false
+required: [ueRef]
+properties:
+  ueRef:
+    type: string
+    minLength: 1
+~~~
+
+~~~yaml
+# Observation Output Schema，随 ca Snapshot 发布
+$id: urn:example:ca:registration:v1
+type: object
+additionalProperties: false
+required: [state, accessState]
+properties:
+  state:
+    type: string
+    enum: [REGISTERED, DEREGISTERED]
+  accessState:
+    type: string
+    enum: [ACTIVE, IDLE]
+~~~
+
+~~~yaml
+# ca Snapshot 内的候选 ToolCatalog（结构服从 §9.2）
+apiVersion: connectionagent.io/toolcatalog/v1alpha2
+kind: ToolCatalog
+metadata:
+  name: example-ue-queries
+  owner: example-ue-owner
+spec:
+  contracts:
+    - kind: observation
+      id: ue.registration.current
+      effect: READ
+      adapter: example-ue-query
+      queryContextSchema:
+        $ref: urn:example:ca:registration-query:v1
+      outputSchema:
+        $ref: urn:example:ca:registration:v1
+      guarantees:
+        authority: example-ue-owner
+        scope: [subject]
+        temporal:
+          observedAt: required
+        freshness:
+          policy: owner-declared
+        evidence:
+          correlation: required
+          producerInvocation: required
+~~~
+
+## E.4 可信部署授权与 Build 输入
+
+~~~yaml
+# BuildRequest.capabilityContracts（可信部署输入，非普通依赖文件）
+apiVersion: connectionagent.io/capability-contracts/v1alpha2
+kind: CapabilityContracts
+metadata:
+  name: example-deployment
+spec:
+  capabilities:
+    - id: example.registration-read
+      owner: deployment
+      callables:
+        - owner: example-ue-owner
+          id: ue.registration.current
+          kind: observation
+          effect: READ
+~~~
+
+BuildRequest 提供 `languageVersion`、上述 Skill 文件、`host-context` 和 `ca` 的 `{alias,id,files}` 快照，以及独立可信 CapabilityContracts。Host 对 `context.subject` 提供已通过验证的 UE Ref；Observation Owner 返回 Schema 兼容的业务值及 Host 可验证的 Evidence。Predicate 只根据已绑定参数判断三态。**这一案例的设计期预期为静态可链接；不表示当前 Compiler 已执行通过。**
+
+## E.5 必须存在的正负例
+
+| 场景 | 应产生的结果 |
+|---|---|
+| E01：上面的全套文件、精确 Owner / Alias / Schema 匹配 | 静态链接 PASS（目标行为，待实现验证） |
+| E02：把 procedure.yaml 根加入 goal / allowedResources | SOURCE_ROOT_INVALID |
+| E03：把 Contract 的 ca.id 改成另一个 Package ID | DEPENDENCY_ID_MISMATCH |
+| E04：从 Snapshot 删除 dependency.yaml | DEPENDENCY_MANIFEST_INVALID |
+| E05：ToolCatalog metadata.owner 不属于 Manifest owners | DEPENDENCY_OWNER_MISMATCH |
+| E06：删除 Contract 的 example.registration-read Grant | CAPABILITY_NOT_GRANTED |
+| E07：把 ToolCatalog effect 改为 MUTATION | EFFECT_MISMATCH |
+| E08：Predicate 参数增加一个必填位置参数但不改调用 | PREDICATE_ARITY_MISMATCH |
+| E09：把 Predicate 所需 Registration 结构替换成 input.ueRef 字符串 | PREDICATE_TYPE_MISMATCH |
+| E10：在另一个分支 Reconcile COMMITTED 后读取丢失的原 Operation 成功 output | SOURCE_NOT_AVAILABLE / RECONCILE_OUTPUT_UNAVAILABLE |
+| E11：省略所有最终 Postcondition，直接进入 SUCCEEDED | FINAL_POSTCONDITION_MISSING / SUCCESS_BYPASSES_FINAL_POSTCONDITION |
+| E12：引用 context.facts.x 却没有 Contract.context.schemas.facts | CONTEXT_SCHEMA_UNDECLARED |
+| E13：把当前需 Observation 查询的 UE 注册状态误放入 requiredFacts | 应判定为 Admission 前提要求；若 Host 没有该事实，Admission 必须拒绝，而不是自动执行 Observation |
+| E14：Host Action Budget 为 0 或非法 | Admission fail-closed，不允许 Skill limits 放宽 |
+| E15：Observation 已可从充分 Operation Result 中获得且满足 Evidence 要求 | 不应为了形式强制增加 Observation 节点 |
+| E16：未引用的额外 Snapshot 被传入 BuildRequest | 不自动暴露该依赖的导出；按声明边界链接 |
+
+此表是待落地的评审与 Compiler Fixture 契约，不是现有 CI 的实际通过记录。正式冻结必须由相应 Owner 提供发布的导出身份，并让 Native、WASM 和 Skill Studio 使用同一组正负例。
+
+---
+
 **规范结束。**
