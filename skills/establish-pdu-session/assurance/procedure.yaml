@@ -72,7 +72,7 @@ procedures:
                 requestedSscMode:
                   from: input.requested-ssc
                 udmResult:
-                  from: nudm-sdm-get.output
+                  from: nudm-sdm-get.output.result
 
             # UDM Subscribe is answered from UDM-owned evidence only. A PCF
             # create inputs handle cannot exist yet: the SMF only starts the
