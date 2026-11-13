@@ -265,14 +265,11 @@ ue-requested-pdu-session-establishment:
           - name: read-pcf-create-governance
             call: env-fabric-tools::ca.session.pcf_create_governance.read
             with:
-              ueRef:
-                from: input.ue-ref
-              pduSessionId:
-                from: input.psi
-              ingressRef:
-                from: input.ingress-ref
-              lifecycleRef:
-                from: input.lifecycle-ref
+              # Fabric's governance endpoint is keyed by the exact held waiter.
+              # The hold binding above is the authority for that waiter; do not
+              # ask Fabric to rediscover it from a broader UE/session selector.
+              holdRef:
+                from: preconditions.bind-pcf-hold.output.holdRef
 
           - verify: createdsession.pcf.create_governed
             with:
