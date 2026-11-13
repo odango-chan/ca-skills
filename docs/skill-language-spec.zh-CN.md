@@ -937,13 +937,12 @@ State 不自动等于 Evidence；Handle 不自动等于 State；Mutation 成功�
 3. Root Router 选择唯一 Skill；
 4. Host 校验入口、授权和运行条件；
 5. Runtime 创建隔离 Invocation；
-6. Procedure 从明确入口执行；
-7. Procedure 从 start 指定的入口 Node 执行；若存在 Invocation 级入口 Precondition，它就是 start 指向的首个门禁；
-8. 每个 Node 只执行其声明的一个主动作、显式 arguments 和 on 路由，不存在隐式的 Node 内部 Preconditions / Postconditions；
-9. 必要时显式执行 Observation Query，Predicate 只消费已物化输入和 Host 附加 Evidence；
-10. Mutation 结果不确定时对原 Mutation Reconcile；
-11. 所有成功路径必须经过最终 Postcondition 的 PASS 路径，随后才能进入 SUCCEEDED Terminal；
-12. Host 记录结果、Evidence、Trace 和资源责任。
+6. Procedure 从 start 指定的入口 Node 执行；若存在 Invocation 级入口 Precondition，它就是 start 指向的首个门禁；
+7. 每个 Node 只执行其声明的一个主动作、显式 arguments 和 on 路由，不存在隐式的 Node 内部 Preconditions / Postconditions；
+8. 必要时显式执行 Observation Query，Predicate 只消费已物化输入和 Host 附加 Evidence；
+9. Mutation 结果不确定时对原 Mutation Reconcile；
+10. 所有成功路径必须经过最终 Postcondition 的 PASS 路径，随后才能进入 SUCCEEDED Terminal；
+11. Host 记录结果、Evidence、Trace 和资源责任。
 
 必需步骤不得静默跳过。
 
