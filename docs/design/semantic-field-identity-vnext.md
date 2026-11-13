@@ -1,7 +1,9 @@
-# Semantic Field Identity Contract vNext — proposal
+# Semantic Field Identity Contract vNext — historical proposal
 
-Status: **DESIGN-REVIEW / NOT ADOPTED IN v0.2**  
-Authority: `ca-skills` Skill Language; implementation experiments live in the isolated Compiler binding spike.
+> **Status notice (2026-11-13):** Historical exploration only. The current [CA-SL vNext Specification](../skill-language-spec.zh-CN.md) is the sole normative language authority and supersedes the source-binding syntax in this document. vNext uses explicit direct arguments and does not adopt semantic-ID-driven automatic binding or the old with/from spelling. Keep this note only for rationale and prior experiments.
+
+Status: **DESIGN-REVIEW / NOT ADOPTED**  
+Authority: the current CA-SL vNext Specification; implementation experiments are historical Compiler binding-spike material.
 
 ## 1. Problem
 
@@ -51,7 +53,7 @@ A unique semantic ID is a necessary **but not sufficient** condition for auto-bi
 - When two owners assert the same ID, the compiler must validate both schemas and trusted scope/authority constraints; duplicate IDs alone are not permission to bind.
 - IDs are non-secret descriptive metadata. Their source contract digest/version must be part of the compiler's resolved build input.
 - A contract must not assign the same ID to different generations of state merely to make binding automatic. Explicit producer lineage remains mandatory for handles whose meaning depends on operation instance or generation.
-- Missing/unknown ID for a required automatic binding: **no auto-binding**; explicit `with/from` remains valid and required.
+- Missing/unknown ID for a required automatic binding: **no auto-binding**. In vNext the author must provide a direct explicit arguments mapping; with/from belongs only to the unchanged v0.2 source dialect.
 - Unsupported/malformed annotations fail closed; no string similarity fallback.
 
 ## 4. Deferred MAS example — not an executable acceptance baseline
@@ -80,14 +82,14 @@ The exact common field names are not an instruction to bind every field to match
 
 The first executable acceptance target is `ca-agent-demo`'s runnable `establish-pdu-session` 5GC Skill, not MAS. See [5GC Schema & Observation Source Inventory](5gc-schema-source-inventory-vnext.md) for the code-derived owner map. Semantic IDs for 5GC must be assigned only after the exact Host Context, Provider Operation, Fabric ingress/hold, and Open5GS evidence contracts are traced to their real owners. Similar names or primitive types are not sufficient.
 
-Until the actual owner schemas and their provenance are available, keep existing 5GC `with/from` mappings unchanged. Do not infer new semantic identities for exact attempt handles (`ingressRef`, `lifecycleRef`, hold refs, invocation refs, N4 instance refs, evidence refs).
+The existing runnable 5GC v0.2 source remains unchanged until migration. A future vNext migration converts its explicit with/from bindings into direct arguments mappings. Do not infer semantic identities for exact attempt handles (`ingressRef`, `lifecycleRef`, hold refs, invocation refs, N4 instance refs, evidence refs).
 
 ## 6. Automatic and explicit bindings
 
 - Contract-derived common context inputs may be auto-bound when unique and statically available.
 - Resource handles and produced results such as `subscriptionStateRef`, `policyStateRef`, `n4Seid`, and `stateRef` remain explicit unless an output's semantic identity **plus exact producer instance and control-flow guarantees** prove the source unique.
 - When an Operation requires a value that is only present in one branch, a global semantic match is not enough: fail closed or require a language-level guarded path.
-- Preserve `with/from` for intentional override, selection, and exact lineage; do not introduce a new mandatory `bindings.yaml`.
+- For vNext, preserve intentional override, selection and exact lineage through direct explicit arguments mappings; do not introduce a new mandatory bindings.yaml. The with/from form is legacy v0.2 syntax only.
 - The compiler emits a complete Binding Plan with source path, semantic identity, owner contract, source producer identity, and proof/diagnostic of availability.
 
 ## 7. Scope and unresolved design
@@ -105,7 +107,7 @@ The Compiler v0.1 source already provides schema implication and control-flow av
 
 See [Compiler Semantic Binding Integration Design](https://github.com/odango-chan/ca-skill-compiler/blob/spike/vnext-binding-resolver-20261112/docs/semantic-binding-integration-vnext.md).
 
-The pinned Compiler demo project currently lacks the declared Context Owner Schemas for some `context.subject` / `context.facts` paths referenced by the two Procedures. This is a fixture completeness gap, not permission for Compiler to infer a Host schema. Migration tests must provide the actual owner-approved schemas and declare them in SkillContract before claiming whole-Procedure compilation.
+The pinned Compiler demo project currently lacks the declared Context Owner Schemas for some `context.subject` / `context.facts` paths referenced by the two Procedures. This is a fixture completeness gap, not permission for Compiler to infer a Host schema. Migration tests must provide the actual owner-approved schemas in the BuildRequest DependencySnapshot and reference them through the Procedure SourcePath / arguments contracts before claiming whole-Procedure compilation.
 
 
 ## 8. Acceptance status correction (2026-11-12)
