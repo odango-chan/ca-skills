@@ -1,4 +1,4 @@
-> **Status notice (2026-11-13):** Historical design rationale and open-decision record. The comprehensive [CA-SL vNext Specification](../skill-language-spec.zh-CN.md) is the sole normative language document. The authoring/source simplification recorded in §25 supersedes the earlier source layouts and YAML candidates in this note, including the SkillContract / contract.yaml wrapper, old Procedure binding syntax, and earlier Script placement. Do not implement syntax directly from this note.
+> **Status notice (2026-11-13):** Historical design rationale and open-decision record. The comprehensive [CA-SL vNext Specification](../skill-language-spec.zh-CN.md) is the sole normative language document. The authoring/source simplification recorded in §25 supersedes earlier source layouts and YAML candidates in this note. In particular, §25 retains an authored contract.yaml but removes redundant apiVersion / kind / metadata wrappers; it also supersedes the old Procedure binding syntax and earlier Script placement. Do not implement syntax directly from this note.
 
 # Capability & Authoring Model vNext
 
