@@ -49,7 +49,7 @@ A Fact is the domain/environment/execution statement. An Observation is an indep
 
 Observation Tools use the same ToolCatalog, dependency alias/snapshot, Owner Schema, CapabilityContracts and Runtime admission model as other Tools. Their Effect is READ; their contract declares QueryContext/Input Schema, normalized Output Schema, authority, provenance, scope, correlation, temporal/freshness semantics and Evidence guarantees. The legacy Observation Ref → ObservationSource implementation registry is retired; it is not replaced by a second public registry or Schema system. Existing adapters may remain internal implementations of the published Observation Tool contract during migration.
 
-## 4. READ Operations and prior results
+## 4. Observation Tool queries and prior Operation results
 
 An independently queried fact uses an explicit Observation Tool query. Its Owner publishes the typed QueryContext/Input and normalized Output Schemas through the same ToolCatalog contract and declares the READ Effect and Evidence guarantees. This does not imply that every Operation or Predicate needs an Observation query: a prior Operation output or trusted Context projection may already provide the exact value and adequate correlated Evidence.
 
