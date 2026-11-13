@@ -1,4 +1,4 @@
-apiVersion: connectionagent.io/v1alpha1
+apiVersion: connectionagent.io/v1alpha2
 kind: SkillContract
 metadata:
   name: establish-pdu-session
@@ -9,28 +9,21 @@ spec:
   inputs:
     requestSchema: schemas/establishment-request.schema.yaml
   context:
-    requiredFacts:
-    - createdsession_ingress
-    - createdsession_lifecycle
-    schemas:
-      subject: lib/host/subject.schema.yaml
-      facts: lib/host/facts.schema.yaml
-      observations: lib/observations/context-observations.schema.yaml
-      evidence: lib/host/evidence.schema.yaml
+    projections:
+      subject: host-context::urn:connectionagent:5gc:skill-context:subject:v1
+      facts: host-context::urn:connectionagent:5gc:skill-context:facts:v1
+      ingress: host-context::urn:connectionagent:5gc:skill-context:ingress:v1
+    evidenceSchema: host-context::urn:connectionagent:host:predicate-evidence-refs:v1
   allowedResources:
     capabilities:
-    - sbi.udm.sm_data.get
-    - ca.session.operation_context.read
-    - ca.session.pcf_hold.bind
-    - ca.session.udm_hold.bind
-    - ca.session.n1n2_hold.bind
-    - ca.session.pcf_create_inputs.read
-    - sbi.udm.sdm_subscription.create
-    - sbi.pcf.sm_policy.create
-    - sbi.amf.n1n2.transfer
-    - ca.session.resource_responsibility.transfer
-    - ca.session.evidence.await
-    - ca.session.establishment_response.prepare
+    - provider-5gc.createdsession.udm
+    - provider-5gc.createdsession.pcf
+    - provider-5gc.createdsession.context
+    - env-fabric.createdsession.hold
+    - ca-provider-5gc.createdsession.transfer
+    - ca-agent-host.createdsession.runtime
+    - provider-5gc.createdsession.assurance
+    - env-fabric.createdsession.governance
   postconditions:
   - predicate: createdsession.ran.setup_accepted
     expect: PASS
@@ -38,9 +31,3 @@ spec:
     expect: PASS
   - predicate: createdsession.resources.managed
     expect: PASS
-  planning:
-    maxActions: 32
-    allowDynamicProcedure: false
-  failureSemantics:
-    outcomeUnknown:
-      requireReconcile: true
