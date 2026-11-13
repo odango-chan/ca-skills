@@ -168,7 +168,7 @@ All 17 MAS Predicates refer to the same `mas.establishment.snapshot`. The source
 
 ### 5.3 5GC
 
-The 17 Observation refs span multiple authorities and phases. The current repository includes distinct Provider, Fabric, and simulation observation-source implementations. The registered source-class mapping for all 17 current 5GC Predicate Observation refs is recorded separately in the owner inventory. This does not yet establish corresponding formally declared READ Operation contracts.
+The 17 Observation refs span multiple authorities and phases. The current repository includes distinct Provider, Fabric, and simulation observation-source implementations. The registered source-class mapping for all 17 current 5GC Predicate Observation refs is recorded separately in the owner inventory. This does not yet establish corresponding formally declared Observation Tool query contracts.
 
 **Migration blocker:** build an Observation inventory with, for every ref:
 - authoritative fact producer;
@@ -313,11 +313,11 @@ Use three existing paths to prove the new model, without implementing a Compiler
 |---|---|---|
 | UDM Get → selection / `subscription_usable` | One exact GetSmData invocation returns the full upstream Provider result; Host parses it into `CreatedSessionUDMResult` and exposes `runtime_value()` as the Tool's `output.result` and legacy Observation payload | Bind the exact Host-normalized `nudm-sdm-get.output.result` as `udmReadResult` and attach Host Evidence from the same full receipt. Preserve invocation/transaction/request/record/digest/target/source-binding correlation and UNKNOWN on mismatch. Provider PR #50 types the upstream wire result; a separate Host projection Schema must type the Tool output before nested Skill fields are statically proven |
 | Hold bind → hold-bound Predicate | The bind Operation fetches the Fabric hold and stores the exact immutable record in an attempt-local Host store. The ObservationSource reads that same stored record, adds `bindingStatus` and owner Evidence; it does not issue a second Fabric request | Pass the bind Operation output plus an equivalent Host-generated Evidence projection to the pure Predicate. Do not invent another Fabric READ; preserve exact scope, holdRef, currentInstanceRef, deadline and correlation checks |
-| N4 bounded wait → initial-resources Predicate | Exact Pre-N4 policy-association scope; bounded retries; `KNOWN_ABSENT` with `CONTINUE`; final Predicate verifies actual resources | Represent wait/acquisition explicitly and supply the final typed Observation + Evidence to a pure Predicate without losing the wait policy or changing the verdict |
+| N4 initial-resources completion → Predicate | Exact Pre-N4 policy-association scope and baseline lineage; legacy implementation used bounded retries and `KNOWN_ABSENT / CONTINUE` | Move asynchronous convergence into `UPN.CREATE_UP_SESSION`; return final typed N4 resource state and correlated Evidence to the pure Predicate. No Skill-level wait or poll loop |
 
-These three slices exercise the key vNext claims: reuse of a prior Operation result, reuse of an Operation result with a Host-generated Evidence projection, and a genuinely bounded owner read. In both UDM result and Hold binding, the legacy ObservationSource reads an attempt-local store populated by the preceding Operation; it does not issue another external network request. The migration can remove that duplicate local projection only if the Operation result and Runtime Evidence together preserve the exact same correlation, freshness, scope and provenance guarantees.
+These three slices exercise the key vNext claims: reuse of a prior Operation result, reuse of an Operation result with a Host-generated Evidence projection, and an independently queried owner fact where necessary. In both UDM result and Hold binding, the legacy ObservationSource reads an attempt-local store populated by the preceding Operation; it does not issue another external network request. The migration can remove that duplicate local projection only if the Operation result and Runtime Evidence together preserve the exact same correlation, freshness, scope and provenance guarantees.
 
-The N4 wait remains different: it repeatedly acquires the owner fact and returns only evidence refs; the following Predicate reacquires the payload. Preserve that explicit wait-plus-final-read sequence initially. Do not collapse it to one sample unless a separate old/new comparison proves equivalent behavior.
+The N4 wait is legacy behavior, not a vNext construct. Its asynchronous convergence responsibility moves into `UPN.CREATE_UP_SESSION`, which returns the final normalized N4 resource state and correlated Evidence. An independent Observation Tool query remains available only if additional context is needed beyond that Operation result.
 
 The remaining 5GC refs can then be mapped using the same alternatives in the Owner Inventory. No MAS execution is required for this first executable feasibility decision.
 
@@ -357,19 +357,20 @@ vNext mapping:
 - Supply its exact output plus a Host-generated Evidence projection to the pure Predicate. Preserve the current selector, lifecycle, hold ref, current instance, request digest, deadline and correlation checks.
 - Do not add a second Fabric READ Operation just to replace the legacy Observation Ref. The current source is a local evidence projection over the bind result, not an independent owner read.
 
-### 16.3 N4 bounded wait → final pure Predicate
+### 16.3 N4 asynchronous completion → final pure Predicate
 
 Current path:
 
-- `ca.session.evidence.await` repeatedly calls the N4 ObservationSource under the admitted wait scope, deadline and observation budget. For initial N4 resources, `KNOWN_ABSENT` means “not yet” and the declaration uses `CONTINUE`.
-- The wait Operation returns only `evidenceRefs`, not the normalized N4 payload.
-- The subsequent PredicateEngine evaluation calls the ObservationSource again, validates freshness/correlation/evidence, and passes the final normalized payload to CEL.
+- Legacy `ca.session.evidence.await` repeatedly called the N4 ObservationSource under an admitted wait scope, deadline and observation budget. For initial N4 resources, `KNOWN_ABSENT` meant “not yet” and the declaration used `CONTINUE`.
+- The legacy wait returned only `evidenceRefs`, not the normalized N4 payload.
+- The subsequent PredicateEngine evaluation called the ObservationSource again, validated freshness/correlation/Evidence, and passed the final normalized payload to CEL.
+- This describes the old execution behavior only; it is not a vNext authoring pattern.
 
 vNext mapping:
 
-- Preserve the bounded wait as an explicit step with its exact scope, deadline, budget and `KNOWN_ABSENT/CONTINUE` policy.
-- Preserve the final acquisition as an explicit READ step after the wait; its typed payload and Evidence become the pure Predicate inputs. This mirrors the current two acquisition points and avoids treating evidence refs as payload.
-- Do not collapse wait and final read into one sample in the first migration. That would change the current timing semantics and requires a separate old/new equivalence decision.
+- Remove the Skill-level bounded wait. The owning `UPN.CREATE_UP_SESSION` Operation must encapsulate N4 convergence and return the final typed payload plus correlated Evidence.
+- Host invocation deadline/cancellation/correlation remain Runtime controls. They do not become Procedure wait syntax.
+- An Observation Tool query may be invoked separately only when the Agent needs additional authoritative context, not to poll the Operation just invoked.
 
 ### 16.4 Result of the first-slice paper review
 
@@ -377,7 +378,7 @@ These three existing paths show that pure Predicate is feasible without turning 
 
 - UDM result: reuse one prior external READ Operation plus its exact stored-result Evidence projection.
 - UDM Hold: reuse one Fabric READ Operation plus a local Host Evidence projection.
-- N4 convergence: preserve an explicit bounded wait followed by a final owner READ.
+- N4 convergence: move asynchronous completion into `UPN.CREATE_UP_SESSION`; expose a separate Observation Tool query only if additional independent context is needed.
 
 This is enough to validate the core model boundary. The full 17-ref source classification is now recorded in [Observation Owner and Acquisition Inventory](observation-owner-inventory-vnext.md): 1 captured ingress projection, 9 prior-Operation-owned local projections, 2 Host journal projections, and 5 independent owner-read acquisitions across 4 distinct read shapes. The nine local projections do not imply that all existing Operation outputs can be reused unchanged; exact payload/Evidence equivalence must be proved or exposed through a local typed projection over the same stored artifact. The three Host-owned payload schemas are proposed in PR #200, but their stable export identity and release status remain open. Therefore the vNext model does not require 17 new network READ Operations, but it does require explicit owner contracts for every consumed projection.
 
@@ -386,12 +387,12 @@ This is enough to validate the core model boundary. The full 17-ref source class
 
 The current 5GC Procedure calls **12 unique Operation IDs** across 14 call nodes; `ca.session.evidence.await` is called three times. The deployment CapabilityContracts currently maps all 12 Operations into six Capability groups with exact READ/MUTATION Effect agreement.
 
-The vNext migration can preserve those 12 callable identities and change the Skill grant from the compatibility-era 12 Operation IDs to the six actual Capability IDs. The four independent owner-read shapes identified above are the only candidate additions:
+The vNext migration can preserve existing business Operation identities (except the legacy wait callable, which is removed from the Skill graph) and change the Skill grant from compatibility-era direct Operation IDs to the six actual Capability IDs. The four independent owner-query shapes identified above are candidate Observation Tool contracts, not necessarily new business Operations:
 
-- three Provider READ Operations (N4 initial resources, SMF RAN setup, UPF N4 forwarding), grouped under one new Provider assurance Capability;
-- one Fabric PCF governance READ Operation, added to the existing Fabric hold Capability only if that is the Owner-approved authorization boundary; otherwise it requires a separate Capability.
+- three Provider Observation query contracts (N4 initial resources, SMF RAN setup, UPF N4 forwarding), grouped under an Owner-approved Provider assurance Capability;
+- one Fabric PCF governance Observation query contract, added to the existing Fabric hold Capability only if that is the Owner-approved authorization boundary; otherwise it requires a separate Capability.
 
-That gives a candidate 16 unique callable Operations if `ca.session.evidence.await` remains a Host orchestration Operation. If bounded wait becomes a Procedure control-flow construct, it gives 15. This count is an impact estimate, not a frozen Capability/Operation contract.
+Do not infer a new total callable count from this migration table. The exact Observation query identities and Capability memberships must be published by the relevant Owners through ToolCatalog and CapabilityContracts. The legacy `ca.session.evidence.await` is not part of the vNext Skill callable set.
 
 
 ## 17. Official 5GC source synchronization result (2026-11-12)
@@ -514,7 +515,7 @@ The official `ca-skills/main` source already uses package-relative Script refere
 
 - A Script is identified by its package-relative source path. Procedure `script` and Predicate `evaluator.ref` use the same identity form; Script is not a Tool, Operation, Capability, or external Effect.
 - A Procedure Script's effective input contract is derived from the Binding declarations at its call site. The three current Procedure Scripts already have explicit `with` maps; no separate hand-maintained Script Input Schema is needed.
-- A Predicate Script's effective input contract is derived from its declared `Predicate.inputs` plus **all** Procedure `verify.with/from` call sites. Multiple call sites must provide compatible values; a missing or incompatible required input is a build error. No standalone Script Input Schema is authored.
+- A Predicate Script's effective input contract is derived from its declared typed `Predicate.parameters` plus **all** Procedure positional `verify.arguments` call sites. Multiple call sites must provide compatible values; a missing or incompatible required input is a build error. No standalone Script Input Schema is authored.
 - The Script's output contract is generated from its strict return `TypedDict`, including `Annotated` constraints, `Literal` values and `NotRequired` fields. For this Skill the return types are `EstablishmentSelectionOutput`, `PcfPolicyInputsOutput`, `N1N2DeliveryOutput` and `PredicateEvaluationResult` (the latter is used by both Predicate evaluators).
 - Sandbox, timeout, resource budget and execution permissions remain Host/Runtime policy. They are not Script-authored metadata and must not return through the legacy `connectionagent-tool` block.
 - The eleven Agent-side legacy Script input/output Schema files remain migration evidence only. They are not copied into the official package and do not become a second source of input definitions.
@@ -536,9 +537,9 @@ The source-backed mapping now covers the complete current Skill surface:
 
 | Source surface | Current baseline | vNext semantic transformation | Status |
 |---|---|---|---|
-| Skill contract | Request Schema; two required fact IDs; twelve direct Operation grants; physical `lib/` Host/Observation Schema paths | Keep the Skill-owned Request Schema and fact requirements; replace direct grants with qualified Capability IDs; reference exact versioned Host Subject/Facts/Evidence identities; remove the aggregate Observation payload schema from the Predicate context and use each READ Operation's Owner Output Schema for its domain payload | Semantically mapped; trusted CapabilityContracts binding and Owner exports remain open |
-| Procedure | Existing typed context projection, 12 unique Operations / 14 call nodes, explicit resource/transaction handles, reconciliation and terminal branches | Preserve order and explicit handles; allow only contract-proven context auto-binding; add the four independent READ shapes; make the three bounded waits explicit over exact READs or retain a Host wait Operation by a separately approved choice | Semantically mapped; exact wait syntax and new Operation contracts remain open |
-| PredicateSet | 17 Observation Refs, per-ref scope/freshness, CEL or two Script evaluators | Replace acquisition-coupled `observations` with declared `inputs`; schedule READs/projections in Procedure; keep Predicate evaluation pure and preserve tri-state outcomes | All 17 refs mapped; Owner contracts and shared context/Evidence input syntax remain open |
+| Skill contract | Request Schema; two required fact IDs; twelve direct Operation grants; physical `lib/` Host/Observation Schema paths | Keep the Skill-owned Request Schema and fact requirements; replace direct grants with qualified Capability IDs; reference exact versioned Host Subject/Facts/Evidence identities; remove the aggregate Predicate Observation payload schema and import owner-published Observation Tool contracts/Output Schemas where independent queries are required | Semantically mapped; trusted CapabilityContracts binding and Owner exports remain open |
+| Procedure | Existing typed context projection, 12 unique Operations / 14 call nodes, explicit resource/transaction handles, reconciliation and terminal branches | Preserve order and explicit handles; allow only contract-proven context auto-binding; reuse Operation outputs and Context projections; invoke owner-published Observation Tool queries only where independent context is required; remove the three Skill-level waits by moving asynchronous completion inside the owning SMF/Tool Operations | Semantically mapped; exact wait syntax and new Operation contracts remain open |
+| PredicateSet | 17 Observation Refs, per-ref scope/freshness, CEL or two Script evaluators | Replace acquisition-coupled Predicate `observations` with declared typed `parameters`; invoke Observation Tools explicitly where needed; keep Predicate evaluation pure and preserve tri-state outcomes | All 17 refs mapped; Owner contracts and shared context/Evidence input syntax remain open |
 | Scripts | Three Procedure Scripts and two Predicate evaluator Scripts; official paths already package-relative | Keep one path identity; derive Procedure Script inputs from call-site Binding, Predicate Script inputs from Predicate declaration plus every call site, and output Schemas from strict TypedDict | Source mapping complete; evaluator input migration awaits Predicate syntax |
 | Cases / References | 36 Cases and three Reference documents are already byte-identical across the two repositories | Keep them unchanged as behavior/failure examples; use them to review old/new outcome and recovery equivalence, not as schema owners | No source refresh required |
 
@@ -570,7 +571,7 @@ The current `ca-agent-demo/main` and `ca-skills/main` sources remain unchanged. 
 
 - **Semantic expressiveness: YES, conditionally.** The current flow can be represented without 17 new network READ Operations or a generic `observation.read` tool. The target needs the six existing Capability grants, explicit producer-backed Predicate inputs for the nine local projections, Host-owned ingress/journal projections, and four exact owner READ shapes. N4 baseline and post-N4 resources are two call points over one discriminated READ contract. The three bounded waits remain separate from the final payload READ.
 - **Contract-complete / statically buildable: NOT YET.** Three Host projections and the normalized payload/Evidence equivalence for the nine local projections are not fully exported; the four READ shapes and their Capability memberships are not Owner-approved; the shared Predicate Context/Evidence and wait syntax are not frozen; and the trusted deployment CapabilityContracts BuildRequest binding is not implemented by the current Compiler.
-- **Behavior-preserving migration: plausible, not yet proven.** The old control-flow, exact handles, tri-state results, freshness, scope and recovery branches can be retained in the candidate mapping. Equivalence still requires the missing Owner contracts and an old/new plan comparison. In particular, both `createdsession.lifecycle.ready` call sites must remain separate fresh checks, and each wait must be followed by the final READ that currently feeds PredicateEngine.
+- **Behavior-preserving migration: plausible, not yet proven.** The old control-flow, exact handles, tri-state results, freshness, scope and recovery branches can be retained in the candidate mapping. Equivalence still requires the missing Owner contracts and an old/new plan comparison. In particular, both `createdsession.lifecycle.ready` call sites must remain separate fresh checks, and the three former waits must be absorbed by their owning Tool/SMF Operations without weakening completion or Evidence guarantees.
 
 This answers the feasibility question narrowly: the semantic model has enough concepts to describe the 5GC flow, but the current draft is not yet a complete vNext contract package. The next useful step is to close the specific Owner exports and freeze only the shared input/Evidence/wait boundary—not to build a Compiler or expand the abstraction surface.
 
@@ -614,9 +615,9 @@ For every producer-backed input, Host attaches the Evidence projection separatel
 2. Those completion responsibilities are encapsulated inside the owning Tool/SMF Operations (`UPN.CREATE_UP_SESSION`, `SSM.SIGNAL_UE_AN`, `UPN.MODIFY_UP_SESSION`). Host retains invocation deadline/cancellation/correlation controls; Skill does not author a wait or polling loop.
 3. The owning Operation returns the final normalized result and correlated Evidence; that result, not a separate wait summary, is passed to the Predicate.
 4. Where additional independent facts are required, Procedure explicitly invokes an Observation Tool query and passes its typed result plus Evidence to the pure Predicate. No hidden acquisition occurs during Predicate evaluation.
-5. The N4 READ may use one Operation identity with a discriminated `PRE_CREATE` / `POST_CREATE` input/output union. If an Owner cannot guarantee that union contract, use two exact READ identities instead. Either way, the baseline and post-create semantics remain separate.
+5. The N4 Observation query may use one query identity with a discriminated `PRE_CREATE` / `POST_CREATE` QueryContext/result union. If an Owner cannot guarantee that union contract, use two exact query identities instead. Either way, the baseline and post-create semantics remain separate.
 6. Do not introduce a generic `observation.read` Operation or a second ObservationSource registry. Publish owner-specific Observation query identities through the common Tool contract; do not expose adapter classes or raw Provider selectors in Skill source.
-7. The N4 lineage is explicit across phases: the Pre-N4 result supplies `n4Baseline.baselineRef`; the post-N4 result must echo it as `baselineEvidenceRef` and supplies `currentSessionInstanceRef`; the RAN and N4-forwarding READs must consume that exact instance ref. An adapter may verify these handles against its attempt-local store, but may not silently select the latest baseline or session by UE.
+7. The N4 lineage is explicit across phases: the Pre-N4 result supplies `n4Baseline.baselineRef`; the post-N4 result must echo it as `baselineEvidenceRef` and supplies `currentSessionInstanceRef`; the RAN and N4-forwarding Observation queries must consume that exact instance ref. An adapter may verify these handles against its attempt-local store, but may not silently select the latest baseline or session by UE.
 
 ### 22.4 Authorization and failure behavior
 
@@ -685,10 +686,10 @@ The runnable `ca-agent-demo` compatibility copy does contain three legacy UDM sc
 |---|---:|---|
 | Captured ingress projection | 1 | Bind the trusted captured event / Host `procedure-context` projection. This is not a network READ and must preserve source event provenance and receipt/acquisition time separately |
 | Prior-Operation local projections | 9 | Reuse the exact preceding Operation artifact plus its evidence where equivalent. If the Operation returns only handles, keep a typed Host projection over that same stored artifact and attach its evidence. Never add a second external read merely to replace an Observation Ref |
-| Host journal READ Operations | 2 | Call exact Host-owned lifecycle-registration and resource-responsibility READ Operations at their original control-flow points. A `lifecycleRef` or transfer receipt is only a selector/handle, not proof of current journal state |
-| Independent owner-read acquisition points | 5 | Four distinct READ shapes: N4 baseline/initial-resource (one shared identity only if phase-discriminated), RAN setup, N4 forwarding, and PCF governance. These require exact owner Input/Output contracts, scope/freshness/correlation guarantees, Effect and Capability membership |
+| Host journal Observation queries | 2 | Invoke exact Host-owned lifecycle-registration and resource-responsibility Observation queries at their original control-flow points. A `lifecycleRef` or transfer receipt is only a selector/handle, not proof of current journal state |
+| Independent Observation query points | 5 | Four distinct read/query shapes: N4 baseline/initial-resource (one shared identity only if phase-discriminated), RAN setup, N4 forwarding, and PCF governance. These require exact owner Input/Output contracts, scope/freshness/correlation guarantees, Effect and Capability membership |
 
-Thus the current migration has **five independent owner acquisition points across four domain READ shapes**, plus **two Host journal READs**. The four domain shapes are Provider N4 initial-resources, Provider RAN setup, Provider N4 forwarding, and Fabric PCF governance. N4 baseline (`PRE_CREATE`) and post-create initial resources (`POST_CREATE`) may share one exact READ identity only if the result is phase-discriminated and preserves `baselineRef` → `baselineEvidenceRef` → exact `currentSessionInstanceRef` lineage. Otherwise they remain two exact READ identities. The bounded `ca.session.evidence.await` is legacy-only and is removed from the vNext Skill graph. Asynchronous completion is internal to the relevant Tool/SMF Operations. The independent Observation Tool query inventory must be derived from Owner contracts; no fixed Operation count is inferred from legacy Observation refs.
+Thus the current migration has **five independent owner query points across four domain Observation query shapes**, plus **two Host journal Observation queries**. The four domain shapes are Provider N4 initial-resources, Provider RAN setup, Provider N4 forwarding, and Fabric PCF governance. N4 baseline (`PRE_CREATE`) and post-create initial resources (`POST_CREATE`) may share one exact READ identity only if the result is phase-discriminated and preserves `baselineRef` → `baselineEvidenceRef` → exact `currentSessionInstanceRef` lineage. Otherwise they remain two exact READ identities. The bounded `ca.session.evidence.await` is legacy-only and is removed from the vNext Skill graph. Asynchronous completion is internal to the relevant Tool/SMF Operations. The independent Observation Tool query inventory must be derived from Owner contracts; no fixed Operation count is inferred from legacy Observation refs.
 
 ### 24.3 UDM `sbi.operation.result`: direct prior-Operation binding
 
