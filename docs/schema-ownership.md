@@ -8,7 +8,7 @@ A Skill source file may reference a contract by dependency alias and exact expor
 |---|---|---|
 | Public Skill Request | Skill | `spec.inputs.requestSchema` points to a Skill-owned file under `schemas/**` |
 | Invocation Subject / Facts / Ingress | Host or integration Owner | `spec.context.projections.*` references exact exported Owner Schema IDs |
-| Predicate Evidence refs | Host / Runtime | `spec.context.evidenceSchema` references the bounded Host Evidence projection |
+| Predicate Evidence refs | Host / Runtime | Host Runtime defines and validates the shared Evidence-reference format |
 | Tool Operation Input / Output / Reconcile | Tool Owner | Imported ToolCatalog contract; Procedure calls one exact Operation ID |
 | Capability-to-Operation mapping | Deployment composition owner | One CapabilityContracts input supplied separately to BuildRequest |
 | READ Operation payload | The READ Operation's Owner | Its Output Schema is authoritative for the normalized returned value |
@@ -32,7 +32,7 @@ There is no physical `lib/` directory requirement, `lib/...` source reference, m
 
 - The Skill owns the public Request Schema.
 - Host/integration owners publish exact schemas for trusted invocation projections such as subject, facts and ingress.
-- Host publishes the bounded Evidence-reference projection; full provenance records remain internal to Runtime.
+- Host Runtime defines and validates the bounded Evidence-reference format shared by Predicate Scripts. Full provenance records remain internal to Runtime.
 - Predicate definitions declare named business inputs. They do not declare Observations, scopes, freshness or hidden globals.
 - Procedure explicitly supplies Predicate inputs. Compiler validates the exact producer path and Schema at every call site.
 - Runtime validates Evidence for the same producer invocation before a definite Predicate result is accepted.
