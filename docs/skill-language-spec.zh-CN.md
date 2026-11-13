@@ -155,10 +155,12 @@ Node 是图中的一个原子业务步骤，必须且只能声明一个主动作
 
 Invocation 级别的入口 Precondition 放在执行图最前面；最终 Postcondition 放在所有成功路径汇合处、成功 Terminal 之前。局部 Precondition / Postcondition 仍可出现在图中间。
 
-### 6.5 Tool 与 Operation
+### 6.5 Tool、Tool Operation 与 Operation Node
 
 - **Tool：** 由 Owner 注册、实现并发布契约的外部能力单元，可由 HTTP Adapter、MCP、内建集成或其他受治理实现提供。Tool 是实现和契约发布单元，不是 Skill 授权身份。
-- **Operation：** Tool 提供的精确可调用业务接口，声明唯一 ID、Effect、Input Schema、Output Schema，以及对 Mutation 可选的 Reconcile Output Schema。Operation Result 描述这一次调用返回了什么。
+- **Tool Operation：** Tool 提供的精确外部可调用业务接口，声明唯一 ID、Effect、Input Schema、Output Schema，以及对 Mutation 可选的 Reconcile Output Schema。它必须通过 CapabilityContracts 授权。
+- **Operation Node：** Procedure 中执行一个业务动作的节点。其目标可以是一个外部 Tool Operation，也可以是 Skill 自有的纯 Procedure Script。前者受 READ / MUTATION Effect 和 Capability Admission 约束；后者是无外部副作用的本地计算，不是 Tool Operation，也不申请 Capability。
+- **Operation Result：** 描述一次 Tool Operation 或本地 Script Operation 的规范化输出；必须保留其真实 Producer 身份，不能伪装成 Observation Result。
 
 ### 6.6 Fact、Observation Query、Observation Result
 
@@ -406,8 +408,8 @@ nodes:
 规范性结构文法（抽象 EBNF；字段约束由对应对象 Schema 和本规范语义规则补充）：
 
 ~~~ebnf
-ProcedureDocument   = Goal, RequestSchema, CapabilityGrants,
-                      ProcedureInputs, StartNode, NodeMap ;
+ProcedureDocument   = Goal, [RequestSchema], [CapabilityGrants],
+                      [ProcedureInputs], StartNode, NodeMap ;
 PredicateDocument   = PredicateSet ;
 
 Goal                = "goal", GoalIdentity ;
@@ -489,9 +491,9 @@ nodes:
 | 字段 | 语义 | 约束 |
 |---|---|---|
 | goal | Skill 的业务目标 | 作者显式声明；不等于某个 Operation 成功 |
-| requestSchema | 公共 Request Schema | 指向 Skill 自有 schemas/ 文件；不得复制外部 Owner Schema |
-| capabilities | Skill 请求的授权上界 | 只列 Capability ID；Compiler 对每个外部 callable 做精确 membership / Effect 校验 |
-| inputs | Procedure 入口输入投影 | 每个字段显式绑定到 Request 或 Host Context SourcePath |
+| requestSchema | 公共 Request Schema | 有调用方 Request 时声明；指向 Skill 自有 schemas/ 文件，不得复制外部 Owner Schema |
+| capabilities | Skill 请求的授权上界 | 使用外部 Tool Operation 时显式声明；只列 Capability ID，Compiler 做精确 membership / Effect 校验 |
+| inputs | Procedure 入口输入投影 | 有输入时声明；每个字段显式绑定到 Request 或 Host Context SourcePath |
 | start | 唯一入口 Node | 必须存在；入口级 Precondition 应位于该节点或其后续入口链 |
 | nodes | 唯一 Procedure 执行图 | 每个 Node 只能有一个主动作；成功路径必须经过最终 Postcondition |
 
@@ -603,7 +605,6 @@ nodes:
   unresolved:
     terminal: UNRESOLVED
 ~~~
-~~~
 
 ### 12.2 Precondition
 
@@ -625,7 +626,7 @@ Precondition 的 Predicate 结果必须显式路由 PASS、FAIL 和 UNKNOWN。FA
 
 ### 12.3 Operation
 
-Operation 表示一个有副作用或无副作用的业务动作，由 Tool Owner 在 ToolCatalog 中发布精确 callable 身份、Effect、Input / Output Schema 和必要的 Reconcile 契约。
+Operation Node 表示一个业务动作。若目标是外部 Tool Operation，其精确 callable 身份、Effect、Input / Output Schema 和必要的 Reconcile 契约由 Tool Owner 在 ToolCatalog 中发布；若目标是本地 Script，则按 §32 的纯计算约束执行，不属于 ToolCatalog 或 Capability 授权体系。
 
 ~~~yaml
 create-policy:
@@ -748,7 +749,7 @@ Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时不�
 vNext 删除 Procedure Node 上的 `with` / `from` / `value` 包装，统一使用直接表达式：
 
 - Procedure.inputs：具名映射，值为 Source Path；
-- Operation.arguments：具名映射，键为 Owner Input Schema 字段，值为来源表达式或标量字面量；
+- Tool Operation.arguments：具名映射，键为 Owner Input Schema 字段；Procedure Script Operation.arguments：具名映射，作为该次 Script 调用的完整输入投影；
 - Observation.arguments：具名映射，键为 Query Input Schema 字段，值为来源表达式或标量字面量；
 - Precondition / Postcondition.arguments：有序列表，位置与 Predicate.parameters 严格对应。
 
