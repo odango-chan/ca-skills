@@ -1,4 +1,4 @@
-> **Status notice (2026-11-13):** Historical design rationale and open-decision record. The comprehensive [CA-SL vNext Specification](../skill-language-spec.zh-CN.md) is now the sole normative language document. If this design note conflicts with it, the specification takes precedence. Do not implement syntax directly from this note without checking the current specification.
+> **Status notice (2026-11-13):** Historical design rationale and open-decision record. The comprehensive [CA-SL vNext Specification](../skill-language-spec.zh-CN.md) is the sole normative language document. The authoring/source simplification recorded in §25 supersedes the earlier source layouts and YAML candidates in this note, including the SkillContract / contract.yaml wrapper, old Procedure binding syntax, and earlier Script placement. Do not implement syntax directly from this note.
 
 # Capability & Authoring Model vNext
 
@@ -467,7 +467,7 @@ The complete behavior-preserving semantic Procedure outline—covering all 17 Pr
 
 ## 17. Implementation decisions — 2026-11-13
 
-The following decisions supersede exploratory alternatives elsewhere in this design note and are the implementation baseline:
+This was the earlier 2026-11-13 decision set. Its semantic boundaries remain useful, but the source layout, node grammar, Script placement and binding syntax are superseded by §25.
 
 1. **Breaking version:** vNext uses `connectionagent.io/v1alpha2`. The Compiler rejects v0.2 constructs; no dual parser, field mapper or compatibility path is retained.
 2. **Pure Predicates:** Predicate definitions declare ordered, typed `parameters` using concise single-entry mappings (`- hold: schema-ref`, `- dnn: string`). They do not declare or acquire Observations. Procedure `verify.arguments` supplies positional source expressions. CEL reads parameter names directly; Predicate Scripts receive `input.<parameter>`.
@@ -477,8 +477,51 @@ The following decisions supersede exploratory alternatives elsewhere in this des
 6. **Capability separation:** Skill grants Capability IDs only. A single deployment-owned CapabilityContracts input maps each exact callable ID (Operation or Observation query) to one Capability and Effect. Compiler cross-checks that mapping against the imported ToolCatalog.
 7. **No physical library paths:** Studio supplies dependency snapshots to BuildRequest. Skill source references imported Operations/Schemas by dependency alias plus exact exported ID, never by `lib/` path.
 8. **No dependency manager in Compiler:** no resolver lifecycle, manifest, lock, cache or digest output. The caller supplies the exact bytes.
-9. **Explicit source binding:** every source expression is explicit. Named-object consumers use `with/from`; Predicate uses ordered positional `verify.arguments`. Semantic-ID-based automatic source discovery is deferred and is not required for the 5GC migration.
+9. **Explicit source binding (historical syntax):** every source expression remains explicit. The earlier `with/from` spelling is superseded by direct `arguments` mappings in the CA-SL specification; Predicate uses ordered positional arguments.
 10. **Evidence is separate:** business payload and provenance/Evidence remain separate. Runtime validates Evidence before definite Predicate truth; Script `evidenceUsed` may only cite attached refs.
 11. **5GC-first:** migrate the 5GC Skill and its 36 Cases / three References as the business baseline. MAS remains non-executable design material and is not used to invent missing contracts.
 
 The source migration rehearsal remains required to prove that the new Observation Tool contracts and Operation outputs preserve all legacy fact, scope, freshness, correlation and Evidence behavior. It is not a substitute for implementation tests. Host-published Context projections may satisfy facts already captured at ingress; an Observation Tool query is not required when that exact trusted projection is already available.
+
+
+## 25. Authoring-source and Procedure-boundary update — 2026-11-13
+
+This section records the latest review direction and supersedes earlier authoring syntax and source-layout proposals in this design note. It remains a public design-review decision, not an implementation claim.
+
+### 25.1 No authored SkillContract wrapper
+
+- vNext authors do not maintain a separate SkillContract YAML object or assurance/contract.yaml.
+- procedure.yaml is the single Skill execution source. Its root declares goal, requestSchema, explicit Capability grants, Procedure inputs, start and nodes.
+- Package identity is derived from the canonical Skill Package root. Repeated metadata.name, skillType and entryProcedure fields are removed from authored YAML.
+- apiVersion and kind are not repeated in authored source. BuildRequest / Compiler Target selects the language version; Compiler records the exact language/API version, generated kind and normalized identity in its compiled artifact.
+- A SkillContract-shaped object may be generated only if a downstream Host / Runtime contract explicitly requires it. Otherwise the normalized CompiledSkill artifact is sufficient; do not create a redundant generated file merely to preserve the old object name.
+
+### 25.2 Procedure owns entry and final assurance
+
+- Invocation-wide Precondition belongs at the beginning of the Procedure graph, as an explicit Precondition node.
+- The final business Postcondition belongs at the end of the graph, before SUCCEEDED Terminal. It consumes explicit arguments from already-produced Operation / Observation / Context values.
+- There is no separate SkillContract.postconditions declaration, no from reference to a second evaluation, and no duplicate Predicate execution. The final Postcondition node is the contract's executable proof.
+- All SUCCEEDED terminals must be dominated by the final Postcondition PASS route. Local Precondition / Postcondition nodes remain available for intermediate business gates.
+- The first version has one entry Procedure graph per Skill. It does not define nested ProcedureCall or graph cycles; business paths are represented by branches in the same graph.
+
+### 25.3 Four business node types; Script placement
+
+- The four business node types remain Precondition, Operation, Observation and Postcondition. Terminal is only a terminal declaration.
+- Predicate remains a pure reusable judgment definition; it is not a Procedure node and does not acquire data.
+- A Procedure Script is a local pure execution target of an Operation node. It performs deterministic selection / transformation / structured-data construction and is not a Tool, Capability or external READ / MUTATION Effect.
+- A Predicate Script is the evaluator implementation of a Predicate. Its typed business inputs derive from Predicate.parameters; its strict return TypedDict generates the Predicate Evaluation Result Schema, including result, reasonCode and evidenceUsed.
+- No generic computation node is introduced. Script cannot access network, filesystem, shell, credentials, environment, clock, randomness or external side effects.
+
+### 25.4 SourcePath and graph safety
+
+- SourcePath roots are limited to input, explicit context projections (request / subject / facts / ingress), and exact prior-node output references.
+- vNext first version supports static dot paths only; no dynamic selectors, interpolation, function calls or array indexing.
+- The Procedure graph is a DAG. Compiler validates producer availability, entry-gate dominance over protected mutations and final-postcondition dominance over every SUCCEEDED terminal.
+- Terminal outcomes include SUCCEEDED, FAILED, UNRESOLVED and SAFE_STOPPED. SAFE_STOPPED preserves partial resource / responsibility state and must not collapse into ordinary Predicate FAIL.
+
+### 25.5 Schema and external dependency artifact boundary
+
+- Skill-owned source Schemas remain YAML-authoritative JSON Schema files. Generated Schema serialization is a Compiler Artifact Contract decision; canonical JSON is the recommended machine-output format but is not frozen here.
+- Compiler consumes exact DependencySnapshot bytes and resolves only referenced exports / Schema IDs. It must not copy every external lib file into the Skill Package or Build Artifact.
+- If a deployment bundle must be self-contained, only the transitive dependency closure reachable from the compiled Skill may be embedded. Otherwise exact external dependency identities may remain references.
+- Serialization and dependency-closure packaging are separate Compiler / Deployment Artifact design topics; they do not block this language-source review.
