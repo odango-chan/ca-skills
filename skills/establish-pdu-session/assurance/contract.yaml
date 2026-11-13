@@ -9,6 +9,7 @@ capabilities:
   - env-fabric.createdsession.hold
   - ca-provider-5gc.createdsession.transfer
   - ca-agent-host.createdsession.runtime
+  - ca-agent-host.createdsession.reference
   - provider-5gc.createdsession.assurance
   - env-fabric.createdsession.governance
 postconditions:
