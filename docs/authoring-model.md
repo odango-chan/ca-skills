@@ -28,10 +28,12 @@ A main Procedure node represents a business-significant Operation, side-effect b
 
 Do not create main-flow nodes merely for a local projection or deterministic calculation when it belongs inside the consuming node's `with` binding or a local Script.
 
-## 4. READ and MUTATION Operations
+## 4. Tool Operations and Observation Tools
 
-- A READ Operation returns one typed normalized value and Evidence from that same invocation.
-- A Predicate consumes that exact output; it does not trigger another read.
+- A Tool exposes exact callable Operations with Owner-defined Input/Output Schemas and declared Effect.
+- An Observation Tool is a specialized read-only Tool contract. It uses the same ToolCatalog, dependency, Schema, Capability and Runtime admission model; it declares QueryContext/Input, normalized Output, authority, scope, freshness and Evidence guarantees.
+- An Observation Tool query is invoked explicitly only when additional authoritative context is needed. It is not required for every Operation and is not one-to-one with Mutation Operations.
+- A Predicate consumes explicit Operation outputs, Context projections or Observation query results; it never triggers acquisition itself.
 - A MUTATION Operation is governed by Runtime Effect admission and commitment semantics.
 - Mutation success does not by itself prove the desired business fact.
 - Unknown mutation outcomes must reconcile the exact original operation; never blindly retry.
@@ -41,10 +43,11 @@ Each Operation belongs to exactly one Capability in the deployment CapabilityCon
 ## 5. Fact, Observation and Evidence
 
 - A Fact is a domain, environment or execution-state statement.
-- An Observation is a captured, scoped representation of a Fact with source and temporal context. It is data/assurance semantics, not a separate callable identity or registry.
+- An Observation is an independently addressable read-only query capability over an Owner's facts/state, exposed as a specialized Tool contract. Its result carries source and temporal context.
+- Observation Tools use the same ToolCatalog, dependency snapshots, Owner Schemas, CapabilityContracts and Runtime admission as other Tools; no parallel public ObservationSource registry exists in vNext.
 - Evidence is validated support for the claim and remains separate from the business payload.
-- Acquisition is an execution action. Use an explicit READ Operation when an independent/current fact must be acquired; reuse adequate prior Operation outputs, captured events or owned projections where possible.
-- Retire the legacy Observation Ref → ObservationSource registry through behavior-preserving migration. Preserve source ownership, scope, correlation, freshness, temporal semantics and evidence guarantees in Producer/READ contracts and Runtime lineage.
+- Operation Result and Observation result are distinct. Reuse an adequate Operation output or trusted Context projection; query an Observation Tool only when additional authoritative context is needed.
+- Preserve source ownership, scope, correlation, freshness, temporal semantics and Evidence guarantees in the Observation Tool contract and Host/Runtime validation.
 
 ## 6. Pure Predicate
 
@@ -55,11 +58,9 @@ A Predicate declares an ordered, typed `parameters` signature and a CEL or Scrip
 - Host/Runtime attaches Evidence separately and validates it before allowing a definite verdict.
 - Predicate Script may return only Evidence refs attached to its own inputs.
 
-## 7. Waiting
+## 7. Asynchronous Operation completion
 
-Bounded waiting is a Host Runtime Operation, not a Predicate feature. It targets one exact READ Operation and explicit scope. It returns a wait summary only. Procedure then performs a final READ Operation and supplies that final result to the Predicate.
-
-Wait and final read must share the exact attempt selector. The wait target must also be covered by a granted Capability.
+There is no Skill-level Wait/Await/polling construct in vNext. Asynchronous protocol/service work belongs inside the owning Tool/Provider/SMF Operation. The Operation returns its final normalized result and correlated Evidence before Procedure advances. Host retains invocation deadline, cancellation, correlation and UNKNOWN handling as Runtime controls; they are not Skill-authored wait loops.
 
 ## 8. Node preconditions and postconditions
 
@@ -82,4 +83,4 @@ Node postconditions differ from `SkillContract.spec.postconditions`, which are f
 
 The 5GC Skill's 36 Cases and three References preserve the business scenarios and expected semantics. They are not a requirement to preserve the old Observation architecture or old source field layout.
 
-The vNext migration is judged by the same verified 5GC business behavior and real network capabilities, using the new Operation/Capability/Predicate contracts. No separate migration rehearsal is required. Paper review finds Owner gaps; implementation and focused tests close them.
+The vNext migration is judged by the same verified 5GC business behavior and real network capabilities, using the new Tool/Observation/Capability/Operation/Predicate contracts. A source-backed migration rehearsal is required to prove behavior, provenance, scope, freshness, correlation and Evidence equivalence before removing legacy ObservationSource implementations.
