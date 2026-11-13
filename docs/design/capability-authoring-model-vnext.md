@@ -98,6 +98,44 @@ Rules:
 
 Field-name equality alone is not a semantic binding contract. A stable semantic-field identifier vocabulary may be needed; its exact representation remains open.
 
+
+### 4.3.1 Minimal input projection and opt-in defaults
+
+The binding model must distinguish **available data** from **data actually passed to a consumer**. Availability never implies forwarding.
+
+- A Skill Request Schema describes the public request surface; it does not require every field to be projected into every Procedure.
+- `context.projections` grants access to named Host/Owner projections. It does not inject those projections into Procedure inputs or downstream calls.
+- `Procedure.inputs` is the Procedure's actual input interface. Declare only values consumed by that Procedure or intentionally shared with its descendants; do not mirror the complete Context or Request.
+- An Operation's Input Schema is its callable interface. Its `required` properties must be supplied. Optional properties are omitted unless the call intentionally uses them.
+- A Predicate declares only the business inputs its evaluator reads. Host-attached Evidence remains a separate reserved projection and is not a reason to add business inputs.
+- A Procedure Script has no separately authored Input Schema in this model. Its call-site `with` is its input projection; keep those bindings explicit unless a future, separately reviewed Script input declaration makes a safe default possible.
+
+The proposed `with.from: input` shorthand is an **opt-in same-name projection**, not blanket argument forwarding:
+
+- It considers only the callee's declared input properties; caller fields not declared by the callee are never forwarded.
+- It supplies same-named **required** callee inputs from the current caller's `input.<name>`.
+- Optional callee inputs are not supplied by default, even when a same-named caller field exists. They require an explicit per-field binding.
+- A per-field binding overrides the default for that target input, including an intentional source rename.
+- If a required target has no same-named caller input under this shorthand, compilation fails. It does not fall back to another namespace or guess another source.
+- The shorthand does not read `context.*`, prior-node outputs, parent Procedure state, or any other ambient source.
+- It is valid only where the callee has a declared input contract (Operation, Predicate, or Procedure). It is not available for a Script until Script input names can be established without guessing.
+- Every generated binding receives the same schema, type/nullability, producer-availability, scope, authorization and control-flow checks as an explicit binding.
+
+Example:
+
+~~~yaml
+with:
+  from: input
+  sNssai:
+    from: input.slice
+~~~
+
+Here the required same-name inputs are projected from the caller's `input`; the optional `sNssai` is deliberately opted in and renamed. No other caller fields are passed.
+
+Requiredness is not a suggestion: if an Operation declares a parameter required but the business operation genuinely does not need it, correct the Owner's Operation contract rather than fabricating a value or weakening the call-site check. An omitted optional property is distinct from an explicit `null`; `null` is valid only when the consumer Schema allows it. JSON Schema `default` annotations do not cause the Compiler or Runtime to synthesize values. Any operational default must be defined by the contract owner.
+
+The exact YAML surface remains open until the grammar review addresses reserved-key collisions (for example, a target input literally named `from`), and positive/negative fixtures cover required-only defaults, optional opt-in, explicit override, absent required input, extra caller fields, null-versus-omitted, and Script exclusion.
+
 ### 4.4 Source versus generated plan
 
 - Author-declared context projections and exceptional mappings are persisted in Skill source.
