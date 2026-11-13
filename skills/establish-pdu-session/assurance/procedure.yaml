@@ -292,7 +292,7 @@ procedures:
                   from: preconditions.read-pcf-create-governance.output
 
             - name: read-lifecycle-before-pcf-create
-              call: createdsession-tools::ca.session.lifecycle.read
+              call: ca-agent-host::ca.session.lifecycle.registration.read
               with:
                 ueRef:
                   from: input.ue-ref
@@ -378,7 +378,7 @@ procedures:
           UNRESOLVED: finalize-unresolved
 
       read-initial-resources:
-        call: createdsession-tools::ca.session.n4.resources.read
+        call: createdsession-tools::ca.session.n4.initial_resources.read
         with:
           ueRef:
             from: input.ue-ref
