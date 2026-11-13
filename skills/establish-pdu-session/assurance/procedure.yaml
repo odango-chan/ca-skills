@@ -112,7 +112,28 @@ procedures:
                   from: input.slice.sst
 
             - verify: createdsession.ingress.eligible
+              with:
+                ingress:
+                  from: input.ingress
+                requestType:
+                  from: input.request-type
+                pti:
+                  from: input.pti
+
+            - name: read-lifecycle-before-udm-subscribe
+              call: createdsession-tools::ca.session.lifecycle.read
+              with:
+                ueRef:
+                  from: input.ue-ref
+                lifecycleRef:
+                  from: input.lifecycle-ref
+
             - verify: createdsession.lifecycle.ready
+              with:
+                lifecycle:
+                  from: preconditions.read-lifecycle-before-udm-subscribe.output.lifecycleRegistration
+                expectedLifecycleRef:
+                  from: input.lifecycle-ref
           'on':
             FAILED: failed
             UNRESOLVED: unresolved
@@ -142,6 +163,9 @@ procedures:
         postconditions:
           steps:
             - verify: createdsession.udm.subscription_owned
+              with:
+                subscription:
+                  from: nudm-sdm-subscribe.output
           'on':
             PASS: npcf-sm-policy-control-create
             FAIL: finalize-failed
@@ -224,25 +248,66 @@ procedures:
             # unavailable read or an ambiguous read blocks the create instead of
             # being guessed. The baseline is keyed to this exact Pre-N4 policy
             # association and lifecycle, not to an N4 instance.
-            - verify: createdsession.n4.baseline_clear
+            - name: read-n4-baseline
+              call: createdsession-tools::ca.session.n4.resources.read
               with:
+                ueRef:
+                  from: input.ue-ref
+                pduSessionId:
+                  from: input.psi
+                pti:
+                  from: input.pti
+                requestType:
+                  from: input.request-type
+                ingressRef:
+                  from: input.ingress-ref
+                lifecycleRef:
+                  from: input.lifecycle-ref
                 pcfPolicyAssociationRef:
                   from: preconditions.resolve-pcf-create-inputs.output.pcfPolicyAssociationRef
                 fabricHoldRef:
                   from: preconditions.bind-pcf-hold.output.holdRef
+                phase:
+                  value: PRE_CREATE
 
-            # Input readiness above is necessary, not sufficient. A create also
-            # needs a clean resource lifecycle and proof that the original SMF's
-            # competing create was not forwarded. No admitted owner supplies that
-            # evidence yet, so this gate stays UNRESOLVED and blocks the create
-            # instead of being replaced by a locally invented ownership claim.
-            - verify: createdsession.pcf.create_governed
+            - verify: createdsession.n4.baseline_clear
               with:
-                lifecycleRef:
-                  from: input.lifecycle-ref
+                baseline:
+                  from: preconditions.read-n4-baseline.output
+
+            # Create safety is a direct Fabric-owned governance READ. Its result
+            # is scoped to this exact ingress, lifecycle, UE and PDU Session.
+            - name: read-pcf-create-governance
+              call: createdsession-tools::ca.session.pcf_create_governance.read
+              with:
+                ueRef:
+                  from: input.ue-ref
+                pduSessionId:
+                  from: input.psi
                 ingressRef:
                   from: input.ingress-ref
+                lifecycleRef:
+                  from: input.lifecycle-ref
+
+            - verify: createdsession.pcf.create_governed
+              with:
+                governance:
+                  from: preconditions.read-pcf-create-governance.output
+
+            - name: read-lifecycle-before-pcf-create
+              call: createdsession-tools::ca.session.lifecycle.read
+              with:
+                ueRef:
+                  from: input.ue-ref
+                lifecycleRef:
+                  from: input.lifecycle-ref
+
             - verify: createdsession.lifecycle.ready
+              with:
+                lifecycle:
+                  from: preconditions.read-lifecycle-before-pcf-create.output.lifecycleRegistration
+                expectedLifecycleRef:
+                  from: input.lifecycle-ref
           'on':
             FAILED: finalize-failed
             UNRESOLVED: finalize-unresolved
