@@ -341,17 +341,17 @@ All five Script assets referenced by the conventional 5GC Procedure and Predicat
 The return types are non-empty TypedDicts. The nested output fields use the supported Literal / Annotated / list / nested TypedDict / NotRequired forms, including the functional TypedDict form for PCF QoS. No authored Script Input Schema, `# /// connectionagent-tool` metadata, or per-Script execution policy was found. This closes the source-shape audit only; it does not replace Compiler-generated schema validation or the still-blocked vNext static link.
 ### 14.7 Resource ownership Observation projection omitted the semantic resource reference
 
-The previous wording of this finding incorrectly described the missing fields as a Provider Mutation Output gap. Rechecking the actual Owner contracts and the production adapter shows a narrower and more precise issue:
+The vNext Procedure binds the Predicate input directly to the Mutation Operation output (`with: subscription from nudm-sdm-subscribe.output`, and the equivalent PCF binding). The current Host ToolCatalog output includes the semantic resource ref, but not the three ownership assertions. The legacy Observation projection is a separate path and is not the source bound by these vNext Predicate calls.
 
 - The UDM ToolCatalog Mutation Output already exposes optional top-level `subscriptionRef`.
 - The PCF ToolCatalog Mutation Output already exposes optional top-level `policyResultRef`.
-- The Host `CreatedSessionResourceEvidenceStore` accepts an exact committed Provider/Fabric result and retains its `resourceRef`, invocation/transaction/operation identity, Fabric record and request digests, response-body digest, target NF instance and observation time.
-- The Host `CreatedSessionResourceObservationSource` derives the three ownership assertions (`creationState=CREATED`, `ownership=AGENT`, `managementState=DURABLE`) from that committed result, but its current normalized Observation Value drops the semantic resource handle.
-- The vNext Predicates require both the ownership assertions and the kind-specific reference: `subscription.subscriptionRef` for UDM and `association.policyResultRef` for PCF.
+- The Host UDM Mutation output already exposes `subscriptionRef`; the PCF Mutation output already exposes `policyResultRef`.
+- The Host dispatch backends durably record the exact committed Provider/Fabric operation outcome in the reference journal before returning the output.
+- The vNext Predicates require the three ownership assertions (`creationState=CREATED`, `ownership=AGENT`, `managementState=DURABLE`) in addition to the kind-specific reference.
 
-Thus the gap is specifically at the Host's normalized Observation projection and its exported Schema—not a reason to enrich the Provider Mutation Output with invented ownership fields, and not a reason to restore the old Observation registry as a hidden Predicate acquisition path.
+Thus the vNext gap is at the Host's normalized Mutation Operation output contract. The Host—not Provider—must combine the exact Provider/Fabric committed resource evidence with its successful durable journal write before asserting that the resource is created, Agent-owned and durably managed.
 
-**Implemented in Host PR #200 (still Draft / unmerged):** the normalized value now retains the exact resource reference using the domain-specific field (`subscriptionRef` for UDM, `policyResultRef` for PCF); the shared Observation Schema declares both properties and requires exactly one; tests validate both shapes against the real `CreatedSessionResourceObservationSource` projection. The ownership state continues to be derived only from exact committed Provider/Fabric evidence. Focused Host CI passed **7 tests** at commit `0e67b572`. This closes the source-projection/schema omission, but not the vNext static-link gate: re-check how the Predicate input aliases are bound to the Owner-published READ output and Evidence before claiming end-to-end linkage.
+**Implementation underway in Host PR #202:** UDM and PCF dispatch backends now add the three ownership fields only after the exact committed operation outcome is durably recorded. The ToolCatalog Output Schemas require those fields whenever `subscriptionRef` / `policyResultRef` is present. Focused tests validate the direct Procedure binding shape against the imported ToolCatalog contracts. This is deliberately separate from PR #200, which publishes legacy Observation projections and is not the output source bound by vNext.
 
 ## 15. Conventional 5GC qualification-case first-pass mapping
 
