@@ -268,7 +268,7 @@ An Observation Tool query uses its own ToolCatalog Input/Output contract and Own
 
 ### 8.1 File names
 
-Historical proposal (superseded by §25): this note previously considered contract.yaml, procedure.yaml, and predicates.yaml as parallel candidate entry files. vNext now removes authored contract.yaml; procedure.yaml is the single Skill execution source and predicates.yaml remains the PredicateSet source. The earlier requirement to rename procedure.yaml to procedures.yaml remains withdrawn.
+Historical proposal (superseded by §25): this note previously explored parallel source-file naming and a plural procedures.yaml entry point. vNext retains contract.yaml, procedure.yaml, and predicates.yaml as three distinct authoring sources; contract.yaml owns public Skill requirements and grants, procedure.yaml owns the single execution graph, and predicates.yaml owns reusable judgments. The earlier requirement to rename procedure.yaml to procedures.yaml remains withdrawn.
 
 External single-resource definitions may retain descriptive suffixes such as *.tool.yaml and *.schema.yaml. Avoid superficial cross-repository churn.
 
