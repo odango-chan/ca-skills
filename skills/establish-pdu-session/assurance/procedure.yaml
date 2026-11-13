@@ -829,6 +829,27 @@ procedures:
           NOT_COMMITTED: safe-stopped
           UNRESOLVED: safe-stopped
 
+      reconcile-nudm-sdm-subscribe:
+        reconcile: nudm-sdm-subscribe
+        'on':
+          COMMITTED: safe-stopped
+          NOT_COMMITTED: safe-stopped
+          UNRESOLVED: safe-stopped
+
+      reconcile-npcf-sm-policy-control-create:
+        reconcile: npcf-sm-policy-control-create
+        'on':
+          COMMITTED: safe-stopped
+          NOT_COMMITTED: safe-stopped
+          UNRESOLVED: safe-stopped
+
+      reconcile-n1n2-message-transfer:
+        reconcile: namf-communication-n1n2-message-transfer
+        'on':
+          COMMITTED: safe-stopped
+          NOT_COMMITTED: safe-stopped
+          UNRESOLVED: safe-stopped
+
       done:
         terminal: SUCCEEDED
       failed:
