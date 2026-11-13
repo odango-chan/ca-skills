@@ -187,7 +187,7 @@ verify:
 
 Rules:
 
-- `parameters` is an ordered list of single-entry mappings: `- parameterName: primitiveType` or `- parameterName: exactSchemaRef`. Every item must contain exactly one key and parameter names must be unique. The value is either a supported primitive type or an authoritative Schema reference. This is the Predicate's function signature, not a separate JSON Schema file. List order defines positional order.
+- `parameters` is an ordered list of single-entry mappings: `- parameterName: primitiveType` or `- parameterName: exactSchemaRef`. Every item must contain exactly one key and parameter names must be unique. The value is one of the supported primitive types (`string`, `integer`, `number`, `boolean`) or an authoritative Schema reference; structured objects/arrays use Schema references. This is the Predicate's function signature, not a separate JSON Schema file. List order defines positional order.
 - `arguments` is an ordered list. Position i binds to parameter i. Argument count must exactly match parameter count.
 - The Predicate signature establishes expected types at authoring time. Producer/Context Schemas establish actual source types and must be assignable to the declared parameter type at every call site. CEL is type-checked against the declared signature independently of call sites. No type inference from names alone.
 - No optional positional parameters, skipped arguments, implicit null/default, coercion, or reordering. Missing or incompatible arguments are compile errors.
