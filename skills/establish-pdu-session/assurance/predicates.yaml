@@ -1,217 +1,189 @@
-apiVersion: connectionagent.io/v1alpha1
+apiVersion: connectionagent.io/v1alpha2
 kind: PredicateSet
 metadata:
   skill: establish-pdu-session
 predicates:
   createdsession.ingress.eligible:
-    observations:
-      state:
-        ref: createdsession.procedure_context
-        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "pti": request.pti, "requestType": request.requestType, "ingressRef": facts.createdsession_ingress}'
-        freshness: 5s
+    inputs:
+      ingress: {}
+      request: {}
     evaluator:
       type: cel
-      expression: observations.state.requestType == request.requestType && observations.state.pti == request.pti &&
-        observations.state.messageType == 193 && observations.state.bindingStatus == "CURRENT" &&
-        observations.state.actionAuthorized == true
-  # Input readiness only. This says the Provider could read and bind the exact
-  # current session instance, allocated address and selected configuration for
-  # this attempt. It does not say the PCF association exists, is exclusively
-  # owned, has a ready callback route or may be created.
-  # UDM Subscribe safety: the subscription must answer the exact held SMF
-  # request. The UDM operation declares SUPI in its request path and DNN/S-NSSAI
-  # in its body; it declares no PDU Session and no policy association, so this
-  # gate never asks for either.
+      expression: input.ingress.requestType == input.request.requestType &&
+        input.ingress.pti == input.request.pti &&
+        input.ingress.messageType == 193 &&
+        input.ingress.bindingStatus == "CURRENT" &&
+        input.ingress.actionAuthorized == true
+
   createdsession.udm.hold_bound:
-    observations:
-      state:
-        ref: createdsession.udm_hold
-        scope: '{"ueRef": subject.ueRef, "dnn": request.dnn, "sst": request.sNssai.sst, "ingressRef": facts.createdsession_ingress, "lifecycleRef": facts.createdsession_lifecycle}'
-        freshness: 5s
+    inputs:
+      hold: {}
+      dnn: {}
+      sst: {}
     evaluator:
       type: cel
-      expression: observations.state.bindingStatus == "CURRENT" && observations.state.operationKind
-        == "UDM_SDM_SUBSCRIPTION_CREATE" && observations.state.holdRef == subject.udmHoldRef &&
-        observations.state.holdRef != "" && observations.state.currentInstanceRef != "" &&
-        observations.state.heldRequestDigest != "" && observations.state.dnn == request.dnn &&
-        observations.state.sst == request.sNssai.sst
+      expression: input.hold.bindingStatus == "CURRENT" &&
+        input.hold.operationKind == "UDM_SDM_SUBSCRIPTION_CREATE" &&
+        input.hold.holdRef != "" && input.hold.currentInstanceRef != "" &&
+        input.hold.heldRequestDigest != "" && input.hold.dnn == input.dnn &&
+        input.hold.sst == input.sst
+
   createdsession.pcf.hold_bound:
-    observations:
-      state:
-        ref: createdsession.pcf_hold
-        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef": facts.createdsession_ingress, "lifecycleRef": facts.createdsession_lifecycle}'
-        freshness: 5s
+    inputs:
+      hold: {}
     evaluator:
       type: cel
-      expression: observations.state.bindingStatus == "CURRENT" && observations.state.operationKind
-        == "PCF_SM_POLICY_CREATE" && observations.state.holdRef == subject.pcfHoldRef &&
-        observations.state.holdRef != "" && observations.state.currentInstanceRef ==
-        subject.pcfHoldPolicyAssociationRef && observations.state.heldRequestDigest !=
-        "" && observations.state.policyAssociationRef != ""
+      expression: input.hold.bindingStatus == "CURRENT" &&
+        input.hold.operationKind == "PCF_SM_POLICY_CREATE" &&
+        input.hold.holdRef != "" &&
+        input.hold.currentInstanceRef == input.hold.policyAssociationRef &&
+        input.hold.heldRequestDigest != "" &&
+        input.hold.policyAssociationRef != ""
+
   createdsession.pcf.create_inputs.ready:
-    observations:
-      state:
-        ref: createdsession.pcf_create_inputs
-        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "pti": request.pti, "requestType": request.requestType, "ingressRef": facts.createdsession_ingress, "lifecycleRef": facts.createdsession_lifecycle}'
-        freshness: 5s
+    inputs:
+      inputs: {}
     evaluator:
       type: cel
-      expression: observations.state.bindingStatus == "CURRENT" && observations.state.pcfCreateInputsRef != "" &&
-        observations.state.pcfPolicyAssociationRef != "" && observations.state.fabricHoldRef != "" &&
-        observations.state.allocatedIPv4 != "" && observations.state.selectionDigest != ""
-  # Create safety, which input readiness cannot supply. A clean resource
-  # lifecycle and governance of the original SMF's competing create are owned by
-  # the environment/Fabric boundary; no admitted owner source exists yet, so this
-  # predicate stays UNKNOWN and the create stays blocked.
+      expression: input.inputs.bindingStatus == "CURRENT" &&
+        input.inputs.pcfCreateInputsRef != "" &&
+        input.inputs.pcfPolicyAssociationRef != "" &&
+        input.inputs.fabricHoldRef != "" &&
+        input.inputs.allocatedIPv4 != "" &&
+        input.inputs.selectionDigest != ""
+
   createdsession.pcf.create_governed:
-    observations:
-      state:
-        ref: createdsession.pcf_create_governance
-        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "lifecycleRef": facts.createdsession_lifecycle, "ingressRef": facts.createdsession_ingress}'
-        freshness: 5s
+    inputs:
+      governance: {}
     evaluator:
       type: cel
-      expression: observations.state.lifecycleIsolationState == "CLEAN" &&
-        observations.state.lifecycleIsolationEvidenceRef != "" &&
-        observations.state.competingCreateState == "NOT_FORWARDED" &&
-        observations.state.competingCreateGovernanceRef != ""
+      expression: input.governance.lifecycleIsolationState == "CLEAN" &&
+        input.governance.lifecycleIsolationEvidenceRef != "" &&
+        input.governance.competingCreateState == "NOT_FORWARDED" &&
+        input.governance.competingCreateGovernanceRef != "" &&
+        input.governance.agentAuthorized == true
+
   createdsession.udm.subscription_owned:
-    observations:
-      state:
-        ref: createdsession.udm_subscription_resource
-        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "pti": request.pti, "requestType": request.requestType, "ingressRef": facts.createdsession_ingress, "lifecycleRef": facts.createdsession_lifecycle}'
-        freshness: 1h
+    inputs:
+      subscription: {}
     evaluator:
       type: cel
-      expression: observations.state.creationState == "CREATED" && observations.state.ownership == "AGENT"
-        && observations.state.managementState == "DURABLE"
-  # This is Agent management responsibility for the created resource
-  # (creationState/ownership/managementState), not proof of native PCF
-  # exclusivity. PCF association ownership is never inferred from it.
+      expression: input.subscription.creationState == "CREATED" &&
+        input.subscription.ownership == "AGENT" &&
+        input.subscription.managementState == "DURABLE"
+
   createdsession.pcf.association_owned:
-    observations:
-      state:
-        ref: createdsession.pcf_association_resource
-        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "pti": request.pti, "requestType": request.requestType, "ingressRef": facts.createdsession_ingress, "lifecycleRef": facts.createdsession_lifecycle}'
-        freshness: 1h
+    inputs:
+      association: {}
     evaluator:
       type: cel
-      expression: observations.state.creationState == "CREATED" && observations.state.ownership == "AGENT"
-        && observations.state.managementState == "DURABLE"
-  # Pre-N4 baseline. This is captured from the real SMF/UPF owner state before
-  # the PCF Create mutation. It accepts only a complete exact read that proved
-  # there is no current N4 pair for this UE/PDU Session. An existing pair, a
-  # partial read or an unavailable source leaves the create blocked.
+      expression: input.association.creationState == "CREATED" &&
+        input.association.ownership == "AGENT" &&
+        input.association.managementState == "DURABLE"
+
   createdsession.n4.baseline_clear:
-    observations:
-      state:
-        ref: createdsession.n4_baseline
-        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "pti": request.pti, "requestType": request.requestType, "ingressRef": facts.createdsession_ingress, "lifecycleRef": facts.createdsession_lifecycle, "pcfPolicyAssociationRef": subject.pcfPolicyAssociationRef, "fabricHoldRef": subject.fabricHoldRef}'
-        freshness: 5s
+    inputs:
+      baseline: {}
     evaluator:
       type: cel
-      expression: observations.state.pairState == "NO_N4_PAIR" && observations.state.baselineRef
-        != ""
+      expression: input.baseline.phase == "PRE_CREATE" &&
+        input.baseline.pairState == "NO_N4_PAIR" &&
+        input.baseline.baselineRef != ""
+
   createdsession.n4.initial_resources_ready:
-    observations:
-      state:
-        ref: createdsession.n4_initial_resources
-        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "pti": request.pti, "requestType": request.requestType, "ingressRef": facts.createdsession_ingress, "lifecycleRef": facts.createdsession_lifecycle, "pcfPolicyAssociationRef": subject.pcfPolicyAssociationRef}'
-        freshness: 5s
+    inputs:
+      resources: {}
+      expectedBaselineRef: {}
     evaluator:
       type: cel
-      expression: observations.state.bindingStatus == "CURRENT" && observations.state.defaultFlowInstalled
-        == true && observations.state.uplinkEndpointBound == true
-  # N1/N2 association readiness. Fabric holds the original SMF N1/N2 Message
-  # Transfer and publishes one exact operation scope; this gate proves the Agent
-  # bound that exact live hold for this attempt. It is a read: it does not say
-  # the hold was claimed, that N1/N2 was sent, or that any RAN resource exists.
-  createdsession.n1n2.hold_bound:
-    observations:
-      state:
-        ref: createdsession.n1n2_hold
-        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "ingressRef": facts.createdsession_ingress, "lifecycleRef": facts.createdsession_lifecycle}'
-        freshness: 5s
-    evaluator:
-      type: cel
-      expression: observations.state.bindingStatus == "CURRENT" && observations.state.operationKind
-        == "N1N2_MESSAGE_TRANSFER" && observations.state.holdRef == subject.n1n2HoldRef
-        && observations.state.holdRef != "" && observations.state.currentInstanceRef != ""
-        && observations.state.heldRequestDigest != "" && observations.state.targetNfInstanceId
-        != "" && observations.state.supi != "" && observations.state.deadline != ""
+      expression: input.resources.phase == "POST_CREATE" &&
+        input.resources.pairState == "NEW_PAIR" &&
+        input.resources.bindingStatus == "CURRENT" &&
+        input.resources.defaultFlowInstalled == true &&
+        input.resources.uplinkEndpointBound == true &&
+        input.resources.baselineEvidenceRef == input.expectedBaselineRef &&
+        input.resources.currentSessionInstanceRef != ""
+
   createdsession.delivery_context.ready:
-    observations:
-      state:
-        ref: createdsession.nas_delivery_context
-        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "pti": request.pti, "requestType": request.requestType, "ingressRef": facts.createdsession_ingress, "lifecycleRef": facts.createdsession_lifecycle}'
-        freshness: 5s
+    inputs:
+      context: {}
     evaluator:
       type: cel
-      # Input facts only. Sender uniqueness is owned by the governed transfer
-      # mutation and Fabric's system-level authorization; a context read cannot
-      # reserve a sender, and `uniqueSenderReserved` stays false by schema.
-      expression: observations.state.bindingStatus == "CURRENT" && observations.state.addressAllocated == true &&
-        observations.state.nasInputsComplete == true && observations.state.delegatedCallerAuthorized == true
+      expression: input.context.bindingStatus == "CURRENT" &&
+        input.context.addressAllocated == true &&
+        input.context.nasInputsComplete == true &&
+        input.context.delegatedCallerAuthorized == true &&
+        input.context.uniqueSenderReserved == false
+
+  createdsession.n1n2.hold_bound:
+    inputs:
+      hold: {}
+    evaluator:
+      type: cel
+      expression: input.hold.bindingStatus == "CURRENT" &&
+        input.hold.operationKind == "N1N2_MESSAGE_TRANSFER" &&
+        input.hold.holdRef != "" && input.hold.currentInstanceRef != "" &&
+        input.hold.heldRequestDigest != "" &&
+        input.hold.targetNfInstanceId != "" && input.hold.supi != "" &&
+        input.hold.deadline != ""
+
   createdsession.amf.transfer_initiated:
-    observations:
-      response:
-        ref: createdsession.amf_transfer_result
-        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "pti": request.pti, "requestType": request.requestType, "ingressRef": facts.createdsession_ingress, "lifecycleRef": facts.createdsession_lifecycle, "operationRef": subject.amfTransferOperationRef}'
-        freshness: 1h
+    inputs:
+      transferResult: {}
     evaluator:
       type: script
       ref: scripts/evaluate_transfer_start.py
+
   createdsession.ran.setup_accepted:
-    observations:
-      state:
-        ref: createdsession.ran_setup_result
-        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "pti": request.pti, "requestType": request.requestType, "ingressRef": facts.createdsession_ingress, "lifecycleRef": facts.createdsession_lifecycle}'
-        freshness: 1h
+    inputs:
+      setup: {}
+      expectedSessionInstanceRef: {}
     evaluator:
       type: cel
-      expression: observations.state.result == "ACCEPTED" && observations.state.requiredFlowMatched ==
-        true && observations.state.currentInstanceBound == true && observations.state.baselineRanEndpointPresent
-        == false
+      expression: input.setup.result == "ACCEPTED" &&
+        input.setup.requiredFlowMatched == true &&
+        input.setup.currentInstanceBound == true &&
+        input.setup.currentSessionInstanceRef == input.expectedSessionInstanceRef &&
+        input.setup.baselineRanEndpointPresent == false
+
   createdsession.n4.forwarding_ready:
-    observations:
-      state:
-        ref: createdsession.n4_forwarding_resources
-        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "pti": request.pti, "requestType": request.requestType, "ingressRef": facts.createdsession_ingress, "lifecycleRef": facts.createdsession_lifecycle}'
-        freshness: 5s
+    inputs:
+      resources: {}
+      expectedSessionInstanceRef: {}
     evaluator:
       type: cel
-      expression: observations.state.bindingStatus == "CURRENT" && observations.state.requiredFlowMatched
-        == true && observations.state.downlinkTunnelMatched == true && observations.state.gatesAllowForwarding
-        == true
+      expression: input.resources.bindingStatus == "CURRENT" &&
+        input.resources.requiredFlowMatched == true &&
+        input.resources.downlinkTunnelMatched == true &&
+        input.resources.gatesAllowForwarding == true &&
+        input.resources.exactPairMatchCount == 1 &&
+        input.resources.currentSessionInstanceRef == input.expectedSessionInstanceRef
+
   createdsession.resources.managed:
-    observations:
-      state:
-        ref: createdsession.resource_responsibility
-        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "pti": request.pti, "requestType": request.requestType, "ingressRef": facts.createdsession_ingress, "lifecycleRef": facts.createdsession_lifecycle}'
-        freshness: 5s
+    inputs:
+      responsibility: {}
+      expectedLifecycleRef: {}
     evaluator:
       type: cel
-      expression: observations.state.managementState == "ACCEPTED" && observations.state.allResourcesCovered
-        == true && observations.state.pendingResponsibilitiesRetained == true
+      expression: input.responsibility.lifecycleRef == input.expectedLifecycleRef &&
+        input.responsibility.managementState == "ACCEPTED" &&
+        input.responsibility.allResourcesCovered == true &&
+        input.responsibility.pendingResponsibilitiesRetained == true
+
   createdsession.udm.subscription_usable:
-    observations:
-      response:
-        ref: sbi.operation.result
-        scope: '{"ueRef": subject.ueRef, "invocationId": subject.udmReadReceipt.invocationId, "transactionRef":
-          subject.udmReadReceipt.result.transactionRef}'
-        freshness: 1h
+    inputs:
+      udmReadResult: {}
     evaluator:
       type: script
       ref: scripts/evaluate_udm_read.py
+
   createdsession.lifecycle.ready:
-    observations:
-      state:
-        ref: createdsession.lifecycle_registration
-        scope: '{"ueRef": subject.ueRef, "pduSessionId": request.pduSessionId, "pti": request.pti, "requestType": request.requestType,
-          "ingressRef": facts.createdsession_ingress, "lifecycleRef": facts.createdsession_lifecycle}'
-        freshness: 5s
+    inputs:
+      lifecycle: {}
+      expectedLifecycleRef: {}
     evaluator:
       type: cel
-      expression: observations.state.lifecycleRef == facts.createdsession_lifecycle && observations.state.registrationState
-        == "DURABLE" && observations.state.receiverState == "READY" && observations.state.lateResultResponsibility
-        == "RETAINED"
+      expression: input.lifecycle.lifecycleRef == input.expectedLifecycleRef &&
+        input.lifecycle.registrationState == "DURABLE" &&
+        input.lifecycle.receiverState == "READY" &&
+        input.lifecycle.lateResultResponsibility == "RETAINED"
