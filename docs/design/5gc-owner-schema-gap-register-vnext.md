@@ -339,3 +339,17 @@ All five Script assets referenced by the conventional 5GC Procedure and Predicat
 | scripts/evaluate_transfer_start.py | main(input: dict) | PredicateEvaluationResult (TypedDict) | none found |
 
 The return types are non-empty TypedDicts. The nested output fields use the supported Literal / Annotated / list / nested TypedDict / NotRequired forms, including the functional TypedDict form for PCF QoS. No authored Script Input Schema, `# /// connectionagent-tool` metadata, or per-Script execution policy was found. This closes the source-shape audit only; it does not replace Compiler-generated schema validation or the still-blocked vNext static link.
+### 14.7 Resource ownership postconditions are not bound to the current Operation outputs
+
+A separate contract mismatch was found when comparing the migrated PredicateSet to the live Agent-demo ToolCatalog:
+
+- `createdsession.udm.subscription_owned` consumes `nudm-sdm-subscribe.output` and tests `creationState`, `ownership`, `managementState`, and `subscriptionRef`.
+- `createdsession.pcf.association_owned` consumes `npcf-sm-policy-control-create.output` and tests `creationState`, `ownership`, `managementState`, and `policyResultRef`.
+- The current ToolCatalog output for `sbi.udm.sdm_subscription.create` declares `operationRef`, `correlation`, `result`, and optional top-level `subscriptionRef`; it does not declare the three ownership-state fields.
+- The current ToolCatalog output for `sbi.pcf.sm_policy.create` declares `operationRef`, `correlation`, `result`, optional `policyResultRef`, and an `association` containing waiter/digest; it does not declare the three ownership-state fields.
+
+The legacy Provider resource evidence adapter deliberately constructs a separate normalized three-field ownership projection (`creationState=CREATED`, `ownership=AGENT`, `managementState=DURABLE`) from an exact committed Provider/Fabric response. The legacy Predicates consume that projection, not the raw mutation response. The vNext Predicate currently mixes the legacy projection fields with the mutation output reference, so its declared inputs cannot be satisfied by the current imported Output Schemas.
+
+**Required resolution before vNext acceptance:** the relevant Owner(s) must publish an explicit typed assurance contract that preserves the exact resource ref, committed Provider/Fabric lineage, and durable Agent ownership/management proof. This may be an Owner-published READ Operation output plus its matching Evidence, or a deliberately enriched mutation Output contract only if the Owner can prove all those facts at that boundary. Do not simply add invented fields to the ToolCatalog, treat HTTP 201 / a Location as durable ownership, or restore the retired Observation registry as a hidden Predicate acquisition path. Until this is resolved, both ownership postconditions remain statically unbound and the 5GC Skill is not acceptance-ready.
+
+This is an additional semantic contract gap beyond the six Procedure Operation IDs missing from the current ToolCatalog in §14.1.
