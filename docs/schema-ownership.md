@@ -41,21 +41,27 @@ There is no physical `lib/` directory requirement, `lib/...` source reference, m
 
 No schema is copied into the Skill merely to make a missing Owner dependency compile.
 
-## 3. READ Operations and prior results
+## 3. Fact, Observation and acquisition
 
-A domain READ is an explicit Operation. Its Owner publishes the typed normalized Output Schema and returns Evidence for the same invocation.
+A Fact is the domain/environment/execution statement. An Observation is a captured, scoped representation of a Fact with source and temporal context. Evidence is the separately validated support for that claim. These are distinct concepts and payloads.
 
-If a later Predicate needs a prior Operation result, pass that exact result through its positional `verify.arguments`. Do not reacquire the same resource from a parallel Observation source and do not infer a value from a local handle alone.
+Observation is retained as a data/assurance concept, but the independent Observation Ref → ObservationSource registry is retired in vNext. Skills do not call or grant Observation Sources. Preserve the useful owner, provenance, scope, correlation, freshness, temporal and evidence guarantees in the authoritative Producer/READ contracts and Runtime lineage. Existing ObservationSource adapters may remain internal implementation details during the breaking migration.
+
+## 4. READ Operations and prior results
+
+A domain fact that must be independently acquired uses an explicit READ Operation. Its Owner publishes the typed normalized Output Schema and returns Evidence for the same invocation. This does not imply that every Predicate input needs a new READ: a prior Operation output, captured event or owned journal/projection may already provide the required Observation and lineage.
+
+If a later Predicate needs a prior Operation result, pass that exact result through its positional `verify.arguments`. Do not reacquire the same resource from a parallel legacy Observation Source and do not infer a value from a local handle alone.
 
 Host journal state is also read through explicit Host-owned READ Operations. The Skill does not declare Host-internal journal dataclasses.
 
-## 4. Script ownership
+## 5. Script ownership
 
 Procedure Script input is a per-call-site projection from explicit `with` bindings. Predicate Script input is derived from the owning Predicate's typed `parameters` signature plus Host-attached Evidence refs. Neither kind of Script authors a separate Input Schema. A Script declares only its strict output `TypedDict`; Compiler generates the output Schema.
 
 For Predicate Script, the Predicate is the sole authority for business-input names and types. Compiler may generate a read-only Python type environment/stub for LSP and static analysis, but this is derived tooling output, not another schema source.
 
-## 5. 5GC Owner contract requirements
+## 6. 5GC Owner contract requirements
 
 The 5GC migration uses these exact contract categories:
 
