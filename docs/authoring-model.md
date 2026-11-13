@@ -15,9 +15,9 @@ Procedure inputs are the Procedure's actual interface, not a mirror of the entir
 - `context.projections` grants access to approved Context projections; it does not inject them into Procedure or Operation inputs.
 - Every consumer receives only its declared input projection. Extra caller fields are never forwarded.
 - Operation requiredness comes from the Owner Input Schema. Required inputs must be bound; optional inputs are omitted unless deliberately supplied.
-- `with.from: input` is a proposed opt-in same-name shorthand for declared-contract consumers. It binds same-named required inputs only. Optional inputs require explicit bindings; explicit bindings override the shorthand.
+- `with.from: input` is a proposed opt-in same-name shorthand for named-object binding contracts (Operation and Procedure). It binds same-named required inputs only. Optional inputs require explicit bindings; explicit bindings override the shorthand.
 - The shorthand never reads Context, parent state or prior-node outputs. Missing required same-name input is an error, not a fallback.
-- Procedure and Predicate consumers may use the shorthand because they declare input names. Script calls remain explicitly bound because Script has no separate input-name contract.
+- Predicate uses an ordered `parameters` signature and positional `verify.arguments`; Script calls remain explicitly bound because Script has no separate parameter signature.
 - A binding resolves against an authoritative Producer Schema. The Producer must be available on every path reaching the consumer.
 - A missing or ambiguous Producer is a build error, not an invitation to guess.
 - Omitted and explicit `null` are distinct. Schema `default` annotations do not authorize synthesized values.
@@ -40,10 +40,10 @@ Each Operation belongs to exactly one Capability in the deployment CapabilityCon
 
 ## 5. Pure Predicate
 
-A Predicate declares named `inputs` and a CEL or Script evaluator. It has no Observation declaration, scope acquisition, freshness polling or hidden globals.
+A Predicate declares an ordered `parameters` signature and a CEL or Script evaluator. Procedure invokes it with positional `verify.arguments`, in exactly the declared order. Producer/Context Schemas establish parameter types; Compiler checks arity, type compatibility and source availability at every call site. Predicate has no Observation declaration, scope acquisition, freshness polling or hidden globals.
 
-- Procedure `verify.with` supplies all Predicate inputs.
-- CEL and Script evaluators read `input.<name>`.
+- CEL refers to the declared parameter names directly; Predicate Script receives the same named projection as `input.<name>`.
+- Predicate arguments lower into the common canonical Binding Plan.
 - Host/Runtime attaches Evidence separately and validates it before allowing a definite verdict.
 - Predicate Script may return only Evidence refs attached to its own inputs.
 
