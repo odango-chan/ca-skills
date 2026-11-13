@@ -190,7 +190,7 @@ verify:
 
 Semantics:
 
-- `parameters` is an ordered list of single-entry mappings: `- parameterName: primitiveType` or `- parameterName: exactSchemaRef`. Each list item must contain exactly one key; names must be unique. The value is either a supported primitive type or an authoritative Schema reference. This is the Predicate's typed function signature, not a separate JSON Schema file. List order defines positional argument order; YAML mapping order is never used.
+- `parameters` is an ordered list of single-entry mappings: `- parameterName: primitiveType` or `- parameterName: exactSchemaRef`. Each list item must contain exactly one key; names must be unique. The value is one of the supported primitive types (`string`, `integer`, `number`, `boolean`) or an authoritative Schema reference; structured objects/arrays use Schema references. This is the Predicate's typed function signature, not a separate JSON Schema file. List order defines positional argument order; YAML mapping order is never used.
 - `arguments` is an ordered list of source expressions. Argument i binds to parameter i. Arity mismatch, duplicate parameter names, unresolved sources, incompatible types, or unavailable producers are compile errors.
 - Parameter names are local to the Predicate definition. Procedure node names and source paths never leak into the evaluator.
 - The Predicate signature establishes the consumer's expected types at authoring time. Authoritative Producer/Context Schemas establish the actual source types at each call site. Compiler checks assignability from each source to the declared parameter and statically checks CEL against the signature. It does not infer the Predicate interface from whichever call site happens to be found first.
