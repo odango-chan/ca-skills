@@ -14,7 +14,8 @@ Unify Capability, Operation, Procedure, Predicate, data binding, Schema ownershi
 - Capability is a stable logical ability identity and authorization/grouping boundary.
 - Operation is the exact callable interface exposed under a Capability; it declares Effect and Input/Output contracts.
 - Initial Effects remain READ and MUTATION.
-- Tool is an implementation/registration unit exposing Operations, not a second authoring-level capability identity.
+- Tool is the common implementation/registration and contract unit; it exposes callable interfaces through ToolCatalog and is not a second authoring-level authorization identity.
+- An Observation Tool is a specialized read-only Tool. Its query interface follows the same contract shape and publication path as other Tool callable interfaces; READ is its Effect. It is not a parallel registry.
 - Procedure calls and Predicate data dependencies use the same exact Operation ID namespace.
 - The Capability contract explicitly enumerates the exact Operations grouped under each Capability. A Skill grant authorizes only that declared membership; no hierarchy, naming convention, Tool display name, or implicit expansion may add Operations. Compiler verifies exact membership and Effect agreement; Runtime still performs deployment admission and authorization.
 
@@ -45,7 +46,7 @@ An Operation output and an Observation are distinct sources. A prior Operation o
 
 - Predicate declares a condition and deterministic evaluation logic over explicitly supplied inputs and evidence.
 - Predicate evaluation is pure with respect to external acquisition: it must not secretly call Tools, Providers, or network reads.
-- Predicate consumes explicitly supplied business values: a prior Operation output, a captured event/journal/projection, a value acquired by a prior READ Operation, or a combination. Each value retains its source and temporal lineage.
+- Predicate consumes explicitly supplied business values: a prior Operation output, a trusted Context projection, a value returned by an Observation Tool query, or a combination. Each value retains its source and temporal lineage.
 - If additional current/independent context is required, the Agent/Procedure explicitly invokes the authorized Observation Tool query and binds its typed output and Evidence to the consumer. Reuse an adequate prior Operation output/projection rather than issuing a redundant query.
 - Predicate retains PASS / FAIL / UNKNOWN semantics and does not name Provider endpoints, Fabric routes, adapters, or implementation classes.
 - **Compatibility note:** current v0.2 Host `PredicateEngine.evaluate()` acquires each declared `observations` entry during Predicate evaluation through `CompositeObservationSource`. Making Predicate pure is therefore a breaking execution-model change. Migration must schedule equivalent acquisition at the same control-flow point and preserve scope, freshness, conditional `when`, evidence validation, UNKNOWN behavior, and trace semantics; it must not eagerly acquire all facts at Procedure entry or duplicate a shared snapshot.
@@ -237,6 +238,7 @@ This is an intentional, explainable syntax distinction based on interface owners
 |---|---|
 | Public Skill Request Schema | Skill |
 | Operation Input/Output Schema | Operation/Tool contract owner |
+| Observation Tool QueryContext/Input and Output Schema | Observation Tool Owner; published through ToolCatalog |
 | Observation QueryContext/Input and Output Schema | Observation Tool Owner; published in ToolCatalog |
 | Shared Context Contract/Schema | Host contract authority, versioned and consumed by Skills |
 | Generic Evidence Envelope | Host |
@@ -468,7 +470,7 @@ The following decisions supersede exploratory alternatives elsewhere in this des
 1. **Breaking version:** vNext uses `connectionagent.io/v1alpha2`. The Compiler rejects v0.2 constructs; no dual parser, field mapper or compatibility path is retained.
 2. **Pure Predicates:** Predicate definitions declare ordered, typed `parameters` using concise single-entry mappings (`- hold: schema-ref`, `- dnn: string`). They do not declare or acquire Observations. Procedure `verify.arguments` supplies positional source expressions. CEL reads parameter names directly; Predicate Scripts receive `input.<parameter>`.
 3. **Observation is a specialized Tool:** Observation is an independently addressable read-only query capability published through the same ToolCatalog, dependency, Owner Schema, CapabilityContracts and Runtime admission model as other Tools. Retire only the legacy ObservationSource implementation registry; preserve Observation query identities and contracts. No one-to-one pairing with Operations is required.
-4. **Explicit acquisition:** when a fact must be independently acquired, Procedure schedules an exact governed READ Operation at the correct control-flow point. Reuse an adequate prior Operation output, captured event or owned projection instead of adding redundant reads. Predicate evaluation never triggers acquisition.
+4. **Explicit query:** when additional authoritative context is required, Agent/Procedure invokes an exact authorized Observation Tool query. Reuse an adequate prior Operation output or trusted Context projection instead of adding redundant queries. Predicate evaluation never triggers acquisition.
 5. **No Skill-level Wait:** asynchronous protocol/service completion is encapsulated by the owning Tool/SMF Operation. It returns its final result and correlated Evidence; Host deadline/cancellation/correlation remain Runtime controls.
 6. **Capability separation:** Skill grants Capability IDs only. A single deployment-owned CapabilityContracts input maps each exact Operation ID to one Capability and Effect. Compiler cross-checks that mapping against the imported ToolCatalog.
 7. **No physical library paths:** Studio supplies dependency snapshots to BuildRequest. Skill source references imported Operations/Schemas by dependency alias plus exact exported ID, never by `lib/` path.
