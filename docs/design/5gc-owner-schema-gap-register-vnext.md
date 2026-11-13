@@ -400,3 +400,17 @@ Their content remains useful as model-facing business guidance and is not an alt
 Case 32 currently expects `FAILED / ACTION_BUDGET_EXHAUSTED` with `createdsession.resources.managed = NOT_EVALUATED`, and its purpose text explicitly says durable-responsibility qualification still needs implementation. However, the current deployment CapabilityContracts document declares `ca.session.resource_responsibility.transfer` as the one budget-exempt finalization Operation, and the vNext Procedure routes a failed PCF Create caused by exhausted action budget through `finalize-resource-responsibility` (transfer, then Host responsibility READ).
 
 These two statements cannot both be the final acceptance expectation. If the budget exemption is retained, the correct business obligation after the UDM subscription has been created is to retain/transfer durable resource responsibility despite the exhausted normal action budget; Case 32 should then expect the final responsibility predicate to be evaluated and pass, while the overall invocation remains FAILED. If the Case's NOT_EVALUATED expectation is intentional, the deployment budget exemption and the vNext finalizer behavior must instead be explicitly revised, with an accepted explanation for how the already-created UDM resource remains owned. Do not silently pick one interpretation. This decision is now an explicit blocker for the final Case 32 review.
+### 15.3 Exact legacy Case expectation inventory
+
+All 36 `expect` blocks were also read. Every case currently declares `planningStatus: READY`; the expected terminal distribution is:
+
+| Expected terminal | Cases |
+|---|---|
+| SUCCEEDED | 01, 15 |
+| FAILED | 04, 10, 12, 19, 23, 29, 32, 33 |
+| UNRESOLVED | 02, 03, 05–09, 11, 13, 16, 24, 30, 31, 34 |
+| SAFE_STOPPED | 17, 18, 20–22, 25–28, 35, 36 |
+
+The expected Contract postconditions intentionally distinguish `PASS`, `FAIL`, `UNKNOWN`, and `NOT_EVALUATED`; notably, a stopped or failed invocation may still require `createdsession.resources.managed = PASS` if a resource was already created and the responsibility handoff completed. Case 16 specifically expects the responsibility predicate to remain UNKNOWN when the manager receipt is missing. These values must not be normalized into one generic failure result.
+
+The complete expected postcondition inventory remains in the original case files in ca-agent-demo; the official vNext Skill does not duplicate those legacy YAML envelopes. Case 32 remains the one identified unresolved expected-outcome conflict (§15.2).
