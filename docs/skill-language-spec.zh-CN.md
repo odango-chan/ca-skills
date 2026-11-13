@@ -512,79 +512,94 @@ vNext 不允许直接把 Operation ID 放入授权列表，不允许 localTools�
 
 Procedure 是确定性的有向执行图。每个 Node 必须且只能声明一个主动作。vNext 的业务节点只有四种：
 
-1. `precondition`：调用 Predicate 判断执行前置条件；
-2. `operation`：调用 ToolCatalog 中的 Operation；
-3. `observation`：调用 ToolCatalog 中的只读 Observation Query；
-4. `postcondition`：调用 Predicate 判断执行结果。
+1. precondition：调用 Predicate 判断执行前置条件；
+2. operation：执行一个业务动作，其目标可以是 Owner Tool Operation，也可以是 Skill 自有的纯 Script；
+3. observation：调用 ToolCatalog 中的只读 Observation Query；
+4. postcondition：调用 Predicate 判断执行结果。
 
-`terminal` 是显式终态声明，不是业务动作。Predicate、CEL 和 Python Script 都不是独立 Procedure 节点。
+terminal 是显式终态声明，不是业务动作。Predicate、CEL 和 Python Script 都不是独立 Procedure 节点；Predicate Script 是 Predicate 的 evaluator，Procedure Script 是 Operation 节点的本地执行目标。
 
 ~~~yaml
-procedures:
-  establish:
-    inputs:
-      ueRef: context.subject.ueRef
-      dnn: context.request.dnn
-    start: check-registration
-    nodes:
-      check-registration:
-        precondition:
-          predicate: createdsession.ue.registered
-          arguments:
-            - input.ueRef
-        'on':
-          PASS: read-subscription
-          FAIL: failed
-          UNKNOWN: unresolved
+goal: pdu_session.initial_request_fulfilled
+requestSchema: schemas/establishment-request.schema.yaml
+capabilities:
+  - provider-5gc.session-read
+  - provider-5gc.session-mutation
 
-      read-subscription:
-        operation: fivegc-tools::sbi.udm.sm_data.get
-        arguments:
-          ueRef: input.ueRef
-          dnn: input.dnn
-        'on':
-          SUCCEEDED: check-subscription
-          FAILED: failed
-          DENIED: failed
-          UNKNOWN: unresolved
+inputs:
+  ueRef: context.subject.ueRef
+  dnn: context.request.dnn
+start: check-registration
+nodes:
+  check-registration:
+    precondition:
+      predicate: createdsession.ue.registered
+      arguments:
+        - input.ueRef
+    'on':
+      PASS: read-subscription
+      FAIL: failed
+      UNKNOWN: unresolved
 
-      check-subscription:
-        postcondition:
-          predicate: createdsession.udm.subscription_usable
-          arguments:
-            - read-subscription.output.result
-            - input.dnn
-        'on':
-          PASS: create-subscription
-          FAIL: failed
-          UNKNOWN: unresolved
+  read-subscription:
+    operation: fivegc-tools::sbi.udm.sm_data.get
+    arguments:
+      ueRef: input.ueRef
+      dnn: input.dnn
+    'on':
+      SUCCEEDED: check-subscription
+      FAILED: failed
+      DENIED: failed
+      UNKNOWN: unresolved
 
-      create-subscription:
-        operation: fivegc-tools::sbi.udm.sdm_subscription.create
-        arguments:
-          ueRef: input.ueRef
-          subscription: read-subscription.output.result
-        'on':
-          SUCCEEDED: complete
-          NOT_COMMITTED: failed
-          OUTCOME_UNKNOWN: reconcile-subscription
-          DENIED: failed
-          FAILED: failed
+  check-subscription:
+    postcondition:
+      predicate: createdsession.udm.subscription_usable
+      arguments:
+        - read-subscription.output.result
+        - input.dnn
+    'on':
+      PASS: create-subscription
+      FAIL: failed
+      UNKNOWN: unresolved
 
-      reconcile-subscription:
-        operation:
-          reconcile: create-subscription
-        'on':
-          COMMITTED: complete
-          NOT_COMMITTED: failed
-          UNRESOLVED: unresolved
+  create-subscription:
+    operation: fivegc-tools::sbi.udm.sdm_subscription.create
+    arguments:
+      ueRef: input.ueRef
+      subscription: read-subscription.output.result
+    'on':
+      SUCCEEDED: verify-final-state
+      NOT_COMMITTED: failed
+      OUTCOME_UNKNOWN: reconcile-subscription
+      DENIED: failed
+      FAILED: failed
 
-      complete:
-        terminal: SUCCEEDED
-      failed:
-        terminal: FAILED
-      unresolved:
-        terminal: UNRESOLVED
+  reconcile-subscription:
+    operation:
+      reconcile: create-subscription
+    'on':
+      COMMITTED: verify-final-state
+      NOT_COMMITTED: failed
+      UNRESOLVED: unresolved
+
+  verify-final-state:
+    postcondition:
+      predicate: createdsession.udm.subscription_owned
+      arguments:
+        - create-subscription.output
+    'on':
+      PASS: complete
+      FAIL: failed
+      UNKNOWN: unresolved
+
+  complete:
+    terminal: SUCCEEDED
+  failed:
+    terminal: FAILED
+  unresolved:
+    terminal: UNRESOLVED
+~~~
 ~~~
 
 ### 12.2 Precondition
@@ -701,9 +716,27 @@ Runtime 必须使用原始 Mutation 的不可变 Invocation、Operation 身份�
 
 ### 12.8 Terminal 与 Applicability
 
-Terminal 声明明确终态，例如 SUCCEEDED、FAILED、UNRESOLVED。不得通过缺失边或最后一个节点自然结束来隐式推断。
+Terminal 声明明确终态：SUCCEEDED、FAILED、UNRESOLVED 或 SAFE_STOPPED。不得通过缺失边或最后一个节点自然结束来隐式推断。
+
+- SUCCEEDED：最终 Postcondition 已 PASS，业务目标得到充分证明。
+- FAILED：业务失败已被明确证明，或发生确定性不可恢复错误。
+- UNRESOLVED：关键结果或事实仍无法可靠判断，不能声称成功或确定失败。
+- SAFE_STOPPED：Runtime / Procedure 为保护已创建资源、责任边界或外部状态而主动停止；它不是普通 Predicate FAIL，也不等于 UNRESOLVED。
+
+SAFE_STOPPED 必须保留已知的部分完成情况和资源责任，不得映射为 SUCCEEDED 或普通 FAILED。
 
 Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时不得随机选择或默认执行。Procedure Predicate 负责业务条件，不负责猜测 Skill 身份。完整 Applicability YAML 语法需要与 Root Routing 契约统一冻结；历史 applicability.when 不作为隐式兼容语法。
+
+### 12.9 Procedure 入口、最终门禁与控制流
+
+- 若 Skill 有 Invocation 级别的前置条件，必须将其放在 Procedure 图入口处，作为 start 指向的 Precondition 节点。多个入口条件可使用一个复合 Predicate，或按顺序串联多个 Precondition 节点；不得在每个 Operation 内隐式复制。
+- 最终 Postcondition 必须是显式图节点，位于所有成功路径汇合处、SUCCEEDED Terminal 之前。它消费本次执行中已经产生的 Operation Result / Observation Result / Context，并显式声明 Predicate arguments。
+- Contract 层不再重复声明 predicate + expect，也不再通过 from 引用另一个 Postcondition 后再次验证。最终 Postcondition 节点本身就是业务验收；只有其 PASS 路径可以进入 SUCCEEDED。
+- 中间 Postcondition 仍可用于局部结果判断；中间 Precondition 仍可用于局部动作门禁。它们与入口门禁、最终门禁使用相同节点语义。
+- 若多个成功分支需要不同的最终证明，必须先在各分支完成必要检查，再汇合到一个共同的最终 Postcondition；或让每个成功 Terminal 都被其对应最终 Postcondition 的 PASS 路径严格支配。不得存在绕过最终验收的 SUCCEEDED 路径。
+- Compiler 必须基于控制流图验证：入口门禁对其保护的 Mutation 有支配关系；所有 SUCCEEDED Terminal 均由最终 Postcondition 的 PASS 路径支配；每个 Source Path 的 Producer 在所有到达路径上可用。
+- vNext 第一版 Procedure 图必须是有向无环图（DAG），不支持隐式循环、任意 back-edge 或通用 retry loop。Reconcile 只针对原 Mutation，不能形成重试循环。只有业务契约明确允许的新尝试，才能作为另一个显式 Operation 节点建模，并受 Runtime Deadline / Budget 限制。
+- 第一版每个 Skill 只有一张入口 Procedure 图，不定义嵌套 ProcedureCall。需要复用的纯判断使用 Predicate，需要复用的纯数据转换使用 Script；不得通过通用 call 隐藏流程跳转。
 
 ## 13. Arguments 与数据来源
 
