@@ -202,43 +202,41 @@ A binding has exactly one of `from` or `value`. A `from` source must resolve to 
  
 ## 6. Pure PredicateSet
 
-Predicates no longer declare Observation references, scopes or freshness. They do not acquire data.
+Predicates are pure reusable functions. They do not declare Observation references, scopes or freshness, and they do not acquire data.
 
-A Predicate declares the names it consumes. Procedure `verify.with` supplies those inputs:
+A Predicate declares an ordered parameter signature and an evaluator:
 
-```yaml
+~~~yaml
 predicates:
   createdsession.ingress.eligible:
-    inputs:
-      ingress: {}
-      request: {}
+    parameters: [ingress, request]
     evaluator:
       type: cel
-      expression: input.ingress.requestType == input.request.requestType &&
-        input.ingress.pti == input.request.pti &&
-        input.ingress.messageType == 193 &&
-        input.ingress.bindingStatus == "CURRENT" &&
-        input.ingress.actionAuthorized == true
-```
+      expression: ingress.requestType == request.requestType &&
+        ingress.pti == request.pti &&
+        ingress.messageType == 193 &&
+        ingress.bindingStatus == "CURRENT" &&
+        ingress.actionAuthorized == true
+~~~
 
-The matching Procedure node supplies both values explicitly:
+The matching Procedure node invokes it positionally:
 
-```yaml
-verify: createdsession.ingress.eligible
-with:
-  ingress:
-    from: context.ingress
-  request:
-    from: input.request
-```
+~~~yaml
+verify:
+  predicate: createdsession.ingress.eligible
+  arguments:
+    - context.ingress
+    - input.request
+~~~
 
 Rules:
 
-- Predicate input names are the only business-data names visible to its evaluator.
-- CEL reads `input.<name>`; it does not read hidden `subject`, `request`, `facts` or `observations` globals.
-- Script evaluators receive the same `input` object.
-- The Host may attach a reserved `input.evidence` projection. It is not business data and cannot be authored or overwritten by Skill `with` bindings.
-- Host validates the provenance, correlation, freshness and exact producer Evidence before a definite Predicate verdict is allowed.
+- Predicate parameter names are the only business-data names visible to the evaluator.
+- Argument order and arity must exactly match the ordered `parameters` declaration.
+- CEL refers to parameter names directly. Predicate Script receives the same parameter projection as `input.<name>`.
+- Producer/Context Schemas establish parameter types; Compiler checks every call site and the CEL expression.
+- Host may attach reserved Evidence refs to producer-backed inputs. Evidence is not a positional business argument and cannot be authored or overwritten by Skill bindings.
+- Host validates provenance, correlation, freshness and exact producer Evidence before a definite verdict is allowed.
 - Predicate Scripts may cite only Evidence references attached to their own inputs. Their `evidenceUsed` output is a subset declaration, not an authority grant.
 - Missing, ambiguous, stale or mismatched input/Evidence produces UNKNOWN. The evaluator must not reacquire data or perform network I/O.
 
