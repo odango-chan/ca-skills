@@ -503,41 +503,64 @@ allowedResources:
 
 ### 11.2 Procedure 示例
 
+以下片段只验证 UDM 订阅，不声称完成 PDU Session 建立；对应的 Predicate 签名见 §29：
+
 ~~~yaml
 # assurance/procedure.yaml
 inputs:
   ueRef: context.subject.ueRef
   dnn: context.request.dnn
-start: check-registration
+start: observe-registration
 nodes:
+  observe-registration:
+    observation: ca::ue.registration.current
+    arguments:
+      ueRef: input.ueRef
+    'on':
+      SUCCEEDED: check-registration
+      FAILED: failed
+      UNKNOWN: unresolved
+
   check-registration:
     precondition:
       predicate: createdsession.ue.registered
       arguments:
-        - input.ueRef
+        - observe-registration.output
     'on':
       PASS: read-subscription
       FAIL: failed
       UNKNOWN: unresolved
+
   read-subscription:
     operation: ca::sbi.udm.sm_data.get
     arguments:
       ueRef: input.ueRef
       dnn: input.dnn
     'on':
-      SUCCEEDED: verify-final-state
+      SUCCEEDED: verify-subscription
       FAILED: failed
       UNKNOWN: unresolved
-  verify-final-state:
+
+  verify-subscription:
     postcondition:
-      predicate: createdsession.session.established
+      predicate: createdsession.udm.subscription_usable
       arguments:
         - read-subscription.output.result
+        - input.dnn
     'on':
-      PASS: succeeded
+      PASS: complete
       FAIL: failed
       UNKNOWN: unresolved
+
+  complete:
+    terminal: SUCCEEDED
+  failed:
+    terminal: FAILED
+  unresolved:
+    terminal: UNRESOLVED
 ~~~
+
+本例要求 Registration 查询输出与 §29 的 Registration 参数 Schema 匹配；UDM Get 的 output.result 与 Subscription 参数 Schema 匹配。它是候选 Owner 契约下的说明性示例，而非当前已可链接的真实 5GC Skill。
 
 ### 11.3 Contract 字段
 
