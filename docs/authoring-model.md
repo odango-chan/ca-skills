@@ -38,7 +38,7 @@ Do not create main-flow nodes merely for a local projection or deterministic cal
 - Mutation success does not by itself prove the desired business fact.
 - Unknown mutation outcomes must reconcile the exact original operation; never blindly retry.
 
-Each Operation belongs to exactly one Capability in the deployment CapabilityContracts. The Skill grants Capability IDs; Procedure calls exact Operation IDs.
+Each exact callable interface belongs to exactly one Capability in the deployment CapabilityContracts. This includes business Operation IDs and Observation query IDs. The Skill grants Capability IDs; Procedure invokes exact exported callable identities.
 
 ## 5. Fact, Observation and Evidence
 
