@@ -1,3 +1,5 @@
+> **Status notice (2026-11-13):** Companion implementation-boundary note. The comprehensive [CA-SL vNext Specification](../skill-language-spec.zh-CN.md) is the sole normative source for language and dependency identity semantics. This note records implementation boundaries and unresolved deployment inputs; it does not freeze the candidate ToolCatalog / CapabilityContracts YAML.
+
 # Dependency Identity & Owner Schema Resolution — Skill Language vNext
 
 **Status:** Proposed cross-repository implementation boundary; DESIGN-REVIEW, not frozen (2026-11-13).
