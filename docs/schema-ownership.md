@@ -1,6 +1,6 @@
 # Skill Schema Ownership vNext
 
-**Status:** Normative vNext ownership contract. Physical `lib/**` references and Predicate Observation schemas are not part of this version.
+**Status:** Proposed vNext ownership contract; DESIGN-REVIEW, not frozen. Physical `lib/**` references and Predicate Observation schemas are not part of this version.
 
 A Skill source file may reference a contract by dependency alias and exact exported ID. It must not encode where the caller stores or acquired the dependency bytes.
 
