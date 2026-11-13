@@ -1,14 +1,65 @@
-# Skill-owned Python Predicate Evaluator Contract
+# Skill-owned Python Script Contract
 
 **Status:** Companion implementation contract. The [CA-SL vNext Specification](skill-language-spec.zh-CN.md) is the sole normative language authority. If any wording here conflicts with it, the specification takes precedence.
 
-Python Script is an implementation of a Predicate evaluator, not an independent Procedure node, Tool, Operation, or general-purpose computation step.
+Skill-owned Python is restricted deterministic local computation. It has two roles. Neither role is a Tool, external Operation, Capability, or general-purpose execution environment.
 
-Core rules:
-- The only entry point is `main(input: dict) -> PredicateOutcome`.
-- `PredicateOutcome` is exactly `Literal["PASS", "FAIL", "UNKNOWN"]`.
-- Business input types derive from the owning Predicate's ordered `parameters` signature.
-- Host / Runtime may attach reserved, read-only Evidence refs; Script cannot create, modify, rebind, or widen them.
-- Compiler / LSP provides the derived read-only input type environment; authors do not maintain a duplicate Script Input Schema.
-- Script cannot access network, HTTP, MCP, shell, database, filesystem, credentials, environment variables, clock, or randomness.
+## 1. Procedure Script
+
+A Procedure Script performs deterministic local selection, transformation or structured-data construction. It is invoked as a local target of an Operation node; it does not introduce a fifth Procedure node type.
+
+~~~yaml
+prepare-policy-inputs:
+  operation:
+    script: scripts/build_pcf_policy_inputs.py
+  arguments:
+    subscriptionData: select-establishment-configuration.output.subscriptionData
+    subscriptionSource: select-establishment-configuration.output.subscriptionSource
+  'on':
+    SUCCEEDED: create-policy
+    FAILED: failed
+~~~
+
+Rules:
+- The only entry point is main(input: dict).
+- The call-site arguments mapping is the complete input projection.
+- Compiler derives the effective input type from the bound Producer / Context Schemas; no separately authored Script Input Schema is allowed.
+- The return annotation must be a strict TypedDict. Compiler generates its Output Schema, including supported Annotated, Literal and NotRequired constraints.
+- The result is exposed as node.output to later Procedure nodes.
+- A Procedure Script is pure and deterministic. It cannot access network, HTTP, MCP, shell, database, filesystem, credentials, environment variables, clock or randomness.
+- It cannot perform external side effects, declare Tool IDs, Capability IDs or READ/MUTATION Effect.
+- Host / Runtime owns sandboxing, resource budget, deadline and cancellation.
+- Exceptions, invalid return types and output-schema violations do not produce a successful output.
+
+## 2. Predicate Script
+
+A Predicate Script implements the evaluator of a declared Predicate. Its business input signature is exclusively Predicate.parameters; every call site's positional arguments must match the ordered signature and be type-compatible.
+
+~~~python
+from typing import Annotated, Literal, TypedDict
+
+class PredicateEvaluationResult(TypedDict):
+    result: Literal["PASS", "FAIL", "UNKNOWN"]
+    reasonCode: Annotated[str, {"minLength": 1}]
+    evidenceUsed: list[str]
+
+def main(input: dict) -> PredicateEvaluationResult:
+    ...
+~~~
+
+Rules:
+- The only entry point is main(input: dict).
+- Business input types derive from the owning Predicate's ordered parameters.
+- Host / Runtime may attach a reserved, read-only Evidence projection; it is not an extra positional business parameter.
+- result is the only field that controls PASS / FAIL / UNKNOWN routing.
+- evidenceUsed may cite only Evidence refs already attached to this Predicate Invocation. Script cannot create, modify, rebind or widen Evidence.
+- The strict return TypedDict generates the evaluator Output Schema; no competing hand-maintained Script Output Schema is allowed.
+- CEL Predicate evaluation follows the same tri-state semantics; Runtime normalizes its result and preserves the input / Evidence lineage.
+
+## 3. Static and runtime constraints
+
+- Compiler / LSP provides a derived read-only input type environment. Authors do not maintain duplicate Script Input Schemas.
 - Compiler validates annotations and restrictions without executing Python to infer schemas or behavior.
+- Script cannot use dynamic imports, arbitrary reflection, eval/exec, network, shell, database, filesystem, credentials, environment variables, clock or randomness.
+- Script cannot acquire Observation data or call Tool / MCP interfaces.
+- Script cannot access undeclared ambient Context or mutate Runtime state.
