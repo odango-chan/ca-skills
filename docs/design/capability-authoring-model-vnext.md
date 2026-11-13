@@ -336,9 +336,9 @@ The v1alpha2 5GC READ set contains six new READ Operations:
 1. `createdsession-tools::ca.session.n4.initial_resources.read` — phase-discriminated `PRE_CREATE` baseline / `POST_CREATE` initial-resource result;
 2. `createdsession-tools::ca.session.ran_setup.read` — exact SMF RAN-setup result;
 3. `createdsession-tools::ca.session.n4.forwarding.read` — exact UPF N4-forwarding result;
-4. `fabric-tools::ca.session.pcf_create_governance.read` — exact Fabric PCF-create governance result;
-5. `host-tools::ca.session.lifecycle.registration.read` — exact Host lifecycle-registration journal projection;
-6. `host-tools::ca.session.resource_responsibility.read` — exact Host resource-responsibility journal projection.
+4. `env-fabric-tools::ca.session.pcf_create_governance.read` — exact Fabric PCF-create governance result;
+5. `ca-agent-host::ca.session.lifecycle.registration.read` — exact Host lifecycle-registration journal projection;
+6. `ca-agent-host::ca.session.resource_responsibility.read` — exact Host resource-responsibility journal projection.
 
 The first three belong to one Provider assurance Capability only if Provider Owner confirms that boundary. Fabric governance belongs to a Fabric-owned Capability. The two Host journal READs belong to the Host Runtime Capability. The exact CapabilityContracts mapping is deployment-owned and supplied separately to the Compiler.
 
@@ -348,7 +348,7 @@ The UDM read is the Host Tool output `nudm-sdm-get.output.result`, which is `Cre
 
 ### 16.3 Bounded Host wait Operation
 
-Bounded waiting remains the exact Host Runtime Operation `host-tools::ca.session.evidence.await`. It is not a Predicate feature or a domain Observation identity.
+Bounded waiting remains the exact Host Runtime Operation `ca-agent-host::ca.session.evidence.await`. It is not a Predicate feature or a domain Observation identity.
 
 It receives:
 
