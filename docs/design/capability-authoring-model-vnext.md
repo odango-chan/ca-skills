@@ -118,7 +118,7 @@ Field-name equality alone is not a semantic binding contract. A stable semantic-
 - Public Skill request requiredness belongs to the Skill-owned Request JSON Schema.
 - Operation input requiredness belongs to the Operation Input Schema owned by its contract owner.
 - Procedure-specific public inputs, if needed, have an explicit Procedure input contract and do not duplicate Operation requiredness.
-- Context availability belongs to the Context Contract / Procedure context projection. Existing spec.context.requiredFacts identifies required fact identifiers; it is not a field-level schema.
+- Context availability belongs to the Contract's explicit `context.projections` Schema map and Procedure path bindings. There is no separate `requiredFacts` list or field-level context schema authored by the Skill.
 - Predicate inputs inherit requiredness from their declared input contract and referenced producer outputs.
 - Compiler checks schema/reference validity, binding completeness, type/nullability, producer availability, and statically knowable control/data dependency order.
 - Runtime checks actual values, dynamic presence, freshness, correlation, and Evidence validity.
@@ -168,7 +168,7 @@ External single-resource definitions may retain descriptive suffixes such as *.t
 - Keep routine calls concise; do not require repeated with for every input if Binding Plan resolves it deterministically.
 - Keep exceptional mappings explicit and near their owner. Exact placement (node-level with versus Procedure-level bindings) remains open until real Skill migration proves the better form.
 - Do not add bindings.yaml at this stage.
-- Retain the existing apiVersion/kind resource envelope where applicable; do not invent another envelope.
+- Fixed paths identify the source artifact kind. The vNext Compiler target identifies the language version. Do not repeat `apiVersion`, `kind`, `metadata`, `spec`, `skillType` or wrapper maps such as `procedures:` / `predicates:` in source files. `SKILL.md` frontmatter is the single Skill identity source; the Compiler checks it against the package directory.
 
 ## 9. Skill Studio responsibilities
 
@@ -219,7 +219,7 @@ Runtime:
 
 ## 12. Migration status and remaining Owner gates
 
-The v1alpha2 language semantics are frozen in [Skill Language Specification](../skill-language-spec.md); the 5GC source migration is now being implemented against that contract. The source/Owner mapping is consolidated in [Binding Migration Rehearsal §§18–24](binding-migration-rehearsal-vnext.md). The migration uses eight Capability grants, 18 callable Operations when the N4 READ is phase-discriminated, all 17 legacy Predicate inputs, five Skill Script identities, and all 36 Cases / three References as behavioral obligations.
+The v1alpha2 language semantics, including the reduced source envelope and explicit context-schema bindings, are frozen in [Skill Language Specification](../skill-language-spec.md); the 5GC source migration is now being implemented against that contract. The source/Owner mapping is consolidated in [Binding Migration Rehearsal §§18–24](binding-migration-rehearsal-vnext.md). The migration uses eight Capability grants, 18 callable Operations when the N4 READ is phase-discriminated, all 17 legacy Predicate inputs, five Skill Script identities, and all 36 Cases / three References as behavioral obligations.
 
 Current cross-repository work remains Draft/unmerged: Host PR #198 publishes Subject/Facts/Ingress/Evidence projections; Host PR #200 publishes 15 normalized legacy Observation payload Schemas; Provider PR #50 proposes the upstream GetSmData result Schema but has not yet passed CI. The Host-facing UDM `output.result` Schema is separate from the Provider wire Schema and is still a required Owner publication. The four domain READ shapes and two Host journal READ Operations still need exact Input/Output/Evidence contracts and Capability memberships.
 
