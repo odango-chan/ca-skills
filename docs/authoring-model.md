@@ -1,74 +1,71 @@
-# Current Skill Authoring Model
+# vNext Skill Authoring Model
 
-**Status:** Current business and Procedure semantics. Compiler conformance is tracked independently. Language authority is [Skill Language Specification](skill-language-spec.md); Script rules are in [Script Contract](script-contract.md).
+**Status:** Normative business and Procedure authoring model for Skill Language vNext.
 
 ## 1. One deterministic source graph
 
 - `assurance/procedure.yaml` is the deterministic workflow source.
-- `SKILL.md` is model-facing business guidance for an LLM-driven path.
-- Do not maintain a second prose graph with duplicated next-node edges.
-- Both execution styles retain the same resource boundary, Predicate truth, evidence authority and final Contract boundary.
+- `SKILL.md` is model-facing business guidance; it is not a second execution graph.
+- Cases record semantic obligations and scenarios; they are not executable workflow or runtime evidence.
 
-## 2. Business-significant nodes
+## 2. Procedure inputs and explicit bindings
 
-A main Procedure node represents a business-significant operation, side-effect boundary, independent asynchronous procedure, recovery boundary or recognizable protocol/service step.
+Procedure inputs are named projections from the frozen invocation context. Every Operation, Script and Predicate consumer receives explicit `with/from` bindings.
 
-Do not create main-flow nodes merely for a local projection, deterministic calculation, read-only context preparation or a single fact check when these can be expressed as preparation owned by the consuming node.
+- A binding resolves against an authoritative Producer Schema.
+- The Producer must be available on every path reaching the consumer.
+- No implicit previous-node binding, automatic semantic matching, hidden context injection or string interpolation is allowed in the initial vNext implementation.
+- A missing or ambiguous Producer is a build error, not an invitation to guess.
 
-## 3. Node preconditions
+## 3. Business-significant nodes
 
-`preconditions` are an ordered node-entry phase. They complete immediately before the node's main operation.
+A main Procedure node represents a business-significant Operation, side-effect boundary, independent asynchronous procedure, recovery boundary or recognizable protocol/service step.
 
-Supported step intents are only:
+Do not create main-flow nodes merely for a local projection or deterministic calculation when it belongs inside the consuming node's `with` binding or a local Script.
 
-- `script`: Skill-owned pure local computation;
-- `call`: a declared Tool Operation, subject to imported input Schema and Runtime authority;
-- `verify`: a Predicate over already materialized evidence.
+## 4. READ and MUTATION Operations
 
-Preconditions must not contain mutations, hidden resource creation or operations requiring mutation reconciliation. The block stops at the first non-successful step. Its aggregate route distinguishes proven failure from unresolved evidence.
+- A READ Operation returns one typed normalized value and Evidence from that same invocation.
+- A Predicate consumes that exact output; it does not trigger another read.
+- A MUTATION Operation is governed by Runtime Effect admission and commitment semantics.
+- Mutation success does not by itself prove the desired business fact.
+- Unknown mutation outcomes must reconcile the exact original operation; never blindly retry.
 
-Node preconditions do not replace Runtime/Harness hard guards. Runtime still rechecks attempt, lifecycle, authority and mutation admission immediately before dispatch; do not copy implementation guards into every Skill node.
+Each Operation belongs to exactly one Capability in the deployment CapabilityContracts. The Skill grants Capability IDs; Procedure calls exact Operation IDs.
 
-## 4. Node postconditions
+## 5. Pure Predicate
 
-`postconditions` establish facts after the node's main operation and before the business flow may advance.
+A Predicate declares named `inputs` and a CEL or Script evaluator. It has no Observation declaration, scope acquisition, freshness polling or hidden globals.
 
-- Successful read/local-compute results and committed mutations enter the postcondition phase when declared.
-- Steps are ordered; the block stops at the first non-PASS result.
-- Only the block's PASS route advances after every step passes.
-- FAIL and UNKNOWN follow explicit routes.
-- A mutation being COMMITTED does not by itself establish the business fact.
+- Procedure `verify.with` supplies all Predicate inputs.
+- CEL and Script evaluators read `input.<name>`.
+- Host/Runtime attaches Evidence separately and validates it before allowing a definite verdict.
+- Predicate Script may return only Evidence refs attached to its own inputs.
 
-Node-level postconditions differ from `SkillContract.spec.postconditions`. The former govern whether one operation may advance; the latter are independent final acceptance conditions for the whole Skill.
+## 6. Waiting
 
-## 5. Shared preparation results
+Bounded waiting is a Host Runtime Operation, not a Predicate feature. It targets one exact READ Operation and explicit scope. It returns a wait summary only. Procedure then performs a final READ Operation and supplies that final result to the Predicate.
 
-A preparation result belongs inside a node when only that node consumes it. When later business nodes also consume it, it is shared Procedure data. Name the exact Producer through paths such as:
+Wait and final read must share the exact attempt selector. The wait target must also be covered by a granted Capability.
 
-~~~yaml
-from: <producer-node>.preconditions.<step-name>.output
-~~~
+## 7. Node preconditions and postconditions
 
-Do not copy values into new inputs or invent implicit previous-node bindings. Compiler must resolve the exact Producer path or report it unresolved.
+`preconditions` are ordered node-entry steps. They complete immediately before the main Operation and stop on the first non-success result.
 
-## 6. Script and Schema ownership
+`postconditions` establish facts after the main Operation and before the business flow advances. Steps are ordered; only PASS advances. FAIL and UNKNOWN follow explicit routes.
 
-- A Script's identity is the Skill package plus its relative Python path.
-- Procedure Script input is the per-call-site projection from `with:`; Predicate Script input is the declared Predicate Evaluation Context.
-- A Script declares only its strict, non-empty Output `TypedDict`. Compiler generates its read-only Output JSON Schema.
-- Do not author Script input/output Schema files, add `connectionagent-tool` metadata or create independent local Tool IDs.
-- Scripts are deterministic local computation only. They do not call HTTP, MCP, Providers, shell commands or other Tools.
+Node postconditions differ from `SkillContract.spec.postconditions`, which are final Skill acceptance conditions.
 
-See [Script Contract](script-contract.md) and [Schema Ownership](schema-ownership.md).
+## 8. Script and Schema ownership
 
-## 7. Reconciliation
+- A Script identity is Skill package plus relative Python path.
+- Procedure Script input comes from its call-site `with`.
+- Predicate Script input comes from declared Predicate inputs plus Host Evidence refs.
+- Script output comes from a strict return `TypedDict` and is generated by Compiler.
+- Scripts are deterministic local computation only; they do not invoke Tools or external systems.
 
-Use native `reconcile: <original-node>` for reconciliation of an original mutation. Preserve original Operation identity and uncertainty; never blindly retry an unknown mutation.
+## 9. 5GC migration baseline
 
-## 8. Cases are source obligations, not execution evidence
+The 5GC Skill's 36 Cases and three References preserve the business scenarios and expected semantics. They are not a requirement to preserve the old Observation architecture or old source field layout.
 
-A Case records a scenario, context and expected outcome. It does not prove Compiler, Mock Runtime, Qualification suite or live network execution. Cases remain source material; Compiler does not implement a Qualification engine or Case runner.
-
-## 9. Compiler boundary
-
-Compiler consumes caller-supplied Skill and imported Owner/Tool files, performs static parse/link/type checks, generates output files and diagnostics. It does not acquire dependencies, manage a project, run Python, execute Tools, qualify a Skill or prove Runtime readiness.
+The vNext migration is judged by the same verified 5GC business behavior and real network capabilities, using the new Operation/Capability/Predicate contracts. No separate migration rehearsal is required. Paper review finds Owner gaps; implementation and focused tests close them.
