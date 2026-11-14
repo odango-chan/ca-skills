@@ -1,8 +1,8 @@
-> **Status notice (2026-11-14):** Historical design rationale and earlier review record. The v1alpha2 language contract is FROZEN in the canonical specification; this file remains non-normative. The comprehensive [CA-SL vNext Specification](../skill-language-spec.zh-CN.md) is the sole normative language document. Sections 1–24 record historical proposals and implementation evidence. The current authoring summary is in §§25–26. In particular, §25 retains an authored contract.yaml but removes redundant apiVersion / kind / metadata wrappers; it also supersedes the old Procedure binding syntax and earlier Script placement. Do not implement syntax directly from this note.
+> **Status notice (2026-11-14):** Historical design rationale and earlier review record. The current v1alpha3 language/interop contract is FROZEN in the canonical specification; this document records older v1alpha2-era proposals; this file remains non-normative. The comprehensive [CA-SL vNext Specification](../skill-language-spec.zh-CN.md) is the sole normative language document. Sections 1–24 record historical proposals and implementation evidence. The current authoring summary is in §§25–26. In particular, §25 retains an authored contract.yaml but removes redundant apiVersion / kind / metadata wrappers; it also supersedes the old Procedure binding syntax and earlier Script placement. Do not implement syntax directly from this note.
 
 # Capability & Authoring Model vNext
 
-Status: **HISTORICAL DESIGN RECORD (CA-SL v1alpha2 normative language frozen; implementation qualification pending)**  
+Status: **HISTORICAL DESIGN RECORD (CA-SL v1alpha3 normative language/interop frozen; implementation qualification pending)**  
 Scope: ca-skills authoring language and contracts. This is a design proposal, not an implementation claim. v0.2 remains authoritative until a separately reviewed migration is approved.
 
 ## 1. Goals
