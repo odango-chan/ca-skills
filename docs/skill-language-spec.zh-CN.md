@@ -5,14 +5,14 @@
 **目标版本：** vNext / API v1alpha3  
 **状态：** FROZEN — CA-SL vNext / API v1alpha3（语言与互操作规范；产品实现 NOT QUALIFIED）  
 **规范所有者：** odango-chan/ca-skills  
-**消费者：** Skill 作者、Skill Studio、ca-skill-compiler、Agent Host / Runtime、Tool Owner、Schema Owner、语言服务和第三方评审者  
+**适用对象：** Skill 作者、Skill Studio、Compiler、Agent Host / Runtime、Tool Owner、Schema Owner、语言服务及符合性评审机构  
 **更新日期：** 2026-11-14
 
-> 冻结后勘误：[第一轮](design/ca-sl-v1alpha3-errata-2026-11-14.md) · [第二轮：诊断/Evidence/可信输入闭合](design/ca-sl-v1alpha3-errata-2026-11-14-r2.md)。勘误记录不改变本文已冻结的语义；§45.2 产品符合性仍未通过。
+**文件效力。** 本文件是 CA-SL vNext / v1alpha3 的规范性语言定义。源码格式、静态链接、执行语义、授权、Evidence、诊断及附录所列规范性预期均以本文件为准。其他资料不得覆盖本文件的规范性要求。
 
-> 本文是 CA-SL vNext / v1alpha3 已冻结的规范文本，也是本仓库唯一的语言语义权威。它覆盖背景、设计原则、术语、架构、源码结构、YAML 语法、静态语义、运行语义、Tool / Observation / Evidence、Schema 所有权、异常处理、PDU Session 示例、工具链要求和 FAQ。其他文档可以补充实现细节，但不得另行定义或覆盖语言语义。
->
-> MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT、MAY、OPTIONAL 等关键字遵循 RFC 2119 / RFC 8174。中文“必须、不得、应当、不建议、可以”具有相同规范效力。
+**规范性用语。** MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT、MAY、OPTIONAL 按 RFC 2119 和 RFC 8174 解释。相应中文规范性措辞包括“必须”“不得”“应当”“不应”“可以”。
+
+**变更记录。** [勘误记录（一）](design/ca-sl-v1alpha3-errata-2026-11-14.md)、[勘误记录（二）](design/ca-sl-v1alpha3-errata-2026-11-14-r2.md)。勘误不改变 v1alpha3 的规范性语义；产品符合性状态见 §45.2。
 
 ---
 
@@ -20,25 +20,27 @@
 
 **默认效力：Normative。**
 
-## 0. 规范效力与成熟度
+## 0. 规范状态与适用范围
 
-本版将 CA-SL 作者源码、静态与运行语义、附录 F/G 的互操作剖面以及附录 H 的诊断分类冻结为 Normative。v1alpha2 的历史冻结记录独立保留；本版在闭合性复审后作为 v1alpha3 的新版本发布，不回写旧版安全语义。E.1–E.4 的 `urn:example` 数据、历史设计记录与测试装配说明为 Informative，但其预期诊断与行为具有 Normative 效力。外部 BuildRequest 文件传输、Compiler Artifact、Runtime Trace 和真实 Tool Owner 发布物由其独立版本治理；本规范冻结不冒充它们已获 Owner 签署或通过 CI。此前标成 Candidate 的 v1alpha3 字段以附录 F/G 的唯一规范性定义为准；与其不符的旧提示仅视为历史评审文字。
+CA-SL vNext / v1alpha3 的作者源码语法、静态语义、运行语义、附录 F/G 的互操作约束及附录 H 的诊断分类具有规范性效力（Normative）。附录 E 中的示例数据和测试装配为资料性内容（Informative），其明确规定的预期诊断和行为具有规范性效力。
 
-### 作者快速入门
+BuildRequest 传输格式、Compiler Artifact、Runtime Trace 及 Tool Owner 发布物分别受其自身的版本契约管理。本文件的冻结状态不构成上述产品或发布物通过符合性验收的证明。历史 v1alpha2 冻结记录及 v1alpha3 修订记录不覆盖本文件；互操作字段以附录 F/G 为准。
 
-**Informative。** 从 E.8 开始：声明目标和 Host Context Schema，定义检查 UE 引用非空的 Predicate，再把输入绑定到 Postcondition，令 PASS 路由到 SUCCEEDED。需要业务门禁时增加 Precondition；需要调用能力时增加 Operation 并在 Contract 声明 Capability；需要权威事实时增加 Observation，并将结果及 Evidence 绑定给最终判断。
+### 作者使用说明（资料性）
 
-| 常见诊断 | 排查 |
+附录 E.8 提供最小作者源码实例，包括 Contract Goal、Host Context Schema、Predicate 签名、Postcondition 参数及 PASS 到 SUCCEEDED 的路由。业务前置条件使用 Precondition；外部调用使用 Operation 和相应的 Capability 声明；权威状态查询使用 Observation，并将查询结果及其 Evidence 显式绑定至 Predicate。
+
+| 诊断代码 | 检查事项 |
 |---|---|
 | SOURCE_NOT_AVAILABLE | 检查 Producer 在所有到达路径均成功，且所取字段为必需；可改绑外层对象 |
 | ROUTE_OUTCOME_MISSING | 按 §22.1 补齐当前阶段的必填边 |
 | PREDICATE_EVIDENCE_UNSATISFIABLE | 核对 Producer、Outcome、值路径和保证声明 |
 
-## 1. 为什么需要 CA-SL
+## 1. 背景与问题定义
 
-ConnectionAgent Skill 不是一段 Prompt，也不是一组供模型自由挑选的工具说明。它描述 Agent 如何在明确业务目标、输入、上下文和授权范围内，执行确定性步骤、验证事实、处理不确定结果并给出可审计结论。
+ConnectionAgent Skill 定义在明确的业务目标、输入、上下文和授权条件下执行的确定性过程。其内容包括控制流、事实验证、异常处理及可审计的执行结果。Prompt 文本或非约束性 Tool 描述不属于本规范定义的可执行契约。
 
-以 5G PDU Session Establishment 为例，Agent 不仅要知道如何调用 UDM、PCF、AMF、SMF，还必须知道：
+以 5G PDU Session Establishment 为例，规范涉及以下约束：
 
 - 请求属于哪个 UE、PDU Session、PTI 和生命周期；
 - 输入来自哪个权威来源，是否仍然有效；
@@ -46,15 +48,15 @@ ConnectionAgent Skill 不是一段 Prompt，也不是一组供模型自由挑选
 - 某次调用是 READ 还是 MUTATION，是否被授权；
 - 某个状态是 Operation Result、Observation Result，还是 Host 捕获的 Context；
 - Mutation 已提交但响应丢失时，如何避免重复创建；
-- Predicate 为什么可以 PASS，支持它的 Evidence 是什么；
-- Evidence 缺失、过期、冲突或无法查询时，为什么必须 UNKNOWN；
+- Predicate 的 PASS 判定及其 Evidence 依据；
+- Evidence 缺失、过期、冲突或不可取得时的 UNKNOWN 处理；
 - 多个 UE、多个 Session 和多个 Invocation 如何保持隔离。
 
-CA-SL 将这些边界变成可阅读、可静态检查、可链接、可编辑、可执行和可审计的契约。
+上述要求通过可静态检查、可链接和可审计的语言契约表达。
 
 ## 2. 设计目标
 
-CA-SL MUST 满足：
+CA-SL 的规范性设计要求如下：
 
 1. 业务目标清晰：Skill 描述业务目标和完成条件，不把网元实现细节伪装成业务语义。
 2. 执行确定：Procedure 明确表达步骤、依赖、分支、失败处理和终态，不依赖隐式前序节点或模型临场猜测。
@@ -67,13 +69,13 @@ CA-SL MUST 满足：
 9. 运行时边界明确：Script 只做确定性本地计算；Tool 负责外部交互；Host / Runtime 负责授权、隔离、Evidence 和执行治理。
 10. 工具链同源：Compiler、LSP、Skill Studio 和 Runtime 消费同一套语言语义。
 11. 可演进：语言版本、Schema 身份和 Owner 契约版本明确；破坏性变化不通过静默兼容掩盖。
-12. 可审查：规范可以脱离实现代码独立阅读和评审。
+12. 可审查性：规范性规则独立于特定实现，能够据此进行符合性判定。
 
-## 3. 非目标
+## 3. 不适用范围
 
-CA-SL 不是通用编程语言、BPMN 替代品、Prompt DSL、Tool / MCP / HTTP API 重新定义、Package Manager、Dependency Resolver、数据库、记忆系统、Python 执行环境、实时网络状态真相来源、Qualification / Case Runner，也不是 3GPP 协议字段的第二套定义。
+CA-SL 不定义通用编程语言、BPMN 执行引擎、Prompt DSL、Tool/MCP/HTTP 接口协议、包管理器、依赖解析服务、数据库、记忆系统、Python 执行环境、实时网络状态权威来源或符合性测试执行器；也不重新定义 3GPP 协议字段。
 
-CA-SL 描述 Agent 如何在 Owner 已发布契约上进行确定性编排，不取代 3GPP、OpenAPI、AsyncAPI、Provider API 或网元内部协议。
+CA-SL 的适用范围限于已发布 Owner 契约之上的确定性业务编排。3GPP、OpenAPI、AsyncAPI、Provider API 及网元内部协议的规范性职责不受本文件替代。
 
 ## 4. 符合性角色
 
@@ -88,7 +90,7 @@ CA-SL 描述 Agent 如何在 Owner 已发布契约上进行确定性编排，不
 | Host / Runtime | 授权、Effect、Scope、Evidence、Deadline、Cancellation 和隔离 |
 | Script | 只做确定性本地计算，不越过 Tool / Runtime 边界 |
 
-Build 成功不等于 Runtime READY；Runtime READY 不等于执行成功；Skill 执行成功也不自动等于真实 5GC 验收成功。
+静态构建成功、Runtime 就绪、单次 Invocation 成功与真实 5GC 系统验收属于不同的符合性层级，应分别提供验证结果（§45.2）。
 
 ---
 
