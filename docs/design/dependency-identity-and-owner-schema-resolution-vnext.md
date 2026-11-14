@@ -1,8 +1,8 @@
-> **Status notice (2026-11-13):** Companion implementation-boundary note. The comprehensive [CA-SL vNext Specification](../skill-language-spec.zh-CN.md) is the sole normative source for language and dependency identity semantics. This note records implementation boundaries and unresolved deployment inputs; it does not freeze the candidate ToolCatalog / CapabilityContracts YAML.
+> **Status notice (2026-11-14):** Non-normative implementation-boundary note. The CA-SL v1alpha2 language is frozen; concrete external BuildRequest transport and Owner deployment artifacts remain separately versioned. The comprehensive [CA-SL vNext Specification](../skill-language-spec.zh-CN.md) is the sole normative source for language and dependency identity semantics. This note records implementation boundaries and unresolved deployment inputs; it does not freeze the candidate ToolCatalog / CapabilityContracts YAML.
 
 # Dependency Identity & Owner Schema Resolution — Skill Language vNext
 
-**Status:** Proposed cross-repository implementation boundary; DESIGN-REVIEW, not frozen (2026-11-13).
+**Status:** Implementation guidance only; CA-SL language frozen, external toolchain and Owner conformity pending (2026-11-14).
 **Scope:** `ca-skills`, Skill Studio Plugin-managed Configuration, `ca-skill-compiler`, and the executable conventional 5GC Skill.
 
 This document is aligned with [Skill Language Specification](../skill-language-spec.md) and the current DESIGN-REVIEW [Capability & Authoring Model](capability-authoring-model-vnext.md). It replaces the earlier v0.2 compatibility/path proposal; the vNext contract is not yet frozen.
