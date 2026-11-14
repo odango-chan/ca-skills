@@ -4,8 +4,8 @@
 
 The linked document is the sole normative CA-SL vNext specification for this repository. It includes the language background, conceptual model, terminology, YAML grammar, static and runtime semantics, ToolCatalog / CapabilityContracts, Observation and Evidence model, error handling, PDU Session examples, toolchain requirements, design references, decision register and review FAQ.
 
-This English-path document is an index only. It intentionally does not duplicate the normative language definition. Until an approved English translation is published, the Chinese document is authoritative for this DESIGN-REVIEW cycle.
+This English-path document is an index only. It intentionally does not duplicate the normative language definition. Until an approved English translation is published, the Chinese document remains the sole authoritative v1alpha2 language contract. The source language is frozen; implementation conformance is separately gated.
 
 **Version:** vNext / API v1alpha2  
-**Status:** PUBLIC DESIGN REVIEW — NOT FROZEN  
+**Status:** FROZEN LANGUAGE CONTRACT — IMPLEMENTATION NOT QUALIFIED  
 **Owner:** ca-skills
