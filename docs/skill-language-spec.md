@@ -4,7 +4,7 @@
 
 The linked document is the sole normative CA-SL vNext specification for this repository. It includes the language background, conceptual model, terminology, YAML grammar, static and runtime semantics, ToolCatalog / CapabilityContracts, Observation and Evidence model, error handling, PDU Session examples, toolchain requirements, design references, decision register and review FAQ.
 
-The [v1alpha3 errata and clarification record](design/ca-sl-v1alpha3-errata-2026-11-14.md) lists documentation-only clarifications and executable-fixture gaps without changing the frozen language version.
+The [first v1alpha3 errata record](design/ca-sl-v1alpha3-errata-2026-11-14.md) and [second errata review](design/ca-sl-v1alpha3-errata-2026-11-14-r2.md) track documentary clarification, trusted Evidence inputs and incomplete executable fixtures. Neither independently changes the frozen language target.
 
 This English-path document is an index only. It intentionally does not duplicate the normative language definition. Until an approved English translation is published, the Chinese document remains the sole authoritative v1alpha3 language contract. The source language and its normative Appendices F/G/H are frozen; Owner, Compiler, Studio, Runtime and 5GC implementation conformance are separately gated by §45.2.
 
