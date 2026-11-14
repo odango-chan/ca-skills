@@ -3,6 +3,7 @@
 **Decision date:** 2026-11-14  
 **Normative source:** [CA-SL 中文规范](../skill-language-spec.zh-CN.md), especially §§10–24 and Appendices F, G, H  
 **Decision:** FROZEN LANGUAGE CONTRACT; IMPLEMENTATION / OWNER CONFORMANCE **NOT QUALIFIED**  
+**Post-freeze documentary errata:** [v1alpha3 errata and clarification record](ca-sl-v1alpha3-errata-2026-11-14.md) — no semantics-version change, product/Owner conformance still pending.
 **Prior version:** [v1alpha2 freeze record](ca-sl-v1alpha2-freeze-record.md) is historical. This release does **not** stealth-edit v1alpha2 safety semantics.
 
 ## 1. Why v1alpha3 was necessary
