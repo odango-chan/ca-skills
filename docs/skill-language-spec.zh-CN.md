@@ -3276,4 +3276,49 @@ resourceKind、originalInvocationId、owner、lifecycleRef、correlationRef 均�
 
 停止终态顺序 Normative：**存在任何已确认 PENDING 责任 → SAFE_STOPPED；否则存在未决提交或关键事实不可判定 → UNRESOLVED；否则 FAILED**。已请求的终态与最终发布状态、原因诊断分别留在 Trace。实际序列化和跨进程运输不改变这个算法；Runtime 不可因缺少物理字段而假定 CLEANED。此模型明确闭合 §20.1.1 对 SAFE_STOPPED 的依赖。
 
+
+## G.6 Context 双 Schema 拼接与诊断
+
+effectiveContext 是一个逻辑只读对象：HostContextRoot 的所有已声明根属性，加上在 Contract 声明 requestSchema 时的唯一保留属性 request:RequestValue。**不是** allOf 合并、不依赖 Schema 搜索顺序、也不允许 Host 模型定义 request。Host 和 Request 的根必须沿已验证的有限 $ref 链解析到 additionalProperties:false 的闭合 object；两者均不得有根级组合或动态字段。Host 根的 properties、required 都不得包含 request。Runtime 分别对 Host Context 和 Request 进行校验，完成真实性和生命周期关联检查后再物化 effectiveContext。SourcePath 不允许裸 context，但允许整个 context.request 对象。
+
+| SourcePath | 唯一权威 Schema | 缺失或冲突时 |
+|---|---|---|
+| context.request | Skill 的 requestSchema 整个闭合对象 | 没有 requestSchema → REQUEST_SCHEMA_MISSING |
+| context.request.x 或子路径 | requestSchema 下对应的显式属性 | 无 requestSchema → REQUEST_SCHEMA_MISSING；未知段 → SOURCE_PATH_INVALID；可缺失段 → SOURCE_NOT_AVAILABLE |
+| context.ueRef、context.correlation 或其他非 request 子路径 | contextSchema 指向的 Host Owner Schema | 无 contextSchema → CONTEXT_SCHEMA_UNDECLARED；Owner/ID 归属错 → CONTEXT_SCHEMA_MISMATCH；未知字段 → SOURCE_PATH_INVALID |
+| 裸 context | 不允许 | SOURCE_PATH_INVALID |
+| Host Root 明示或可能包含 request | 保留属性冲突 | CONTEXT_REQUEST_COLLISION |
+
+Host Context 根和 requestSchema 根的引用展开均遵守 §11.5 和 G.4 的闭合、无循环规则，不能一个严格而另一个放宽。使用 context.request 不能隐式暴露 context 其他字段。缺少 Request Schema 不能从 Host Context 的 request 字段兜底。
+
+## G.7 Skill Identity 和路径安全
+
+Skill 的规范化逻辑根是 skills/<skill-name>，skill-name 是 G.1 的 Identifier；Skill Identity 取这个大小写敏感的逻辑包身份，不取本地绝对路径、Git URL、分支、Workspace 位置或主机目录名。源文件路径是相对逻辑包根、UTF-8、POSIX 正斜线的路径；严格禁止空段、.、..、绝对路径、盘符、反斜线、控制字符、NUL、路径穿越与指向包外的符号链接。不得先 URL 解码或 Unicode 规范化而导致两个不同路径指向同一文件；不接受带编码分隔符的 %2f / %5c 路径。路径比较和引用大小写敏感，但跨平台可能碰撞的两个文件路径（ASCII 大小写折叠后相同）必须拒绝，不能依靠枚举顺序选择。规范化后的重复路径或同一逻辑身份的不同字节快照也须拒绝。路径违规诊断 PACKAGE_PATH_INVALID 并阻断构建。具体 Workspace 快照摘要 framing 和文件编码属于所选 BuildRequest 版本，但必须遵循这些安全下限。
+
+## G.8 阶段 Outcome、终态以及长流程证据刷新
+
+阶段 Outcome 的 SUCCEEDED 是一次普通 Owner Operation 或 Script 的正常结果；路由**键** SUCCEEDED 不意味着 Skill 终态已经成功。routes.PASS: SUCCEEDED 的右侧 SUCCEEDED 是**请求**发布 Invocation 成功，必须再通过 §12.8/§12.9 的门禁、Goal 与资源责任复核。Reconcile Owner SUCCEEDED 只是在 Runtime 校验证明后映射 COMMITTED / NOT_COMMITTED 或停止，从不直接发布 Skill 成功。§22.1 是 §12.1 的规范化路由矩阵摘要，必须作为检查必需/禁止路由键的统一来源。
+
+E30/E40 的严格绑定规则有意保留：较新的已接纳权威记录即使规范化值相同，也可能使旧 PASS 的 Producer/Evidence 绑定失效。建议的显式模式是在最终 Goal Postcondition 前重新执行授权的权威 Observation，将新 Producer output 作为参数来源，绑定新 Evidence，再取得新的 Goal PASS；Trace 保留此前的旧 PASS/旧 Evidence、新判断和所有派发事件。不得隐式换绑、自动刷新、悄悄重算旧 Predicate。未来若要支持受控重验策略，须显式升级契约版本。
+
+## G.9 新增验收 E105–E114
+
+本节每个用例均为 v1alpha3 正式符合性测试的**规范预期**，不是当前产品已经 PASS 的证明。所有 Owner 数据、Scope 和证明来源必须是可信 Fixture；不得在失败用例中把缺失的发布物臆造为有效输入。
+
+| 用例 | 输入变化 | 必须得到的结果 |
+|---|---|---|
+| E105 | PredicateId 为 foo..bar；Alias 含冒号；ExportId 有尾点；QualifiedSchemaId 的 URI 无 scheme；LocalScriptPath 含双点段 | 各拒绝解析或链接，按 YAML_PARSE_ERROR / DEPENDENCY_ALIAS_MISSING / EXPORT_ID_MISSING / SCHEMA_INVALID / PACKAGE_PATH_INVALID 的对应边界，不作隐式恢复 |
+| E106 | G.3 requires + independence 两成员；删掉其中一个 requires；复制相同 member；运行时不同 Evidence Ref 其实来自同一底层记录 | 合法字段静态链接通过；成员非法报 EVIDENCE_GUARANTEE_LINK_INVALID；静态合法但同源执行得 UNKNOWN |
+| E107 | G.2 正确的 Reconcile READ；分别改 Effect 为 MUTATION、kind 为 observation、inputSchema 多加可写字段、删除 proofPath、只 Grant 原 Mutation | 合法例通过链接；变体分别 EFFECT_MISMATCH、RECONCILE_CONTRACT_INVALID、RECONCILE_CONTRACT_INVALID、RECONCILE_CONTRACT_INVALID、CAPABILITY_NOT_GRANTED |
+| E108 | Reconcile Owner SUCCEEDED 与有效 COMMITTED 证明+恢复输出；取消恢复声明；提供无效恢复输出；证明 NOT_COMMITTED；Owner 直接发 COMMITTED | 分别为 COMMITTED+输出可用、COMMITTED+无输出、安全停止并 COMMITTED_OUTPUT_UNAVAILABLE、NOT_COMMITTED、未知回包隔离停止 |
+| E109 | Reconcile Evidence Producer 以 Owner SUCCEEDED 绑定恢复结果，再替换为 Runtime 的 COMMITTED | 前者链接通过；后者 EVIDENCE_GUARANTEE_LINK_INVALID |
+| E110 | 有效的 nullable / object / items Schema；替换任一为 anyOf、pattern 或动态引用 | 前者按 F.5 赋值；三个不受支持变体均 SCHEMA_INVALID |
+| E111 | CEL 使用 has(obj.optional) && obj.optional == "X"；删除 has；对 nullable 字段删除非 null 守卫；添加数组索引 | 守卫版缺字段可按业务表达式得 FAIL；其余三项静态拒绝 CEL_INVALID |
+| E112 | 已确认 PENDING 资源后请求 FAILED；有可信 TRANSFERRED 记录且无其他待处理事实；仅有未决原调用且无已确认 PENDING | 实际终态分别 SAFE_STOPPED、FAILED、UNRESOLVED，并保留请求终态及理由 |
+| E113 | Host Root 与 Request 根各自闭合，绑定整个 context.request；删除 requestSchema；Host Root 添加 request | 正例通过；反例 REQUEST_SCHEMA_MISSING、CONTEXT_REQUEST_COLLISION |
+| E114 | 合法 skills/establish-pdu-session；加入 ../、绝对路径、反斜线、同目录大小写折叠碰撞的文件 | 合法包通过；变体 PACKAGE_PATH_INVALID |
+
+G.1–G.9 的补充用例须与原 E01–E104 组合执行。文档审计不代表 Compiler、Native/WASM、Studio、Runtime 已实现上述语义；产品符合性依旧由 §45.2 控制。
+
+
 **规范结束。**
