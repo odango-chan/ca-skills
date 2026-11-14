@@ -2001,11 +2001,11 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 14. Native / WASM / Studio 语义一致性验证；
 15. 独立确定 Compiler Artifact 的 Schema 序列化与外部依赖闭包策略。
 
-**冻结候选。** §5–§17、§19–§22 和 §24.1 中的语言语义规则，包括阶段执行、路由、证明传播及 Evidence 校验。
+在整份规范满足上述门槛前，文档的状态标记为 DESIGN REVIEW。语言语义冻结审定与其他契约评审可以并行进行。Compiler、Runtime 和工具链验收仍按上述门槛进行。
 
-**继续 DESIGN REVIEW。** §9.2 ToolCatalog、§9.3 CapabilityContracts 和 §17.1 Evidence 描述符的线格式，§34.0 多 Owner 归属的传递格式，以及 §21 的异步 Operation Owner 契约。按第 2、3、5、9、10 项验收。
+**冻结候选。** §5–§17、§19–§22 和 §24.1 中的语言语义规则，包括阶段执行、路由、证明传播及 Evidence 校验。相关 Owner 可独立审定这一范围。
 
-在整份规范满足上述门槛前，文档的状态标记为 DESIGN REVIEW。标注为冻结候选的语言语义规则可单独进入冻结流程，由相关 Owner 审定。Compiler、Runtime 和工具链验收仍按上述门槛进行。
+**继续 DESIGN REVIEW。** §9.2 ToolCatalog、§9.3 CapabilityContracts 和 §17.1 Evidence 描述符的线格式，以及 §21 的异步 Operation Owner 契约，按第 2、3、5、9 项验收。§34 整章继续评审，其中 §34.0 多 Owner 归属传递按第 10 项验收，§34.1–§34.2 的 Compiler Artifact Schema 序列化与外部依赖闭包策略按第 15 项验收。
 
 ---
 
