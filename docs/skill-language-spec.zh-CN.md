@@ -378,7 +378,7 @@ E.3 给出了带精确 Outcome 与 Evidence 描述符的独立 READ 样例。普
 | 提交证明 Schema、值路径和原调用关联 | `mutation.commitProof` |
 | 互斥失败类别、阶段映射和未提交证明 | `failureClasses[].id/outcome/proofSchema` |
 | 无遗留副作用的承诺及独立的重试许可 | `failureClasses[].noSideEffect/retryable` |
-| 调和 callable、原调用绑定、证明及可选恢复输出 Schema | `reconcile.callable/bind/proofSchema/recoverableOutputSchema` |
+| 调和 callable、原调用绑定、证明路径及可选恢复输出路径与 Schema | `mutation.reconcile.callable/bind/proofSchema/proofPath/recoverableOutputSchema/recoverableOutputPath` |
 | 资源或外部变更的身份、关联、责任与处置描述 | `resourceOutputs[]` 及其引用的责任记录 Schema |
 
 v1alpha3 按附录 F.1 的字段映射到抽象属性，并执行规范性校验。其他外部协议版本必须显式版本化解码，不能默许不兼容字段或未知保证。
@@ -398,7 +398,9 @@ mutation:
     callable: smf.session.reconcile
     bind: originalInvocationId
     proofSchema: "urn:example:smf:reconcile-proof:v1"
+    proofPath: receipt.commit
     recoverableOutputSchema: "urn:example:smf:create-session-result:v1"
+    recoverableOutputPath: output.recovered
   resourceOutputs:
     - {path: output.sessionInstanceRef, resourceKind: smf.session, responsibilitySchema: "urn:example:smf:resource-responsibility:v1"}
 ~~~
@@ -3070,7 +3072,7 @@ predicates:
 
 ToolCatalog 须有 `apiVersion: connectionagent.io/toolcatalog/v1alpha3`、`kind: ToolCatalog`、非空 `metadata.owner` 与 `spec.contracts[]`。每个 callable 须有 `kind: operation | observation`、唯一的 `id`、`effect`、`ownerOutcomes`、`outputSchema.$ref`；Operation 使用 `inputSchema.$ref`，Observation 使用 `queryContextSchema.$ref`，两者互斥。Observation 的 Effect 必须为 READ。READ 只能发布 SUCCEEDED / FAILED；Mutation 可发布 NOT_COMMITTED；每个 callable 必须声明 SUCCEEDED。DENIED、UNKNOWN、OUTCOME_UNKNOWN 属 Runtime，不得由 Owner 发布。所有 Schema 引用须解析为该快照中精确、可验证的 `$id`。一个快照跨文件、跨 kind 共享 callable ID 唯一空间。可选 `adapter` 仅属于 Owner 内部实现，不参与 Skill 身份、授权和 Evidence。
 
-`guarantees.evidence.provides[]` 的每项仅含 `guarantee`（精确保证 ID）和 `path`（输出值路径），不得复制权威、Scope 或时间规则。Mutation 的 `mutation.commitProof` 需 `schema/path/bind`；每项 `failureClasses[]` 需唯一 `id`、`outcome`、`proofSchema`、`noSideEffect`、`retryable`。FAILED 不得允许 retryable；NOT_COMMITTED 只有同时满足可验证的未提交与无残留才可受控重试。`mutation.reconcile` 有 `callable/bind/proofSchema`，可选 `recoverableOutputSchema`；`resourceOutputs[]` 各项需 `path/resourceKind/responsibilitySchema`。缺少声明不等于默认具备承诺。Proof、原调用绑定或资源责任路径不可验证则拒绝链接或按 §20 停止。
+`guarantees.evidence.provides[]` 的每项仅含 `guarantee`（精确保证 ID）和 `path`（输出值路径），不得复制权威、Scope 或时间规则。Mutation 的 `mutation.commitProof` 需 `schema/path/bind`；每项 `failureClasses[]` 需唯一 `id`、`outcome`、`proofSchema`、`noSideEffect`、`retryable`。FAILED 不得允许 retryable；NOT_COMMITTED 只有同时满足可验证的未提交与无残留才可受控重试。`mutation.reconcile` 有 `callable/bind/proofSchema/proofPath`，其 `recoverableOutputSchema/recoverableOutputPath` 必须成对出现；`resourceOutputs[]` 各项需 `path/resourceKind/responsibilitySchema`。缺少声明不等于默认具备承诺。Proof、原调用绑定或资源责任路径不可验证则拒绝链接或按 §20 停止。
 
 ## F.2 CapabilityContracts
 
@@ -3154,9 +3156,9 @@ PredicateSet 根必须只含 predicates 映射；每个 Predicate 的 parameters
 
 v1alpha3 **不引入新的 Effect**。Reconcile 使用独立 ToolCatalog callable：kind 为 operation、effect 必须 READ，ownerOutcomes 必须包含 SUCCEEDED、可以声明 FAILED；Runtime 的 COMMITTED、NOT_COMMITTED 和 UNRESOLVED 不得写进 Owner 的 ownerOutcomes。Reconcile READ 不得引入新业务副作用、重发原 Mutation、修改资源、替换 UE/Session/Scope，也不得用普通 Observation 代替原调用调和。Host journal 内部的责任/提交状态更新不是外部业务 Mutation。
 
-原 Mutation 的 mutation.reconcile 字段必须具备 callable、bind、proofSchema、proofPath，可选 recoverableOutputSchema。bind 必须精确为 originalInvocationId。引用的 Reconcile callable 必须为同一受信 Owner 已发布的唯一 READ operation。其 inputSchema 是根部闭合的 object：唯一必需且允许的属性为 originalInvocationId，类型是非空字符串。Runtime 仅从持久化的原 Mutation Invocation 身份物化这个输入，发起前验证已保存的原 Operation ID、原始输入、请求摘要、Subject/Scope、Lifecycle、Correlation 和当前授权；作者的 operation.reconcile 不允许任何 arguments。Owner 必须能用该 ID 验证和定位其原始调用；若不能，则安全停止并保留原调用责任。proofPath 为 Owner 可信 receipt 中的静态证明路径，proofSchema 定义该位置实际值的精确 Schema；输出本身不得替代提交证明。
+原 Mutation 的 mutation.reconcile 字段必须具备 callable、bind、proofSchema、proofPath；若声明可恢复结果，则 recoverableOutputSchema 和 recoverableOutputPath 必须成对出现，否则两者均省略。bind 必须精确为 originalInvocationId。引用的 Reconcile callable 必须为同一受信 Owner 已发布的唯一 READ operation。其 inputSchema 是根部闭合的 object：唯一必需且允许的属性为 originalInvocationId，类型是非空字符串。Runtime 仅从持久化的原 Mutation Invocation 身份物化这个输入，发起前验证已保存的原 Operation ID、原始输入、请求摘要、Subject/Scope、Lifecycle、Correlation 和当前授权；作者的 operation.reconcile 不允许任何 arguments。Owner 必须能用该 ID 验证和定位其原始调用；若不能，则安全停止并保留原调用责任。proofPath 为 Owner 可信 receipt 中的静态证明路径，proofSchema 定义该位置实际值的精确 Schema；输出本身不得替代提交证明。
 
-Reconcile callable 的 outputSchema 描述 Owner 规范化业务结果。当 recoverableOutputSchema 已声明时，它必须与该 callable 的 outputSchema.$ref 完全相同。只有 Owner 返回 SUCCEEDED、原调用提交证明有效且认定为 COMMITTED、恢复结果验证通过时，Runtime 才将**恢复输出**物化为该 Reconcile Stage 的 operation.output。未声明 recoverableOutputSchema 时，即使 COMMITTED 也不暴露可绑定 output；后续只能通过显式且独立授权的 Observation 验证。阶段结果为 NOT_COMMITTED / UNRESOLVED、Owner FAILED、输出无效、错误原调用或错误 Scope 时均不暴露成功输出。恢复输出的 Evidence Producer.kind 为 operation，Producer.outcome 为 Owner 的 SUCCEEDED，Producer ID 是调和 READ callable；不得用 Runtime 的 COMMITTED 作为 Evidence Producer outcome。Host 将正常输出和证明引用关联到精确 Reconcile Producer Invocation，不能伪造原 Mutation 的成功输出。
+Reconcile callable 的 outputSchema 描述完整的**Owner 查询回包**，允许 NOT_COMMITTED 时不提供任何业务资源。声明恢复输出时，recoverableOutputPath 必须是以 output 开头的静态路径，定位 Owner 回包的一个**可选**子对象；该子对象的 Schema $ref 必须与 recoverableOutputSchema 精确一致。Compiler 链接到该显式路径和 Schema 后，只有 Owner 返回 SUCCEEDED、原调用提交证明有效且认定为 COMMITTED、子对象实际存在并通过验证时，Runtime 才将此子对象作为规范化的 Reconcile Stage operation.output。NOT_COMMITTED 回包可以省略子对象且仍满足完整 Owner outputSchema。COMMITTED 时子对象缺失或无效，不得作空值补齐，而是记录 COMMITTED_OUTPUT_UNAVAILABLE 并保全停止。未声明 recoverableOutputSchema 时，即使 COMMITTED 也不暴露可绑定 output；后续只能通过显式且独立授权的 Observation 验证。阶段结果为 NOT_COMMITTED / UNRESOLVED、Owner FAILED、输出无效、错误原调用或错误 Scope 时均不暴露成功输出。恢复输出的 Evidence Producer.kind 为 operation，Producer.outcome 为 Owner 的 SUCCEEDED，Producer ID 是调和 READ callable；Owner 描述符的路径指向**原始回包**的 recoverableOutputPath，例如 output.recovered。Compiler/Runtime 仅在已验证 COMMITTED 边把这个精确 Producer 原始子路径映射到 Reconcile Stage 的 operation.output（保留原 Producer Invocation 和 Evidence lineage）。不得将 Runtime 的 COMMITTED 写成 Evidence Producer outcome，不得用原 Mutation 的假想成功输出替换。Host 将正常输出和证明引用关联到精确 Reconcile Producer Invocation，不能伪造原 Mutation 的成功输出。
 
 | Owner 回包及证明 | Runtime Reconcile 阶段结果 | Stage output |
 |---|---|---|
@@ -3189,6 +3191,7 @@ mutation:
     proofSchema: "urn:example:session:reconcile-proof:v1"
     proofPath: receipt.commit
     recoverableOutputSchema: "urn:example:session:create-output:v1"
+    recoverableOutputPath: output.recovered
 ~~~
 
 ~~~yaml
@@ -3198,7 +3201,16 @@ id: example.session.reconcile
 effect: READ
 ownerOutcomes: [SUCCEEDED, FAILED]
 inputSchema: {$ref: "urn:example:session:reconcile-input:v1"}
-outputSchema: {$ref: "urn:example:session:create-output:v1"}
+outputSchema: {$ref: "urn:example:session:reconcile-response:v1"}
+~~~
+
+~~~yaml
+# reconcile-response.schema.yaml
+$id: urn:example:session:reconcile-response:v1
+type: object
+additionalProperties: false
+properties:
+  recovered: {$ref: "urn:example:session:create-output:v1"}
 ~~~
 
 ~~~yaml
@@ -3211,7 +3223,7 @@ properties:
   originalInvocationId: {type: string, minLength: 1}
 ~~~
 
-以上只是各个嵌套位置的**片段**，不是可直接作为整个 ToolCatalog 解析的文档；完整根结构和可信依赖输入见 §9、§34。Deployment CapabilityContracts 还须以独立成员授权 example.session.reconcile 的 READ。恢复输出 Schema 与 Reconcile Owner outputSchema 同一 $id，证明另从已关联 receipt 校验。
+以上只是各个嵌套位置的**片段**，不是可直接作为整个 ToolCatalog 解析的文档；完整根结构和可信依赖输入见 §9、§34。Deployment CapabilityContracts 还须以独立成员授权 example.session.reconcile 的 READ。恢复输出 Schema 必须与 Owner 回包中 recovered 子对象的 $ref 精确相同，而不是要求整个回包与资源结构相同；提交证明另从同一可信 Producer receipt 的 receipt.commit 路径验证。NOT_COMMITTED 响应的 recovered 可以不存在。
 
 
 ## G.3 Evidence 独立性：精确 YAML 与优先级
