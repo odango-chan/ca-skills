@@ -3590,111 +3590,113 @@ G.1–G.9 的补充用例须与原 E01–E104 组合执行。文档审计不代�
 
 **Normative：诊断身份、分类和控制流含义；Informative：关联 E 用例及待补 Fixture。** §24.1、§24.2 是具体触发规则，本索引是诊断**代码、阶段与分类**的唯一规范性入口，不是已执行 Fixture 的完整清单；E 用例列只引用能够证明该 `(Code, Phase)` 的已定义变体，尚未具备精确变体的项标记为 `待补独立 Fixture`。覆盖状态是资料性的测试追踪信息，**不构成 CI PASS 或实现符合性证明**。诊断记录的唯一分类键为 `(Code, Phase)`，`Phase=C_STATIC | C_WARNING | R_RUNTIME`，三者分别表示 Compiler 静态错误、Compiler 警告、Runtime 诊断。原始 Code 字符串不被改名，但相同 Code 在不同 Phase（例如 EFFECT_MISMATCH）是不同的诊断事件。Compiler ERROR 必定阻断构建，Compiler WARNING 不自行阻断构建。Runtime DIAGNOSTIC 是事件原因，不是业务阶段 Outcome，不能直接把任一诊断名当作路由键。Runtime 按实际执行阶段与 §12.8 的资源/未决事实状态判定终态。
 
-| Code | Phase | 类别 | 阻断构建 | 触发位置 | Runtime 终态/路由影响 | 规范条款 | E 用例（精确变体） |
-|---|---|---|---|---|---|---|---|
-| YAML_PARSE_ERROR | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | 待补独立 Fixture |
-| IDENTIFIER_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source (G.1) | 不启动 Invocation | §10.1、§24.1 | E105 |
-| QUALIFIED_REFERENCE_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source (G.1) | 不启动 Invocation | §10.1、§24.1 | E105 |
-| SOURCE_ROOT_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | E02 |
-| LANGUAGE_TARGET_UNSUPPORTED | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | 待补独立 Fixture |
-| UNKNOWN_FIELD | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | E35 |
-| DUPLICATE_ID | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | 待补独立 Fixture |
-| PROCEDURE_START_MISSING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E56 |
-| NODE_ID_RESERVED | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E56 |
-| FINAL_POSTCONDITION_MISSING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E11 |
-| FINAL_POSTCONDITION_GOAL_MISMATCH | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | 待补独立 Fixture |
-| ENTRY_PRECONDITION_REF_INVALID | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E52 |
-| ENTRY_PRECONDITION_BYPASSED | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E24/E51 |
-| SUCCESS_BYPASSES_FINAL_POSTCONDITION | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E18/E64 |
-| CONTROL_FLOW_CYCLE | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | 待补独立 Fixture |
-| SOURCE_PATH_INVALID | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E34/E36 |
-| CONTROL_FLOW_DANGLING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E57 |
-| CONTROL_FLOW_AMBIGUOUS | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | 待补独立 Fixture |
-| DEPENDENCY_REQUIREMENT_INVALID | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | E35 |
-| DEPENDENCY_ALIAS_MISSING | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | 待补独立 Fixture |
-| DEPENDENCY_SNAPSHOT_MISSING | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | 待补独立 Fixture |
-| DEPENDENCY_IDENTITY_UNVERIFIED | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | E04 |
-| DEPENDENCY_ID_MISMATCH | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | E03 |
-| DEPENDENCY_OWNER_MISMATCH | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | E05/E43 |
-| DEPENDENCY_EXPORT_OWNER_UNVERIFIED | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | E39 |
-| DEPENDENCY_DUPLICATE | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | 待补独立 Fixture |
-| CONTEXT_SCHEMA_UNDECLARED | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §11.5、§G.6、§24.1 | E12 |
-| CONTEXT_SCHEMA_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §11.5、§G.6、§24.1 | 待补独立 Fixture |
-| CONTEXT_REQUEST_COLLISION | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §11.5、§G.6、§24.1 | E25/E113 |
-| REQUEST_SCHEMA_MISSING | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §11.5、§G.6、§24.1 | E113 |
-| ACTION_LIMIT_INVALID | C_STATIC | Compiler ERROR | 是 | Link / evidence | 不启动 Invocation | §11.6、§24.1 | 待补独立 Fixture |
-| EXPORT_ID_MISSING | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | 待补独立 Fixture |
-| EXPORT_ID_AMBIGUOUS | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | E91 |
-| SCHEMA_MISSING | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §F.5、§G.4、§24.1 | 待补独立 Fixture |
-| SCHEMA_INVALID | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §F.5、§G.4、§24.1 | E110 |
-| INPUT_REQUIRED_MISSING | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E67 |
-| REACHABLE_STAGE_NO_INCOMING_EDGE | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E99 |
-| INPUT_TYPE_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E67 |
-| INPUT_NULLABILITY_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§F.5、§G.4、§24.1 | 待补独立 Fixture |
-| SOURCE_NOT_AVAILABLE | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E10/E89 |
-| RECONCILE_OUTPUT_UNAVAILABLE | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§20.2–§20.3、§24.1 | E63 |
-| ROUTE_OUTCOME_MISSING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E55/E84 |
-| ROUTE_OUTCOME_UNKNOWN | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | 待补独立 Fixture |
-| ROUTE_NORMAL_OUTCOME_NOT_ALLOWED | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E54 |
-| PREDICATE_ARITY_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E08 |
-| PREDICATE_TYPE_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E09 |
-| EVIDENCE_GUARANTEE_LINK_INVALID | C_STATIC | Compiler ERROR | 是 | Link / evidence | 不启动 Invocation | §17.1–§17.2、§G.3.1、§24.1 | E38/E102/E106 |
-| CALLABLE_ARGUMENT_PROVENANCE_INVALID | C_STATIC | Compiler ERROR | 是 | Link / evidence | 不启动 Invocation | §13.2–§14、§24.1 | E101 |
-| PREDICATE_EVIDENCE_REQUIRED | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §17.1–§17.2、§G.3.1、§24.1 | E71 |
-| PREDICATE_EVIDENCE_UNSATISFIABLE | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §17.1–§17.2、§G.3.1、§24.1 | E19/E102 |
-| RETRY_CONTRACT_INVALID | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §9.3、§20.2、§20.2–§20.3、§24.1 | E85 |
-| CAPABILITY_INPUT_DIGEST_MISMATCH | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§9.3、§20.2、§24.1 | E93 |
-| CAPABILITY_INPUT_UNTRUSTED | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§9.3、§20.2、§24.1 | E93 |
-| CAPABILITY_DEFINITION_CONFLICT | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §9.3、§20.2、§24.1 | E94 |
-| CAPABILITY_SCOPE_UNRESOLVED | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §9.3、§20.2、§24.1 | E87 |
-| CAPABILITY_SCOPE_EMPTY_INTERSECTION | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §9.3、§20.2、§24.1 | E87 |
-| RECONCILE_CONTRACT_INVALID | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §9.3、§20.2、§20.2–§20.3、§24.1 | E60/E107 |
-| CAPABILITY_NOT_GRANTED | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §9.3、§20.2、§24.1 | E06/E107 |
-| CAPABILITY_MAPPING_MISSING | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §9.3、§20.2、§24.1 | 待补独立 Fixture |
-| CAPABILITY_MEMBERSHIP_DUPLICATE | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §9.3、§20.2、§24.1 | E72 |
-| EFFECT_MISMATCH | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §9.3、§20.2、§24.1 | E07/E107 |
-| SCRIPT_CONTRACT_INVALID | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §14、§F.6、§G.4、§24.1 | E67/E75 |
-| UNSUPPORTED_WAIT | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | 待补独立 Fixture |
-| UNSUPPORTED_V02_SYNTAX | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | 待补独立 Fixture |
-| CEL_INVALID | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §14、§F.6、§G.4、§24.1 | E111 |
-| PACKAGE_PATH_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | E114 |
-| UNUSED_DEPENDENCY | C_WARNING | Compiler WARNING | 否（并发错误仍阻断） | Link / unused | 不改变 Runtime 终态 | §34.0、§24.1 | 待补独立 Fixture |
-| UNREACHABLE_NODE | C_WARNING | Compiler WARNING | 否（并发错误仍阻断） | Graph / unreachable | 不改变 Runtime 终态 | §12.9、§24.1 | E44/E65 |
-| TOOL_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 |
-| INPUT_VALIDATION_FAILED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 |
-| OWNER_OUTCOME_UNDECLARED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Owner response validation | 隔离输出；Mutation/Reconcile 保存已验证原提交状态及责任，§12.8 停止 | §20.1–§20.3、§24.2 | E86/E108 |
-| OWNER_CONTRACT_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 |
-| CALLABLE_ARGUMENT_PROVENANCE_UNVERIFIED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §13.3、§24.2 | E101 |
-| AUTHORIZATION_DENIED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | §9.3、§24.2 | E79 |
-| SCRIPT_EXECUTION_FAILED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Script FAILED；外部调用按 §20 / §24.2 | §32.1、§24.2 | E66 |
-| OUTPUT_SCHEMA_INVALID | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Script FAILED；外部调用按 §20 / §24.2 | §32.1、§24.2 | E66 |
-| EFFECT_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §9.3、§24.2 | E07/E107 |
-| RESPONSE_DECODE_FAILED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 |
-| SCOPE_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | §17.2、§24.2 | E20 |
-| CORRELATION_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §17.2、§24.2 | E20 |
-| EVIDENCE_MISSING | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate UNKNOWN；复核失败按 §12.8 | §17.2、§24.2 | E20 |
-| EVIDENCE_STALE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate UNKNOWN；复核失败按 §12.8 | §17.2、§24.2 | E31 |
-| EVIDENCE_CONFLICT | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate UNKNOWN；复核失败按 §12.8 | §17.2、§24.2 | E30 |
-| DEADLINE_EXCEEDED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 |
-| CANCELLED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 |
-| RECONCILE_UNRESOLVED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Reconcile UNRESOLVED 边；§12.8 | §20.1–§20.3、§24.2 | E86 |
-| COMMITTED_OUTPUT_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | SAFE_STOPPED；原提交/责任保留 | §20.1–§20.3、§24.2 | E28/E108 |
-| ENTRY_PRECONDITION_INVALIDATED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §12.9、§24.2 | E53 |
-| PRECONDITION_INVALIDATED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §12.9、§24.2 | E70 |
-| TERMINAL_STATE_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 采用实际终态，保留请求终态 | §12.8、§G.5、§24.2 | E58 |
-| DUPLICATE_RESOURCE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 |
-| STALE_LIFECYCLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §17.2、§24.2 | E20 |
-| PARTIAL_COMPLETION | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 已确认 PENDING → SAFE_STOPPED | §12.8、§G.5、§24.2 | 待补独立 Fixture |
-| ADMISSION_CONTEXT_INVALID | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E13 |
-| ACTION_BUDGET_EXCEEDED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §11.6、§24.2 | 待补独立 Fixture |
-| CONCURRENT_MODIFICATION | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 |
-| RETRY_ADMISSION_DENIED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 拒绝重发、直接按 §12.8 停止 | §20.2、§24.2 | 待补独立 Fixture |
-| SCOPE_POLICY_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | §9.3、§24.2 | E88 |
-| SCOPE_INTERSECTION_EMPTY | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | §9.3、§24.2 | E88 |
+| Code | Phase | 类别 | 阻断构建 | 触发位置 | Runtime 终态/路由影响 | 规范条款 | 代表用例 | 覆盖状态 |
+|---|---|---|---|---|---|---|---|---|
+| YAML_PARSE_ERROR | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | 待补独立 Fixture | 待 Fixture |
+| IDENTIFIER_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source (G.1) | 不启动 Invocation | §10.1、§24.1 | E105 | 规范用例已定义 |
+| QUALIFIED_REFERENCE_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source (G.1) | 不启动 Invocation | §10.1、§24.1 | E105 | 规范用例已定义 |
+| SOURCE_ROOT_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | E02 | 规范用例已定义 |
+| LANGUAGE_TARGET_UNSUPPORTED | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | 待补独立 Fixture | 待 Fixture |
+| UNKNOWN_FIELD | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | E35 | 规范用例已定义 |
+| DUPLICATE_ID | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | 待补独立 Fixture | 待 Fixture |
+| PROCEDURE_START_MISSING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E56 | 规范用例已定义 |
+| NODE_ID_RESERVED | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E34/E56 | 规范用例已定义 |
+| FINAL_POSTCONDITION_MISSING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E11 | 规范用例已定义 |
+| FINAL_POSTCONDITION_GOAL_MISMATCH | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | 待补独立 Fixture | 待 Fixture |
+| ENTRY_PRECONDITION_REF_INVALID | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E52 | 规范用例已定义 |
+| ENTRY_PRECONDITION_BYPASSED | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E24/E51 | 规范用例已定义 |
+| SUCCESS_BYPASSES_FINAL_POSTCONDITION | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E18/E64 | 规范用例已定义 |
+| CONTROL_FLOW_CYCLE | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | 待补独立 Fixture | 待 Fixture |
+| SOURCE_PATH_INVALID | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E34/E36 | 规范用例已定义 |
+| CONTROL_FLOW_DANGLING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E57 | 规范用例已定义 |
+| CONTROL_FLOW_AMBIGUOUS | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | 待补独立 Fixture | 待 Fixture |
+| DEPENDENCY_REQUIREMENT_INVALID | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | E35 | 规范用例已定义 |
+| DEPENDENCY_ALIAS_MISSING | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | 待补独立 Fixture | 待 Fixture |
+| DEPENDENCY_SNAPSHOT_MISSING | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | 待补独立 Fixture | 待 Fixture |
+| DEPENDENCY_IDENTITY_UNVERIFIED | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | E04 | 规范用例已定义 |
+| DEPENDENCY_ID_MISMATCH | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | E03 | 规范用例已定义 |
+| DEPENDENCY_OWNER_MISMATCH | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | E05/E43 | 规范用例已定义 |
+| DEPENDENCY_EXPORT_OWNER_UNVERIFIED | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | E39 | 规范用例已定义 |
+| DEPENDENCY_DUPLICATE | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | 待补独立 Fixture | 待 Fixture |
+| CONTEXT_SCHEMA_UNDECLARED | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §11.5、§G.6、§24.1 | E12 | 规范用例已定义 |
+| CONTEXT_SCHEMA_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §11.5、§G.6、§24.1 | 待补独立 Fixture | 待 Fixture |
+| CONTEXT_REQUEST_COLLISION | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §11.5、§G.6、§24.1 | E25/E113 | 规范用例已定义 |
+| REQUEST_SCHEMA_MISSING | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §11.5、§G.6、§24.1 | E113 | 规范用例已定义 |
+| ACTION_LIMIT_INVALID | C_STATIC | Compiler ERROR | 是 | Link / evidence | 不启动 Invocation | §11.6、§24.1 | 待补独立 Fixture | 待 Fixture |
+| EXPORT_ID_MISSING | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | 待补独立 Fixture | 待 Fixture |
+| EXPORT_ID_AMBIGUOUS | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | E91 | 规范用例已定义 |
+| SCHEMA_MISSING | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §F.5、§G.4、§24.1 | 待补独立 Fixture | 待 Fixture |
+| SCHEMA_INVALID | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §F.5、§G.4、§24.1 | E110 | 规范用例已定义 |
+| INPUT_REQUIRED_MISSING | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E67 | 规范用例已定义 |
+| REACHABLE_STAGE_NO_INCOMING_EDGE | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E99 | 规范用例已定义 |
+| INPUT_TYPE_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E67 | 规范用例已定义 |
+| INPUT_NULLABILITY_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§F.5、§G.4、§24.1 | 待补独立 Fixture | 待 Fixture |
+| SOURCE_NOT_AVAILABLE | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E10/E89 | 规范用例已定义 |
+| RECONCILE_OUTPUT_UNAVAILABLE | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§20.2–§20.3、§24.1 | E63 | 规范用例已定义 |
+| ROUTE_OUTCOME_MISSING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E55/E84 | 规范用例已定义 |
+| ROUTE_OUTCOME_UNKNOWN | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | 待补独立 Fixture | 待 Fixture |
+| ROUTE_NORMAL_OUTCOME_NOT_ALLOWED | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E54 | 规范用例已定义 |
+| PREDICATE_ARITY_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E08 | 规范用例已定义 |
+| PREDICATE_TYPE_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E09 | 规范用例已定义 |
+| EVIDENCE_GUARANTEE_LINK_INVALID | C_STATIC | Compiler ERROR | 是 | Link / evidence | 不启动 Invocation | §17.1–§17.2、§G.3.1、§24.1 | E38/E46/E68/E102/E106/E109 | 规范用例已定义 |
+| CALLABLE_ARGUMENT_PROVENANCE_INVALID | C_STATIC | Compiler ERROR | 是 | Link / evidence | 不启动 Invocation | §13.2–§14、§24.1 | E101 | 规范用例已定义 |
+| PREDICATE_EVIDENCE_REQUIRED | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §17.1–§17.2、§G.3.1、§24.1 | E71 | 规范用例已定义 |
+| PREDICATE_EVIDENCE_UNSATISFIABLE | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §17.1–§17.2、§G.3.1、§24.1 | E19/E102 | 规范用例已定义 |
+| RETRY_CONTRACT_INVALID | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §9.3、§20.2、§20.2–§20.3、§24.1 | E85 | 规范用例已定义 |
+| CAPABILITY_INPUT_DIGEST_MISMATCH | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§9.3、§20.2、§24.1 | E93 | 规范用例已定义 |
+| CAPABILITY_INPUT_UNTRUSTED | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§9.3、§20.2、§24.1 | E93 | 规范用例已定义 |
+| CAPABILITY_DEFINITION_CONFLICT | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §9.3、§20.2、§24.1 | E94 | 规范用例已定义 |
+| CAPABILITY_SCOPE_UNRESOLVED | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §9.3、§20.2、§24.1 | E87 | 规范用例已定义 |
+| CAPABILITY_SCOPE_EMPTY_INTERSECTION | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §9.3、§20.2、§24.1 | E87 | 规范用例已定义 |
+| RECONCILE_CONTRACT_INVALID | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §9.3、§20.2、§20.2–§20.3、§24.1 | E59/E60/E78/E107 | 规范用例已定义 |
+| CAPABILITY_NOT_GRANTED | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §9.3、§20.2、§24.1 | E06/E107 | 规范用例已定义 |
+| CAPABILITY_MAPPING_MISSING | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §9.3、§20.2、§24.1 | 待补独立 Fixture | 待 Fixture |
+| CAPABILITY_MEMBERSHIP_DUPLICATE | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §9.3、§20.2、§24.1 | E72 | 规范用例已定义 |
+| EFFECT_MISMATCH | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §9.3、§20.2、§24.1 | E07/E107 | 规范用例已定义 |
+| SCRIPT_CONTRACT_INVALID | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §14、§F.6、§G.4、§24.1 | E67/E75 | 规范用例已定义 |
+| UNSUPPORTED_WAIT | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | 待补独立 Fixture | 待 Fixture |
+| UNSUPPORTED_V02_SYNTAX | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | 待补独立 Fixture | 待 Fixture |
+| CEL_INVALID | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §14、§F.6、§G.4、§24.1 | E111 | 规范用例已定义 |
+| PACKAGE_PATH_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | E114 | 规范用例已定义 |
+| UNUSED_DEPENDENCY | C_WARNING | Compiler WARNING | 否（并发错误仍阻断） | Link / unused | 不改变 Runtime 终态 | §34.0、§24.1 | 待补独立 Fixture | 待 Fixture |
+| UNREACHABLE_NODE | C_WARNING | Compiler WARNING | 否（并发错误仍阻断） | Graph / unreachable | 不改变 Runtime 终态 | §12.9、§24.1 | E44/E65 | 规范用例已定义 |
+| TOOL_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 | 部分覆盖 |
+| INPUT_VALIDATION_FAILED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 | 部分覆盖 |
+| OWNER_OUTCOME_UNDECLARED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Owner response validation | 隔离输出；Mutation/Reconcile 保存已验证原提交状态及责任，§12.8 停止 | §20.1–§20.3、§24.2 | E86/E108 | 部分覆盖 |
+| OWNER_CONTRACT_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 | 部分覆盖 |
+| CALLABLE_ARGUMENT_PROVENANCE_UNVERIFIED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §13.3、§24.2 | E101 | 规范用例已定义 |
+| AUTHORIZATION_DENIED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | §9.3、§24.2 | E79 | 部分覆盖 |
+| SCRIPT_EXECUTION_FAILED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Script FAILED；外部调用按 §20 / §24.2 | §32.1、§24.2 | E66 | 规范用例已定义 |
+| OUTPUT_SCHEMA_INVALID | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Script FAILED；外部调用按 §20 / §24.2 | §32.1、§24.2 | E66 | 规范用例已定义 |
+| EFFECT_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §9.3、§24.2 | 待补独立 Fixture | 待 Fixture |
+| RESPONSE_DECODE_FAILED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 | 部分覆盖 |
+| SCOPE_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | §17.2、§24.2 | E20 | 部分覆盖 |
+| CORRELATION_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §17.2、§24.2 | E20 | 部分覆盖 |
+| EVIDENCE_MISSING | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate UNKNOWN；复核失败按 §12.8 | §17.2、§24.2 | E20 | 部分覆盖 |
+| EVIDENCE_STALE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate UNKNOWN；复核失败按 §12.8 | §17.2、§24.2 | E31 | 规范用例已定义 |
+| EVIDENCE_CONFLICT | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate UNKNOWN；复核失败按 §12.8 | §17.2、§24.2 | E30 | 规范用例已定义 |
+| DEADLINE_EXCEEDED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 | 部分覆盖 |
+| CANCELLED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 | 部分覆盖 |
+| RECONCILE_UNRESOLVED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Reconcile UNRESOLVED 边；§12.8 | §20.1–§20.3、§24.2 | E86 | 部分覆盖 |
+| COMMITTED_OUTPUT_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | SAFE_STOPPED；原提交/责任保留 | §20.1–§20.3、§24.2 | E28/E108 | 规范用例已定义 |
+| ENTRY_PRECONDITION_INVALIDATED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §12.9、§24.2 | E53 | 规范用例已定义 |
+| PRECONDITION_INVALIDATED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §12.9、§24.2 | E70 | 部分覆盖 |
+| TERMINAL_STATE_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 采用实际终态，保留请求终态 | §12.8、§G.5、§24.2 | E58 | 规范用例已定义 |
+| DUPLICATE_RESOURCE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 | 部分覆盖 |
+| STALE_LIFECYCLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §17.2、§24.2 | E20 | 部分覆盖 |
+| PARTIAL_COMPLETION | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 已确认 PENDING → SAFE_STOPPED | §12.8、§G.5、§24.2 | 待补独立 Fixture | 待 Fixture |
+| ADMISSION_CONTEXT_INVALID | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E13 | 规范用例已定义 |
+| ACTION_BUDGET_EXCEEDED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §11.6、§24.2 | 待补独立 Fixture | 待 Fixture |
+| CONCURRENT_MODIFICATION | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 | 部分覆盖 |
+| RETRY_ADMISSION_DENIED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 拒绝重发、直接按 §12.8 停止 | §20.2、§24.2 | 待补独立 Fixture | 待 Fixture |
+| SCOPE_POLICY_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | §9.3、§24.2 | E88 | 规范用例已定义 |
+| SCOPE_INTERSECTION_EMPTY | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | §9.3、§24.2 | E88 | 规范用例已定义 |
 
 **代码归一化。** §24.1 历史简写 SCHEMA_MISSING / INVALID 分别指 SCHEMA_MISSING 与 SCHEMA_INVALID。§24.2 的 STALE、CONFLICT 必须写全名为 EVIDENCE_STALE、EVIDENCE_CONFLICT；SCOPE_MISMATCH、CORRELATION_MISMATCH、DEADLINE_EXCEEDED、CANCELLED 是四个独立诊断。OUTCOME_UNKNOWN 是 Mutation 的阶段 Outcome，不是诊断代码。RECONCILE 的 COMMITTED、NOT_COMMITTED、UNRESOLVED 也是阶段 Outcome；RECONCILE_UNRESOLVED 是记录该停止条件的诊断，二者不得互换。
 
 最终 SUCCEEDED、FAILED、UNRESOLVED、SAFE_STOPPED 是 Invocation 终态，不属于本表的诊断。`待补独立 Fixture` 表示当前 E01–E114 未明确给出与该 `(Code, Phase)` 完全一致的触发输入及预期，属于实现符合性测试债务，**不是**新增的 E 编号、通过证明或可跳过的规范要求。新增精确用例须单独评审编号，并同步 §45.2 的验收范围。
+
+**覆盖状态定义（资料性）。** `规范用例已定义` 表示所列 E 变体在规范文本中有对应预期，尚未提供或核实执行证据；`部分覆盖` 表示所引 E 用例仅覆盖一般规则、部分分支或间接判定，不足以单独证明当前 `(Code, Phase)`；`待 Fixture` 表示尚无可精确引用的变体，必须另行提供输入与预期。所有状态均不表示测试已经执行或通过。相关候选测试清单参见 [诊断 Fixture 缺口登记](fixtures/ca-sl-v1alpha3-diagnostic-fixture-gaps.yaml)，该清单不增加 E 编号、规范性语义或 CI 验收结论。
 
 **诊断优先级。** 旧式 Wait / v0.2 语法与普通未知字段的分派按 §24.1 的专用诊断优先规则；同一绑定点的一般链接优先级为：YAML/结构 → Package/依赖与 Owner 身份 → Schema/路径与支配可用性 → 类型 → 授权/Effect/Scope → Evidence 描述符链接 → Evidence 组合可满足性 → 运行时证据判定；与规范性更具体的 §13.3、§17.1.1 和 §24.1 的顺序相同。遇到较早的致命错误时，不基于未经解析的下游值推断新的错误。彼此独立的错误可以共同报告，诊断展示排序不是执行语义。
 
