@@ -983,8 +983,8 @@ for vertex in topological_order(graph.stages):
             ref = vertex.node_id + ".precondition"
             if ref is in required:
                 edge.passed = passed UNION {ref}
-        if edge is PASS from the matching Goal Postcondition:
-            edge.proof = true
+        if vertex.stage == postcondition and vertex.goal == contract.goal and edge.outcome == PASS:
+            edge.proof = true  # only an exact Contract Goal Postcondition PASS creates proof
         else if edge is PASS from any Precondition or a local Postcondition:
             edge.proof = proof
         else if edge.outcome == SUCCEEDED and (
@@ -1045,7 +1045,7 @@ nodes:
 
 - `arguments` 映射的每个值和列表的每个元素都是 Expression。使用 YAML 1.2 Core 标量规则，并保留标量是否加引号。裸字符串仅在匹配 SourcePath 文法时合法；字符串常量须加引号。例如 context.ueRef、context.request.dnn、read-subscription.operation.output.result、read-subscription.operation.output.result.subscription.dnn。
 - YAML 原生 Boolean、Number、Null 和带引号的 String 表示字面量。例如 `phase: "POST_CREATE"` 是合法字符串常量，`phase: POST_CREATE` 报 `SOURCE_PATH_INVALID`。`baselineRef: read-n4-baseline.observation.output.baselineRef` 是来源引用。
-- vNext 第一版不允许在 arguments 中内联任意对象或数组字面量；复杂对象必须来自一个有 Schema 的 Request、Context 或 Producer Output。`context` 路径读取 §11.5 已校验的 Invocation 值。节点输出路径只能读取当前执行路径上已产生的有效输出。
+- 本版（v1alpha3）不允许在 arguments 中内联任意对象或数组字面量；复杂对象必须来自一个有 Schema 的 Request、Context 或 Producer Output。`context` 路径读取 §11.5 已校验的 Invocation 值。节点输出路径只能读取当前执行路径上已产生的有效输出。
 - Predicate.arguments 必须是有序列表，位置与 Predicate.parameters 严格对应。
 - Tool Operation、Procedure Script Operation 和 Observation.arguments 必须是具名映射。Tool / Observation 的键由 Owner Schema 定义；Procedure Script 的键构成该次 Script 调用的精确输入投影。
 - Reconcile 不接受 arguments；其唯一输入是被引用的原始 Mutation Invocation。
@@ -1066,7 +1066,7 @@ Digit               = "0"…"9" ;
 
 SourcePath 只能引用已声明的 Invocation Context 或已成功产生的阶段输出。只有 Operation 和 Observation 可以提供可绑定的 `output`。Precondition 与 Postcondition 只产生判断 Outcome，没有可绑定的 `output`。同一 Node 可显式引用此前 Producer 阶段成功产生的输出，例如 `create-policy.operation.output.policyAssociationRef`；引用本阶段或后续阶段的输出报告 `SOURCE_NOT_AVAILABLE`。跨 Node 的引用必须在到达消费者的每一条路径上都有该阶段的有效输出。不得引用父 Procedure 隐式变量、全局变量、其他 Invocation、Runtime 私有字段或未声明的环境变量。
 
-vNext 第一版只支持静态点路径，不支持数组索引、动态下标、字符串插值、函数调用、通配符或运行时路径拼接。Owner Schema 中需要被 Skill 直接访问的字段必须使用可由 Identifier 表达的字段名；不符合该规则的外部字段应由 Owner 在规范化输出中提供稳定字段名。
+本版（v1alpha3）只支持静态点路径，不支持数组索引、动态下标、字符串插值、函数调用、通配符或运行时路径拼接。Owner Schema 中需要被 Skill 直接访问的字段必须使用可由 Identifier 表达的字段名；不符合该规则的外部字段应由 Owner 在规范化输出中提供稳定字段名。
 ### 13.3 静态校验
 
 Compiler 必须验证：
@@ -1766,6 +1766,8 @@ predicates:
         responsibility.pendingResponsibilitiesRetained
 ~~~
 
+**责任摘要字段说明。** `responsibility.pendingResponsibilitiesRetained` 在本教学谓词中仅表示已知待处置责任及其审计记录已被保全，**不表示当前没有 `PENDING` 责任**，也不替代 `responsibility.allResourcesCovered`。若 Owner 仍有任何已确认的 `PENDING` 责任，即使本地 Goal Postcondition 对其他业务条件返回 `PASS`，Runtime 也必须按 §12.8、§20.1.1 与 G.5 拒绝发布 Invocation `SUCCEEDED`，实际停止终态为 `SAFE_STOPPED`；请求成功与实际终态不一致时记录 `TERMINAL_STATE_MISMATCH`。要在真实发布物中声明“已无待处置责任”，须由责任 Owner 发布可验证的独立字段或保证，并使 Host/Runtime 在终态检查时核实；不得从字段名或布尔值自行推断。
+
 本节的 5GC 类型引用用于说明绑定形状。完整示例依赖 Owner 发布相应 Schema、精确 callable 输出绑定和保证；可脱离外部仓库复核的完整链接输入见附录 E。UDM Get 的 `output.result` 表示本次 SM 数据读取；订阅 Create 的 `output.subscription` 与 Reconcile 后查询的 `output.subscription` 表示订阅资源状态。两种命题分别使用 Session Profile 和 Subscription Predicate。Session Profile 的 `urn:example` 结构用于教学，真实迁移以 Host 规范化 Get 输出为准。
 
 ## 30. Procedure
@@ -2058,6 +2060,8 @@ create-policy:
 ~~~
 
 本例引用 E.8 的 `example.subject.present` 和 §29 的 `createdsession.pcf.association_owned`，假定 Create 输出包含 `policyAssociationRef`，且查询契约接受该引用。本片段只展示一个四阶段 Node，`continue-session` 和 `reconcile-policy` 由完整 Procedure 定义。如果 Operation Result 已足以支持同一验收，可以省略 Observation，并将 Postcondition 实参绑定到 `create-policy.operation.output`。
+
+# 第八部分：Script 与开发工具链
 
 ## 32. Python Script
 
@@ -2644,7 +2648,7 @@ flowchart LR
 | Predicate Script 类型派生不明确 | Predicate.parameters 是唯一业务输入签名；Script 入口引用生成的 PredicateInput；Compiler / LSP 使用同一虚拟 stub | 语义已明确；生成 stub / overlay 的工具链方式待验证 |
 | Schema ID 与路径混淆 | 外部引用使用 dependency-alias::精确 Schema $id；Skill 自有 Schema 使用包内路径；路径不是公共身份 | 规则已明确；需要 Compiler 正负例验证 |
 | primitive 类型兼容、nullable 和 CEL 规则不完整 | 附录 F.5 保守赋值规则，未支持关键字必须拒绝 | 语言规则已冻结；实现待验收 |
-| 自动同名绑定保留键冲突 | vNext 第一版不支持隐式同名绑定；Studio 可生成显式 arguments | 本版源码语法已冻结 |
+| 自动同名绑定保留键冲突 | 本版（v1alpha3）不支持隐式同名绑定；Studio 可生成显式 arguments | 本版源码语法已冻结 |
 | 三个异步 Operation 的 Owner 契约尚未确认 | 责任目标映射到 UPN.CREATE_UP_SESSION、SSM.SIGNAL_UE_AN、UPN.MODIFY_UP_SESSION | 仅为目标责任；ToolCatalog / Output / Evidence 仍待 Owner 确认 |
 
 本附录仅记录历史评审事项，不独立产生规范性要求，也不构成 Owner 发布物或产品符合性证明。现行实现验收依 §45.2 的八项门槛执行。任何修订申请均应明确影响的术语、语法、静态语义、运行语义或 Owner 边界，并附相应正反例。
