@@ -1,0 +1,82 @@
+# Informative review-to-fixture planning register. NOT normative Appendix E.
+# RFX identifiers are NOT E115-E122. All scenarios remain NOT_IMPLEMENTED.
+languageTarget: connectionagent.io/v1alpha3
+normativeSource: docs/skill-language-spec.zh-CN.md
+catalogStatus: INFORMATIVE_NOT_EXECUTED
+candidateCount: 6
+candidates:
+  - id: RFX-117
+    reviewSuggestion: E117
+    type: C_STATIC_AND_RUNTIME
+    clauses: ["§13.3", "§23", "§30"]
+    inputVariants:
+      - "Owner or deployment Scope labels pduSessionId as identity. Call binds context.request.pduSessionId directly."
+      - "Host publishes and validates an authoritative PSI/Session Context path; call explicitly binds that trusted path with correct Scope/Owner contract."
+    expected:
+      - "C_STATIC CALLABLE_ARGUMENT_PROVENANCE_INVALID; no dispatch"
+      - "May pass provenance ONLY when the authoritative Host identity and all other contracts are verifiably present; not automatically PASS or Runtime READY"
+    executionStatus: NOT_IMPLEMENTED
+    trustedOwnerAndHostFixtures: NOT_PROVIDED
+  - id: RFX-118
+    reviewSuggestion: E118
+    type: C_STATIC_AND_RUNTIME
+    clauses: ["§17.1", "§17.2"]
+    inputVariants:
+      - "Predicate param omits requires and ALL call sites bind exempt Host/request/literal sources"
+      - "Same param omits requires but a call site binds external Operation/Observation"
+      - "Param explicitly declares requires; a call site binds exempt context.ueRef but has no matching Producer guarantee"
+      - "Explicitly declared requires is statically satisfiable, but this invocation has no valid matching evidence record"
+    expected:
+      - "No PREDICATE_EVIDENCE_REQUIRED solely due to exempt origins"
+      - "C_STATIC PREDICATE_EVIDENCE_REQUIRED"
+      - "C_STATIC PREDICATE_EVIDENCE_UNSATISFIABLE; exemption does not cancel declared guarantees"
+      - "R_RUNTIME Predicate UNKNOWN; no automatic PASS"
+    executionStatus: NOT_IMPLEMENTED
+  - id: RFX-119
+    reviewSuggestion: E119
+    type: DOCUMENT_CONSISTENCY_CHECK
+    clauses: ["§24.1", "§24.2", "Appendix H"]
+    inputVariants:
+      - "Extract H unique (Code, Phase) keys and link to §24.1/§24.2 trigger and handler rules"
+      - "Check that already dispatched READ/Observation SCOPE_MISMATCH or CORRELATION_MISMATCH uses UNKNOWN-or-stop, never DENIED"
+    expected:
+      - "No duplicate (Code, Phase), undefined diagnostics or contradictory routing classification"
+      - "Exactly matching Runtime dispatch rules"
+    executionStatus: NOT_IMPLEMENTED
+  - id: RFX-120
+    reviewSuggestion: E120
+    type: C_STATIC
+    clauses: ["§F.5", "§G.4", "§34.1"]
+    inputVariants:
+      - "Each of allOf, anyOf, oneOf, not, if/then/else independently appears in an otherwise valid Schema"
+      - "Schema uses only supported G.4 keywords but Source is not assignable to Target"
+    expected:
+      - "C_STATIC SCHEMA_INVALID for each unsupported composition, regardless of hypothetical inclusion proof"
+      - "C_STATIC INPUT_TYPE_MISMATCH for valid schemas with incompatibility unrelated to nullability"
+    relatedNormativeCases: [E110]
+    executionStatus: NOT_IMPLEMENTED
+  - id: RFX-121
+    reviewSuggestion: E121
+    type: C_STATIC_AND_RUNTIME
+    clauses: ["§34.0.2", "§F.4", "§G.3.1"]
+    inputVariants:
+      - "IndependentDomains trusted relationship missing, self-paired, duplicated or unauthorized"
+      - "Trusted domains and independentPairs valid, actual two Producer records are same underlying source"
+      - "Trusted domains and independentPairs valid, actual Producer records demonstrably independent"
+    expected:
+      - "C_STATIC EVIDENCE_GUARANTEE_LINK_INVALID for invalid trust relationship"
+      - "R_RUNTIME Predicate UNKNOWN when actual independence is not established"
+      - "Business evaluator PASS/FAIL only after guarantees and independent evidence are verified"
+    relatedNormativeCases: [E102, E106]
+    executionStatus: NOT_IMPLEMENTED
+  - id: RFX-122
+    reviewSuggestion: E122
+    type: RUNTIME_SIMULATION
+    clauses: ["§12.8", "§20.1.1", "§29", "§G.5"]
+    inputVariants:
+      - "Business Goal Predicate PASS with pendingResponsibilitiesRetained=true and an authenticated PENDING disposition record"
+      - "Same local Goal PASS but all known confirmed responsibilities verified TRANSFERRED or CLEANED, no unresolved calls, all other Goal/Scope/Evidence gates valid"
+    expected:
+      - "Invocation SAFE_STOPPED, retaining the PENDING record; TERMINAL_STATE_MISMATCH when a SUCCEEDED request is superseded"
+      - "Eligible for Invocation SUCCEEDED only after all §12.8/§12.9 checks, not by the boolean alone"
+    executionStatus: NOT_IMPLEMENTED
