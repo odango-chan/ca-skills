@@ -2321,193 +2321,193 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 
 ---
 
-# 第十一部分：评审 FAQ
+# 第十一部分：设计依据与技术说明
 
-**默认效力：Informative。**
+**本部分为资料性说明（Informative）。** 其内容用于解释前述规范性条款，不构成额外要求；不一致时以相应规范性条款为准。
 
-## 46. 为什么不直接使用 OpenAPI？
+## 46. 与 OpenAPI 的关系
 
-OpenAPI 描述 API 接口、参数和响应，但不完整描述 Skill 业务目标、确定性流程、Predicate、Evidence、Capability 授权、Reconcile 和多步骤恢复。CA-SL 可以引用 Tool Owner 发布的契约，两者不是竞争关系。
+OpenAPI 描述 API 接口、参数和响应，但不完整描述 Skill 业务目标、确定性流程、Predicate、Evidence、Capability 授权、Reconcile 和多步骤恢复。CA-SL 可以引用 Tool Owner 发布的契约，两者适用层级不同。
 
-## 47. 为什么不直接用 Temporal？
+## 47. 与 Temporal 的关系
 
-Temporal 是持久化 Workflow 执行平台，CA-SL 不重新实现它。CA-SL 是面向 Agent Skill 的受约束声明语言，重点在 Tool Owner、Capability、Observation、Evidence 和 Studio 语义编辑。未来可以研究映射到底层执行平台，但不是语言规范前提。
+Temporal 是持久化 Workflow 执行平台，CA-SL 不定义该类平台的执行机制。CA-SL 是面向 Agent Skill 的受约束声明语言，重点在 Tool Owner、Capability、Observation、Evidence 和 Studio 语义编辑。底层执行平台映射不属于本版语言规范要求。
 
-## 48. Observation 为什么不能只是 Predicate 的数据字段？
+## 48. Observation 的显式查询模型
 
 Agent 有时必须主动向权威 Owner 查询当前事实。该查询具有输入、权限、Effect、Owner、输出 Schema、Scope 和 Evidence 保证，应是显式可治理的 Tool 调用，而不是 Predicate 内部隐藏获取。同时 Observation 不应拥有独立于 ToolCatalog 的依赖、Schema、Capability 和 Runtime 管理系统。
 
-## 49. Observation 为什么不与 Mutation Operation 一一配对？
+## 49. Observation 与 Mutation 的关系
 
 Operation 输出有时已经足够；有时一个 Observation 服务多个 Operation；有时一个 Tool 暴露多个查询；有些 Mutation 不需要独立查询。强制一一配对会制造重复查询和无意义接口。
 
-## 50. Operation Result 为什么不能直接叫 Observation？
+## 50. Operation Result 与 Observation Result 的区别
 
 Operation Result 记录一次操作返回了什么；Observation Result 是 Owner 对事实进行查询后的状态视图。只有 Operation 契约明确保证所需事实、Scope、Correlation、Freshness 和 Evidence 时，才能直接复用。
 
-## 51. 为什么不让 Predicate 自己调用 Observation？
+## 51. Predicate 的纯函数边界
 
 这样 Predicate 就不再是纯函数，会隐藏网络访问、授权、超时、重试、Freshness 和 Evidence 获取。必须先显式查询，再把结果交给 Predicate。
 
-## 52. 为什么不保留 Skill Wait？
+## 52. Skill Wait 的排除
 
 Skill 不应了解 SMF Operation 内部如何完成异步协议流程。若 Operation 的业务语义是“建立 N4 Session 并确认最终完成”，它就必须在返回最终成功前完成该责任。Runtime 仍管理 Deadline、Cancellation 和 UNKNOWN，但不把它们变成 Skill 作者的轮询逻辑。
 
-## 53. 为什么 Mutation 超时不能直接重试？
+## 53. Mutation 超时后的恢复策略
 
 请求可能已经在远端提交，只是响应丢失。直接发第二次可能重复创建资源或副作用。具备安全 Owner 契约和运行条件时，先调和原 Operation；其余情况按 §20 停止并保留责任。
 
-## 54. 为什么区分 Capability 和 Operation？
+## 54. Capability 与 Operation 的职责
 
 Operation 是“能调用什么”；Capability 是“部署允许这一组什么能力”。Skill 可以声明需要某个 Capability，但不能自行把 Operation 加入其中或改变 Effect。
 
-## 55. 为什么 Skill 不直接引用 Tool Adapter？
+## 55. Skill 与 Tool Adapter 的依赖边界
 
 Adapter 是 Tool Owner 的实现细节。Skill 应引用稳定契约身份，而不是 HTTP URL、Python 类名或网元内部路径。
 
-## 56. 为什么 Schema 不全部放在 Skill 的 schemas/？
+## 56. 外部 Schema 的归属
 
 因为这会产生影子契约。UDM、SMF、PCF、Host、Fabric 各自拥有不同业务数据和状态。Skill 复制 Schema 会导致 Owner 更新而 Skill 未同步，产生两套矛盾事实。
 
-## 57. 两种 Script 如何声明输入？
+## 57. Procedure Script 与 Predicate Script 的输入声明
 
 Procedure Script 用输入 TypedDict 声明消费契约，并在每个调用点校验 `arguments`。Predicate Script 使用 Compiler 与 LSP 共享的生成类型 `PredicateInput`，其来源为 `parameters` 与 §17.3 的投影。两者都不维护第二份手写输入 Schema。
 
-## 58. 为什么不自动把前一个 Node 输出传给下一个？
+## 58. 跨 Node 的显式数据传递
 
 隐式前序绑定会让节点移动改变语义，使分支路径难以静态验证，也会让同名字段的来源、Scope 和生命周期不明确。Operation / Observation 使用 arguments 具名映射，Precondition / Postcondition 使用有序 arguments 列表；每个消费者必须明确声明数据来源。
 
-## 59. 为什么第一版不保留自动同名绑定？
+## 59. 自动同名绑定的限制
 
 显式绑定更容易审查，不会因字段重名意外传值。Studio 可以辅助生成显式 Binding。未来若语义 ID、Schema、Scope 和 CFG 可用性能够完整证明，可另行提案。
 
-## 60. 为什么 Evidence 不放进业务 Payload？
+## 60. 业务 Payload 与 Evidence 的分离
 
 业务数据和可信来源是不同东西。把 Evidence 混入业务对象会让 Script、Schema 和业务逻辑承担 Host 信任责任，也容易让业务代码伪造或覆盖 Evidence。Evidence 应由 Host / Runtime 独立附加和校验。
 
-## 61. 为什么需要 UNKNOWN？
+## 61. UNKNOWN 的判定意义
 
-现实系统存在信息不足、网络中断、查询失败、Evidence 过期和状态冲突。如果只能 PASS / FAIL，系统会被迫猜测。UNKNOWN 是正确性边界，不是多余复杂度。
+现实系统存在信息不足、网络中断、查询失败、Evidence 过期和状态冲突。PASS/FAIL 不足以表达无法获得可信结论的执行情形。UNKNOWN 用于明确区分未证实结果与已证实的业务失败。
 
-## 62. 为什么 MAS 暂时不作为第一验收基线？
+## 62. MAS 的符合性基线
 
-传统 5GC PDU Session Skill 有真实执行路径和可核对 Owner 行为，可以验证语言是否忠实表达现有业务。MAS 仍有未完成 Owner ToolCatalog 和 Snapshot 契约，不能用设计稿假装具备可执行能力。
+传统 5GC PDU Session Skill 有真实执行路径和可核对 Owner 行为，可以验证语言是否忠实表达现有业务。MAS 尚未满足正式 Owner ToolCatalog 与 Snapshot 交付条件，因此不构成本版的可执行符合性基线。
 
-## 63. 为什么 Compiler 不负责依赖获取和包管理？
+## 63. Compiler 与依赖管理的职责
 
-Compiler 对本次给定字节进行解析、链接和校验。依赖选择、下载、版本锁定、缓存、刷新和工作区持久化属于 Studio / 调用方。否则 Compiler 会膨胀成 Package Manager。
+Compiler 对本次给定字节进行解析、链接和校验。依赖选择、下载、版本锁定、缓存、刷新和工作区持久化属于 Studio / 调用方。否则将超出 Compiler 的静态解析与链接职责。
 
-## 64. 为什么 Build PASS 不代表 Skill 可运行？
+## 64. 静态构建与运行符合性的区分
 
 Build PASS 只说明本次源码和契约满足静态规则。运行还需要 Adapter 注册、Capability 授权、Runtime Admission、外部服务可用、Evidence 真实有效、业务前置条件满足和网元交互成功。
 
-## 65. 为什么需要 Owner 评审？
+## 65. Owner 契约的发布责任
 
 规范可以定义“必须有什么契约”，但不能代替 Owner 证明实际系统真的提供这些契约。N4、RAN、PCF 的状态字段、Correlation 和 Freshness 必须由 SMF / Provider / Fabric / Host 的真实实现负责，Skill 作者不能编造。
 
 ---
 
-## 66. 为什么 Node 使用四个阶段字段？
+## 66. Node 的四阶段结构
 
 一个业务步骤可以在同一个 Node 里写清先验条件、动作、观察和验收。各阶段的契约、输入和退出原因可以独立检查。Skill Studio 可用一张卡片展示一个 Node，并在卡片内展开各阶段。阶段可通过路由直接声明流程终态。
 
-## 67. 为什么不增加通用 computation Node？
+## 67. 本地计算的建模方式
 
 判断与数据计算是两种不同的确定性职责。Predicate 定义纯判断，使用 CEL 或 Predicate Script 实现，并由 Precondition / Postcondition 阶段调用。Procedure Script 则负责本地数据选择、转换和结构化结果生成，通过 Operation 阶段的 script 目标执行。两者都不需要增加通用 computation 节点，也不能把数据转换伪装成 PASS / FAIL / UNKNOWN 判断。
 
-## 68. 为什么 Operation 和 Observation 使用具名 arguments，而 Predicate 使用位置 arguments？
+## 68. 具名与位置参数的适用范围
 
 Operation / Observation 的输入由 Owner 发布的 JSON Schema 定义，字段名是接口契约的一部分，因此使用具名映射。Predicate 声明有序参数签名，调用时按签名位置传入，因此使用列表。两个调用都在各自阶段使用 arguments。静态类型和来源检查适用于每个实参。
 
-## 69. Operation Result 足够时为什么不执行 Observation？
+## 69. Operation Result 与额外 Observation 的关系
 
 Observation 是可选的事实获取机制。若 Operation Result 已包含目标 Predicate 所需的业务事实、Scope、Correlation、Freshness 和 Evidence，额外查询只会增加延迟和失败面。只有信息不足或业务明确要求独立权威观察时，才执行 Observation。
 
-## 70. Operation Result 能否作为 Observation 的输入？
+## 70. Operation Result 作为 Observation 输入
 
 可以。Operation Result 可以提供 Observation Query 所需的资源引用、Session Instance、SEID 或 Correlation。但 Observation Result 必须由 Observation Owner 实际查询产生，不能把 Operation Result 包装成 Observation Result，也不能丢失其原始 Producer 身份。
 
-## 71. 为什么 Reconcile 不是独立节点类型？
+## 71. Reconcile 的 Operation 阶段形式
 
 Reconcile 是原始 Mutation Operation 的受约束调和模式。把它表达为 operation.reconcile: <original-node>，可以复用 Operation 的授权、Owner 契约和 Runtime Admission，同时明确只能调和原始 Mutation，不能发起新的业务 Mutation。
 
-## 72. 为什么 Contract 仍需要 dependencies？
+## 72. Contract 的 dependencies 字段
 
 `dependencies` 把别名绑定到 Owner 发布的契约包。包可导出 JSON Schema、ToolCatalog callable 和 Evidence 保证。即使文件目前大多是 Schema，`schemas` 仍只适合表示 Schema 集合，无法表达这个依赖边界。具体 Schema 由 `requestSchema`、`contextSchema` 或精确导出 ID 引用。Capability 授权单独由 `capabilities` 声明。
 
-## 73. 为什么不在 Contract 中写具体版本和下载地址？
+## 73. Contract 与依赖快照的版本边界
 
 这是作者希望使用哪个公共契约，与工作空间当前解析出哪份字节的分离。Contract 固定稳定 Package / Owner 语义，Studio 或 Build 调用方提供确切快照。Schema 本身的精确 $id 若含不可变版本分量必须保留；不等于在 YAML 根重复 apiVersion。
 
-## 74. Reconcile 确认 COMMITTED 后为什么还需要检查输出？
+## 74. COMMITTED 后的恢复输出检查
 
 COMMITTED 确认原调用的提交状态。Owner 明确承诺恢复输出且输出通过校验时，后续可以消费 Reconcile 自身的 Schema 所描述的输出，例如只恢复资源 Ref。承诺恢复但输出无效时按 §20.2 停止。契约未承诺输出时，可显式执行权威 Observation；原调用丢失的输出始终不可用。
 
-## 75. Invocation Context 与入口 Observation 各提供什么？
+## 75. Invocation Context 与入口 Observation 的职责
 
 Invocation Context 提供 Host 在准入时已经确认的 UE 和入口、生命周期关联引用。入口 Observation 在 Procedure 开始后读取权威 Owner 掌握的实时状态，例如 UE 注册或 N4 资源。
 
-## 76. 为什么 Reconcile COMMITTED 后还需要新的 Goal PASS？
+## 76. COMMITTED 后的 Goal 验收
 
 COMMITTED 只确认原 Mutation 已提交，可按 Owner 契约恢复该调用的部分输出。此前的 Goal PASS 不能覆盖后续 Mutation 的影响。§30 的 UDM Reconcile 提交分支继续到 PCF，最终仍执行 Goal Postcondition；直接从 COMMITTED 走到 SUCCEEDED 会被 Compiler 拒绝。`COMMITTED → READ SUCCEEDED → 新的 Goal PASS → SUCCEEDED` 可以通过证明覆盖校验。若该分支进入停止终态，则按 §12.8 判断，无需 Goal PASS。
 
-## 77. 为什么复核不会自动用新 Evidence 重算旧 Predicate？
+## 77. Evidence 更新与 Predicate 证明绑定
 
 Predicate 的业务值和 Evidence 共同绑定到一次具体调用。较新的已接纳记录可使旧判断失效；派发或结束检查据此停止，保留先前 PASS 的执行记录。若业务允许用新状态继续，Procedure 需要显式绑定新的 Producer 并执行新判断。自动换绑会改变原路径的业务判断和审计记录。
 
-## 78. 为什么可选输出字段不能直接作为 SourcePath？
+## 78. 可选输出字段的 SourcePath 限制
 
 可选字段在成功响应中也可能缺失。当前图没有能证明字段存在的类型收窄规则，也不自动补默认值。调用方可以绑定必定存在的外层对象，由消费者处理可选字段；若业务要求直接绑定该字段，Owner 须通过精确输出 Schema 保证它存在。
 
-## 79. 为什么 CA-SL 不重写快照摘要算法？
+## 79. 快照摘要算法的所有权
 
-Compiler 的 BuildRequest 契约定义原始文件字节的 SHA-256 framing，Studio 和 Compiler 使用同一规则。CA-SL 负责把实测摘要和别名关联到可信 Package ID、Owner 与精确导出。重复定义摘要算法会让同一份快照在两套规则下产生不同身份。
+Compiler 的 BuildRequest 契约定义原始文件字节的 SHA-256 framing，Studio 和 Compiler 使用同一规则。CA-SL 负责把实测摘要和别名关联到可信 Package ID、Owner 与精确导出。重复定义摘要算法可能导致同一快照产生不一致的身份结果。
 
-## 80. 为什么附录 E 的负例采用基线与最小变更？
+## 80. 附录 E 的最小变更测试方法
 
 E.1–E.4 给出独立链接基线。E.6 从 E.1–E.4 的成功输入派生链接与绑定负例。E.7 从 §12.1 的行为图派生控制流负例，并从 E.4 派生证据复核负例。部分 Mutation、跨路径和多次取证用例仍需实际 Owner 测试输入；E.5 保留这些验收要求，执行夹具由相应实现交付。
 
-## 81. 为什么现在还不能冻结各层契约？
+## 81. 语言冻结与实现符合性的区分
 
 本规范的示例固定语言规则。Compiler、Studio、Runtime 一致性与真实 Owner 发布按 §45.2 独立验收，不能用实现尚未完成否定既定语义，也不能以该规范冻结冒充实现通过。
 
-## 82. 为什么允许 start 直接指向 Goal Postcondition？
+## 82. 以 Goal Postcondition 作为入口
 
 `start` 标识首个业务 Node。只判断已准入 Context 的 Skill 可以声明一个只有 Goal Postcondition 的 Node。进入时尚无证明，Postcondition PASS 才建立证明。若同一业务步骤还需前置判断，可在同一 Node 声明 Precondition，Runtime 按阶段顺序执行。
 
-## 83. 为什么未声明的输出字段报 SOURCE_PATH_INVALID？
+## 83. SOURCE_PATH_INVALID 与 SOURCE_NOT_AVAILABLE 的适用边界
 
 Compiler 已找到对应的导出和 Schema，接下来要验证该 Schema 内的路径。字段未声明时路径本身无效。若字段已声明但当前分支没有产生该输出，才报告 SOURCE_NOT_AVAILABLE。EXPORT_ID_MISSING 和 SCHEMA_MISSING 用于导出或 Schema 自身缺失。
 
-## 84. 全局条件为什么不写 anyOf / allOf？
+## 84. 全局前置条件与逻辑组合
 
 `preconditions` 是全局前置判断的列表，每项都必须 PASS。执行顺序和取证位置由 Procedure 决定。全局验收只有一个 Contract Goal，正常路径和 Reconcile 路径分别用标记同一 Goal 的 Postcondition 证明。Compiler 检查每条成功路径，Runtime 复核实际路径上的判断和证据。Contract 无需再维护一份成功分支列表。
 
-## 85. 为什么各阶段使用 routes？
+## 85. 阶段路由字段的选择
 
 `routes` 表达已声明的 Outcome 到目标 Node 或终态的映射，例如 `PASS`、`FAIL`、`UNKNOWN` 各自对应一个目标。非末阶段的正常 Outcome 自动推进到同一 Node 的下一阶段。末阶段的正常 Outcome 也使用 `routes`，所以整个 Node 无需额外声明 `next`。字段名 `routes` 在 YAML 1.1 和 1.2 中都可以裸写，避免旧示例中 `on` 被部分解析器当成布尔值。`case` 常用于标记 `switch` 的单个分支。这里的键已经是精确的 Outcome，`routes` 直接表达整个映射。
 
-## 86. 为什么路由可以直接写终态？
+## 86. 终态作为路由目标
 
 `PASS: SUCCEEDED`、`FAIL: FAILED`、`UNKNOWN: UNRESOLVED` 直接表达流程结束的预期。四个终态由语言定义，作者无需在 `nodes` 中为它们声明别名。成功仍须经 §12.9 验收，实际停止状态由 Runtime 按 §12.8 判定。若停止前还需执行已授权的业务步骤，通过 Node ID 路由到相应步骤。
 
-## 87. 为什么自动推进也能改变门禁或 Goal 证明？
+## 87. 自动推进对门禁与 Goal 证明的影响
 
 自动推进和显式路由都产生来源明确的 Outcome 边。门禁和 Goal 证明只依赖来源阶段与 Outcome。比如全局 Precondition 的 PASS 在同一 Node 内进入 Operation 前计入门禁集合，Mutation 的 SUCCEEDED 在同一 Node 内进入 Postcondition 前清除旧 Goal 证明。§12.1 的 Reconcile 查询使用 Owner 已恢复的精确资源引用，满足该条件时可以留在同一 Node。
 
-## 88. 为什么不可达的路由仍要通过链接校验？
+## 88. 不可达路由的链接检查
 
 Compiler 对所有声明检查路由目标和 Reconcile 唯一跨 Node 入边。§20.2 的唯一入边是构建期硬约束，因此 E60 的额外入边会阻止构建，即使来源 Node 不可达。E65 的普通路由通过了语法和链接校验，其来源 Node 不可达，因此只产生 `UNREACHABLE_NODE` 警告。门禁和 Goal 证明只沿 `start` 可达的显式路由及自动推进边传播。
 
-## 89. 为什么一致性用例保留在附录 E？
+## 89. 一致性用例的归档位置
 
-单文件便于将评审意见定位到规则和用例。附录 E 给出验收预期，实际符合性由 Compiler / Runtime 验收记录确认。
+附录 E 集中列明测试输入与预期结果，以便建立条款到测试用例的可追溯关系。实际符合性由 Compiler / Runtime 的执行记录证实。
 
-## 90. 为什么局部 Predicate PASS 不缩窄 SourcePath 类型？
+## 90. 局部 PASS 与 SourcePath 类型
 
 PASS 是 Runtime 对当前命题的判断。Compiler 使用 Producer 成功 Schema 所保证的字段集合。需要该引用时，应由 Owner 将字段声明为必需，或传递外层对象交给 Procedure Script 显式处理缺失，也可使用权威 Observation 获得保证存在的引用。见 §13.3、E89。
 
-## 91. 为什么同一原调用只允许一次 Reconcile？
+## 91. 同一原调用的 Reconcile 次数
 
 当前 Invocation 以一次调和尝试裁决执行路径，并按 §11.6 计费。UNRESOLVED 后由 Owner 按独立责任契约处理；后来取得的新证据可以支持该处置。见 §20.2。
 
@@ -2556,7 +2556,7 @@ flowchart LR
 | D-30 | 全局前置条件和 Goal PASS 覆盖所有成功路径 | 前置条件全部满足，同一 Goal 可由各分支的 Postcondition 分别证明 |
 | D-31 | Predicate 明确声明所需 Evidence 保证 | Compiler 检查绑定，Runtime 验证实际证据 |
 
-# 附录 B：当前状态与待评审事项
+# 附录 B：实施符合性与历史事项
 
 本规范的 v1alpha3 语言与互操作剖面已经冻结。下表保留历史设计阶段的 16 项门槛，说明独立产品与 Owner 符合性仍未完成；它们不是再次开放语言设计的清单。
 
@@ -2594,7 +2594,7 @@ flowchart LR
 8. AsyncAPI Specification — https://www.asyncapi.com/docs/concepts/asyncapi-document/structure
 
 
-# 附录 D：对上一轮评审意见的逐项答复
+# 附录 D：历史评审意见处理记录
 
 | 评审意见 | 本规范答复 | 当前结论 |
 |---|---|---|
@@ -3031,7 +3031,7 @@ predicates:
 
 ---
 
-## E.9 本轮阻断项新增验收
+## E.9 补充符合性用例
 
 | 用例 | 输入变化 | 预期 |
 |---|---|---|
@@ -3099,14 +3099,14 @@ predicates:
 | E96（Runtime） | 分别存在已确认 PENDING 变更、仅未决调用、均无且原因确定 | SAFE_STOPPED、UNRESOLVED、FAILED |
 | E97（Runtime） | 责任摘要返回 allResourcesCovered，但 Session Instance 与目标不同 | Goal 不得 PASS |
 
-### E.13 冻结复核说明
+### E.13 符合性用例说明
 
 - E40 保留严格的绑定替换规则。即使值相同，新记录也可能改变可审计的版本、时点及证据组合，因此旧判断不自动继承新记录。长流程可在接近成功发布时重新读取并求值。在本版语义下，采用新记录必须经显式 Producer 绑定和新的 Goal Postcondition PASS。Owner 可另行提案评审不同的重绑定策略。
 - §17.1 的身份和关联值豁免只覆盖其作为比对基准的用途。若 Predicate 以这类输入单独主张外部事实，Owner 须补充权威取证，不能依赖该豁免通过语义评审。
 - §44 最小兼容规则：源码使用目标语言版本明确支持的 Schema 子集。Owner 工件版本须有该版本的解码器并能映射到同一抽象规则。Schema 依赖按精确 ID 链接。Skill Package Revision 不隐式提升任何契约版本。
 - Studio 与 Compiler 共用路由、诊断和 Evidence 规则。不可达节点仍检查语法、链接和 Reconcile 入边，门禁与证明只传播可达边。
 
-### E.14 本轮验收补充
+### E.14 扩展符合性用例
 
 | 用例 | 输入与预期 |
 |---|---|
