@@ -35,7 +35,7 @@ The first vNext version has one entry Procedure graph per Skill and does not def
 ## Arguments and dataflow
 
 - Tool Operation and Observation use a named arguments mapping defined by the Owner Input / Query Schema.
-- Procedure Script uses a named arguments mapping as its exact local input projection; its output Schema is derived from strict return TypedDict.
+- Procedure Script uses a named arguments mapping as its exact local input projection; its Input and Output Schemas derive from the strict TypedDict annotations on the entry point.
 - Precondition and Postcondition use an ordered arguments list matching the Predicate.parameters signature.
 - Stages bind `arguments` to admitted `context` fields or to earlier outputs qualified by Node and stage.
 - No implicit previous-node binding, parent Procedure state, ambient Context forwarding, or field-name guessing.

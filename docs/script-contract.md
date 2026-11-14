@@ -21,9 +21,9 @@ prepare-policy-inputs:
 ~~~
 
 Rules:
-- The only entry point is main(input: dict).
+- The entry point is `main(input: InputTypedDict) -> OutputTypedDict`. Compiler derives both schemas from the strict TypedDict annotations.
 - The call-site arguments mapping is the complete input projection.
-- Compiler derives the effective input type from the bound Producer / Context Schemas; no separately authored Script Input Schema is allowed.
+- Compiler checks required keys, unknown keys and Source Schema assignability at every call site. Compiler and LSP check key accesses against the declared input type, including optional access and unsupported dynamic keys. Runtime validates the materialized input. Authors maintain no separate input schema file.
 - The return annotation must be a strict TypedDict. Compiler generates its Output Schema, including supported Annotated, Literal and NotRequired constraints.
 - The result is exposed as `<node-id>.operation.output` to later stages and reachable consumers.
 - A Procedure Script is pure and deterministic. It cannot access network, HTTP, MCP, shell, database, filesystem, credentials, environment variables, clock or randomness.
