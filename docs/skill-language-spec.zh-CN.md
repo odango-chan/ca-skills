@@ -2193,13 +2193,11 @@ Skill Studio 是 CA-SL 作者工作环境，不是第二个语言实现。应提
 
 # 第九部分：参考语言与设计取舍
 
-**默认效力：Normative。**
-
-## 36. CUE
+**本部分为资料性说明（Informative）。** 外部规范的要求由各自文件定义；CA-SL 的规范性约束以本文件相应条款为准。
 
 参考：https://cuelang.org/docs/reference/spec/
 
-借鉴正式语言规范、类型约束、Schema 组合和 IDE 可分析性。CA-SL 不直接采用 CUE 作为主语言，因为还需要 Procedure 控制流、Capability 授权、Operation / Observation 边界和 Evidence 语义。Schema 可使用 JSON Schema，Predicate 可使用 CEL。
+CUE 的类型约束、Schema 组合及静态分析机制为本规范提供参考。CA-SL 使用自身的 Procedure、Capability、Operation、Observation 和 Evidence 语义；Schema 与 Predicate 分别使用本规范限定的 JSON Schema 和 CEL 子集。
 
 ## 37. Temporal
 
@@ -2208,15 +2206,15 @@ Skill Studio 是 CA-SL 作者工作环境，不是第二个语言实现。应提
 - https://docs.temporal.io/workflows
 - https://docs.temporal.io/encyclopedia/retry-policies
 
-借鉴 Workflow Definition 与 Execution 区分、确定性编排、外部副作用隔离、重试和恢复语义。
+Temporal 的 Workflow Definition、Workflow Execution、副作用隔离、重试及恢复模型为本规范的执行边界提供参考。
 
-CA-SL 不自带 Temporal 式持久化 Workflow Engine，也不使用通用语言编写 Workflow。CA-SL 的核心扩展是 Owner、Capability、Observation、Evidence 和受约束的 Skill Procedure。
+CA-SL 不规定持久化 Workflow Engine，也不采用通用编程语言作为 Procedure 定义方式。其规范性范围为 Owner 契约、Capability、Observation、Evidence 和受约束的 Skill Procedure。
 
 ## 38. OpenAPI
 
 参考：https://spec.openapis.org/oas/latest.html
 
-借鉴 Operation 身份、参数、Request / Response Schema 和引用机制。CA-SL 不取代 OpenAPI；Tool Owner 可以用 OpenAPI 描述 HTTP API，但 ToolCatalog 还需表达 Effect、Capability、Adapter、Evidence 和 Reconcile 契约。
+OpenAPI 适用于 HTTP 接口的 Operation 标识、参数、请求/响应 Schema 和引用。CA-SL 不替代 OpenAPI。ToolCatalog 另规定 Effect、Capability、Adapter、Evidence 及 Reconcile 所需的互操作属性。
 
 ## 39. AsyncAPI
 
@@ -2224,7 +2222,7 @@ CA-SL 不自带 Temporal 式持久化 Workflow Engine，也不使用通用语言
 - https://www.asyncapi.com/docs/concepts/asyncapi-document/structure
 - https://www.asyncapi.com/docs/concepts/asyncapi-document/adding-operations
 
-借鉴消息、Channel、Operation、Correlation ID 和异步交互的明确建模。CA-SL 不把异步网元交互简化为 Skill Wait Loop；异步完成归属对应 Tool / Provider Operation。
+AsyncAPI 为消息、Channel、Operation、Correlation ID 和异步交互建模提供参考。CA-SL 将网元异步完成责任归于对应的 Tool/Provider Operation，不在 Skill 层定义轮询。
 
 ## 40. RFC 2119 / RFC 8174
 
@@ -2244,7 +2242,7 @@ CA-SL 不自带 Temporal 式持久化 Workflow Engine，也不使用通用语言
 | 确定性工作流 | Temporal | 声明式 Procedure 和副作用边界 |
 | 规范写法 | RFC | 术语、语法、语义和符合性 |
 
-CA-SL 的定位是**受治理的确定性业务编排语言**，不是普通 Workflow YAML 或 Tool Calling Prompt。
+CA-SL 属于受契约约束的确定性业务编排语言，其规范范围不包括通用工作流配置语言或工具调用提示文本。
 
 ---
 
@@ -2351,7 +2349,7 @@ Operation Result 记录一次操作返回了什么；Observation Result 是 Owne
 
 ## 52. Skill Wait 的排除
 
-Skill 不应了解 SMF Operation 内部如何完成异步协议流程。若 Operation 的业务语义是“建立 N4 Session 并确认最终完成”，它就必须在返回最终成功前完成该责任。Runtime 仍管理 Deadline、Cancellation 和 UNKNOWN，但不把它们变成 Skill 作者的轮询逻辑。
+异步协议的完成机制属于对应 SMF/Provider Operation 的实现范围。当 Operation 的业务契约规定建立 N4 Session 并确认完成时，该 Operation 必须在返回最终成功前满足相应完成条件。Runtime 仍管理 Deadline、Cancellation 和 UNKNOWN，但不把它们变成 Skill 作者的轮询逻辑。
 
 ## 53. Mutation 超时后的恢复策略
 
@@ -2359,7 +2357,7 @@ Skill 不应了解 SMF Operation 内部如何完成异步协议流程。若 Oper
 
 ## 54. Capability 与 Operation 的职责
 
-Operation 是“能调用什么”；Capability 是“部署允许这一组什么能力”。Skill 可以声明需要某个 Capability，但不能自行把 Operation 加入其中或改变 Effect。
+Operation 标识可调用接口；Capability 定义部署授予的接口集合与作用域。Skill 仅能引用已发布的 Capability，不得修改其成员或 Effect。
 
 ## 55. Skill 与 Tool Adapter 的依赖边界
 
@@ -2367,7 +2365,7 @@ Adapter 是 Tool Owner 的实现细节。Skill 应引用稳定契约身份，而
 
 ## 56. 外部 Schema 的归属
 
-因为这会产生影子契约。UDM、SMF、PCF、Host、Fabric 各自拥有不同业务数据和状态。Skill 复制 Schema 会导致 Owner 更新而 Skill 未同步，产生两套矛盾事实。
+将外部 Schema 复制到 Skill Package 会形成与发布 Owner 不一致的副本。UDM、SMF、PCF、Host 和 Fabric 的数据结构分别由对应 Owner 管理，Skill 应引用其正式发布的 Schema 身份。
 
 ## 57. Procedure Script 与 Predicate Script 的输入声明
 
@@ -2383,7 +2381,7 @@ Procedure Script 用输入 TypedDict 声明消费契约，并在每个调用点�
 
 ## 60. 业务 Payload 与 Evidence 的分离
 
-业务数据和可信来源是不同东西。把 Evidence 混入业务对象会让 Script、Schema 和业务逻辑承担 Host 信任责任，也容易让业务代码伪造或覆盖 Evidence。Evidence 应由 Host / Runtime 独立附加和校验。
+业务 Payload 与 Evidence 分别承担业务值表示和可信来源验证职责。若将 Evidence 作为普通业务字段传递，则无法维持 Host/Runtime 对保证、完整性及关联的独立控制。Evidence 应由 Host / Runtime 独立附加和校验。
 
 ## 61. UNKNOWN 的判定意义
 
