@@ -21,7 +21,7 @@ skills/<skill-name>/
 
 The three assurance files have separate responsibilities:
 
-- `contract.yaml` — public Skill declaration: Goal, public Request Schema, Host Invocation Context Schema, shared dependency identities, and Capability Grants.
+- `contract.yaml` — public Skill declaration: Goal, global Precondition references, public Request Schema, Host Invocation Context Schema, shared dependency identities, and Capability Grants.
 - `procedure.yaml` — one deterministic execution graph: start, business Nodes, and Terminal Nodes. A business Node may combine Precondition, Operation, Observation, and Postcondition with stage exits and a normal successor.
 - `predicates.yaml` — reusable Predicate definitions, ordered parameter signatures and CEL / Predicate Script evaluators.
 
@@ -32,6 +32,7 @@ The Contract is authored source. It is not deleted or wholly generated. The Comp
 Keep business declarations that matter to authoring and review:
 
 - `goal` and the public `requestSchema`.
+- Optional `preconditions` listing the Procedure Precondition stages that must all PASS before a business Mutation or SUCCEEDED.
 - `contextSchema` for the exact Host-owned Invocation Context Schema.
 - `dependencies` mapping aliases directly to stable Package ID strings.
 - `capabilities` listing exact IDs selected from trusted deployment CapabilityContracts.
@@ -41,7 +42,7 @@ Do not repeat machine wrapper fields that are determined elsewhere:
 - No authored `apiVersion` or `kind`; BuildRequest / Compiler Target selects the language version, and file paths determine source kinds.
 - No authored `metadata.name`; the Package root determines Skill identity.
 - No `entryProcedure`; a Skill has one entry Procedure graph in vNext.
-- No Contract-level `postconditions`; the final Postcondition is an executable node in `procedure.yaml`.
+- No Contract-level `postconditions`; matching Postcondition stages in `procedure.yaml` prove the Contract Goal on each success path.
 - No dependency download URL, branch, version lock, digest or registry instruction in the Skill Contract. Studio resolves exact snapshots in project/build configuration.
 
 An Owner Schema ID may itself contain an immutable revision component (for example `...:v1`). Preserve that identity exactly; it is not the same as repeating a language `apiVersion` in every source file.

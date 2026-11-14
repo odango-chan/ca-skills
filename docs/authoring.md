@@ -23,7 +23,7 @@ skills/<name>/
 
 The three assurance files have separate responsibilities:
 
-- `contract.yaml`: public Skill declaration — Goal, public Request Schema, Host Invocation Context Schema, public dependency identities and Capability Grants.
+- `contract.yaml`: public Skill declaration — Goal, global Precondition references, public Request Schema, Host Invocation Context Schema, public dependency identities and Capability Grants.
 - `procedure.yaml`: the single execution graph — start, business Nodes with ordered optional phases, and Terminal Nodes. A Node's phases are Precondition, Operation, Observation, and Postcondition.
 - `predicates.yaml`: reusable Predicate parameter signatures and CEL / Python evaluators.
 
@@ -41,6 +41,7 @@ The Contract remains author-maintained source. Only redundant wrapper fields and
 | `apiVersion`, `kind` | Omit from source; selected by Compiler Target / file structure |
 | `metadata.name` | Derive from Skill Package root |
 | `entryProcedure` | Omit: one Procedure entry per Skill |
+| `preconditions` | Optional list of `<node-id>.precondition` references. Every listed gate must PASS before a business Mutation or SUCCEEDED |
 | `postconditions` | Procedure nodes mark the Goal they prove with `postcondition.goal`; each success path must carry a valid Goal PASS |
 | `planning.allowDynamicProcedure` | Omit: static DAG is a language invariant |
 | `planning.maxActions` | Superseded; optional `limits.maxActions` imposes a stricter Skill action bound. Host's positive budget is mandatory |

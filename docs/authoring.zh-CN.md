@@ -23,7 +23,7 @@ skills/<name>/
 
 三个 assurance 文件各司其职：
 
-- `contract.yaml`：Skill 的公共声明，包括 Goal、公共 Request Schema、Host Invocation Context Schema、公共依赖身份和 Capability Grants。
+- `contract.yaml`：Skill 的公共声明，包括 Goal、全局前置条件、公共 Request Schema、Host Invocation Context Schema、公共依赖身份和 Capability Grants。
 - `procedure.yaml`：唯一执行图，包括 `start`、业务 Node 和 Terminal。业务 Node 可按顺序声明 Precondition、Operation、Observation、Postcondition。各阶段的 `on` 负责退出，Node 的 `next` 负责正常完成。
 - `predicates.yaml`：可复用 Predicate 的参数签名和 CEL / Python evaluator。
 
@@ -41,6 +41,7 @@ skills/<name>/
 | `apiVersion`、`kind` | 不写入源码，由 Compiler Target 和文件结构确定 |
 | `metadata.name` | 由 Skill Package 根目录确定 |
 | `entryProcedure` | 单一 Procedure 入口，不需要重复字段 |
+| `preconditions` | 可选的 `<node-id>.precondition` 引用列表。业务 Mutation 派发前及成功发布前必须全部 PASS |
 | `postconditions` | 最终 Postcondition 在 Procedure 用 `postcondition.goal` 对应 Contract Goal；各成功路径可以由不同节点证明 |
 | `planning.allowDynamicProcedure` | 静态 DAG 规则已禁止动态执行图，无需重复 |
 | `planning.maxActions` | 旧字段取消；可选 `limits.maxActions` 只设 Skill 更严格的上界，Host 必须另有正数预算且不可被放宽 |

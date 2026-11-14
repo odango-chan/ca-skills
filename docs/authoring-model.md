@@ -8,7 +8,7 @@ The comprehensive specification is the sole normative language authority. If thi
 
 vNext retains three assurance source files with distinct responsibilities:
 
-- `assurance/contract.yaml`: Skill's public contract — Goal, public Request Schema, the Host Invocation Context Schema, shared dependency identities and Capability Grants.
+- `assurance/contract.yaml`: Skill's public contract — Goal, global Precondition references, public Request Schema, the Host Invocation Context Schema, shared dependency identities and Capability Grants.
 - `assurance/procedure.yaml`: the single deterministic execution graph — start, nodes, routes, reconciliation and final Postcondition.
 - `assurance/predicates.yaml`: reusable Predicate definitions and ordered parameter signatures.
 
@@ -28,7 +28,7 @@ Contract is author-maintained source, not a compiler-generated file. The source 
 
 A business Node may declare `precondition`, `operation`, `observation`, and `postcondition`. Declare at least one stage. Runtime runs the declared stages in that order, uses each stage's `on` for exits, and follows `next` after normal completion. A Terminal Node declares the outcome.
 
-Mark Invocation-wide entry gates with `precondition.entry: true`. An earlier Node's Observation stage can acquire facts for a later Precondition. Every path to a Mutation must pass all marked entry gates. Mark a final Postcondition with `postcondition.goal` equal to the Contract Goal. Each SUCCEEDED path needs a valid PASS for that Goal; separate proof nodes may share the same success terminal. See §12.9.
+List Invocation-wide gates in Contract `preconditions` as `<node-id>.precondition` references. An earlier Node's Observation stage can acquire facts for a later Precondition. Every path to a business Mutation or SUCCEEDED must pass every listed gate. Mark a final Postcondition with `postcondition.goal` equal to the Contract Goal. Each SUCCEEDED path needs a valid PASS for that Goal; separate proof nodes may share the same success terminal. See §12.9.
 
 The first vNext version has one entry Procedure graph per Skill and does not define nested ProcedureCall or graph cycles. Branches and recovery are explicit nodes and routes.
 

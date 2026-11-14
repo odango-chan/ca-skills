@@ -499,9 +499,9 @@ This section records the latest review direction and supersedes earlier authorin
 - Compiler may derive a normalized Runtime contract projection from Contract + Procedure + Predicates + resolved dependency snapshots. It does not replace the author-maintained Contract. A separately named generated SkillContract file is emitted only if a concrete Host / Runtime interface requires it.
 - Runtime policy candidates such as action budgets and universal Mutation-UNKNOWN reconciliation are not repeated in each Skill unless a later review proves a Skill-specific semantic need.
  
-### 25.2 Procedure owns entry and final assurance
+### 25.2 Global conditions and Procedure execution
 
-- Invocation-wide Precondition belongs to the Procedure's entry gate. If necessary, explicit Observation can precede it to acquire trusted facts. Protected Mutation proceeds only on PASS.
+- Contract `preconditions` lists Invocation-wide gates as Procedure Precondition stage references. All must PASS before a business Mutation or SUCCEEDED. If needed, explicit Observation can precede the Precondition to acquire trusted facts.
 - The final business Postcondition belongs at the end of the graph, before SUCCEEDED Terminal. It consumes explicit arguments from already-produced Operation / Observation / Context values.
 - There is no separate SkillContract.postconditions declaration, no from reference to a second evaluation, and no duplicate Predicate execution. The final Postcondition stage supplies the executable Goal proof.
 - Every SUCCEEDED path must carry a valid Goal Postcondition PASS. Different Postconditions can prove the same Goal across branches. Local Precondition and Postcondition stages are available for intermediate business gates.
@@ -519,7 +519,7 @@ This section records the latest review direction and supersedes earlier authorin
 
 - Stage `arguments` bind directly to admitted `context` fields or exact earlier stage outputs.
 - vNext first version supports static dot paths only; no dynamic selectors, interpolation, function calls or array indexing.
-- The Procedure graph is a DAG. Compiler validates producer availability, entry-gate PASS coverage over protected mutations and Goal Postcondition PASS coverage on every successful path. Distinct final nodes may share a Terminal (§12.9).
+- The Procedure graph is a DAG. Compiler validates producer availability, global Precondition PASS coverage over business Mutation and SUCCEEDED and Goal Postcondition PASS coverage on every successful path. Distinct final nodes may share a Terminal (§12.9).
 - Terminal outcomes include SUCCEEDED, FAILED, UNRESOLVED and SAFE_STOPPED. SAFE_STOPPED preserves partial resource / responsibility state and must not collapse into ordinary Predicate FAIL.
 
 ### 25.5 Schema and external dependency artifact boundary
