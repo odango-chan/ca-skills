@@ -10,7 +10,7 @@
 
 **文件效力。** 本文件是 CA-SL vNext / v1alpha3 的规范性语言定义。源码格式、静态链接、执行语义、授权、Evidence、诊断及附录所列规范性预期均以本文件为准。其他资料不得覆盖本文件的规范性要求。
 
-**规范性用语。** MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT、MAY、OPTIONAL 按 RFC 2119 和 RFC 8174 解释。相应中文规范性措辞包括“必须”“不得”“应当”“不应”“可以”。
+**规范性用语。** MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT、MAY、OPTIONAL 按 RFC 2119 和 RFC 8174 解释。相应中文规范性措辞包括“必须”“不得”“应当”“不建议”“可以”。
 
 **变更记录。** [勘误记录（一）](design/ca-sl-v1alpha3-errata-2026-11-14.md)、[勘误记录（二）](design/ca-sl-v1alpha3-errata-2026-11-14-r2.md)。勘误不改变 v1alpha3 的规范性语义；产品符合性状态见 §45.2。
 
@@ -61,7 +61,7 @@ CA-SL 的规范性设计要求如下：
 1. 业务目标清晰：Skill 描述业务目标和完成条件，不把网元实现细节伪装成业务语义。
 2. 执行确定：Procedure 明确表达步骤、依赖、分支、失败处理和终态，不依赖隐式前序节点或模型临场猜测。
 3. 输入有来源：每个输入来自 Skill 自有 Schema、Owner Schema、Operation Result、Host Context 或显式 Observation Query。
-4. 契约归属唯一：Schema 由真正拥有数据或接口的 Owner 发布；消费者不得复制并重新定义外部结构。
+4. 契约归属唯一：Schema 由数据或接口的权威 Owner 发布；消费者不得复制并重新定义外部结构。
 5. 权限可证明：Skill 授予 Capability；Procedure 调用精确 callable；部署侧 CapabilityContracts 定义 callable 归属和 Effect。
 6. 观察与操作分离：Operation Result 与 Observation Result 保持不同语义；Observation 是受治理的只读查询能力。
 7. Evidence 独立：Evidence 证明业务值的来源、主体、时间和相关性，不是业务 Payload 的替代品。
@@ -152,7 +152,7 @@ skills/<skill-name>/
 | procedure.yaml | 唯一 Procedure 执行图：start、节点、路由和最终 Postcondition |
 | predicates.yaml | 可复用 Predicate 定义及其参数签名 |
 | cases/ | 业务场景和预期语义义务 |
-| schemas/ | 仅真正由 Skill 拥有的 Schema |
+| schemas/ | 仅存放 Skill 自有的 Schema |
 | scripts/ | Skill 自有确定性 Python；可作为 Procedure 的本地 Script Operation，也可实现 Predicate |
 | references/ | 可选知识资料，不是执行契约或 Evidence |
 
@@ -199,7 +199,7 @@ Precondition 和 Postcondition 只调用纯 Predicate，Operation 和 Observatio
 - **Observation Query：** 向权威事实 Owner 查询状态的独立只读 Tool 接口，是 Tool 体系中的特殊 callable，Effect 必须为 READ。
 - **Observation Result：** Observation Query 返回的、带来源、Scope、时间和相关性语义的规范化事实表示。
 
-Observation Query MUST 由真正拥有或有权查询事实的 Owner 发布；必须有精确身份、QueryContext / Input Schema、Output Schema、READ Effect、权威来源、Scope、Temporal / Freshness、Correlation 和 Evidence 保证；必须通过 CapabilityContracts 授权和 Runtime Admission。
+Observation Query MUST 由事实权威 Owner 或经授权的查询 Owner 发布；必须有精确身份、QueryContext / Input Schema、Output Schema、READ Effect、权威来源、Scope、Temporal / Freshness、Correlation 和 Evidence 保证；必须通过 CapabilityContracts 授权和 Runtime Admission。
 
 Observation Query MUST NOT 在 Predicate 内部隐式触发；不得强制与每个 Mutation 一对一配对；不得用于轮询刚调用的 Operation 的内部异步完成；不得仅因返回 JSON 就被视为可信事实。
 
@@ -221,7 +221,7 @@ Mutation 成功响应也不自动证明网络状态达到目标。若 Mutation R
 
 ### 6.8 Evidence
 
-Evidence 是对业务值或事实的来源、完整性、Scope、时间和相关性支持。Evidence 不是业务 Payload，不是随意传入的布尔值，也不是“有一个 ref 就代表 PASS”。
+Evidence 是对业务值或事实的来源、完整性、Scope、时间和相关性支持。Evidence 不属于业务 Payload，也不能由普通布尔值或未经验证的引用替代。
 
 Evidence 至少需要表达或可由可信 Owner / Host 关联出：
 
@@ -251,7 +251,7 @@ Payload 是 Predicate 判断的业务值；Evidence 是 Host 判断该值是否�
 - **Predicate：** 纯、可重复、无副作用的确定性计算 / 判断函数，声明有序类型参数，使用 CEL 或受限 Python Script 实现，返回 PASS / FAIL / UNKNOWN。它由 Procedure 的 Precondition 或 Postcondition 阶段调用，不是独立 Procedure Node。
 - **Capability：** 部署侧授权分组和资源边界，不是 callable，也不是 Operation 别名。一个 Capability 可以包含多个 Operation 和 Observation Query。Skill 只声明 Capability Grant。
 - **Effect：** 初始支持 READ 和 MUTATION。READ 仍需要授权、Scope 和审计。
-- **Reconcile：** 对已经发起但结果不确定的原始 Mutation 进行调和。它是 Operation 的受约束执行模式，不是独立业务节点类型；必须针对原始身份、Operation Ref、Correlation 和 Scope，不得偷偷创建新 Mutation。
+- **Reconcile：** 对已经发起但结果不确定的原始 Mutation 进行调和。它是 Operation 的受约束执行模式，不是独立业务节点类型；必须针对原始身份、Operation Ref、Correlation 和 Scope，不得在未经声明及授权的情况下创建新 Mutation。
 
 ### 6.9.1 Evidence 互操作术语（说明性索引）
 
@@ -299,7 +299,7 @@ Action 是按 §11.6 计入预算的一次执行动作。阶段 Outcome 是当�
 
 ## 8. Schema 所有权和身份
 
-Skill 可以拥有公共 Request Schema 和真正属于 Skill 的业务结构，放在 schemas/。
+Skill 自有的 Request Schema 和业务数据结构存放于 `schemas/`。
 
 Tool Owner 必须发布 callable 的 Input、Output，以及受支持的 Mutation Reconcile 契约及其可恢复输出 Schema。下游需要静态访问嵌套字段时，Owner 必须提供完整结构，不得长期用宽泛 object 掩盖缺失字段。
 
@@ -312,7 +312,7 @@ Script 输入和输出：
 - Predicate Script 作为 Predicate evaluator，输入类型由 Predicate.parameters 派生，Host 附加只读 Evidence refs；
 - Predicate Script 返回严格 PredicateEvaluationResult TypedDict，其中 result 为 PASS / FAIL / UNKNOWN，reasonCode 用于诊断，evidenceUsed 只能引用 Host 已附加的 Evidence；
 - 作者不得维护重复 Script Input / Output Schema；
-- Compiler 不得执行 Python 函数体猜测类型或行为。
+- Compiler 不得通过执行 Python 函数体推导静态类型或运行行为。
 
 必须区分物理路径、Schema 身份和 Dependency Alias。外部 Schema 使用：
 
@@ -326,7 +326,7 @@ ca-context 是依赖别名，后半部分是 Owner 发布的精确 Schema $id。
 type: schemas/establishment-request.schema.yaml
 ~~~
 
-文件路径不是跨包公共身份。Compiler 必须验证引用指向真实 Schema 身份，不得通过文件名猜测。
+文件路径不是跨包公共身份。Compiler 必须验证引用指向真实 Schema 身份，不得由文件名推断。
 
 ## 9. ToolCatalog 和 CapabilityContracts
 
@@ -925,7 +925,7 @@ Trace 记录选中的终态路由和实际发布值。两者不同时另记 `TER
 
 Host 在派发 Mutation 前记录原调用身份和负责处理结果的 Owner / 责任引用。终态按发布时已接纳的状态判定；迟到结果由已登记责任方继续处理，并追加到责任记录。停止时持久化已有资源句柄、责任引用、未决调用与停止原因；即使没有已知资源，未知尝试的迟到结果责任也必须保留。后续清理或移交由已授权的 Owner 负责。
 
-Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时不得随机选择或默认执行。Procedure Predicate 负责业务条件，不负责猜测 Skill 身份。完整 Applicability YAML 语法需要与 Root Routing 契约统一冻结；历史 applicability.when 不作为隐式兼容语法。
+Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时必须拒绝准入，不得采用随机选择或隐式默认目标。Procedure Predicate 仅判定业务条件，不负责 Skill 身份选择。完整 Applicability YAML 语法需要与 Root Routing 契约统一冻结；历史 applicability.when 不作为隐式兼容语法。
 
 ### 12.9 全局前置条件、最终验收与控制流
 
@@ -1437,7 +1437,7 @@ Environment
 
 `UNREACHABLE_NODE` 是警告，定位从 `start` 不可达的节点。节点仍须通过语法和链接校验。路由结构足以判定可达性时，可同时报告该警告和阻止构建的错误。是否阻止构建由错误决定，无需规定诊断输出顺序。
 
-Compiler 不得为让文件编译而创建不存在的 Schema、用 object 逃逸、猜测 Operation ID、扩大 Capability、把 UNKNOWN 改成 PASS、静默删除未知字段或把旧语法映射成新语义。
+Compiler 不得自动补造 Schema、以开放对象规避类型检查、推断未声明的 Operation ID、扩大 Capability、将 UNKNOWN 转换为 PASS、删除未知字段或将旧版语法隐式映射为新语义。
 
 ### 24.2 Runtime 异常
 
@@ -2155,7 +2155,7 @@ Schema 的语义标准是受支持子集的 JSON Schema；JSON 与 YAML 只是�
 - 不把整个外部 lib / DependencySnapshot 无差别复制到 Skill 或 Build Artifact。
 - 若下游 Runtime / 部署包要求自包含，打包层最多收集本次构建实际可达的 Tool、Observation、Context、Capability 和 Schema 依赖闭包，并保留 Owner 身份、版本和来源；不得把未引用资源一并打包。
 - 若 Runtime 支持按已锁定依赖身份解析，也可以在 Artifact 中保留精确外部引用，不嵌入所有依赖内容。
-- “嵌入可达闭包还是保留外部引用”以及具体文件序列化格式属于独立的 Compiler / Deployment Artifact 设计，不阻塞本轮 CA-SL 语法评审。
+- “嵌入可达闭包还是保留外部引用”以及具体文件序列化格式属于独立的 Compiler / Deployment Artifact 设计，不属于 CA-SL 作者语法的冻结范围。
 
 Compiler MUST NOT 联网获取依赖、管理版本 / Lock / Cache / Workspace、执行 Python、执行 Tool 或声称 Runtime READY。
 §34 的抽象绑定按 Skill 作用域建立：每个被引用的 Contract Alias 必须由调用方显式绑定到唯一快照身份，允许复用 Workspace 快照，但不得由同名自动推断。多 Owner 导出归属与该快照的可信身份及摘要绑定。BuildRequest 契约定义 Workspace 标识的字段名（现有 dependencyId）、路径大小写、分隔符及非法路径拒绝规则；CA-SL 定义链接所需的唯一性和身份校验。
@@ -2193,7 +2193,7 @@ Skill Studio 是 CA-SL 作者工作环境，不是第二个语言实现。应提
 
 # 第九部分：参考语言与设计取舍
 
-**本部分为资料性说明（Informative）。** 外部规范的要求由各自文件定义；CA-SL 的规范性约束以本文件相应条款为准。
+**默认效力：Normative。** 外部规范的资料性说明不改变 CA-SL 相应条款的要求。
 
 参考：https://cuelang.org/docs/reference/spec/
 
@@ -2269,7 +2269,7 @@ Skill 不得声明任意 HTTP Endpoint 或凭据；Script 不得自行调用网�
 
 ## 44. 版本策略
 
-必须区分语言版本、API Version、ToolCatalog Version、Schema $id / Version、CapabilityContracts Version 和 Skill Package Revision。它们不能互相冒充。
+语言版本、API Version、ToolCatalog Version、Schema $id/Version、CapabilityContracts Version 与 Skill Package Revision 是不同的版本标识，不得相互替代。
 
 vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSource Predicate 声明、直接 Operation Grant、Skill Wait 或 package-local lib 导入路径。
 
@@ -2311,11 +2311,11 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 3. Compiler 在 CI 中执行 Appendix E01–E114 的适用正反例（包含 G.9），覆盖错误码、类型、SourcePath、Evidence、图可达性及 Goal/Precondition 证明传播。
 4. Native / WASM / Studio 同一输入返回相同的链接和诊断结果；LSP 补全与检查共用规范源，不能发明不同解释。
 5. Runtime / Host 验证安全派发、预算、Deadline、取消、Reconcile、并发隔离、证据复核、Trace 和资源责任终态。
-6. 三个 5GC 异步完成 Operation 由其 Owner 确认；将真实 5GC Skill 迁移后执行 36 个 Case 的 vNext 回归；MAS 不冒充运行基线。
+6. 三个 5GC 异步完成 Operation 由其 Owner 确认；将真实 5GC Skill 迁移后执行 36 个 Case 的 vNext 回归；MAS 不列入已完成的运行验收基线。
 7. Compiler Artifact Contract 独立冻结生成 Schema 的序列化与可达依赖闭包；Runtime Artifact Contract 独立冻结 Trace 线格式、版本和兼容性。
 8. 交付符合性记录：语言目标版本、每项 Owner 导出及摘要、发布授权、执行 Fixture、原始 CI 结果、实际代码提交和未通过项。缺项不得标记 Runtime READY / live E2E PASS。
 
-**当前裁决：CA-SL v1alpha3 语言及互操作规范 FROZEN；产品符合性 NOT QUALIFIED。** 规范源审查、YAML 解析或 PR 审批不等于第 1–8 项的实际测试通过。真实 Owner 或工具链缺失时应阻断相应发布，而不是重新打开已冻结的语言语义。审查范围、图检查结果及跨仓库事实见 [非规范性的冻结决策记录](design/ca-sl-v1alpha3-freeze-record.md)。
+**当前裁决：CA-SL v1alpha3 语言及互操作规范 FROZEN；产品符合性 NOT QUALIFIED。** 规范源审查、YAML 解析或 PR 审批不等于第 1–8 项的实际测试通过。缺少必需的 Owner 契约或工具链符合性证据时，应阻止相应产品发布；语言语义的修订遵循 §45.1 的版本变更流程。审查范围、图检查结果及跨仓库事实见 [非规范性的冻结决策记录](design/ca-sl-v1alpha3-freeze-record.md)。
 
 ---
 
@@ -2337,7 +2337,7 @@ Agent 有时必须主动向权威 Owner 查询当前事实。该查询具有输�
 
 ## 49. Observation 与 Mutation 的关系
 
-Operation 输出有时已经足够；有时一个 Observation 服务多个 Operation；有时一个 Tool 暴露多个查询；有些 Mutation 不需要独立查询。强制一一配对会制造重复查询和无意义接口。
+Operation 输出有时已经足够；有时一个 Observation 服务多个 Operation；有时一个 Tool 暴露多个查询；有些 Mutation 不需要独立查询。强制一一对应会导致冗余查询和不必要的接口声明。
 
 ## 50. Operation Result 与 Observation Result 的区别
 
@@ -2467,7 +2467,7 @@ E.1–E.4 给出独立链接基线。E.6 从 E.1–E.4 的成功输入派生链�
 
 ## 81. 语言冻结与实现符合性的区分
 
-本规范的示例固定语言规则。Compiler、Studio、Runtime 一致性与真实 Owner 发布按 §45.2 独立验收，不能用实现尚未完成否定既定语义，也不能以该规范冻结冒充实现通过。
+本规范的示例固定语言规则。Compiler、Studio、Runtime 一致性与真实 Owner 发布按 §45.2 独立验收，不能用实现尚未完成否定既定语义，也不得将规范冻结作为产品实现符合性通过的依据。
 
 ## 82. 以 Goal Postcondition 作为入口
 
@@ -2535,7 +2535,7 @@ flowchart LR
 | D-11 | Skill 层没有 Wait / Await / Polling | 异步完成归属 Tool / Provider Operation |
 | D-12 | Mutation UNKNOWN 按 §20 调和或停止 | 保留原调用和资源责任 |
 | D-13 | Script 仅实现确定性本地计算 | Procedure Script 是 Operation 阶段的纯本地目标；Predicate Script 是 Predicate evaluator；均不调用外部系统 |
-| D-14 | Schema 归真正 Owner 所有 | Skill 不复制外部 Schema |
+| D-14 | Schema 由数据及接口权威 Owner 发布 | Skill 不复制外部 Schema |
 | D-15 | Compiler 不管理依赖 | Studio / 调用方提供快照 |
 | D-16 | Build / Runtime / Network Acceptance 分层 | 不混淆成功含义 |
 | D-17 | 多 UE / 多 Session 使用精确 Scope | 不用全局最新状态猜测 |
@@ -2577,7 +2577,7 @@ flowchart LR
 | 15 | Compiler Artifact 序列化与闭包 | 独立策略待审定 | Compiler / Deployment |
 | 16 | Runtime Artifact Trace | 字段要求已写明，线格式与版本兼容待审定 | Host / Runtime |
 
-评审意见必须归入：规范语义错误、语法表达不清、Owner 契约缺失、Compiler 无法静态验证、Studio 无法正确呈现、Runtime 尚未实现、业务流程尚未验证。不得把所有问题归结为“Compiler 再支持一下”，也不得让 Skill 源码承担其他 Owner 的缺失契约。
+实施问题应按以下责任域归类：语言语义、语法表达、Owner 契约、Compiler 静态验证、Studio 编辑与诊断、Runtime 实现、业务流程验证。各责任域的问题须由相应 Owner 处理，不得通过放宽 Compiler 校验或在 Skill 中复制外部契约代替。
 
 
 # 附录 C：参考规范
@@ -2605,7 +2605,7 @@ flowchart LR
 | 自动同名绑定保留键冲突 | vNext 第一版不支持隐式同名绑定；Studio 可生成显式 arguments | 本版源码语法已冻结 |
 | 三个异步 Operation 的 Owner 契约尚未确认 | 责任目标映射到 UPN.CREATE_UP_SESSION、SSM.SIGNAL_UE_AN、UPN.MODIFY_UP_SESSION | 仅为目标责任；ToolCatalog / Output / Evidence 仍待 Owner 确认 |
 
-本附录是历史评审记录，不表示外部 Owner 或产品实现已经通过本版符合性验收。评审者若不同意某项决定，应指出所影响的术语、语法、静态语义、运行语义或 Owner 边界，并提供正例和反例。
+本附录仅记录既有评审决定，不构成 Owner 发布物或产品符合性证明。任何修订申请均应明确影响的术语、语法、静态语义、运行语义或 Owner 边界，并附相应正反例。
 
 ---
 
@@ -3493,7 +3493,7 @@ effectiveContext 是一个逻辑只读对象：HostContextRoot 的所有已声�
 | 裸 context | 不允许 | SOURCE_PATH_INVALID |
 | Host Root 明示或可能包含 request | 保留属性冲突 | CONTEXT_REQUEST_COLLISION |
 
-Host Context 根和 requestSchema 根的引用展开均遵守 §11.5 和 G.4 的闭合、无循环规则，不能一个严格而另一个放宽。使用 context.request 不能隐式暴露 context 其他字段。缺少 Request Schema 不能从 Host Context 的 request 字段兜底。
+Host Context 根和 requestSchema 根的引用展开均遵守 §11.5 和 G.4 的闭合、无循环规则，不能一个严格而另一个放宽。使用 context.request 不能隐式暴露 context 其他字段。未声明 Request Schema 时，不得采用 Host Context 中的同名字段替代。
 
 ## G.7 Skill Identity 和路径安全
 
