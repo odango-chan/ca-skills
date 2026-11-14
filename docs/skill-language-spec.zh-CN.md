@@ -12,7 +12,7 @@
 
 **规范性用语。** MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT、MAY、OPTIONAL 按 RFC 2119 和 RFC 8174 解释。相应中文规范性措辞包括“必须”“不得”“应当”“不建议”“可以”。
 
-**变更记录。** [勘误记录（一）](design/ca-sl-v1alpha3-errata-2026-11-14.md)、[勘误记录（二）](design/ca-sl-v1alpha3-errata-2026-11-14-r2.md)、[诊断追溯与 PSI 身份来源勘误](design/ca-sl-v1alpha3-diagnostic-trace-errata.md)、[互操作与实现基准澄清](design/ca-sl-v1alpha3-interop-clarifications-2026-11-14.md)、[Reconcile 与 Runtime 诊断归属勘误](design/ca-sl-v1alpha3-reconcile-runtime-errata-2026-11-14.md)、[Evidence 来源与 Scope/Schema 闭合性勘误](design/ca-sl-v1alpha3-evidence-source-and-routing-errata.md)、[编辑性澄清第三轮](design/ca-sl-v1alpha3-editorial-closure-2026-11-14.md)、[互操作审计与符合性分流澄清](design/ca-sl-v1alpha3-interop-audit-2026-11-14.md)。勘误不改变 v1alpha3 的规范性语义；产品符合性状态见 §45.2。
+**变更记录。** [勘误记录（一）](design/ca-sl-v1alpha3-errata-2026-11-14.md)、[勘误记录（二）](design/ca-sl-v1alpha3-errata-2026-11-14-r2.md)、[诊断追溯与 PSI 身份来源勘误](design/ca-sl-v1alpha3-diagnostic-trace-errata.md)、[互操作与实现基准澄清](design/ca-sl-v1alpha3-interop-clarifications-2026-11-14.md)、[Reconcile 与 Runtime 诊断归属勘误](design/ca-sl-v1alpha3-reconcile-runtime-errata-2026-11-14.md)、[Evidence 来源与 Scope/Schema 闭合性勘误](design/ca-sl-v1alpha3-evidence-source-and-routing-errata.md)、[编辑性澄清第三轮](design/ca-sl-v1alpha3-editorial-closure-2026-11-14.md)、[互操作审计与符合性分流澄清](design/ca-sl-v1alpha3-interop-audit-2026-11-14.md)、[Receipt 通道锚点与规范权威性审计](design/ca-sl-v1alpha3-receipt-anchor-audit-2026-11-15.md)。勘误不改变 v1alpha3 的规范性语义；产品符合性状态见 §45.2。
 
 ---
 
@@ -407,7 +407,7 @@ v1alpha3 按附录 F.1 的字段映射到抽象属性，并执行规范性校验
 
 **Normative。** Mutation Owner 声明提交证明的 Schema、取值位置及原调用关联、互斥失败类别及其阶段映射、无遗留副作用承诺和重试资格。FAILED 类别必须证明未提交且无遗留副作用，重试资格为否。NOT_COMMITTED 只证明未提交，只有明确允许重试且无遗留副作用才授予受控重试资格。每个类别映射必须属于已声明 Owner Outcome。声明支持 Reconcile 时，还须链接其精确 callable、原调用身份绑定、证明 Schema 和可选的 COMMITTED 恢复输出 Schema。至多一次由 Runtime 对原调用持久化执行。每个可能遗留的资源或外部变更须有可验证的责任记录描述，包括来源、资源类型与句柄或变更身份、责任 Owner、原调用关联及处置状态。
 
-**Normative 字段；Informative 示例值。** 下例是 §9.2 中 smf.session.create 的扩展正例。路径和 Schema ID 为教学输入，由 Fixture 提供。未声明 Reconcile 的 Mutation 仍可直接停止。
+**Normative 字段；Informative 示例值。** 下例是 §9.2 中 smf.session.create 的扩展正例。路径和 Schema ID 为教学输入，由 Fixture 提供。`receipt.commit` 与 `receipt.failureClass` 的首段 `receipt` 是 Owner 规范化回包的**证明通道锚点**，不是 `receiptSchema` 根对象的属性；静态剥离锚点后的子路径从 `receiptSchema.$ref` 的根检查，详见 G.2.2。未声明 Reconcile 的 Mutation 仍可直接停止。
 
 ~~~text
 ownerOutcomes: [SUCCEEDED, FAILED, NOT_COMMITTED]
@@ -1366,9 +1366,25 @@ Predicate 的 PASS 表示命题得到充分支持。FAIL 表示命题被充分�
 
 普通 callable 的 Owner 业务结果为 SUCCEEDED、FAILED，以及仅 Mutation 可用的 NOT_COMMITTED。Owner 必须声明 SUCCEEDED，其余按支持情况声明。Runtime 保留普通 callable 的 DENIED、READ / Observation 的 UNKNOWN，以及 Mutation 的 OUTCOME_UNKNOWN。Owner 不得声明或返回这些 Runtime 结果。Reconcile 的 COMMITTED、NOT_COMMITTED、UNRESOLVED 是 Runtime 验证调和证明后产生的阶段结果。Predicate 和 Procedure Script 仍采用表中的完整集合。
 
+**命名空间总览（资料性导航，判定以 §22.1、§20、§12.8、§24 及 H 为准）：**
+
+| 名称 | 产生者与适用位置 | Owner 可声明？ | 可作 `routes` 键？ | 省略路由/对终态的作用 |
+|---|---|---|---|---|
+| `PASS` / `FAIL` / `UNKNOWN`（Predicate） | Predicate 判断；Pre/Postcondition | 非 callable Owner Outcome | 是：三者各有规则 | FAIL/UNKNOWN 不能建立 Goal PASS；按 §22.1 必须路由 |
+| `SUCCEEDED` / `FAILED`（Owner） | 普通 READ/MUTATION、Observation 的 Owner 调用 | 是，SUCCEEDED 必需 | 是 | 正常 SUCCEEDED 非末阶段自动推进、末阶段必填；Owner 已声明的 FAILED 必须路由 |
+| `SUCCEEDED` / `FAILED`（Script） | Procedure Script | 不属于 Tool Owner | 是 | 按 §22.1 正常推进或显式 FAILED 路由 |
+| `DENIED`、`UNKNOWN`（READ） | Runtime 对普通 READ/Observation 的保留结果 | 否 | 可选 | 省略时按 §12.8 直接停止，不等于成功 |
+| `OUTCOME_UNKNOWN`（MUTATION） | Runtime 无法确认本次 Mutation 提交状态 | 否 | 是，必须显式路由 | 只能经安全 Reconcile 或终止，不得推断 NOT_COMMITTED |
+| `NOT_COMMITTED`（Mutation Owner） | Mutation Owner 的确定未提交结果 | 是（仅 Mutation） | 已声明时必填 | 仍需单独证明、无残留及重试授权；不等于 Invocation 终态 |
+| `COMMITTED` / `NOT_COMMITTED` / `UNRESOLVED`（Reconcile） | Runtime 从独立受信调和结果映射 | 否 | 是（按 §22.1） | 不能由调和 Owner 自报；UNRESOLVED 直接请求安全终止 |
+| `SUCCEEDED` / `FAILED` / `UNRESOLVED` / `SAFE_STOPPED`（Invocation） | Runtime 最终裁决；仅作 route 目标值 | 非 Owner callable Outcome | **否**，作为目标值 | `routes.PASS: SUCCEEDED` 仅请求终态，实际须经 Goal/责任/门禁复核 |
+| `EFFECT_MISMATCH` 等诊断 | Compiler 或 Runtime（按 H 的 Phase） | 非 Outcome | **否** | 诊断说明原因，终态仍由 §12.8、§20 决定 |
+
 普通 callable 的允许路由键是已声明 Owner 结果与适用 Runtime 保留结果的并集。Owner 的非正常结果及 Mutation 的 OUTCOME_UNKNOWN 必须显式路由；DENIED 与 READ / Observation 的 UNKNOWN 路由可选，省略时按 §24.2 停止。正常结果在末阶段必填，在非末阶段自动推进且禁止显式声明。全局 CANCELLED 与 DEADLINE_EXCEEDED 直接停止，不作为路由键。未知或未声明的 Owner 回包按 §24.2 隔离并停止。Compiler 构图时对省略的可选 Runtime 路由建模为直接停止，不传播成功证明。
 
 ### 22.1 路由矩阵
+
+**规范权威性。** §22 的 Outcome 分类表说明产生者和允许集合；本节是路由键必填/禁止、正常阶段自动推进及可选 Runtime 结果省略行为的唯一规范性矩阵。§24.1/§24.2 决定具体诊断触发，附录 H 按 `(Code, Phase)` 规范化诊断身份及分类，附录 E 的明确预期具有规范性效力；它们不是彼此可互相替换的重复定义。若资料性镜像与这些对应主条款冲突，应修复镜像，不得自行选择更宽松的解释。
 
 | 阶段 | 正常结果：非末 / 末 | 必须显式配置的其余结果 | 可选结果 | 省略可选路由时 |
 |---|---|---|---|---|
@@ -3202,7 +3218,7 @@ Observation 的 Effect 必须为 READ。READ 只能发布 SUCCEEDED / FAILED；M
 
 **§13.3 身份实参的抽象契约属性。** 外部 callable Owner 已须提供其受信身份输入标注；最低逻辑属性包括目标 callable 的精确 `owner/kind/id`，每条身份路径对应的维度 `subject | session | lifecycle | correlation | resource`，以及能在该 callable 的 Input / QueryContext Schema 中定位到身份值（包括复合对象内部字段）的静态输入路径。Compiler 与受信部署 Scope 策略标注的授权输入路径取并集，并按 §13.3 检查真实 SourcePath 权威与 Host 关联。标注缺失到无法判定、路径无受信 Schema 或身份归属无法链接时报 `CALLABLE_ARGUMENT_PROVENANCE_INVALID`；Runtime 无法核验当前 Invocation 的原绑定时报 `CALLABLE_ARGUMENT_PROVENANCE_UNVERIFIED`。此处**不新增** `identityInputs` 等 ToolCatalog 物理字段，也不假定其序列化形式；该属性如何由 Owner 发布/认证，须由独立版本化互操作契约交付并按 §45.2 验收，缺少可消费的受信发布物不得声称产品符合性通过。
 
-`guarantees.evidence.provides[]` 的每项仅含 `guarantee`（精确保证 ID）和 `path`（输出值路径），不得复制权威、Scope 或时间规则。Mutation 必须另发布 `receiptSchema.$ref`，该 Schema 定义同次 Owner 返回的受信 receipt 根；`mutation.commitProof` 需 `schema/path/bind`；仅在声明非空 `mutation.failureClasses[]` 时，`mutation.failureClassPath` 必须为已认证 receipt 中的静态字符串类别路径；每项 `mutation.failureClasses[]` 需唯一 `id`、`outcome`、`proofSchema`、`proofPath`、`noSideEffect`、`retryable`。
+`guarantees.evidence.provides[]` 的每项仅含 `guarantee`（精确保证 ID）和 `path`（输出值路径），不得复制权威、Scope 或时间规则。Mutation 必须另发布 `receiptSchema.$ref`，该 Schema 定义同次 Owner 返回的受信 `receipt` **通道对象根**，不包含虚拟锚点字段本身；`mutation.commitProof` 需 `schema/path/bind`；仅在声明非空 `mutation.failureClasses[]` 时，`mutation.failureClassPath` 必须为已认证 receipt 中的静态字符串类别路径；每项 `mutation.failureClasses[]` 需唯一 `id`、`outcome`、`proofSchema`、`proofPath`、`noSideEffect`、`retryable`。
 
 FAILED 不得允许 retryable；NOT_COMMITTED 只有同时满足可验证的未提交与无残留才可受控重试。`mutation.reconcile` 有 `callable/bind/proofSchema/proofPath`，其 `recoverableOutputSchema/recoverableOutputPath` 必须成对出现；`resourceOutputs[]` 各项需 `path/resourceKind/responsibilitySchema`。缺少声明不等于默认具备承诺。Proof、Owner receiptSchema 关联、原调用绑定或资源责任路径不可验证则拒绝链接或按 §20 停止。
 
@@ -3226,7 +3242,7 @@ FAILED 不得允许 retryable；NOT_COMMITTED 只有同时满足可验证的未�
 
 对 Source 到 Target 的静态赋值，Compiler 必须保守证明 `Source ⊆ Target`。integer 可以赋给 number，反向不成立；不做字符串/数字强制转换。Source enum / const 的所有可能值必须在 Target 允许集合内；Source 的空值可能性必须被 Target 接纳，否则 INPUT_NULLABILITY_MISMATCH。目标必需键都必须由 Source 保证存在并逐字段可赋值；Source 可能包含 Target 禁止的额外键则不兼容。数组元素类型及长度限制、数值上下界和字符串长度界限必须由 Source 约束蕴含 Target 约束。
 
-字段可缺失与字段可为 null 不同。`default` 不物化值。**v1alpha3 不接受 JSON Schema 组合断言**（包括 `allOf`、`anyOf`、`oneOf`、`not`、`if/then/else`）：出现 G.4 白名单之外的组合关键字、动态/循环引用或其他不受支持关键字时，必须报 `SCHEMA_INVALID`，**不得通过保守包含关系证明将其视为可接受**。只有双方 Schema 均属于 G.4 支持子集、且静态无法证明 Source ⊆ Target 时，才按类型不兼容场景报 `INPUT_TYPE_MISMATCH`（空值冲突按专用诊断）。不得忽略断言、接受 `any` 或宽泛 object。CEL 必须静态得出 boolean，运行时 true/false 对应 PASS/FAIL；无法判定为 UNKNOWN。
+字段可缺失与字段可为 null 不同。`default` 不物化值。**v1alpha3 不接受 JSON Schema 组合断言**（包括 `allOf`、`anyOf`、`oneOf`、`not`、`if/then/else`）；G.4 唯一支持的两个类型成员形式 `type: [T, "null"]` 是 Nullable Type 声明，不是允许任意组合断言的例外：出现 G.4 白名单之外的组合关键字、动态/循环引用或其他不受支持关键字时，必须报 `SCHEMA_INVALID`，**不得通过保守包含关系证明将其视为可接受**。只有双方 Schema 均属于 G.4 支持子集、且静态无法证明 Source ⊆ Target 时，才按类型不兼容场景报 `INPUT_TYPE_MISMATCH`（空值冲突按专用诊断）。不得忽略断言、接受 `any` 或宽泛 object。CEL 必须静态得出 boolean，运行时 true/false 对应 PASS/FAIL；无法判定为 UNKNOWN。
 
 ## F.6 Python 类型与签名
 
@@ -3302,7 +3318,7 @@ v1alpha3 **不引入新的 Effect**。Reconcile 使用独立 ToolCatalog callabl
 
 Owner 必须能用该 ID 验证和定位其原始调用；若不能，则安全停止并保留原调用责任。proofPath 为 Owner 可信 receiptSchema 中的静态证明路径，proofSchema 定义该位置实际值的精确 Schema；同理，原 Mutation 的 receiptSchema 必须包含与 commitProof.path 和任何 failureClasses[].proofPath 相应的字段。输出本身不得替代提交证明。
 
-Reconcile callable 的 outputSchema 描述完整的**Owner 查询回包**，允许 NOT_COMMITTED 时不提供任何业务资源。声明恢复输出时，recoverableOutputPath 必须是以 output 开头的静态路径，定位 Owner 回包的一个**可选**子对象；该子对象的 Schema $ref 必须与 recoverableOutputSchema 精确一致。Compiler 链接到该显式路径和 Schema 后，只有 Owner 返回 SUCCEEDED、原调用提交证明有效且认定为 COMMITTED、子对象实际存在并通过验证时，Runtime 才将此子对象作为规范化的 Reconcile Stage operation.output。
+Reconcile callable 的 outputSchema 描述完整的 **Owner `output` 业务通道对象**（不是带 `output` 和 `receipt` 两个键的整体 Envelope），允许 NOT_COMMITTED 时不提供任何业务资源。声明恢复输出时，recoverableOutputPath 必须是以 `output.` 开头的静态路径：先剥离通道锚点 `output`，再从 `outputSchema.$ref` 的根逐段定位业务通道内一个**可选**子对象；该子对象的 Schema $ref 必须与 recoverableOutputSchema 精确一致。Compiler 链接到该显式路径和 Schema 后，只有 Owner 返回 SUCCEEDED、原调用提交证明有效且认定为 COMMITTED、子对象实际存在并通过验证时，Runtime 才将此子对象作为规范化的 Reconcile Stage operation.output。
 
 NOT_COMMITTED 回包可以省略子对象且仍满足完整 Owner outputSchema。COMMITTED 时子对象缺失或无效，不得作空值补齐，而是记录 COMMITTED_OUTPUT_UNAVAILABLE 并保全停止。未声明 recoverableOutputSchema 时，即使 COMMITTED 也不暴露可绑定 output；后续只能通过显式且独立授权的 Observation 验证。阶段结果为 NOT_COMMITTED / UNRESOLVED、Owner FAILED、输出无效、错误原调用或错误 Scope 时均不暴露成功输出。恢复输出的 Evidence Producer.kind 为 operation，Producer.outcome 为 Owner 的 SUCCEEDED，Producer ID 是调和 READ callable；Owner 描述符的路径指向**原始回包**的 recoverableOutputPath，例如 output.recovered。
 
@@ -3397,7 +3413,7 @@ properties:
 
 
 ~~~yaml
-# reconcile-receipt.schema.yaml（供 receipt.commit 静态链接）
+# reconcile-receipt.schema.yaml（供 receipt.commit 剥离锚点后从根部查找 commit）
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: urn:example:session:reconcile-receipt:v1
 type: object
@@ -3409,7 +3425,7 @@ properties:
 
 
 ~~~yaml
-# create-receipt.schema.yaml（Mutation receipt 的可信类型）
+# create-receipt.schema.yaml（Mutation receipt 通道根的可信类型；不另加 receipt 包装）
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: urn:example:session:create-receipt:v1
 type: object
@@ -3462,11 +3478,13 @@ properties:
   commitState: {type: string, enum: [COMMITTED, NOT_COMMITTED]}
 ~~~
 
-mutation.commitProof.path、mutation.reconcile.proofPath、声明了失败类别时的 mutation.failureClassPath 和每个 failureClasses[].proofPath 都只能指向各自 Owner callable 的 receiptSchema.$ref 证明的受信 receipt.<Identifier> 后续静态点路径，不能指向 Skill 自填数据、当前 context、另一调用输出或普通未认证业务 Payload。failureClassPath 指向该次 Owner receipt 的非空字符串 ID，必须与对应 Owner Outcome 的唯一已发布 failureClasses[].id 匹配；没有 ID、重复 ID、类别与结果不相容均不得产生确定的 FAILED / NOT_COMMITTED 路由。
+**Receipt 与 Output 的双通道锚点（Normative，明确本版已有路径的解析位置）。** Owner 返回被规范化为两个彼此独立的逻辑通道：`output` 由该 callable 自己的 `outputSchema.$ref` 校验，`receipt` 由同一次 callable 的 `receiptSchema.$ref` 校验。两份 Schema 均描述各自**通道对象根**，均**不**声明同名 `output` / `receipt` 包装字段。即使 Provider 的物理传输格式另有 Envelope，Host/Runtime 在验证前也必须按所选 Owner 互操作契约将其认证地解码为这两个逻辑通道，不得由 Skill 猜测结构或串用另一调用的通道。
+
+`mutation.commitProof.path`、`mutation.reconcile.proofPath`、声明失败类别时的 `mutation.failureClassPath` 及 `failureClasses[].proofPath` 必须符合 `receipt.<Identifier>(.<Identifier>)*`；字面首段 `receipt` 仅选取通道，**不是** `receiptSchema` 中的 Schema 属性。Compiler 剥离且只剥离此首段，再从对应 callable 的 `receiptSchema.$ref` **根对象**逐段解析剩余字段并核验提取值可赋给 `proofSchema` 或 failureClass 字符串类型。`receipt` 单独成路径、`receipt.receipt.commit`（误把通道锚点重复当包装层）、错误首段或未声明 Schema 属性不得被自动修复为合法证明；不接受相对于子对象的裸 `commit`。`recoverableOutputPath` 同理要求 `output.<Identifier>(.<Identifier>)*`，剥离 `output` 后从 Reconcile callable 的 `outputSchema.$ref` 根解析；不能从 `receiptSchema` 跟随该路径。前述四种 proof / failureClass 路径均不能指向 Skill 自填数据、当前 Context、另一调用输出或普通未认证业务 Payload。failureClassPath 指向该次 Owner receipt 的非空字符串 ID，必须与对应 Owner Outcome 的唯一已发布 failureClasses[].id 匹配；没有 ID、重复 ID、类别与结果不相容均不得产生确定的 FAILED / NOT_COMMITTED 路由。
 
 证明对象在 proofSchema 通过后仍必须验证其 originalInvocationId 精确等于 Host 持久化原 Mutation 调用 ID，并校验同一真实请求的业务身份、Scope、Correlation 与 Producer 签名。commitState 仅提供状态候选；缺少来源真实性或关联时一律不得当作已提交/未提交证明。NOT_COMMITTED 只能说明原调用未提交，额外重试仍要求无遗留副作用及独立授权。 FAILED / NOT_COMMITTED 的 failureClasses[].proofSchema 同样必须能证明 originalInvocationId 与 commitState=NOT_COMMITTED，且 proofPath 指向已验证的该次 receipt；noSideEffect 与 retryable 是 Owner 契约的受信承诺，不能由 Runtime 见到错误码自行推断。确定结果类别缺失、关联不符或失败证明无法校验时，按 §20.1 将本次结果保留为未知或依独立证明记录状态并安全停止。
 
-Owner 的完整查询返回可包含两条**不同**的已验证通道：用于结果的 output（按 Reconcile callable.outputSchema 验证）和用于证明的 receipt（按 proofPath 与 proofSchema 验证）。例如证明未提交的合法查询可以是：
+Owner 的规范化查询结果包含两条**不同**的受信逻辑通道：用于结果的 `output`（按 Reconcile callable.outputSchema 验证）和用于证明的 `receipt`（按该 callable 的 receiptSchema，再按 proofPath / proofSchema 验证）。以下为同一次 Reconcile READ 的逻辑通道值，而不强制真实 Provider 使用此 YAML 作为物理传输格式。例如证明未提交的合法查询可以是：
 
 ~~~yaml
 # 受信 Provider receipt 示意，不是 Procedure SourcePath
