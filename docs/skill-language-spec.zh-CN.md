@@ -8,7 +8,7 @@
 **消费者：** Skill 作者、Skill Studio、ca-skill-compiler、Agent Host / Runtime、Tool Owner、Schema Owner、语言服务和第三方评审者  
 **更新日期：** 2026-11-14
 
-> 勘误与交叉引用说明：[v1alpha3 冻结后勘误记录](design/ca-sl-v1alpha3-errata-2026-11-14.md)。该记录不改变本文 Normative 语义，且不代表 §45.2 产品符合性验收通过。
+> 冻结后勘误：[第一轮](design/ca-sl-v1alpha3-errata-2026-11-14.md) · [第二轮：诊断/Evidence/可信输入闭合](design/ca-sl-v1alpha3-errata-2026-11-14-r2.md)。勘误记录不改变本文已冻结的语义；§45.2 产品符合性仍未通过。
 
 > 本文是 CA-SL vNext / v1alpha3 已冻结的规范文本，也是本仓库唯一的语言语义权威。它覆盖背景、设计原则、术语、架构、源码结构、YAML 语法、静态语义、运行语义、Tool / Observation / Evidence、Schema 所有权、异常处理、PDU Session 示例、工具链要求和 FAQ。其他文档可以补充实现细节，但不得另行定义或覆盖语言语义。
 >
@@ -186,8 +186,8 @@ Precondition 和 Postcondition 只调用纯 Predicate，Operation 和 Observatio
 
 - **Tool：** 由 Owner 注册、实现并发布契约的外部能力单元，可由 HTTP Adapter、MCP、内建集成或其他受治理实现提供。Tool 是实现和契约发布单元，不是 Skill 授权身份。
 - **Tool Operation：** Tool 提供的精确外部可调用业务接口，声明唯一 ID、Effect、Input Schema、Output Schema，以及对 Mutation 可选的 `mutation.reconcile.recoverableOutputSchema/recoverableOutputPath` 恢复子对象定义。完整 Owner 调和回包仍由其独立 `outputSchema` 描述，不能按恢复子对象读取。它必须通过 CapabilityContracts 授权。
-- **Operation 阶段：** Node 中的一次业务动作。其目标可以是一个外部 Tool Operation，也可以是 Skill 自有的纯 Procedure Script，或按 §12.7 调和原 Mutation。前者受 READ / MUTATION Effect 和 Capability Admission 约束；后者是无外部副作用的本地计算，不是 Tool Operation，也不申请 Capability。
-- **Operation Result：** 描述一次 Tool Operation 或本地 Script Operation 的规范化输出；必须保留其真实 Producer 身份，不能伪装成 Observation Result。
+- **Operation 阶段：** Node 的三种互斥形态是：（1）**普通 Tool Operation**，调用已链接的外部 callable，受 READ/MUTATION Effect、Capability Grant、Scope 和派发准入约束；（2）**Procedure Script Operation**，只执行 Skill 自有的无外部业务副作用计算，不是 Tool callable、无需 Capability；（3）**Reconcile Operation**，按 §12.7 引用原 Mutation，通过该 Mutation 发布的**独立 READ Tool callable**调和，仍须为调和 callable 本身取得 Capability Grant、执行 Scope/原调用证明/预算校验，不能继承原 Mutation 的授权。三者均占用 `operation` 阶段，但只第（2）种属于本地纯计算。
+- **Operation Result：** 普通 Tool Operation 与本地 Procedure Script 的规范化成功输出，以及 Reconcile 在已验证 `COMMITTED` 后按 `mutation.reconcile.recoverableOutputSchema/recoverableOutputPath` 提取、校验并可选暴露的**恢复业务子对象**。Reconcile 的完整 Owner 查询回包和 receipt 不是可绑定 Operation Result。所有实际可绑定结果保留其真实 Producer 身份及 Evidence 关联，不能伪装为 Observation Result（§12.7、G.2）。
 
 ### 6.6 Fact、Observation Query、Observation Result
 
@@ -250,6 +250,16 @@ Payload 是 Predicate 判断的业务值；Evidence 是 Host 判断该值是否�
 - **Capability：** 部署侧授权分组和资源边界，不是 callable，也不是 Operation 别名。一个 Capability 可以包含多个 Operation 和 Observation Query。Skill 只声明 Capability Grant。
 - **Effect：** 初始支持 READ 和 MUTATION。READ 仍需要授权、Scope 和审计。
 - **Reconcile：** 对已经发起但结果不确定的原始 Mutation 进行调和。它是 Operation 的受约束执行模式，不是独立业务节点类型；必须针对原始身份、Operation Ref、Correlation 和 Scope，不得偷偷创建新 Mutation。
+
+### 6.9.1 Evidence 互操作术语（说明性索引）
+
+- **保证描述符（Guarantee Descriptor）：** 由受信 Evidence Owner 发布的保证定义，精确约束事实身份、Producer/outcome/valuePath、Scope、Correlation、Freshness、selection 及可选的 `sourceIdentity`、`factIdentity`；ToolCatalog 的 `provides` 只能引用它，不得复制权威。
+- **可信绑定（Trusted Binding）：** 由获授权发布者和可信部署构建入口认证的 Package/Owner/导出/工件摘要及部署 Scope 对应关系，不由 Skill YAML、文件名或 Owner 自述建立权限。
+- **独立域关系（IndependentDomains）：** 受信装配的底层来源身份域及经授权、不自反且无重复的无序独立域对；它不表示“Owner 名字不同就独立”，也不推导传递性（§34.0.2、G.3.1）。
+- **共同事实绑定（Shared Fact Binding）：** 受信部署将多个 Owner 的 `factIdentity` 指向同一 namespace/fact，并验证参与 Owner、Scope 归一化、值 Schema 与发布者授权的关系（§G.3.1）。
+- **可恢复输出 Schema（Recoverable Output Schema）：** 原 Mutation 发布的 `mutation.reconcile.recoverableOutputSchema`，只在调和已证明 `COMMITTED` 且 `recoverableOutputPath` 子对象校验成功时用于 `reconcile-node.operation.output`；不同于 Reconcile READ callable 的完整 `outputSchema`（§12.7、G.2）。
+
+这些术语为已有规范的导航，不创建额外字段或授予隐式授权。
 
 ### 6.10 Script、Case、Reference
 
@@ -463,7 +473,7 @@ vNext 是破坏性版本。Compiler MUST NOT 静默把 v0.2 字段、旧路径�
 
 CA-SL 使用 YAML 1.2 表达作者源码。YAML 是序列化格式，不是完整语言语义。Compiler MUST 使用安全解析器，并拒绝重复 Key、未知语义字段、非预期根类型、自定义 Tag、循环 Alias 和无法确定解释的标量。
 
-vNext 源码由独立的 Skill Contract 和 Procedure 图组成：
+vNext 的作者 assurance 源码由三个独立角色组成：**Skill Contract**（`contract.yaml`）、**Procedure 图**（`procedure.yaml`）和 **PredicateSet**（`predicates.yaml`）；各自承担公共需求、执行控制流及纯判断定义，互不替代：
 
 ~~~yaml
 # assurance/contract.yaml
@@ -673,7 +683,7 @@ Skill Studio 创建 Skill 时应让作者从可用的公共依赖目录和可信
 ### 11.5 Contract 与 Invocation Context
 
 - `requestSchema` 指向 Skill 自有请求 Schema，约束 `context.request` 及其子路径。`contextSchema` 引用已声明依赖别名下 Host Owner 发布的精确对象 Schema ID，约束 `context` 下其余字段。`request` 为保留属性，Host Schema 经根引用解析后的有效根须为对象 Schema，显式设置 `additionalProperties: false`。允许通过可信 Schema 集内的根 `$ref` 复用对象定义。每级根引用只可含 `$ref` 和标识或文档注解，不得附带其他断言。Compiler 静态解析到最终对象，拒绝循环及未解析引用，并检查最终根闭合与保留字段。根字段只由 `properties` 声明。根组合和动态属性规则是 vNext 的暂时限制，待 Schema 子集能可靠判定保留字段及闭合语义后再评审放宽。根 `properties` 和 `required` 均不得出现 `request`。开放根或保留属性冲突报 `CONTEXT_REQUEST_COLLISION`，其他不支持的根结构报 `SCHEMA_INVALID`。嵌套字段仍按受支持的 Schema 子集校验。引用路径必须由对应 Schema 显式定义，缺少声明或字段时阻断构建。
-- Host 在完成入口准入后物化当前 Invocation 的上下文，保留字段的 Schema 与来源关联。Runtime 分别校验已声明的 Host 对象和调用方请求，校验通过后将它们作为本次 Invocation 的只读值开放给 Procedure。对于引用的路径，Compiler 检查字段存在性、可选性、可空性和类型。调用点只能获得显式绑定的数据。
+- Host 在完成入口准入后物化当前 Invocation 的上下文，保留字段的 Schema 与来源关联。Runtime 分别以 `contextSchema` 校验 **Host 部分**、以 `requestSchema` 校验**请求部分**，在二者分别通过后物化本次 Invocation 的只读 `effectiveContext` 逻辑视图。该逻辑视图的根含保留属性 `request`，**不要求也不得当成 Host Schema 自身的整体对象再用 Host 根的 `additionalProperties: false` 重验**；此闭合性只约束未拼接的 Host 部分。对于引用的路径，Compiler 检查字段存在性、可选性、可空性和类型。调用点只能获得显式绑定的数据。
 - 传统 5GC 使用 `ca-context::urn:connectionagent:ca:context:invocation:v1`。Host Schema 要求 `ueRef` 和 `correlation`，后者要求 `ingressRef`、`lifecycleRef`。Host 在准入时验证这些值属于本次调用，包含精确的已接纳入口引用和独立解析的生命周期绑定。Schema 的字段校验和 Host 的关联校验都必须通过。实时网络状态来自显式 Observation 或具有充分 Evidence 的 Operation Result。
 - Compiler 独立检查依赖、Schema 与 Capability Grants。依赖用于链接 Owner 契约，外部调用还必须通过 §9.3 的 Capability 校验。
 
@@ -1143,7 +1153,7 @@ Freshness 由 Owner Contract 声明可执行的有效性规则（例如从 obser
 
 **规范性说明。** 保证身份、适用性、证据判定与 E.3 描述符 DSL 的字段语义均按附录 F.3 冻结。文件组织不是跨包导出身份；真实 Owner 记录仍须验证。
 
-Predicate 的 `parameters` 声明业务值类型。`evidence.requires` 可选，是参数名到一组非空、无重复的精确 `alias::guaranteeId` 的映射；只允许引用已声明参数。每个列出的保证至少由一条有效 Evidence Ref 满足，列表全部满足才成立。需要独立证据时，引用不同保证并用 Owner 声明的独立来源约束校验，见 §17.1.1 与 §17.2。省略参数只在该参数的所有调用点均满足下列来源豁免时合法。Compiler 按来源判定每个调用点的实参，覆盖所有可达路径。直接引用普通 Tool Operation、Observation 或 Reconcile 输出的实参必须为对应参数声明至少一个覆盖精确值路径的保证，即使该值仅用于比较。Host Context 字段同样要求保证，但请求字段 `context.request.*`、Host 已校验的身份 `context.ueRef`、关联信息 `context.correlation.*` 及其根对象 `context.correlation` 可作为比对输入豁免。字面量和整个已校验的 `context.request` 也可豁免。此检查只约束参数来源。若 Goal 声明外部事实，Owner 须审定 Predicate 的命题与取证路径确实支持该 Goal。
+Predicate 的 `parameters` 声明业务值类型。`evidence.requires` 可选，是参数名到一组非空、无重复的精确 `alias::guaranteeId` 的映射；只允许引用已声明参数。每个列出的保证至少由一条有效 Evidence Ref 满足，列表全部满足才成立。需要独立证据时，引用不同保证并用 Owner 声明的独立来源约束校验，见 §17.1.1 与 §17.2。**省略某个已声明 Predicate 参数对应的 `evidence.requires` 条目**，仅在该参数于所有调用点的实参均满足下列来源豁免时合法；这里并非允许省略 `parameters` 参数或缩短 `arguments` 列表（两者仍受 §14 的严格 arity 约束）。Compiler 按来源判定每个调用点的实参，覆盖所有可达路径。直接引用普通 Tool Operation、Observation 或 Reconcile 输出的实参必须为对应参数声明至少一个覆盖精确值路径的保证，即使该值仅用于比较。Host Context 字段同样要求保证，但请求字段 `context.request.*`、Host 已校验的身份 `context.ueRef`、关联信息 `context.correlation.*` 及其根对象 `context.correlation` 可作为比对输入豁免。字面量和整个已校验的 `context.request` 也可豁免。此检查只约束参数来源。若 Goal 声明外部事实，Owner 须审定 Predicate 的命题与取证路径确实支持该 Goal。
 
 Procedure Script 输出保守继承其全部绑定实参的来源类别，包括上游 Script 的传递来源。仅当全部来源均可豁免时，其输出可无保证。涉及外部事实的 Procedure Script 输出可用于 Operation 或 Observation 的非身份实参，须满足 §13.3 的来源追溯、类型与授权校验。需要 Evidence 的 Predicate 参数必须改绑到权威 Producer 输出或绑定到由 Host 契约提供可验证关联的 Context 子路径。直接绑定该 Script 输出不能满足所需保证。Script 不能继承输入 Evidence。缺少强制声明报 `PREDICATE_EVIDENCE_REQUIRED`；已声明却无法满足者按 §17.2 校验。
 
@@ -1157,7 +1167,7 @@ Procedure Script 输出保守继承其全部绑定实参的来源类别，包括
 
 事实身份由权威命名空间、事实标识和规范化 Scope 构成。跨 Owner 比较须由可信部署绑定各 Owner 同意的共同事实身份、Scope 映射和可比较值投影。映射缺失或不兼容时拒绝链接。Evidence 的选择包含精确记录选择或按可信顺序选择最新记录，以及取时间基准与非负年龄上限。§17.2 中的字段拼写仅指相应的抽象属性。
 
-Predicate 可声明独立性约束组，组成员为至少两个不同的（参数、保证）对且均已出现在 requires。Compiler 校验每组成员均有权威认证的底层来源身份提取规则，且该规则使用可比较的受信来源身份域。Runtime 必须在组内找到两两不同底层来源、同时满足所有保证的证据组合，否则结果为 UNKNOWN。同一底层记录的不同引用不算独立。描述符的来源身份规则或共同事实映射缺失、重复、歧义或不可比较时，Compiler 报 `EVIDENCE_GUARANTEE_LINK_INVALID`。描述符各自有效但指定独立性组无法在共同可信身份域中形成可验证约束时，报 `PREDICATE_EVIDENCE_UNSATISFIABLE`。合同已通过链接而本次执行找不到符合条件的组合时，Predicate 为 UNKNOWN。
+Predicate 可声明独立性约束组，组成员为至少两个不同的（参数、保证）对且均已出现在 requires。Compiler 校验每组成员均有权威认证的底层来源身份提取规则，且该规则使用可比较的受信来源身份域。Runtime 必须在组内找到两两不同底层来源、同时满足所有保证的证据组合，否则结果为 UNKNOWN。同一底层记录的不同引用不算独立。诊断按**静态映射是否合法 → 静态组约束是否可能成立 → 当前运行证据是否满足**的次序唯一归类：（1）来源身份提取规则、受信 `IndependentDomains` 域对或跨 Owner 共同事实/Scope 映射**缺失、无效、未授权、重复、歧义或根本不可解析/不可比较**，在链接期报 `EVIDENCE_GUARANTEE_LINK_INVALID`；（2）身份与映射规则均**已验证有效**，但仅依据静态发布的 Producer 类别、约束及允许值就能证明该独立性组**对所有合法运行记录都不可能满足**，报 `PREDICATE_EVIDENCE_UNSATISFIABLE`；（3）前两项静态检查已通过，但本次执行缺少足够记录、实际底层源重复、记录过期或 Scope 不匹配，Predicate 得到 `UNKNOWN`，不可回报静态错误。不能将“静态域映射不可比较”和“本次缺少可比较记录”视为同一错误。
 
 **v1alpha3 字段映射。** E.3 的 query / arguments / execution 分别映射为查询实参、操作实参及执行身份引用。selection.mode、orderBy、freshness.timestamp 与 maxAgeMs 分别映射为选择模式、顺序键、时间基准及年龄上限。v1alpha3 可用 `evidence.independence` 表达各组的参数和保证对，保证描述符用 `sourceIdentity` 发布底层来源投影，并用 `factIdentity` 表达共同命名空间、事实标识、Scope 映射及值投影。E46 的拼写变体按附录 F.3 验收，抽象类别不匹配规则适用于任何线格式。
 
@@ -1240,6 +1250,8 @@ Runtime 只用可信且关联到本次原调用的证明记录提交状态。Own
 | 提交证明有效，但 SUCCEEDED 边所承诺的输出缺失、无效或无法关联 | 保留已提交，隔离无效输出，记录 `COMMITTED_OUTPUT_UNAVAILABLE` 并按 §12.8 停止。该情况有已确认的外部变更待核实，发布 SAFE_STOPPED |
 | Owner 明确证明原调用未提交 | 记录未提交。若可验证的 Owner 结果属于已声明的确定失败类别，且该类别由 Owner 保证没有遗留副作用，沿 FAILED。若已验证类别映射到已声明的 NOT_COMMITTED，则走该边。缺少可验证类别或其映射未声明时保留已证实状态并停止。FAILED 边不授予重试资格 |
 | 没有可采信的提交或未提交证明，或可信证明之间存在未解决矛盾 | 保留原调用和迟到结果责任，沿 OUTCOME_UNKNOWN |
+
+**路由脚注。** 上表的“沿 SUCCEEDED / FAILED / NOT_COMMITTED / OUTCOME_UNKNOWN”均指当前 **Mutation Operation 阶段**的 Outcome 边；尤其“沿 SUCCEEDED”不等于直接发布 Invocation 终态 `SUCCEEDED`，后者还须通过 §12.8–§12.9 的门禁与 Goal 验收。
 
 副作用保证由 Mutation Owner 在失败类别契约中声明。Runtime 验证结果确属该类别及本次原调用。OUTCOME_UNKNOWN 由 Runtime 产生，Mutation 调用必须配置该边。NOT_COMMITTED 和 FAILED 必须与 Owner 已声明的失败类别一致。出现未声明的已验证结果时，保留提交状态并按 §12.8 停止，禁止映射到成功。
 
@@ -1347,6 +1359,8 @@ Environment
 ### 24.1 Compiler 静态错误
 
 同一绑定点先校验参数数量、SourcePath 及其可用性，再校验类型和 Predicate Evidence 要求。若前一项失败，Compiler 不依据未经解析或不兼容的值推导后续错误。依赖、导出 Owner 或 Schema 无法解析时，先报告相应的链接错误。
+
+**已识别旧语法与普通未知字段的优先级（v1alpha3 诊断勘误）。** 先要求 YAML 安全解析成功；解析失败先报 YAML_PARSE_ERROR。解析成功后，若当前位置是已定义、可确定识别的旧式 Wait/Await 控制结构，报 UNSUPPORTED_WAIT；若是已知 v0.2 旧字段或隐式调用构造（例如 Node 的 verify），报 UNSUPPORTED_V02_SYNTAX。两种专用诊断均**优先于**对同一结构报 UNKNOWN_FIELD；其余没有确切识别为旧式结构的未知字段报 UNKNOWN_FIELD，不能以拼写相似臆测 Legacy。若同一文件有互不依赖的两个旧结构，可分别报告专用错误；不因多个错误改变禁止构建的结论。此勘误只消除同一输入触发多个候选诊断时的分派歧义，**不允许兼容转换旧语法**；精确用例尚待单独机器 Fixture 验收。
 
 | 错误 | 示例 | 要求 |
 |---|---|---|
@@ -1720,7 +1734,7 @@ predicates:
 
 ## 30. Procedure
 
-**教学 Owner 假设。** 本图中的 `context.request.pduSessionId`、`context.request.dnn`、`context.request.sNssai` 是**未被教学 ToolCatalog/Capability Scope Policy 标记为身份或授权来源**的请求选择参数；身份与资源 Scope 由 Host 已验证的 `context.ueRef`、`context.correlation.lifecycleRef` 和实际 Owner 产生的关联/资源证明独立确定。该假设仅解释图为何可按 §13.3 链接，不表示真实 5GC Owner 一定使用此声明。若实际 Owner 将 PSI、DNN 或 S-NSSAI 标记为身份/授权输入，使用当前请求来源的对应调用必须报 `CALLABLE_ARGUMENT_PROVENANCE_INVALID`；迁移时须提供已验证的 Host/Owner 投影并显式换绑，不能借教学示例豁免。`ca-context` 发布 Host Context；`ca-responsibility` 独立发布责任 Schema、保证及 callable。责任摘要按预期 Session Instance 聚合并返回 currentSessionInstanceRef。PCF 调和只有经验证的恢复输出才能取出原关联标识。UDM Subscription 的教学 Owner 契约保证，SUCCEEDED 或调和确认 COMMITTED 后可验证订阅归属及生命周期，并有已确认的资源责任记录。真实部署若缺少这些保证，须增加显式验收路径。
+**教学 Owner 假设。** 本图中的 `context.request.pduSessionId`、`context.request.dnn`、`context.request.sNssai` 是**未被教学 ToolCatalog/Capability Scope Policy 标记为身份或授权来源**的请求选择参数；身份与资源 Scope 由 Host 已验证的 `context.ueRef`、`context.correlation.lifecycleRef` 和实际 Owner 产生的关联/资源证明独立确定。该假设仅解释图为何可按 §13.3 链接，不表示真实 5GC Owner 一定使用此声明。若实际 Owner 将 PSI、DNN 或 S-NSSAI 标记为身份/授权输入，使用当前请求来源的对应调用必须报 `CALLABLE_ARGUMENT_PROVENANCE_INVALID`；迁移时须提供已验证的 Host/Owner 投影并显式换绑，不能借教学示例豁免。`ca-context` 发布 Host Context；`ca-responsibility` 独立发布责任 Schema、保证及 callable。责任摘要按预期 Session Instance 聚合并返回 currentSessionInstanceRef。PCF 调和只有经验证的恢复输出才能取出原关联标识。UDM Subscription 的**教学 Owner 契约特例**要求：普通 Create 的 `SUCCEEDED` 回包和 Reconcile `COMMITTED` 的受信证明/必要恢复结果，在 Runtime 校验成功后**已经**包含足以支持继续执行所需的业务值、订阅归属、生命周期、Scope、Correlation、Freshness 与 Evidence（§12.6、§17、G.2）；且 Host 已持久化对应已确认资源责任。这里的 `COMMITTED` 仅证明原调用提交，**并不自动等于业务验收通过**；流程之所以可以直接继续，是因为上述教学 Owner **已发布、已链接且已被 Runtime 验证的附加保证**共同成立。真实部署若缺少任何上述保证，就不得直接从 UDM `SUCCEEDED`/`COMMITTED` 推断业务成功，须在下一次业务 Mutation 前增加独立授权的 Observation / Postcondition 及对应 Evidence 复核，或按 §20/§24.2 安全停止；真实 Owner 发布物的能力不能从教学假设中推断。
 
 ~~~yaml
 # assurance/procedure.yaml — 公共声明仅在 §28 contract.yaml 中
@@ -2112,6 +2126,18 @@ dependencies:
 
 **Normative。** BuildRequest 或受信构建上下文必须提供独立 CapabilityContracts 文件集、摘要、版本、部署身份和发布者授权绑定，最低属性见附录 F.4。具体字段名由 BuildRequest 版本拥有；缺失不可以猜测。
 
+### 34.0.2 可信 Evidence 域关系与共同事实装配
+
+**Normative（复述附录 F.4/G.3.1 的既有最低逻辑属性，不扩张信任来源）。** 仅在本次 Skill 链接/验证的 Evidence 保证使用跨域独立性或跨 Owner 共同事实映射时，BuildRequest **或等效受信构建上下文**必须提供下列不可由 Skill / Owner 自述代替的装配属性：
+
+| 使用场景 | 必需逻辑属性 | 受信校验和失败行为 |
+|---|---|---|
+| 跨域独立性 `IndependentDomains` | `deploymentId`、`publisherId`、受信 `snapshotDigest`、唯一绝对 URI 的 `domains`、无序且无重复非自反的 `independentPairs` | 验证域对每项均属于 domains、发布者对此部署的授权、装配摘要对应提交的真实字节及被引用保证的 sourceIdentity.domain；缺失、未授权、重复、自反、摘要不符或不匹配 → EVIDENCE_GUARANTEE_LINK_INVALID |
+| 跨 Owner 同一事实比较的可信共同事实绑定 | `deploymentId`、`publisherId`、受信 `snapshotDigest`、共同 `namespace/fact`、参与 Owner 的唯一授权身份集、每个必要维度的 Scope 归一化映射和精确可比较值 Schema 身份 | 对每个 Owner 认证、映射字段可解析、Scope 不歧义、值投影 Schema 可赋值；缺失或权限/字节/域绑定不一致 → EVIDENCE_GUARANTEE_LINK_INVALID |
+| 实际执行记录 | 静态已受信的映射及每次 Producer 的真实 sourceIdentity/factIdentity/Scope/Evidence | 静态通过后实际值不能比较或缺少独立组合 → Predicate UNKNOWN；不允许由 Runtime 临时授信 |
+
+**摘要边界。** 上述两类可信工件必须以原始字节及其受信摘要进入 BuildRequest 的**已验证输入闭包**，并与当前目标部署、发布者授权、Owner 导出及具体保证引用绑定。其他不可变工件承诺可作为附加签署/身份材料，但不得替代 G.3.1 必需的 `snapshotDigest`。任何工件字节或绑定的变更都必须令此前验证过的内容承诺失效。若所选 BuildRequest 版本还定义整个请求的聚合摘要，则这两类输入**必须**被其摘要/可达不可变输入闭包覆盖。CA-SL 不自行定义新的 BuildRequest 字段名、摘要 framing 或要求一个不存在的顶层 `buildRequestDigest`；但不支持承载、校验这些必须属性的构建版本**不得声明 v1alpha3 互操作符合性**。上述缺失统一按 Evidence 保证链接错误拒绝；CapabilityContracts 自身的摘要错误仍沿 §34.0.1 的 CAPABILITY_INPUT_* 诊断，不相互代替。
+
 ### 34.1 Schema 的源格式与编译格式
 
 Schema 的语义标准是受支持子集的 JSON Schema；JSON 与 YAML 只是同一数据模型的两种序列化形式。保守赋值和不支持关键字的处理按附录 F.5，不能由实现自行放宽。
@@ -2265,6 +2291,16 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 冻结依据：§10–14 的唯一源码结构与闭合语法；§12.9、§17、§20、§22 的路径敏感证明与 fail-closed 规则；§F.1–F.6 / §G.1–G.9 的精确字段、Receipt/Proof/SourceIdentity、Schema-CEL 和责任模型，附录 H 的诊断索引；E01–E114 的规范预期及负例。无法静态证明兼容的 Schema / Owner 导出必须拒绝链接，不能靠样例值、运行时回退或 Studio 自动猜测。v0.2 是既有可执行基线，编译器不得静默迁移到本版。
 
 冻结后对任何字段、路由、默认值、证据/身份解释、允许的 Schema 关键字、Script 注解或诊断结果作语义性改变，必须明确升级语言或相应互操作契约版本。纯笔误勘正不得改变 Appendix E 的预期。语言规范 Owner 与外部 Tool/Host/Deployment Owner 各自拥有其版本，不能代替对方批准发布物。
+
+**冻结后变更分级与发布流程：**
+
+| 类型 | 允许范围 | 审核与发布 |
+|---|---|---|
+| A · 纯编辑勘误 | 错字、失效链接、标题、准确的交叉引用与错误示例编号；不改变任何合法输入集合、错误/Outcome 或 Runtime 判断 | 独立 PR，列出更正前后文本及不变性证据；保留 v1alpha3 |
+| B · 既有规则的消歧与信任装配澄清 | 仅将 §9/§17/§34、F/G 等**已有规则**合并说明，或在同一输入适用多个已定义错误码时写明专用诊断优先级；不得增加授权来源、减少所需 Evidence、变更有效输入/终态或推翻 E01–E114 已确定的预期 | 独立勘误记录，逐项给出冻结条款、判定差异、用例与可信输入边界；若审查证明改变了已冻结的诊断预期或安全结论，**不得作为 B 合入** |
+| C · 语义或互操作变更 | 放宽/收紧实际可接受的 SourcePath、身份/Scope/Effect/Schema、Evidence 比较、Reconcile 输出与提交分类、终态算法、正式用例预期或授权输入来源 | 必须明确升级语言或对应互操作协议版本（例如 v1alpha4），完成独立设计评审与新的正负例；不得修改已冻结版本的含义 |
+
+每项修订均须注明版本、分类、受影响条款、受影响诊断与 E 用例、静态一致性检查以及尚未完成的 §45.2 产品门槛。无法证明属于 A/B 的改动一律按 C 升版评审。已冻结规范的技术文本仍是唯一 Normative 来源，历史勘误记录用于审计，不能单独发明新字段或授予权限。
 
 ### 45.2 未完成的实现符合性门槛
 
@@ -3077,7 +3113,7 @@ predicates:
 | E100 | 同一 Goal PASS 后分别经过 Procedure Script SUCCEEDED 和 Mutation SUCCEEDED：前者保留证明，后者清除。READ / Observation SUCCEEDED 同样保留原证明。若后续 READ 使原绑定失效，发布成功前按 §12.8 停止，禁止用新值顶替。显式绑定新 Producer 并取得 Goal PASS 后可重新建立证明 |
 
 | E101 | §13.3：将已验证 Host Session 身份直接绑定至 callable，通过。分别用同值 Script 输出、请求字段、含无权威身份的复合对象替换，报 CALLABLE_ARGUMENT_PROVENANCE_INVALID。原绑定构建通过但派发前无法核验时，报 CALLABLE_ARGUMENT_PROVENANCE_UNVERIFIED，且无派发 |
-| E102 | **静态：** 合法同域来源投影或已由可信 IndependentDomains 批准的跨域关系，以及需要时受信的 factIdentity / Scope 映射可链接；删掉来源身份、部署域关系、共同事实映射，或提供未授权、重复、自反域对，报 EVIDENCE_GUARANTEE_LINK_INVALID；描述符和受信关系均有效，但可用 Producer 无法满足声明的保证组合时报 PREDICATE_EVIDENCE_UNSATISFIABLE。**Runtime：** 已链接但两成员其实是相同底层记录、过期或不可核实，Predicate UNKNOWN；真实独立的有效记录按业务 Predicate 求值。静态与运行时分别是 E102 的独立 Fixture 变体，不新增 E 编号 |
+| E102 | **静态：** 合法同域来源投影或已由可信 IndependentDomains 批准的跨域关系，以及需要时受信的 factIdentity / Scope 映射可链接；删掉来源身份、部署域关系、共同事实映射，或提供未授权、重复、自反域对，报 EVIDENCE_GUARANTEE_LINK_INVALID；描述符和受信关系有效、但静态发布的 Producer 类型/允许集合使独立性组对**任何合法执行都不可能满足**时报 PREDICATE_EVIDENCE_UNSATISFIABLE。**Runtime：** 静态可满足但本次两成员来自相同底层记录、过期或不可核实，Predicate UNKNOWN；真实独立的有效记录按业务 Predicate 求值。静态与运行时分别是 E102 的独立 Fixture 变体，不新增 E 编号 |
 | E103 | §34.0：按所选 BuildRequest 版本提交同一文件集的不同枚举顺序，重算摘要一致。保留原摘要并变更原始文件的换行或 YAML/JSON 编码，构建按 §34.0 拒绝摘要不匹配 |
 | E104 | §11.6：有有效 Host 上界时分别省略 Skill 上界、声明更低和更高的上界，验证分别使用 Host、更低的 Skill、Host 上界。Host 上界缺失、为 0 或非法时拒绝启动 |
 
@@ -3105,7 +3141,7 @@ ToolCatalog 须有 `apiVersion: connectionagent.io/toolcatalog/v1alpha3`、`kind
 
 ## F.4 可信依赖装配
 
-每份实际使用的快照必须有 `dependencyId`（与 Contract alias 精确关联）、按所选 BuildRequest 版本重算的 `digest`、完整文件集、与该 alias + digest 绑定的受信 Package ID 和授权 Owner 集。多 Owner 快照须为每个实际使用的 `(exportKind, exportId)` 提供唯一受信 Owner 归属。使用跨域独立性时，还须额外提供 §G.3.1 的受信 `IndependentDomains` 逻辑关系（部署、发布者、实测摘要、域集合、域对集合）及相应授权验证；使用跨 Owner 共同事实映射时须提供 §G.3.1 的 `factIdentity` 可信比较绑定。缺失或验证失败按 `EVIDENCE_GUARANTEE_LINK_INVALID` 拒绝，不得从 Owner 描述符中自动生成。部署 CapabilityContracts 另外需要实际文件字节、摘要、独立部署身份、已授权发布者和受信校验。具体传输字段属于 BuildRequest 的版本，但缺少任一强制逻辑属性时无论协议版本均必须拒绝，不得从文件名、README、同名 Schema 或上传者自述推断。
+每份实际使用的快照必须有 `dependencyId`（与 Contract alias 精确关联）、按所选 BuildRequest 版本重算的 `digest`、完整文件集、与该 alias + digest 绑定的受信 Package ID 和授权 Owner 集。多 Owner 快照须为每个实际使用的 `(exportKind, exportId)` 提供唯一受信 Owner 归属。使用跨域独立性时，还须额外提供 §G.3.1 / §34.0.2 的受信 `IndependentDomains` 逻辑关系（部署、发布者、实测摘要、唯一域 URI 集合、无序无重复非自反域对集合）及授权验证；使用跨 Owner 共同事实映射时须提供 §G.3.1 / §34.0.2 的可信关系（共同 namespace/fact、参与 Owner、Scope 规范化映射与可比较值 Schema 身份）及授权验证。其真实字节与受信摘要（可附加其他不可变承诺，但不得替代必需的 snapshotDigest）属于受信构建输入闭包，若 BuildRequest 有聚合摘要则必须覆盖该闭包；具体运输和 framing 由 BuildRequest 版本拥有。缺失或验证失败按 `EVIDENCE_GUARANTEE_LINK_INVALID` 拒绝，不得从 Owner 描述符中自动生成。部署 CapabilityContracts 另外需要实际文件字节、摘要、独立部署身份、已授权发布者和受信校验。具体传输字段属于 BuildRequest 的版本，但缺少任一强制逻辑属性时无论协议版本均必须拒绝，不得从文件名、README、同名 Schema 或上传者自述推断。
 
 ## F.5 Schema 赋值与失败策略
 
@@ -3354,7 +3390,7 @@ predicates:
 
 结构必须满足 G.1：members 至少两项，每项两个字段 parameter 和 guarantee 均为必需；每组的 (parameter,guarantee) 对唯一，且必须确实属于 requires[parameter]；没有隐式的组 ID、位置索引或默认同名绑定。Compiler 静态检查来源类别、Scope 映射、Owner 保证及可信来源身份。Runtime 在同一已接纳 Evidence 视图中逐项验证成员的精确记录与底层来源身份并证明两两不同；无法证明时 Predicate 得到 UNKNOWN，而不是 FAIL。
 
-同一个绑定点的诊断优先级：一、YAML/Predicate 结构不合法 → YAML_PARSE_ERROR / UNKNOWN_FIELD；二、成员对不在 requires、保证导出失效、Owner 身份提取规则失效或跨 Owner 共同事实映射无效 → EVIDENCE_GUARANTEE_LINK_INVALID；三、各描述符合法却无法在声明的来源/身份域构建可证明满足的保证组合、或 Producer 值无法提供声明的保证 → PREDICATE_EVIDENCE_UNSATISFIABLE；四、静态链接已通过但这一次执行中证据不足、底层来源重复、过期、Scope 冲突 → UNKNOWN。不可将第 2 类问题回退为第 3 类；同一文件的不同绑定点可同时有不同诊断。§17.1 中的独立性规则交叉引用统一指向 §17.1.1、§17.2 和本节。
+同一个绑定点的诊断优先级：一、YAML/Predicate 结构不合法 → YAML_PARSE_ERROR / UNKNOWN_FIELD；二、成员对不在 requires、保证导出失效、Owner 身份提取规则失效或跨 Owner 共同事实映射无效 → EVIDENCE_GUARANTEE_LINK_INVALID；三、描述符与受信域关系都合法，但仅根据静态 Schema、Producer 集合和保证约束即可证明**在任何合法运行中**都不存在满足独立性组的证据组合 → PREDICATE_EVIDENCE_UNSATISFIABLE；四、静态组可满足且链接通过，但**本次** Producer 实际记录缺失、同源、过期、Scope 冲突或不可核实 → UNKNOWN。不可将第 2 类问题回退为第 3 类；同一文件的不同绑定点可同时有不同诊断。§17.1 中的独立性规则交叉引用统一指向 §17.1.1、§17.2 和本节。
 
 
 ### G.3.1 独立来源与共同事实的描述符形状
@@ -3396,7 +3432,7 @@ factIdentity:
   valuePath: record.value
 ~~~
 
-所有静态路径只允许 Identifier 点段，不支持索引、动态拼接或运行时表达式；缺段、权限缺失、无法链接的域映射按 EVIDENCE_GUARANTEE_LINK_INVALID；描述符分别有效但本次请求的 Producer 路径不能提供声明保证，按 PREDICATE_EVIDENCE_UNSATISFIABLE；运行时源身份不可验证或实测重复则 UNKNOWN。G.3 的 RAN/UPF 教学片段以两个域已由可信部署明确批准为独立来源为前提，不意味着任意两个网元天然独立。
+所有静态路径只允许 Identifier 点段，不支持索引、动态拼接或运行时表达式；缺段、权限缺失、无法链接的域映射按 EVIDENCE_GUARANTEE_LINK_INVALID；描述符和所有受信绑定有效、且可从**静态发布的 Schema / Producer 允许集**证明该独立组不可能被任何合法记录满足时，按 PREDICATE_EVIDENCE_UNSATISFIABLE；只有本次运行记录无法匹配、不可验证或实测同源则为 Predicate UNKNOWN。G.3 的 RAN/UPF 教学片段以两个域已由可信部署明确批准为独立来源为前提，不意味着任意两个网元天然独立。
 
 ## G.4 JSON Schema 白名单、静态兼容与 CEL 型别
 
@@ -3494,111 +3530,111 @@ G.1–G.9 的补充用例须与原 E01–E104 组合执行。文档审计不代�
 
 **Normative：诊断身份、分类和控制流含义；Informative：关联 E 用例及待补 Fixture。** §24.1、§24.2 是具体触发规则，本索引是唯一的名称分类入口；E 用例列只列可定位到本版相同诊断与阶段的确切变体，`待补独立 Fixture` 是产品符合性测试债务，不是可跳过的语言规则。诊断记录的唯一分类键为 `(Code, Phase)`，`Phase=C_STATIC | C_WARNING | R_RUNTIME`，三者分别表示 Compiler 静态错误、Compiler 警告、Runtime 诊断。原始 Code 字符串不被改名，但相同 Code 在不同 Phase（例如 EFFECT_MISMATCH）是不同的诊断事件。Compiler ERROR 必定阻断构建，Compiler WARNING 不自行阻断构建。Runtime DIAGNOSTIC 是事件原因，不是业务阶段 Outcome，不能直接把任一诊断名当作路由键。Runtime 按实际执行阶段与 §12.8 的资源/未决事实状态判定终态。
 
-| Code | Phase | 类别 | 阻断构建 | 触发位置 | Runtime 终态/路由影响 | E 用例（精确变体） |
-|---|---|---|---|---|---|---|
-| YAML_PARSE_ERROR | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | 待补独立 Fixture |
-| IDENTIFIER_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source (G.1) | 不启动 Invocation | E105 |
-| QUALIFIED_REFERENCE_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source (G.1) | 不启动 Invocation | E105 |
-| SOURCE_ROOT_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | E02 |
-| LANGUAGE_TARGET_UNSUPPORTED | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | 待补独立 Fixture |
-| UNKNOWN_FIELD | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | 待补独立 Fixture |
-| DUPLICATE_ID | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | 待补独立 Fixture |
-| PROCEDURE_START_MISSING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E56 |
-| NODE_ID_RESERVED | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E56 |
-| FINAL_POSTCONDITION_MISSING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E11 |
-| FINAL_POSTCONDITION_GOAL_MISMATCH | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | 待补独立 Fixture |
-| ENTRY_PRECONDITION_REF_INVALID | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E52 |
-| ENTRY_PRECONDITION_BYPASSED | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E24/E51 |
-| SUCCESS_BYPASSES_FINAL_POSTCONDITION | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E18/E64 |
-| CONTROL_FLOW_CYCLE | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E60 |
-| SOURCE_PATH_INVALID | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E34/E36 |
-| CONTROL_FLOW_DANGLING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E57 |
-| CONTROL_FLOW_AMBIGUOUS | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | 待补独立 Fixture |
-| DEPENDENCY_REQUIREMENT_INVALID | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E35 |
-| DEPENDENCY_ALIAS_MISSING | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | 待补独立 Fixture |
-| DEPENDENCY_SNAPSHOT_MISSING | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | 待补独立 Fixture |
-| DEPENDENCY_IDENTITY_UNVERIFIED | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E04 |
-| DEPENDENCY_ID_MISMATCH | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E03 |
-| DEPENDENCY_OWNER_MISMATCH | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E05/E43 |
-| DEPENDENCY_EXPORT_OWNER_UNVERIFIED | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E39 |
-| DEPENDENCY_DUPLICATE | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | 待补独立 Fixture |
-| CONTEXT_SCHEMA_UNDECLARED | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E12 |
-| CONTEXT_SCHEMA_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E95 |
-| CONTEXT_REQUEST_COLLISION | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E25/E113 |
-| REQUEST_SCHEMA_MISSING | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E113 |
-| ACTION_LIMIT_INVALID | C_STATIC | Compiler ERROR | 是 | Link / evidence | 不启动 Invocation | 待补独立 Fixture |
-| EXPORT_ID_MISSING | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | 待补独立 Fixture |
-| EXPORT_ID_AMBIGUOUS | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E91 |
-| SCHEMA_MISSING | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | 待补独立 Fixture |
-| SCHEMA_INVALID | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E110 |
-| INPUT_REQUIRED_MISSING | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E67 |
-| REACHABLE_STAGE_NO_INCOMING_EDGE | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E99 |
-| INPUT_TYPE_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E67 |
-| INPUT_NULLABILITY_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | 待补独立 Fixture |
-| SOURCE_NOT_AVAILABLE | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E10/E89 |
-| RECONCILE_OUTPUT_UNAVAILABLE | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E63 |
-| ROUTE_OUTCOME_MISSING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E55/E84 |
-| ROUTE_OUTCOME_UNKNOWN | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | 待补独立 Fixture |
-| ROUTE_NORMAL_OUTCOME_NOT_ALLOWED | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E54 |
-| PREDICATE_ARITY_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E08 |
-| PREDICATE_TYPE_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E09 |
-| EVIDENCE_GUARANTEE_LINK_INVALID | C_STATIC | Compiler ERROR | 是 | Link / evidence | 不启动 Invocation | E38/E102/E106 |
-| CALLABLE_ARGUMENT_PROVENANCE_INVALID | C_STATIC | Compiler ERROR | 是 | Link / evidence | 不启动 Invocation | E101 |
-| PREDICATE_EVIDENCE_REQUIRED | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E71 |
-| PREDICATE_EVIDENCE_UNSATISFIABLE | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E19/E102 |
-| RETRY_CONTRACT_INVALID | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E85 |
-| CAPABILITY_INPUT_DIGEST_MISMATCH | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E93 |
-| CAPABILITY_INPUT_UNTRUSTED | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E93 |
-| CAPABILITY_DEFINITION_CONFLICT | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E94 |
-| CAPABILITY_SCOPE_UNRESOLVED | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E87 |
-| CAPABILITY_SCOPE_EMPTY_INTERSECTION | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E87 |
-| RECONCILE_CONTRACT_INVALID | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E60/E107 |
-| CAPABILITY_NOT_GRANTED | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E06/E107 |
-| CAPABILITY_MAPPING_MISSING | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | 待补独立 Fixture |
-| CAPABILITY_MEMBERSHIP_DUPLICATE | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E72 |
-| EFFECT_MISMATCH | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E07/E107 |
-| SCRIPT_CONTRACT_INVALID | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E67/E75 |
-| UNSUPPORTED_WAIT | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | 待补独立 Fixture |
-| UNSUPPORTED_V02_SYNTAX | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | 待补独立 Fixture |
-| CEL_INVALID | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E111 |
-| PACKAGE_PATH_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | E114 |
-| UNUSED_DEPENDENCY | C_WARNING | Compiler WARNING | 否（并发错误仍阻断） | Link / unused | 不改变 Runtime 终态 | 待补独立 Fixture |
-| UNREACHABLE_NODE | C_WARNING | Compiler WARNING | 否（并发错误仍阻断） | Graph / unreachable | 不改变 Runtime 终态 | E44/E65 |
-| TOOL_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E70 |
-| INPUT_VALIDATION_FAILED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E70 |
-| OWNER_OUTCOME_UNDECLARED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Owner response validation | 隔离输出；Mutation/Reconcile 保存已验证原提交状态及责任，§12.8 停止 | E86/E108 |
-| OWNER_CONTRACT_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E70 |
-| CALLABLE_ARGUMENT_PROVENANCE_UNVERIFIED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E101 |
-| AUTHORIZATION_DENIED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | E79 |
-| SCRIPT_EXECUTION_FAILED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Script FAILED；外部调用按 §20 / §24.2 | E66 |
-| OUTPUT_SCHEMA_INVALID | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Script FAILED；外部调用按 §20 / §24.2 | E66 |
-| EFFECT_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E07/E107 |
-| RESPONSE_DECODE_FAILED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E70 |
-| SCOPE_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | E20 |
-| CORRELATION_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E20 |
-| EVIDENCE_MISSING | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate UNKNOWN；复核失败按 §12.8 | E20 |
-| EVIDENCE_STALE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate UNKNOWN；复核失败按 §12.8 | E31 |
-| EVIDENCE_CONFLICT | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate UNKNOWN；复核失败按 §12.8 | E30 |
-| DEADLINE_EXCEEDED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E70 |
-| CANCELLED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E70 |
-| RECONCILE_UNRESOLVED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Reconcile UNRESOLVED 边；§12.8 | E86 |
-| COMMITTED_OUTPUT_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | SAFE_STOPPED；原提交/责任保留 | E28/E108 |
-| ENTRY_PRECONDITION_INVALIDATED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E53 |
-| PRECONDITION_INVALIDATED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E70 |
-| TERMINAL_STATE_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 采用实际终态，保留请求终态 | E58 |
-| DUPLICATE_RESOURCE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E70 |
-| STALE_LIFECYCLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E20 |
-| PARTIAL_COMPLETION | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 已确认 PENDING → SAFE_STOPPED | 待补独立 Fixture |
-| ADMISSION_CONTEXT_INVALID | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E13 |
-| ACTION_BUDGET_EXCEEDED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | 待补独立 Fixture |
-| CONCURRENT_MODIFICATION | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E70 |
-| RETRY_ADMISSION_DENIED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 拒绝重发、直接按 §12.8 停止 | 待补独立 Fixture |
-| SCOPE_POLICY_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | E88 |
-| SCOPE_INTERSECTION_EMPTY | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | E88 |
+| Code | Phase | 类别 | 阻断构建 | 触发位置 | Runtime 终态/路由影响 | 规范条款 | E 用例（精确变体） |
+|---|---|---|---|---|---|---|---|
+| YAML_PARSE_ERROR | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | 待补独立 Fixture |
+| IDENTIFIER_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source (G.1) | 不启动 Invocation | §10.1、§24.1 | E105 |
+| QUALIFIED_REFERENCE_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source (G.1) | 不启动 Invocation | §10.1、§24.1 | E105 |
+| SOURCE_ROOT_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | E02 |
+| LANGUAGE_TARGET_UNSUPPORTED | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | 待补独立 Fixture |
+| UNKNOWN_FIELD | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | E35 |
+| DUPLICATE_ID | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | 待补独立 Fixture |
+| PROCEDURE_START_MISSING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E56 |
+| NODE_ID_RESERVED | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E56 |
+| FINAL_POSTCONDITION_MISSING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E11 |
+| FINAL_POSTCONDITION_GOAL_MISMATCH | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | 待补独立 Fixture |
+| ENTRY_PRECONDITION_REF_INVALID | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E52 |
+| ENTRY_PRECONDITION_BYPASSED | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E24/E51 |
+| SUCCESS_BYPASSES_FINAL_POSTCONDITION | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E18/E64 |
+| CONTROL_FLOW_CYCLE | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | 待补独立 Fixture |
+| SOURCE_PATH_INVALID | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E34/E36 |
+| CONTROL_FLOW_DANGLING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E57 |
+| CONTROL_FLOW_AMBIGUOUS | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | 待补独立 Fixture |
+| DEPENDENCY_REQUIREMENT_INVALID | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | E35 |
+| DEPENDENCY_ALIAS_MISSING | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | 待补独立 Fixture |
+| DEPENDENCY_SNAPSHOT_MISSING | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | 待补独立 Fixture |
+| DEPENDENCY_IDENTITY_UNVERIFIED | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | E04 |
+| DEPENDENCY_ID_MISMATCH | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | E03 |
+| DEPENDENCY_OWNER_MISMATCH | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | E05/E43 |
+| DEPENDENCY_EXPORT_OWNER_UNVERIFIED | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | E39 |
+| DEPENDENCY_DUPLICATE | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | 待补独立 Fixture |
+| CONTEXT_SCHEMA_UNDECLARED | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §11.5、§G.6、§24.1 | E12 |
+| CONTEXT_SCHEMA_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §11.5、§G.6、§24.1 | 待补独立 Fixture |
+| CONTEXT_REQUEST_COLLISION | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §11.5、§G.6、§24.1 | E25/E113 |
+| REQUEST_SCHEMA_MISSING | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §11.5、§G.6、§24.1 | E113 |
+| ACTION_LIMIT_INVALID | C_STATIC | Compiler ERROR | 是 | Link / evidence | 不启动 Invocation | §11.6、§24.1 | 待补独立 Fixture |
+| EXPORT_ID_MISSING | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | 待补独立 Fixture |
+| EXPORT_ID_AMBIGUOUS | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§24.1 | E91 |
+| SCHEMA_MISSING | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §F.5、§G.4、§24.1 | 待补独立 Fixture |
+| SCHEMA_INVALID | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §F.5、§G.4、§24.1 | E110 |
+| INPUT_REQUIRED_MISSING | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E67 |
+| REACHABLE_STAGE_NO_INCOMING_EDGE | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E99 |
+| INPUT_TYPE_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E67 |
+| INPUT_NULLABILITY_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§F.5、§G.4、§24.1 | 待补独立 Fixture |
+| SOURCE_NOT_AVAILABLE | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E10/E89 |
+| RECONCILE_OUTPUT_UNAVAILABLE | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§20.2–§20.3、§24.1 | E63 |
+| ROUTE_OUTCOME_MISSING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E55/E84 |
+| ROUTE_OUTCOME_UNKNOWN | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | 待补独立 Fixture |
+| ROUTE_NORMAL_OUTCOME_NOT_ALLOWED | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E54 |
+| PREDICATE_ARITY_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E08 |
+| PREDICATE_TYPE_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E09 |
+| EVIDENCE_GUARANTEE_LINK_INVALID | C_STATIC | Compiler ERROR | 是 | Link / evidence | 不启动 Invocation | §17.1–§17.2、§G.3.1、§24.1 | E38/E102/E106 |
+| CALLABLE_ARGUMENT_PROVENANCE_INVALID | C_STATIC | Compiler ERROR | 是 | Link / evidence | 不启动 Invocation | §13.2–§14、§24.1 | E101 |
+| PREDICATE_EVIDENCE_REQUIRED | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §17.1–§17.2、§G.3.1、§24.1 | E71 |
+| PREDICATE_EVIDENCE_UNSATISFIABLE | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §17.1–§17.2、§G.3.1、§24.1 | E19/E102 |
+| RETRY_CONTRACT_INVALID | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §9.3、§20.2、§20.2–§20.3、§24.1 | E85 |
+| CAPABILITY_INPUT_DIGEST_MISMATCH | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§9.3、§20.2、§24.1 | E93 |
+| CAPABILITY_INPUT_UNTRUSTED | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §34.0–§34.0.2、§9.3、§20.2、§24.1 | E93 |
+| CAPABILITY_DEFINITION_CONFLICT | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §9.3、§20.2、§24.1 | E94 |
+| CAPABILITY_SCOPE_UNRESOLVED | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §9.3、§20.2、§24.1 | E87 |
+| CAPABILITY_SCOPE_EMPTY_INTERSECTION | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §9.3、§20.2、§24.1 | E87 |
+| RECONCILE_CONTRACT_INVALID | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §9.3、§20.2、§20.2–§20.3、§24.1 | E60/E107 |
+| CAPABILITY_NOT_GRANTED | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §9.3、§20.2、§24.1 | E06/E107 |
+| CAPABILITY_MAPPING_MISSING | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §9.3、§20.2、§24.1 | 待补独立 Fixture |
+| CAPABILITY_MEMBERSHIP_DUPLICATE | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §9.3、§20.2、§24.1 | E72 |
+| EFFECT_MISMATCH | C_STATIC | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | §9.3、§20.2、§24.1 | E07/E107 |
+| SCRIPT_CONTRACT_INVALID | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §14、§F.6、§G.4、§24.1 | E67/E75 |
+| UNSUPPORTED_WAIT | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | 待补独立 Fixture |
+| UNSUPPORTED_V02_SYNTAX | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | 待补独立 Fixture |
+| CEL_INVALID | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §14、§F.6、§G.4、§24.1 | E111 |
+| PACKAGE_PATH_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | E114 |
+| UNUSED_DEPENDENCY | C_WARNING | Compiler WARNING | 否（并发错误仍阻断） | Link / unused | 不改变 Runtime 终态 | §34.0、§24.1 | 待补独立 Fixture |
+| UNREACHABLE_NODE | C_WARNING | Compiler WARNING | 否（并发错误仍阻断） | Graph / unreachable | 不改变 Runtime 终态 | §12.9、§24.1 | E44/E65 |
+| TOOL_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 |
+| INPUT_VALIDATION_FAILED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 |
+| OWNER_OUTCOME_UNDECLARED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Owner response validation | 隔离输出；Mutation/Reconcile 保存已验证原提交状态及责任，§12.8 停止 | §20.1–§20.3、§24.2 | E86/E108 |
+| OWNER_CONTRACT_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 |
+| CALLABLE_ARGUMENT_PROVENANCE_UNVERIFIED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §13.3、§24.2 | E101 |
+| AUTHORIZATION_DENIED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | §9.3、§24.2 | E79 |
+| SCRIPT_EXECUTION_FAILED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Script FAILED；外部调用按 §20 / §24.2 | §32.1、§24.2 | E66 |
+| OUTPUT_SCHEMA_INVALID | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Script FAILED；外部调用按 §20 / §24.2 | §32.1、§24.2 | E66 |
+| EFFECT_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §9.3、§24.2 | E07/E107 |
+| RESPONSE_DECODE_FAILED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 |
+| SCOPE_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | §17.2、§24.2 | E20 |
+| CORRELATION_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §17.2、§24.2 | E20 |
+| EVIDENCE_MISSING | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate UNKNOWN；复核失败按 §12.8 | §17.2、§24.2 | E20 |
+| EVIDENCE_STALE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate UNKNOWN；复核失败按 §12.8 | §17.2、§24.2 | E31 |
+| EVIDENCE_CONFLICT | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate UNKNOWN；复核失败按 §12.8 | §17.2、§24.2 | E30 |
+| DEADLINE_EXCEEDED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 |
+| CANCELLED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 |
+| RECONCILE_UNRESOLVED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Reconcile UNRESOLVED 边；§12.8 | §20.1–§20.3、§24.2 | E86 |
+| COMMITTED_OUTPUT_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | SAFE_STOPPED；原提交/责任保留 | §20.1–§20.3、§24.2 | E28/E108 |
+| ENTRY_PRECONDITION_INVALIDATED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §12.9、§24.2 | E53 |
+| PRECONDITION_INVALIDATED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §12.9、§24.2 | E70 |
+| TERMINAL_STATE_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 采用实际终态，保留请求终态 | §12.8、§G.5、§24.2 | E58 |
+| DUPLICATE_RESOURCE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 |
+| STALE_LIFECYCLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §17.2、§24.2 | E20 |
+| PARTIAL_COMPLETION | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 已确认 PENDING → SAFE_STOPPED | §12.8、§G.5、§24.2 | 待补独立 Fixture |
+| ADMISSION_CONTEXT_INVALID | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E13 |
+| ACTION_BUDGET_EXCEEDED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §11.6、§24.2 | 待补独立 Fixture |
+| CONCURRENT_MODIFICATION | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 |
+| RETRY_ADMISSION_DENIED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 拒绝重发、直接按 §12.8 停止 | §20.2、§24.2 | 待补独立 Fixture |
+| SCOPE_POLICY_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | §9.3、§24.2 | E88 |
+| SCOPE_INTERSECTION_EMPTY | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | §9.3、§24.2 | E88 |
 
 **代码归一化。** §24.1 历史简写 SCHEMA_MISSING / INVALID 分别指 SCHEMA_MISSING 与 SCHEMA_INVALID。§24.2 的 STALE、CONFLICT 必须写全名为 EVIDENCE_STALE、EVIDENCE_CONFLICT；SCOPE_MISMATCH、CORRELATION_MISMATCH、DEADLINE_EXCEEDED、CANCELLED 是四个独立诊断。OUTCOME_UNKNOWN 是 Mutation 的阶段 Outcome，不是诊断代码。RECONCILE 的 COMMITTED、NOT_COMMITTED、UNRESOLVED 也是阶段 Outcome；RECONCILE_UNRESOLVED 是记录该停止条件的诊断，二者不得互换。最终 SUCCEEDED、FAILED、UNRESOLVED、SAFE_STOPPED 是 Invocation 终态，不属于本表的诊断。`待补独立 Fixture` 表示当前 E01–E114 未明确给出与该 `(Code, Phase)` 完全一致的触发输入及预期，属于实现符合性测试债务，**不是**新增的 E 编号、通过证明或可跳过的规范要求。新增精确用例须单独评审编号，并同步 §45.2 的验收范围。
 
-**诊断优先级。** 同一绑定点：YAML/结构 → Package/依赖与 Owner 身份 → Schema/路径与支配可用性 → 类型 → 授权/Effect/Scope → Evidence 描述符链接 → Evidence 组合可满足性 → 运行时证据判定；与规范性更具体的 §13.3、§17.1.1 和 §24.1 的顺序相同。遇到较早的致命错误时，不基于未经解析的下游值推断新的错误。彼此独立的错误可以共同报告，诊断展示排序不是执行语义。
+**诊断优先级。** 旧式 Wait / v0.2 语法与普通未知字段的分派按 §24.1 的专用诊断优先规则；同一绑定点的一般链接优先级为：YAML/结构 → Package/依赖与 Owner 身份 → Schema/路径与支配可用性 → 类型 → 授权/Effect/Scope → Evidence 描述符链接 → Evidence 组合可满足性 → 运行时证据判定；与规范性更具体的 §13.3、§17.1.1 和 §24.1 的顺序相同。遇到较早的致命错误时，不基于未经解析的下游值推断新的错误。彼此独立的错误可以共同报告，诊断展示排序不是执行语义。
 
 ---
 

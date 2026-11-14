@@ -1121,12 +1121,12 @@ cases:
   - case: E102
     sourceSection: "E.14"
     input: "E102: 静态正例同域独立源或经可信授权的跨域 IndependentDomains；静态负例移除身份投影、factIdentity/Scope 映射、信任绑定或破坏域对；Runtime 负例使用同一底层记录或过期记录。"
-    normativeExpected: "**静态：** 合法同域来源投影或已由可信 IndependentDomains 批准的跨域关系，以及需要时受信的 factIdentity / Scope 映射可链接；删掉来源身份、部署域关系、共同事实映射，或提供未授权、重复、自反域对，报 EVIDENCE_GUARANTEE_LINK_INVALID；描述符和受信关系均有效，但可用 Producer 无法满足声明的保证组合时报 PREDICATE_EVIDENCE_UNSATISFIABLE。**Runtime：** 已链接但两成员其实是相同底层记录、过期或不可核实，Predicate UNKNOWN；真实独立的有效记录按业务 Predicate 求值。静态与运行时分别是 E102 的独立 Fixture 变体，不新增 E 编号"
+    normativeExpected: "**静态：** 合法同域来源投影或已由可信 IndependentDomains 批准的跨域关系，以及需要时受信的 factIdentity / Scope 映射可链接；删掉来源身份、部署域关系、共同事实映射，或提供未授权、重复、自反域对，报 EVIDENCE_GUARANTEE_LINK_INVALID；描述符和受信关系有效、但静态发布的 Producer 类型/允许集合使独立性组对**任何合法执行都不可能满足**时报 PREDICATE_EVIDENCE_UNSATISFIABLE。**Runtime：** 静态可满足但本次两成员来自相同底层记录、过期或不可核实，Predicate UNKNOWN；真实独立的有效记录按业务 Predicate 求值。静态与运行时分别是 E102 的独立 Fixture 变体，不新增 E 编号"
     expectedDiagnosticCodes: ["EVIDENCE_GUARANTEE_LINK_INVALID","PREDICATE_EVIDENCE_UNSATISFIABLE"]
     applicablePhases: ["C_STATIC","R_RUNTIME"]
     buildBlocked: "conditional-by-variant"
     expectedInvocationTerminals: []
-    citedClauses: ["§17.1.1","§F.4","§G.3.1"]
+    citedClauses: ["§17.1.1","§34.0.2","§F.4","§G.3.1"]
     ciFixture: null
     evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
   - case: E103
