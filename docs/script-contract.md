@@ -15,9 +15,9 @@ prepare-policy-inputs:
     arguments:
       subscriptionData: select-establishment-configuration.operation.output.subscriptionData
       subscriptionSource: select-establishment-configuration.operation.output.subscriptionSource
-    'on':
-      FAILED: failed
-  next: create-policy
+    routes:
+      SUCCEEDED: create-policy
+      FAILED: FAILED
 ~~~
 
 Rules:
@@ -29,7 +29,7 @@ Rules:
 - A Procedure Script is pure and deterministic. It cannot access network, HTTP, MCP, shell, database, filesystem, credentials, environment variables, clock or randomness.
 - It cannot perform external side effects, declare Tool IDs, Capability IDs or READ/MUTATION Effect.
 - Host / Runtime owns sandboxing, resource budget, deadline and cancellation.
-- Exceptions, invalid return types and output-schema violations do not produce a successful output.
+- The function returns business data. Runtime emits SUCCEEDED after validating the return value against the derived Output Schema. An explicit exception or a return value that violates the Output Schema produces FAILED without a successful output. Runtime gives global cancellation and deadlines priority. See CA-SL §§24.2 and 32.1.
 
 ## 2. Predicate Script
 
