@@ -1121,12 +1121,12 @@ cases:
   - case: E102
     sourceSection: "E.14"
     input: "请参见规范中相同 ID 行的输入"
-    normativeExpected: "§17.1.1：同身份域的独立来源及兼容的跨 Owner 映射可链接。移除用于独立组的来源身份投影或共同事实映射，或使 Scope 映射不可比较，报 EVIDENCE_GUARANTEE_LINK_INVALID。各描述符分别有效但组成员处于不可比较的身份域，报 PREDICATE_EVIDENCE_UNSATISFIABLE。链接成功但执行时只提供同一底层记录，Predicate 为 UNKNOWN"
+    normativeExpected: "**静态：** 合法同域来源投影或已由可信 IndependentDomains 批准的跨域关系，以及需要时受信的 factIdentity / Scope 映射可链接；删掉来源身份、部署域关系、共同事实映射，或提供未授权、重复、自反域对，报 EVIDENCE_GUARANTEE_LINK_INVALID；描述符和受信关系均有效，但可用 Producer 无法满足声明的保证组合时报 PREDICATE_EVIDENCE_UNSATISFIABLE。**Runtime：** 已链接但两成员其实是相同底层记录、过期或不可核实，Predicate UNKNOWN；真实独立的有效记录按业务 Predicate 求值。静态与运行时分别是 E102 的独立 Fixture 变体，不新增 E 编号"
     expectedDiagnosticCodes: ["EVIDENCE_GUARANTEE_LINK_INVALID","PREDICATE_EVIDENCE_UNSATISFIABLE"]
     applicablePhases: ["C_STATIC"]
-    buildBlocked: "true"
+    buildBlocked: "conditional-by-variant"
     expectedInvocationTerminals: []
-    citedClauses: ["§17.1.1"]
+    citedClauses: []
     ciFixture: null
     evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
   - case: E103
