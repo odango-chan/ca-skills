@@ -322,11 +322,11 @@ ToolCatalog 是 Tool Owner 发布的 callable 契约集合。vNext 要求同一 
 
 ### 9.2 Observation 在 ToolCatalog 中的候选表达
 
-**效力：Normative（抽象规则）；Candidate（线格式拼写及示例）。**
+**效力：Normative（抽象规则及附录 F 的 v1alpha2 字段）；Informative（示例身份）。**
 
-**规范性说明。** 候选 ToolCatalog 线格式；链接语义为 normative。
+**规范性说明。** 类型化 ToolCatalog 导出与链接规则按附录 F.1 冻结；真实 Owner 发布独立验收。
 
-以下是候选结构，不是已冻结的现有文件格式：
+以下是冻结的互操作结构的教学实例，并非当前 Owner 的正式发布物：
 
 ~~~yaml
 apiVersion: connectionagent.io/toolcatalog/v1alpha2
@@ -363,29 +363,29 @@ spec:
 
 **Normative。** 同一依赖快照中，全部 callable 导出 ID 共享命名空间，跨 ToolCatalog 文件与 callable kind 也不得重复。不同快照可复用 ID，由显式依赖别名选定快照。Capability 成员仍按可信 Owner、callable ID 与 kind 匹配；不同快照中的同一成员身份须通过独立的归属、Effect 与授权检查。
 
-**Candidate。** `kind` [candidate] 区分 Operation 与 Observation，`id` [candidate] 编码上述导出 ID。`ownerOutcomes` [candidate] 按 callable 类别及 Effect 映射 §22 的 Owner 结果集合，调和 callable 按 §20.3。Observation 不得在该集合声明 NOT_COMMITTED 或 OUTCOME_UNKNOWN。QueryContext Schema 表达查询输入，Observation Output Schema 表达 Owner 承诺的规范化结果。`guarantees.evidence.provides` [candidate] 只链接保证及输出路径。`adapter` [candidate] 表示 Owner 内部实现绑定。
+**Normative。** `kind` 区分 Operation 与 Observation，`id` 编码上述导出 ID。`ownerOutcomes` 按 callable 类别及 Effect 映射 §22 的 Owner 结果集合，调和 callable 按 §20.3。Observation 不得在该集合声明 NOT_COMMITTED 或 OUTCOME_UNKNOWN。QueryContext Schema 表达查询输入，Observation Output Schema 表达 Owner 承诺的规范化结果。`guarantees.evidence.provides` 只链接保证及输出路径。`adapter` 表示 Owner 内部实现绑定。
 
-不得通过通用 observation.read 和任意字符串 selector 暴露任意内部数据。最终字段、版本和兼容策略必须由 Tool Owner、Compiler 和 Runtime 评审，并通过正负例 Fixture 后冻结。
+不得通过通用 observation.read 和任意字符串 selector 暴露任意内部数据。字段含义按附录 F.1 固定；Tool Owner、Compiler 和 Runtime 须以相应版本的导出和 Fixture 完成产品符合性验收。
 
 E.3 给出了带精确 Outcome 与 Evidence 描述符的独立 READ 样例。普通调用仅在 SUCCEEDED 边暴露成功输出。Reconcile 的路由和输出见 §12.7。
 
 ### 9.2.1 Mutation 发布契约
 
-**效力：Normative（抽象属性与校验）；Candidate（字段映射与示例）。**
+**效力：Normative（抽象属性与附录 F.1 字段）；Informative（示例 ID）。**
 
-| Normative 抽象属性 | Candidate 线格式映射 |
+| 规范抽象属性 | v1alpha2 字段映射 |
 |---|---|
-| 提交证明 Schema、值路径和原调用关联 | `mutation.commitProof` [candidate] |
-| 互斥失败类别、阶段映射和未提交证明 | `failureClasses[].id/outcome/proofSchema` [candidate] |
-| 无遗留副作用的承诺及独立的重试许可 | `failureClasses[].noSideEffect/retryable` [candidate] |
-| 调和 callable、原调用绑定、证明及可选恢复输出 Schema | `reconcile.callable/bind/proofSchema/recoverableOutputSchema` [candidate] |
-| 资源或外部变更的身份、关联、责任与处置描述 | `resourceOutputs[]` [candidate] 及其引用的责任记录 Schema |
+| 提交证明 Schema、值路径和原调用关联 | `mutation.commitProof` |
+| 互斥失败类别、阶段映射和未提交证明 | `failureClasses[].id/outcome/proofSchema` |
+| 无遗留副作用的承诺及独立的重试许可 | `failureClasses[].noSideEffect/retryable` |
+| 调和 callable、原调用绑定、证明及可选恢复输出 Schema | `reconcile.callable/bind/proofSchema/recoverableOutputSchema` |
+| 资源或外部变更的身份、关联、责任与处置描述 | `resourceOutputs[]` 及其引用的责任记录 Schema |
 
-候选解码器按适用契约版本将字段映射到抽象属性，随后执行规范性校验。字段名、嵌套布局与示例不作为已发布线格式，按 §45 对应门槛验收。
+v1alpha2 按附录 F.1 的字段映射到抽象属性，并执行规范性校验。其他外部协议版本必须显式版本化解码，不能默许不兼容字段或未知保证。
 
 **Normative。** Mutation Owner 声明提交证明的 Schema、取值位置及原调用关联、互斥失败类别及其阶段映射、无遗留副作用承诺和重试资格。FAILED 类别必须证明未提交且无遗留副作用，重试资格为否。NOT_COMMITTED 只证明未提交，只有明确允许重试且无遗留副作用才授予受控重试资格。每个类别映射必须属于已声明 Owner Outcome。声明支持 Reconcile 时，还须链接其精确 callable、原调用身份绑定、证明 Schema 和可选的 COMMITTED 恢复输出 Schema。至多一次由 Runtime 对原调用持久化执行。每个可能遗留的资源或外部变更须有可验证的责任记录描述，包括来源、资源类型与句柄或变更身份、责任 Owner、原调用关联及处置状态。
 
-**Candidate。** 下例是 §9.2 中 smf.session.create 的扩展正例。路径和 Schema ID 为教学输入，由 Fixture 提供。未声明 Reconcile 的 Mutation 仍可直接停止。
+**Normative 字段；Informative 示例值。** 下例是 §9.2 中 smf.session.create 的扩展正例。路径和 Schema ID 为教学输入，由 Fixture 提供。未声明 Reconcile 的 Mutation 仍可直接停止。
 
 ~~~text
 ownerOutcomes: [SUCCEEDED, FAILED, NOT_COMMITTED]
@@ -407,11 +407,11 @@ mutation:
 
 ### 9.3 CapabilityContracts
 
-**效力：Normative（抽象规则）；Candidate（线格式拼写及示例）。**
+**效力：Normative（抽象规则及附录 F 的 v1alpha2 字段）；Informative（示例身份）。**
 
-**规范性说明。** 候选 CapabilityContracts 线格式；授权与 Effect 语义为 normative。
+**规范性说明。** CapabilityContracts v1alpha2 互操作字段及授权与 Effect 语义均为 Normative（附录 F.2）。
 
-CapabilityContracts 是部署侧可信输入，独立于普通 DependencySnapshot。候选形式：
+CapabilityContracts 是部署侧可信输入，独立于普通 DependencySnapshot。冻结的互操作字段示例：
 
 ~~~yaml
 apiVersion: connectionagent.io/capability-contracts/v1alpha2
@@ -435,7 +435,7 @@ spec:
           scopePolicyRef: deployment.registration-read
 ~~~
 
-CapabilityContracts 使用稳定 Owner 身份、精确 callable ID 和 kind 标识成员。Compiler 查找该身份的所有成员记录，要求至少一个所属 Capability 已被 Skill Grant。仅对匹配且已 Grant 的成员解析 Scope。缺失或不可解析报 `CAPABILITY_SCOPE_UNRESOLVED`，静态可证的空交集报 `CAPABILITY_SCOPE_EMPTY_INTERSECTION`。未 Grant 成员无需解析 Scope，Effect 一致性检查仍适用。Scope 依赖实际 Runtime 参数时，在派发前裁决。多个已 Grant 成员同时匹配时，实际 Scope 取这些成员边界与 callable、Invocation 授权范围的交集。空交集禁止派发。未 Grant 成员只参与 Effect 一致性检查。候选线格式可用成员级 `scopePolicyRef` 指向部署发布的规则。所有匹配记录的 Effect 必须与 ToolCatalog 一致，包括未获 Grant 的记录。Effect 描述 callable 本身，Grant 仅决定访问资格。检查未获 Grant 的成员可在授权变动前发现同一 callable 的身份冲突，部署侧须修复冲突记录后重新链接。同一 Capability 内重复声明同一成员报 `CAPABILITY_MEMBERSHIP_DUPLICATE`，跨 Capability 的一致成员合法。Runtime 在派发时对可信部署契约重新执行同一 Effect 与授权检查。缺少 Grant、重复记录或 Effect 冲突时禁止派发。该 YAML 是候选线格式。
+CapabilityContracts 使用稳定 Owner 身份、精确 callable ID 和 kind 标识成员。Compiler 查找该身份的所有成员记录，要求至少一个所属 Capability 已被 Skill Grant。仅对匹配且已 Grant 的成员解析 Scope。缺失或不可解析报 `CAPABILITY_SCOPE_UNRESOLVED`，静态可证的空交集报 `CAPABILITY_SCOPE_EMPTY_INTERSECTION`。未 Grant 成员无需解析 Scope，Effect 一致性检查仍适用。Scope 依赖实际 Runtime 参数时，在派发前裁决。多个已 Grant 成员同时匹配时，实际 Scope 取这些成员边界与 callable、Invocation 授权范围的交集。空交集禁止派发。未 Grant 成员只参与 Effect 一致性检查。候选线格式可用成员级 `scopePolicyRef` 指向部署发布的规则。所有匹配记录的 Effect 必须与 ToolCatalog 一致，包括未获 Grant 的记录。Effect 描述 callable 本身，Grant 仅决定访问资格。检查未获 Grant 的成员可在授权变动前发现同一 callable 的身份冲突，部署侧须修复冲突记录后重新链接。同一 Capability 内重复声明同一成员报 `CAPABILITY_MEMBERSHIP_DUPLICATE`，跨 Capability 的一致成员合法。Runtime 在派发时对可信部署契约重新执行同一 Effect 与授权检查。缺少 Grant、重复记录或 Effect 冲突时禁止派发。该 YAML 是 v1alpha2 互操作字段的示例，真实部署批准独立验证。
 
 ---
 
@@ -1079,7 +1079,7 @@ UNKNOWN 不是 FAIL 的别名，也不是“先通过再说”。Evidence 缺失
 
 CEL 的布尔 `true` / `false` 分别产生 PASS / FAIL。静态可知的非布尔表达式阻断构建；求值异常、未绑定值或无法得出布尔结果时走 UNKNOWN。Script 返回不符合结果契约或抛出求值异常时也走 UNKNOWN；Host 级取消与执行截止按 §24.2 停止。
 
-初始 Primitive：string、integer、number、boolean。结构化对象和数组使用 Schema 引用。Compiler 必须逐个绑定点检查 Source Schema 是否可赋给 Target Schema，并覆盖 integer / number、enum / const、required / optional、nullable / omitted、additionalProperties、数组元素、范围约束和组合 Schema。未支持的 Schema 关键字不得静默忽略；最终兼容矩阵需通过正负例冻结。
+初始 Primitive：string、integer、number、boolean。结构化对象和数组使用 Schema 引用。Compiler 必须逐个绑定点检查 Source Schema 是否可赋给 Target Schema，并覆盖 integer / number、enum / const、required / optional、nullable / omitted、additionalProperties、数组元素、范围约束和组合 Schema。未支持的 Schema 关键字不得静默忽略；赋值规则已由附录 F.5 冻结；实现符合性需正负例验收。
 
 ---
 
@@ -1121,21 +1121,21 @@ Freshness 由 Owner Contract 声明可执行的有效性规则（例如从 obser
 
 ### 17.1 业务签名与来源要求
 
-**效力：Normative（来源与保证规则）；Candidate（线格式拼写）。**
+**效力：Normative（来源、保证和附录 F.3 描述符字段）。**
 
 `context` 根对象不是合法 SourcePath。下文对子路径的豁免不适用于整个 Invocation Context。
 
-**规范性说明。** 保证身份、适用性和证据判定为 normative。E.3 的描述符 DSL 字段名、路径表达文法（含下文用作逻辑示例的引用根拼写）、文件组织及导出键编码均为 candidate，待该线格式审定。
+**规范性说明。** 保证身份、适用性、证据判定与 E.3 描述符 DSL 的字段语义均按附录 F.3 冻结。文件组织不是跨包导出身份；真实 Owner 记录仍须验证。
 
 Predicate 的 `parameters` 声明业务值类型。`evidence.requires` 可选，是参数名到一组非空、无重复的精确 `alias::guaranteeId` 的映射；只允许引用已声明参数。每个列出的保证至少由一条有效 Evidence Ref 满足，列表全部满足才成立。需要独立证据时，引用不同保证并用 Owner 声明的独立来源约束校验，见 §17.2。省略参数只在该参数的所有调用点均满足下列来源豁免时合法。Compiler 按来源判定每个调用点的实参，覆盖所有可达路径。直接引用普通 Tool Operation、Observation 或 Reconcile 输出的实参必须为对应参数声明至少一个覆盖精确值路径的保证，即使该值仅用于比较。Host Context 字段同样要求保证，但请求字段 `context.request.*`、Host 已校验的身份 `context.ueRef`、关联信息 `context.correlation.*` 及其根对象 `context.correlation` 可作为比对输入豁免。字面量和整个已校验的 `context.request` 也可豁免。此检查只约束参数来源。若 Goal 声明外部事实，Owner 须审定 Predicate 的命题与取证路径确实支持该 Goal。
 
 Procedure Script 输出保守继承其全部绑定实参的来源类别，包括上游 Script 的传递来源。仅当全部来源均可豁免时，其输出可无保证。涉及外部事实的 Procedure Script 输出可用于 Operation 或 Observation 的非身份实参，须满足 §13.3 的来源追溯、类型与授权校验。需要 Evidence 的 Predicate 参数必须改绑到权威 Producer 输出或绑定到由 Host 契约提供可验证关联的 Context 子路径。直接绑定该 Script 输出不能满足所需保证。Script 不能继承输入 Evidence。缺少强制声明报 `PREDICATE_EVIDENCE_REQUIRED`；已声明却无法满足者按 §17.2 校验。
 
-保证引用解析到可信 Owner 契约中的唯一精确身份。该描述符是对应 Evidence 保证的唯一权威。ToolCatalog 中 `provides` 只发布保证引用和输出路径。同一保证在 ToolCatalog 重复声明权威、Scope、Correlation、时间或 Freshness 等规则时，Compiler 报 `EVIDENCE_GUARANTEE_LINK_INVALID`。Runtime 只按链接后的描述符判定这些维度。可执行描述符至少给出权威 Owner、允许的 Producer 身份及值路径、适用的 Scope / Correlation 维度及其与当前 Invocation 或已校验调用参数的取值绑定、同一事实的记录选择规则，以及 Freshness 的时间基准和判定规则。Predicate 参数 Schema 由 `parameters` 声明。Producer 值的 Schema 从已发布的输出或 Host Context Schema 按值路径解析，并对参数 Schema 检查可赋值性。`provides[].guarantee` 是该发布方快照中精确的描述符导出键，可以指向同一快照内的独立契约。Compiler 必须解析到唯一导出，并核对描述符允许的 Producer 身份、Outcome 与 `provides[].path`；`output` 指整个已声明的输出。缺失、歧义或路径不匹配均拒绝链接。声明的 `provides` 引用解析失败时报告 `EVIDENCE_GUARANTEE_LINK_INVALID`。E.3 示范分文件声明。Operation Result 和 Observation Result 可提供同一个保证，前提是该权威 Owner 明确授权两条 Producer 路径。Skill 只引用保证 ID；Schema、Owner、相关性和有效期由 Owner 契约提供。描述符中，Observation Producer 的实参引用根为 `query`，Operation Producer 的实参引用根为 `arguments`。两者是保留根，指向相应 Producer 派发时物化并通过校验的实参。Compiler 按描述符中的 Producer kind 校验引用根与字段路径，未知根、根与 kind 不符或实参路径无法解析时报 `EVIDENCE_GUARANTEE_LINK_INVALID`。描述符的传输格式仍待联调。
+保证引用解析到可信 Owner 契约中的唯一精确身份。该描述符是对应 Evidence 保证的唯一权威。ToolCatalog 中 `provides` 只发布保证引用和输出路径。同一保证在 ToolCatalog 重复声明权威、Scope、Correlation、时间或 Freshness 等规则时，Compiler 报 `EVIDENCE_GUARANTEE_LINK_INVALID`。Runtime 只按链接后的描述符判定这些维度。可执行描述符至少给出权威 Owner、允许的 Producer 身份及值路径、适用的 Scope / Correlation 维度及其与当前 Invocation 或已校验调用参数的取值绑定、同一事实的记录选择规则，以及 Freshness 的时间基准和判定规则。Predicate 参数 Schema 由 `parameters` 声明。Producer 值的 Schema 从已发布的输出或 Host Context Schema 按值路径解析，并对参数 Schema 检查可赋值性。`provides[].guarantee` 是该发布方快照中精确的描述符导出键，可以指向同一快照内的独立契约。Compiler 必须解析到唯一导出，并核对描述符允许的 Producer 身份、Outcome 与 `provides[].path`；`output` 指整个已声明的输出。缺失、歧义或路径不匹配均拒绝链接。声明的 `provides` 引用解析失败时报告 `EVIDENCE_GUARANTEE_LINK_INVALID`。E.3 示范分文件声明。Operation Result 和 Observation Result 可提供同一个保证，前提是该权威 Owner 明确授权两条 Producer 路径。Skill 只引用保证 ID；Schema、Owner、相关性和有效期由 Owner 契约提供。描述符中，Observation Producer 的实参引用根为 `query`，Operation Producer 的实参引用根为 `arguments`。两者是保留根，指向相应 Producer 派发时物化并通过校验的实参。Compiler 按描述符中的 Producer kind 校验引用根与字段路径，未知根、根与 kind 不符或实参路径无法解析时报 `EVIDENCE_GUARANTEE_LINK_INVALID`。描述符字段的互操作要求按附录 F.3；真实 Owner 发布和 Transport 联调按 §45.2。
 
 ### 17.1.1 抽象保证模型
 
-**效力：Normative（抽象规则）；Candidate（线格式拼写及示例）。**
+**效力：Normative（抽象规则及附录 F 的 v1alpha2 字段）；Informative（示例身份）。**
 
 **Normative。** 解码后的保证描述符绑定精确 Producer 身份、阶段结果与值路径。实参引用区分 Observation 查询实参与 Operation 实参，均读取已物化的调用输入。执行身份引用独立于实参，读取 Runtime 分配的 Invocation ID 与当前 Producer 调用 ID。Compiler 对抽象引用类别与 Producer kind 进行匹配。
 
@@ -1143,7 +1143,7 @@ Procedure Script 输出保守继承其全部绑定实参的来源类别，包括
 
 Predicate 可声明独立性约束组，组成员为至少两个不同的（参数、保证）对且均已出现在 requires。Compiler 校验每组成员均有权威认证的底层来源身份提取规则，且该规则使用可比较的受信来源身份域。Runtime 必须在组内找到两两不同底层来源、同时满足所有保证的证据组合，否则结果为 UNKNOWN。同一底层记录的不同引用不算独立。描述符的来源身份规则或共同事实映射缺失、重复、歧义或不可比较时，Compiler 报 `EVIDENCE_GUARANTEE_LINK_INVALID`。描述符各自有效但指定独立性组无法在共同可信身份域中形成可验证约束时，报 `PREDICATE_EVIDENCE_UNSATISFIABLE`。合同已通过链接而本次执行找不到符合条件的组合时，Predicate 为 UNKNOWN。
 
-**Candidate 映射。** E.3 的 query / arguments / execution 分别映射为查询实参、操作实参及执行身份引用。selection.mode、orderBy、freshness.timestamp 与 maxAgeMs 分别映射为选择模式、顺序键、时间基准及年龄上限。候选线格式可用 `evidence.independence` 表达各组的参数和保证对，保证描述符用 `sourceIdentity` 发布底层来源投影，并用 `factIdentity` 表达共同命名空间、事实标识、Scope 映射及值投影。E46 的拼写变体按候选解码器验收，抽象类别不匹配规则适用于任何线格式。
+**v1alpha2 字段映射。** E.3 的 query / arguments / execution 分别映射为查询实参、操作实参及执行身份引用。selection.mode、orderBy、freshness.timestamp 与 maxAgeMs 分别映射为选择模式、顺序键、时间基准及年龄上限。v1alpha2 可用 `evidence.independence` 表达各组的参数和保证对，保证描述符用 `sourceIdentity` 发布底层来源投影，并用 `factIdentity` 表达共同命名空间、事实标识、Scope 映射及值投影。E46 的拼写变体按附录 F.3 验收，抽象类别不匹配规则适用于任何线格式。
 
 **值路径覆盖。** 保证路径与参数路径须属于同一精确 Producer 及 Outcome。两条路径按字段段比较。路径相等时可覆盖；保证路径是真前缀时，只有 Owner 保证明确覆盖所请求的子值、且可信记录能验证该子值时才覆盖；子路径永远不能覆盖父对象或相邻字段。Compiler 另按 §13.3 检查参数实际绑定的子值 Schema 对参数 Schema 的可赋值性。整对象的 Schema 无需可赋给标量参数。断言只比较字段段，例如 output.result 不是 output.resultExtra 的前缀。
 
@@ -1257,7 +1257,7 @@ Runtime 只用可信且关联到本次原调用的证明记录提交状态。Own
 | 已声明 FAILED、超时或证明不足、冲突 | 经独立验证且无冲突的提交结论仍记录。无有效结论时沿 UNRESOLVED，保留原调用责任。若独立证明已确定结论但回包无法进入正常分支，按 §12.8 直接停止 |
 | 未声明或不可识别的 Owner 结果（包括 Owner 自行返回 COMMITTED / NOT_COMMITTED / UNRESOLVED） | 隔离回包，保存可独立验证的原提交状态与责任，按 §24.2、§12.8 直接停止 |
 
-**Candidate。** §9.2.1 的 `reconcile` 示例可引用单独发布的调和 callable。该 callable 的结果集、证明路径与原调用绑定均须可解析，不能用恢复输出替代提交证明。
+**Normative。** §9.2.1 的 `reconcile` 示例可引用单独发布的调和 callable。该 callable 的结果集、证明路径与原调用绑定均须可解析，不能用恢复输出替代提交证明。
 
 ## 21. 异步 Operation：没有 Skill Wait
 
@@ -2052,11 +2052,11 @@ Skill 源码只引用本包拥有的文件，或通过 Contract 声明的 Alias 
 
 ### 34.0 最小依赖身份与链接规则
 
-**效力：Normative（身份与链接规则）；Candidate（传输结构）。**
+**效力：Normative（身份、链接和附录 F.4 的最低可信输入）；BuildRequest 编码另属独立契约。**
 
 解析 callable 时，先按 Alias 选定唯一可信快照，再按导出 ID 查找。查找范围覆盖快照中所有 ToolCatalog 文件，且不按 Owner 或 kind 为重复 ID 消歧。匹配多个声明报 EXPORT_ID_AMBIGUOUS，再匹配到单一导出时才校验其 Owner、kind 和契约。
 
-**规范性说明。** 身份校验为 normative；可信绑定与多 Owner 传输结构为 candidate。
+**规范性说明。** 身份、Owner 和多 Owner 导出级归属的最低可信属性均按附录 F.4 冻结；BuildRequest 如何编码这些属性由其独立版本决定。
 
 `contract.yaml` 的 `dependencies` 将每个别名直接映射到一个稳定 Package ID 字符串。这个包可以提供 Schema、ToolCatalog callable 和 Evidence 保证，引用时再选择具体导出。版本、下载位置和快照内容不写进 Skill 源码。
 
@@ -2074,7 +2074,7 @@ dependencies:
 3. 外部 callable 还须在独立可信 CapabilityContracts 中，以精确 Owner、callable ID 和 kind 按 §9.3 核对所有成员的 Effect 并检查至少一个匹配的 Capability 已获 Skill Grant。单纯链接成功不授予执行权。
 4. 合法但未使用的 Contract 依赖产生 UNUSED_DEPENDENCY 警告。构建输入里的额外快照不得自动进入 Skill 链接范围。
 
-`dependency.yaml` 不作为必需输入。此规则复用快照线协议及锁定信息；CA-SL 只要求可验证的身份关联。Studio / Compiler 仍须确认怎样传入这份可信绑定，以及如何传递多 Owner 快照的导出级归属；摘要算法和字节 framing 由所选版本的 BuildRequest 契约定义，不属于 CA-SL 语言语义。文件集规范化仅处理路径校验和规范化、文件枚举、排序及非法或冲突路径拒绝，具体规则以 BuildRequest 为准。摘要 framing 消费快照中的原始内容字节。CA-SL 不改写这些字节，YAML 重排、换行转换和 JSON 重编码均不得用于摘要前的内容规范化。若调用方无法提供可信身份，保留链接错误。Compiler 只消费调用方提供的字节和可信元数据，语言版本与传输字段由 Compiler BuildRequest 版本管理。
+`dependency.yaml` 不作为必需输入。此规则复用快照线协议及锁定信息；CA-SL 只要求可验证的身份关联。Studio / Compiler 必须经受信输入提供身份绑定和多 Owner 导出级归属，否则链接拒绝。摘要算法和字节 framing 由所选版本的 BuildRequest 契约定义，不属于 CA-SL 语言语义。文件集规范化仅处理路径校验和规范化、文件枚举、排序及非法或冲突路径拒绝，具体规则以 BuildRequest 为准。摘要 framing 消费快照中的原始内容字节。CA-SL 不改写这些字节，YAML 重排、换行转换和 JSON 重编码均不得用于摘要前的内容规范化。若调用方无法提供可信身份，保留链接错误。Compiler 只消费调用方提供的字节和可信元数据，语言版本与传输字段由 Compiler BuildRequest 版本管理。
 
 摘要细节见 [Compiler v0.1 快照摘要](https://github.com/odango-chan/ca-skill-compiler/blob/b60024497b4865f705fa40e1b04bcc84032778d8/docs/design/dependency-snapshot-digest-v0.1.md)。参见 [Compiler PR #4 的 BuildRequest v0.1 契约](https://github.com/odango-chan/ca-skill-compiler/pull/4) 和 [Studio PR #150 的配置与快照设计](https://github.com/odango-chan/ca-skill-studio-demo/pull/150)。
 
@@ -2086,7 +2086,7 @@ dependencies:
 
 同一可信工件集允许多个文件，各 Capability ID 只能定义一次，重复定义报 CAPABILITY_DEFINITION_CONFLICT；同一 Capability 内的成员重复按 §9.3 处理。禁止合并不同部署的工件集。先验证部署输入与其成员完整性，再链接已验证 Owner 的 ToolCatalog，以精确 callable 身份核对所有匹配成员的 Effect，最后检查 Grant 和已 Grant 成员的 Scope。无授权声明不得产生执行权限。
 
-**Candidate。** BuildRequest 可用 `capabilityContracts` [candidate] 承载文件集、摘要和版本，由可信入口单独关联部署与发布者。字段名和编码按 §45 第 10 项审定。
+**Normative。** BuildRequest 或受信构建上下文必须提供独立 CapabilityContracts 文件集、摘要、版本、部署身份和发布者授权绑定，最低属性见附录 F.4。具体字段名由 BuildRequest 版本拥有；缺失不可以猜测。
 
 ### 34.1 Schema 的源格式与编译格式
 
@@ -2500,12 +2500,12 @@ flowchart LR
 
 | 对应 §45 项 | 交付范围 | 状态 | 评审责任 |
 |---|---|---|---|
-| 1 | 术语与责任边界 | 提案待审定 | 语言 / 业务 Owner |
-| 2 | ToolCatalog callable | 候选线格式待定稿 | Tool Owner / Compiler |
-| 3 | CapabilityContracts 与 Scope | 候选线格式待定稿 | Deployment / Compiler |
-| 4 | Observation 调用及 QueryContext | 调用语义已写明，线格式待审定 | 语言 / Observation Owner |
+| 1 | 术语与责任边界 | 规范已冻结；产品使用待审 | 语言 / 业务 Owner |
+| 2 | ToolCatalog callable | 附录 F.1 已冻结；真实 Owner 发布待验收 | Tool Owner / Compiler |
+| 3 | CapabilityContracts 与 Scope | 附录 F.2 已冻结；部署授权待验收 | Deployment / Compiler |
+| 4 | Observation 调用及 QueryContext | 附录 F.1 已冻结；真实导出待验收 | 语言 / Observation Owner |
 | 5 | Evidence 保证及复核 | 抽象规则已写明，Owner 契约与 Runtime 验收待完成 | Evidence Owner / Host |
-| 6 | Schema ID、支持子集与依赖 Alias | 链接规则已写明，子集待审定 | Compiler / Schema Owner |
+| 6 | Schema ID、支持子集与依赖 Alias | 链接规则与 F.5 已冻结；Compiler 待验收 | Compiler / Schema Owner |
 | 7 | Predicate / Script 类型 | 静态检查规则已写明，类型子集与实现待验收 | Compiler / Studio |
 | 8 | Procedure、门禁、路由与 SourcePath | 语义及文档样例已更新，Compiler 验收待完成 | 语言 / Compiler |
 | 9 | 三个 5GC 异步 Operation | Owner 契约待确认 | SMF / Provider |
@@ -2536,12 +2536,12 @@ flowchart LR
 
 | 评审意见 | 本规范答复 | 当前结论 |
 |---|---|---|
-| Observation ToolCatalog 表达不明确 | 提出在同一个 ToolCatalog 的 contracts 中使用 kind=operation / kind=observation 的类型化 callable；Observation 有独立 id、QueryContext Schema、Output Schema 和 guarantees | 方向已提出，字段仍待 Owner / Compiler 冻结 |
-| Observation Query 调用语法不明确 | Operation 和 Observation Query 使用同一 Node 内不同的阶段字段；精确身份由依赖快照解析，kind 由 ToolCatalog 决定；Query Input 使用具名 arguments 映射 | 语义已明确，正式 Schema / Fixture 待冻结 |
+| Observation ToolCatalog 表达不明确 | 同一 ToolCatalog 的 contracts 中以 kind 区分 operation / observation；附录 F.1 固定字段 | 语言已冻结；Owner 导出与 Compiler 待验收 |
+| Observation Query 调用语法不明确 | Operation 和 Observation 使用各自阶段，精确身份由依赖快照解析；Query Input 使用具名 arguments | 语言已冻结；真实 Schema / Fixture 待验收 |
 | Evidence 与 Predicate 参数的关联不明确 | §17 使用参数到保证 ID 的映射；每项至少一条有效证据并校验关联，Runtime 独立确认 | 规则已提出；Owner 保证导出、Host 运行校验与 Fixture 待确认 |
 | Predicate Script 类型派生不明确 | Predicate.parameters 是唯一业务输入签名；Script 入口引用生成的 PredicateInput；Compiler / LSP 使用同一虚拟 stub | 语义已明确；生成 stub / overlay 的工具链方式待验证 |
 | Schema ID 与路径混淆 | 外部引用使用 dependency-alias::精确 Schema $id；Skill 自有 Schema 使用包内路径；路径不是公共身份 | 规则已明确；需要 Compiler 正负例验证 |
-| primitive 类型兼容、nullable 和 CEL 规则不完整 | 由 Compiler 类型兼容矩阵和正负例冻结，未支持关键字不得静默忽略 | 未冻结 |
+| primitive 类型兼容、nullable 和 CEL 规则不完整 | 附录 F.5 保守赋值规则，未支持关键字必须拒绝 | 语言规则已冻结；实现待验收 |
 | 自动同名绑定保留键冲突 | vNext 第一版不支持隐式同名绑定；Studio 可生成显式 arguments | 已纳入本版候选语法 |
 | 三个异步 Operation 的 Owner 契约尚未确认 | 责任目标映射到 UPN.CREATE_UP_SESSION、SSM.SIGNAL_UE_AN、UPN.MODIFY_UP_SESSION | 仅为目标责任；ToolCatalog / Output / Evidence 仍待 Owner 确认 |
 
@@ -2556,8 +2556,8 @@ flowchart LR
 | 子节 | 输入效力 | 预期与用途 |
 |---|---|---|
 | E.1、E.2、E.8 | informative Fixture | 预期由 normative 源码、Schema 和证明规则决定 |
-| E.3、E.4 | candidate 线格式、装配与 informative 数据 | 解码后的链接、Evidence 与授权规则为 normative |
-| E.5–E.7、E.9 | informative 验收设计 | 引用的诊断或行为由 normative 规则决定；具体字段、拼写或装配的变体是 candidate 格式验收 |
+| E.3、E.4 | v1alpha2 normative 互操作字段，informative 测试装配与数据 | 解码后的链接、Evidence 与授权规则为 normative |
+| E.5–E.7、E.9 | informative 测试输入 / normative 预期结果 | 诊断或行为由 normative 规则决定；BuildRequest 装配属独立版本 |
 | E.10、E.11 | informative 验收矩阵和索引 | 不代表实现已经通过 |
 
 ## E.1 Skill 作者源码
@@ -2827,7 +2827,7 @@ expected:
 | E43：多 Owner 快照中已有唯一归属，但 Owner 越权 | DEPENDENCY_OWNER_MISMATCH |
 | E44：不可达节点也有一条指向 SUCCEEDED 的边 | UNREACHABLE_NODE 警告；该边不影响证明 |
 | E45：Goal PASS 后经过全局 Precondition，再尝试成功 | 构建通过；PASS 保留 Goal 证明，成功发布仍需 Runtime 复核 |
-| E46：（candidate 解码验收）Observation 的保证描述符误用 Operation 的实参引用根 | EVIDENCE_GUARANTEE_LINK_INVALID |
+| E46：（描述符链接验收）Observation 的保证描述符误用 Operation 的实参引用根 | EVIDENCE_GUARANTEE_LINK_INVALID |
 | E47：同一 Node 的 Precondition 引用自身 Observation 的输出 | SOURCE_NOT_AVAILABLE |
 | E48：四阶段 Node 在 Precondition 返回 FAIL 或 UNKNOWN | 直接走该阶段的退出路由，后续三个阶段均不执行 |
 | E49：Operation 成功，但同 Node 的 Observation 返回 UNKNOWN | 走 Observation 的 UNKNOWN 退出路由，保留已完成 Operation 的结果和责任记录，不执行 Postcondition |
