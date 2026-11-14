@@ -2340,7 +2340,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 
 1. Tool / Observation / Evidence Owner 发布精确 Input/Output/Proof/Reconcile、资源责任、Scope、Correlation、Freshness 和结果分类的正式导出。
 2. Deployment 提供受信 CapabilityContracts、Scope 策略和对每份快照摘要/Package ID/Owner 归属的可信绑定。
-3. Compiler 在 CI 中执行 Appendix E01–E114 的适用正反例（包含 G.9），覆盖错误码、类型、SourcePath、Evidence、图可达性及 Goal/Precondition 证明传播。
+3. Compiler 在 CI 中执行附录 E01–E114 的适用正反例（包含 G.9），覆盖错误码、类型、SourcePath、Evidence、图可达性及 Goal/Precondition 证明传播。附录 H 中标记为“部分覆盖”或“待 Fixture”的诊断仍需通过独立的、与 `(Code, Phase)` 精确对应的可执行用例验收。资料性的 [诊断 Fixture 缺口登记](fixtures/ca-sl-v1alpha3-diagnostic-fixture-gaps.yaml) 用于跟踪候选输入，**不增加 E01–E114 的规范性编号范围，也不构成 CI 通过证据**。声称符合本版的实现不得以 E 编号完整代替对未覆盖诊断的校验。
 4. Native / WASM / Studio 同一输入返回相同的链接和诊断结果；LSP 补全与检查共用规范源，不能发明不同解释。
 5. Runtime / Host 验证安全派发、预算、Deadline、取消、Reconcile、并发隔离、证据复核、Trace 和资源责任终态。
 6. 三个 5GC 异步完成 Operation 由其 Owner 确认；将真实 5GC Skill 迁移后执行 36 个 Case 的 vNext 回归；MAS 不列入已完成的运行验收基线。
@@ -3698,7 +3698,7 @@ G.1–G.9 的补充用例须与原 E01–E104 组合执行。文档审计不代�
 
 **覆盖状态定义（资料性）。** `规范用例已定义` 表示所列 E 变体在规范文本中有对应预期，尚未提供或核实执行证据；`部分覆盖` 表示所引 E 用例仅覆盖一般规则、部分分支或间接判定，不足以单独证明当前 `(Code, Phase)`；`待 Fixture` 表示尚无可精确引用的变体，必须另行提供输入与预期。所有状态均不表示测试已经执行或通过。相关候选测试清单参见 [诊断 Fixture 缺口登记](fixtures/ca-sl-v1alpha3-diagnostic-fixture-gaps.yaml)，该清单不增加 E 编号、规范性语义或 CI 验收结论。
 
-**诊断优先级。** 旧式 Wait / v0.2 语法与普通未知字段的分派按 §24.1 的专用诊断优先规则；同一绑定点的一般链接优先级为：YAML/结构 → Package/依赖与 Owner 身份 → Schema/路径与支配可用性 → 类型 → 授权/Effect/Scope → Evidence 描述符链接 → Evidence 组合可满足性 → 运行时证据判定；与规范性更具体的 §13.3、§17.1.1 和 §24.1 的顺序相同。遇到较早的致命错误时，不基于未经解析的下游值推断新的错误。彼此独立的错误可以共同报告，诊断展示排序不是执行语义。
+**诊断优先级。** 以下先后关系仅适用于同一绑定点。旧式 Wait / v0.2 语法与普通未知字段的分派按 §24.1 的专用诊断优先规则；其他错误按以下顺序检查：YAML/结构 → Package/依赖与 Owner 身份 → Schema/路径与支配可用性 → 类型 → 授权/Effect/Scope → Evidence 描述符链接 → Evidence 组合可满足性 → 运行时证据判定；与规范性更具体的 §13.3、§17.1.1 和 §24.1 的顺序相同。遇到较早的致命错误时，不基于未经解析的下游值推断新的错误。彼此独立的错误可以共同报告，诊断展示排序不是执行语义。
 
 ---
 
