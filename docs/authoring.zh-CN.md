@@ -1,6 +1,6 @@
 # ConnectionAgent Skill 编写指南
 
-**语言权威：** [CA-SL vNext 综合规范](skill-language-spec.zh-CN.md)。本指南只做导航，不另行定义语法。
+**语言权威：** [CA-SL vNext / v1alpha3 综合规范](skill-language-spec.zh-CN.md)。本指南只做导航，不另行定义语法。语言及互操作规范已冻结；Compiler / Runtime / Studio / 5GC 产品符合性仍需按 §45.2 验收。
 
 ## 1. 当前正式源码基线
 
