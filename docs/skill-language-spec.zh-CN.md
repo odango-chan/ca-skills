@@ -546,7 +546,7 @@ TerminalStatus    = SUCCEEDED | FAILED | UNRESOLVED | SAFE_STOPPED
 
 Node ID 与 `Identifier` 使用同一字符规则。Compiler 在解析 `start` 和路由前拒绝使用 `context` 或任一 `TerminalStatus` 精确拼写的 Node ID。`start` 必须引用真实 Node。Node 至少有一个阶段，各阶段最多声明一次。各阶段在自己的 `routes` 中按 Outcome 指定目标，允许键和必填键由 §12.1、§22 决定。省略 `routes` 与空映射等价，两者仅在该阶段的没有必须显式路由的非正常 Outcome 且后面还有阶段时合法。其他情况须写全 §22 要求的路由，缺键阻断构建。Reconcile 不接收 `arguments`。解析器拒绝未知字段和重复阶段，保留 YAML 标量的引号风格。
 
-本版仅有单一 Procedure 图，不定义 entryProcedure、嵌套 ProcedureCall、通用 call、隐式 Step 或同名自动绑定。
+本版仅有单一 Procedure 图，不定义 entryProcedure、嵌套 ProcedureCall、通用 call、隐式 Step 或同名自动绑定。完整 PredicateSet 文法、标识符、绝对 Schema URI 以及 ScalarLiteral 字符集见 G.1；合法 YAML 但违反 CA-SL 标识符文法的源码必须以 IDENTIFIER_INVALID 或 QUALIFIED_REFERENCE_INVALID 拒绝。
 Compiler 必须设置文档字节数、嵌套深度、Alias 展开规模的有限上限，并在超限时拒绝输入。
 
 `context.request` 是根级保留路径。Host Schema 的嵌套对象可使用属性名 request。
@@ -1336,7 +1336,9 @@ Environment
 
 | 错误 | 示例 | 要求 |
 |---|---|---|
-| YAML_PARSE_ERROR | 缩进、重复 Key、非法类型 | 阻止构建 |
+| YAML_PARSE_ERROR | 非法 YAML 编码、重复 Key、非法基本标量 | 阻止构建 |
+| IDENTIFIER_INVALID | G.1 普通标识符（含 PredicateId、Alias、GoalId）字符/空段非法 | 阻止构建 |
+| QUALIFIED_REFERENCE_INVALID | alias::ExportId、alias::SchemaURI 或 URI scheme 格式不合法 | 阻止构建 |
 | SOURCE_ROOT_INVALID | 文件根结构与文件角色不匹配 | 阻止构建 |
 | LANGUAGE_TARGET_UNSUPPORTED | BuildRequest 指定的语言目标不受支持 | 阻止构建 |
 | UNKNOWN_FIELD | 未定义语义字段 | 阻止构建 |
@@ -2256,7 +2258,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 
 1. Tool / Observation / Evidence Owner 发布精确 Input/Output/Proof/Reconcile、资源责任、Scope、Correlation、Freshness 和结果分类的正式导出。
 2. Deployment 提供受信 CapabilityContracts、Scope 策略和对每份快照摘要/Package ID/Owner 归属的可信绑定。
-3. Compiler 在 CI 中执行 Appendix E01–E104 的适用正反例，覆盖错误码、类型、SourcePath、Evidence、图可达性及 Goal/Precondition 证明传播。
+3. Compiler 在 CI 中执行 Appendix E01–E114 的适用正反例（包含 G.9），覆盖错误码、类型、SourcePath、Evidence、图可达性及 Goal/Precondition 证明传播。
 4. Native / WASM / Studio 同一输入返回相同的链接和诊断结果；LSP 补全与检查共用规范源，不能发明不同解释。
 5. Runtime / Host 验证安全派发、预算、Deadline、取消、Reconcile、并发隔离、证据复核、Trace 和资源责任终态。
 6. 三个 5GC 异步完成 Operation 由其 Owner 确认；将真实 5GC Skill 迁移后执行 36 个 Case 的 vNext 回归；MAS 不冒充运行基线。
@@ -3148,13 +3150,13 @@ ScalarLiteral        = QuotedYamlString | CoreBoolean | CoreNull | FiniteDecimal
 
 NodeId 保留 context 与四个终态。所有普通标识符大小写敏感、每段以 ASCII 字母开头；中间允许数字、下划线和连字符；空段、连续点、尾点、冒号或空白不得作为 DottedId/ExportId。Alias 不能含点号或冒号。ExportId 只用于 callable / Evidence 保证，允许分段点号，但**不允许冒号**。外部 Schema 身份采用另一种解析：仅在 QualifiedSchemaId 的**首个双冒号**处分开 Alias 与后面的完整绝对 URI；URI 可以含冒号，必须与受信 Schema $id 精确匹配，不得用 ExportId 词法解析。StablePackageId 为遵守 RFC 3986 的绝对 URI；这些 URI 均不得含空白、控制字符或未解析的穿越成分。不能由文件中的自报身份建立信任。
 
-LocalSchemaPath 与 LocalScriptPath 只接受包内 POSIX 相对路径；禁止绝对路径、反斜线、空段、点段、双点段和符号链接越界。PositiveInteger 为十进制且必须大于零、无前导零。无引号字符串只可能是合法 SourcePath；带引号的 YAML 字符串作为字面值，Boolean 只有 true/false、Null 只有 null；数字为有限十进制，不允许 NaN/Infinity、隐式八进制或任意字符串转数值。具体 SourcePath 规则继承 §13.2。
+NonEmptyList 表示长度至少 1 的 YAML 序列，ExactlyOneName 表示恰有一个非保留 Name 键的映射；AbsoluteSchemaUri 与 AbsolutePackageUri 为 RFC 3986 绝对 URI并由可信契约验证。LocalSchemaPath 与 LocalScriptPath 只接受包内 POSIX 相对路径；禁止绝对路径、反斜线、空段、点段、双点段和符号链接越界。PositiveInteger 为十进制且必须大于零、无前导零。无引号字符串只可能是合法 SourcePath；带引号的 YAML 字符串作为字面值，Boolean 只有 true/false、Null 只有 null；数字为有限十进制，不允许 NaN/Infinity、隐式八进制或任意字符串转数值。具体 SourcePath 规则继承 §13.2。
 
 PredicateSet 根必须只含 predicates 映射；每个 Predicate 的 parameters 按声明顺序传入，名称唯一；零参数允许空列表。每个 Parameter 恰好一个 Name → PrimitiveType 或精确 QualifiedSchemaId。Evidence requires 只可引用已声明参数，列表非空、各保证 ID 唯一；省略 requires 与空映射等价。Independence 每组至少两个不同的 (parameter, guarantee) 成员，且每个成员均在对应 requires 列表内。各组对底层来源的独立性必须经 Owner 发布的描述符验证，不可由两个不同 Ref 的字面值推断。Script evaluator 的字段固定为 evaluator.type=script、evaluator.script 为 LocalScriptPath；CEL evaluator 固定为 type=cel 与 expression；混用两种字段拒绝。
 
 ## G.2 Reconcile callable 的安全身份与类型
 
-v1alpha3 **不引入新的 Effect**。Reconcile 使用独立 ToolCatalog callable：kind 为 operation、effect 必须 READ，ownerOutcomes 必须包含 SUCCEEDED、可以声明 FAILED；Runtime 的 COMMITTED、NOT_COMMITTED 和 UNRESOLVED 不得写进 Owner 的 ownerOutcomes。Reconcile READ 不得引入新业务副作用、重发原 Mutation、修改资源、替换 UE/Session/Scope，也不得用普通 Observation 代替原调用调和。Host journal 内部的责任/提交状态更新不是外部业务 Mutation。
+v1alpha3 **不引入新的 Effect**。Reconcile 使用独立 ToolCatalog callable：kind 为 operation、effect 必须 READ，ownerOutcomes 必须包含 SUCCEEDED、可以声明 FAILED；Runtime 的 COMMITTED、NOT_COMMITTED 和 UNRESOLVED 不得写进 Owner 的 ownerOutcomes。若实际 ToolCatalog effect 被改为 MUTATION 且已 Grant 成员仍声明 READ，优先报 EFFECT_MISMATCH；如部署成员也改成 MUTATION、一致但违反 Reconcile 只读限制，则报 RECONCILE_CONTRACT_INVALID。Reconcile READ 不得引入新业务副作用、重发原 Mutation、修改资源、替换 UE/Session/Scope，也不得用普通 Observation 代替原调用调和。Host journal 内部的责任/提交状态更新不是外部业务 Mutation。
 
 原 Mutation 的 mutation.reconcile 字段必须具备 callable、bind、proofSchema、proofPath；若声明可恢复结果，则 recoverableOutputSchema 和 recoverableOutputPath 必须成对出现，否则两者均省略。bind 必须精确为 originalInvocationId。引用的 Reconcile callable 必须为同一受信 Owner 已发布的唯一 READ operation。其 inputSchema 是根部闭合的 object：唯一必需且允许的属性为 originalInvocationId，类型是非空字符串。Runtime 仅从持久化的原 Mutation Invocation 身份物化这个输入，发起前验证已保存的原 Operation ID、原始输入、请求摘要、Subject/Scope、Lifecycle、Correlation 和当前授权；作者的 operation.reconcile 不允许任何 arguments。Owner 必须能用该 ID 验证和定位其原始调用；若不能，则安全停止并保留原调用责任。proofPath 为 Owner 可信 receipt 中的静态证明路径，proofSchema 定义该位置实际值的精确 Schema；输出本身不得替代提交证明。
 
@@ -3315,7 +3317,7 @@ Skill 的规范化逻辑根是 skills/<skill-name>，skill-name 是 G.1 的 Iden
 
 ## G.8 阶段 Outcome、终态以及长流程证据刷新
 
-阶段 Outcome 的 SUCCEEDED 是一次普通 Owner Operation 或 Script 的正常结果；路由**键** SUCCEEDED 不意味着 Skill 终态已经成功。routes.PASS: SUCCEEDED 的右侧 SUCCEEDED 是**请求**发布 Invocation 成功，必须再通过 §12.8/§12.9 的门禁、Goal 与资源责任复核。Reconcile Owner SUCCEEDED 只是在 Runtime 校验证明后映射 COMMITTED / NOT_COMMITTED 或停止，从不直接发布 Skill 成功。§22.1 是 §12.1 的规范化路由矩阵摘要，必须作为检查必需/禁止路由键的统一来源。
+阶段 Outcome 的 SUCCEEDED 是一次普通 Owner Operation 或 Script 的正常结果；路由**键** SUCCEEDED 不意味着 Skill 终态已经成功。routes.PASS: SUCCEEDED 的右侧 SUCCEEDED 是**请求**发布 Invocation 成功，必须再通过 §12.8/§12.9 的门禁、Goal 与资源责任复核。Reconcile Owner SUCCEEDED 只是在 Runtime 校验证明后映射 COMMITTED / NOT_COMMITTED 或停止，从不直接发布 Skill 成功。§22.1 是 §12.1 的规范化路由矩阵摘要，必须作为检查必需/禁止路由键的统一来源。§20.1 表格中「沿 SUCCEEDED」仅指沿**当前 Mutation Operation 阶段的 SUCCEEDED 边**，不是直接发布 Invocation 的 SUCCEEDED 终态。
 
 E30/E40 的严格绑定规则有意保留：较新的已接纳权威记录即使规范化值相同，也可能使旧 PASS 的 Producer/Evidence 绑定失效。建议的显式模式是在最终 Goal Postcondition 前重新执行授权的权威 Observation，将新 Producer output 作为参数来源，绑定新 Evidence，再取得新的 Goal PASS；Trace 保留此前的旧 PASS/旧 Evidence、新判断和所有派发事件。不得隐式换绑、自动刷新、悄悄重算旧 Predicate。未来若要支持受控重验策略，须显式升级契约版本。
 
@@ -3325,7 +3327,7 @@ E30/E40 的严格绑定规则有意保留：较新的已接纳权威记录即使
 
 | 用例 | 输入变化 | 必须得到的结果 |
 |---|---|---|
-| E105 | PredicateId 为 foo..bar；Alias 含冒号；ExportId 有尾点；QualifiedSchemaId 的 URI 无 scheme；LocalScriptPath 含双点段 | 各拒绝解析或链接，按 YAML_PARSE_ERROR / DEPENDENCY_ALIAS_MISSING / EXPORT_ID_MISSING / SCHEMA_INVALID / PACKAGE_PATH_INVALID 的对应边界，不作隐式恢复 |
+| E105 | 分别令 PredicateId=foo..bar、Alias=ca:demo、ExportId=foo..bar、QualifiedSchemaId=ca::relative/path、LocalScriptPath=scripts/../x.py | 前两者 IDENTIFIER_INVALID；中间两者 QUALIFIED_REFERENCE_INVALID；最后 PACKAGE_PATH_INVALID；以上不依赖 YAML parser 是否把裸标量当作字符串 |
 | E106 | G.3 requires + independence 两成员；删掉其中一个 requires；复制相同 member；运行时不同 Evidence Ref 其实来自同一底层记录 | 合法字段静态链接通过；成员非法报 EVIDENCE_GUARANTEE_LINK_INVALID；静态合法但同源执行得 UNKNOWN |
 | E107 | G.2 正确的 Reconcile READ；分别改 Effect 为 MUTATION、kind 为 observation、inputSchema 多加可写字段、删除 proofPath、只 Grant 原 Mutation | 合法例通过链接；变体分别 EFFECT_MISMATCH、RECONCILE_CONTRACT_INVALID、RECONCILE_CONTRACT_INVALID、RECONCILE_CONTRACT_INVALID、CAPABILITY_NOT_GRANTED |
 | E108 | Reconcile Owner SUCCEEDED 与有效 COMMITTED 证明+恢复输出；取消恢复声明；提供无效恢复输出；证明 NOT_COMMITTED；Owner 直接发 COMMITTED | 分别为 COMMITTED+输出可用、COMMITTED+无输出、安全停止并 COMMITTED_OUTPUT_UNAVAILABLE、NOT_COMMITTED、未知回包隔离停止 |
@@ -3347,6 +3349,8 @@ G.1–G.9 的补充用例须与原 E01–E104 组合执行。文档审计不代�
 | Code | 类别 | 阻断构建 | 触发阶段 | Runtime 终态/路由影响 | E 用例 |
 |---|---|---|---|---|---|
 | YAML_PARSE_ERROR | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | E105 |
+| IDENTIFIER_INVALID | Compiler ERROR | 是 | Parse / source (G.1) | 不启动 Invocation | E105 |
+| QUALIFIED_REFERENCE_INVALID | Compiler ERROR | 是 | Parse / source (G.1) | 不启动 Invocation | E105 |
 | SOURCE_ROOT_INVALID | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | E02 |
 | LANGUAGE_TARGET_UNSUPPORTED | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | E01 |
 | UNKNOWN_FIELD | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | E35 |
