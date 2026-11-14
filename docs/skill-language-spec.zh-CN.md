@@ -2,8 +2,8 @@
 
 **中文名称：** ConnectionAgent Skill 语言规范  
 **简称：** CA-SL  
-**目标版本：** vNext / API v1alpha2  
-**状态：** FROZEN — CA-SL vNext / API v1alpha2（语言契约；实现与部署另行验收）  
+**目标版本：** vNext / API v1alpha3  
+**状态：** v1alpha3 CLOSURE REVIEW（规范闭合性验收中；产品实现 NOT QUALIFIED）  
 **规范所有者：** odango-chan/ca-skills  
 **消费者：** Skill 作者、Skill Studio、ca-skill-compiler、Agent Host / Runtime、Tool Owner、Schema Owner、语言服务和第三方评审者  
 **更新日期：** 2026-11-14
@@ -20,7 +20,7 @@
 
 ## 0. 规范效力与成熟度
 
-本版的 CA-SL 作者源码、静态和运行语义、诊断以及附录 F 定义的 ToolCatalog / CapabilityContracts / Evidence **互操作剖面均已冻结（Normative）**。E.1–E.4 的 `urn:example` 数据、历史设计记录与测试装配说明为 Informative，但其预期诊断与行为具有 Normative 效力。外部 BuildRequest 文件传输、Compiler Artifact、Runtime Trace 和真实 Tool Owner 发布物由其独立版本治理；本规范冻结不冒充它们已获 Owner 签署或通过 CI。此前标成 Candidate 的 v1alpha2 字段以附录 F 的唯一规范性定义为准；与其不符的旧提示仅视为历史评审文字。
+本版拟将 CA-SL 作者源码、静态与运行语义，以及附录 F/G 的互操作剖面冻结为 Normative。v1alpha2 已冻结的历史记录不代表 v1alpha3 新增安全语义已经验收。E.1–E.4 的 `urn:example` 数据、历史设计记录与测试装配说明为 Informative，但其预期诊断与行为具有 Normative 效力。外部 BuildRequest 文件传输、Compiler Artifact、Runtime Trace 和真实 Tool Owner 发布物由其独立版本治理；本规范冻结不冒充它们已获 Owner 签署或通过 CI。此前标成 Candidate 的 v1alpha3 字段以附录 F 的唯一规范性定义为准；与其不符的旧提示仅视为历史评审文字。
 
 ### 作者快速入门
 
@@ -322,14 +322,14 @@ ToolCatalog 是 Tool Owner 发布的 callable 契约集合。vNext 要求同一 
 
 ### 9.2 Observation 在 ToolCatalog 中的规范表达
 
-**效力：Normative（抽象规则及附录 F 的 v1alpha2 字段）；Informative（示例身份）。**
+**效力：Normative（抽象规则及附录 F 的 v1alpha3 字段）；Informative（示例身份）。**
 
 **规范性说明。** 类型化 ToolCatalog 导出与链接规则按附录 F.1 冻结；真实 Owner 发布独立验收。
 
 以下是冻结的互操作结构的教学实例，并非当前 Owner 的正式发布物：
 
 ~~~yaml
-apiVersion: connectionagent.io/toolcatalog/v1alpha2
+apiVersion: connectionagent.io/toolcatalog/v1alpha3
 kind: ToolCatalog
 metadata:
   name: smf-session-state
@@ -373,7 +373,7 @@ E.3 给出了带精确 Outcome 与 Evidence 描述符的独立 READ 样例。普
 
 **效力：Normative（抽象属性与附录 F.1 字段）；Informative（示例 ID）。**
 
-| 规范抽象属性 | v1alpha2 字段映射 |
+| 规范抽象属性 | v1alpha3 字段映射 |
 |---|---|
 | 提交证明 Schema、值路径和原调用关联 | `mutation.commitProof` |
 | 互斥失败类别、阶段映射和未提交证明 | `failureClasses[].id/outcome/proofSchema` |
@@ -381,7 +381,7 @@ E.3 给出了带精确 Outcome 与 Evidence 描述符的独立 READ 样例。普
 | 调和 callable、原调用绑定、证明及可选恢复输出 Schema | `reconcile.callable/bind/proofSchema/recoverableOutputSchema` |
 | 资源或外部变更的身份、关联、责任与处置描述 | `resourceOutputs[]` 及其引用的责任记录 Schema |
 
-v1alpha2 按附录 F.1 的字段映射到抽象属性，并执行规范性校验。其他外部协议版本必须显式版本化解码，不能默许不兼容字段或未知保证。
+v1alpha3 按附录 F.1 的字段映射到抽象属性，并执行规范性校验。其他外部协议版本必须显式版本化解码，不能默许不兼容字段或未知保证。
 
 **Normative。** Mutation Owner 声明提交证明的 Schema、取值位置及原调用关联、互斥失败类别及其阶段映射、无遗留副作用承诺和重试资格。FAILED 类别必须证明未提交且无遗留副作用，重试资格为否。NOT_COMMITTED 只证明未提交，只有明确允许重试且无遗留副作用才授予受控重试资格。每个类别映射必须属于已声明 Owner Outcome。声明支持 Reconcile 时，还须链接其精确 callable、原调用身份绑定、证明 Schema 和可选的 COMMITTED 恢复输出 Schema。至多一次由 Runtime 对原调用持久化执行。每个可能遗留的资源或外部变更须有可验证的责任记录描述，包括来源、资源类型与句柄或变更身份、责任 Owner、原调用关联及处置状态。
 
@@ -407,14 +407,14 @@ mutation:
 
 ### 9.3 CapabilityContracts
 
-**效力：Normative（抽象规则及附录 F 的 v1alpha2 字段）；Informative（示例身份）。**
+**效力：Normative（抽象规则及附录 F 的 v1alpha3 字段）；Informative（示例身份）。**
 
-**规范性说明。** CapabilityContracts v1alpha2 互操作字段及授权与 Effect 语义均为 Normative（附录 F.2）。
+**规范性说明。** CapabilityContracts v1alpha3 互操作字段及授权与 Effect 语义均为 Normative（附录 F.2）。
 
 CapabilityContracts 是部署侧可信输入，独立于普通 DependencySnapshot。冻结的互操作字段示例：
 
 ~~~yaml
-apiVersion: connectionagent.io/capability-contracts/v1alpha2
+apiVersion: connectionagent.io/capability-contracts/v1alpha3
 kind: CapabilityContracts
 metadata:
   name: 5gc-createdsession
@@ -435,7 +435,7 @@ spec:
           scopePolicyRef: deployment.registration-read
 ~~~
 
-CapabilityContracts 使用稳定 Owner 身份、精确 callable ID 和 kind 标识成员。Compiler 查找该身份的所有成员记录，要求至少一个所属 Capability 已被 Skill Grant。仅对匹配且已 Grant 的成员解析 Scope。缺失或不可解析报 `CAPABILITY_SCOPE_UNRESOLVED`，静态可证的空交集报 `CAPABILITY_SCOPE_EMPTY_INTERSECTION`。未 Grant 成员无需解析 Scope，Effect 一致性检查仍适用。Scope 依赖实际 Runtime 参数时，在派发前裁决。多个已 Grant 成员同时匹配时，实际 Scope 取这些成员边界与 callable、Invocation 授权范围的交集。空交集禁止派发。未 Grant 成员只参与 Effect 一致性检查。候选线格式可用成员级 `scopePolicyRef` 指向部署发布的规则。所有匹配记录的 Effect 必须与 ToolCatalog 一致，包括未获 Grant 的记录。Effect 描述 callable 本身，Grant 仅决定访问资格。检查未获 Grant 的成员可在授权变动前发现同一 callable 的身份冲突，部署侧须修复冲突记录后重新链接。同一 Capability 内重复声明同一成员报 `CAPABILITY_MEMBERSHIP_DUPLICATE`，跨 Capability 的一致成员合法。Runtime 在派发时对可信部署契约重新执行同一 Effect 与授权检查。缺少 Grant、重复记录或 Effect 冲突时禁止派发。该 YAML 是 v1alpha2 互操作字段的示例，真实部署批准独立验证。
+CapabilityContracts 使用稳定 Owner 身份、精确 callable ID 和 kind 标识成员。Compiler 查找该身份的所有成员记录，要求至少一个所属 Capability 已被 Skill Grant。仅对匹配且已 Grant 的成员解析 Scope。缺失或不可解析报 `CAPABILITY_SCOPE_UNRESOLVED`，静态可证的空交集报 `CAPABILITY_SCOPE_EMPTY_INTERSECTION`。未 Grant 成员无需解析 Scope，Effect 一致性检查仍适用。Scope 依赖实际 Runtime 参数时，在派发前裁决。多个已 Grant 成员同时匹配时，实际 Scope 取这些成员边界与 callable、Invocation 授权范围的交集。空交集禁止派发。未 Grant 成员只参与 Effect 一致性检查。候选线格式可用成员级 `scopePolicyRef` 指向部署发布的规则。所有匹配记录的 Effect 必须与 ToolCatalog 一致，包括未获 Grant 的记录。Effect 描述 callable 本身，Grant 仅决定访问资格。检查未获 Grant 的成员可在授权变动前发现同一 callable 的身份冲突，部署侧须修复冲突记录后重新链接。同一 Capability 内重复声明同一成员报 `CAPABILITY_MEMBERSHIP_DUPLICATE`，跨 Capability 的一致成员合法。Runtime 在派发时对可信部署契约重新执行同一 Effect 与授权检查。缺少 Grant、重复记录或 Effect 冲突时禁止派发。该 YAML 是 v1alpha3 互操作字段的示例，真实部署批准独立验证。
 
 ---
 
@@ -1135,7 +1135,7 @@ Procedure Script 输出保守继承其全部绑定实参的来源类别，包括
 
 ### 17.1.1 抽象保证模型
 
-**效力：Normative（抽象规则及附录 F 的 v1alpha2 字段）；Informative（示例身份）。**
+**效力：Normative（抽象规则及附录 F 的 v1alpha3 字段）；Informative（示例身份）。**
 
 **Normative。** 解码后的保证描述符绑定精确 Producer 身份、阶段结果与值路径。实参引用区分 Observation 查询实参与 Operation 实参，均读取已物化的调用输入。执行身份引用独立于实参，读取 Runtime 分配的 Invocation ID 与当前 Producer 调用 ID。Compiler 对抽象引用类别与 Producer kind 进行匹配。
 
@@ -1143,7 +1143,7 @@ Procedure Script 输出保守继承其全部绑定实参的来源类别，包括
 
 Predicate 可声明独立性约束组，组成员为至少两个不同的（参数、保证）对且均已出现在 requires。Compiler 校验每组成员均有权威认证的底层来源身份提取规则，且该规则使用可比较的受信来源身份域。Runtime 必须在组内找到两两不同底层来源、同时满足所有保证的证据组合，否则结果为 UNKNOWN。同一底层记录的不同引用不算独立。描述符的来源身份规则或共同事实映射缺失、重复、歧义或不可比较时，Compiler 报 `EVIDENCE_GUARANTEE_LINK_INVALID`。描述符各自有效但指定独立性组无法在共同可信身份域中形成可验证约束时，报 `PREDICATE_EVIDENCE_UNSATISFIABLE`。合同已通过链接而本次执行找不到符合条件的组合时，Predicate 为 UNKNOWN。
 
-**v1alpha2 字段映射。** E.3 的 query / arguments / execution 分别映射为查询实参、操作实参及执行身份引用。selection.mode、orderBy、freshness.timestamp 与 maxAgeMs 分别映射为选择模式、顺序键、时间基准及年龄上限。v1alpha2 可用 `evidence.independence` 表达各组的参数和保证对，保证描述符用 `sourceIdentity` 发布底层来源投影，并用 `factIdentity` 表达共同命名空间、事实标识、Scope 映射及值投影。E46 的拼写变体按附录 F.3 验收，抽象类别不匹配规则适用于任何线格式。
+**v1alpha3 字段映射。** E.3 的 query / arguments / execution 分别映射为查询实参、操作实参及执行身份引用。selection.mode、orderBy、freshness.timestamp 与 maxAgeMs 分别映射为选择模式、顺序键、时间基准及年龄上限。v1alpha3 可用 `evidence.independence` 表达各组的参数和保证对，保证描述符用 `sourceIdentity` 发布底层来源投影，并用 `factIdentity` 表达共同命名空间、事实标识、Scope 映射及值投影。E46 的拼写变体按附录 F.3 验收，抽象类别不匹配规则适用于任何线格式。
 
 **值路径覆盖。** 保证路径与参数路径须属于同一精确 Producer 及 Outcome。两条路径按字段段比较。路径相等时可覆盖；保证路径是真前缀时，只有 Owner 保证明确覆盖所请求的子值、且可信记录能验证该子值时才覆盖；子路径永远不能覆盖父对象或相邻字段。Compiler 另按 §13.3 检查参数实际绑定的子值 Schema 对参数 Schema 的可赋值性。整对象的 Schema 无需可赋给标量参数。断言只比较字段段，例如 output.result 不是 output.resultExtra 的前缀。
 
@@ -2255,7 +2255,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 7. Compiler Artifact Contract 独立冻结生成 Schema 的序列化与可达依赖闭包；Runtime Artifact Contract 独立冻结 Trace 线格式、版本和兼容性。
 8. 交付符合性记录：语言目标版本、每项 Owner 导出及摘要、发布授权、执行 Fixture、原始 CI 结果、实际代码提交和未通过项。缺项不得标记 Runtime READY / live E2E PASS。
 
-**裁决：CA-SL v1alpha2 语言规范 FROZEN；产品符合性 NOT QUALIFIED。** 规范源审查、YAML 解析或 PR 审批不等于第 1–8 项的实际测试通过。真实 Owner 或工具链缺失时应阻断相应发布，而不是重新打开已冻结的语言语义。审查范围、图检查结果及跨仓库事实见 [非规范性的冻结决策记录](design/ca-sl-v1alpha2-freeze-record.md)。
+**当前裁决：v1alpha3 规范闭合性待复核；产品符合性 NOT QUALIFIED。** 规范源审查、YAML 解析或 PR 审批不等于第 1–8 项的实际测试通过。真实 Owner 或工具链缺失时应阻断相应发布，而不是重新打开已冻结的语言语义。审查范围、图检查结果及跨仓库事实见 [非规范性的冻结决策记录](design/ca-sl-v1alpha3-freeze-record.md)。
 
 ---
 
@@ -2496,7 +2496,7 @@ flowchart LR
 
 # 附录 B：当前状态与待评审事项
 
-本规范的 v1alpha2 语言契约已经冻结。下表是历史 16 项门槛在**独立产品与 Owner 符合性**上的未完成状态，不代表语言仍在设计讨论。
+本规范正进行 v1alpha3 规范闭合性复核。下表是历史 16 项门槛在**独立产品与 Owner 符合性**上的未完成状态，不代表语言仍在设计讨论。
 
 | 对应 §45 项 | 交付范围 | 状态 | 评审责任 |
 |---|---|---|---|
@@ -2556,7 +2556,7 @@ flowchart LR
 | 子节 | 输入效力 | 预期与用途 |
 |---|---|---|
 | E.1、E.2、E.8 | informative Fixture | 预期由 normative 源码、Schema 和证明规则决定 |
-| E.3、E.4 | v1alpha2 normative 互操作字段，informative 测试装配与数据 | 解码后的链接、Evidence 与授权规则为 normative |
+| E.3、E.4 | v1alpha3 normative 互操作字段，informative 测试装配与数据 | 解码后的链接、Evidence 与授权规则为 normative |
 | E.5–E.7、E.9 | informative 测试输入 / normative 预期结果 | 诊断或行为由 normative 规则决定；BuildRequest 装配属独立版本 |
 | E.10、E.11 | informative 验收矩阵和索引 | 不代表实现已经通过 |
 
@@ -2657,7 +2657,7 @@ properties:
 
 ~~~yaml
 # tool-catalog.yaml（由 ca 快照提供）
-apiVersion: connectionagent.io/toolcatalog/v1alpha2
+apiVersion: connectionagent.io/toolcatalog/v1alpha3
 kind: ToolCatalog
 metadata:
   name: example-ue-queries
@@ -2707,7 +2707,7 @@ ue.registration-state:
 
 ~~~yaml
 # capability-contracts.yaml（独立可信部署输入）
-apiVersion: connectionagent.io/capability-contracts/v1alpha2
+apiVersion: connectionagent.io/capability-contracts/v1alpha3
 kind: CapabilityContracts
 metadata:
   name: example-deployment
@@ -2983,7 +2983,7 @@ predicates:
 | E76 | 非末 READ 阶段只声明 SUCCEEDED，对照末阶段和另声明 FAILED 的变体，三例均省略 routes | 首例合法，后两例报 ROUTE_OUTCOME_MISSING |
 | E77 | 分别执行本地 Script、外部调用和 Reconcile，再在任一动作启动前拒绝 | 每次启动计一，拒绝计零 |
 
-| E78 | §9.2.1 的 v1alpha2 Mutation 契约，将 Reconcile 的关联从原调用改为当前调和调用 | 正例可链接；反例 RECONCILE_CONTRACT_INVALID。按附录 F.1 验收 |
+| E78 | §9.2.1 的 v1alpha3 Mutation 契约，将 Reconcile 的关联从原调用改为当前调和调用 | 正例可链接；反例 RECONCILE_CONTRACT_INVALID。按附录 F.1 验收 |
 | E79 | 在 E62 的 Owner 结果集中及调用路由中移除 FAILED、NOT_COMMITTED，保留 SUCCEEDED、Runtime DENIED 与 OUTCOME_UNKNOWN 的处理，令 Runtime 拒绝派发 | 走 DENIED 边；移除该可选边后直接停止 |
 | E80 | E32 的独立组分别绑定底层来源相同及各异的有效记录 | 同来源 UNKNOWN；独立记录组合满足保证后按 Predicate 求值 |
 | E81 | E72 的两个已 Grant 成员分别允许 {A,B} 和 {B,C} | 仅 B 可派发，A 与 C 均被拒绝 |
@@ -3056,19 +3056,19 @@ predicates:
 
 §45 第 12 项要求将对应验收条目落为机器可执行 Fixture。此表记录预期行为。
 
-# 附录 F：v1alpha2 已冻结的互操作与类型剖面
+# 附录 F：v1alpha3 已冻结的互操作与类型剖面
 
-**Normative。** §9、§17、§34 中仍使用“Candidate/候选”描述的互操作字段，在 CA-SL v1alpha2 中以本附录为唯一冻结定义；早期说明不构成修改本版的授权。下列字段描述互操作的**逻辑契约**，而不强制把它们塞入独立版本的 BuildRequest 或 Runtime Trace。无法解码并校验到这些属性必须失败封闭。
+**Normative。** §9、§17、§34 中仍使用“Candidate/候选”描述的互操作字段，在 CA-SL v1alpha3 中以本附录为唯一冻结定义；早期说明不构成修改本版的授权。下列字段描述互操作的**逻辑契约**，而不强制把它们塞入独立版本的 BuildRequest 或 Runtime Trace。无法解码并校验到这些属性必须失败封闭。
 
 ## F.1 ToolCatalog / Mutation 发布
 
-ToolCatalog 须有 `apiVersion: connectionagent.io/toolcatalog/v1alpha2`、`kind: ToolCatalog`、非空 `metadata.owner` 与 `spec.contracts[]`。每个 callable 须有 `kind: operation | observation`、唯一的 `id`、`effect`、`ownerOutcomes`、`outputSchema.$ref`；Operation 使用 `inputSchema.$ref`，Observation 使用 `queryContextSchema.$ref`，两者互斥。Observation 的 Effect 必须为 READ。READ 只能发布 SUCCEEDED / FAILED；Mutation 可发布 NOT_COMMITTED；每个 callable 必须声明 SUCCEEDED。DENIED、UNKNOWN、OUTCOME_UNKNOWN 属 Runtime，不得由 Owner 发布。所有 Schema 引用须解析为该快照中精确、可验证的 `$id`。一个快照跨文件、跨 kind 共享 callable ID 唯一空间。可选 `adapter` 仅属于 Owner 内部实现，不参与 Skill 身份、授权和 Evidence。
+ToolCatalog 须有 `apiVersion: connectionagent.io/toolcatalog/v1alpha3`、`kind: ToolCatalog`、非空 `metadata.owner` 与 `spec.contracts[]`。每个 callable 须有 `kind: operation | observation`、唯一的 `id`、`effect`、`ownerOutcomes`、`outputSchema.$ref`；Operation 使用 `inputSchema.$ref`，Observation 使用 `queryContextSchema.$ref`，两者互斥。Observation 的 Effect 必须为 READ。READ 只能发布 SUCCEEDED / FAILED；Mutation 可发布 NOT_COMMITTED；每个 callable 必须声明 SUCCEEDED。DENIED、UNKNOWN、OUTCOME_UNKNOWN 属 Runtime，不得由 Owner 发布。所有 Schema 引用须解析为该快照中精确、可验证的 `$id`。一个快照跨文件、跨 kind 共享 callable ID 唯一空间。可选 `adapter` 仅属于 Owner 内部实现，不参与 Skill 身份、授权和 Evidence。
 
 `guarantees.evidence.provides[]` 的每项仅含 `guarantee`（精确保证 ID）和 `path`（输出值路径），不得复制权威、Scope 或时间规则。Mutation 的 `mutation.commitProof` 需 `schema/path/bind`；每项 `failureClasses[]` 需唯一 `id`、`outcome`、`proofSchema`、`noSideEffect`、`retryable`。FAILED 不得允许 retryable；NOT_COMMITTED 只有同时满足可验证的未提交与无残留才可受控重试。`mutation.reconcile` 有 `callable/bind/proofSchema`，可选 `recoverableOutputSchema`；`resourceOutputs[]` 各项需 `path/resourceKind/responsibilitySchema`。缺少声明不等于默认具备承诺。Proof、原调用绑定或资源责任路径不可验证则拒绝链接或按 §20 停止。
 
 ## F.2 CapabilityContracts
 
-部署授权输入须有 `apiVersion: connectionagent.io/capability-contracts/v1alpha2`、`kind: CapabilityContracts`、`spec.capabilities[]`。每个 Capability 有唯一非空 `id`、`owner` 和 `callables[]`。成员有 `owner/id/kind/effect`，已 Grant 成员必须有受信、可解析的 `scopePolicyRef`；拒绝全部也必须是明确命名的受信策略，不能通过缺省字段表达。缺少 Scope 不得默许放行。Effect 冲突在未 Grant 成员上也会报错，同一 Capability 重复成员拒绝，跨 Capability 的一致成员合法。交集和派发前重验按 §9.3。Skill 不能自报受信部署授权。
+部署授权输入须有 `apiVersion: connectionagent.io/capability-contracts/v1alpha3`、`kind: CapabilityContracts`、`spec.capabilities[]`。每个 Capability 有唯一非空 `id`、`owner` 和 `callables[]`。成员有 `owner/id/kind/effect`，已 Grant 成员必须有受信、可解析的 `scopePolicyRef`；拒绝全部也必须是明确命名的受信策略，不能通过缺省字段表达。缺少 Scope 不得默许放行。Effect 冲突在未 Grant 成员上也会报错，同一 Capability 重复成员拒绝，跨 Capability 的一致成员合法。交集和派发前重验按 §9.3。Skill 不能自报受信部署授权。
 
 ## F.3 Evidence Descriptor
 
@@ -3090,8 +3090,121 @@ Procedure Script 必须是具有严格 TypedDict 输入、返回注解的 `main(
 
 ## F.7 验收含义
 
-Appendix E 的正负例是冻结的预期结果而非声称已经运行的测试。任何宣称通过 v1alpha2 的实现必须完成 §45.2 的 Owner 发布和 CI 记录。冻结只说明规范在本版内不再留给 Compiler / Studio / Runtime 自行发明语义。
+Appendix E 的正负例是冻结的预期结果而非声称已经运行的测试。任何宣称通过 v1alpha3 的实现必须完成 §45.2 的 Owner 发布和 CI 记录。冻结只说明规范在本版内不再留给 Compiler / Studio / Runtime 自行发明语义。
 
 ---
+
+
+# 附录 G：v1alpha3 规范闭合性补充
+
+**效力：Normative（本版新增的语法和安全约束）。** §10–§24、附录 F 与本附录共同构成 v1alpha3 的目标契约。若存在旧稿歧义，本附录的精确定义优先。v1alpha3 升级而非覆盖 v1alpha2，是因为 Reconcile Effect、证明和回包映射、独立性字段、Schema/CEL 子集及责任记录涉及可观察的安全行为。产品符合性仍须独立验收。
+
+## G.1 完整词法与 PredicateSet 文法
+
+本节是 YAML 的**抽象对象文法**：map 表示映射、list 表示序列、问号表示可省略、竖线表示互斥的结构形式。所有语义对象拒绝重复键、未知字段和不符合预期的根类型。
+
+~~~ebnf
+Identifier           = ASCII_Letter, { ASCII_Letter | Digit | "_" | "-" } ;
+DottedId             = Identifier, { ".", Identifier } ;
+Name                 = Identifier ;
+NodeId               = Identifier ;
+PredicateId          = DottedId ;
+GoalId               = DottedId ;
+CapabilityId         = DottedId ;
+Alias                = Identifier ;
+ExportId             = DottedId ;
+QualifiedCallableId  = Alias, "::", ExportId ;
+QualifiedQueryId     = QualifiedCallableId ;
+QualifiedGuaranteeId = Alias, "::", ExportId ;
+QualifiedSchemaId    = Alias, "::", AbsoluteSchemaUri ;
+StablePackageId      = AbsolutePackageUri ;
+LocalSchemaPath      = "schemas/", FileSegment, { "/", FileSegment }, ".schema.yaml" ;
+LocalScriptPath      = "scripts/", FileSegment, { "/", FileSegment }, ".py" ;
+FileSegment          = Identifier, { ".", Identifier } ;
+PositiveInteger      = NonzeroDigit, { Digit } ;
+PrimitiveType        = "string" | "integer" | "number" | "boolean" ;
+ParameterType        = PrimitiveType | QualifiedSchemaId ;
+PredicateSet         = map(predicates: map<PredicateId, Predicate>) ;
+Predicate            = map(parameters: list<Parameter>,
+                           evidence?: EvidencePolicy,
+                           evaluator: Evaluator) ;
+Parameter            = map<ExactlyOneName, ParameterType> ;
+EvidencePolicy       = map(requires?: map<Name, NonEmptyList<QualifiedGuaranteeId>>,
+                           independence?: list<IndependenceGroup>) ;
+IndependenceGroup    = map(members: list<IndependenceMember>) ;
+IndependenceMember   = map(parameter: Name, guarantee: QualifiedGuaranteeId) ;
+Evaluator            = map(type: "cel", expression: NonEmptyString)
+                     | map(type: "script", script: LocalScriptPath) ;
+ScalarLiteral        = QuotedYamlString | CoreBoolean | CoreNull | FiniteDecimalNumber ;
+~~~
+
+NodeId 保留 context 与四个终态。所有普通标识符大小写敏感、每段以 ASCII 字母开头；中间允许数字、下划线和连字符；空段、连续点、尾点、冒号或空白不得作为 DottedId/ExportId。Alias 不能含点号或冒号。ExportId 只用于 callable / Evidence 保证，允许分段点号，但**不允许冒号**。外部 Schema 身份采用另一种解析：仅在 QualifiedSchemaId 的**首个双冒号**处分开 Alias 与后面的完整绝对 URI；URI 可以含冒号，必须与受信 Schema $id 精确匹配，不得用 ExportId 词法解析。StablePackageId 为遵守 RFC 3986 的绝对 URI；这些 URI 均不得含空白、控制字符或未解析的穿越成分。不能由文件中的自报身份建立信任。
+
+LocalSchemaPath 与 LocalScriptPath 只接受包内 POSIX 相对路径；禁止绝对路径、反斜线、空段、点段、双点段和符号链接越界。PositiveInteger 为十进制且必须大于零、无前导零。无引号字符串只可能是合法 SourcePath；带引号的 YAML 字符串作为字面值，Boolean 只有 true/false、Null 只有 null；数字为有限十进制，不允许 NaN/Infinity、隐式八进制或任意字符串转数值。具体 SourcePath 规则继承 §13.2。
+
+PredicateSet 根必须只含 predicates 映射；每个 Predicate 的 parameters 按声明顺序传入，名称唯一；零参数允许空列表。每个 Parameter 恰好一个 Name → PrimitiveType 或精确 QualifiedSchemaId。Evidence requires 只可引用已声明参数，列表非空、各保证 ID 唯一；省略 requires 与空映射等价。Independence 每组至少两个不同的 (parameter, guarantee) 成员，且每个成员均在对应 requires 列表内。各组对底层来源的独立性必须经 Owner 发布的描述符验证，不可由两个不同 Ref 的字面值推断。Script evaluator 的字段固定为 evaluator.type=script、evaluator.script 为 LocalScriptPath；CEL evaluator 固定为 type=cel 与 expression；混用两种字段拒绝。
+
+## G.2 Reconcile callable 的安全身份与类型
+
+v1alpha3 **不引入新的 Effect**。Reconcile 使用独立 ToolCatalog callable：kind 为 operation、effect 必须 READ，ownerOutcomes 必须包含 SUCCEEDED、可以声明 FAILED；Runtime 的 COMMITTED、NOT_COMMITTED 和 UNRESOLVED 不得写进 Owner 的 ownerOutcomes。Reconcile READ 不得引入新业务副作用、重发原 Mutation、修改资源、替换 UE/Session/Scope，也不得用普通 Observation 代替原调用调和。Host journal 内部的责任/提交状态更新不是外部业务 Mutation。
+
+原 Mutation 的 mutation.reconcile 字段必须具备 callable、bind、proofSchema、proofPath，可选 recoverableOutputSchema。bind 必须精确为 originalInvocationId。引用的 Reconcile callable 必须为同一受信 Owner 已发布的唯一 READ operation。其 inputSchema 是根部闭合的 object：唯一必需且允许的属性为 originalInvocationId，类型是非空字符串。Runtime 仅从持久化的原 Mutation Invocation 身份物化这个输入，发起前验证已保存的原 Operation ID、原始输入、请求摘要、Subject/Scope、Lifecycle、Correlation 和当前授权；作者的 operation.reconcile 不允许任何 arguments。Owner 必须能用该 ID 验证和定位其原始调用；若不能，则安全停止并保留原调用责任。proofPath 为 Owner 可信 receipt 中的静态证明路径，proofSchema 定义该位置实际值的精确 Schema；输出本身不得替代提交证明。
+
+Reconcile callable 的 outputSchema 描述 Owner 规范化业务结果。当 recoverableOutputSchema 已声明时，它必须与该 callable 的 outputSchema.$ref 完全相同。只有 Owner 返回 SUCCEEDED、原调用提交证明有效且认定为 COMMITTED、恢复结果验证通过时，Runtime 才将**恢复输出**物化为该 Reconcile Stage 的 operation.output。未声明 recoverableOutputSchema 时，即使 COMMITTED 也不暴露可绑定 output；后续只能通过显式且独立授权的 Observation 验证。阶段结果为 NOT_COMMITTED / UNRESOLVED、Owner FAILED、输出无效、错误原调用或错误 Scope 时均不暴露成功输出。恢复输出的 Evidence Producer.kind 为 operation，Producer.outcome 为 Owner 的 SUCCEEDED，Producer ID 是调和 READ callable；不得用 Runtime 的 COMMITTED 作为 Evidence Producer outcome。Host 将正常输出和证明引用关联到精确 Reconcile Producer Invocation，不能伪造原 Mutation 的成功输出。
+
+| Owner 回包及证明 | Runtime Reconcile 阶段结果 | Stage output |
+|---|---|---|
+| SUCCEEDED 且证明原调用已提交，恢复输出有效且已声明 | COMMITTED | 有：恢复结果 |
+| SUCCEEDED 且证明原调用已提交，没有声明恢复输出 | COMMITTED | 无 |
+| SUCCEEDED 且证明原调用未提交 | NOT_COMMITTED | 无 |
+| SUCCEEDED 且证明已提交但承诺的恢复输出缺失/无效 | COMMITTED_OUTPUT_UNAVAILABLE，直接安全停止 | 无 |
+| FAILED / 超时 / 冲突或不能验证证明 | UNRESOLVED；已有独立明确结论时按 §20.3 直接停止 | 无 |
+| Owner 返回 COMMITTED/NOT_COMMITTED/UNRESOLVED 等未声明结果 | 隔离回包并直接安全停止 | 无 |
+
+Compiler 的绑定链：operation.reconcile 的原 Node → 原普通 MUTATION Operation → mutation.reconcile.callable → 唯一 READ operation 导出 → 对该调和 callable 自身按 §9.3 检查 Owner/ID/kind/READ Effect、Scope 和**至少一个已 Grant Capability**。不能继承原 Mutation 的授权。Grant 缺失报 CAPABILITY_NOT_GRANTED，Effect 冲突报 EFFECT_MISMATCH，原调用绑定、Schema 或 proofPath 错误报 RECONCILE_CONTRACT_INVALID。Runtime 重做相同检查，对同一原调用最多派发一次受控 Reconcile。Reconcile 专用 callable 不得通过普通 operation.target 绕过原调用检验；一个 Capability 可以显式同时列 Mutation 与 Reconcile 两个成员。没有安全 Owner 调和能力时必须遵循 §20.2 的保全停止，不创建伪 Reconcile。
+
+### G.2.1 最小可构造契约
+
+~~~yaml
+# ToolCatalog.spec.contracts[0] — 原 Mutation
+kind: operation
+id: example.session.create
+effect: MUTATION
+ownerOutcomes: [SUCCEEDED, NOT_COMMITTED]
+inputSchema: {$ref: "urn:example:session:create-input:v1"}
+outputSchema: {$ref: "urn:example:session:create-output:v1"}
+mutation:
+  commitProof: {schema: "urn:example:session:commit-proof:v1", path: receipt.commit, bind: originalInvocationId}
+  failureClasses:
+    - {id: not-committed, outcome: NOT_COMMITTED, proofSchema: "urn:example:session:not-committed-proof:v1", noSideEffect: true, retryable: false}
+  reconcile:
+    callable: example.session.reconcile
+    bind: originalInvocationId
+    proofSchema: "urn:example:session:reconcile-proof:v1"
+    proofPath: receipt.commit
+    recoverableOutputSchema: "urn:example:session:create-output:v1"
+~~~
+
+~~~yaml
+# ToolCatalog.spec.contracts[1] — Reconcile READ Operation
+kind: operation
+id: example.session.reconcile
+effect: READ
+ownerOutcomes: [SUCCEEDED, FAILED]
+inputSchema: {$ref: "urn:example:session:reconcile-input:v1"}
+outputSchema: {$ref: "urn:example:session:create-output:v1"}
+~~~
+
+~~~yaml
+# reconcile-input.schema.yaml
+$id: urn:example:session:reconcile-input:v1
+type: object
+additionalProperties: false
+required: [originalInvocationId]
+properties:
+  originalInvocationId: {type: string, minLength: 1}
+~~~
+
+以上只是各个嵌套位置的**片段**，不是可直接作为整个 ToolCatalog 解析的文档；完整根结构和可信依赖输入见 §9、§34。Deployment CapabilityContracts 还须以独立成员授权 example.session.reconcile 的 READ。恢复输出 Schema 与 Reconcile Owner outputSchema 同一 $id，证明另从已关联 receipt 校验。
 
 **规范结束。**
