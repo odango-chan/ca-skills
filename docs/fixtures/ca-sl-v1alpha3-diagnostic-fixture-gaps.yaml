@@ -5,7 +5,7 @@
 languageTarget: connectionagent.io/v1alpha3
 source: docs/skill-language-spec.zh-CN.md#appendix-h
 status: INFORMATIVE_CANDIDATE_REGISTER
-candidateCount: 39
+candidateCount: 40
 qualifications:
   normativeExpectations: FROZEN
   fixtureInputs: NOT_IMPLEMENTED
@@ -478,6 +478,18 @@ candidates:
     fixtureModification: "尝试第二次消费同一个已验证 NOT_COMMITTED 重试凭证，或在缺少原调用关联时重发"
     expectedDiagnostic: RETRY_ADMISSION_DENIED
     expectedBuildBlock: null
+    needsRepresentationReview: false
+    executableFixture: null
+    ciResult: NOT_RUN
+  - candidateId: DFX-040
+    diagnosticCode: RECONCILE_CONTRACT_INVALID
+    phase: C_STATIC
+    normativeClauses: ["§20.2","§G.2","§24.1"]
+    existingCaseRefs: ["E107"]
+    currentCoverage: "部分覆盖"
+    fixtureModification: "同一受信 ToolCatalog 快照的一个 Mutation 的 mutation.reconcile.callable 指向精确 READ operation；另一个 Skill 在普通 operation.target 中调用该 READ，且提供独立的 READ Capability Grant。Compiler 必须检查整份快照的 Mutation 关联并阻断普通调用，不得只检索本 Skill 已引用的 Mutation"
+    expectedDiagnostic: RECONCILE_CONTRACT_INVALID
+    expectedBuildBlock: true
     needsRepresentationReview: false
     executableFixture: null
     ciResult: NOT_RUN
