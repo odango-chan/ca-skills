@@ -3480,7 +3480,7 @@ properties:
 
 **Receipt 与 Output 的双通道锚点（Normative，明确本版已有路径的解析位置）。** Owner 返回被规范化为两个彼此独立的逻辑通道：`output` 由该 callable 自己的 `outputSchema.$ref` 校验，`receipt` 由同一次 callable 的 `receiptSchema.$ref` 校验。两份 Schema 均描述各自**通道对象根**，均**不**声明同名 `output` / `receipt` 包装字段。即使 Provider 的物理传输格式另有 Envelope，Host/Runtime 在验证前也必须按所选 Owner 互操作契约将其认证地解码为这两个逻辑通道，不得由 Skill 猜测结构或串用另一调用的通道。
 
-`mutation.commitProof.path`、`mutation.reconcile.proofPath`、声明失败类别时的 `mutation.failureClassPath` 及 `failureClasses[].proofPath` 必须符合 `receipt.<Identifier>(.<Identifier>)*`；字面首段 `receipt` 仅选取通道，**不是** `receiptSchema` 中的 Schema 属性。Compiler 剥离且只剥离此首段，再从对应 callable 的 `receiptSchema.$ref` **根对象**逐段解析剩余字段并核验提取值可赋给 `proofSchema` 或 failureClass 字符串类型。`receipt` 单独成路径、`receipt.receipt.commit`（误把通道锚点重复当包装层）、错误首段或未声明 Schema 属性不得被自动修复为合法证明；不接受相对于子对象的裸 `commit`。`recoverableOutputPath` 同理要求 `output.<Identifier>(.<Identifier>)*`，剥离 `output` 后从 Reconcile callable 的 `outputSchema.$ref` 根解析；不能从 `receiptSchema` 跟随该路径。前述四种 proof / failureClass 路径均不能指向 Skill 自填数据、当前 Context、另一调用输出或普通未认证业务 Payload。failureClassPath 指向该次 Owner receipt 的非空字符串 ID，必须与对应 Owner Outcome 的唯一已发布 failureClasses[].id 匹配；没有 ID、重复 ID、类别与结果不相容均不得产生确定的 FAILED / NOT_COMMITTED 路由。
+`mutation.commitProof.path`、`mutation.reconcile.proofPath`、声明失败类别时的 `mutation.failureClassPath` 及 `failureClasses[].proofPath` 必须符合 `receipt.<Identifier>(.<Identifier>)*`；字面首段 `receipt` 仅选取通道，**不是** `receiptSchema` 中的 Schema 属性。Compiler 剥离且只剥离此首段，再从对应 callable 的 `receiptSchema.$ref` **根对象**逐段解析剩余字段并核验提取值可赋给 `proofSchema` 或 failureClass 字符串类型。`receipt` 单独成路径、错误首段或未声明 Schema 属性不得被自动修复为合法证明；不接受相对于子对象的裸 `commit`。例如当前 G.2.1 的 `receiptSchema` 根**只有** `commit`，其正确路径是 `receipt.commit`；`receipt.receipt.commit` 在该示例中无对应属性，必须拒绝，不能自动插入或忽略第二个 `receipt`。若别的 Owner 确实在 receipt 对象内正式声明了一个名为 `receipt` 的属性，则仍按精确 Schema 逐段校验，不凭字段名字推断重复或自动修复。`recoverableOutputPath` 同理要求 `output.<Identifier>(.<Identifier>)*`，剥离 `output` 后从 Reconcile callable 的 `outputSchema.$ref` 根解析；不能从 `receiptSchema` 跟随该路径。前述四种 proof / failureClass 路径均不能指向 Skill 自填数据、当前 Context、另一调用输出或普通未认证业务 Payload。failureClassPath 指向该次 Owner receipt 的非空字符串 ID，必须与对应 Owner Outcome 的唯一已发布 failureClasses[].id 匹配；没有 ID、重复 ID、类别与结果不相容均不得产生确定的 FAILED / NOT_COMMITTED 路由。
 
 证明对象在 proofSchema 通过后仍必须验证其 originalInvocationId 精确等于 Host 持久化原 Mutation 调用 ID，并校验同一真实请求的业务身份、Scope、Correlation 与 Producer 签名。commitState 仅提供状态候选；缺少来源真实性或关联时一律不得当作已提交/未提交证明。NOT_COMMITTED 只能说明原调用未提交，额外重试仍要求无遗留副作用及独立授权。 FAILED / NOT_COMMITTED 的 failureClasses[].proofSchema 同样必须能证明 originalInvocationId 与 commitState=NOT_COMMITTED，且 proofPath 指向已验证的该次 receipt；noSideEffect 与 retryable 是 Owner 契约的受信承诺，不能由 Runtime 见到错误码自行推断。确定结果类别缺失、关联不符或失败证明无法校验时，按 §20.1 将本次结果保留为未知或依独立证明记录状态并安全停止。
 
@@ -3494,6 +3494,30 @@ receipt:
     originalInvocationId: mutation-7
     commitState: NOT_COMMITTED
 ~~~
+
+**COMMITTED 的字段级正例（资料性值、规范性映射）：** 使用 G.2.1 已声明的 Input/Output/Receipt/Proof Schema，下例是同一 Reconcile READ 的两条逻辑返回通道。原 Mutation `example.session.create` 的持久化调用 ID 为 `mutation-7`；Reconcile READ 的独立 Producer Invocation ID 为 `reconcile-read-9`。
+
+~~~yaml
+# Reconcile Owner SUCCEEDED，已验证的两条逻辑通道
+output:
+  recovered:
+    sessionRef: session-42
+    active: true
+receipt:
+  commit:
+    originalInvocationId: mutation-7
+    commitState: COMMITTED
+~~~
+
+| 验证位置 | Compiler 链接 / Runtime 读取 | 结果 |
+|---|---|---|
+| `reconcile-receipt:v1` 根 | 剥离 `receipt.`，定位 `commit`，以 `reconcile-proof:v1` 校验 `originalInvocationId` 与 `commitState` | 只认证**调和 READ 的 receipt**，不取原 Mutation 回包 |
+| `reconcile-response:v1` 根 | 剥离 `output.`，定位可选的 `recovered`，以 `create-output:v1` 校验 `sessionRef/active` | 只认证**调和 READ 的 output**，不把 proof 当作资源输出 |
+| Runtime 原调用 Journal | `receipt.commit.originalInvocationId == mutation-7`，验证原 Mutation 的 Scope、Subject、Correlation 和证明来源 | 合法 COMMITTED 才可暴露恢复输出 |
+| Procedure Reconcile Node | 将已经验证的 `output.recovered` 映射为 `reconcile-session.operation.output`（示意 Node 名） | 后续读取 `reconcile-session.operation.output.sessionRef`；不得读取完整 `receipt` 或 `output` Envelope |
+| Evidence Producer | `owner=example.session.create` 所在的可信同 Owner 发布集合；`id=example.session.reconcile`、`kind=operation`、Owner `outcome=SUCCEEDED`、原始 `path=output.recovered`、`producerInvocationId=reconcile-read-9` | 保留调和 READ 来源及 `mutation-7` 原调用关联，**不得**改写成原 Mutation 的虚拟 SUCCEEDED Producer |
+
+**同一字段级负例。** `receiptSchema.$ref` 仍为 `reconcile-receipt:v1` 时，若将契约 `proofPath` 错配为 `receipt.receipt.commit`，剥离首个锚点后不存在 `receipt.commit` 属性链，静态拒绝为既有 `RECONCILE_CONTRACT_INVALID`。如 Schema 与路径都合法但真实 Reconcile 回包缺少 `receipt.commit`、其 `originalInvocationId` 不等于 `mutation-7`、或实际未能核验来源签名，则 Runtime 不得建立 COMMITTED，并依 §20.3、§24.2 保留不确定性和责任，不可把 `output.recovered` 单独当作提交证明。该示例不假设真实 Owner 发布物已经通过验收。
 
 output.recovered 缺失在 NOT_COMMITTED 是正常的；COMMITTED 且声明了恢复输出时才要求存在并校验。proofPath 指向 receipt.commit，而不是 output.recovered。Owner outcome 始终是 SUCCEEDED，Runtime 验证 commitState 后产生 Reconcile 阶段 NOT_COMMITTED。E108 应核对这两个通道而非伪造原 Mutation SUCCEEDED。
 
