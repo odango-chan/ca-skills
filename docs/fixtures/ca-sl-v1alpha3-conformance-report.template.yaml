@@ -1,0 +1,89 @@
+# Informative reporting template; this is NOT an executable CA-SL fixture.
+# Do not change any NOT_TESTED to PASS without immutable raw evidence.
+# Authoritative gates: CA-SL v1alpha3 §45.2 (items 1–8).
+reportKind: ca-sl-implementation-conformance
+languageTarget: connectionagent.io/v1alpha3
+languageContract: FROZEN
+productConformance: NOT_QUALIFIED
+reportStatus: NOT_TESTED
+implementation:
+  product: null
+  repository: null
+  commitSha: null
+  platform: null
+  buildArtifactDigest: null
+  ownerExports:
+    - ownerId: null
+      packageId: null
+      snapshotDigest: null
+      publisherAuthorizationRef: null
+  toolchain:
+    cel:
+      implementation: null
+      versionOrCommit: null
+      enabledMacrosAndFunctionsRef: null
+    python:
+      astTypingAnalyzer: null
+      analyzerVersionOrCommit: null
+      runtimeVersion: null
+      sandboxArtifactDigest: null
+    jsonSchema:
+      implementation: null
+      versionOrCommit: null
+      dialect: https://json-schema.org/draft/2020-12/schema
+      caSlSupportedSubset: G.4
+    compilerNative:
+      commitOrArtifactDigest: null
+    compilerWasm:
+      commitOrArtifactDigest: null
+    studioLsp:
+      commitOrArtifactDigest: null
+    hostRuntime:
+      commitOrArtifactDigest: null
+caseMatrix:
+  normativeIndex: docs/fixtures/ca-sl-v1alpha3-case-traceability.yaml
+  caseRange: E01-E114
+  executableSuiteRef: null
+  rawResultRef: null
+  executedCaseCount: 0
+  passedCaseCount: 0
+  status: NOT_TESTED
+diagnosticMatrix:
+  normativeIndex: docs/skill-language-spec.zh-CN.md#appendix-h
+  gapRegister: docs/fixtures/ca-sl-v1alpha3-diagnostic-fixture-gaps.yaml
+  executableSuiteRef: null
+  rawResultRef: null
+  status: NOT_TESTED
+gates:
+  - id: 1
+    name: owner-exports
+    status: NOT_TESTED
+    evidenceRef: null
+  - id: 2
+    name: deployment-trust
+    status: NOT_TESTED
+    evidenceRef: null
+  - id: 3
+    name: compiler-ci-fixtures
+    status: NOT_TESTED
+    evidenceRef: null
+  - id: 4
+    name: native-wasm-studio-parity
+    status: NOT_TESTED
+    evidenceRef: null
+  - id: 5
+    name: runtime-host
+    status: NOT_TESTED
+    evidenceRef: null
+  - id: 6
+    name: fivegc-owner-and-36-cases
+    status: NOT_TESTED
+    evidenceRef: null
+  - id: 7
+    name: compiler-runtime-artifacts
+    status: NOT_TESTED
+    evidenceRef: null
+  - id: 8
+    name: evidence-and-release-record
+    status: NOT_TESTED
+    evidenceRef: null

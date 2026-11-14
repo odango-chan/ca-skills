@@ -12,7 +12,7 @@
 
 **规范性用语。** MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT、MAY、OPTIONAL 按 RFC 2119 和 RFC 8174 解释。相应中文规范性措辞包括“必须”“不得”“应当”“不建议”“可以”。
 
-**变更记录。** [勘误记录（一）](design/ca-sl-v1alpha3-errata-2026-11-14.md)、[勘误记录（二）](design/ca-sl-v1alpha3-errata-2026-11-14-r2.md)、[诊断追溯与 PSI 身份来源勘误](design/ca-sl-v1alpha3-diagnostic-trace-errata.md)。勘误不改变 v1alpha3 的规范性语义；产品符合性状态见 §45.2。
+**变更记录。** [勘误记录（一）](design/ca-sl-v1alpha3-errata-2026-11-14.md)、[勘误记录（二）](design/ca-sl-v1alpha3-errata-2026-11-14-r2.md)、[诊断追溯与 PSI 身份来源勘误](design/ca-sl-v1alpha3-diagnostic-trace-errata.md)、[互操作与实现基准澄清](design/ca-sl-v1alpha3-interop-clarifications-2026-11-14.md)。勘误不改变 v1alpha3 的规范性语义；产品符合性状态见 §45.2。
 
 ---
 
@@ -22,7 +22,15 @@
 
 ## 0. 规范状态与适用范围
 
-CA-SL vNext / v1alpha3 的作者源码语法、静态语义、运行语义、附录 F/G 的互操作约束及附录 H 的诊断分类具有规范性效力（Normative）。附录 E 中的示例数据和测试装配为资料性内容（Informative），其明确规定的预期诊断和行为具有规范性效力。
+CA-SL vNext / v1alpha3 的作者源码语法、静态语义、运行语义、附录 F/G 的互操作约束及附录 H 的诊断分类具有规范性效力（Normative）。
+
+| 术语或状态 | 含义 | 效力 |
+|---|---|---|
+| `vNext` | 本规范对应的演进版语言系列名称，不独立指定机器可解析版本 | 资料性别名 |
+| `connectionagent.io/v1alpha3` | 本版语言目标的精确标识；构建时仍由 BuildRequest 明确指定 | 规范性目标 |
+| `API v1alpha3` | 本文规定的抽象互操作语言版本，不等于所有外部 Owner、BuildRequest 或 Artifact 协议均采用同一版本 | 规范性语义边界 |
+| `FROZEN` | 本版已冻结语言语法、链接和运行语义；语义变更按 §45.1 升版 | 语言状态 |
+| `NOT QUALIFIED` | §45.2 的独立产品符合性门槛尚未完成，不得推断 Compiler、Studio、Host、Tool Owner 或真实 5GC 已通过验收 | 产品状态 |附录 E 中的示例数据和测试装配为资料性内容（Informative），其明确规定的预期诊断和行为具有规范性效力。
 
 BuildRequest 传输格式、Compiler Artifact、Runtime Trace 及 Tool Owner 发布物分别受其自身的版本契约管理。本文件的冻结状态不构成上述产品或发布物通过符合性验收的证明。历史 v1alpha2 冻结记录及 v1alpha3 修订记录不覆盖本文件；互操作字段以附录 F/G 为准。
 
@@ -1165,6 +1173,8 @@ Freshness 由 Owner Contract 声明可执行的有效性规则（例如从 obser
 
 ## 17. Evidence 与 Predicate 参数
 
+SourcePath 可选字段、Evidence 重验及 Owner Schema 投影的作者模式参见[资料性指南](guides/ca-sl-v1alpha3-authoring-patterns.md)。指南不新增保证、不改变本章的静态与运行时判定。
+
 ### 17.1 业务签名与来源要求
 
 **效力：Normative（来源、保证和附录 F.3 描述符字段）。**
@@ -1264,7 +1274,7 @@ State 不自动等于 Evidence；Handle 不自动等于 State；Mutation 成功�
 
 ## 20. READ、MUTATION 与 Reconcile
 
-READ 必须校验 Capability、Effect、Input / Output Schema、Scope、Producer Invocation 和 Evidence。MUTATION 派发前还须校验入口门禁、Deadline、取消状态，并持久化原始调用身份、输入、Scope、Correlation 和结果责任。按 §12.8 处理准入失败或强制停止。
+READ 必须校验 Capability、Effect、Input / Output Schema、Scope、Producer Invocation 和 Evidence。MUTATION 派发前还须校验入口门禁、Deadline、取消状态，并持久化原始调用身份、输入、Scope、Correlation 和结果责任。按 §12.8 处理准入失败或强制停止。下列 §20.1、§20.3 和 G.2.2 分别规定 Mutation、Reconcile 及证明结构的规范性判断；[统一执行决策索引](design/ca-sl-v1alpha3-decision-and-trace-index.md)仅用于资料性导航，不替代这些条款。
 
 ### 20.1 提交状态与输出
 
@@ -2347,7 +2357,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 7. Compiler Artifact Contract 独立冻结生成 Schema 的序列化与可达依赖闭包；Runtime Artifact Contract 独立冻结 Trace 线格式、版本和兼容性。
 8. 交付符合性记录：语言目标版本、每项 Owner 导出及摘要、发布授权、执行 Fixture、原始 CI 结果、实际代码提交和未通过项。缺项不得标记 Runtime READY / live E2E PASS。
 
-**当前裁决：CA-SL v1alpha3 语言及互操作规范 FROZEN；产品符合性 NOT QUALIFIED。** 规范源审查、YAML 解析或 PR 审批不等于第 1–8 项的实际测试通过。缺少必需的 Owner 契约或工具链符合性证据时，应阻止相应产品发布；语言语义的修订遵循 §45.1 的版本变更流程。审查范围、图检查结果及跨仓库事实见 [非规范性的冻结决策记录](design/ca-sl-v1alpha3-freeze-record.md)。
+**当前裁决：CA-SL v1alpha3 语言及互操作规范 FROZEN；产品符合性 NOT QUALIFIED。** 实现使用的 CEL/Python/JSON Schema 解析器版本及其跨入口一致性，应在 §45.2 的实际符合性记录中明确；[实现基准澄清记录](design/ca-sl-v1alpha3-interop-clarifications-2026-11-14.md)及[资料性符合性报告模板](fixtures/ca-sl-v1alpha3-conformance-report.template.yaml)不取代原始 CI 与 Owner 证据。 规范源审查、YAML 解析或 PR 审批不等于第 1–8 项的实际测试通过。缺少必需的 Owner 契约或工具链符合性证据时，应阻止相应产品发布；语言语义的修订遵循 §45.1 的版本变更流程。审查范围、图检查结果及跨仓库事实见 [非规范性的冻结决策记录](design/ca-sl-v1alpha3-freeze-record.md)。
 
 ---
 
@@ -2586,9 +2596,9 @@ flowchart LR
 | D-30 | 全局前置条件和 Goal PASS 覆盖所有成功路径 | 前置条件全部满足，同一 Goal 可由各分支的 Postcondition 分别证明 |
 | D-31 | Predicate 明确声明所需 Evidence 保证 | Compiler 检查绑定，Runtime 验证实际证据 |
 
-# 附录 B：实施符合性与历史事项
+# 附录 B：历史实施事项（非现行符合性门槛）
 
-本规范的 v1alpha3 语言与互操作剖面已经冻结。下表保留历史设计阶段的 16 项门槛，说明独立产品与 Owner 符合性仍未完成；它们不是再次开放语言设计的清单。
+本附录仅保留历史设计阶段的 16 项实施事项，**不构成现行符合性检查清单**。现行的八项产品验收门槛以 §45.2 为准；本表中的历史编号不得作为其替代。
 
 | 历史门槛号（非现行 §45 编号） | 交付范围 | 产品符合性状态 | 评审责任 |
 |---|---|---|---|
@@ -2624,7 +2634,7 @@ flowchart LR
 8. AsyncAPI Specification — https://www.asyncapi.com/docs/concepts/asyncapi-document/structure
 
 
-# 附录 D：历史评审意见处理记录
+# 附录 D：历史评审记录（非现行规范要求）
 
 | 评审意见 | 本规范答复 | 当前结论 |
 |---|---|---|
@@ -2637,7 +2647,7 @@ flowchart LR
 | 自动同名绑定保留键冲突 | vNext 第一版不支持隐式同名绑定；Studio 可生成显式 arguments | 本版源码语法已冻结 |
 | 三个异步 Operation 的 Owner 契约尚未确认 | 责任目标映射到 UPN.CREATE_UP_SESSION、SSM.SIGNAL_UE_AN、UPN.MODIFY_UP_SESSION | 仅为目标责任；ToolCatalog / Output / Evidence 仍待 Owner 确认 |
 
-本附录仅记录既有评审决定，不构成 Owner 发布物或产品符合性证明。任何修订申请均应明确影响的术语、语法、静态语义、运行语义或 Owner 边界，并附相应正反例。
+本附录仅记录历史评审事项，不独立产生规范性要求，也不构成 Owner 发布物或产品符合性证明。现行实现验收依 §45.2 的八项门槛执行。任何修订申请均应明确影响的术语、语法、静态语义、运行语义或 Owner 边界，并附相应正反例。
 
 ---
 
@@ -3189,9 +3199,11 @@ FAILED 不得允许 retryable；NOT_COMMITTED 只有同时满足可验证的未�
 
 ## F.6 Python 类型与签名
 
-Procedure Script 必须是具有严格 TypedDict 输入、返回注解的 `main(input: InputTypedDict) -> OutputTypedDict`。Predicate Script 必须是 `main(input: PredicateInput) -> PredicateEvaluationResult`，PredicateInput 由唯一 Predicate.parameters 签名生成，禁止脚本自定义或覆盖。最低受支持注解为 `str/int/float/bool`、严格嵌套 TypedDict、`list[T]`、`Literal`、`Required/NotRequired` 和 `Annotated` 携带的、可保守解释为 §F.5 约束的 JSON Schema 映射。其他动态泛型、Any、无法静态解析的注解、开放字典及无法映射的 Annotated Metadata 必须拒绝，不能推断运行时行为来绕过。Runtime 仍验证输入输出并沙箱执行。
+Procedure Script 必须是具有严格 TypedDict 输入、返回注解的 `main(input: InputTypedDict) -> OutputTypedDict`。Predicate Script 必须是 `main(input: PredicateInput) -> PredicateEvaluationResult`，PredicateInput 由唯一 Predicate.parameters 签名生成，禁止脚本自定义或覆盖。最低受支持注解为 `str/int/float/bool`、严格嵌套 TypedDict、`list[T]`、`Literal`、`Required/NotRequired` 和 `Annotated` 携带的、可保守解释为 §F.5 约束的 JSON Schema 映射。**本段定义语言支持的注解集合，不指定 Python 解释器的具体小版本，也不授权解释器支持的其他 typing 特性。**其他动态泛型、Any、无法静态解析的注解、开放字典及无法映射的 Annotated Metadata 必须拒绝，不能推断运行时行为来绕过。Runtime 仍验证输入输出并沙箱执行。
 
 ## F.7 验收含义
+
+**实现版本与语言目标的区别。** 具有相同 v1alpha3 语言目标的 Compiler、LSP 和 Runtime 可以采用不同的 CEL 与 Python 静态分析器实现，但必须通过 §45.2 证明其对本规范剖面的解析、类型派生、错误分类和执行结果一致；实现报告应记录 CEL parser/evaluator、Python AST/typing 分析器、执行环境和 Schema 解析器的确切版本或不可变提交。标准库 `typing.Required` / `typing.NotRequired` 从 Python 3.11 开始提供；这只说明参考实现可采用 Python 3.11 作为候选基线，**不将 Python 3.11 或某个 CEL 软件版本新增为 v1alpha3 的强制语言版本**。若需规定 TypedDict 继承、递归/前向注解、Annotated 元数据的新增处理或绑定某个实现版本，应按 §45.1 评审语言或互操作契约升版。
 
 Appendix E 的正负例是冻结的预期结果而非声称已经运行的测试。任何宣称通过 v1alpha3 的实现必须完成 §45.2 的 Owner 发布和 CI 记录。冻结只说明规范在本版内不再留给 Compiler / Studio / Runtime 自行发明语义。
 
@@ -3492,11 +3504,11 @@ factIdentity:
 
 本版仅定义 JSON Schema Draft 2020-12 的有限、可互操作子集。所有参与链接、静态可赋值性和 Script 类型派生的 Schema 根必须显式声明 $schema: https://json-schema.org/draft/2020-12/schema。缺少或不同方言即 SCHEMA_INVALID，不允许从文件扩展名、外部发布者名称、Compiler 配置或声明顺序猜测。许可**验证关键字**仅为：$ref、type、properties、required、additionalProperties、items、minItems、maxItems、minLength、maxLength、minimum、maximum、exclusiveMinimum、exclusiveMaximum、enum、const。
 
-许可的**非断言注解**仅为：$schema、$id、title、description、default、examples；default 不合成值。所有未知字段及其他断言一律 SCHEMA_INVALID，不可以“验证器忽略了所以安全”处理。特别不支持 allOf、anyOf、oneOf、not、if/then/else、pattern、patternProperties、unevaluatedProperties、contains、prefixItems、format、动态引用或扩展关键字。来自现实 Owner 的复杂 Schema 应由其 Owner 发布语义等价、正式版本化且受支持的投影，不得由 Skill 复制影子结构。
+许可的**非断言注解**仅为：$schema、$id、title、description、default、examples；default 不合成值。**`$defs`、`definitions` 均不属于许可关键字，因此 v1alpha3 不支持 Schema 内的具名子定义及其 JSON Pointer 片段引用（包括 `#/$defs/...`、`#/definitions/...`）。** 所有未知字段及其他断言一律 SCHEMA_INVALID；不得忽略未知关键字。特别不支持 allOf、anyOf、oneOf、not、if/then/else、pattern、patternProperties、unevaluatedProperties、contains、prefixItems、format、动态引用或扩展关键字。来自现实 Owner 的复杂 Schema 应由其 Owner 发布语义等价、正式版本化且受支持的投影，不得由 Skill 复制影子结构。
 
 type 仅接受单值 string、integer、number、boolean、object、array、null，或恰好两个不同成员的 [T, "null"]；不接受一般 union。required 必须是唯一的 properties 键集合子集；SourcePath 可直接使用的对象必须有声明属性及 additionalProperties:false；additionalProperties 只允许 true/false，true 的开放对象没有可猜测的动态字段。items 仅为单一 Schema，禁止 tuple 数组；min/maxItems 为非负整数且一致。
 
-string 与 number 的区间必须可同时满足；enum/const 值必须被对应基础 type 与其他约束接受。$ref 是独立引用对象，除 $schema/$id/title/description 之外不得和其他断言并列；必须链接到受信快照精确 $id，不能循环、动态化或猜测文件名。空或无法满足的 Schema 不会被自动归入 any；应拒绝不合法/自相矛盾的 Schema。静态赋值仍按 F.5 的 Source ⊆ Target，无法证明时拒绝而不是执行一个任意 Schema 求值猜测结果。
+string 与 number 的区间必须可同时满足；enum/const 值必须被对应基础 type 与其他约束接受。`$ref` 是独立引用对象，除 `$schema`/`$id`/`title`/`description` 之外不得与其他断言并列。该引用须解析到受信依赖快照中的**完整且精确的独立 Schema `$id`**，不得按 `#/...` 片段、包内文件位置或定义名称推断目标；引用闭包须完全可解析且无循环。`$defs`/`definitions` 与片段引用的支持属于潜在新语言版本的扩展，不得作为 v1alpha3 的隐式兼容行为。空或无法满足的 Schema 不会被自动归入 any；应拒绝不合法/自相矛盾的 Schema。静态赋值仍按 F.5 的 Source ⊆ Target，无法证明时拒绝而不是执行一个任意 Schema 求值猜测结果。
 
 | JSON Schema | CEL 输入类型 | 行为 |
 |---|---|---|
@@ -3509,7 +3521,7 @@ string 与 number 的区间必须可同时满足；enum/const 值必须被对应
 | 闭合 object | 以精确 Schema ID 区分的字段结构 | 只能静态点访问声明的属性 |
 | array | list<T> | 不提供动态索引、切片和动态对象属性 |
 
-v1alpha3 CEL 表达式只允许已声明参数、确定性的常量、静态字段点访问、括号、布尔 !/&&/||、等于/不等、同数值类型的大小比较、has(x.field) 与 size(x)。has 只检查已声明属性是否在本次对象中出现，缺失时返回 false；size 只对 string/array 使用。其他调用、宏、推导式、数组索引、对象构造、动态成员名、反射、时间、随机数及外部数据均拒绝；表达式的类型必须可静态证明为 bool。可选属性的读取必须受到同一短路表达式中 has 的保护，可空属性须同时受到 != null 的保护，不能只依赖运行期异常。守卫的 has 为 false 时，明确的 && 表达式返回 false→FAIL（业务逻辑），而不是 Runtime 自动把未知变 FAIL；没有合法守卫的表达式应静态拒绝。若 Runtime 遇到来源 Schema 不符、算术溢出、其他求值异常或缺失必要 Evidence，结果必须 UNKNOWN。为了避免跨语言浮点语义分歧，int、double 类型之间的算术与比较不允许隐式混合；需要转换须由受限 Script 显式生成经校验的值。
+v1alpha3 CEL 表达式只允许已声明参数、确定性的常量、静态字段点访问、括号、布尔 !/&&/||、等于/不等、同数值类型的大小比较、has(x.field) 与 size(x)。本节是 CA-SL 的**规范性 CEL 表达式剖面**；具体 CEL parser/evaluator 的发行版本并不是扩大或缩小该表达式集合的依据。has 只检查已声明属性是否在本次对象中出现，缺失时返回 false；size 只对 string/array 使用。其他调用、宏、推导式、数组索引、对象构造、动态成员名、反射、时间、随机数及外部数据均拒绝；表达式的类型必须可静态证明为 bool。可选属性的读取必须受到同一短路表达式中 has 的保护，可空属性须同时受到 != null 的保护，不能只依赖运行期异常。守卫的 has 为 false 时，明确的 && 表达式返回 false→FAIL（业务逻辑），而不是 Runtime 自动把未知变 FAIL；没有合法守卫的表达式应静态拒绝。若 Runtime 遇到来源 Schema 不符、算术溢出、其他求值异常或缺失必要 Evidence，结果必须 UNKNOWN。为了避免跨语言浮点语义分歧，int、double 类型之间的算术与比较不允许隐式混合；需要转换须由受限 Script 显式生成经校验的值。
 
 
 ### G.4.1 数值精度及确定性求值补充
