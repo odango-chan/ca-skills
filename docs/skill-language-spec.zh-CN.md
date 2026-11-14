@@ -1157,7 +1157,7 @@ Procedure Script 输出保守继承其全部绑定实参的来源类别，包括
 
 事实身份由权威命名空间、事实标识和规范化 Scope 构成。跨 Owner 比较须由可信部署绑定各 Owner 同意的共同事实身份、Scope 映射和可比较值投影。映射缺失或不兼容时拒绝链接。Evidence 的选择包含精确记录选择或按可信顺序选择最新记录，以及取时间基准与非负年龄上限。§17.2 中的字段拼写仅指相应的抽象属性。
 
-Predicate 可声明独立性约束组，组成员为至少两个不同的（参数、保证）对且均已出现在 requires。Compiler 校验每组成员均有权威认证的底层来源身份提取规则，且该规则使用可比较的受信来源身份域。Runtime 必须在组内找到两两不同底层来源、同时满足所有保证的证据组合，否则结果为 UNKNOWN。同一底层记录的不同引用不算独立。描述符的来源身份规则或共同事实映射缺失、重复、歧义或不可比较时，Compiler 报 `EVIDENCE_GUARANTEE_LINK_INVALID`。描述符各自有效但指定独立性组无法在共同可信身份域中形成可验证约束时，报 `PREDICATE_EVIDENCE_UNSATISFIABLE`。合同已通过链接而本次执行找不到符合条件的组合时，Predicate 为 UNKNOWN。
+Predicate 可声明独立性约束组，组成员为至少两个不同的（参数、保证）对且均已出现在 requires。Compiler 校验每组成员均有权威认证的底层来源身份提取规则，且该规则使用可比较的受信来源身份域。Runtime 必须在组内找到两两不同底层来源、同时满足所有保证的证据组合，否则结果为 UNKNOWN。同一底层记录的不同引用不算独立。诊断按**静态映射是否合法 → 静态组约束是否可能成立 → 当前运行证据是否满足**的次序唯一归类：（1）来源身份提取规则、受信 `IndependentDomains` 域对或跨 Owner 共同事实/Scope 映射**缺失、无效、未授权、重复、歧义或根本不可解析/不可比较**，在链接期报 `EVIDENCE_GUARANTEE_LINK_INVALID`；（2）身份与映射规则均**已验证有效**，但仅依据静态发布的 Producer 类别、约束及允许值就能证明该独立性组**对所有合法运行记录都不可能满足**，报 `PREDICATE_EVIDENCE_UNSATISFIABLE`；（3）前两项静态检查已通过，但本次执行缺少足够记录、实际底层源重复、记录过期或 Scope 不匹配，Predicate 得到 `UNKNOWN`，不可回报静态错误。不能将“静态域映射不可比较”和“本次缺少可比较记录”视为同一错误。
 
 **v1alpha3 字段映射。** E.3 的 query / arguments / execution 分别映射为查询实参、操作实参及执行身份引用。selection.mode、orderBy、freshness.timestamp 与 maxAgeMs 分别映射为选择模式、顺序键、时间基准及年龄上限。v1alpha3 可用 `evidence.independence` 表达各组的参数和保证对，保证描述符用 `sourceIdentity` 发布底层来源投影，并用 `factIdentity` 表达共同命名空间、事实标识、Scope 映射及值投影。E46 的拼写变体按附录 F.3 验收，抽象类别不匹配规则适用于任何线格式。
 
@@ -2111,6 +2111,18 @@ dependencies:
 同一可信工件集允许多个文件，各 Capability ID 只能定义一次，重复定义报 CAPABILITY_DEFINITION_CONFLICT；同一 Capability 内的成员重复按 §9.3 处理。禁止合并不同部署的工件集。先验证部署输入与其成员完整性，再链接已验证 Owner 的 ToolCatalog，以精确 callable 身份核对所有匹配成员的 Effect，最后检查 Grant 和已 Grant 成员的 Scope。无授权声明不得产生执行权限。
 
 **Normative。** BuildRequest 或受信构建上下文必须提供独立 CapabilityContracts 文件集、摘要、版本、部署身份和发布者授权绑定，最低属性见附录 F.4。具体字段名由 BuildRequest 版本拥有；缺失不可以猜测。
+
+### 34.0.2 可信 Evidence 域关系与共同事实装配
+
+**Normative（复述附录 F.4/G.3.1 的既有最低逻辑属性，不扩张信任来源）。** 仅在本次 Skill 链接/验证的 Evidence 保证使用跨域独立性或跨 Owner 共同事实映射时，BuildRequest **或等效受信构建上下文**必须提供下列不可由 Skill / Owner 自述代替的装配属性：
+
+| 使用场景 | 必需逻辑属性 | 受信校验和失败行为 |
+|---|---|---|
+| 跨域独立性 `IndependentDomains` | `deploymentId`、`publisherId`、受信 `snapshotDigest`、唯一绝对 URI 的 `domains`、无序且无重复非自反的 `independentPairs` | 验证域对每项均属于 domains、发布者对此部署的授权、装配摘要对应提交的真实字节及被引用保证的 sourceIdentity.domain；缺失、未授权、重复、自反、摘要不符或不匹配 → EVIDENCE_GUARANTEE_LINK_INVALID |
+| 跨 Owner 同一事实比较的可信共同事实绑定 | `deploymentId`、`publisherId`、受信 `snapshotDigest`、共同 `namespace/fact`、参与 Owner 的唯一授权身份集、每个必要维度的 Scope 归一化映射和精确可比较值 Schema 身份 | 对每个 Owner 认证、映射字段可解析、Scope 不歧义、值投影 Schema 可赋值；缺失或权限/字节/域绑定不一致 → EVIDENCE_GUARANTEE_LINK_INVALID |
+| 实际执行记录 | 静态已受信的映射及每次 Producer 的真实 sourceIdentity/factIdentity/Scope/Evidence | 静态通过后实际值不能比较或缺少独立组合 → Predicate UNKNOWN；不允许由 Runtime 临时授信 |
+
+**摘要边界。** 上述两类可信工件必须以原始字节及其受信摘要（或者经独立验证的等效不可变工件承诺）进入 BuildRequest 的**已验证输入闭包**，与当前目标部署、发布者授权、Owner 导出及具体保证引用绑定；任何变更都必须使其已验证身份或内容承诺失效。若所选 BuildRequest 版本还定义整个请求的聚合摘要，则这两类输入**必须**被其摘要/可达不可变输入闭包覆盖。CA-SL 不自行定义新的 BuildRequest 字段名、摘要 framing 或要求一个不存在的顶层 `buildRequestDigest`；但不支持承载、校验这些必须属性的构建版本**不得声明 v1alpha3 互操作符合性**。上述缺失统一按 Evidence 保证链接错误拒绝；CapabilityContracts 自身的摘要错误仍沿 §34.0.1 的 CAPABILITY_INPUT_* 诊断，不相互代替。
 
 ### 34.1 Schema 的源格式与编译格式
 
@@ -3077,7 +3089,7 @@ predicates:
 | E100 | 同一 Goal PASS 后分别经过 Procedure Script SUCCEEDED 和 Mutation SUCCEEDED：前者保留证明，后者清除。READ / Observation SUCCEEDED 同样保留原证明。若后续 READ 使原绑定失效，发布成功前按 §12.8 停止，禁止用新值顶替。显式绑定新 Producer 并取得 Goal PASS 后可重新建立证明 |
 
 | E101 | §13.3：将已验证 Host Session 身份直接绑定至 callable，通过。分别用同值 Script 输出、请求字段、含无权威身份的复合对象替换，报 CALLABLE_ARGUMENT_PROVENANCE_INVALID。原绑定构建通过但派发前无法核验时，报 CALLABLE_ARGUMENT_PROVENANCE_UNVERIFIED，且无派发 |
-| E102 | **静态：** 合法同域来源投影或已由可信 IndependentDomains 批准的跨域关系，以及需要时受信的 factIdentity / Scope 映射可链接；删掉来源身份、部署域关系、共同事实映射，或提供未授权、重复、自反域对，报 EVIDENCE_GUARANTEE_LINK_INVALID；描述符和受信关系均有效，但可用 Producer 无法满足声明的保证组合时报 PREDICATE_EVIDENCE_UNSATISFIABLE。**Runtime：** 已链接但两成员其实是相同底层记录、过期或不可核实，Predicate UNKNOWN；真实独立的有效记录按业务 Predicate 求值。静态与运行时分别是 E102 的独立 Fixture 变体，不新增 E 编号 |
+| E102 | **静态：** 合法同域来源投影或已由可信 IndependentDomains 批准的跨域关系，以及需要时受信的 factIdentity / Scope 映射可链接；删掉来源身份、部署域关系、共同事实映射，或提供未授权、重复、自反域对，报 EVIDENCE_GUARANTEE_LINK_INVALID；描述符和受信关系有效、但静态发布的 Producer 类型/允许集合使独立性组对**任何合法执行都不可能满足**时报 PREDICATE_EVIDENCE_UNSATISFIABLE。**Runtime：** 静态可满足但本次两成员来自相同底层记录、过期或不可核实，Predicate UNKNOWN；真实独立的有效记录按业务 Predicate 求值。静态与运行时分别是 E102 的独立 Fixture 变体，不新增 E 编号 |
 | E103 | §34.0：按所选 BuildRequest 版本提交同一文件集的不同枚举顺序，重算摘要一致。保留原摘要并变更原始文件的换行或 YAML/JSON 编码，构建按 §34.0 拒绝摘要不匹配 |
 | E104 | §11.6：有有效 Host 上界时分别省略 Skill 上界、声明更低和更高的上界，验证分别使用 Host、更低的 Skill、Host 上界。Host 上界缺失、为 0 或非法时拒绝启动 |
 
@@ -3105,7 +3117,7 @@ ToolCatalog 须有 `apiVersion: connectionagent.io/toolcatalog/v1alpha3`、`kind
 
 ## F.4 可信依赖装配
 
-每份实际使用的快照必须有 `dependencyId`（与 Contract alias 精确关联）、按所选 BuildRequest 版本重算的 `digest`、完整文件集、与该 alias + digest 绑定的受信 Package ID 和授权 Owner 集。多 Owner 快照须为每个实际使用的 `(exportKind, exportId)` 提供唯一受信 Owner 归属。使用跨域独立性时，还须额外提供 §G.3.1 的受信 `IndependentDomains` 逻辑关系（部署、发布者、实测摘要、域集合、域对集合）及相应授权验证；使用跨 Owner 共同事实映射时须提供 §G.3.1 的 `factIdentity` 可信比较绑定。缺失或验证失败按 `EVIDENCE_GUARANTEE_LINK_INVALID` 拒绝，不得从 Owner 描述符中自动生成。部署 CapabilityContracts 另外需要实际文件字节、摘要、独立部署身份、已授权发布者和受信校验。具体传输字段属于 BuildRequest 的版本，但缺少任一强制逻辑属性时无论协议版本均必须拒绝，不得从文件名、README、同名 Schema 或上传者自述推断。
+每份实际使用的快照必须有 `dependencyId`（与 Contract alias 精确关联）、按所选 BuildRequest 版本重算的 `digest`、完整文件集、与该 alias + digest 绑定的受信 Package ID 和授权 Owner 集。多 Owner 快照须为每个实际使用的 `(exportKind, exportId)` 提供唯一受信 Owner 归属。使用跨域独立性时，还须额外提供 §G.3.1 / §34.0.2 的受信 `IndependentDomains` 逻辑关系（部署、发布者、实测摘要、唯一域 URI 集合、无序无重复非自反域对集合）及授权验证；使用跨 Owner 共同事实映射时须提供 §G.3.1 / §34.0.2 的可信关系（共同 namespace/fact、参与 Owner、Scope 规范化映射与可比较值 Schema 身份）及授权验证。其真实字节与摘要/等效不可变输入承诺属于受信构建输入闭包，若 BuildRequest 有聚合摘要则必须覆盖该闭包；具体运输和 framing 由 BuildRequest 版本拥有。缺失或验证失败按 `EVIDENCE_GUARANTEE_LINK_INVALID` 拒绝，不得从 Owner 描述符中自动生成。部署 CapabilityContracts 另外需要实际文件字节、摘要、独立部署身份、已授权发布者和受信校验。具体传输字段属于 BuildRequest 的版本，但缺少任一强制逻辑属性时无论协议版本均必须拒绝，不得从文件名、README、同名 Schema 或上传者自述推断。
 
 ## F.5 Schema 赋值与失败策略
 
@@ -3354,7 +3366,7 @@ predicates:
 
 结构必须满足 G.1：members 至少两项，每项两个字段 parameter 和 guarantee 均为必需；每组的 (parameter,guarantee) 对唯一，且必须确实属于 requires[parameter]；没有隐式的组 ID、位置索引或默认同名绑定。Compiler 静态检查来源类别、Scope 映射、Owner 保证及可信来源身份。Runtime 在同一已接纳 Evidence 视图中逐项验证成员的精确记录与底层来源身份并证明两两不同；无法证明时 Predicate 得到 UNKNOWN，而不是 FAIL。
 
-同一个绑定点的诊断优先级：一、YAML/Predicate 结构不合法 → YAML_PARSE_ERROR / UNKNOWN_FIELD；二、成员对不在 requires、保证导出失效、Owner 身份提取规则失效或跨 Owner 共同事实映射无效 → EVIDENCE_GUARANTEE_LINK_INVALID；三、各描述符合法却无法在声明的来源/身份域构建可证明满足的保证组合、或 Producer 值无法提供声明的保证 → PREDICATE_EVIDENCE_UNSATISFIABLE；四、静态链接已通过但这一次执行中证据不足、底层来源重复、过期、Scope 冲突 → UNKNOWN。不可将第 2 类问题回退为第 3 类；同一文件的不同绑定点可同时有不同诊断。§17.1 中的独立性规则交叉引用统一指向 §17.1.1、§17.2 和本节。
+同一个绑定点的诊断优先级：一、YAML/Predicate 结构不合法 → YAML_PARSE_ERROR / UNKNOWN_FIELD；二、成员对不在 requires、保证导出失效、Owner 身份提取规则失效或跨 Owner 共同事实映射无效 → EVIDENCE_GUARANTEE_LINK_INVALID；三、描述符与受信域关系都合法，但仅根据静态 Schema、Producer 集合和保证约束即可证明**在任何合法运行中**都不存在满足独立性组的证据组合 → PREDICATE_EVIDENCE_UNSATISFIABLE；四、静态组可满足且链接通过，但**本次** Producer 实际记录缺失、同源、过期、Scope 冲突或不可核实 → UNKNOWN。不可将第 2 类问题回退为第 3 类；同一文件的不同绑定点可同时有不同诊断。§17.1 中的独立性规则交叉引用统一指向 §17.1.1、§17.2 和本节。
 
 
 ### G.3.1 独立来源与共同事实的描述符形状
@@ -3396,7 +3408,7 @@ factIdentity:
   valuePath: record.value
 ~~~
 
-所有静态路径只允许 Identifier 点段，不支持索引、动态拼接或运行时表达式；缺段、权限缺失、无法链接的域映射按 EVIDENCE_GUARANTEE_LINK_INVALID；描述符分别有效但本次请求的 Producer 路径不能提供声明保证，按 PREDICATE_EVIDENCE_UNSATISFIABLE；运行时源身份不可验证或实测重复则 UNKNOWN。G.3 的 RAN/UPF 教学片段以两个域已由可信部署明确批准为独立来源为前提，不意味着任意两个网元天然独立。
+所有静态路径只允许 Identifier 点段，不支持索引、动态拼接或运行时表达式；缺段、权限缺失、无法链接的域映射按 EVIDENCE_GUARANTEE_LINK_INVALID；描述符和所有受信绑定有效、且可从**静态发布的 Schema / Producer 允许集**证明该独立组不可能被任何合法记录满足时，按 PREDICATE_EVIDENCE_UNSATISFIABLE；只有本次运行记录无法匹配、不可验证或实测同源则为 Predicate UNKNOWN。G.3 的 RAN/UPF 教学片段以两个域已由可信部署明确批准为独立来源为前提，不意味着任意两个网元天然独立。
 
 ## G.4 JSON Schema 白名单、静态兼容与 CEL 型别
 
