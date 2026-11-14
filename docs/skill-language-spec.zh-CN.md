@@ -906,7 +906,7 @@ verify-n4-session:
 
 ### 12.7 Reconcile
 
-Reconcile 唯一跨 Node 入边是构建期硬约束。来源 Node 不可达时仍检查入边（§20.2、E60）。原 Mutation 的 `mutation.reconcile` 虽声明 proof/recovery 字段，但其调和证明必须从独立 Reconcile READ callable 的 receipt 提取；输出仅为已验证 COMMITTED 后的可恢复业务子对象。完整字段归属参见 G.2.0。
+Reconcile 唯一跨 Node 入边是构建期硬约束。来源 Node 不可达时仍检查入边（§20.2、E60）。原 Mutation 的 `mutation.reconcile` 虽声明 proof/recovery 字段，但其调和证明必须从独立 Reconcile READ callable 的 receipt 提取；输出仅为已验证 COMMITTED 后的可恢复业务子对象。完整字段归属参见 G.2 的证明与恢复字段归属表。
 
 Reconcile 是 `operation` 阶段的一种形态，用于调和已经派发的 Mutation。它引用本次 Procedure 中包含该原始 Mutation 的 Node ID：
 
@@ -3290,7 +3290,7 @@ Compiler 的绑定链：operation.reconcile 的原 Node → 原普通 MUTATION O
 
 Runtime 重做相同检查，对同一原调用最多派发一次受控 Reconcile。Reconcile 专用 callable 不得通过普通 operation.target 绕过原调用检验；一个 Capability 可以显式同时列 Mutation 与 Reconcile 两个成员。没有安全 Owner 调和能力时必须遵循 §20.2 的保全停止，不创建伪 Reconcile。
 
-### G.2.0 证明与恢复字段的归属（Normative 交叉索引）
+**证明与恢复字段归属表（Normative 交叉索引）**
 
 下表将**契约声明位置**与**本次实际返回该值的 Owner callable**区分。路径根为数据通道，不得用声明位置或相同字段名替代 Producer 身份校验。
 
@@ -3719,7 +3719,7 @@ G.1–G.9 的补充用例须与原 E01–E104 组合执行。文档审计不代�
 | SCOPE_POLICY_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Runtime 授权 Scope 策略不可读取：普通 callable 有 DENIED 边则走边，否则停止；Reconcile 直接停止并保留原调用责任 | §9.3、§24.2 | E88 | 规范用例已定义 |
 | SCOPE_INTERSECTION_EMPTY | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 派发时 Scope 交集为空：普通 callable 有 DENIED 边则走边，否则停止；Reconcile 直接停止并保留原调用责任 | §9.3、§24.2 | E88 | 规范用例已定义 |
 
-**代码归一化。** §24.1 中表述为“`SCHEMA_MISSING / INVALID`”的缩写只用于并列提及两个已有诊断，**不构成单独代码或新别名**。其规范性代码分别为 `SCHEMA_MISSING`（精确 Schema 未找到）与 `SCHEMA_INVALID`（Schema 不满足 G.4）。诊断记录不得使用单独的 `INVALID`、`SCHEMA_MISSING / INVALID` 或省略阶段的歧义身份。§24.2 的 STALE、CONFLICT 必须写全名为 EVIDENCE_STALE、EVIDENCE_CONFLICT；SCOPE_MISMATCH、CORRELATION_MISMATCH、DEADLINE_EXCEEDED、CANCELLED 是四个独立诊断。OUTCOME_UNKNOWN 是 Mutation 的阶段 Outcome，不是诊断代码。RECONCILE 的 COMMITTED、NOT_COMMITTED、UNRESOLVED 也是阶段 Outcome；RECONCILE_UNRESOLVED 是记录该停止条件的诊断，二者不得互换。
+**代码归一化。** “`SCHEMA_MISSING / INVALID`”仅是并列提及两个已有诊断的缩写，**不构成单独代码或新别名**。其规范性代码分别为 `SCHEMA_MISSING`（精确 Schema 未找到）与 `SCHEMA_INVALID`（Schema 不满足 G.4）。诊断记录不得使用单独的 `INVALID`、`SCHEMA_MISSING / INVALID` 或省略阶段的歧义身份。§24.2 的 STALE、CONFLICT 必须写全名为 EVIDENCE_STALE、EVIDENCE_CONFLICT；SCOPE_MISMATCH、CORRELATION_MISMATCH、DEADLINE_EXCEEDED、CANCELLED 是四个独立诊断。OUTCOME_UNKNOWN 是 Mutation 的阶段 Outcome，不是诊断代码。RECONCILE 的 COMMITTED、NOT_COMMITTED、UNRESOLVED 也是阶段 Outcome；RECONCILE_UNRESOLVED 是记录该停止条件的诊断，二者不得互换。
 
 最终 SUCCEEDED、FAILED、UNRESOLVED、SAFE_STOPPED 是 Invocation 终态，不属于本表的诊断。`待补独立 Fixture` 表示当前 E01–E114 未明确给出与该 `(Code, Phase)` 完全一致的触发输入及预期，属于实现符合性测试债务，**不是**新增的 E 编号、通过证明或可跳过的规范要求。新增精确用例须单独评审编号，并同步 §45.2 的验收范围。
 
