@@ -1251,6 +1251,8 @@ Runtime 只用可信且关联到本次原调用的证明记录提交状态。Own
 | Owner 明确证明原调用未提交 | 记录未提交。若可验证的 Owner 结果属于已声明的确定失败类别，且该类别由 Owner 保证没有遗留副作用，沿 FAILED。若已验证类别映射到已声明的 NOT_COMMITTED，则走该边。缺少可验证类别或其映射未声明时保留已证实状态并停止。FAILED 边不授予重试资格 |
 | 没有可采信的提交或未提交证明，或可信证明之间存在未解决矛盾 | 保留原调用和迟到结果责任，沿 OUTCOME_UNKNOWN |
 
+**路由脚注。** 上表的“沿 SUCCEEDED / FAILED / NOT_COMMITTED / OUTCOME_UNKNOWN”均指当前 **Mutation Operation 阶段**的 Outcome 边；尤其“沿 SUCCEEDED”不等于直接发布 Invocation 终态 `SUCCEEDED`，后者还须通过 §12.8–§12.9 的门禁与 Goal 验收。
+
 副作用保证由 Mutation Owner 在失败类别契约中声明。Runtime 验证结果确属该类别及本次原调用。OUTCOME_UNKNOWN 由 Runtime 产生，Mutation 调用必须配置该边。NOT_COMMITTED 和 FAILED 必须与 Owner 已声明的失败类别一致。出现未声明的已验证结果时，保留提交状态并按 §12.8 停止，禁止映射到成功。
 
 来源不可信或关联错误的回包不能作为提交证明。独立有效的提交证明可以来自同一回包中独立验证的证明，也可来自 Owner 已交付且已验证的记录；本步骤不触发隐式查询。网络超时、未收到输出及 Schema 错误都不能证明未提交。
@@ -2134,7 +2136,7 @@ dependencies:
 | 跨 Owner 同一事实比较的可信共同事实绑定 | `deploymentId`、`publisherId`、受信 `snapshotDigest`、共同 `namespace/fact`、参与 Owner 的唯一授权身份集、每个必要维度的 Scope 归一化映射和精确可比较值 Schema 身份 | 对每个 Owner 认证、映射字段可解析、Scope 不歧义、值投影 Schema 可赋值；缺失或权限/字节/域绑定不一致 → EVIDENCE_GUARANTEE_LINK_INVALID |
 | 实际执行记录 | 静态已受信的映射及每次 Producer 的真实 sourceIdentity/factIdentity/Scope/Evidence | 静态通过后实际值不能比较或缺少独立组合 → Predicate UNKNOWN；不允许由 Runtime 临时授信 |
 
-**摘要边界。** 上述两类可信工件必须以原始字节及其受信摘要进入 BuildRequest 的**已验证输入闭包**；其他等效不可变工件承诺可作为附加签署/身份材料，但不得省略 G.3.1 必需的 `snapshotDigest`，与当前目标部署、发布者授权、Owner 导出及具体保证引用绑定；任何变更都必须使其已验证身份或内容承诺失效。若所选 BuildRequest 版本还定义整个请求的聚合摘要，则这两类输入**必须**被其摘要/可达不可变输入闭包覆盖。CA-SL 不自行定义新的 BuildRequest 字段名、摘要 framing 或要求一个不存在的顶层 `buildRequestDigest`；但不支持承载、校验这些必须属性的构建版本**不得声明 v1alpha3 互操作符合性**。上述缺失统一按 Evidence 保证链接错误拒绝；CapabilityContracts 自身的摘要错误仍沿 §34.0.1 的 CAPABILITY_INPUT_* 诊断，不相互代替。
+**摘要边界。** 上述两类可信工件必须以原始字节及其受信摘要进入 BuildRequest 的**已验证输入闭包**，并与当前目标部署、发布者授权、Owner 导出及具体保证引用绑定。其他不可变工件承诺可作为附加签署/身份材料，但不得替代 G.3.1 必需的 `snapshotDigest`。任何工件字节或绑定的变更都必须令此前验证过的内容承诺失效。若所选 BuildRequest 版本还定义整个请求的聚合摘要，则这两类输入**必须**被其摘要/可达不可变输入闭包覆盖。CA-SL 不自行定义新的 BuildRequest 字段名、摘要 framing 或要求一个不存在的顶层 `buildRequestDigest`；但不支持承载、校验这些必须属性的构建版本**不得声明 v1alpha3 互操作符合性**。上述缺失统一按 Evidence 保证链接错误拒绝；CapabilityContracts 自身的摘要错误仍沿 §34.0.1 的 CAPABILITY_INPUT_* 诊断，不相互代替。
 
 ### 34.1 Schema 的源格式与编译格式
 
@@ -3129,7 +3131,7 @@ ToolCatalog 须有 `apiVersion: connectionagent.io/toolcatalog/v1alpha3`、`kind
 
 ## F.4 可信依赖装配
 
-每份实际使用的快照必须有 `dependencyId`（与 Contract alias 精确关联）、按所选 BuildRequest 版本重算的 `digest`、完整文件集、与该 alias + digest 绑定的受信 Package ID 和授权 Owner 集。多 Owner 快照须为每个实际使用的 `(exportKind, exportId)` 提供唯一受信 Owner 归属。使用跨域独立性时，还须额外提供 §G.3.1 / §34.0.2 的受信 `IndependentDomains` 逻辑关系（部署、发布者、实测摘要、唯一域 URI 集合、无序无重复非自反域对集合）及授权验证；使用跨 Owner 共同事实映射时须提供 §G.3.1 / §34.0.2 的可信关系（共同 namespace/fact、参与 Owner、Scope 规范化映射与可比较值 Schema 身份）及授权验证。其真实字节与摘要/等效不可变输入承诺属于受信构建输入闭包，若 BuildRequest 有聚合摘要则必须覆盖该闭包；具体运输和 framing 由 BuildRequest 版本拥有。缺失或验证失败按 `EVIDENCE_GUARANTEE_LINK_INVALID` 拒绝，不得从 Owner 描述符中自动生成。部署 CapabilityContracts 另外需要实际文件字节、摘要、独立部署身份、已授权发布者和受信校验。具体传输字段属于 BuildRequest 的版本，但缺少任一强制逻辑属性时无论协议版本均必须拒绝，不得从文件名、README、同名 Schema 或上传者自述推断。
+每份实际使用的快照必须有 `dependencyId`（与 Contract alias 精确关联）、按所选 BuildRequest 版本重算的 `digest`、完整文件集、与该 alias + digest 绑定的受信 Package ID 和授权 Owner 集。多 Owner 快照须为每个实际使用的 `(exportKind, exportId)` 提供唯一受信 Owner 归属。使用跨域独立性时，还须额外提供 §G.3.1 / §34.0.2 的受信 `IndependentDomains` 逻辑关系（部署、发布者、实测摘要、唯一域 URI 集合、无序无重复非自反域对集合）及授权验证；使用跨 Owner 共同事实映射时须提供 §G.3.1 / §34.0.2 的可信关系（共同 namespace/fact、参与 Owner、Scope 规范化映射与可比较值 Schema 身份）及授权验证。其真实字节与受信摘要（可附加其他不可变承诺，但不得替代必需的 snapshotDigest）属于受信构建输入闭包，若 BuildRequest 有聚合摘要则必须覆盖该闭包；具体运输和 framing 由 BuildRequest 版本拥有。缺失或验证失败按 `EVIDENCE_GUARANTEE_LINK_INVALID` 拒绝，不得从 Owner 描述符中自动生成。部署 CapabilityContracts 另外需要实际文件字节、摘要、独立部署身份、已授权发布者和受信校验。具体传输字段属于 BuildRequest 的版本，但缺少任一强制逻辑属性时无论协议版本均必须拒绝，不得从文件名、README、同名 Schema 或上传者自述推断。
 
 ## F.5 Schema 赋值与失败策略
 
