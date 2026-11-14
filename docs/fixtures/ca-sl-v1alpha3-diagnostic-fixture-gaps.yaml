@@ -5,7 +5,7 @@
 languageTarget: connectionagent.io/v1alpha3
 source: docs/skill-language-spec.zh-CN.md#appendix-h
 status: INFORMATIVE_CANDIDATE_REGISTER
-candidateCount: 40
+candidateCount: 41
 qualifications:
   normativeExpectations: FROZEN
   fixtureInputs: NOT_IMPLEMENTED
@@ -488,6 +488,18 @@ candidates:
     existingCaseRefs: ["E107"]
     currentCoverage: "部分覆盖"
     fixtureModification: "同一受信 ToolCatalog 快照的一个 Mutation 的 mutation.reconcile.callable 指向精确 READ operation；另一个 Skill 在普通 operation.target 中调用该 READ，且提供独立的 READ Capability Grant。Compiler 必须检查整份快照的 Mutation 关联并阻断普通调用，不得只检索本 Skill 已引用的 Mutation"
+    expectedDiagnostic: RECONCILE_CONTRACT_INVALID
+    expectedBuildBlock: true
+    needsRepresentationReview: false
+    executableFixture: null
+    ciResult: NOT_RUN
+  - candidateId: DFX-041
+    diagnosticCode: RECONCILE_CONTRACT_INVALID
+    phase: C_STATIC
+    normativeClauses: ["§9.2.1","§G.2","§G.2.1","§G.2.2","§24.1"]
+    existingCaseRefs: ["E107"]
+    currentCoverage: "部分覆盖"
+    fixtureModification: "以 G.2.1 有效 Reconcile READ + receiptSchema 作为基线：先验证 proofPath receipt.commit 可在移除逻辑 receipt 锚点后从 schema 根解析。单独将路径改成 receipt.receipt.commit 或裸 commit；前者多出未声明 Schema 段，后者缺少必需通道锚点，二者都不得自动改写或链接通过"
     expectedDiagnostic: RECONCILE_CONTRACT_INVALID
     expectedBuildBlock: true
     needsRepresentationReview: false
