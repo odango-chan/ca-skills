@@ -3233,6 +3233,37 @@ properties:
 以上只是各个嵌套位置的**片段**，不是可直接作为整个 ToolCatalog 解析的文档；完整根结构和可信依赖输入见 §9、§34。Deployment CapabilityContracts 还须以独立成员授权 example.session.reconcile 的 READ。恢复输出 Schema 必须与 Owner 回包中 recovered 子对象的 $ref 精确相同，而不是要求整个回包与资源结构相同；提交证明另从同一可信 Producer receipt 的 receipt.commit 路径验证。NOT_COMMITTED 响应的 recovered 可以不存在。
 
 
+
+### G.2.2 提交证明最小结构和 Owner receipt 分层
+
+为了使两种实现能从同一回包唯一判断 COMMITTED 或 NOT_COMMITTED，mutation.commitProof.schema 和 mutation.reconcile.proofSchema 必须解析到含以下两个必需字段的闭合 object Schema：originalInvocationId 为非空 string，commitState 为字符串枚举 [COMMITTED, NOT_COMMITTED]。实际 Schema 还可声明与 Owner 已发布合同一致的额外业务身份、Scope 或签名字段，但不可改变两字段含义。
+
+~~~yaml
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: urn:example:session:reconcile-proof:v1
+type: object
+additionalProperties: false
+required: [originalInvocationId, commitState]
+properties:
+  originalInvocationId: {type: string, minLength: 1}
+  commitState: {type: string, enum: [COMMITTED, NOT_COMMITTED]}
+~~~
+
+mutation.commitProof.path 与 mutation.reconcile.proofPath 都只能指向同一 Owner 调用回包中经认证的 receipt.<Identifier> 后续静态点路径，不能指向 Skill 自填数据、当前 context、另一调用输出或普通未认证业务 Payload。证明对象在 proofSchema 通过后仍必须验证其 originalInvocationId 精确等于 Host 持久化原 Mutation 调用 ID，并校验同一真实请求的业务身份、Scope、Correlation 与 Producer 签名。commitState 仅提供状态候选；缺少来源真实性或关联时一律不得当作已提交/未提交证明。NOT_COMMITTED 只能说明原调用未提交，额外重试仍要求无遗留副作用及独立授权。
+
+Owner 的完整查询返回可包含两条**不同**的已验证通道：用于结果的 output（按 Reconcile callable.outputSchema 验证）和用于证明的 receipt（按 proofPath 与 proofSchema 验证）。例如证明未提交的合法查询可以是：
+
+~~~yaml
+# 受信 Provider receipt 示意，不是 Procedure SourcePath
+output: {}
+receipt:
+  commit:
+    originalInvocationId: mutation-7
+    commitState: NOT_COMMITTED
+~~~
+
+output.recovered 缺失在 NOT_COMMITTED 是正常的；COMMITTED 且声明了恢复输出时才要求存在并校验。proofPath 指向 receipt.commit，而不是 output.recovered。Owner outcome 始终是 SUCCEEDED，Runtime 验证 commitState 后产生 Reconcile 阶段 NOT_COMMITTED。E108 应核对这两个通道而非伪造原 Mutation SUCCEEDED。
+
 ## G.3 Evidence 独立性：精确 YAML 与优先级
 
 以下是完整 PredicateSet 结构片段，必须由外部可信描述符提供 sourceIdentity（底层来源身份）和必要的 factIdentity（跨 Owner 可比较事实映射）。两个不同 Evidence Ref **本身不能**证明来源独立。
@@ -3260,6 +3291,32 @@ predicates:
 
 同一个绑定点的诊断优先级：一、YAML/Predicate 结构不合法 → YAML_PARSE_ERROR / UNKNOWN_FIELD；二、成员对不在 requires、保证导出失效、Owner 身份提取规则失效或跨 Owner 共同事实映射无效 → EVIDENCE_GUARANTEE_LINK_INVALID；三、各描述符合法却无法在声明的来源/身份域构建可证明满足的保证组合、或 Producer 值无法提供声明的保证 → PREDICATE_EVIDENCE_UNSATISFIABLE；四、静态链接已通过但这一次执行中证据不足、底层来源重复、过期、Scope 冲突 → UNKNOWN。不可将第 2 类问题回退为第 3 类；同一文件的不同绑定点可同时有不同诊断。§17.1 中的独立性规则交叉引用统一指向 §17.1.1、§17.2 和本节。
 
+
+### G.3.1 独立来源与共同事实的描述符形状
+
+当某保证被 Predicate independence 组引用时，其可信保证描述符必须额外提供 sourceIdentity（domain、path）；domain 是绝对 URI 且须由 Owner/部署信任绑定批准，path 为以 record 开头的静态属性路径，指向 Producer 验证的**底层来源记录身份**，而非本次 Evidence Ref 字符串。Runtime 对同一 domain 下的两个成员比较实际 path 值，必须两两不同才能满足独立性。不同 domain 只有受信部署明确声明它们代表不重叠的底层来源身份域时才可被判定独立，否则静态链接报 EVIDENCE_GUARANTEE_LINK_INVALID；不可以因为 Owner 名称不同而推断独立。
+
+~~~yaml
+# 已发布保证描述符中的扩展字段片段
+sourceIdentity:
+  domain: urn:example:record-domain:smf-events
+  path: record.sourceRecordId
+~~~
+
+跨 Owner 对**同一事实**比较还须由各 Owner 发布 factIdentity（namespace、fact、scopePaths、valuePath）；namespace 是同一可信共同事实域的绝对 URI，fact 是非空 DottedId，scopePaths 是明确命名的受信 record 属性路径映射，valuePath 是要比较的规范化事实值路径。部署的共同事实绑定必须明确授权参与的 Owner、命名空间、作用域归一化和可比较值的 Schema；仅有两个 Owner 自报相同 namespace 不授予等价关系。不同事实的独立性检查不要求它们虚构一个共同事实 ID，但仍须通过 sourceIdentity 的两两独立性证明。
+
+~~~yaml
+factIdentity:
+  namespace: urn:example:shared-fact:ue-registration
+  fact: ue.registration
+  scopePaths:
+    subject: record.scope.subject
+    lifecycle: record.scope.lifecycle
+  valuePath: record.value
+~~~
+
+所有静态路径只允许 Identifier 点段，不支持索引、动态拼接或运行时表达式；缺段、权限缺失、无法链接的域映射按 EVIDENCE_GUARANTEE_LINK_INVALID；描述符分别有效但本次请求的 Producer 路径不能提供声明保证，按 PREDICATE_EVIDENCE_UNSATISFIABLE；运行时源身份不可验证或实测重复则 UNKNOWN。G.3 的 RAN/UPF 教学片段以两个域已由可信部署明确批准为独立来源为前提，不意味着任意两个网元天然独立。
+
 ## G.4 JSON Schema 白名单、静态兼容与 CEL 型别
 
 本版不支持整个 JSON Schema Draft 2020-12，而是一个故意收窄且可独立实现的子集。所有参与链接、静态可赋值性和 Script 类型派生的 Schema 根必须显式声明 $schema: https://json-schema.org/draft/2020-12/schema。缺少或不同方言即 SCHEMA_INVALID，不允许从文件扩展名、外部发布者名称、Compiler 配置或声明顺序猜测。许可**验证关键字**仅为：$ref、type、properties、required、additionalProperties、items、minItems、maxItems、minLength、maxLength、minimum、maximum、exclusiveMinimum、exclusiveMaximum、enum、const。许可的**非断言注解**仅为：$schema、$id、title、description、default、examples；default 不合成值。所有未知字段及其他断言一律 SCHEMA_INVALID，不可以“验证器忽略了所以安全”处理。特别不支持 allOf、anyOf、oneOf、not、if/then/else、pattern、patternProperties、unevaluatedProperties、contains、prefixItems、format、动态引用或扩展关键字。来自现实 Owner 的复杂 Schema 应由其 Owner 发布语义等价、正式版本化且受支持的投影，不得由 Skill 复制影子结构。
@@ -3277,7 +3334,12 @@ type 仅接受单值 string、integer、number、boolean、object、array、null
 | 闭合 object | 以精确 Schema ID 区分的字段结构 | 只能静态点访问声明的属性 |
 | array | list<T> | 不提供动态索引、切片和动态对象属性 |
 
-v1alpha3 CEL 表达式只允许已声明参数、确定性的常量、静态字段点访问、括号、布尔 !/&&/||、等于/不等、同数值类型或字符串的大小比较、has(x.field) 与 size(x)。has 只检查已声明属性是否在本次对象中出现，缺失时返回 false；size 只对 string/array 使用。其他调用、宏、推导式、数组索引、对象构造、动态成员名、反射、时间、随机数及外部数据均拒绝；表达式的类型必须可静态证明为 bool。可选属性的读取必须受到同一短路表达式中 has 的保护，可空属性须同时受到 != null 的保护，不能只依赖运行期异常。守卫的 has 为 false 时，明确的 && 表达式返回 false→FAIL（业务逻辑），而不是 Runtime 自动把未知变 FAIL；没有合法守卫的表达式应静态拒绝。若 Runtime 遇到来源 Schema 不符、算术溢出、其他求值异常或缺失必要 Evidence，结果必须 UNKNOWN。为了避免跨语言浮点语义分歧，int、double 类型之间的算术与比较不允许隐式混合；需要转换须由受限 Script 显式生成经校验的值。
+v1alpha3 CEL 表达式只允许已声明参数、确定性的常量、静态字段点访问、括号、布尔 !/&&/||、等于/不等、同数值类型的大小比较、has(x.field) 与 size(x)。has 只检查已声明属性是否在本次对象中出现，缺失时返回 false；size 只对 string/array 使用。其他调用、宏、推导式、数组索引、对象构造、动态成员名、反射、时间、随机数及外部数据均拒绝；表达式的类型必须可静态证明为 bool。可选属性的读取必须受到同一短路表达式中 has 的保护，可空属性须同时受到 != null 的保护，不能只依赖运行期异常。守卫的 has 为 false 时，明确的 && 表达式返回 false→FAIL（业务逻辑），而不是 Runtime 自动把未知变 FAIL；没有合法守卫的表达式应静态拒绝。若 Runtime 遇到来源 Schema 不符、算术溢出、其他求值异常或缺失必要 Evidence，结果必须 UNKNOWN。为了避免跨语言浮点语义分歧，int、double 类型之间的算术与比较不允许隐式混合；需要转换须由受限 Script 显式生成经校验的值。
+
+
+### G.4.1 数值精度及确定性求值补充
+
+CEL int 为有符号 64 位整数，范围为 -9223372036854775808 至 9223372036854775807；CEL double 为有限 IEEE-754 binary64 值。宿主发现越界、非有限值或不可验证的数值序列化时返回 UNKNOWN，不能截断、饱和或隐式接受 PASS。JSON Schema integer→number 的 Source ⊆ Target 赋值规则仍对 Tool 的 JSON 数据适用；当该来源要绑定到 **CEL number 参数**时，必须静态证明所有来源整数都在二进制 64 位浮点可精确表示的安全整数范围 -9007199254740991 至 9007199254740991 内，否则报 PREDICATE_TYPE_MISMATCH；Runtime 做数值无损转换，不得因舍入修改业务判断。CEL 整数与浮点在表达式内不可隐式混用。number 输入必须可按固定 binary64 编码规范化为有限值，不能确定时 UNKNOWN。字符串仅可比较相等/不等；大小排序只支持同一数值类型，避免跨语言字符串排序差异。size 的结果为 int64，溢出同样 UNKNOWN。静态无法证明某个表达式具备上述类型或守卫时报 CEL_INVALID。
 
 ## G.5 责任记录的 Normative 最小抽象模型
 
