@@ -1127,7 +1127,7 @@ Freshness 由 Owner Contract 声明可执行的有效性规则（例如从 obser
 
 **规范性说明。** 保证身份、适用性、证据判定与 E.3 描述符 DSL 的字段语义均按附录 F.3 冻结。文件组织不是跨包导出身份；真实 Owner 记录仍须验证。
 
-Predicate 的 `parameters` 声明业务值类型。`evidence.requires` 可选，是参数名到一组非空、无重复的精确 `alias::guaranteeId` 的映射；只允许引用已声明参数。每个列出的保证至少由一条有效 Evidence Ref 满足，列表全部满足才成立。需要独立证据时，引用不同保证并用 Owner 声明的独立来源约束校验，见 §17.2。省略参数只在该参数的所有调用点均满足下列来源豁免时合法。Compiler 按来源判定每个调用点的实参，覆盖所有可达路径。直接引用普通 Tool Operation、Observation 或 Reconcile 输出的实参必须为对应参数声明至少一个覆盖精确值路径的保证，即使该值仅用于比较。Host Context 字段同样要求保证，但请求字段 `context.request.*`、Host 已校验的身份 `context.ueRef`、关联信息 `context.correlation.*` 及其根对象 `context.correlation` 可作为比对输入豁免。字面量和整个已校验的 `context.request` 也可豁免。此检查只约束参数来源。若 Goal 声明外部事实，Owner 须审定 Predicate 的命题与取证路径确实支持该 Goal。
+Predicate 的 `parameters` 声明业务值类型。`evidence.requires` 可选，是参数名到一组非空、无重复的精确 `alias::guaranteeId` 的映射；只允许引用已声明参数。每个列出的保证至少由一条有效 Evidence Ref 满足，列表全部满足才成立。需要独立证据时，引用不同保证并用 Owner 声明的独立来源约束校验，见 §17.1.1 与 §17.2。省略参数只在该参数的所有调用点均满足下列来源豁免时合法。Compiler 按来源判定每个调用点的实参，覆盖所有可达路径。直接引用普通 Tool Operation、Observation 或 Reconcile 输出的实参必须为对应参数声明至少一个覆盖精确值路径的保证，即使该值仅用于比较。Host Context 字段同样要求保证，但请求字段 `context.request.*`、Host 已校验的身份 `context.ueRef`、关联信息 `context.correlation.*` 及其根对象 `context.correlation` 可作为比对输入豁免。字面量和整个已校验的 `context.request` 也可豁免。此检查只约束参数来源。若 Goal 声明外部事实，Owner 须审定 Predicate 的命题与取证路径确实支持该 Goal。
 
 Procedure Script 输出保守继承其全部绑定实参的来源类别，包括上游 Script 的传递来源。仅当全部来源均可豁免时，其输出可无保证。涉及外部事实的 Procedure Script 输出可用于 Operation 或 Observation 的非身份实参，须满足 §13.3 的来源追溯、类型与授权校验。需要 Evidence 的 Predicate 参数必须改绑到权威 Producer 输出或绑定到由 Host 契约提供可验证关联的 Context 子路径。直接绑定该 Script 输出不能满足所需保证。Script 不能继承输入 Evidence。缺少强制声明报 `PREDICATE_EVIDENCE_REQUIRED`；已声明却无法满足者按 §17.2 校验。
 
@@ -3206,5 +3206,74 @@ properties:
 ~~~
 
 以上只是各个嵌套位置的**片段**，不是可直接作为整个 ToolCatalog 解析的文档；完整根结构和可信依赖输入见 §9、§34。Deployment CapabilityContracts 还须以独立成员授权 example.session.reconcile 的 READ。恢复输出 Schema 与 Reconcile Owner outputSchema 同一 $id，证明另从已关联 receipt 校验。
+
+
+## G.3 Evidence 独立性：精确 YAML 与优先级
+
+以下是完整 PredicateSet 结构片段，必须由外部可信描述符提供 sourceIdentity（底层来源身份）和必要的 factIdentity（跨 Owner 可比较事实映射）。两个不同 Evidence Ref **本身不能**证明来源独立。
+
+~~~yaml
+predicates:
+  example.dual_confirmation:
+    parameters:
+      - ran: ca::urn:example:ran:state:v1
+      - forwarding: ca::urn:example:upf:state:v1
+    evidence:
+      requires:
+        ran: [ca::ran.setup-state]
+        forwarding: [ca::upf.forwarding-state]
+      independence:
+        - members:
+            - {parameter: ran, guarantee: ca::ran.setup-state}
+            - {parameter: forwarding, guarantee: ca::upf.forwarding-state}
+    evaluator:
+      type: cel
+      expression: ran.accepted && forwarding.active
+~~~
+
+结构必须满足 G.1：members 至少两项，每项两个字段 parameter 和 guarantee 均为必需；每组的 (parameter,guarantee) 对唯一，且必须确实属于 requires[parameter]；没有隐式的组 ID、位置索引或默认同名绑定。Compiler 静态检查来源类别、Scope 映射、Owner 保证及可信来源身份。Runtime 在同一已接纳 Evidence 视图中逐项验证成员的精确记录与底层来源身份并证明两两不同；无法证明时 Predicate 得到 UNKNOWN，而不是 FAIL。
+
+同一个绑定点的诊断优先级：一、YAML/Predicate 结构不合法 → YAML_PARSE_ERROR / UNKNOWN_FIELD；二、成员对不在 requires、保证导出失效、Owner 身份提取规则失效或跨 Owner 共同事实映射无效 → EVIDENCE_GUARANTEE_LINK_INVALID；三、各描述符合法却无法在声明的来源/身份域构建可证明满足的保证组合、或 Producer 值无法提供声明的保证 → PREDICATE_EVIDENCE_UNSATISFIABLE；四、静态链接已通过但这一次执行中证据不足、底层来源重复、过期、Scope 冲突 → UNKNOWN。不可将第 2 类问题回退为第 3 类；同一文件的不同绑定点可同时有不同诊断。§17.1 中的独立性规则交叉引用统一指向 §17.1.1、§17.2 和本节。
+
+## G.4 JSON Schema 白名单、静态兼容与 CEL 型别
+
+本版不支持整个 JSON Schema Draft 2020-12，而是一个故意收窄且可独立实现的子集。所有参与链接、静态可赋值性和 Script 类型派生的 Schema 必须显式使用 Draft 2020-12 $schema，或由受信 Owner 发布契约确定此方言。许可**验证关键字**仅为：$ref、type、properties、required、additionalProperties、items、minItems、maxItems、minLength、maxLength、minimum、maximum、exclusiveMinimum、exclusiveMaximum、enum、const。许可的**非断言注解**仅为：$schema、$id、title、description、default、examples；default 不合成值。所有未知字段及其他断言一律 SCHEMA_INVALID，不可以“验证器忽略了所以安全”处理。特别不支持 allOf、anyOf、oneOf、not、if/then/else、pattern、patternProperties、unevaluatedProperties、contains、prefixItems、format、动态引用或扩展关键字。来自现实 Owner 的复杂 Schema 应由其 Owner 发布语义等价、正式版本化且受支持的投影，不得由 Skill 复制影子结构。
+
+type 仅接受单值 string、integer、number、boolean、object、array、null，或恰好两个不同成员的 [T, "null"]；不接受一般 union。required 必须是唯一的 properties 键集合子集；SourcePath 可直接使用的对象必须有声明属性及 additionalProperties:false；additionalProperties 只允许 true/false，true 的开放对象没有可猜测的动态字段。items 仅为单一 Schema，禁止 tuple 数组；min/maxItems 为非负整数且一致。string 与 number 的区间必须可同时满足；enum/const 值必须被对应基础 type 与其他约束接受。$ref 是独立引用对象，除 $schema/$id/title/description 之外不得和其他断言并列；必须链接到受信快照精确 $id，不能循环、动态化或猜测文件名。空或无法满足的 Schema 不会被自动归入 any；应拒绝不合法/自相矛盾的 Schema。静态赋值仍按 F.5 的 Source ⊆ Target，无法证明时拒绝而不是执行一个任意 Schema 求值猜测结果。
+
+| JSON Schema | CEL 输入类型 | 行为 |
+|---|---|---|
+| string | string | 不自动转数值 |
+| integer | int | 只接受 CEL int 可表示的值；溢出导致 UNKNOWN |
+| number | double | 不做隐式 int → double 的 CEL 算术转换，静态 Schema 赋值的 integer→number 规则保持独立 |
+| boolean | bool | 严格 bool |
+| null | null_type | 只可显式比较 |
+| [T, "null"] | nullable T | 读取前先检查非 null |
+| 闭合 object | 以精确 Schema ID 区分的字段结构 | 只能静态点访问声明的属性 |
+| array | list<T> | 不提供动态索引、切片和动态对象属性 |
+
+v1alpha3 CEL 表达式只允许已声明参数、确定性的常量、静态字段点访问、括号、布尔 !/&&/||、等于/不等、同数值类型或字符串的大小比较、has(x.field) 与 size(x)。has 只检查已声明属性是否在本次对象中出现，缺失时返回 false；size 只对 string/array 使用。其他调用、宏、推导式、数组索引、对象构造、动态成员名、反射、时间、随机数及外部数据均拒绝；表达式的类型必须可静态证明为 bool。可选属性的读取必须受到同一短路表达式中 has 的保护，可空属性须同时受到 != null 的保护，不能只依赖运行期异常。守卫的 has 为 false 时，明确的 && 表达式返回 false→FAIL（业务逻辑），而不是 Runtime 自动把未知变 FAIL；没有合法守卫的表达式应静态拒绝。若 Runtime 遇到来源 Schema 不符、算术溢出、其他求值异常或缺失必要 Evidence，结果必须 UNKNOWN。为了避免跨语言浮点语义分歧，int、double 类型之间的算术与比较不允许隐式混合；需要转换须由受限 Script 显式生成经校验的值。
+
+## G.5 责任记录的 Normative 最小抽象模型
+
+Runtime Trace / Artifact 的**实际线格式**仍由独立协议拥有，但运行状态必须能无损映射以下字段；该 JSON 是模型实例，不强制各部署使用同名物理 JSON 文件：
+
+~~~json
+{
+  "resourceKind": "smf.session",
+  "resourceRef": "session-instance-42",
+  "changeRef": null,
+  "originalInvocationId": "mutation-7",
+  "owner": "smf-owner",
+  "lifecycleRef": "lifecycle-2",
+  "correlationRef": "ingress-9",
+  "proofRefs": ["verified-evidence-1"],
+  "disposition": "PENDING"
+}
+~~~
+
+resourceKind、originalInvocationId、owner、lifecycleRef、correlationRef 均须是非空可信身份；resourceRef 与 changeRef 至少有一个非空且经 Owner 验证。独立有效证明可用原调用身份作为 changeRef 跟踪尚未拥有资源句柄的已确认外部变更，但绝不能把未确定提交的原调用臆造为已确认变更。proofRefs 至少包含一个能关联到本次具体资源/变更的已验证证明引用。disposition 的封闭枚举为 PENDING、TRANSFERRED、CLEANED：PENDING 只有在 Owner 验证了交接或清理且追加不可变审计事件后才可变成后两者。缺失证明或未知处置状态不能推断为已移交。未决提交另持久化 unresolved-invocation 记录，保留原调用身份及最后已知状态，不与已确认资源记录混淆。
+
+停止终态顺序 Normative：**存在任何已确认 PENDING 责任 → SAFE_STOPPED；否则存在未决提交或关键事实不可判定 → UNRESOLVED；否则 FAILED**。已请求的终态与最终发布状态、原因诊断分别留在 Trace。实际序列化和跨进程运输不改变这个算法；Runtime 不可因缺少物理字段而假定 CLEANED。此模型明确闭合 §20.1.1 对 SAFE_STOPPED 的依赖。
 
 **规范结束。**
