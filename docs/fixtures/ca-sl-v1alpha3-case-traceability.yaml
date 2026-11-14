@@ -1126,7 +1126,7 @@ cases:
     applicablePhases: ["C_STATIC","R_RUNTIME"]
     buildBlocked: "conditional-by-variant"
     expectedInvocationTerminals: []
-    citedClauses: ["§17.1.1","§F.4","§G.3.1"]
+    citedClauses: ["§17.1.1","§34.0.2","§F.4","§G.3.1"]
     ciFixture: null
     evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
   - case: E103
