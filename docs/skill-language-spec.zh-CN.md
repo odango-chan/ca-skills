@@ -930,7 +930,7 @@ Compiler 必须验证：
 - 参数名在目标 Schema 中存在；
 - 所有 Required 参数均提供；
 - 不得传入未声明字段；
-- SourcePath 必须在每条可达路径上存在。Compiler 先解析 Producer 与其输出 Schema，再检查路径和 Outcome，最后检查类型可赋值性。路径某段未在对应 Schema 中声明时报告 `SOURCE_PATH_INVALID`。已声明的路径因当前分支没有相应 Producer Outcome 而不可用时报告 `SOURCE_NOT_AVAILABLE`；引用 Owner 未声明的 Reconcile 输出时按 §12.7 报 `RECONCILE_OUTPUT_UNAVAILABLE`。若属性在该 Outcome 的 Schema 中可缺失（包括 TypedDict 的 `NotRequired`），直接取该属性的路径报告 `SOURCE_NOT_AVAILABLE`。可绑定保证存在的外层对象，再由消费者按其 Schema 处理可选成员。Predicate PASS 本身不缩窄后续 SourcePath 类型。例如局部门禁确认 `read-policy.operation.output` 中的可选 `policyRef` 有值，即使 PASS 边直接连到 Mutation，其 `arguments.policyRef: read-policy.operation.output.policyRef` 仍报 `SOURCE_NOT_AVAILABLE`。若目标 Schema 允许，可省略该实参。若业务必需，由 Owner 在输出 Schema 中声明必需字段，或将保证存在的外层对象传给 Procedure Script。Script 只有能产生有效引用时才返回包含必需字段的 TypedDict。若字段缺失且无法得出有效引用，Script 显式抛出异常，由 Runtime 走 FAILED 边（§24.2、§32.1）。
+- SourcePath 必须在每条可达路径上存在。Compiler 先解析 Producer 与其输出 Schema，再检查路径和 Outcome，最后检查类型可赋值性。路径某段未在对应 Schema 中声明时报告 `SOURCE_PATH_INVALID`。已声明的路径因当前分支没有相应 Producer Outcome 而不可用时报告 `SOURCE_NOT_AVAILABLE`；引用 Owner 未声明的 Reconcile 输出时按 §12.7 报 `RECONCILE_OUTPUT_UNAVAILABLE`。若属性在该 Outcome 的 Schema 中可缺失（包括 TypedDict 的 `NotRequired`），直接取该属性的路径报告 `SOURCE_NOT_AVAILABLE`。可绑定保证存在的外层对象，再由消费者按其 Schema 处理可选成员。Predicate PASS 本身不缩窄后续 SourcePath 类型。例如局部门禁确认 `read-policy.operation.output` 中的可选 `policyRef` 有值，即使 PASS 边直接连到 Mutation，其 `arguments.policyRef: read-policy.operation.output.policyRef` 仍在构建期报 `SOURCE_NOT_AVAILABLE`，该 Skill 因此无法运行，也不会执行 §12.9 的派发前局部门禁复核。若目标 Schema 允许，可省略该实参。若业务必需，由 Owner 在输出 Schema 中声明必需字段，或将保证存在的外层对象传给 Procedure Script。Script 只有能产生有效引用时才返回包含必需字段的 TypedDict。若字段缺失且无法得出有效引用，Script 显式抛出异常，由 Runtime 走 FAILED 边（§24.2、§32.1）。
 - Source Schema 可赋给目标字段 Schema；
 - Optional、Nullability、enum、const、范围和数组元素约束兼容；
 - 来源的 Subject、Session、Lifecycle 和 Evidence Scope 没有被不安全地扩大；
@@ -1230,7 +1230,7 @@ Compiler 不得为让文件编译而创建不存在的 Schema、用 object 逃�
 ### 24.2 Runtime 异常
 
 回包无法解码时，记录 `RESPONSE_DECODE_FAILED`，再按调用类型处理。已派发 Mutation 在缺少独立有效提交证明时沿 OUTCOME_UNKNOWN；有独立提交证明时按 §20.1 处理，承诺的输出不可用时安全停止。
-下表中的异常码用于诊断，与阶段 Outcome 和 Invocation 终态分别记录。READ / Observation 回包无法支持该次查询结果时隔离输出，沿 Owner 契约的 UNKNOWN 边；没有该边时按关键事实不确定停止。Procedure Script 抛出异常时记录 `SCRIPT_EXECUTION_FAILED`，沿 FAILED 边。若 `main` 正常返回，但 Python 返回值的类型或内容违反由 TypedDict 派生的输出 Schema（例如返回整数或缺少必需字段），记录 `OUTPUT_SCHEMA_INVALID`，隔离结果并沿 FAILED 边。两种情况都不产生成功输出。若执行图异常导致没有 FAILED 边，按确定执行错误停止。若异常发生在新动作派发前，只有 `DENIED` 等由契约声明的派发前 Outcome 可沿图路由；门禁失效、全局限制和 Reconcile 无法派发直接按 §12.8 停止。全局取消、Deadline 和预算限制优先于继续沿图派发。
+下表中的异常码用于诊断，与阶段 Outcome 和 Invocation 终态分别记录。READ / Observation 回包无法支持该次查询结果时隔离输出，沿 Owner 契约的 UNKNOWN 边；没有该边时按关键事实不确定停止。Procedure Script 抛出异常时记录 `SCRIPT_EXECUTION_FAILED`。若 `main` 正常返回但违反派生输出 Schema，则记录 `OUTPUT_SCHEMA_INVALID`。处理方式见表格对应行。若执行图异常导致 Script 没有 FAILED 边，按确定执行错误停止。若异常发生在新动作派发前，只有 `DENIED` 等由契约声明的派发前 Outcome 可沿图路由；门禁失效、全局限制和 Reconcile 无法派发直接按 §12.8 停止。全局取消、Deadline 和预算限制优先于继续沿图派发。
 
 | 异常 | 处理原则 |
 |---|---|
@@ -2005,7 +2005,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 
 **继续 DESIGN REVIEW。** §9.2 ToolCatalog、§9.3 CapabilityContracts 和 §17.1 Evidence 描述符的线格式，§34.0 多 Owner 归属的传递格式，以及 §21 的异步 Operation Owner 契约。按第 2、3、5、9、10 项验收。
 
-在以上事项完成之前，整份规范的状态保持 DESIGN REVIEW。实际 Compiler、Runtime 和工具链验收仍按上述门槛进行。
+在整份规范满足上述门槛前，文档的状态标记为 DESIGN REVIEW。标注为冻结候选的语言语义规则可单独进入冻结流程，由相关 Owner 审定。Compiler、Runtime 和工具链验收仍按上述门槛进行。
 
 ---
 
