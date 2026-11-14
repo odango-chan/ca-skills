@@ -8,6 +8,8 @@
 **消费者：** Skill 作者、Skill Studio、ca-skill-compiler、Agent Host / Runtime、Tool Owner、Schema Owner、语言服务和第三方评审者  
 **更新日期：** 2026-11-14
 
+> 勘误与交叉引用说明：[v1alpha3 冻结后勘误记录](design/ca-sl-v1alpha3-errata-2026-11-14.md)。该记录不改变本文 Normative 语义，且不代表 §45.2 产品符合性验收通过。
+
 > 本文是 CA-SL vNext / v1alpha3 已冻结的规范文本，也是本仓库唯一的语言语义权威。它覆盖背景、设计原则、术语、架构、源码结构、YAML 语法、静态语义、运行语义、Tool / Observation / Evidence、Schema 所有权、异常处理、PDU Session 示例、工具链要求和 FAQ。其他文档可以补充实现细节，但不得另行定义或覆盖语言语义。
 >
 > MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT、MAY、OPTIONAL 等关键字遵循 RFC 2119 / RFC 8174。中文“必须、不得、应当、不建议、可以”具有相同规范效力。
