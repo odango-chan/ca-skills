@@ -1,19 +1,12 @@
 # ConnectionAgent Skill Authoring Guide
 
-This guide follows the current language authority in [Skill Language Specification](skill-language-spec.md), [Script Contract](script-contract.md), [Schema Ownership](schema-ownership.md) and [Authoring Model](authoring-model.md). **ca-skills is the only authoritative input for official Skill source and Skill-authored language semantics.**
+This guide follows the [CA-SL vNext / v1alpha3 Specification](skill-language-spec.zh-CN.md), the sole normative language authority. The author syntax and interoperability profile are frozen; product conformance and executable 5GC migration are separate §45.2 gates.
 
 ## 1. Current source baseline
 
-The current official 5GC executable packages are:
+The runnable 5GC Skills remain on the v0.2 business/source baseline and have not yet been migrated to vNext. MAS is a design candidate, not the first live execution acceptance baseline. Do not rewrite the current runnable packages before a separately reviewed migration.
 
-- `skills/establish-pdu-session/` — conventional initial PDU Session Establishment.
-- `skills/establish-pdu-session-mas/` — MAS policy-first candidate.
-
-These two packages are the current source examples. Other historical packages remain in the repository but are not authorities for the current 5GC language contract.
-
-The latest `ca-agent-demo` source is used only to verify and refresh business behavior. Compiler and Studio consume the official Skill source from this repository, not from ca-agent-demo.
-
-## 2. Canonical Skill package
+## 2. Canonical vNext Skill package
 
 ~~~text
 skills/<name>/
@@ -23,103 +16,53 @@ skills/<name>/
 │   ├── procedure.yaml
 │   └── predicates.yaml
 ├── cases/<case>/case.yaml
-├── references/       # optional model knowledge
-├── schemas/          # Skill-owned schemas only
-└── scripts/          # optional pure local computation
+├── references/
+├── schemas/
+└── scripts/
 ~~~
 
-- `SKILL.md` is model-facing business guidance.
-- `assurance/` is the deterministic source contract.
-- `cases/` contains source-level semantic obligations, not executable Compiler tests.
-- `references/` is optional knowledge. It is not automatically loaded; list exact paths in `SKILL.md` and let the model decide when useful.
-- `schemas/` contains only schemas genuinely owned by the Skill, such as the public Request Schema.
-- `scripts/` contains deterministic local computation owned by this Skill.
+The three assurance files have separate responsibilities:
 
-Do not create `preload/` or `on-demand/` directories. Do not create a second prose workflow that duplicates Procedure edges.
+- `contract.yaml`: public Skill declaration — Goal, global Precondition references, public Request Schema, Host Invocation Context Schema, public dependency identities and Capability Grants.
+- `procedure.yaml`: the single execution graph — start and business Nodes with ordered optional phases. Precondition, Operation, Observation, and Postcondition run in that order when declared. An earlier stage's normal outcome advances within the Node. The current stage's `routes` maps each explicit branch to a Node or an Invocation terminal status.
+- `predicates.yaml`: reusable Predicate parameter signatures and CEL / Python evaluators.
 
-## 3. Procedure
+The Contract remains author-maintained source. Only redundant wrapper fields and values derivable elsewhere are removed; the public declarations it owns are not deleted. Compiler may derive a normalized Runtime contract from Contract, Procedure, Predicates and dependency snapshots, but that artifact does not replace the source Contract.
 
-The current language uses named Procedures and named nodes. The supported main-node intents are:
+## 3. Contract ownership
 
-- `call` — one exact imported Tool Operation.
-- `script` — one Skill-owned Script path.
-- `procedure` — local or explicitly identified cross-Skill Procedure.
-- `verify` — one Predicate.
-- `reconcile` — reconciliation of the exact original mutation node.
-- `terminal` — declared Procedure terminal result.
+| Field | Treatment |
+|---|---|
+| `goal` | Keep: business goal |
+| `requestSchema` | Skill-owned public Request Schema |
+| `contextSchema` | Exact Host-owned Invocation Context Schema |
+| `dependencies` | Alias → stable Package ID string |
+| `capabilities` | Requested Capability IDs |
+| `apiVersion`, `kind` | Omit from source; selected by Compiler Target / file structure |
+| `metadata.name` | Derive from Skill Package root |
+| `entryProcedure` | Omit: one Procedure entry per Skill |
+| `preconditions` | Optional list of `<node-id>.precondition` references. Every listed gate must PASS before a business Mutation or SUCCEEDED |
+| `postconditions` | Procedure nodes mark the Goal they prove with `postcondition.goal`; each success path must carry a valid Goal PASS |
+| `planning.allowDynamicProcedure` | Omit: static DAG is a language invariant |
+| `planning.maxActions` | Superseded; optional `limits.maxActions` imposes a stricter Skill action bound. Host's positive budget is mandatory |
+| `failureSemantics.outcomeUnknown.requireReconcile` | General safety rule for Mutation UNKNOWN, not a per-Skill toggle |
 
-A `call` is always a scalar Operation ID:
+Dependencies and Capability Grants are different: dependencies make Owner contracts available for linking; grants express the Skill's authorization request. A dependency does not grant permission, and a grant does not provide the ToolCatalog / Schema contract needed to compile a reference.
 
-~~~yaml
-call: sbi.udm.sm_data.get
-~~~
+## 4. Skill Studio creation flow
 
-Do not use a Capability group, dependency name, MCP tool name, or `{dependency, operation}` object in `call`. The caller supplies ToolCatalog bytes under the logical `lib/tools/**` namespace; Compiler links the exact Operation ID.
+Studio should guide authors through selection rather than requiring manual entry of Owner IDs:
 
-Preconditions and postconditions are ordered phases. Their steps support only `call`, `script` and `verify`. They do not support nested Procedure or Tool declarations.
+1. Select public dependencies (Host Context, ToolCatalog, Observation and shared Schema packages).
+2. Select the Host-owned Invocation Context Schema.
+3. Select requested Capabilities from trusted CapabilityContracts.
+4. Create or select the Skill-owned Request Schema.
+5. Generate / update `contract.yaml`; bind exact callable exports while authoring Procedure.
 
-Use explicit `with:` bindings. Each binding has exactly one `from:` or `value:`. Never rely on implicit previous-node output or inferred data flow.
+Selections remain editable later in Dependencies / Capabilities views. Studio fetches exact dependency snapshots and supplies them to Compiler. Compiler parses, links and validates only; it does not download dependencies or manage dependency versions.
 
-## 4. Scripts
+The Contract maps each dependency Alias to a stable Package ID. The build caller binds that identity and the allowed Owners to the existing snapshot alias and verified digest. Compiler links exact Owner exports. The Contract does not store download locations, version locks or digests. Preserve immutable version markers in Owner Schema IDs.
 
-Use the single supported entry point:
+## 5. Further reading
 
-~~~python
-from typing import Literal, TypedDict
-
-class SelectionOutput(TypedDict):
-    accepted: Literal[True]
-    dnn: str
-
-def main(input: dict) -> SelectionOutput:
-    return {"accepted": True, "dnn": input["dnn"]}
-~~~
-
-- The parameter `input: dict` is only the invocation container, not an open Input Schema.
-- Procedure Script inputs are derived per call site from that step's `with:` Producer bindings.
-- Predicate Script inputs are the Host-created Predicate Evaluation Context plus declared observations.
-- The return type must be a non-empty, statically declared `TypedDict`.
-- Compiler generates the read-only Script Output JSON Schema.
-- Use functional `TypedDict("Name", {...})` when a wire key is not a valid Python identifier, such as `5qi`.
-- Do not add `# /// connectionagent-tool` metadata, independent local Tool IDs, or per-Script input/output Schema files.
-- Scripts perform deterministic local computation only. They do not call HTTP, MCP, Providers, Tools, shell commands, databases, clocks or random sources.
-
-See [Script Contract](script-contract.md) for the exact supported types and constraints.
-
-## 5. Schema ownership and imported contracts
-
-| Contract | Owner | Source |
-|---|---|---|
-| Public Skill Request | Skill | `schemas/**` |
-| Tool Operation Input/Output | Tool owner | Imported ToolCatalog under logical `lib/tools/**` |
-| Subject / Facts / Evidence | Agent Host | Explicit Owner Schema references under `lib/host/**` |
-| Observation payload | Observation owner | Explicit Owner Schema references under `lib/observations/**` |
-| Procedure Script input | Derived | Exact call-site Producer bindings |
-| Predicate Script input | Host + Observation owners | Predicate Evaluation Context |
-| Script output | Skill Script | Generated from Output `TypedDict` |
-
-`requiredFacts` is a list of fact identifiers, not a field-level Schema. Do not fabricate an external Schema, infer it from Python access patterns, or substitute a Deployment Profile.
-
-The current official `lib/` snapshot contains the approved 12-Operation conventional PDU ToolCatalog only. The actual Host Subject/Facts/Evidence and Observation Owner Schemas are not currently bundled. Their absence is an explicit external dependency; Compiler must report it when those schemas are required.
-
-The MAS Skill's 16 Operation references remain unresolved until the Tool owner supplies an approved ToolCatalog. Its design file is not an approved import.
-
-## 6. Cases and validation
-
-A Case is one `cases/<name>/case.yaml` source-level scenario and expected semantic obligation. It is not proof of execution, qualification or live 5GC acceptance.
-
-Run:
-
-~~~sh
-make verify
-~~~
-
-This checks repository-local source hygiene, Script entry-point shape, source references and the semantic-token registry. It does not invoke Compiler, Runtime, Qualification or a live network.
-
-Compiler acceptance is established only by testing the actual target Compiler. Runtime and live 5GC acceptance belong to their respective owners.
-
-## 7. Compiler and Studio boundary
-
-Studio/caller acquires files, imports Tool/Host/Observation contracts and assembles the logical BuildRequest file set. Compiler receives bytes, parses and links the Skill language, validates bindings, generates output files and diagnostics.
-
-Compiler does not manage Git, Upload, MCP, dependencies, locks, caches, workspace folders, Python execution, Tool execution or Qualification. Studio decides how to display and export BuildResult files.
+Use the comprehensive specification for the concept model, Contract / Dependency / Capability ownership, four Procedure node types, Predicate parameters, ToolCatalog, Observation, Evidence, Schema ownership, Script roles, PDU Session examples, exceptional cases and FAQ.
