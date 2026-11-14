@@ -453,7 +453,11 @@ spec:
           scopePolicyRef: deployment.registration-read
 ~~~
 
-CapabilityContracts 使用稳定 Owner 身份、精确 callable ID 和 kind 标识成员。Compiler 查找该身份的所有成员记录，要求至少一个所属 Capability 已被 Skill Grant。仅对匹配且已 Grant 的成员解析 Scope。缺失或不可解析报 `CAPABILITY_SCOPE_UNRESOLVED`，静态可证的空交集报 `CAPABILITY_SCOPE_EMPTY_INTERSECTION`。未 Grant 成员无需解析 Scope，Effect 一致性检查仍适用。Scope 依赖实际 Runtime 参数时，在派发前裁决。多个已 Grant 成员同时匹配时，实际 Scope 取这些成员边界与 callable、Invocation 授权范围的交集。空交集禁止派发。未 Grant 成员只参与 Effect 一致性检查。候选线格式可用成员级 `scopePolicyRef` 指向部署发布的规则。所有匹配记录的 Effect 必须与 ToolCatalog 一致，包括未获 Grant 的记录。Effect 描述 callable 本身，Grant 仅决定访问资格。检查未获 Grant 的成员可在授权变动前发现同一 callable 的身份冲突，部署侧须修复冲突记录后重新链接。同一 Capability 内重复声明同一成员报 `CAPABILITY_MEMBERSHIP_DUPLICATE`，跨 Capability 的一致成员合法。Runtime 在派发时对可信部署契约重新执行同一 Effect 与授权检查。缺少 Grant、重复记录或 Effect 冲突时禁止派发。该 YAML 是 v1alpha3 互操作字段的示例，真实部署批准独立验证。
+CapabilityContracts 使用稳定 Owner 身份、精确 callable ID 和 kind 标识成员。Compiler 查找该身份的所有成员记录，要求至少一个所属 Capability 已被 Skill Grant。仅对匹配且已 Grant 的成员解析 Scope。缺失或不可解析报 `CAPABILITY_SCOPE_UNRESOLVED`，静态可证的空交集报 `CAPABILITY_SCOPE_EMPTY_INTERSECTION`。未 Grant 成员无需解析 Scope，Effect 一致性检查仍适用。Scope 依赖实际 Runtime 参数时，在派发前裁决。
+
+多个已 Grant 成员同时匹配时，实际 Scope 取这些成员边界与 callable、Invocation 授权范围的交集。空交集禁止派发。未 Grant 成员只参与 Effect 一致性检查。候选线格式可用成员级 `scopePolicyRef` 指向部署发布的规则。所有匹配记录的 Effect 必须与 ToolCatalog 一致，包括未获 Grant 的记录。Effect 描述 callable 本身，Grant 仅决定访问资格。检查未获 Grant 的成员可在授权变动前发现同一 callable 的身份冲突，部署侧须修复冲突记录后重新链接。同一 Capability 内重复声明同一成员报 `CAPABILITY_MEMBERSHIP_DUPLICATE`，跨 Capability 的一致成员合法。
+
+Runtime 在派发时对可信部署契约重新执行同一 Effect 与授权检查。缺少 Grant、重复记录或 Effect 冲突时禁止派发。该 YAML 是 v1alpha3 互操作字段的示例，真实部署批准独立验证。
 
 ---
 
@@ -769,7 +773,9 @@ nodes:
         UNKNOWN: SAFE_STOPPED
 ~~~
 
-本例使用独立 Contract `goal: udm.subscription_verified`，并假设 Host 在派发前登记对创建尝试和迟到结果的责任。成功完成后该订阅由已登记的管理方接管。提交后的验证失败进入 SAFE_STOPPED。Tool Owner 须明确保证 Create 成功输出和独立 Observation 输出中的 subscription 均符合相同规范化 Subscription Schema，并发布相同权威的订阅状态保证（§17）；该假设须由正式 Owner Schema 确认，不能靠 Compiler 猜测。COMMITTED 只证明原 Mutation 已提交。Observation 从 Reconcile 自身输出读取 `subscriptionRef`。若 Owner 未声明 Reconcile 输出，原样引用该输出报 `RECONCILE_OUTPUT_UNAVAILABLE`。只有能通过其他已绑定的精确引用验证本次资源归属时，才可改用权威查询。查询可留在同一 Node 的 Observation 阶段。只按 UE 或 DNN 查询其他订阅不能证明本次创建。两条成功路径分别通过标记同一 Goal 的 Postcondition PASS，各自沿 `PASS: SUCCEEDED` 结束。
+本例使用独立 Contract `goal: udm.subscription_verified`，并假设 Host 在派发前登记对创建尝试和迟到结果的责任。成功完成后该订阅由已登记的管理方接管。提交后的验证失败进入 SAFE_STOPPED。Tool Owner 须明确保证 Create 成功输出和独立 Observation 输出中的 subscription 均符合相同规范化 Subscription Schema，并发布相同权威的订阅状态保证（§17）；该假设须由正式 Owner Schema 确认，不能靠 Compiler 猜测。COMMITTED 只证明原 Mutation 已提交。
+
+Observation 从 Reconcile 自身输出读取 `subscriptionRef`。若 Owner 未声明 Reconcile 输出，原样引用该输出报 `RECONCILE_OUTPUT_UNAVAILABLE`。只有能通过其他已绑定的精确引用验证本次资源归属时，才可改用权威查询。查询可留在同一 Node 的 Observation 阶段。只按 UE 或 DNN 查询其他订阅不能证明本次创建。两条成功路径分别通过标记同一 Goal 的 Postcondition PASS，各自沿 `PASS: SUCCEEDED` 结束。
 
 ### 12.2 Precondition
 
@@ -906,7 +912,11 @@ reconcile-policy:
       UNRESOLVED: SAFE_STOPPED
 ~~~
 
-Runtime 必须使用原始 Mutation 的不可变 Invocation、Operation 身份、输入、Scope 和 Correlation 执行对应 Owner 契约的 Reconcile。Reconcile 不得变成新的 Create / Update 请求，不得接受另一组业务参数来改变原操作目标。Compiler 必须验证目标存在、目标确为 MUTATION 且发布了安全 Reconcile 契约。有安全 Reconcile 契约时，原 Mutation 的 `operation.routes.OUTCOME_UNKNOWN` 直接指向执行该 Reconcile 的 Node。含 `operation.reconcile` 的 Node 不得声明 `precondition`，且不得用作 `start`。该 Node 从 Operation 阶段开始，可在 COMMITTED 后执行同一 Node 的 Observation 和 Postcondition。Compiler 按 §20.2 核对进入该 Node 的唯一跨 Node 路由，Runtime 只接纳该路由对应的未决、尚未调和的原调用。没有安全契约时按 §20.2 停止。Compiler 仅将 `reconcile-node.operation.output` 链接到原 Mutation 的 `mutation.reconcile.recoverableOutputSchema`；它由 `recoverableOutputPath` 指向调和 callable **完整 Owner 回包内的恢复子对象**。完整的 Reconcile Owner `outputSchema` 和认证 `receiptSchema` 不是 Procedure 可绑定的 SourcePath。只有该子对象在 Reconcile `COMMITTED` 且经证明与 Schema 校验后才对后续阶段和可达消费者可用，其形状可与原 Mutation 的成功输出不同。Owner 未声明恢复输出时，COMMITTED 后不提供 `operation.output`，后续可显式读取权威状态。承诺的输出未通过校验时按 §20.2 停止。本节示例的 UNRESOLVED 边请求 SAFE_STOPPED，因为假定已有部分资源待保全。§12.1 的独立示例请求 UNRESOLVED。两种写法都由 Runtime 按 §12.8 计算实际终态。
+Runtime 必须使用原始 Mutation 的不可变 Invocation、Operation 身份、输入、Scope 和 Correlation 执行对应 Owner 契约的 Reconcile。Reconcile 不得变成新的 Create / Update 请求，不得接受另一组业务参数来改变原操作目标。Compiler 必须验证目标存在、目标确为 MUTATION 且发布了安全 Reconcile 契约。有安全 Reconcile 契约时，原 Mutation 的 `operation.routes.OUTCOME_UNKNOWN` 直接指向执行该 Reconcile 的 Node。
+
+含 `operation.reconcile` 的 Node 不得声明 `precondition`，且不得用作 `start`。该 Node 从 Operation 阶段开始，可在 COMMITTED 后执行同一 Node 的 Observation 和 Postcondition。Compiler 按 §20.2 核对进入该 Node 的唯一跨 Node 路由，Runtime 只接纳该路由对应的未决、尚未调和的原调用。没有安全契约时按 §20.2 停止。Compiler 仅将 `reconcile-node.operation.output` 链接到原 Mutation 的 `mutation.reconcile.recoverableOutputSchema`；它由 `recoverableOutputPath` 指向调和 callable **完整 Owner 回包内的恢复子对象**。
+
+完整的 Reconcile Owner `outputSchema` 和认证 `receiptSchema` 不是 Procedure 可绑定的 SourcePath。只有该子对象在 Reconcile `COMMITTED` 且经证明与 Schema 校验后才对后续阶段和可达消费者可用，其形状可与原 Mutation 的成功输出不同。Owner 未声明恢复输出时，COMMITTED 后不提供 `operation.output`，后续可显式读取权威状态。承诺的输出未通过校验时按 §20.2 停止。本节示例的 UNRESOLVED 边请求 SAFE_STOPPED，因为假定已有部分资源待保全。§12.1 的独立示例请求 UNRESOLVED。两种写法都由 Runtime 按 §12.8 计算实际终态。
 
 ### 12.8 Invocation 终态与 Applicability
 
@@ -934,7 +944,11 @@ Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时必�
 - 全局 Postcondition 要求证明 Contract 的单一 `goal`。`postcondition.goal` 必须精确匹配该 Goal，其 PASS 建立证明。各成功分支可以由不同 Node 的 Postcondition 建立证明。`start` 可指向带有 Goal Postcondition 的 Node。若同一验收需要同时检查多项事实，可在一个 Predicate 中明确组合判断。
 - Runtime 发布 SUCCEEDED 前复核全部全局前置条件、当前 Goal 证明的来源与 Evidence，以及资源责任。所有门禁复核都使用原绑定和最新校验时间。若缺少要求的 PASS 或复核失败，按 §12.8 停止，保留原 Trace。Runtime 不隐式重新求值、查询、换绑证据或回退到更早的 Goal 证明。失败或停止终态按 §12.8 发布，无需全局 PASS 或 Goal 证明。
 
-Compiler 构建以 `(Node ID, 阶段名)` 为顶点的分析图。每个合法 Outcome 对应一条边，边记录来源顶点、Outcome 与目标。若还有后续阶段，正常 Outcome 生成一条自动推进边，目标为同一 Node 的下一已声明阶段。其他边来自 `routes`，目标为另一 Node 的首个阶段或终态。两种边都按来源阶段和 Outcome 应用相同的门禁及证明更新规则。伪代码中的 `vertex.effect` 是普通 Tool Operation 经过链接校验的 Effect，只在普通 Tool Operation 的阶段顶点上有值。Reconcile 和 Procedure Script 的该值为空。分析图的 vertex.kind 由已解析阶段及 Operation 目标决定，包括 observation、tool_operation、script_operation 和 reconcile；script_operation 仅对应 operation 的 script 目标。下文的 READ Operation 指链接后的 Effect 为 READ 的普通 Tool Operation。此处不增加作者源码字段。Compiler 先更新边上的状态，再检查每条可达的 `SUCCEEDED` 终态边。最后阶段的 Goal PASS 因此可以直接证明同一条成功边。入口顶点是 `start` Node 的第一个已声明阶段，进入时没有已通过的全局前置条件，也没有 Goal 证明。可达图是从该入口经显式路由和自动推进得到的可达闭包，包含所有可达阶段及其出边，包括终态边。不可达阶段的出边不参与任何汇合。每个可达的非入口阶段至少有一条来自可达阶段的入边。汇合点仅对这些入边计算已通过条件的交集和 Goal 证明的 AND。不可达 Node 另报 `UNREACHABLE_NODE`。若存在可达 SUCCEEDED 且没有可达的 Goal Postcondition，报告 `FINAL_POSTCONDITION_MISSING`；否则缺少证明的成功路径报告 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`。任一受保护的 Mutation 或成功终态绕过全局前置判断的 PASS 时，报告 `ENTRY_PRECONDITION_BYPASSED`。
+Compiler 构建以 `(Node ID, 阶段名)` 为顶点的分析图。每个合法 Outcome 对应一条边，边记录来源顶点、Outcome 与目标。若还有后续阶段，正常 Outcome 生成一条自动推进边，目标为同一 Node 的下一已声明阶段。其他边来自 `routes`，目标为另一 Node 的首个阶段或终态。两种边都按来源阶段和 Outcome 应用相同的门禁及证明更新规则。伪代码中的 `vertex.effect` 是普通 Tool Operation 经过链接校验的 Effect，只在普通 Tool Operation 的阶段顶点上有值。Reconcile 和 Procedure Script 的该值为空。
+
+分析图的 vertex.kind 由已解析阶段及 Operation 目标决定，包括 observation、tool_operation、script_operation 和 reconcile；script_operation 仅对应 operation 的 script 目标。下文的 READ Operation 指链接后的 Effect 为 READ 的普通 Tool Operation。此处不增加作者源码字段。Compiler 先更新边上的状态，再检查每条可达的 `SUCCEEDED` 终态边。最后阶段的 Goal PASS 因此可以直接证明同一条成功边。入口顶点是 `start` Node 的第一个已声明阶段，进入时没有已通过的全局前置条件，也没有 Goal 证明。
+
+可达图是从该入口经显式路由和自动推进得到的可达闭包，包含所有可达阶段及其出边，包括终态边。不可达阶段的出边不参与任何汇合。每个可达的非入口阶段至少有一条来自可达阶段的入边。汇合点仅对这些入边计算已通过条件的交集和 Goal 证明的 AND。不可达 Node 另报 `UNREACHABLE_NODE`。若存在可达 SUCCEEDED 且没有可达的 Goal Postcondition，报告 `FINAL_POSTCONDITION_MISSING`；否则缺少证明的成功路径报告 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`。任一受保护的 Mutation 或成功终态绕过全局前置判断的 PASS 时，报告 `ENTRY_PRECONDITION_BYPASSED`。
 
 正常完成的 READ Operation、Observation 与 Procedure Script 仅保留已有 Goal 证明及其原绑定。Runtime 仍按原绑定复核。后续调用产生的新值不能替换已记录的证明输入。若需以新状态证明 Goal，Procedure 必须显式将新的 Producer 输出绑定到 Goal Postcondition 并取得新的 PASS。
 
@@ -1057,7 +1071,11 @@ Compiler 必须验证：
 - 来源的 Subject、Session、Lifecycle 和 Evidence Scope 没有被不安全地扩大；
 - Reconcile 不接受普通 arguments，而引用原始 Mutation Invocation。
 
-**Scope 与身份实参。** 外部 callable Owner 须在抽象契约中标明参与 Subject、Session、Lifecycle、Correlation 或资源句柄的输入值路径，包括复合实参内的相关子路径。可信部署 Scope 策略声明其参与授权计算的输入路径。Compiler 取两者并集，并对每条路径验证直接绑定来自对该身份有权威的 Producer 输出，或由 Host 契约提供可验证关联的 Context 子路径。权威和关联须覆盖对应身份维度，且可链接到当前 Invocation 所要求的 Scope。仅有相同 Schema、字段名或值不足以证明该关联。将外层对象作为实参时，同样检查其所含身份字段的来源。请求字段、字面量及 Procedure Script 输出不能直接充当此类来源。**请求中的 pduSessionId、dnn 和 sNssai 不是天然可信的 Session/Scope 身份**：若 Owner 身份路径标注或部署 Scope 策略的授权路径包含其中任一字段，就必须为相应参数改用 Host 契约确认关联的身份/范围投影（例如已验证的 Session/PSI 绑定）或独立权威 Producer 的输出；不能因为请求已被接纳而豁免 provenance 检查。若这些字段仅用于选择/过滤查询或业务参数，且不用于授权身份归属与资源句柄比较，则原 Request SourcePath 可作为普通业务数据，Runtime 仍必须独立检查其业务范围和可信关系。Compiler 须追溯 Script 派生实参的全部来源类别。身份标注缺失到无法判定所需绑定、来源无法追溯或身份绑定不符合上述规则时，报 `CALLABLE_ARGUMENT_PROVENANCE_INVALID`。Owner 标注与 Host 关联的传输格式按相应契约评审。
+**Scope 与身份实参。** 外部 callable Owner 须在抽象契约中标明参与 Subject、Session、Lifecycle、Correlation 或资源句柄的输入值路径，包括复合实参内的相关子路径。可信部署 Scope 策略声明其参与授权计算的输入路径。Compiler 取两者并集，并对每条路径验证直接绑定来自对该身份有权威的 Producer 输出，或由 Host 契约提供可验证关联的 Context 子路径。权威和关联须覆盖对应身份维度，且可链接到当前 Invocation 所要求的 Scope。仅有相同 Schema、字段名或值不足以证明该关联。
+
+将外层对象作为实参时，同样检查其所含身份字段的来源。请求字段、字面量及 Procedure Script 输出不能直接充当此类来源。**请求中的 pduSessionId、dnn 和 sNssai 不是天然可信的 Session/Scope 身份**：若 Owner 身份路径标注或部署 Scope 策略的授权路径包含其中任一字段，就必须为相应参数改用 Host 契约确认关联的身份/范围投影（例如已验证的 Session/PSI 绑定）或独立权威 Producer 的输出；不能因为请求已被接纳而豁免 provenance 检查。若这些字段仅用于选择/过滤查询或业务参数，且不用于授权身份归属与资源句柄比较，则原 Request SourcePath 可作为普通业务数据，Runtime 仍必须独立检查其业务范围和可信关系。
+
+Compiler 须追溯 Script 派生实参的全部来源类别。身份标注缺失到无法判定所需绑定、来源无法追溯或身份绑定不符合上述规则时，报 `CALLABLE_ARGUMENT_PROVENANCE_INVALID`。Owner 标注与 Host 关联的传输格式按相应契约评审。
 
 Runtime 在 Operation / Observation 派发前，对已物化身份实参逐项核验原绑定、来源记录与当前 Invocation 的关联，再执行 Capability Scope 检查。等待派发资格后按实际派发时重新核验。无法核验时记录 `CALLABLE_ARGUMENT_PROVENANCE_UNVERIFIED`，按 §24.2 停止。Reconcile 的原调用绑定仍按 §20 校验。
 
@@ -1155,11 +1173,17 @@ Freshness 由 Owner Contract 声明可执行的有效性规则（例如从 obser
 
 **规范性说明。** 保证身份、适用性、证据判定与 E.3 描述符 DSL 的字段语义均按附录 F.3 冻结。文件组织不是跨包导出身份；真实 Owner 记录仍须验证。
 
-Predicate 的 `parameters` 声明业务值类型。`evidence.requires` 可选，是参数名到一组非空、无重复的精确 `alias::guaranteeId` 的映射；只允许引用已声明参数。每个列出的保证至少由一条有效 Evidence Ref 满足，列表全部满足才成立。需要独立证据时，引用不同保证并用 Owner 声明的独立来源约束校验，见 §17.1.1 与 §17.2。**省略某个已声明 Predicate 参数对应的 `evidence.requires` 条目**，仅在该参数于所有调用点的实参均满足下列来源豁免时合法；这里并非允许省略 `parameters` 参数或缩短 `arguments` 列表（两者仍受 §14 的严格 arity 约束）。Compiler 按来源判定每个调用点的实参，覆盖所有可达路径。直接引用普通 Tool Operation、Observation 或 Reconcile 输出的实参必须为对应参数声明至少一个覆盖精确值路径的保证，即使该值仅用于比较。Host Context 字段同样要求保证，但请求字段 `context.request.*`、Host 已校验的身份 `context.ueRef`、关联信息 `context.correlation.*` 及其根对象 `context.correlation` 可作为比对输入豁免。字面量和整个已校验的 `context.request` 也可豁免。此检查只约束参数来源。若 Goal 声明外部事实，Owner 须审定 Predicate 的命题与取证路径确实支持该 Goal。
+Predicate 的 `parameters` 声明业务值类型。`evidence.requires` 可选，是参数名到一组非空、无重复的精确 `alias::guaranteeId` 的映射；只允许引用已声明参数。每个列出的保证至少由一条有效 Evidence Ref 满足，列表全部满足才成立。需要独立证据时，引用不同保证并用 Owner 声明的独立来源约束校验，见 §17.1.1 与 §17.2。**省略某个已声明 Predicate 参数对应的 `evidence.requires` 条目**，仅在该参数于所有调用点的实参均满足下列来源豁免时合法；这里并非允许省略 `parameters` 参数或缩短 `arguments` 列表（两者仍受 §14 的严格 arity 约束）。
+
+Compiler 按来源判定每个调用点的实参，覆盖所有可达路径。直接引用普通 Tool Operation、Observation 或 Reconcile 输出的实参必须为对应参数声明至少一个覆盖精确值路径的保证，即使该值仅用于比较。Host Context 字段同样要求保证，但请求字段 `context.request.*`、Host 已校验的身份 `context.ueRef`、关联信息 `context.correlation.*` 及其根对象 `context.correlation` 可作为比对输入豁免。字面量和整个已校验的 `context.request` 也可豁免。此检查只约束参数来源。若 Goal 声明外部事实，Owner 须审定 Predicate 的命题与取证路径确实支持该 Goal。
 
 Procedure Script 输出保守继承其全部绑定实参的来源类别，包括上游 Script 的传递来源。仅当全部来源均可豁免时，其输出可无保证。涉及外部事实的 Procedure Script 输出可用于 Operation 或 Observation 的非身份实参，须满足 §13.3 的来源追溯、类型与授权校验。需要 Evidence 的 Predicate 参数必须改绑到权威 Producer 输出或绑定到由 Host 契约提供可验证关联的 Context 子路径。直接绑定该 Script 输出不能满足所需保证。Script 不能继承输入 Evidence。缺少强制声明报 `PREDICATE_EVIDENCE_REQUIRED`；已声明却无法满足者按 §17.2 校验。
 
-保证引用解析到可信 Owner 契约中的唯一精确身份。该描述符是对应 Evidence 保证的唯一权威。ToolCatalog 中 `provides` 只发布保证引用和输出路径。同一保证在 ToolCatalog 重复声明权威、Scope、Correlation、时间或 Freshness 等规则时，Compiler 报 `EVIDENCE_GUARANTEE_LINK_INVALID`。Runtime 只按链接后的描述符判定这些维度。可执行描述符至少给出权威 Owner、允许的 Producer 身份及值路径、适用的 Scope / Correlation 维度及其与当前 Invocation 或已校验调用参数的取值绑定、同一事实的记录选择规则，以及 Freshness 的时间基准和判定规则。Predicate 参数 Schema 由 `parameters` 声明。Producer 值的 Schema 从已发布的输出或 Host Context Schema 按值路径解析，并对参数 Schema 检查可赋值性。`provides[].guarantee` 是该发布方快照中精确的描述符导出键，可以指向同一快照内的独立契约。Compiler 必须解析到唯一导出，并核对描述符允许的 Producer 身份、Outcome 与 `provides[].path`；`output` 指整个已声明的输出。缺失、歧义或路径不匹配均拒绝链接。声明的 `provides` 引用解析失败时报告 `EVIDENCE_GUARANTEE_LINK_INVALID`。E.3 示范分文件声明。Operation Result 和 Observation Result 可提供同一个保证，前提是该权威 Owner 明确授权两条 Producer 路径。Skill 只引用保证 ID；Schema、Owner、相关性和有效期由 Owner 契约提供。描述符中，Observation Producer 的实参引用根为 `query`，Operation Producer 的实参引用根为 `arguments`。两者是保留根，指向相应 Producer 派发时物化并通过校验的实参。Compiler 按描述符中的 Producer kind 校验引用根与字段路径，未知根、根与 kind 不符或实参路径无法解析时报 `EVIDENCE_GUARANTEE_LINK_INVALID`。描述符字段的互操作要求按附录 F.3；真实 Owner 发布和 Transport 联调按 §45.2。
+保证引用解析到可信 Owner 契约中的唯一精确身份。该描述符是对应 Evidence 保证的唯一权威。ToolCatalog 中 `provides` 只发布保证引用和输出路径。同一保证在 ToolCatalog 重复声明权威、Scope、Correlation、时间或 Freshness 等规则时，Compiler 报 `EVIDENCE_GUARANTEE_LINK_INVALID`。Runtime 只按链接后的描述符判定这些维度。可执行描述符至少给出权威 Owner、允许的 Producer 身份及值路径、适用的 Scope / Correlation 维度及其与当前 Invocation 或已校验调用参数的取值绑定、同一事实的记录选择规则，以及 Freshness 的时间基准和判定规则。
+
+Predicate 参数 Schema 由 `parameters` 声明。Producer 值的 Schema 从已发布的输出或 Host Context Schema 按值路径解析，并对参数 Schema 检查可赋值性。`provides[].guarantee` 是该发布方快照中精确的描述符导出键，可以指向同一快照内的独立契约。Compiler 必须解析到唯一导出，并核对描述符允许的 Producer 身份、Outcome 与 `provides[].path`；`output` 指整个已声明的输出。缺失、歧义或路径不匹配均拒绝链接。声明的 `provides` 引用解析失败时报告 `EVIDENCE_GUARANTEE_LINK_INVALID`。
+
+E.3 示范分文件声明。Operation Result 和 Observation Result 可提供同一个保证，前提是该权威 Owner 明确授权两条 Producer 路径。Skill 只引用保证 ID；Schema、Owner、相关性和有效期由 Owner 契约提供。描述符中，Observation Producer 的实参引用根为 `query`，Operation Producer 的实参引用根为 `arguments`。两者是保留根，指向相应 Producer 派发时物化并通过校验的实参。Compiler 按描述符中的 Producer kind 校验引用根与字段路径，未知根、根与 kind 不符或实参路径无法解析时报 `EVIDENCE_GUARANTEE_LINK_INVALID`。描述符字段的互操作要求按附录 F.3；真实 Owner 发布和 Transport 联调按 §45.2。
 
 ### 17.1.1 抽象保证模型
 
@@ -1736,7 +1760,13 @@ predicates:
 
 ## 30. Procedure
 
-**教学 Owner 假设。** 本图中的 `context.request.pduSessionId`、`context.request.dnn`、`context.request.sNssai` 是**未被教学 ToolCatalog/Capability Scope Policy 标记为身份或授权来源**的请求选择参数；身份与资源 Scope 由 Host 已验证的 `context.ueRef`、`context.correlation.lifecycleRef` 和实际 Owner 产生的关联/资源证明独立确定。该假设仅解释图为何可按 §13.3 链接，不表示真实 5GC Owner 一定使用此声明。若实际 Owner 将 PSI、DNN 或 S-NSSAI 标记为身份/授权输入，使用当前请求来源的对应调用必须报 `CALLABLE_ARGUMENT_PROVENANCE_INVALID`；迁移时须提供已验证的 Host/Owner 投影并显式换绑，不能借教学示例豁免。`ca-context` 发布 Host Context；`ca-responsibility` 独立发布责任 Schema、保证及 callable。责任摘要按预期 Session Instance 聚合并返回 currentSessionInstanceRef。PCF 调和只有经验证的恢复输出才能取出原关联标识。UDM Subscription 的**教学 Owner 契约特例**要求：普通 Create 的 `SUCCEEDED` 回包和 Reconcile `COMMITTED` 的受信证明/必要恢复结果，在 Runtime 校验成功后**已经**包含足以支持继续执行所需的业务值、订阅归属、生命周期、Scope、Correlation、Freshness 与 Evidence（§12.6、§17、G.2）；且 Host 已持久化对应已确认资源责任。这里的 `COMMITTED` 仅证明原调用提交，**并不自动等于业务验收通过**；流程之所以可以直接继续，是因为上述教学 Owner **已发布、已链接且已被 Runtime 验证的附加保证**共同成立。真实部署若缺少任何上述保证，就不得直接从 UDM `SUCCEEDED`/`COMMITTED` 推断业务成功，须在下一次业务 Mutation 前增加独立授权的 Observation / Postcondition 及对应 Evidence 复核，或按 §20/§24.2 安全停止；真实 Owner 发布物的能力不能从教学假设中推断。
+**教学 Owner 假设。** 本图中的 `context.request.pduSessionId`、`context.request.dnn`、`context.request.sNssai` 是**未被教学 ToolCatalog/Capability Scope Policy 标记为身份或授权来源**的请求选择参数；身份与资源 Scope 由 Host 已验证的 `context.ueRef`、`context.correlation.lifecycleRef` 和实际 Owner 产生的关联/资源证明独立确定。该假设仅解释图为何可按 §13.3 链接，不表示真实 5GC Owner 一定使用此声明。
+
+若实际 Owner 将 PSI、DNN 或 S-NSSAI 标记为身份/授权输入，使用当前请求来源的对应调用必须报 `CALLABLE_ARGUMENT_PROVENANCE_INVALID`；迁移时须提供已验证的 Host/Owner 投影并显式换绑，不能借教学示例豁免。`ca-context` 发布 Host Context；`ca-responsibility` 独立发布责任 Schema、保证及 callable。责任摘要按预期 Session Instance 聚合并返回 currentSessionInstanceRef。PCF 调和只有经验证的恢复输出才能取出原关联标识。
+
+UDM Subscription 的**教学 Owner 契约特例**要求：普通 Create 的 `SUCCEEDED` 回包和 Reconcile `COMMITTED` 的受信证明/必要恢复结果，在 Runtime 校验成功后**已经**包含足以支持继续执行所需的业务值、订阅归属、生命周期、Scope、Correlation、Freshness 与 Evidence（§12.6、§17、G.2）；且 Host 已持久化对应已确认资源责任。这里的 `COMMITTED` 仅证明原调用提交，**并不自动等于业务验收通过**；流程之所以可以直接继续，是因为上述教学 Owner **已发布、已链接且已被 Runtime 验证的附加保证**共同成立。
+
+真实部署若缺少任何上述保证，就不得直接从 UDM `SUCCEEDED`/`COMMITTED` 推断业务成功，须在下一次业务 Mutation 前增加独立授权的 Observation / Postcondition 及对应 Evidence 复核，或按 §20/§24.2 安全停止；真实 Owner 发布物的能力不能从教学假设中推断。
 
 ~~~yaml
 # assurance/procedure.yaml — 公共声明仅在 §28 contract.yaml 中
@@ -3125,9 +3155,13 @@ predicates:
 
 ## F.1 ToolCatalog / Mutation 发布
 
-ToolCatalog 须有 `apiVersion: connectionagent.io/toolcatalog/v1alpha3`、`kind: ToolCatalog`、非空 `metadata.owner` 与 `spec.contracts[]`。每个 callable 须有 `kind: operation | observation`、唯一的 `id`、`effect`、`ownerOutcomes`、`outputSchema.$ref`；Operation 使用 `inputSchema.$ref`，Observation 使用 `queryContextSchema.$ref`，两者互斥。Observation 的 Effect 必须为 READ。READ 只能发布 SUCCEEDED / FAILED；Mutation 可发布 NOT_COMMITTED；每个 callable 必须声明 SUCCEEDED。DENIED、UNKNOWN、OUTCOME_UNKNOWN 属 Runtime，不得由 Owner 发布。所有 Schema 引用须解析为该快照中精确、可验证的 `$id`。一个快照跨文件、跨 kind 共享 callable ID 唯一空间。可选 `adapter` 仅属于 Owner 内部实现，不参与 Skill 身份、授权和 Evidence。
+ToolCatalog 须有 `apiVersion: connectionagent.io/toolcatalog/v1alpha3`、`kind: ToolCatalog`、非空 `metadata.owner` 与 `spec.contracts[]`。每个 callable 须有 `kind: operation | observation`、唯一的 `id`、`effect`、`ownerOutcomes`、`outputSchema.$ref`；Operation 使用 `inputSchema.$ref`，Observation 使用 `queryContextSchema.$ref`，两者互斥。
 
-`guarantees.evidence.provides[]` 的每项仅含 `guarantee`（精确保证 ID）和 `path`（输出值路径），不得复制权威、Scope 或时间规则。Mutation 必须另发布 `receiptSchema.$ref`，该 Schema 定义同次 Owner 返回的受信 receipt 根；`mutation.commitProof` 需 `schema/path/bind`；仅在声明非空 `mutation.failureClasses[]` 时，`mutation.failureClassPath` 必须为已认证 receipt 中的静态字符串类别路径；每项 `mutation.failureClasses[]` 需唯一 `id`、`outcome`、`proofSchema`、`proofPath`、`noSideEffect`、`retryable`。FAILED 不得允许 retryable；NOT_COMMITTED 只有同时满足可验证的未提交与无残留才可受控重试。`mutation.reconcile` 有 `callable/bind/proofSchema/proofPath`，其 `recoverableOutputSchema/recoverableOutputPath` 必须成对出现；`resourceOutputs[]` 各项需 `path/resourceKind/responsibilitySchema`。缺少声明不等于默认具备承诺。Proof、Owner receiptSchema 关联、原调用绑定或资源责任路径不可验证则拒绝链接或按 §20 停止。
+Observation 的 Effect 必须为 READ。READ 只能发布 SUCCEEDED / FAILED；Mutation 可发布 NOT_COMMITTED；每个 callable 必须声明 SUCCEEDED。DENIED、UNKNOWN、OUTCOME_UNKNOWN 属 Runtime，不得由 Owner 发布。所有 Schema 引用须解析为该快照中精确、可验证的 `$id`。一个快照跨文件、跨 kind 共享 callable ID 唯一空间。可选 `adapter` 仅属于 Owner 内部实现，不参与 Skill 身份、授权和 Evidence。
+
+`guarantees.evidence.provides[]` 的每项仅含 `guarantee`（精确保证 ID）和 `path`（输出值路径），不得复制权威、Scope 或时间规则。Mutation 必须另发布 `receiptSchema.$ref`，该 Schema 定义同次 Owner 返回的受信 receipt 根；`mutation.commitProof` 需 `schema/path/bind`；仅在声明非空 `mutation.failureClasses[]` 时，`mutation.failureClassPath` 必须为已认证 receipt 中的静态字符串类别路径；每项 `mutation.failureClasses[]` 需唯一 `id`、`outcome`、`proofSchema`、`proofPath`、`noSideEffect`、`retryable`。
+
+FAILED 不得允许 retryable；NOT_COMMITTED 只有同时满足可验证的未提交与无残留才可受控重试。`mutation.reconcile` 有 `callable/bind/proofSchema/proofPath`，其 `recoverableOutputSchema/recoverableOutputPath` 必须成对出现；`resourceOutputs[]` 各项需 `path/resourceKind/responsibilitySchema`。缺少声明不等于默认具备承诺。Proof、Owner receiptSchema 关联、原调用绑定或资源责任路径不可验证则拒绝链接或按 §20 停止。
 
 ## F.2 CapabilityContracts
 
@@ -3141,11 +3175,15 @@ ToolCatalog 须有 `apiVersion: connectionagent.io/toolcatalog/v1alpha3`、`kind
 
 ## F.4 可信依赖装配
 
-每份实际使用的快照必须有 `dependencyId`（与 Contract alias 精确关联）、按所选 BuildRequest 版本重算的 `digest`、完整文件集、与该 alias + digest 绑定的受信 Package ID 和授权 Owner 集。多 Owner 快照须为每个实际使用的 `(exportKind, exportId)` 提供唯一受信 Owner 归属。使用跨域独立性时，还须额外提供 §G.3.1 / §34.0.2 的受信 `IndependentDomains` 逻辑关系（部署、发布者、实测摘要、唯一域 URI 集合、无序无重复非自反域对集合）及授权验证；使用跨 Owner 共同事实映射时须提供 §G.3.1 / §34.0.2 的可信关系（共同 namespace/fact、参与 Owner、Scope 规范化映射与可比较值 Schema 身份）及授权验证。其真实字节与受信摘要（可附加其他不可变承诺，但不得替代必需的 snapshotDigest）属于受信构建输入闭包，若 BuildRequest 有聚合摘要则必须覆盖该闭包；具体运输和 framing 由 BuildRequest 版本拥有。缺失或验证失败按 `EVIDENCE_GUARANTEE_LINK_INVALID` 拒绝，不得从 Owner 描述符中自动生成。部署 CapabilityContracts 另外需要实际文件字节、摘要、独立部署身份、已授权发布者和受信校验。具体传输字段属于 BuildRequest 的版本，但缺少任一强制逻辑属性时无论协议版本均必须拒绝，不得从文件名、README、同名 Schema 或上传者自述推断。
+每份实际使用的快照必须有 `dependencyId`（与 Contract alias 精确关联）、按所选 BuildRequest 版本重算的 `digest`、完整文件集、与该 alias + digest 绑定的受信 Package ID 和授权 Owner 集。多 Owner 快照须为每个实际使用的 `(exportKind, exportId)` 提供唯一受信 Owner 归属。使用跨域独立性时，还须额外提供 §G.3.1 / §34.0.2 的受信 `IndependentDomains` 逻辑关系（部署、发布者、实测摘要、唯一域 URI 集合、无序无重复非自反域对集合）及授权验证；使用跨 Owner 共同事实映射时须提供 §G.3.1 / §34.0.2 的可信关系（共同 namespace/fact、参与 Owner、Scope 规范化映射与可比较值 Schema 身份）及授权验证。
+
+其真实字节与受信摘要（可附加其他不可变承诺，但不得替代必需的 snapshotDigest）属于受信构建输入闭包，若 BuildRequest 有聚合摘要则必须覆盖该闭包；具体运输和 framing 由 BuildRequest 版本拥有。缺失或验证失败按 `EVIDENCE_GUARANTEE_LINK_INVALID` 拒绝，不得从 Owner 描述符中自动生成。部署 CapabilityContracts 另外需要实际文件字节、摘要、独立部署身份、已授权发布者和受信校验。具体传输字段属于 BuildRequest 的版本，但缺少任一强制逻辑属性时无论协议版本均必须拒绝，不得从文件名、README、同名 Schema 或上传者自述推断。
 
 ## F.5 Schema 赋值与失败策略
 
-对 Source 到 Target 的静态赋值，Compiler 必须保守证明 `Source ⊆ Target`。integer 可以赋给 number，反向不成立；不做字符串/数字强制转换。Source enum / const 的所有可能值必须在 Target 允许集合内；Source 的空值可能性必须被 Target 接纳，否则 INPUT_NULLABILITY_MISMATCH。目标必需键都必须由 Source 保证存在并逐字段可赋值；Source 可能包含 Target 禁止的额外键则不兼容。数组元素类型及长度限制、数值上下界和字符串长度界限必须由 Source 约束蕴含 Target 约束。字段可缺失与字段可为 null 不同。`default` 不物化值。组合 Schema 只有在保守包含关系得到证明时才可接受；不支持的 JSON Schema 关键字、循环/动态引用及无法证明的组合必须报 SCHEMA_INVALID 或 INPUT_TYPE_MISMATCH，绝不可忽略断言、接受 `any` 或宽泛 object。CEL 必须静态得出 boolean，运行时 true/false 对应 PASS/FAIL；无法判定为 UNKNOWN。
+对 Source 到 Target 的静态赋值，Compiler 必须保守证明 `Source ⊆ Target`。integer 可以赋给 number，反向不成立；不做字符串/数字强制转换。Source enum / const 的所有可能值必须在 Target 允许集合内；Source 的空值可能性必须被 Target 接纳，否则 INPUT_NULLABILITY_MISMATCH。目标必需键都必须由 Source 保证存在并逐字段可赋值；Source 可能包含 Target 禁止的额外键则不兼容。数组元素类型及长度限制、数值上下界和字符串长度界限必须由 Source 约束蕴含 Target 约束。
+
+字段可缺失与字段可为 null 不同。`default` 不物化值。组合 Schema 只有在保守包含关系得到证明时才可接受；不支持的 JSON Schema 关键字、循环/动态引用及无法证明的组合必须报 SCHEMA_INVALID 或 INPUT_TYPE_MISMATCH，绝不可忽略断言、接受 `any` 或宽泛 object。CEL 必须静态得出 boolean，运行时 true/false 对应 PASS/FAIL；无法判定为 UNKNOWN。
 
 ## F.6 Python 类型与签名
 
@@ -3209,11 +3247,21 @@ PredicateSet 根必须只含 predicates 映射；每个 Predicate 的 parameters
 
 ## G.2 Reconcile callable 的安全身份与类型
 
-v1alpha3 **不引入新的 Effect**。Reconcile 使用独立 ToolCatalog callable：kind 为 operation、effect 必须 READ，ownerOutcomes 必须包含 SUCCEEDED、可以声明 FAILED；Runtime 的 COMMITTED、NOT_COMMITTED 和 UNRESOLVED 不得写进 Owner 的 ownerOutcomes。**SourcePath 可绑定范围：** `reconcile-node.operation.output` 仅表示已经过 `recoverableOutputPath`/`recoverableOutputSchema` 验证的业务恢复子对象；`outputSchema` 定义的原始 Owner 回包以及 `receiptSchema` 定义的证明根均不得被 Procedure 以 `operation.output` 或其它 SourcePath 访问。若实际 ToolCatalog effect 被改为 MUTATION 且已 Grant 成员仍声明 READ，优先报 EFFECT_MISMATCH；如部署成员也改成 MUTATION、一致但违反 Reconcile 只读限制，则报 RECONCILE_CONTRACT_INVALID。Reconcile READ 不得引入新业务副作用、重发原 Mutation、修改资源、替换 UE/Session/Scope，也不得用普通 Observation 代替原调用调和。Host journal 内部的责任/提交状态更新不是外部业务 Mutation。
+v1alpha3 **不引入新的 Effect**。Reconcile 使用独立 ToolCatalog callable：kind 为 operation、effect 必须 READ，ownerOutcomes 必须包含 SUCCEEDED、可以声明 FAILED；Runtime 的 COMMITTED、NOT_COMMITTED 和 UNRESOLVED 不得写进 Owner 的 ownerOutcomes。**SourcePath 可绑定范围：** `reconcile-node.operation.output` 仅表示已经过 `recoverableOutputPath`/`recoverableOutputSchema` 验证的业务恢复子对象；`outputSchema` 定义的原始 Owner 回包以及 `receiptSchema` 定义的证明根均不得被 Procedure 以 `operation.output` 或其它 SourcePath 访问。
 
-原 Mutation 的 mutation.reconcile 字段必须具备 callable、bind、proofSchema、proofPath；原 Mutation 与调和 READ callable 均必须发布精确 receiptSchema.$ref，允许 Compiler 按 receipt 根逐段链接 proofPath / failureClassPath 及其证明子值类型；若声明可恢复结果，则 recoverableOutputSchema 和 recoverableOutputPath 必须成对出现，否则两者均省略。bind 必须精确为 originalInvocationId。引用的 Reconcile callable 必须为同一受信 Owner 已发布的唯一 READ operation。其 inputSchema 是根部闭合的 object：唯一必需且允许的属性为 originalInvocationId，类型是非空字符串。Runtime 仅从持久化的原 Mutation Invocation 身份物化这个输入，发起前验证已保存的原 Operation ID、原始输入、请求摘要、Subject/Scope、Lifecycle、Correlation 和当前授权；作者的 operation.reconcile 不允许任何 arguments。Owner 必须能用该 ID 验证和定位其原始调用；若不能，则安全停止并保留原调用责任。proofPath 为 Owner 可信 receiptSchema 中的静态证明路径，proofSchema 定义该位置实际值的精确 Schema；同理，原 Mutation 的 receiptSchema 必须包含与 commitProof.path 和任何 failureClasses[].proofPath 相应的字段。输出本身不得替代提交证明。
+若实际 ToolCatalog effect 被改为 MUTATION 且已 Grant 成员仍声明 READ，优先报 EFFECT_MISMATCH；如部署成员也改成 MUTATION、一致但违反 Reconcile 只读限制，则报 RECONCILE_CONTRACT_INVALID。Reconcile READ 不得引入新业务副作用、重发原 Mutation、修改资源、替换 UE/Session/Scope，也不得用普通 Observation 代替原调用调和。Host journal 内部的责任/提交状态更新不是外部业务 Mutation。
 
-Reconcile callable 的 outputSchema 描述完整的**Owner 查询回包**，允许 NOT_COMMITTED 时不提供任何业务资源。声明恢复输出时，recoverableOutputPath 必须是以 output 开头的静态路径，定位 Owner 回包的一个**可选**子对象；该子对象的 Schema $ref 必须与 recoverableOutputSchema 精确一致。Compiler 链接到该显式路径和 Schema 后，只有 Owner 返回 SUCCEEDED、原调用提交证明有效且认定为 COMMITTED、子对象实际存在并通过验证时，Runtime 才将此子对象作为规范化的 Reconcile Stage operation.output。NOT_COMMITTED 回包可以省略子对象且仍满足完整 Owner outputSchema。COMMITTED 时子对象缺失或无效，不得作空值补齐，而是记录 COMMITTED_OUTPUT_UNAVAILABLE 并保全停止。未声明 recoverableOutputSchema 时，即使 COMMITTED 也不暴露可绑定 output；后续只能通过显式且独立授权的 Observation 验证。阶段结果为 NOT_COMMITTED / UNRESOLVED、Owner FAILED、输出无效、错误原调用或错误 Scope 时均不暴露成功输出。恢复输出的 Evidence Producer.kind 为 operation，Producer.outcome 为 Owner 的 SUCCEEDED，Producer ID 是调和 READ callable；Owner 描述符的路径指向**原始回包**的 recoverableOutputPath，例如 output.recovered。Compiler/Runtime 仅在已验证 COMMITTED 边把这个精确 Producer 原始子路径映射到 Reconcile Stage 的 operation.output（保留原 Producer Invocation 和 Evidence lineage）。不得将 Runtime 的 COMMITTED 写成 Evidence Producer outcome，不得用原 Mutation 的假想成功输出替换。Host 将正常输出和证明引用关联到精确 Reconcile Producer Invocation，不能伪造原 Mutation 的成功输出。
+原 Mutation 的 mutation.reconcile 字段必须具备 callable、bind、proofSchema、proofPath；原 Mutation 与调和 READ callable 均必须发布精确 receiptSchema.$ref，允许 Compiler 按 receipt 根逐段链接 proofPath / failureClassPath 及其证明子值类型；若声明可恢复结果，则 recoverableOutputSchema 和 recoverableOutputPath 必须成对出现，否则两者均省略。bind 必须精确为 originalInvocationId。
+
+引用的 Reconcile callable 必须为同一受信 Owner 已发布的唯一 READ operation。其 inputSchema 是根部闭合的 object：唯一必需且允许的属性为 originalInvocationId，类型是非空字符串。Runtime 仅从持久化的原 Mutation Invocation 身份物化这个输入，发起前验证已保存的原 Operation ID、原始输入、请求摘要、Subject/Scope、Lifecycle、Correlation 和当前授权；作者的 operation.reconcile 不允许任何 arguments。
+
+Owner 必须能用该 ID 验证和定位其原始调用；若不能，则安全停止并保留原调用责任。proofPath 为 Owner 可信 receiptSchema 中的静态证明路径，proofSchema 定义该位置实际值的精确 Schema；同理，原 Mutation 的 receiptSchema 必须包含与 commitProof.path 和任何 failureClasses[].proofPath 相应的字段。输出本身不得替代提交证明。
+
+Reconcile callable 的 outputSchema 描述完整的**Owner 查询回包**，允许 NOT_COMMITTED 时不提供任何业务资源。声明恢复输出时，recoverableOutputPath 必须是以 output 开头的静态路径，定位 Owner 回包的一个**可选**子对象；该子对象的 Schema $ref 必须与 recoverableOutputSchema 精确一致。Compiler 链接到该显式路径和 Schema 后，只有 Owner 返回 SUCCEEDED、原调用提交证明有效且认定为 COMMITTED、子对象实际存在并通过验证时，Runtime 才将此子对象作为规范化的 Reconcile Stage operation.output。
+
+NOT_COMMITTED 回包可以省略子对象且仍满足完整 Owner outputSchema。COMMITTED 时子对象缺失或无效，不得作空值补齐，而是记录 COMMITTED_OUTPUT_UNAVAILABLE 并保全停止。未声明 recoverableOutputSchema 时，即使 COMMITTED 也不暴露可绑定 output；后续只能通过显式且独立授权的 Observation 验证。阶段结果为 NOT_COMMITTED / UNRESOLVED、Owner FAILED、输出无效、错误原调用或错误 Scope 时均不暴露成功输出。恢复输出的 Evidence Producer.kind 为 operation，Producer.outcome 为 Owner 的 SUCCEEDED，Producer ID 是调和 READ callable；Owner 描述符的路径指向**原始回包**的 recoverableOutputPath，例如 output.recovered。
+
+Compiler/Runtime 仅在已验证 COMMITTED 边把这个精确 Producer 原始子路径映射到 Reconcile Stage 的 operation.output（保留原 Producer Invocation 和 Evidence lineage）。不得将 Runtime 的 COMMITTED 写成 Evidence Producer outcome，不得用原 Mutation 的假想成功输出替换。Host 将正常输出和证明引用关联到精确 Reconcile Producer Invocation，不能伪造原 Mutation 的成功输出。
 
 | Owner 回包及证明 | Runtime Reconcile 阶段结果 | Stage output |
 |---|---|---|
@@ -3224,7 +3272,9 @@ Reconcile callable 的 outputSchema 描述完整的**Owner 查询回包**，允�
 | FAILED / 超时 / 冲突或不能验证证明 | UNRESOLVED；已有独立明确结论时按 §20.3 直接停止 | 无 |
 | Owner 返回 COMMITTED/NOT_COMMITTED/UNRESOLVED 等未声明结果 | 隔离回包并直接安全停止 | 无 |
 
-Compiler 的绑定链：operation.reconcile 的原 Node → 原普通 MUTATION Operation → mutation.reconcile.callable → 唯一 READ operation 导出 → 对该调和 callable 自身按 §9.3 检查 Owner/ID/kind/READ Effect、Scope 和**至少一个已 Grant Capability**。不能继承原 Mutation 的授权。Grant 缺失报 CAPABILITY_NOT_GRANTED，Effect 冲突报 EFFECT_MISMATCH，原调用绑定、Schema 或 proofPath 错误报 RECONCILE_CONTRACT_INVALID。Runtime 重做相同检查，对同一原调用最多派发一次受控 Reconcile。Reconcile 专用 callable 不得通过普通 operation.target 绕过原调用检验；一个 Capability 可以显式同时列 Mutation 与 Reconcile 两个成员。没有安全 Owner 调和能力时必须遵循 §20.2 的保全停止，不创建伪 Reconcile。
+Compiler 的绑定链：operation.reconcile 的原 Node → 原普通 MUTATION Operation → mutation.reconcile.callable → 唯一 READ operation 导出 → 对该调和 callable 自身按 §9.3 检查 Owner/ID/kind/READ Effect、Scope 和**至少一个已 Grant Capability**。不能继承原 Mutation 的授权。Grant 缺失报 CAPABILITY_NOT_GRANTED，Effect 冲突报 EFFECT_MISMATCH，原调用绑定、Schema 或 proofPath 错误报 RECONCILE_CONTRACT_INVALID。
+
+Runtime 重做相同检查，对同一原调用最多派发一次受控 Reconcile。Reconcile 专用 callable 不得通过普通 operation.target 绕过原调用检验；一个 Capability 可以显式同时列 Mutation 与 Reconcile 两个成员。没有安全 Owner 调和能力时必须遵循 §20.2 的保全停止，不创建伪 Reconcile。
 
 ### G.2.1 最小可构造契约
 
@@ -3350,7 +3400,9 @@ properties:
   commitState: {type: string, enum: [COMMITTED, NOT_COMMITTED]}
 ~~~
 
-mutation.commitProof.path、mutation.reconcile.proofPath、声明了失败类别时的 mutation.failureClassPath 和每个 failureClasses[].proofPath 都只能指向各自 Owner callable 的 receiptSchema.$ref 证明的受信 receipt.<Identifier> 后续静态点路径，不能指向 Skill 自填数据、当前 context、另一调用输出或普通未认证业务 Payload。failureClassPath 指向该次 Owner receipt 的非空字符串 ID，必须与对应 Owner Outcome 的唯一已发布 failureClasses[].id 匹配；没有 ID、重复 ID、类别与结果不相容均不得产生确定的 FAILED / NOT_COMMITTED 路由。证明对象在 proofSchema 通过后仍必须验证其 originalInvocationId 精确等于 Host 持久化原 Mutation 调用 ID，并校验同一真实请求的业务身份、Scope、Correlation 与 Producer 签名。commitState 仅提供状态候选；缺少来源真实性或关联时一律不得当作已提交/未提交证明。NOT_COMMITTED 只能说明原调用未提交，额外重试仍要求无遗留副作用及独立授权。 FAILED / NOT_COMMITTED 的 failureClasses[].proofSchema 同样必须能证明 originalInvocationId 与 commitState=NOT_COMMITTED，且 proofPath 指向已验证的该次 receipt；noSideEffect 与 retryable 是 Owner 契约的受信承诺，不能由 Runtime 见到错误码自行推断。确定结果类别缺失、关联不符或失败证明无法校验时，按 §20.1 将本次结果保留为未知或依独立证明记录状态并安全停止。
+mutation.commitProof.path、mutation.reconcile.proofPath、声明了失败类别时的 mutation.failureClassPath 和每个 failureClasses[].proofPath 都只能指向各自 Owner callable 的 receiptSchema.$ref 证明的受信 receipt.<Identifier> 后续静态点路径，不能指向 Skill 自填数据、当前 context、另一调用输出或普通未认证业务 Payload。failureClassPath 指向该次 Owner receipt 的非空字符串 ID，必须与对应 Owner Outcome 的唯一已发布 failureClasses[].id 匹配；没有 ID、重复 ID、类别与结果不相容均不得产生确定的 FAILED / NOT_COMMITTED 路由。
+
+证明对象在 proofSchema 通过后仍必须验证其 originalInvocationId 精确等于 Host 持久化原 Mutation 调用 ID，并校验同一真实请求的业务身份、Scope、Correlation 与 Producer 签名。commitState 仅提供状态候选；缺少来源真实性或关联时一律不得当作已提交/未提交证明。NOT_COMMITTED 只能说明原调用未提交，额外重试仍要求无遗留副作用及独立授权。 FAILED / NOT_COMMITTED 的 failureClasses[].proofSchema 同样必须能证明 originalInvocationId 与 commitState=NOT_COMMITTED，且 proofPath 指向已验证的该次 receipt；noSideEffect 与 retryable 是 Owner 契约的受信承诺，不能由 Runtime 见到错误码自行推断。确定结果类别缺失、关联不符或失败证明无法校验时，按 §20.1 将本次结果保留为未知或依独立证明记录状态并安全停止。
 
 Owner 的完整查询返回可包含两条**不同**的已验证通道：用于结果的 output（按 Reconcile callable.outputSchema 验证）和用于证明的 receipt（按 proofPath 与 proofSchema 验证）。例如证明未提交的合法查询可以是：
 
@@ -3436,9 +3488,13 @@ factIdentity:
 
 ## G.4 JSON Schema 白名单、静态兼容与 CEL 型别
 
-本版不支持整个 JSON Schema Draft 2020-12，而是一个故意收窄且可独立实现的子集。所有参与链接、静态可赋值性和 Script 类型派生的 Schema 根必须显式声明 $schema: https://json-schema.org/draft/2020-12/schema。缺少或不同方言即 SCHEMA_INVALID，不允许从文件扩展名、外部发布者名称、Compiler 配置或声明顺序猜测。许可**验证关键字**仅为：$ref、type、properties、required、additionalProperties、items、minItems、maxItems、minLength、maxLength、minimum、maximum、exclusiveMinimum、exclusiveMaximum、enum、const。许可的**非断言注解**仅为：$schema、$id、title、description、default、examples；default 不合成值。所有未知字段及其他断言一律 SCHEMA_INVALID，不可以“验证器忽略了所以安全”处理。特别不支持 allOf、anyOf、oneOf、not、if/then/else、pattern、patternProperties、unevaluatedProperties、contains、prefixItems、format、动态引用或扩展关键字。来自现实 Owner 的复杂 Schema 应由其 Owner 发布语义等价、正式版本化且受支持的投影，不得由 Skill 复制影子结构。
+本版不支持整个 JSON Schema Draft 2020-12，而是一个故意收窄且可独立实现的子集。所有参与链接、静态可赋值性和 Script 类型派生的 Schema 根必须显式声明 $schema: https://json-schema.org/draft/2020-12/schema。缺少或不同方言即 SCHEMA_INVALID，不允许从文件扩展名、外部发布者名称、Compiler 配置或声明顺序猜测。许可**验证关键字**仅为：$ref、type、properties、required、additionalProperties、items、minItems、maxItems、minLength、maxLength、minimum、maximum、exclusiveMinimum、exclusiveMaximum、enum、const。
 
-type 仅接受单值 string、integer、number、boolean、object、array、null，或恰好两个不同成员的 [T, "null"]；不接受一般 union。required 必须是唯一的 properties 键集合子集；SourcePath 可直接使用的对象必须有声明属性及 additionalProperties:false；additionalProperties 只允许 true/false，true 的开放对象没有可猜测的动态字段。items 仅为单一 Schema，禁止 tuple 数组；min/maxItems 为非负整数且一致。string 与 number 的区间必须可同时满足；enum/const 值必须被对应基础 type 与其他约束接受。$ref 是独立引用对象，除 $schema/$id/title/description 之外不得和其他断言并列；必须链接到受信快照精确 $id，不能循环、动态化或猜测文件名。空或无法满足的 Schema 不会被自动归入 any；应拒绝不合法/自相矛盾的 Schema。静态赋值仍按 F.5 的 Source ⊆ Target，无法证明时拒绝而不是执行一个任意 Schema 求值猜测结果。
+许可的**非断言注解**仅为：$schema、$id、title、description、default、examples；default 不合成值。所有未知字段及其他断言一律 SCHEMA_INVALID，不可以“验证器忽略了所以安全”处理。特别不支持 allOf、anyOf、oneOf、not、if/then/else、pattern、patternProperties、unevaluatedProperties、contains、prefixItems、format、动态引用或扩展关键字。来自现实 Owner 的复杂 Schema 应由其 Owner 发布语义等价、正式版本化且受支持的投影，不得由 Skill 复制影子结构。
+
+type 仅接受单值 string、integer、number、boolean、object、array、null，或恰好两个不同成员的 [T, "null"]；不接受一般 union。required 必须是唯一的 properties 键集合子集；SourcePath 可直接使用的对象必须有声明属性及 additionalProperties:false；additionalProperties 只允许 true/false，true 的开放对象没有可猜测的动态字段。items 仅为单一 Schema，禁止 tuple 数组；min/maxItems 为非负整数且一致。
+
+string 与 number 的区间必须可同时满足；enum/const 值必须被对应基础 type 与其他约束接受。$ref 是独立引用对象，除 $schema/$id/title/description 之外不得和其他断言并列；必须链接到受信快照精确 $id，不能循环、动态化或猜测文件名。空或无法满足的 Schema 不会被自动归入 any；应拒绝不合法/自相矛盾的 Schema。静态赋值仍按 F.5 的 Source ⊆ Target，无法证明时拒绝而不是执行一个任意 Schema 求值猜测结果。
 
 | JSON Schema | CEL 输入类型 | 行为 |
 |---|---|---|
@@ -3456,7 +3512,9 @@ v1alpha3 CEL 表达式只允许已声明参数、确定性的常量、静态字�
 
 ### G.4.1 数值精度及确定性求值补充
 
-CEL int 为有符号 64 位整数，范围为 -9223372036854775808 至 9223372036854775807；CEL double 为有限 IEEE-754 binary64 值。宿主发现越界、非有限值或不可验证的数值序列化时返回 UNKNOWN，不能截断、饱和或隐式接受 PASS。JSON Schema integer→number 的 Source ⊆ Target 赋值规则仍对 Tool 的 JSON 数据适用；当该来源要绑定到 **CEL number 参数**时，必须静态证明所有来源整数都在二进制 64 位浮点可精确表示的安全整数范围 -9007199254740991 至 9007199254740991 内，否则报 PREDICATE_TYPE_MISMATCH；Runtime 做数值无损转换，不得因舍入修改业务判断。CEL 整数与浮点在表达式内不可隐式混用。number 输入必须可按固定 binary64 编码规范化为有限值，不能确定时 UNKNOWN。字符串仅可比较相等/不等；大小排序只支持同一数值类型，避免跨语言字符串排序差异。size 的结果为 int64，溢出同样 UNKNOWN。静态无法证明某个表达式具备上述类型或守卫时报 CEL_INVALID。
+CEL int 为有符号 64 位整数，范围为 -9223372036854775808 至 9223372036854775807；CEL double 为有限 IEEE-754 binary64 值。宿主发现越界、非有限值或不可验证的数值序列化时返回 UNKNOWN，不能截断、饱和或隐式接受 PASS。JSON Schema integer→number 的 Source ⊆ Target 赋值规则仍对 Tool 的 JSON 数据适用；当该来源要绑定到 **CEL number 参数**时，必须静态证明所有来源整数都在二进制 64 位浮点可精确表示的安全整数范围 -9007199254740991 至 9007199254740991 内，否则报 PREDICATE_TYPE_MISMATCH；Runtime 做数值无损转换，不得因舍入修改业务判断。
+
+CEL 整数与浮点在表达式内不可隐式混用。number 输入必须可按固定 binary64 编码规范化为有限值，不能确定时 UNKNOWN。字符串仅可比较相等/不等；大小排序只支持同一数值类型，避免跨语言字符串排序差异。size 的结果为 int64，溢出同样 UNKNOWN。静态无法证明某个表达式具备上述类型或守卫时报 CEL_INVALID。
 
 ## G.5 责任记录的 Normative 最小抽象模型
 
@@ -3632,7 +3690,9 @@ G.1–G.9 的补充用例须与原 E01–E104 组合执行。文档审计不代�
 | SCOPE_POLICY_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | §9.3、§24.2 | E88 |
 | SCOPE_INTERSECTION_EMPTY | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | §9.3、§24.2 | E88 |
 
-**代码归一化。** §24.1 历史简写 SCHEMA_MISSING / INVALID 分别指 SCHEMA_MISSING 与 SCHEMA_INVALID。§24.2 的 STALE、CONFLICT 必须写全名为 EVIDENCE_STALE、EVIDENCE_CONFLICT；SCOPE_MISMATCH、CORRELATION_MISMATCH、DEADLINE_EXCEEDED、CANCELLED 是四个独立诊断。OUTCOME_UNKNOWN 是 Mutation 的阶段 Outcome，不是诊断代码。RECONCILE 的 COMMITTED、NOT_COMMITTED、UNRESOLVED 也是阶段 Outcome；RECONCILE_UNRESOLVED 是记录该停止条件的诊断，二者不得互换。最终 SUCCEEDED、FAILED、UNRESOLVED、SAFE_STOPPED 是 Invocation 终态，不属于本表的诊断。`待补独立 Fixture` 表示当前 E01–E114 未明确给出与该 `(Code, Phase)` 完全一致的触发输入及预期，属于实现符合性测试债务，**不是**新增的 E 编号、通过证明或可跳过的规范要求。新增精确用例须单独评审编号，并同步 §45.2 的验收范围。
+**代码归一化。** §24.1 历史简写 SCHEMA_MISSING / INVALID 分别指 SCHEMA_MISSING 与 SCHEMA_INVALID。§24.2 的 STALE、CONFLICT 必须写全名为 EVIDENCE_STALE、EVIDENCE_CONFLICT；SCOPE_MISMATCH、CORRELATION_MISMATCH、DEADLINE_EXCEEDED、CANCELLED 是四个独立诊断。OUTCOME_UNKNOWN 是 Mutation 的阶段 Outcome，不是诊断代码。RECONCILE 的 COMMITTED、NOT_COMMITTED、UNRESOLVED 也是阶段 Outcome；RECONCILE_UNRESOLVED 是记录该停止条件的诊断，二者不得互换。
+
+最终 SUCCEEDED、FAILED、UNRESOLVED、SAFE_STOPPED 是 Invocation 终态，不属于本表的诊断。`待补独立 Fixture` 表示当前 E01–E114 未明确给出与该 `(Code, Phase)` 完全一致的触发输入及预期，属于实现符合性测试债务，**不是**新增的 E 编号、通过证明或可跳过的规范要求。新增精确用例须单独评审编号，并同步 §45.2 的验收范围。
 
 **诊断优先级。** 旧式 Wait / v0.2 语法与普通未知字段的分派按 §24.1 的专用诊断优先规则；同一绑定点的一般链接优先级为：YAML/结构 → Package/依赖与 Owner 身份 → Schema/路径与支配可用性 → 类型 → 授权/Effect/Scope → Evidence 描述符链接 → Evidence 组合可满足性 → 运行时证据判定；与规范性更具体的 §13.3、§17.1.1 和 §24.1 的顺序相同。遇到较早的致命错误时，不基于未经解析的下游值推断新的错误。彼此独立的错误可以共同报告，诊断展示排序不是执行语义。
 
