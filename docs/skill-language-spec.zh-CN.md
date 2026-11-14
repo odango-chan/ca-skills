@@ -2225,6 +2225,8 @@ Skill Studio 是 CA-SL 作者工作环境，不是第二个语言实现。应提
 
 **默认效力：Normative。** 外部规范的资料性说明不改变 CA-SL 相应条款的要求。
 
+## 36. CUE
+
 参考：https://cuelang.org/docs/reference/spec/
 
 CUE 的类型约束、Schema 组合及静态分析机制为本规范提供参考。CA-SL 使用自身的 Procedure、Capability、Operation、Observation 和 Evidence 语义；Schema 与 Predicate 分别使用本规范限定的 JSON Schema 和 CEL 子集。
