@@ -1240,7 +1240,7 @@ Compiler 不得为让文件编译而创建不存在的 Schema、用 object 逃�
 | INPUT_VALIDATION_FAILED | 拒绝调用 |
 | RESPONSE_DECODE_FAILED | READ / Observation 沿 UNKNOWN 或按事实不确定停止；Mutation / Reconcile 按 §20 验证独立证明并决定结果 |
 | SCRIPT_EXECUTION_FAILED | Procedure Script 抛出异常。保留执行失败原因，沿 FAILED 边，无成功输出 |
-| OUTPUT_SCHEMA_INVALID | 已解码的外部输出或 Procedure Script 的正常返回值未通过输出 Schema 校验。隔离输出。READ / Observation / Script 按本节失败规则处理，Mutation 按 §20.1 独立验证提交证明 |
+| OUTPUT_SCHEMA_INVALID | 已解码的外部输出或 Procedure Script 的正常返回值未通过输出 Schema 校验。隔离输出。Procedure Script 沿 FAILED 边。READ / Observation 沿已声明的 UNKNOWN 边，未声明时按关键事实不确定停止。Mutation / Reconcile 按 §20.1 / §20.2 独立核验提交证明 |
 | SCOPE_MISMATCH / CORRELATION_MISMATCH | 已派发 Mutation / Reconcile 按 §20；其他调用结果隔离，按本节失败规则处理。Predicate 所需证据不匹配时沿 UNKNOWN |
 | EVIDENCE_MISSING / STALE / CONFLICT | Predicate 沿 UNKNOWN；入口或 Goal PASS 复核失败按 §12.8 停止；调用结果的强制保证无效时按 §20.1 或本节失败规则处理 |
 | DEADLINE_EXCEEDED / CANCELLED | 不再派发任何 Procedure 动作。记录已派发调用的已知状态及迟到结果责任，按 §12.8 停止 |
@@ -2001,7 +2001,9 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 14. Native / WASM / Studio 语义一致性验证；
 15. 独立确定 Compiler Artifact 的 Schema 序列化与外部依赖闭包策略。
 
-冻结候选范围为 §5–§17、§19–§22 和 §24.1 中的语言语义规则。其中 §9.2 ToolCatalog、§9.3 CapabilityContracts、§17.1 Evidence 描述符的线格式仍在 DESIGN REVIEW。§34.0 多 Owner 归属的传递格式和 §21 的异步 Operation Owner 契约也继续评审，按第 2、3、5、9、10 项收敛。
+**冻结候选。** §5–§17、§19–§22 和 §24.1 中的语言语义规则，包括阶段执行、路由、证明传播及 Evidence 校验。
+
+**继续 DESIGN REVIEW。** §9.2 ToolCatalog、§9.3 CapabilityContracts 和 §17.1 Evidence 描述符的线格式，§34.0 多 Owner 归属的传递格式，以及 §21 的异步 Operation Owner 契约。按第 2、3、5、9、10 项验收。
 
 在以上事项完成之前，整份规范的状态保持 DESIGN REVIEW。实际 Compiler、Runtime 和工具链验收仍按上述门槛进行。
 
@@ -2646,7 +2648,7 @@ E60 从 §12.1 的正例独立派生四个变体。每个变体都必须报 `REC
 
 - E65 复用 E42 中保留 Goal 标记的正例，再加入 E44 的不可达 Precondition Node，并将其 PASS 路由改为 `verify-local`。该额外入边参与语法和链接校验，在 `verify-local.postcondition` 的可达入边汇合中排除。
 
-- E66 以 §32.1 的 Script Operation 为基线。将实参改为一个保证存在的外层对象，其 `policyRef` 可缺失。Script 成功输出 TypedDict 要求非空字符串 `policyRef`。先分别提供含有效字段和缺少字段的输入。前者返回合法输出并走 SUCCEEDED，后者抛出异常并记录 `SCRIPT_EXECUTION_FAILED`。再独立注入两种正常返回值：缺少必需字段的映射、整数 `42`。两者均记录 `OUTPUT_SCHEMA_INVALID`。抛异常和无效返回都走 Operation 的 FAILED 边，后续节点不能读取该次成功输出。
+- E66 以 §32.1 的 Script Operation 为基线。将实参改为一个保证存在的外层对象，其 `policyRef` 可缺失。Script 成功输出 TypedDict 要求非空字符串 `policyRef`。先分别提供含有效字段和缺少字段的输入。前者返回合法输出并走 SUCCEEDED，后者抛出异常并记录 `SCRIPT_EXECUTION_FAILED`。再复用已通过构建校验的 Script 契约，由测试执行器在 Runtime 输出校验入口替换 `main` 的正常返回值。分别注入缺少必需字段的映射和整数 `42`，两者均记录 `OUTPUT_SCHEMA_INVALID`。生产 Script 的返回注解和输出 Schema 仍按 §32.1 在构建期校验。抛异常和无效返回都走 Operation 的 FAILED 边，后续节点不能读取该次成功输出。
 
 ## E.8 从 Goal Postcondition 开始的验证流程
 
