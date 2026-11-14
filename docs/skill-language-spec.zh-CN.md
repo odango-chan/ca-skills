@@ -2357,7 +2357,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 7. Compiler Artifact Contract 独立冻结生成 Schema 的序列化与可达依赖闭包；Runtime Artifact Contract 独立冻结 Trace 线格式、版本和兼容性。
 8. 交付符合性记录：语言目标版本、每项 Owner 导出及摘要、发布授权、执行 Fixture、原始 CI 结果、实际代码提交和未通过项。缺项不得标记 Runtime READY / live E2E PASS。
 
-**当前裁决：CA-SL v1alpha3 语言及互操作规范 FROZEN；产品符合性 NOT QUALIFIED。** 实现使用的 CEL/Python/JSON Schema 解析器版本及其跨入口一致性，应在 §45.2 的实际符合性记录中明确；[实现基准澄清记录](design/ca-sl-v1alpha3-interop-clarifications-2026-11-14.md)不取代原始 CI 与 Owner 证据。 规范源审查、YAML 解析或 PR 审批不等于第 1–8 项的实际测试通过。缺少必需的 Owner 契约或工具链符合性证据时，应阻止相应产品发布；语言语义的修订遵循 §45.1 的版本变更流程。审查范围、图检查结果及跨仓库事实见 [非规范性的冻结决策记录](design/ca-sl-v1alpha3-freeze-record.md)。
+**当前裁决：CA-SL v1alpha3 语言及互操作规范 FROZEN；产品符合性 NOT QUALIFIED。** 实现使用的 CEL/Python/JSON Schema 解析器版本及其跨入口一致性，应在 §45.2 的实际符合性记录中明确；[实现基准澄清记录](design/ca-sl-v1alpha3-interop-clarifications-2026-11-14.md)及[资料性符合性报告模板](fixtures/ca-sl-v1alpha3-conformance-report.template.yaml)不取代原始 CI 与 Owner 证据。 规范源审查、YAML 解析或 PR 审批不等于第 1–8 项的实际测试通过。缺少必需的 Owner 契约或工具链符合性证据时，应阻止相应产品发布；语言语义的修订遵循 §45.1 的版本变更流程。审查范围、图检查结果及跨仓库事实见 [非规范性的冻结决策记录](design/ca-sl-v1alpha3-freeze-record.md)。
 
 ---
 
