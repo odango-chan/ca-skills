@@ -673,7 +673,7 @@ Skill Studio 创建 Skill 时应让作者从可用的公共依赖目录和可信
 
 ### 11.6 动作预算
 
-`limits.maxActions` 可省略；省略时采用 Runtime 提供的强制预算。若声明，必须是大于 0 的整数；每次外部 Operation、Observation 或 Reconcile 实际派发计一个 Action。每次本地 Procedure Script 执行开始计一个 Action。启动后的失败或不确定结果照计，启动前拒绝不计；受控再次尝试单独计数。Predicate 和终态发布不计 Action，仍受 Runtime 时间预算约束。Host 可另设内部节点预算，按进入业务 Node 计数。该预算由部署配置，不属于 Skill Contract。有效上限为 Skill 上界与 Host 上界的较小值；Host 预算缺失、不合法或为 0 时 Admission 必须 fail-closed。该字段不影响 Capability Grant，不提供额外重试权限，也不能覆盖 Runtime 的 Deadline / Cancellation。
+`limits.maxActions` 可省略；省略时有效上限等于 Host 按部署策略提供的强制预算。若声明，必须是大于 0 的整数；每次外部 Operation、Observation 或 Reconcile 实际派发计一个 Action。每次本地 Procedure Script 执行开始计一个 Action。启动后的失败或不确定结果照计，启动前拒绝不计；受控再次尝试单独计数。Predicate 和终态发布不计 Action，仍受 Runtime 时间预算约束。Host 可另设内部节点预算，按进入业务 Node 计数。该预算由部署配置，不属于 Skill Contract。声明 Skill 上界时，有效上限为该值与 Host 上界的较小值。Admission 必须取得有效的 Host 上界。Host 上界缺失、不是正整数或为 0 时拒绝启动。不存在隐式 Runtime 默认值。该字段不影响 Capability Grant，不提供额外重试权限，也不能覆盖 Runtime 的 Deadline / Cancellation。
 
 vNext 不允许直接把 Operation ID 放入 Capability 授权列表，不允许 localTools，不允许把 Host 内部 dataclass 路径写入 Skill，不允许推断未发布的 Context 字段，也不允许使用物理 lib 路径充当公共依赖身份。
 
@@ -918,6 +918,8 @@ Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时不�
 
 Compiler 构建以 `(Node ID, 阶段名)` 为顶点的分析图。每个合法 Outcome 对应一条边，边记录来源顶点、Outcome 与目标。若还有后续阶段，正常 Outcome 生成一条自动推进边，目标为同一 Node 的下一已声明阶段。其他边来自 `routes`，目标为另一 Node 的首个阶段或终态。两种边都按来源阶段和 Outcome 应用相同的门禁及证明更新规则。伪代码中的 `vertex.effect` 是普通 Tool Operation 经过链接校验的 Effect，只在普通 Tool Operation 的阶段顶点上有值。Reconcile 和 Procedure Script 的该值为空。分析图的 vertex.kind 由已解析阶段及 Operation 目标决定，包括 observation、tool_operation、script_operation 和 reconcile；script_operation 仅对应 operation 的 script 目标。下文的 READ Operation 指链接后的 Effect 为 READ 的普通 Tool Operation。此处不增加作者源码字段。Compiler 先更新边上的状态，再检查每条可达的 `SUCCEEDED` 终态边。最后阶段的 Goal PASS 因此可以直接证明同一条成功边。入口顶点是 `start` Node 的第一个已声明阶段，进入时没有已通过的全局前置条件，也没有 Goal 证明。可达图是从该入口经显式路由和自动推进得到的可达闭包，包含所有可达阶段及其出边，包括终态边。不可达阶段的出边不参与任何汇合。每个可达的非入口阶段至少有一条来自可达阶段的入边。汇合点仅对这些入边计算已通过条件的交集和 Goal 证明的 AND。不可达 Node 另报 `UNREACHABLE_NODE`。若存在可达 SUCCEEDED 且没有可达的 Goal Postcondition，报告 `FINAL_POSTCONDITION_MISSING`；否则缺少证明的成功路径报告 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`。任一受保护的 Mutation 或成功终态绕过全局前置判断的 PASS 时，报告 `ENTRY_PRECONDITION_BYPASSED`。
 
+正常完成的 READ Operation、Observation 与 Procedure Script 仅保留已有 Goal 证明及其原绑定。Runtime 仍按原绑定复核。后续调用产生的新值不能替换已记录的证明输入。若需以新状态证明 Goal，Procedure 必须显式将新的 Producer 输出绑定到 Goal Postcondition 并取得新的 PASS。
+
 Compiler 在证明传播前按 §12.7 和 §24.1 校验 `start`。入口无效时报告相应错误，跳过以下证明传播。
 
 ~~~text
@@ -1021,11 +1023,15 @@ Compiler 必须验证：
 - 参数名在目标 Schema 中存在；
 - 所有 Required 参数均提供；
 - 不得传入未声明字段；
-- SourcePath 必须在每条可达路径上存在。Compiler 先解析 Producer 与其输出 Schema，再检查路径和 Outcome，最后检查类型可赋值性。路径某段未在对应 Schema 中声明时报告 `SOURCE_PATH_INVALID`。已声明的路径因当前分支没有相应 Producer Outcome 而不可用时报告 `SOURCE_NOT_AVAILABLE`；引用 Owner 未声明的 Reconcile 输出时按 §12.7 报 `RECONCILE_OUTPUT_UNAVAILABLE`。若属性在该 Outcome 的 Schema 中可缺失（包括 TypedDict 的 `NotRequired`），直接取该属性的路径报告 `SOURCE_NOT_AVAILABLE`。可绑定保证存在的外层对象，再由消费者按其 Schema 处理可选成员。Predicate PASS 本身不缩窄后续 SourcePath 类型。例如局部门禁确认 `read-policy.operation.output` 中的可选 `policyRef` 有值，即使 PASS 边直接连到 Mutation，其 `arguments.policyRef: read-policy.operation.output.policyRef` 仍在构建期报 `SOURCE_NOT_AVAILABLE`，该 Skill 因此无法运行，也不会执行 §12.9 的派发前局部门禁复核。若目标 Schema 允许，可省略该实参。若业务必需，由 Owner 在输出 Schema 中声明必需字段，或将保证存在的外层对象传给 Procedure Script。Script 只有能产生有效引用时才返回包含必需字段的 TypedDict。若字段缺失且无法得出有效引用，Script 显式抛出异常，由 Runtime 走 FAILED 边（§24.2、§32.1）。
+- SourcePath 必须在每条可达路径上存在。Compiler 先解析 Producer 与其输出 Schema，再检查路径和 Outcome，最后检查类型可赋值性。路径某段未在对应 Schema 中声明时报告 `SOURCE_PATH_INVALID`。已声明的路径因当前分支没有相应 Producer Outcome 而不可用时报告 `SOURCE_NOT_AVAILABLE`；引用 Owner 未声明的 Reconcile 输出时按 §12.7 报 `RECONCILE_OUTPUT_UNAVAILABLE`。若属性在该 Outcome 的 Schema 中可缺失（包括 TypedDict 的 `NotRequired`），直接取该属性的路径报告 `SOURCE_NOT_AVAILABLE`。可绑定保证存在的外层对象，再由消费者按其 Schema 处理可选成员。Predicate PASS 本身不缩窄后续 SourcePath 类型。例如局部门禁确认 `read-policy.operation.output` 中的可选 `policyRef` 有值，即使 PASS 边直接连到 Mutation，其 `arguments.policyRef: read-policy.operation.output.policyRef` 仍在构建期报 `SOURCE_NOT_AVAILABLE`，该 Skill 因此无法运行，也不会执行 §12.9 的派发前局部门禁复核。若目标 Schema 允许，可省略该实参。若业务必需，由 Owner 在输出 Schema 中声明必需字段，或将保证存在的外层对象传给 Procedure Script。对于非身份实参，Script 只有能产生有效值时才返回包含必需字段的 TypedDict。若该字段参与 Scope 或身份校验，应由权威 Producer 或 Host 提供可直接绑定的必需字段。若字段缺失且无法得出有效引用，Script 显式抛出异常，由 Runtime 走 FAILED 边（§24.2、§32.1）。
 - Source Schema 可赋给目标字段 Schema；
 - Optional、Nullability、enum、const、范围和数组元素约束兼容；
 - 来源的 Subject、Session、Lifecycle 和 Evidence Scope 没有被不安全地扩大；
 - Reconcile 不接受普通 arguments，而引用原始 Mutation Invocation。
+
+**Scope 与身份实参。** 外部 callable Owner 须在抽象契约中标明参与 Subject、Session、Lifecycle、Correlation 或资源句柄的输入值路径，包括复合实参内的相关子路径。可信部署 Scope 策略声明其参与授权计算的输入路径。Compiler 取两者并集，并对每条路径验证直接绑定来自对该身份有权威的 Producer 输出，或由 Host 契约提供可验证关联的 Context 子路径。权威和关联须覆盖对应身份维度，且可链接到当前 Invocation 所要求的 Scope。仅有相同 Schema、字段名或值不足以证明该关联。将外层对象作为实参时，同样检查其所含身份字段的来源。请求字段、字面量及 Procedure Script 输出不能直接充当此类来源。Compiler 须追溯 Script 派生实参的全部来源类别。身份标注缺失到无法判定所需绑定、来源无法追溯或身份绑定不符合上述规则时，报 `CALLABLE_ARGUMENT_PROVENANCE_INVALID`。Owner 标注与 Host 关联的传输格式按相应契约评审。
+
+Runtime 在 Operation / Observation 派发前，对已物化身份实参逐项核验原绑定、来源记录与当前 Invocation 的关联，再执行 Capability Scope 检查。等待派发资格后按实际派发时重新核验。无法核验时记录 `CALLABLE_ARGUMENT_PROVENANCE_UNVERIFIED`，按 §24.2 停止。Reconcile 的原调用绑定仍按 §20 校验。
 
 ### 13.4 最小输入与无隐式转发
 
@@ -1123,7 +1129,7 @@ Freshness 由 Owner Contract 声明可执行的有效性规则（例如从 obser
 
 Predicate 的 `parameters` 声明业务值类型。`evidence.requires` 可选，是参数名到一组非空、无重复的精确 `alias::guaranteeId` 的映射；只允许引用已声明参数。每个列出的保证至少由一条有效 Evidence Ref 满足，列表全部满足才成立。需要独立证据时，引用不同保证并用 Owner 声明的独立来源约束校验，见 §17.2。省略参数只在该参数的所有调用点均满足下列来源豁免时合法。Compiler 按来源判定每个调用点的实参，覆盖所有可达路径。直接引用普通 Tool Operation、Observation 或 Reconcile 输出的实参必须为对应参数声明至少一个覆盖精确值路径的保证，即使该值仅用于比较。Host Context 字段同样要求保证，但请求字段 `context.request.*`、Host 已校验的身份 `context.ueRef`、关联信息 `context.correlation.*` 及其根对象 `context.correlation` 可作为比对输入豁免。字面量和整个已校验的 `context.request` 也可豁免。此检查只约束参数来源。若 Goal 声明外部事实，Owner 须审定 Predicate 的命题与取证路径确实支持该 Goal。
 
-Procedure Script 输出保守继承其全部绑定实参的来源类别，包括上游 Script 的传递来源。仅当全部来源均可豁免时，其输出可无保证。涉及外部事实的 Procedure Script 输出可供 Operation 实参使用。需要 Evidence 的 Predicate 参数必须改绑到权威 Producer 输出或绑定到由 Host 契约提供可验证关联的 Context 子路径。直接绑定该 Script 输出不能满足所需保证。Script 不能继承输入 Evidence。缺少强制声明报 `PREDICATE_EVIDENCE_REQUIRED`；已声明却无法满足者按 §17.2 校验。
+Procedure Script 输出保守继承其全部绑定实参的来源类别，包括上游 Script 的传递来源。仅当全部来源均可豁免时，其输出可无保证。涉及外部事实的 Procedure Script 输出可用于 Operation 或 Observation 的非身份实参，须满足 §13.3 的来源追溯、类型与授权校验。需要 Evidence 的 Predicate 参数必须改绑到权威 Producer 输出或绑定到由 Host 契约提供可验证关联的 Context 子路径。直接绑定该 Script 输出不能满足所需保证。Script 不能继承输入 Evidence。缺少强制声明报 `PREDICATE_EVIDENCE_REQUIRED`；已声明却无法满足者按 §17.2 校验。
 
 保证引用解析到可信 Owner 契约中的唯一精确身份。该描述符是对应 Evidence 保证的唯一权威。ToolCatalog 中 `provides` 只发布保证引用和输出路径。同一保证在 ToolCatalog 重复声明权威、Scope、Correlation、时间或 Freshness 等规则时，Compiler 报 `EVIDENCE_GUARANTEE_LINK_INVALID`。Runtime 只按链接后的描述符判定这些维度。可执行描述符至少给出权威 Owner、允许的 Producer 身份及值路径、适用的 Scope / Correlation 维度及其与当前 Invocation 或已校验调用参数的取值绑定、同一事实的记录选择规则，以及 Freshness 的时间基准和判定规则。Predicate 参数 Schema 由 `parameters` 声明。Producer 值的 Schema 从已发布的输出或 Host Context Schema 按值路径解析，并对参数 Schema 检查可赋值性。`provides[].guarantee` 是该发布方快照中精确的描述符导出键，可以指向同一快照内的独立契约。Compiler 必须解析到唯一导出，并核对描述符允许的 Producer 身份、Outcome 与 `provides[].path`；`output` 指整个已声明的输出。缺失、歧义或路径不匹配均拒绝链接。声明的 `provides` 引用解析失败时报告 `EVIDENCE_GUARANTEE_LINK_INVALID`。E.3 示范分文件声明。Operation Result 和 Observation Result 可提供同一个保证，前提是该权威 Owner 明确授权两条 Producer 路径。Skill 只引用保证 ID；Schema、Owner、相关性和有效期由 Owner 契约提供。描述符中，Observation Producer 的实参引用根为 `query`，Operation Producer 的实参引用根为 `arguments`。两者是保留根，指向相应 Producer 派发时物化并通过校验的实参。Compiler 按描述符中的 Producer kind 校验引用根与字段路径，未知根、根与 kind 不符或实参路径无法解析时报 `EVIDENCE_GUARANTEE_LINK_INVALID`。描述符的传输格式仍待联调。
 
@@ -1135,7 +1141,7 @@ Procedure Script 输出保守继承其全部绑定实参的来源类别，包括
 
 事实身份由权威命名空间、事实标识和规范化 Scope 构成。跨 Owner 比较须由可信部署绑定各 Owner 同意的共同事实身份、Scope 映射和可比较值投影。映射缺失或不兼容时拒绝链接。Evidence 的选择包含精确记录选择或按可信顺序选择最新记录，以及取时间基准与非负年龄上限。§17.2 中的字段拼写仅指相应的抽象属性。
 
-Predicate 可声明独立性约束组，组成员为至少两个不同的（参数、保证）对且均已出现在 requires。Compiler 校验每组成员均有权威认证的底层来源身份提取规则，且该规则使用可比较的受信来源身份域。Runtime 必须在组内找到两两不同底层来源、同时满足所有保证的证据组合，否则结果为 UNKNOWN。同一底层记录的不同引用不算独立。
+Predicate 可声明独立性约束组，组成员为至少两个不同的（参数、保证）对且均已出现在 requires。Compiler 校验每组成员均有权威认证的底层来源身份提取规则，且该规则使用可比较的受信来源身份域。Runtime 必须在组内找到两两不同底层来源、同时满足所有保证的证据组合，否则结果为 UNKNOWN。同一底层记录的不同引用不算独立。描述符的来源身份规则或共同事实映射缺失、重复、歧义或不可比较时，Compiler 报 `EVIDENCE_GUARANTEE_LINK_INVALID`。描述符各自有效但指定独立性组无法在共同可信身份域中形成可验证约束时，报 `PREDICATE_EVIDENCE_UNSATISFIABLE`。合同已通过链接而本次执行找不到符合条件的组合时，Predicate 为 UNKNOWN。
 
 **Candidate 映射。** E.3 的 query / arguments / execution 分别映射为查询实参、操作实参及执行身份引用。selection.mode、orderBy、freshness.timestamp 与 maxAgeMs 分别映射为选择模式、顺序键、时间基准及年龄上限。候选线格式可用 `evidence.independence` 表达各组的参数和保证对，保证描述符用 `sourceIdentity` 发布底层来源投影，并用 `factIdentity` 表达共同命名空间、事实标识、Scope 映射及值投影。E46 的拼写变体按候选解码器验收，抽象类别不匹配规则适用于任何线格式。
 
@@ -1296,7 +1302,7 @@ Predicate 的 PASS 表示命题得到充分支持。FAIL 表示命题被充分�
 | Mutation | SUCCEEDED：禁止 / 必填 | 已声明的 Owner FAILED、NOT_COMMITTED，以及 Runtime OUTCOME_UNKNOWN | Runtime DENIED | 按 §12.8 直接停止 |
 | Reconcile | COMMITTED：禁止 / 必填 | NOT_COMMITTED、UNRESOLVED | 无 | 不适用 |
 
-缺必填键报 ROUTE_OUTCOME_MISSING。可选 Runtime 边省略时直接进入 §12.8 的终态裁决，并保留诊断和责任。显式配置非末阶段的正常键报 ROUTE_NORMAL_OUTCOME_NOT_ALLOWED。Script FAILED 缺边的 §24.2 处理仅用于异常 Artifact。Studio 补全和 Compiler 校验应共用本矩阵。
+缺必填键报 ROUTE_OUTCOME_MISSING。可选 Runtime 边省略时直接进入 §12.8 的终态裁决，并保留诊断和责任。显式配置非末阶段的正常键报 ROUTE_NORMAL_OUTCOME_NOT_ALLOWED。正常构建缺少 Script FAILED 路由报 `ROUTE_OUTCOME_MISSING` 并阻断构建。§24.2 的缺边规则仅用于 Runtime 遇到异常执行图时的防御性停止。Studio 补全和 Compiler 校验应共用本矩阵。
 
 ## 23. 并发、UE 与 Session 隔离
 
@@ -1371,7 +1377,8 @@ Environment
 | ROUTE_NORMAL_OUTCOME_NOT_ALLOWED | 在非末阶段的 `routes` 中声明正常 Outcome，可能跳过同一 Node 的后续阶段 | 阻止构建 |
 | PREDICATE_ARITY_MISMATCH | 参数数量不一致 | 阻止构建 |
 | PREDICATE_TYPE_MISMATCH | 参数类型不兼容 | 阻止构建 |
-| EVIDENCE_GUARANTEE_LINK_INVALID | `provides` 无法解析到唯一保证描述符，或 Producer、Outcome、值路径或实参引用不匹配 | 阻止构建 |
+| EVIDENCE_GUARANTEE_LINK_INVALID | 保证解析、Producer 绑定、身份提取或共同事实映射无效，见 §17.1–§17.1.1 | 阻止构建 |
+| CALLABLE_ARGUMENT_PROVENANCE_INVALID | 实参来源不可追溯，或 Scope 与身份实参缺少 §13.3 要求的可验证来源 | 阻止构建 |
 | PREDICATE_EVIDENCE_REQUIRED | 来源按 §17.1 要求保证，但对应参数未声明 | 阻止构建 |
 | PREDICATE_EVIDENCE_UNSATISFIABLE | 参数绑定无法提供所声明的 Evidence 保证或缺少可验证的关联约束 | 阻止构建 |
 | RETRY_CONTRACT_INVALID | retryOf 引用非法、路径覆盖不足或身份及重试契约不兼容 | 阻止构建 |
@@ -1405,6 +1412,7 @@ Compiler 不得为让文件编译而创建不存在的 Schema、用 object 逃�
 | 触发条件 | 阶段 | 处理 |
 |---|---|---|
 | TOOL_UNAVAILABLE、INPUT_VALIDATION_FAILED、OWNER_CONTRACT_UNAVAILABLE | 派发前，任一调用阶段 | 确定执行错误，直接停止。不会借用 FAILED 或 DENIED 边 |
+| CALLABLE_ARGUMENT_PROVENANCE_UNVERIFIED | 普通 Tool Operation 或 Observation 派发前 | 拒绝派发，按 §12.8 直接停止。关键身份关联无法核实时按关键事实不确定处理，保留已有责任 |
 | AUTHORIZATION_DENIED | 派发前，普通 Tool Operation / Observation | 有已声明 DENIED 边则走该边，否则直接停止 |
 | AUTHORIZATION_DENIED | 派发前，Reconcile / Procedure Script | 直接停止 |
 | TOOL_UNAVAILABLE、OWNER_CONTRACT_UNAVAILABLE | 已派发 READ / Observation，结果不可验证 | 有已声明 UNKNOWN 边则走该边，否则按事实不确定停止 |
@@ -1438,7 +1446,7 @@ Compiler 不得为让文件编译而创建不存在的 Schema、用 object 逃�
 | ACTION_BUDGET_EXCEEDED | 不启动下一次 Action；保留已发生的外部副作用及未决调用责任，按 §12.8 停止 |
 | CONCURRENT_MODIFICATION | 校验 Scope 和版本；失败时不派发新动作，按 §12.8 停止 |
 
-派发前 Scope 策略不可读取或实际交集为空时，分别记录 `SCOPE_POLICY_UNAVAILABLE` 或 `SCOPE_INTERSECTION_EMPTY`。普通 callable 有 DENIED 边则走该边，否则按 §12.8 直接停止。Reconcile 直接停止并保留原调用责任。
+构建期的策略解析与静态交集诊断见 §9.3 的 `CAPABILITY_SCOPE_UNRESOLVED` 和 `CAPABILITY_SCOPE_EMPTY_INTERSECTION`。派发前 Scope 策略不可读取或实际交集为空时，分别记录 `SCOPE_POLICY_UNAVAILABLE` 或 `SCOPE_INTERSECTION_EMPTY`。普通 callable 有 DENIED 边则走该边，否则按 §12.8 直接停止。Reconcile 直接停止并保留原调用责任。
 
 §12.8 的终态取决于状态。前置条件证据缺失或不可判定时，无已知待处置资源则候选 UNRESOLVED；已有充分证据证伪且提交状态确定时可候选 FAILED。已有已确认且待处置资源时，局部门禁失效优先为 SAFE_STOPPED。COMMITTED_OUTPUT_UNAVAILABLE 表示已知变更，按 §20.1 安全停止。DUPLICATE_RESOURCE 本身不决定提交状态，按 §20.1 判定。
 
@@ -1980,6 +1988,8 @@ Skill 自有 Python Script 有两种用途，但都不是 Tool、Capability 或�
 
 ### 32.1 Procedure Script
 
+Script 的返回类型校验不赋予 Scope 或身份权威。外部 callable 的实参来源检查按 §13.3 和 §17.1。
+
 ~~~yaml
 prepare-policy-inputs:
   operation:
@@ -2057,14 +2067,14 @@ dependencies:
   ca: urn:example:connectionagent:5gc-tool-contracts
 ~~~
 
-复用 Compiler v0.1 已有的逻辑快照形状 `{dependencyId, digest, files}`。其中 `dependencyId` 是 Workspace 别名，`digest` 由 Compiler 从规范化文件集重算，二者均不能证明 Package ID 或 Owner。可信调用方依据既有来源配置、锁定快照和已验证 Owner 元数据，为同一 `(dependencyId, digest)` 提供稳定 Package ID 与允许的 Owner 身份。来源绑定可由 Studio 依赖目录或部署配置提供；上传内容或 MCP discovery 自报身份本身不构成可信绑定。
+复用 Compiler v0.1 已有的逻辑快照形状 `{dependencyId, digest, files}`。其中 `dependencyId` 是 Workspace 别名，`digest` 由 Compiler 按所选 BuildRequest 版本规定的 framing，对经校验的文件路径及原始内容字节重算，二者均不能证明 Package ID 或 Owner。可信调用方依据既有来源配置、锁定快照和已验证 Owner 元数据，为同一 `(dependencyId, digest)` 提供稳定 Package ID 与允许的 Owner 身份。来源绑定可由 Studio 依赖目录或部署配置提供；上传内容或 MCP discovery 自报身份本身不构成可信绑定。
 
 1. 对每个被引用的 Alias 链接唯一快照，并校验规范化路径、文件集及摘要。按同一 Alias 和实测摘要获取可信身份绑定，与 `Contract.dependencies[alias]` 精确比较。无可信绑定、同一 Alias 对应多个快照或身份不匹配均阻断构建。
 2. 在该快照内解析唯一精确的 `alias::exportId`。用可信绑定核对导出 Owner，再校验 callable kind、Effect、Schema `$id`、引用闭包和 Evidence 保证。单 Owner 快照可由可信绑定为没有 Owner 字段的导出赋予该 Owner。多 Owner 快照必须由可信调用方提供显式的 `(exportKind, exportId) → owner` 归属；Owner 须在绑定的授权集合内。导出自带 Owner 字段时必须与可信归属一致。该规则也适用于引用闭包中实际链接的 Schema、Evidence 保证等导出。先解析唯一可信归属。多 Owner 快照中归属缺失、重复或歧义时报 `DEPENDENCY_EXPORT_OWNER_UNVERIFIED`。已有唯一归属，但 Owner 不在授权集合内，或与导出自带 Owner 不一致时，报 `DEPENDENCY_OWNER_MISMATCH`。Compiler 不按文件路径、`$id` 前缀或文件顺序猜测。
 3. 外部 callable 还须在独立可信 CapabilityContracts 中，以精确 Owner、callable ID 和 kind 按 §9.3 核对所有成员的 Effect 并检查至少一个匹配的 Capability 已获 Skill Grant。单纯链接成功不授予执行权。
 4. 合法但未使用的 Contract 依赖产生 UNUSED_DEPENDENCY 警告。构建输入里的额外快照不得自动进入 Skill 链接范围。
 
-`dependency.yaml` 不作为必需输入。此规则复用快照线协议及锁定信息；CA-SL 只要求可验证的身份关联。Studio / Compiler 仍须确认怎样传入这份可信绑定，以及如何传递多 Owner 快照的导出级归属；摘要算法和字节 framing 由所选版本的 BuildRequest 契约定义，不属于 CA-SL 语言语义。计算摘要时，YAML 重排、换行变化或 JSON 重编码均不能在摘要计算前替换原始字节。若调用方无法提供可信身份，保留链接错误。Compiler 只消费调用方提供的字节和可信元数据，语言版本与传输字段由 Compiler BuildRequest 版本管理。
+`dependency.yaml` 不作为必需输入。此规则复用快照线协议及锁定信息；CA-SL 只要求可验证的身份关联。Studio / Compiler 仍须确认怎样传入这份可信绑定，以及如何传递多 Owner 快照的导出级归属；摘要算法和字节 framing 由所选版本的 BuildRequest 契约定义，不属于 CA-SL 语言语义。文件集规范化仅处理路径校验和规范化、文件枚举、排序及非法或冲突路径拒绝，具体规则以 BuildRequest 为准。摘要 framing 消费快照中的原始内容字节。CA-SL 不改写这些字节，YAML 重排、换行转换和 JSON 重编码均不得用于摘要前的内容规范化。若调用方无法提供可信身份，保留链接错误。Compiler 只消费调用方提供的字节和可信元数据，语言版本与传输字段由 Compiler BuildRequest 版本管理。
 
 摘要细节见 [Compiler v0.1 快照摘要](https://github.com/odango-chan/ca-skill-compiler/blob/b60024497b4865f705fa40e1b04bcc84032778d8/docs/design/dependency-snapshot-digest-v0.1.md)。参见 [Compiler PR #4 的 BuildRequest v0.1 契约](https://github.com/odango-chan/ca-skill-compiler/pull/4) 和 [Studio PR #150 的配置与快照设计](https://github.com/odango-chan/ca-skill-studio-demo/pull/150)。
 
@@ -2120,6 +2130,8 @@ Skill Studio 是 CA-SL 作者工作环境，不是第二个语言实现。应提
 16. Package View：区分 Skill 自有文件、只读依赖和生成 Artifact；
 17. Case View：展示语义义务，不伪装成 Runtime 结果；
 18. Owner Inspection：展示 Schema / Tool / Observation 的 Owner 和导出身份。
+
+第 13 项首阶段验收覆盖语法与路由补全、Dependencies / Capabilities 视图、诊断分类、Procedure Designer 的 Goal 标记，以及 Evidence 要求与 Producer 的基本数据流。Definition、Hover 和完整 Data Flow 按后续 Studio 验收推进。
 
 依赖和 Capability 选择不是一次性的创建向导行为；作者后续可以在 Dependencies / Capabilities 视图增删声明、检查影响并重新解析。Studio 不得静默改变 Skill 的公共依赖或 Capability Grants。
 
@@ -2239,7 +2251,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 9. 三个 5GC 异步完成 Operation 的 Owner 契约确认；
 10. Studio / Compiler 确认可信快照身份绑定的来源、传输方式及多 Owner 归属，通过 Appendix E 链接正负例；
 11. 完整 5GC PDU Skill 迁移演练；
-12. Compiler 正负例与诊断验收；
+12. Compiler 正负例、诊断及对应 Runtime 行为验收。E67–E104 逐条落为机器可执行 Fixture，记录规则引用、输入工件集、变更、预期诊断或终态，并由对应 CI 执行。E100 为 Goal 证明传播的必验项。Evidence 保证与独立性链接用例同时用于第 5 项；
 13. Skill Studio 语义体验验收；
 14. Native / WASM / Studio 语义一致性验证；
 15. 独立确定 Compiler Artifact 的 Schema 序列化与外部依赖闭包策略；
@@ -2248,6 +2260,15 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 第 1–16 项是整份规范的冻结门槛。满足全部门槛前，文档的状态标记为 DESIGN REVIEW。Compiler、Runtime 和工具链验收按对应条目进行。
 
 第 1–16 项的当前状态与评审责任见附录 B。文档路径检查只记录为规范复核，实际产品符合性以对应验收记录为准。
+
+**实现符合性。** 抽象规则以解码后的契约为输入。下表线格式仍为 Candidate，其诊断及样例随对应版本验收。
+
+| 抽象规则 | 候选输入 | 诊断 | 验收用例 |
+|---|---|---|---|
+| Evidence 保证与独立性 | §17.1 | `EVIDENCE_GUARANTEE_LINK_INVALID`、`PREDICATE_EVIDENCE_UNSATISFIABLE` | E38、E68、E73、E102 |
+| Capability Scope 与身份来源 | §9.2–§9.3 | `CAPABILITY_SCOPE_*`、`CALLABLE_ARGUMENT_PROVENANCE_INVALID` | E81、E87–E88、E101 |
+| Reconcile 契约 | §9.2.1 | `RECONCILE_CONTRACT_INVALID` | E60、E78 |
+| 依赖身份绑定 | §34.0 | `DEPENDENCY_*` | E03–E05、E39、E43、E103 |
 
 **冻结审定前置。** 第 1–16 项仍适用于整份规范。本轮及前轮阻断规则按附录 E.9 复审并取得 Compiler / Runtime 验收记录后，再独立审定 §5–§17、§19–§22、§24.1 的抽象语义。保证身份、Scope、Correlation、Freshness 的判定及 Runtime 复核属于抽象语义；描述符字段名、文件组织和导出键编码属于线格式，继续按对应契约版本评审。§12.4 的调用端语义可与 §9.2 的 QueryContext Schema 线格式并行评审。
 
@@ -3032,7 +3053,7 @@ predicates:
 
 ### E.13 冻结复核说明
 
-- E40 保留严格的绑定替换规则。即使值相同，新记录也可能改变可审计的版本、时点及证据组合，因此旧判断不自动继承新记录。长流程可在接近成功发布时重新读取并求值。Owner 可在独立提案中评审安全重绑定策略。
+- E40 保留严格的绑定替换规则。即使值相同，新记录也可能改变可审计的版本、时点及证据组合，因此旧判断不自动继承新记录。长流程可在接近成功发布时重新读取并求值。在本版语义下，采用新记录必须经显式 Producer 绑定和新的 Goal Postcondition PASS。Owner 可另行提案评审不同的重绑定策略。
 - §17.1 的身份和关联值豁免只覆盖其作为比对基准的用途。若 Predicate 以这类输入单独主张外部事实，Owner 须补充权威取证，不能依赖该豁免通过语义评审。
 - §44 最小兼容规则：源码使用目标语言版本明确支持的 Schema 子集。Owner 工件版本须有该版本的解码器并能映射到同一抽象规则。Schema 依赖按精确 ID 链接。Skill Package Revision 不隐式提升任何契约版本。
 - Studio 与 Compiler 共用路由、诊断和 Evidence 规则。不可达节点仍检查语法、链接和 Reconcile 入边，门禁与证明只传播可达边。
@@ -3043,8 +3064,13 @@ predicates:
 |---|---|
 | E98 | output 保证明示覆盖 output.result，记录可验证该子值，且子值 Schema 可赋给参数：通过。反向使用 output.result 保证绑定整个 output：PREDICATE_EVIDENCE_UNSATISFIABLE |
 | E99 | 向 Compiler 的分析图单测注入无可达入边的可达非入口阶段：REACHABLE_STAGE_NO_INCOMING_EDGE。此为内部不变量测试 |
-| E100 | 同一 Goal PASS 后分别经过 Procedure Script SUCCEEDED 和 Mutation SUCCEEDED：前者保留证明，后者清除。后续 Goal PASS 可重新建立证明 |
+| E100 | 同一 Goal PASS 后分别经过 Procedure Script SUCCEEDED 和 Mutation SUCCEEDED：前者保留证明，后者清除。READ / Observation SUCCEEDED 同样保留原证明。若后续 READ 使原绑定失效，发布成功前按 §12.8 停止，禁止用新值顶替。显式绑定新 Producer 并取得 Goal PASS 后可重新建立证明 |
 
-§45 第 12 项的实现交付应含机器可执行 Fixture，记录规则引用、输入工件集、变更、预期诊断或终态。
+| E101 | §13.3：将已验证 Host Session 身份直接绑定至 callable，通过。分别用同值 Script 输出、请求字段、含无权威身份的复合对象替换，报 CALLABLE_ARGUMENT_PROVENANCE_INVALID。原绑定构建通过但派发前无法核验时，报 CALLABLE_ARGUMENT_PROVENANCE_UNVERIFIED，且无派发 |
+| E102 | §17.1.1：同身份域的独立来源及兼容的跨 Owner 映射可链接。移除用于独立组的来源身份投影或共同事实映射，或使 Scope 映射不可比较，报 EVIDENCE_GUARANTEE_LINK_INVALID。各描述符分别有效但组成员处于不可比较的身份域，报 PREDICATE_EVIDENCE_UNSATISFIABLE。链接成功但执行时只提供同一底层记录，Predicate 为 UNKNOWN |
+| E103 | §34.0：按所选 BuildRequest 版本提交同一文件集的不同枚举顺序，重算摘要一致。保留原摘要并变更原始文件的换行或 YAML/JSON 编码，构建按 §34.0 拒绝摘要不匹配 |
+| E104 | §11.6：有有效 Host 上界时分别省略 Skill 上界、声明更低和更高的上界，验证分别使用 Host、更低的 Skill、Host 上界。Host 上界缺失、为 0 或非法时拒绝启动 |
+
+§45 第 12 项要求将对应验收条目落为机器可执行 Fixture。此表记录预期行为。
 
 **规范结束。**
