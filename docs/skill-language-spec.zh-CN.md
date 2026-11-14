@@ -22,6 +22,16 @@
 
 各部分的标题下标注默认效力，子节继承该效力；混合子节在标题下列明适用范围，并用 **Normative**、**Candidate** 或 **Informative** 标记对应段落。正文引用尚待审定的线格式字段时，用 [candidate] 标明字段拼写的效力。Normative 表示用于评审和验收的抽象规则；正式冻结状态按 §45 管理。Candidate 表示待 Owner 审定的线格式，其中的字段名、键编码与示例 YAML 不构成已发布契约。Informative 表示解释或示例；附录 E.3–E.4 的候选线格式及装配格式为 candidate，输入工件是 informative fixture，预期结果由其引用的 normative 规则决定。教学片段和 `urn:example` 使用同一约定。
 
+### 作者快速入门
+
+**Informative。** 从 E.8 开始：声明目标和 Host Context Schema，定义检查 UE 引用非空的 Predicate，再把输入绑定到 Postcondition，令 PASS 路由到 SUCCEEDED。需要业务门禁时增加 Precondition；需要调用能力时增加 Operation 并在 Contract 声明 Capability；需要权威事实时增加 Observation，并将结果及 Evidence 绑定给最终判断。
+
+| 常见诊断 | 排查 |
+|---|---|
+| SOURCE_NOT_AVAILABLE | 检查 Producer 在所有到达路径均成功，且所取字段为必需；可改绑外层对象 |
+| ROUTE_OUTCOME_MISSING | 按 §22.1 补齐当前阶段的必填边 |
+| PREDICATE_EVIDENCE_UNSATISFIABLE | 核对 Producer、Outcome、值路径和保证声明 |
+
 ## 1. 为什么需要 CA-SL
 
 ConnectionAgent Skill 不是一段 Prompt，也不是一组供模型自由挑选的工具说明。它描述 Agent 如何在明确业务目标、输入、上下文和授权范围内，执行确定性步骤、验证事实、处理不确定结果并给出可审计结论。
@@ -109,6 +119,8 @@ Host / Runtime ── admission, execution, correlation, Evidence
 ~~~
 
 ## 6. 术语
+
+**Host** 负责准入、Root Routing、上下文物化、Evidence 保管及责任记录持久化。**Runtime** 负责执行已链接 Procedure、推进阶段、选择路由、派发准入及预算和 Deadline。二者可以共进程；分离部署的传输由 Runtime Artifact Contract 定义。
 
 ### 6.1 Skill / Skill Package
 
@@ -492,6 +504,8 @@ nodes:
 以上 Procedure 只展示入口，`read-udm-subscription` 在 §30 的完整教学图中定义。
 
 规范性结构文法（抽象对象文法；map 表示 YAML 映射，字段 Schema 和静态语义另见 §11–14）：
+
+结构记法：`map(key: Type, ...)` 表示 YAML 映射，键为指定字面量；`list<Type>` 表示 YAML 序列，键后的 `?` 表示该字段可省略。
 
 ~~~ebnf
 Contract          = map(goal: GoalId,
@@ -902,7 +916,7 @@ Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时不�
 - 全局 Postcondition 要求证明 Contract 的单一 `goal`。`postcondition.goal` 必须精确匹配该 Goal，其 PASS 建立证明。各成功分支可以由不同 Node 的 Postcondition 建立证明。`start` 可指向带有 Goal Postcondition 的 Node。若同一验收需要同时检查多项事实，可在一个 Predicate 中明确组合判断。
 - Runtime 发布 SUCCEEDED 前复核全部全局前置条件、当前 Goal 证明的来源与 Evidence，以及资源责任。所有门禁复核都使用原绑定和最新校验时间。若缺少要求的 PASS 或复核失败，按 §12.8 停止，保留原 Trace。Runtime 不隐式重新求值、查询、换绑证据或回退到更早的 Goal 证明。失败或停止终态按 §12.8 发布，无需全局 PASS 或 Goal 证明。
 
-Compiler 构建以 `(Node ID, 阶段名)` 为顶点的分析图。每个合法 Outcome 对应一条边，边记录来源顶点、Outcome 与目标。若还有后续阶段，正常 Outcome 生成一条自动推进边，目标为同一 Node 的下一已声明阶段。其他边来自 `routes`，目标为另一 Node 的首个阶段或终态。两种边都按来源阶段和 Outcome 应用相同的门禁及证明更新规则。伪代码中的 `vertex.effect` 是普通 Tool Operation 经过链接校验的 Effect，只在普通 Tool Operation 的阶段顶点上有值。Reconcile 和 Procedure Script 的该值为空。下文的 READ Operation 指链接后的 Effect 为 READ 的普通 Tool Operation。此处不增加作者源码字段。Compiler 先更新边上的状态，再检查每条可达的 `SUCCEEDED` 终态边。最后阶段的 Goal PASS 因此可以直接证明同一条成功边。入口顶点是 `start` Node 的第一个已声明阶段，进入时没有已通过的全局前置条件，也没有 Goal 证明。可达图是从该入口经显式路由和自动推进得到的可达闭包，包含所有可达阶段及其出边，包括终态边。不可达阶段的出边不参与任何汇合。每个可达的非入口阶段至少有一条来自可达阶段的入边。汇合点仅对这些入边计算已通过条件的交集和 Goal 证明的 AND。不可达 Node 另报 `UNREACHABLE_NODE`。若存在可达 SUCCEEDED 且没有可达的 Goal Postcondition，报告 `FINAL_POSTCONDITION_MISSING`；否则缺少证明的成功路径报告 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`。任一受保护的 Mutation 或成功终态绕过全局前置判断的 PASS 时，报告 `ENTRY_PRECONDITION_BYPASSED`。
+Compiler 构建以 `(Node ID, 阶段名)` 为顶点的分析图。每个合法 Outcome 对应一条边，边记录来源顶点、Outcome 与目标。若还有后续阶段，正常 Outcome 生成一条自动推进边，目标为同一 Node 的下一已声明阶段。其他边来自 `routes`，目标为另一 Node 的首个阶段或终态。两种边都按来源阶段和 Outcome 应用相同的门禁及证明更新规则。伪代码中的 `vertex.effect` 是普通 Tool Operation 经过链接校验的 Effect，只在普通 Tool Operation 的阶段顶点上有值。Reconcile 和 Procedure Script 的该值为空。分析图的 vertex.kind 由已解析阶段及 Operation 目标决定，包括 observation、tool_operation、script_operation 和 reconcile；script_operation 仅对应 operation 的 script 目标。下文的 READ Operation 指链接后的 Effect 为 READ 的普通 Tool Operation。此处不增加作者源码字段。Compiler 先更新边上的状态，再检查每条可达的 `SUCCEEDED` 终态边。最后阶段的 Goal PASS 因此可以直接证明同一条成功边。入口顶点是 `start` Node 的第一个已声明阶段，进入时没有已通过的全局前置条件，也没有 Goal 证明。可达图是从该入口经显式路由和自动推进得到的可达闭包，包含所有可达阶段及其出边，包括终态边。不可达阶段的出边不参与任何汇合。每个可达的非入口阶段至少有一条来自可达阶段的入边。汇合点仅对这些入边计算已通过条件的交集和 Goal 证明的 AND。不可达 Node 另报 `UNREACHABLE_NODE`。若存在可达 SUCCEEDED 且没有可达的 Goal Postcondition，报告 `FINAL_POSTCONDITION_MISSING`；否则缺少证明的成功路径报告 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`。任一受保护的 Mutation 或成功终态绕过全局前置判断的 PASS 时，报告 `ENTRY_PRECONDITION_BYPASSED`。
 
 Compiler 在证明传播前按 §12.7 和 §24.1 校验 `start`。入口无效时报告相应错误，跳过以下证明传播。
 
@@ -910,12 +924,13 @@ Compiler 在证明传播前按 §12.7 和 §24.1 校验 `start`。入口无效�
 required = set(contract.preconditions or empty list)
 entry = first stage present in the start Node, in the execution order of §12.1
 graph = reachable outcome graph from entry  # explicit routes and automatic advances
-for vertex in graph.stages in topological order:
+for vertex in topological_order(graph.stages):
     if vertex == entry:
         passed = empty set
         proof = false
     else:
         incoming = graph.incoming_edges(vertex)
+        require incoming is not empty, else REACHABLE_STAGE_NO_INCOMING_EDGE
         passed = INTERSECT(edge.passed for edge in incoming)
         proof = AND(edge.proof for edge in incoming)
     if vertex.stage == operation and vertex.effect == MUTATION:
@@ -930,7 +945,9 @@ for vertex in graph.stages in topological order:
             edge.proof = true
         else if edge is PASS from any Precondition or a local Postcondition:
             edge.proof = proof
-        else if edge is SUCCEEDED from a READ Operation, Observation or Procedure Script:
+        else if edge.outcome == SUCCEEDED and (
+            vertex.kind == observation or vertex.kind == script_operation or
+            (vertex.kind == tool_operation and vertex.effect == READ)):
             edge.proof = proof
         else:
             edge.proof = false
@@ -1037,7 +1054,7 @@ predicates:
 
 规则：
 - parameters 是有序列表；
-- 每项必须是单键映射；
+- 每项必须是单键映射，键声明参数名，值声明类型。名称在同一 Predicate 内唯一，供 evidence.requires 与 PredicateInput 引用；
 - 参数名唯一；
 - 类型为受支持 Primitive 或精确 Schema 引用；
 - 结构化对象必须引用 Owner Schema；
@@ -1121,6 +1138,10 @@ Procedure Script 输出保守继承其全部绑定实参的来源类别，包括
 Predicate 可声明独立性约束组，组成员为至少两个不同的（参数、保证）对且均已出现在 requires。Compiler 校验每组成员均有权威认证的底层来源身份提取规则，且该规则使用可比较的受信来源身份域。Runtime 必须在组内找到两两不同底层来源、同时满足所有保证的证据组合，否则结果为 UNKNOWN。同一底层记录的不同引用不算独立。
 
 **Candidate 映射。** E.3 的 query / arguments / execution 分别映射为查询实参、操作实参及执行身份引用。selection.mode、orderBy、freshness.timestamp 与 maxAgeMs 分别映射为选择模式、顺序键、时间基准及年龄上限。候选线格式可用 `evidence.independence` 表达各组的参数和保证对，保证描述符用 `sourceIdentity` 发布底层来源投影，并用 `factIdentity` 表达共同命名空间、事实标识、Scope 映射及值投影。E46 的拼写变体按候选解码器验收，抽象类别不匹配规则适用于任何线格式。
+
+**值路径覆盖。** 保证路径与参数路径须属于同一精确 Producer 及 Outcome。两条路径按字段段比较。路径相等时可覆盖；保证路径是真前缀时，只有 Owner 保证明确覆盖所请求的子值、且可信记录能验证该子值时才覆盖；子路径永远不能覆盖父对象或相邻字段。Compiler 另按 §13.3 检查参数实际绑定的子值 Schema 对参数 Schema 的可赋值性。整对象的 Schema 无需可赋给标量参数。断言只比较字段段，例如 output.result 不是 output.resultExtra 的前缀。
+
+Host 身份与关联豁免可用于比较、拼接和存在性检查，例如 E.8 检查已经接纳的引用非空。仅凭该引用断言 UE 存在于外部系统或已注册，需要权威证据。此豁免仅用于 Predicate 参数，Operation / Observation 实参仍按各自 Owner 契约检查。
 
 ### 17.2 静态绑定与运行校验
 
@@ -1210,6 +1231,8 @@ Runtime 只用可信且关联到本次原调用的证明记录提交状态。Own
 
 ### 20.2 调和与受控新尝试
 
+唯一入边校验覆盖声明图，防止图编辑让原先不可达的非法入口随节点变为可达而继承未经审定的连接。删除多余入边或改接合法目的节点。Reconcile 的至多一次保证原调用责任和预算按单次调和尝试核算。UNRESOLVED 当前 Invocation 结束，后续独立处置由 Owner 负责；另一次查询可能看到新事实，须遵守独立的责任和准入契约。
+
 1. 有安全 Owner 契约时，原 Mutation 阶段的 `operation.routes.OUTCOME_UNKNOWN` 必须直接指向对应的 Reconcile Node。反向校验也必须成立：每个 Reconcile Node 的唯一声明入边是进入该 Node 的跨 Node 路由，必须来自其 `reconcile` 所引用的 Mutation 的 Operation 阶段，且 Outcome 为 `OUTCOME_UNKNOWN`。Compiler 检查所有已声明路由，包括不可达 Node 的路由。Reconcile Node 不得用作 `start`。Runtime 校验实际进入的边、未决调用的身份和状态，以及本次授权、Scope、Correlation、预算、Deadline 和取消状态，对同一次原调用至多派发一次。Reconcile 不引入新的业务副作用。
 2. 没有安全契约时，OUTCOME_UNKNOWN 边必须直接指向 UNRESOLVED 或 SAFE_STOPPED。已有安全契约但当前不能派发时，Runtime 直接按 §12.8 停止。两种情况都保留原调用和责任。
 3. Reconcile 确认 COMMITTED 或 NOT_COMMITTED 时，更新原调用状态。若 COMMITTED 契约承诺恢复输出，只有有效的 Reconcile 自身输出才在 COMMITTED 后提供；提交已确认但承诺恢复的输出无效时，按 §20.1 的 COMMITTED_OUTPUT_UNAVAILABLE 停止。契约未承诺输出时，后续节点可以显式读取权威状态。原 Mutation 丢失的输出不可用。COMMITTED 只更新原调用的提交状态。要到达 SUCCEEDED，该路径仍须通过新的 Goal Postcondition PASS（§12.9）。
@@ -1265,13 +1288,13 @@ Predicate 的 PASS 表示命题得到充分支持。FAIL 表示命题被充分�
 
 ### 22.1 路由矩阵
 
-| 阶段 | 正常结果：非末 / 末 | 必须显式配置的其余结果 | 可选结果 |
-|---|---|---|---|
-| Precondition / Postcondition | PASS：禁止 / 必填 | FAIL、UNKNOWN | 无 |
-| Procedure Script | SUCCEEDED：禁止 / 必填 | FAILED | 无 |
-| READ / Observation | SUCCEEDED：禁止 / 必填 | 已声明的 Owner FAILED | Runtime DENIED、UNKNOWN |
-| Mutation | SUCCEEDED：禁止 / 必填 | 已声明的 Owner FAILED、NOT_COMMITTED，以及 Runtime OUTCOME_UNKNOWN | Runtime DENIED |
-| Reconcile | COMMITTED：禁止 / 必填 | NOT_COMMITTED、UNRESOLVED | 无 |
+| 阶段 | 正常结果：非末 / 末 | 必须显式配置的其余结果 | 可选结果 | 省略可选路由时 |
+|---|---|---|---|---|
+| Precondition / Postcondition | PASS：禁止 / 必填 | FAIL、UNKNOWN | 无 | 不适用 |
+| Procedure Script | SUCCEEDED：禁止 / 必填 | FAILED | 无 | 不适用 |
+| READ / Observation | SUCCEEDED：禁止 / 必填 | 已声明的 Owner FAILED | Runtime DENIED、UNKNOWN | 按 §12.8 直接停止 |
+| Mutation | SUCCEEDED：禁止 / 必填 | 已声明的 Owner FAILED、NOT_COMMITTED，以及 Runtime OUTCOME_UNKNOWN | Runtime DENIED | 按 §12.8 直接停止 |
+| Reconcile | COMMITTED：禁止 / 必填 | NOT_COMMITTED、UNRESOLVED | 无 | 不适用 |
 
 缺必填键报 ROUTE_OUTCOME_MISSING。可选 Runtime 边省略时直接进入 §12.8 的终态裁决，并保留诊断和责任。显式配置非末阶段的正常键报 ROUTE_NORMAL_OUTCOME_NOT_ALLOWED。Script FAILED 缺边的 §24.2 处理仅用于异常 Artifact。Studio 补全和 Compiler 校验应共用本矩阵。
 
@@ -1338,7 +1361,8 @@ Environment
 | EXPORT_ID_AMBIGUOUS | 导出身份歧义 | 阻止构建 |
 | SCHEMA_MISSING / INVALID | 缺失或非法 Schema | 阻止构建 |
 | INPUT_REQUIRED_MISSING | 缺少必填输入 | 阻止构建 |
-| INPUT_TYPE_MISMATCH | Source 不可赋给 Target | 阻止构建 |
+| REACHABLE_STAGE_NO_INCOMING_EDGE | 展开图的可达非入口阶段没有可达入边，属于图构造不变量失效 | 阻止构建 |
+| INPUT_TYPE_MISMATCH | Source 不可赋给 Target，包括 enum、const、范围和数组元素约束不兼容（空值冲突按专用诊断） | 阻止构建 |
 | INPUT_NULLABILITY_MISMATCH | nullable Source 绑定非 nullable Target | 阻止构建 |
 | SOURCE_NOT_AVAILABLE | Producer 非所有路径可用，例如 Reconcile COMMITTED 后引用丢失的原始成功输出 | 阻止构建 |
 | RECONCILE_OUTPUT_UNAVAILABLE | Reconcile 后使用未由 Owner 声明可恢复的输出 | 阻止构建 |
@@ -1364,6 +1388,8 @@ Environment
 | SCRIPT_CONTRACT_INVALID | Script 入口 / TypedDict 不合规 | 阻止构建 |
 | UNSUPPORTED_WAIT | 出现 Wait / Await | 阻止构建 |
 | UNSUPPORTED_V02_SYNTAX | 使用旧版隐式语法 | 阻止构建 |
+
+`UNUSED_DEPENDENCY` 是警告，定位合法但未使用的 Contract 依赖。
 
 `UNREACHABLE_NODE` 是警告，定位从 `start` 不可达的节点。节点仍须通过语法和链接校验。路由结构足以判定可达性时，可同时报告该警告和阻止构建的错误。是否阻止构建由错误决定，无需规定诊断输出顺序。
 
@@ -1968,7 +1994,7 @@ prepare-policy-inputs:
 
 - 唯一入口为 `main(input: InputTypedDict) -> OutputTypedDict`。两个类型均为静态可解析的严格 TypedDict，Compiler 从注解派生 Schema。Script 作者维护 Python 签名，输入 Schema 无需另写。
 - 每个调用点的 `arguments` 必须包含输入 TypedDict 的所有必需键，可省略 `NotRequired` 键，禁止未知键。各实参 Source Schema 必须可赋给对应属性 Schema。Runtime 在调用前校验物化实参。
-- Compiler 和 LSP 使用同一输入类型环境静态检查键访问。未知字面量键、无法静态界定的动态键，以及把输入映射传给无法静态检查的访问路径，报 `SCRIPT_CONTRACT_INVALID`。直接访问可缺失键前须证明存在，或使用允许缺失的读取方式。静态检查不得执行 Python 函数体。
+- Compiler 和 LSP 使用同一输入类型环境静态检查键访问。未知字面量键、无法静态界定的动态键，以及把输入映射传给无法静态检查的访问路径，报 `SCRIPT_CONTRACT_INVALID`。直接访问可缺失键前须证明存在，或使用允许缺失的读取方式。静态检查不得执行 Python 函数体。Compiler 在构建期解析 AST 与 TypedDict 注解，生成输入类型和输出 Schema，并执行受限 AST 键访问分析或调用支持同等 CA-SL 规则的静态检查器。最低检查覆盖字面量键的存在性、可缺失键访问和动态键拒绝，无法验证的访问报 SCRIPT_CONTRACT_INVALID。Studio 和 CI 可复用相同检查结果；构建不能依赖编辑器是否运行。具体分析器及版本由 §45 工具链验收固定。
 - Script 必须返回严格 TypedDict。Compiler 从返回类型生成 Output Schema。`Literal` 声明允许值，受支持的 `Annotated` 元数据提供 Schema 约束，`NotRequired` 声明属性可缺失。输出路径是否可以直接绑定按 §13.3 校验。支持的类型与注解集合由 Script Contract 定义。
 - 输出通过 `<node-id>.operation.output` 暴露给后续 Producer / Consumer。
 - Procedure Script 是纯本地 Operation：不得访问网络、HTTP、MCP、Shell、数据库、文件系统、凭据、环境变量、时钟或随机源；不得执行外部副作用。
@@ -2006,6 +2032,8 @@ def main(input: PredicateInput) -> PredicateEvaluationResult:
 所有 Script 都必须确定性、可审查、可静态检查。不得动态导入、反射执行任意代码、访问外部系统或读取非显式输入。Script 只能实现 Skill 内部纯计算；数据获取必须由显式 Operation / Observation 完成，流程分支由 Procedure 按阶段 Outcome 路由。
 ## 33. Cases
 
+case.yaml 的线格式归 Case Runner 契约，当前规范仅定义其职责。
+
 Case 是场景声明，不是执行图。可以记录场景输入、预期业务语义、路由、资源不变量、失败 / UNKNOWN 条件。Case 不得自行授予 Capability、定义 Tool Schema、代替 Owner Evidence 或声称已执行通过。
 
 ## 34. Dependencies 与 BuildRequest
@@ -2034,11 +2062,13 @@ dependencies:
 1. 对每个被引用的 Alias 链接唯一快照，并校验规范化路径、文件集及摘要。按同一 Alias 和实测摘要获取可信身份绑定，与 `Contract.dependencies[alias]` 精确比较。无可信绑定、同一 Alias 对应多个快照或身份不匹配均阻断构建。
 2. 在该快照内解析唯一精确的 `alias::exportId`。用可信绑定核对导出 Owner，再校验 callable kind、Effect、Schema `$id`、引用闭包和 Evidence 保证。单 Owner 快照可由可信绑定为没有 Owner 字段的导出赋予该 Owner。多 Owner 快照必须由可信调用方提供显式的 `(exportKind, exportId) → owner` 归属；Owner 须在绑定的授权集合内。导出自带 Owner 字段时必须与可信归属一致。该规则也适用于引用闭包中实际链接的 Schema、Evidence 保证等导出。先解析唯一可信归属。多 Owner 快照中归属缺失、重复或歧义时报 `DEPENDENCY_EXPORT_OWNER_UNVERIFIED`。已有唯一归属，但 Owner 不在授权集合内，或与导出自带 Owner 不一致时，报 `DEPENDENCY_OWNER_MISMATCH`。Compiler 不按文件路径、`$id` 前缀或文件顺序猜测。
 3. 外部 callable 还须在独立可信 CapabilityContracts 中，以精确 Owner、callable ID 和 kind 按 §9.3 核对所有成员的 Effect 并检查至少一个匹配的 Capability 已获 Skill Grant。单纯链接成功不授予执行权。
-4. 合法但未使用的 Contract 依赖产生 Warning。构建输入里的额外快照不得自动进入 Skill 链接范围。
+4. 合法但未使用的 Contract 依赖产生 UNUSED_DEPENDENCY 警告。构建输入里的额外快照不得自动进入 Skill 链接范围。
 
 `dependency.yaml` 不作为必需输入。此规则复用快照线协议及锁定信息；CA-SL 只要求可验证的身份关联。Studio / Compiler 仍须确认怎样传入这份可信绑定，以及如何传递多 Owner 快照的导出级归属；摘要算法和字节 framing 由所选版本的 BuildRequest 契约定义，不属于 CA-SL 语言语义。计算摘要时，YAML 重排、换行变化或 JSON 重编码均不能在摘要计算前替换原始字节。若调用方无法提供可信身份，保留链接错误。Compiler 只消费调用方提供的字节和可信元数据，语言版本与传输字段由 Compiler BuildRequest 版本管理。
 
 摘要细节见 [Compiler v0.1 快照摘要](https://github.com/odango-chan/ca-skill-compiler/blob/b60024497b4865f705fa40e1b04bcc84032778d8/docs/design/dependency-snapshot-digest-v0.1.md)。参见 [Compiler PR #4 的 BuildRequest v0.1 契约](https://github.com/odango-chan/ca-skill-compiler/pull/4) 和 [Studio PR #150 的配置与快照设计](https://github.com/odango-chan/ca-skill-studio-demo/pull/150)。
+
+**Informative。** CI 可由受控目录或经验证签名的清单提供可信绑定。Studio 本地与第三方导入复用可信目录及发布者授权，Skill 仓内自述的身份仅可作为请求，无法建立信任。无需引入跳过身份校验的构建模式。
 
 ### 34.0.1 可信 CapabilityContracts 输入
 
@@ -2191,6 +2221,8 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 4. 在 vNext 源码保留旧式 `verify` Node 字段时，Compiler 对已识别的旧语法报 `UNSUPPORTED_V02_SYNTAX`，迁移为 `postcondition` 阶段和显式路由。
 
 ## 45. 冻结门槛
+
+未来提案：评审可验证的 PASS 类型收窄。vNext 当前仍按 §13.3 检查，Studio 可提供外层对象绑定与显式处理缺失字段的模板。
 
 本次评审认可设计方向，冻结审定仍不通过。先审定抽象语义，再审定候选线格式，最后验收 Compiler、Runtime、Trace、Studio 与 Native/WASM 一致性。§9.2、§9.3、§17.1 和 §34.0 的候选输入须由适用版本的解码器转换为抽象契约后再运行规范性校验。依赖具体字段名或装配格式的 E.3、E.4 及其变体随相应线格式验收。
 
@@ -2985,5 +3017,15 @@ predicates:
 - §17.1 的身份和关联值豁免只覆盖其作为比对基准的用途。若 Predicate 以这类输入单独主张外部事实，Owner 须补充权威取证，不能依赖该豁免通过语义评审。
 - §44 最小兼容规则：源码使用目标语言版本明确支持的 Schema 子集。Owner 工件版本须有该版本的解码器并能映射到同一抽象规则。Schema 依赖按精确 ID 链接。Skill Package Revision 不隐式提升任何契约版本。
 - Studio 与 Compiler 共用路由、诊断和 Evidence 规则。不可达节点仍检查语法、链接和 Reconcile 入边，门禁与证明只传播可达边。
+
+### E.14 本轮验收补充
+
+| 用例 | 输入与预期 |
+|---|---|
+| E98 | output 保证明示覆盖 output.result，记录可验证该子值，且子值 Schema 可赋给参数：通过。反向使用 output.result 保证绑定整个 output：PREDICATE_EVIDENCE_UNSATISFIABLE |
+| E99 | 向 Compiler 的分析图单测注入无可达入边的可达非入口阶段：REACHABLE_STAGE_NO_INCOMING_EDGE。此为内部不变量测试 |
+| E100 | 同一 Goal PASS 后分别经过 Procedure Script SUCCEEDED 和 Mutation SUCCEEDED：前者保留证明，后者清除。后续 Goal PASS 可重新建立证明 |
+
+§45 第 12 项的实现交付应含机器可执行 Fixture，记录规则引用、输入工件集、变更、预期诊断或终态。
 
 **规范结束。**
