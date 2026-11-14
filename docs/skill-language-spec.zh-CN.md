@@ -251,6 +251,16 @@ Payload 是 Predicate 判断的业务值；Evidence 是 Host 判断该值是否�
 - **Effect：** 初始支持 READ 和 MUTATION。READ 仍需要授权、Scope 和审计。
 - **Reconcile：** 对已经发起但结果不确定的原始 Mutation 进行调和。它是 Operation 的受约束执行模式，不是独立业务节点类型；必须针对原始身份、Operation Ref、Correlation 和 Scope，不得偷偷创建新 Mutation。
 
+### 6.9.1 Evidence 互操作术语（说明性索引）
+
+- **保证描述符（Guarantee Descriptor）：** 由受信 Evidence Owner 发布的保证定义，精确约束事实身份、Producer/outcome/valuePath、Scope、Correlation、Freshness、selection 及可选的 `sourceIdentity`、`factIdentity`；ToolCatalog 的 `provides` 只能引用它，不得复制权威。
+- **可信绑定（Trusted Binding）：** 由获授权发布者和可信部署构建入口认证的 Package/Owner/导出/工件摘要及部署 Scope 对应关系，不由 Skill YAML、文件名或 Owner 自述建立权限。
+- **独立域关系（IndependentDomains）：** 受信装配的底层来源身份域及经授权、不自反且无重复的无序独立域对；它不表示“Owner 名字不同就独立”，也不推导传递性（§34.0.2、G.3.1）。
+- **共同事实绑定（Shared Fact Binding）：** 受信部署将多个 Owner 的 `factIdentity` 指向同一 namespace/fact，并验证参与 Owner、Scope 归一化、值 Schema 与发布者授权的关系（§G.3.1）。
+- **可恢复输出 Schema（Recoverable Output Schema）：** 原 Mutation 发布的 `mutation.reconcile.recoverableOutputSchema`，只在调和已证明 `COMMITTED` 且 `recoverableOutputPath` 子对象校验成功时用于 `reconcile-node.operation.output`；不同于 Reconcile READ callable 的完整 `outputSchema`（§12.7、G.2）。
+
+这些术语为已有规范的导航，不创建额外字段或授予隐式授权。
+
 ### 6.10 Script、Case、Reference
 
 - **Script：** Skill Package 自有确定性 Python。Procedure Script 是 Operation 阶段的纯本地数据转换/选择目标，Predicate Script 是 Predicate 的 evaluator；两者均非独立 Procedure 节点或外部 Tool / Capability。
@@ -2124,7 +2134,7 @@ dependencies:
 | 跨 Owner 同一事实比较的可信共同事实绑定 | `deploymentId`、`publisherId`、受信 `snapshotDigest`、共同 `namespace/fact`、参与 Owner 的唯一授权身份集、每个必要维度的 Scope 归一化映射和精确可比较值 Schema 身份 | 对每个 Owner 认证、映射字段可解析、Scope 不歧义、值投影 Schema 可赋值；缺失或权限/字节/域绑定不一致 → EVIDENCE_GUARANTEE_LINK_INVALID |
 | 实际执行记录 | 静态已受信的映射及每次 Producer 的真实 sourceIdentity/factIdentity/Scope/Evidence | 静态通过后实际值不能比较或缺少独立组合 → Predicate UNKNOWN；不允许由 Runtime 临时授信 |
 
-**摘要边界。** 上述两类可信工件必须以原始字节及其受信摘要（或者经独立验证的等效不可变工件承诺）进入 BuildRequest 的**已验证输入闭包**，与当前目标部署、发布者授权、Owner 导出及具体保证引用绑定；任何变更都必须使其已验证身份或内容承诺失效。若所选 BuildRequest 版本还定义整个请求的聚合摘要，则这两类输入**必须**被其摘要/可达不可变输入闭包覆盖。CA-SL 不自行定义新的 BuildRequest 字段名、摘要 framing 或要求一个不存在的顶层 `buildRequestDigest`；但不支持承载、校验这些必须属性的构建版本**不得声明 v1alpha3 互操作符合性**。上述缺失统一按 Evidence 保证链接错误拒绝；CapabilityContracts 自身的摘要错误仍沿 §34.0.1 的 CAPABILITY_INPUT_* 诊断，不相互代替。
+**摘要边界。** 上述两类可信工件必须以原始字节及其受信摘要进入 BuildRequest 的**已验证输入闭包**；其他等效不可变工件承诺可作为附加签署/身份材料，但不得省略 G.3.1 必需的 `snapshotDigest`，与当前目标部署、发布者授权、Owner 导出及具体保证引用绑定；任何变更都必须使其已验证身份或内容承诺失效。若所选 BuildRequest 版本还定义整个请求的聚合摘要，则这两类输入**必须**被其摘要/可达不可变输入闭包覆盖。CA-SL 不自行定义新的 BuildRequest 字段名、摘要 framing 或要求一个不存在的顶层 `buildRequestDigest`；但不支持承载、校验这些必须属性的构建版本**不得声明 v1alpha3 互操作符合性**。上述缺失统一按 Evidence 保证链接错误拒绝；CapabilityContracts 自身的摘要错误仍沿 §34.0.1 的 CAPABILITY_INPUT_* 诊断，不相互代替。
 
 ### 34.1 Schema 的源格式与编译格式
 
