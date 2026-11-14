@@ -5,7 +5,7 @@
 **Status:** Implementation guidance only; CA-SL language frozen, external toolchain and Owner conformity pending (2026-11-14).
 **Scope:** `ca-skills`, Skill Studio Plugin-managed Configuration, `ca-skill-compiler`, and the executable conventional 5GC Skill.
 
-This document is aligned with [Skill Language Specification](../skill-language-spec.md) and the current DESIGN-REVIEW [Capability & Authoring Model](capability-authoring-model-vnext.md). It replaces the earlier v0.2 compatibility/path proposal; the vNext contract is not yet frozen.
+This note records an earlier cross-repository implementation boundary. The canonical [CA-SL v1alpha2 specification](../skill-language-spec.zh-CN.md) is now the frozen language authority. Older DESIGN-REVIEW proposals in this file do not override that contract; BuildRequest transport and real Owner releases still require their independent conformance gates.
 
 ## 1. Decisions
 
