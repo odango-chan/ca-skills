@@ -1500,7 +1500,7 @@ Compiler 不得自动补造 Schema、以开放对象规避类型检查、推断�
 | RESPONSE_DECODE_FAILED | READ / Observation 沿 UNKNOWN 或按事实不确定停止；Mutation / Reconcile 按 §20 验证独立证明并决定结果 |
 | SCRIPT_EXECUTION_FAILED | Procedure Script 抛出异常。保留执行失败原因，沿 FAILED 边，无成功输出 |
 | OUTPUT_SCHEMA_INVALID | 已解码的外部输出或 Procedure Script 的正常返回值未通过输出 Schema 校验。隔离输出。Procedure Script 沿 FAILED 边。READ / Observation 沿已声明的 UNKNOWN 边，未声明时按关键事实不确定停止。Mutation / Reconcile 按 §20.1 / §20.2 独立核验提交证明 |
-| SCOPE_MISMATCH / CORRELATION_MISMATCH | 已派发 Mutation / Reconcile 按 §20；其他调用结果隔离，按本节失败规则处理。Predicate 所需证据不匹配时沿 UNKNOWN |
+| SCOPE_MISMATCH / CORRELATION_MISMATCH | **已派发**的 READ / Observation 回包不满足本次 Scope 或 Correlation 时隔离输出；有已声明 UNKNOWN 边则沿 UNKNOWN，否则按关键事实未决停止。已派发 Mutation / Reconcile 必须按 §20 独立核验原调用的提交证明、保留责任；Predicate 所需 Evidence 不匹配时 Predicate 返回 UNKNOWN。派发前的授权 Scope 交集为空属于 `SCOPE_INTERSECTION_EMPTY`，普通 callable 才可按 §24.2 沿已声明 DENIED 边；不得将回包校验失败重分类为授权拒绝或沿 DENIED 边继续 |
 | EVIDENCE_MISSING / EVIDENCE_STALE / EVIDENCE_CONFLICT | Predicate 沿 UNKNOWN；入口或 Goal PASS 复核失败按 §12.8 停止；调用结果的强制保证无效时按 §20.1 或本节失败规则处理 |
 | DEADLINE_EXCEEDED / CANCELLED | 不再派发任何 Procedure 动作。记录已派发调用的已知状态及迟到结果责任，按 §12.8 停止 |
 | OUTCOME_UNKNOWN | 按 §20 调和原 Mutation 或停止并保留责任 |
@@ -1520,7 +1520,7 @@ Compiler 不得自动补造 Schema、以开放对象规避类型检查、推断�
 | SCOPE_POLICY_UNAVAILABLE | 已 Grant 成员的 Runtime Scope 策略无法读取，普通 callable 有 DENIED 边则走该边，否则直接停止；Reconcile 直接停止 |
 | SCOPE_INTERSECTION_EMPTY | 派发时授权 Scope 交集为空，按拒绝派发处理 |
 
-构建期的策略解析与静态交集诊断见 §9.3 的 `CAPABILITY_SCOPE_UNRESOLVED` 和 `CAPABILITY_SCOPE_EMPTY_INTERSECTION`。派发前 Scope 策略不可读取或实际交集为空时，分别记录 `SCOPE_POLICY_UNAVAILABLE` 或 `SCOPE_INTERSECTION_EMPTY`。普通 callable 有 DENIED 边则走该边，否则按 §12.8 直接停止。Reconcile 直接停止并保留原调用责任。
+构建期的策略解析与静态交集诊断见 §9.3 的 `CAPABILITY_SCOPE_UNRESOLVED` 和 `CAPABILITY_SCOPE_EMPTY_INTERSECTION`。派发前 Scope 策略不可读取或实际授权交集为空时，分别记录 `SCOPE_POLICY_UNAVAILABLE` 或 `SCOPE_INTERSECTION_EMPTY`；这与**已派发结果**不符合已接受 Scope/Correlation 约束所记录的 `SCOPE_MISMATCH` / `CORRELATION_MISMATCH` 不同。普通 callable 有 DENIED 边则走该边，否则按 §12.8 直接停止。Reconcile 直接停止并保留原调用责任。
 
 §12.8 的终态取决于状态。前置条件证据缺失或不可判定时，无已知待处置资源则候选 UNRESOLVED；已有充分证据证伪且提交状态确定时可候选 FAILED。已有已确认且待处置资源时，局部门禁失效优先为 SAFE_STOPPED。COMMITTED_OUTPUT_UNAVAILABLE 表示已知变更，按 §20.1 安全停止。DUPLICATE_RESOURCE 本身不决定提交状态，按 §20.1 判定。
 
@@ -3697,8 +3697,8 @@ G.1–G.9 的补充用例须与原 E01–E104 组合执行。文档审计不代�
 | OUTPUT_SCHEMA_INVALID | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 隔离无效输出；Script：FAILED 边；READ/Observation：有 UNKNOWN 边则走边，否则按关键事实未决停止；Mutation/Reconcile：独立核验证明并按 §20 裁决 | §32.1、§24.2 | E66 | 规范用例已定义 |
 | EFFECT_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Effect 不一致立即 fail-closed；阻止后续派发并按 §12.8 直接停止；已有已派发 Mutation/Reconcile 时仅按独立证明保存状态及责任，不得走 DENIED/UNKNOWN 代替 | §9.3、§24.2 | 待补独立 Fixture | 待 Fixture |
 | RESPONSE_DECODE_FAILED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 隔离无法解码的响应；READ/Observation：已声明 UNKNOWN 边，否则按事实未决停止；Mutation/Reconcile：按 §20 校验独立证明并保留提交不确定性 | §24.2 | E70 | 部分覆盖 |
-| SCOPE_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 派发前身份/Scope 校验失败：拒绝派发；已派发结果隔离，Mutation/Reconcile 按 §20；Predicate 证据 Scope 不符：UNKNOWN；实际终态按 §12.8 | §17.2、§24.2 | E20 | 部分覆盖 |
-| CORRELATION_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 派发前关联校验失败：拒绝派发；已派发结果隔离，Mutation/Reconcile 按 §20；Predicate 证据关联不符：UNKNOWN；实际终态按 §12.8 | §17.2、§24.2 | E20 | 部分覆盖 |
+| SCOPE_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | **已派发 READ/Observation 回包不匹配：隔离输出，已声明 UNKNOWN 边则沿 UNKNOWN，否则按关键事实未决停止；已派发 Mutation/Reconcile：独立验证提交证明并按 §20 保留责任；Predicate Evidence 不匹配：UNKNOWN。派发前身份/关联不符拒绝派发；Scope 授权交集为空应报 SCOPE_INTERSECTION_EMPTY（可按 DENIED），不得对回包不匹配使用 DENIED** | §17.2、§24.2 | E20 | 部分覆盖 |
+| CORRELATION_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | **已派发 READ/Observation 回包不匹配：隔离输出，已声明 UNKNOWN 边则沿 UNKNOWN，否则按关键事实未决停止；已派发 Mutation/Reconcile：独立验证提交证明并按 §20 保留责任；Predicate Evidence 不匹配：UNKNOWN。派发前身份/关联不符拒绝派发；Scope 授权交集为空应报 SCOPE_INTERSECTION_EMPTY（可按 DENIED），不得对回包不匹配使用 DENIED** | §17.2、§24.2 | E20 | 部分覆盖 |
 | EVIDENCE_MISSING | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate 无足够保证：UNKNOWN；入口/Goal PASS 复核失败或调用所需保证无效时阻止成功，按 §12.8/§20.1 停止 | §17.2、§24.2 | E20 | 部分覆盖 |
 | EVIDENCE_STALE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate 证据过期：UNKNOWN；入口/Goal PASS 复核失败时按 §12.8 停止；Mutation 保证无效时依 §20.1 | §17.2、§24.2 | E31 | 规范用例已定义 |
 | EVIDENCE_CONFLICT | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate 保证冲突：UNKNOWN；入口/Goal PASS 复核失败按 §12.8 停止；已派发 Mutation 按 §20.1 | §17.2、§24.2 | E30 | 规范用例已定义 |
