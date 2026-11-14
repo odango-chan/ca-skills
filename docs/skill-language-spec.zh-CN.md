@@ -1272,7 +1272,7 @@ State 不自动等于 Evidence；Handle 不自动等于 State；Mutation 成功�
 
 ## 20. READ、MUTATION 与 Reconcile
 
-READ 必须校验 Capability、Effect、Input / Output Schema、Scope、Producer Invocation 和 Evidence。MUTATION 派发前还须校验入口门禁、Deadline、取消状态，并持久化原始调用身份、输入、Scope、Correlation 和结果责任。按 §12.8 处理准入失败或强制停止。
+READ 必须校验 Capability、Effect、Input / Output Schema、Scope、Producer Invocation 和 Evidence。MUTATION 派发前还须校验入口门禁、Deadline、取消状态，并持久化原始调用身份、输入、Scope、Correlation 和结果责任。按 §12.8 处理准入失败或强制停止。下列 §20.1、§20.3 和 G.2.2 分别规定 Mutation、Reconcile 及证明结构的规范性判断；[统一执行决策索引](design/ca-sl-v1alpha3-decision-and-trace-index.md)仅用于资料性导航，不替代这些条款。
 
 ### 20.1 提交状态与输出
 
