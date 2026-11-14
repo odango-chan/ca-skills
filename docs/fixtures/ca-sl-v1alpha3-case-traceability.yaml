@@ -1,0 +1,1263 @@
+# Informative v1alpha3 Appendix E case traceability mirror.
+# Each input/expected value is reproduced from the first authoritative table row.
+# A missing diagnosis/terminal/phase is null or []: do NOT infer a passing test.
+# No v1alpha3 Compiler/Studio/Runtime executable fixture is asserted here.
+languageTarget: connectionagent.io/v1alpha3
+normativeSource: docs/skill-language-spec.zh-CN.md
+status: informative-review-index
+coverage: 114
+cases:
+  - case: E01
+    sourceSection: "E.5"
+    input: "上面的全套文件、精确 Owner / Alias / Schema 匹配"
+    normativeExpected: "静态链接 PASS（目标行为，待实现验证）"
+    expectedDiagnosticCodes: []
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E02
+    sourceSection: "E.5"
+    input: "把 procedure.yaml 根加入 goal / capabilities"
+    normativeExpected: "SOURCE_ROOT_INVALID"
+    expectedDiagnosticCodes: ["SOURCE_ROOT_INVALID"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E03
+    sourceSection: "E.5"
+    input: "把 Contract 的 `dependencies.ca` 改成另一个 Package ID"
+    normativeExpected: "DEPENDENCY_ID_MISMATCH"
+    expectedDiagnosticCodes: ["DEPENDENCY_ID_MISMATCH"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E04
+    sourceSection: "E.5"
+    input: "摘要有效，但可信身份绑定缺失，或绑定到另一份快照摘要"
+    normativeExpected: "DEPENDENCY_IDENTITY_UNVERIFIED"
+    expectedDiagnosticCodes: ["DEPENDENCY_IDENTITY_UNVERIFIED"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E05
+    sourceSection: "E.5"
+    input: "ToolCatalog metadata.owner 不在可信绑定的授权 Owner 中"
+    normativeExpected: "DEPENDENCY_OWNER_MISMATCH"
+    expectedDiagnosticCodes: ["DEPENDENCY_OWNER_MISMATCH"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E06
+    sourceSection: "E.5"
+    input: "删除 Contract 的 example.registration-read Grant"
+    normativeExpected: "CAPABILITY_NOT_GRANTED"
+    expectedDiagnosticCodes: ["CAPABILITY_NOT_GRANTED"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E07
+    sourceSection: "E.5"
+    input: "可信 CapabilityContracts 对同一 Owner、ID 和 kind 的 READ Operation 声明了不同的预期 Effect"
+    normativeExpected: "EFFECT_MISMATCH"
+    expectedDiagnosticCodes: ["EFFECT_MISMATCH"]
+    applicablePhases: ["C_STATIC","R_RUNTIME"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E08
+    sourceSection: "E.5"
+    input: "Predicate 参数增加一个必填位置参数但不改调用"
+    normativeExpected: "PREDICATE_ARITY_MISMATCH"
+    expectedDiagnosticCodes: ["PREDICATE_ARITY_MISMATCH"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E09
+    sourceSection: "E.5"
+    input: "把 Predicate 所需 Registration 结构替换成 context.ueRef 字符串"
+    normativeExpected: "PREDICATE_TYPE_MISMATCH"
+    expectedDiagnosticCodes: ["PREDICATE_TYPE_MISMATCH"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E10
+    sourceSection: "E.5"
+    input: "Reconcile COMMITTED 分支读取原 Mutation 的成功输出，或读取未声明的 Reconcile 输出"
+    normativeExpected: "前者 SOURCE_NOT_AVAILABLE；后者 RECONCILE_OUTPUT_UNAVAILABLE"
+    expectedDiagnosticCodes: ["SOURCE_NOT_AVAILABLE","RECONCILE_OUTPUT_UNAVAILABLE"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "conditional-by-variant"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E11
+    sourceSection: "E.5"
+    input: "省略所有最终 Postcondition，直接进入 SUCCEEDED"
+    normativeExpected: "FINAL_POSTCONDITION_MISSING"
+    expectedDiagnosticCodes: ["FINAL_POSTCONDITION_MISSING"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E12
+    sourceSection: "E.5"
+    input: "引用 context.ueRef 却未声明 contextSchema"
+    normativeExpected: "CONTEXT_SCHEMA_UNDECLARED"
+    expectedDiagnosticCodes: ["CONTEXT_SCHEMA_UNDECLARED"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E13
+    sourceSection: "E.5"
+    input: "E.4 的 Host Context 缺少必需的 ueRef"
+    normativeExpected: "ADMISSION_CONTEXT_INVALID，拒绝启动"
+    expectedDiagnosticCodes: ["ADMISSION_CONTEXT_INVALID"]
+    applicablePhases: ["R_RUNTIME"]
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E14
+    sourceSection: "E.5"
+    input: "Host Action Budget 为 0 或非法"
+    normativeExpected: "Admission fail-closed，不允许 Skill limits 放宽"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E15
+    sourceSection: "E.5"
+    input: "informative，业务评审）：Observation 已可从充分 Operation Result 中获得且满足 Evidence 要求"
+    normativeExpected: "不应为了形式强制增加 Observation 阶段"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E16
+    sourceSection: "E.5"
+    input: "未引用的额外 Snapshot 被传入 BuildRequest"
+    normativeExpected: "按声明边界链接，额外导出不可访问"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E17
+    sourceSection: "E.5"
+    input: "正常与 Reconcile 分支的匹配 Goal PASS 汇入同一个 SUCCEEDED"
+    normativeExpected: "成功路径覆盖通过"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E18
+    sourceSection: "E.5"
+    input: "其中一支绕过 Goal PASS 并直接路由到 SUCCEEDED"
+    normativeExpected: "SUCCESS_BYPASSES_FINAL_POSTCONDITION"
+    expectedDiagnosticCodes: ["SUCCESS_BYPASSES_FINAL_POSTCONDITION"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "conditional-by-variant"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E19
+    sourceSection: "E.5"
+    input: "相同 Payload Schema 的 Producer 缺少参数要求的保证"
+    normativeExpected: "PREDICATE_EVIDENCE_UNSATISFIABLE"
+    expectedDiagnosticCodes: ["PREDICATE_EVIDENCE_UNSATISFIABLE"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E20
+    sourceSection: "E.5"
+    input: "多保证参数缺一条有效记录；另测错误 Owner、错 PSI / Lifecycle、过期、同 Scope 冲突"
+    normativeExpected: "UNKNOWN，即使业务值使 evaluator 返回 PASS"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E21
+    sourceSection: "E.5"
+    input: "所有保证有效，Script 返回 PASS 且 evidenceUsed 为空；另测其引用未附加 Ref"
+    normativeExpected: "前者 PASS 并由 Runtime 记录支撑证据；后者 UNKNOWN"
+    expectedDiagnosticCodes: []
+    applicablePhases: ["R_RUNTIME"]
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E22
+    sourceSection: "E.5"
+    input: "无安全 Reconcile 契约时，OUTCOME_UNKNOWN 进入新 Mutation；另测正确安全终止"
+    normativeExpected: "前者阻断构建；后者保留原调用与迟到结果责任"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E23
+    sourceSection: "E.5"
+    input: "RAN 已完成，Forwarding 失败或不确定"
+    normativeExpected: "SAFE_STOPPED，保留资源句柄、责任与停止原因"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E24
+    sourceSection: "E.5"
+    input: "Contract 声明全局前置条件，一条路径跳过其中一项 PASS 就派发 Mutation"
+    normativeExpected: "ENTRY_PRECONDITION_BYPASSED"
+    expectedDiagnosticCodes: ["ENTRY_PRECONDITION_BYPASSED"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "conditional-by-variant"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E25
+    sourceSection: "E.5"
+    input: "Host Context Schema 声明保留属性 request"
+    normativeExpected: "CONTEXT_REQUEST_COLLISION"
+    expectedDiagnosticCodes: ["CONTEXT_REQUEST_COLLISION"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E26
+    sourceSection: "E.5"
+    input: "Reconcile 已提交但只能按 UE 查询另一个同 DNN 订阅；另测按已恢复的精确资源 Ref 查询"
+    normativeExpected: "前者无法满足当前资源关联，不能 PASS；后者仍须通过类型、Evidence 与资源责任检查"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E27
+    sourceSection: "E.5"
+    input: "入口证据在第二次 Mutation 前到达有效期上界"
+    normativeExpected: "不派发第二次 Mutation；按已知部分完成和提交状态决定终态"
+    expectedDiagnosticCodes: []
+    applicablePhases: ["R_RUNTIME"]
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E28
+    sourceSection: "E.5"
+    input: "Mutation 回包损坏，有 / 无独立有效提交证明"
+    normativeExpected: "有证明则 COMMITTED_OUTPUT_UNAVAILABLE、SAFE_STOPPED；无证明则沿 OUTCOME_UNKNOWN"
+    expectedDiagnosticCodes: ["COMMITTED_OUTPUT_UNAVAILABLE"]
+    applicablePhases: ["R_RUNTIME"]
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E29
+    sourceSection: "E.5"
+    input: "Reconcile UNRESOLVED，有 / 无已知部分资源"
+    normativeExpected: "前者 SAFE_STOPPED，后者 UNRESOLVED；均保留原调用责任"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E30
+    sourceSection: "E.5"
+    input: "同一注册事实收到更新且不同值的权威记录；另测同序不同值"
+    normativeExpected: "旧绑定在两种情况下均不能 PASS。前者须显式绑定新 Producer 才可按新值判断；后者 UNKNOWN"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E31
+    sourceSection: "E.5"
+    input: "E.4 的 terminal 校验时间改为 11000"
+    normativeExpected: "先前 Predicate PASS 保留在 Trace 中，实际终态 UNRESOLVED"
+    expectedDiagnosticCodes: []
+    applicablePhases: ["R_RUNTIME"]
+    buildBlocked: null
+    expectedInvocationTerminals: ["UNRESOLVED"]
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E32
+    sourceSection: "E.5"
+    input: "不同证据 Ref 指向同一底层记录，但 Predicate 要求两个独立来源"
+    normativeExpected: "UNKNOWN"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E33
+    sourceSection: "E.5"
+    input: "Reconcile 已确认提交但其承诺恢复的资源 Ref 无效"
+    normativeExpected: "保留已提交状态并 SAFE_STOPPED，后续节点不可读取该 Ref"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E34
+    sourceSection: "E.5"
+    input: "Procedure 使用旧的根字段 inputs，或以 input.ueRef 绑定参数；另测节点 ID 为 context"
+    normativeExpected: "分别报 SOURCE_ROOT_INVALID、SOURCE_PATH_INVALID 和 NODE_ID_RESERVED"
+    expectedDiagnosticCodes: ["SOURCE_ROOT_INVALID","SOURCE_PATH_INVALID","NODE_ID_RESERVED"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E35
+    sourceSection: "E.5"
+    input: "Contract 使用 `allowedResources` 包装，或用对象作为 `dependencies.ca` 的值"
+    normativeExpected: "分别为 UNKNOWN_FIELD 和 DEPENDENCY_REQUIREMENT_INVALID"
+    expectedDiagnosticCodes: ["UNKNOWN_FIELD","DEPENDENCY_REQUIREMENT_INVALID"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E36
+    sourceSection: "E.5"
+    input: "调用实参使用不匹配 SourcePath 的裸字符串"
+    normativeExpected: "SOURCE_PATH_INVALID"
+    expectedDiagnosticCodes: ["SOURCE_PATH_INVALID"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E37
+    sourceSection: "E.5"
+    input: "SourcePath 直接读取 Producer Schema 中可缺失的字段"
+    normativeExpected: "SOURCE_NOT_AVAILABLE"
+    expectedDiagnosticCodes: ["SOURCE_NOT_AVAILABLE"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E38
+    sourceSection: "E.5"
+    input: "`provides` 引用不存在的保证 ID"
+    normativeExpected: "EVIDENCE_GUARANTEE_LINK_INVALID"
+    expectedDiagnosticCodes: ["EVIDENCE_GUARANTEE_LINK_INVALID"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E39
+    sourceSection: "E.5"
+    input: "多 Owner 快照缺少某个实际链接的导出归属"
+    normativeExpected: "DEPENDENCY_EXPORT_OWNER_UNVERIFIED"
+    expectedDiagnosticCodes: ["DEPENDENCY_EXPORT_OWNER_UNVERIFIED"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E40
+    sourceSection: "E.5"
+    input: "较新的可信记录与旧绑定同值，但版本已取代旧绑定"
+    normativeExpected: "Trace 保留先前 PASS，终态 UNRESOLVED"
+    expectedDiagnosticCodes: []
+    applicablePhases: ["R_RUNTIME"]
+    buildBlocked: null
+    expectedInvocationTerminals: ["UNRESOLVED"]
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E41
+    sourceSection: "E.5"
+    input: "首节点是 Goal Postcondition"
+    normativeExpected: "只有该节点的 PASS 边建立证明"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E42
+    sourceSection: "E.5"
+    input: "局部 Postcondition PASS 之后进入成功终态"
+    normativeExpected: "已有证明则保持；无 Goal Postcondition 则报 FINAL_POSTCONDITION_MISSING"
+    expectedDiagnosticCodes: ["FINAL_POSTCONDITION_MISSING"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E43
+    sourceSection: "E.5"
+    input: "多 Owner 快照中已有唯一归属，但 Owner 越权"
+    normativeExpected: "DEPENDENCY_OWNER_MISMATCH"
+    expectedDiagnosticCodes: ["DEPENDENCY_OWNER_MISMATCH"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E44
+    sourceSection: "E.5"
+    input: "不可达节点也有一条指向 SUCCEEDED 的边"
+    normativeExpected: "UNREACHABLE_NODE 警告；该边不影响证明"
+    expectedDiagnosticCodes: ["UNREACHABLE_NODE"]
+    applicablePhases: ["C_WARNING"]
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E45
+    sourceSection: "E.5"
+    input: "Goal PASS 后经过全局 Precondition，再尝试成功"
+    normativeExpected: "构建通过；PASS 保留 Goal 证明，成功发布仍需 Runtime 复核"
+    expectedDiagnosticCodes: []
+    applicablePhases: ["R_RUNTIME"]
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E46
+    sourceSection: "E.5"
+    input: "（描述符链接验收）Observation 的保证描述符误用 Operation 的实参引用根"
+    normativeExpected: "EVIDENCE_GUARANTEE_LINK_INVALID"
+    expectedDiagnosticCodes: ["EVIDENCE_GUARANTEE_LINK_INVALID"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E47
+    sourceSection: "E.5"
+    input: "同一 Node 的 Precondition 引用自身 Observation 的输出"
+    normativeExpected: "SOURCE_NOT_AVAILABLE"
+    expectedDiagnosticCodes: ["SOURCE_NOT_AVAILABLE"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E48
+    sourceSection: "E.5"
+    input: "四阶段 Node 在 Precondition 返回 FAIL 或 UNKNOWN"
+    normativeExpected: "直接走该阶段的退出路由，后续三个阶段均不执行"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E49
+    sourceSection: "E.5"
+    input: "Operation 成功，但同 Node 的 Observation 返回 UNKNOWN"
+    normativeExpected: "走 Observation 的 UNKNOWN 退出路由，保留已完成 Operation 的结果和责任记录，不执行 Postcondition"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E50
+    sourceSection: "E.5"
+    input: "两项全局前置条件均 PASS，Contract 列表顺序与执行顺序相反"
+    normativeExpected: "成功覆盖检查通过，执行顺序由 Procedure 决定"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E51
+    sourceSection: "E.5"
+    input: "两条路径各自只通过一项全局前置条件，随后汇合并证明 Goal"
+    normativeExpected: "ENTRY_PRECONDITION_BYPASSED，即使流程只读"
+    expectedDiagnosticCodes: ["ENTRY_PRECONDITION_BYPASSED"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "conditional-by-variant"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E52
+    sourceSection: "E.5"
+    input: "Contract 引用 Postcondition、缺失阶段或重复引用同一个 Precondition"
+    normativeExpected: "ENTRY_PRECONDITION_REF_INVALID"
+    expectedDiagnosticCodes: ["ENTRY_PRECONDITION_REF_INVALID"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E53
+    sourceSection: "E.5"
+    input: "全局 Precondition 曾 PASS，发布成功前该项证据过期，当前 Goal 证明仍有效"
+    normativeExpected: "ENTRY_PRECONDITION_INVALIDATED；按 §12.8 停止，保留历史 PASS"
+    expectedDiagnosticCodes: ["ENTRY_PRECONDITION_INVALIDATED"]
+    applicablePhases: ["R_RUNTIME"]
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: ["§12.8"]
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E54
+    sourceSection: "E.5"
+    input: "在非末阶段为正常 Outcome 配置跨 Node 路由"
+    normativeExpected: "ROUTE_NORMAL_OUTCOME_NOT_ALLOWED"
+    expectedDiagnosticCodes: ["ROUTE_NORMAL_OUTCOME_NOT_ALLOWED"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E55
+    sourceSection: "E.5"
+    input: "末阶段漏写正常 Outcome 的路由"
+    normativeExpected: "ROUTE_OUTCOME_MISSING"
+    expectedDiagnosticCodes: ["ROUTE_OUTCOME_MISSING"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E56
+    sourceSection: "E.5"
+    input: "使用保留的终态拼写作 Node ID，或用终态作 start"
+    normativeExpected: "分别报 NODE_ID_RESERVED 和 PROCEDURE_START_MISSING"
+    expectedDiagnosticCodes: ["NODE_ID_RESERVED","PROCEDURE_START_MISSING"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E57
+    sourceSection: "E.5"
+    input: "终态拼写错误，且没有对应 Node"
+    normativeExpected: "CONTROL_FLOW_DANGLING"
+    expectedDiagnosticCodes: ["CONTROL_FLOW_DANGLING"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E58
+    sourceSection: "E.5"
+    input: "路由预期 FAILED，但已有部分完成资源待保全"
+    normativeExpected: "Runtime 发布 SAFE_STOPPED，记录原 Outcome 和 TERMINAL_STATE_MISMATCH"
+    expectedDiagnosticCodes: ["TERMINAL_STATE_MISMATCH"]
+    applicablePhases: ["R_RUNTIME"]
+    buildBlocked: null
+    expectedInvocationTerminals: ["SAFE_STOPPED"]
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E59
+    sourceSection: "E.5"
+    input: "Reconcile 的 UNRESOLVED 边改成 FAILED 或新业务 Node"
+    normativeExpected: "RECONCILE_CONTRACT_INVALID"
+    expectedDiagnosticCodes: ["RECONCILE_CONTRACT_INVALID"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E60
+    sourceSection: "E.5"
+    input: "Reconcile Node 被用作 start、声明 Precondition，或从原 Mutation 的其他 Outcome、另一 Node 进入"
+    normativeExpected: "RECONCILE_CONTRACT_INVALID"
+    expectedDiagnosticCodes: ["RECONCILE_CONTRACT_INVALID"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E61
+    sourceSection: "E.5"
+    input: "同 Node 全局 Precondition 隐式 PASS 后，Mutation 返回 OUTCOME_UNKNOWN"
+    normativeExpected: "门禁覆盖通过。仅执行对应 Reconcile，跳过原 Node 后续阶段"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E62
+    sourceSection: "E.5"
+    input: "Runtime 在派发前发出 DENIED，后续 Postcondition 绑定其成功输出"
+    normativeExpected: "直接走 DENIED 路由。Postcondition 不执行，Operation 不提供成功输出"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E63
+    sourceSection: "E.5"
+    input: "移除 §12.1 Reconcile 的 COMMITTED 输出声明，保留 Observation 绑定"
+    normativeExpected: "RECONCILE_OUTPUT_UNAVAILABLE"
+    expectedDiagnosticCodes: ["RECONCILE_OUTPUT_UNAVAILABLE"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: ["§12.1"]
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E64
+    sourceSection: "E.5"
+    input: "已有 Goal PASS，后续 Mutation 的 SUCCEEDED 自动进入局部 Postcondition 并尝试成功"
+    normativeExpected: "SUCCESS_BYPASSES_FINAL_POSTCONDITION，Mutation 清除旧证明"
+    expectedDiagnosticCodes: ["SUCCESS_BYPASSES_FINAL_POSTCONDITION"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "conditional-by-variant"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E65
+    sourceSection: "E.5"
+    input: "不可达 Node 指向可达的局部 Postcondition 阶段所在 Node（详见 E.7"
+    normativeExpected: "UNREACHABLE_NODE 警告。汇合时仍保留可达路径的 Goal 证明"
+    expectedDiagnosticCodes: ["UNREACHABLE_NODE"]
+    applicablePhases: ["C_WARNING"]
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E66
+    sourceSection: "E.5"
+    input: "Procedure Script 读取外层对象中的可选字段（详见 E.7"
+    normativeExpected: "合法返回走 SUCCEEDED。抛异常或无效返回都走 FAILED，分别记录 SCRIPT_EXECUTION_FAILED 或 OUTPUT_SCHEMA_INVALID，且没有成功输出"
+    expectedDiagnosticCodes: ["SCRIPT_EXECUTION_FAILED","OUTPUT_SCHEMA_INVALID"]
+    applicablePhases: ["R_RUNTIME"]
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E67
+    sourceSection: "E.9"
+    input: "Procedure Script 输入 TypedDict 要求 `subscriptionData`；分别遗漏该键、绑定不兼容类型、在函数体读取未知键"
+    normativeExpected: "前两种分别为 INPUT_REQUIRED_MISSING、INPUT_TYPE_MISMATCH；未知键为 SCRIPT_CONTRACT_INVALID"
+    expectedDiagnosticCodes: ["INPUT_REQUIRED_MISSING","INPUT_TYPE_MISMATCH","SCRIPT_CONTRACT_INVALID"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E68
+    sourceSection: "E.9"
+    input: "在 E.3 的 ToolCatalog 为已引用的保证另写权威或 Freshness 规则"
+    normativeExpected: "EVIDENCE_GUARANTEE_LINK_INVALID"
+    expectedDiagnosticCodes: ["EVIDENCE_GUARANTEE_LINK_INVALID"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E69
+    sourceSection: "E.9"
+    input: "Owner 声明 §9.2 的合法子集；再分别删除 Mutation 调用的 OUTCOME_UNKNOWN 路由 或在运行中返回未声明 Outcome"
+    normativeExpected: "子集合规；缺必需 Outcome 阻止构建；未声明返回值停止并保留责任"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: ["§9.2"]
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E70
+    sourceSection: "E.9"
+    input: "对 §24.2 派发异常表逐行验证，包含有边和缺边，以及已有部分资源的情况"
+    normativeExpected: "路由、停止、记录的 Outcome 和责任分别符合该表及 §12.8"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: ["§24.2","§12.8"]
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E71
+    sourceSection: "E.9"
+    input: "E.1 的外部注册判断移除保证声明；再声明不匹配的保证"
+    normativeExpected: "省略保证报 PREDICATE_EVIDENCE_REQUIRED；声明不匹配的保证报 PREDICATE_EVIDENCE_UNSATISFIABLE"
+    expectedDiagnosticCodes: ["PREDICATE_EVIDENCE_REQUIRED","PREDICATE_EVIDENCE_UNSATISFIABLE"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E72
+    sourceSection: "E.9"
+    input: "E.4 增加同 Effect 的第二个 Capability 成员，只 Grant 一个；再测试未 Grant 的成员 Effect 冲突，以及同一 Capability 内重复成员"
+    normativeExpected: "正例通过；两个反例分别报 EFFECT_MISMATCH 和 CAPABILITY_MEMBERSHIP_DUPLICATE"
+    expectedDiagnosticCodes: ["EFFECT_MISMATCH","CAPABILITY_MEMBERSHIP_DUPLICATE"]
+    applicablePhases: ["C_STATIC","R_RUNTIME"]
+    buildBlocked: "conditional-by-variant"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E73
+    sourceSection: "E.9"
+    input: "两个测试解码器以不同字段名解码到同一抽象保证，再让其中一个生成不匹配的 Producer 引用类别"
+    normativeExpected: "相同抽象输入得到相同结论；类别不匹配报 EVIDENCE_GUARANTEE_LINK_INVALID"
+    expectedDiagnosticCodes: ["EVIDENCE_GUARANTEE_LINK_INVALID"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E74
+    sourceSection: "E.9"
+    input: "将外部结果先经 Procedure Script，再绑定无保证的 Predicate 参数；对照只消费请求字段的 Script"
+    normativeExpected: "外部来源报 PREDICATE_EVIDENCE_REQUIRED；对照可省略保证"
+    expectedDiagnosticCodes: ["PREDICATE_EVIDENCE_REQUIRED"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E75
+    sourceSection: "E.9"
+    input: "Predicate Script 用生成的输入类型读取已声明键；再改为未知键"
+    normativeExpected: "正例通过；反例 SCRIPT_CONTRACT_INVALID"
+    expectedDiagnosticCodes: ["SCRIPT_CONTRACT_INVALID"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "conditional-by-variant"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E76
+    sourceSection: "E.9"
+    input: "非末 READ 阶段只声明 SUCCEEDED，对照末阶段和另声明 FAILED 的变体，三例均省略 routes"
+    normativeExpected: "首例合法，后两例报 ROUTE_OUTCOME_MISSING"
+    expectedDiagnosticCodes: ["ROUTE_OUTCOME_MISSING"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "conditional-by-variant"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E77
+    sourceSection: "E.9"
+    input: "分别执行本地 Script、外部调用和 Reconcile，再在任一动作启动前拒绝"
+    normativeExpected: "每次启动计一，拒绝计零"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E78
+    sourceSection: "E.9"
+    input: "§9.2.1 的 v1alpha3 Mutation 契约，将 Reconcile 的关联从原调用改为当前调和调用"
+    normativeExpected: "正例可链接；反例 RECONCILE_CONTRACT_INVALID。按附录 F.1 验收"
+    expectedDiagnosticCodes: ["RECONCILE_CONTRACT_INVALID"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "conditional-by-variant"
+    expectedInvocationTerminals: []
+    citedClauses: ["§9.2.1"]
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E79
+    sourceSection: "E.9"
+    input: "在 E62 的 Owner 结果集中及调用路由中移除 FAILED、NOT_COMMITTED，保留 SUCCEEDED、Runtime DENIED 与 OUTCOME_UNKNOWN 的处理，令 Runtime 拒绝派发"
+    normativeExpected: "走 DENIED 边；移除该可选边后直接停止"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E80
+    sourceSection: "E.9"
+    input: "E32 的独立组分别绑定底层来源相同及各异的有效记录"
+    normativeExpected: "同来源 UNKNOWN；独立记录组合满足保证后按 Predicate 求值"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E81
+    sourceSection: "E.9"
+    input: "E72 的两个已 Grant 成员分别允许 {A,B} 和 {B,C}"
+    normativeExpected: "仅 B 可派发，A 与 C 均被拒绝"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E82
+    sourceSection: "E.9"
+    input: "分别核验 FAILED 类别、不可重试 NOT_COMMITTED 类别、可重试且无遗留副作用的 NOT_COMMITTED 类别"
+    normativeExpected: "仅第三类可按 §20.2 走受控新尝试"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: ["§20.2"]
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E83
+    sourceSection: "E.9"
+    input: "Goal PASS 后经局部 Predicate 的 FAIL 或 UNKNOWN，分支直接指向停止终态"
+    normativeExpected: "构建允许，Runtime 按 §12.8 发布停止终态"
+    expectedDiagnosticCodes: []
+    applicablePhases: ["R_RUNTIME"]
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: ["§12.8"]
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E84
+    sourceSection: "E.9"
+    input: "分别省略 Predicate 的 FAIL、UNKNOWN 或 Procedure Script 的 FAILED 路由"
+    normativeExpected: "各自报 ROUTE_OUTCOME_MISSING"
+    expectedDiagnosticCodes: ["ROUTE_OUTCOME_MISSING"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E85
+    sourceSection: "E.9"
+    input: "retryOf 的路径全部经过原调用 NOT_COMMITTED，再加入一条绕过该边的到达路径"
+    normativeExpected: "正例通过路径检查，绕过者报 RETRY_CONTRACT_INVALID。Runtime 对证明和业务身份独立验收"
+    expectedDiagnosticCodes: ["RETRY_CONTRACT_INVALID"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "conditional-by-variant"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E86
+    sourceSection: "E.9"
+    input: "§20.3 的 SUCCEEDED 分别绑定已提交、未提交、不充分和错误原调用的证明。另测未声明的 Owner 结果与恢复输出违规"
+    normativeExpected: "按映射表产生阶段结果或停止，并保留责任及已验证的提交状态"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: ["§20.3"]
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E87
+    sourceSection: "E.9"
+    input: "E81 分别让已 Grant 成员缺少 Scope、静态交集为空、未 Grant 成员缺少 Scope"
+    normativeExpected: "前两者分别报 CAPABILITY_SCOPE_UNRESOLVED、CAPABILITY_SCOPE_EMPTY_INTERSECTION，第三种允许链接"
+    expectedDiagnosticCodes: ["CAPABILITY_SCOPE_UNRESOLVED","CAPABILITY_SCOPE_EMPTY_INTERSECTION"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E88
+    sourceSection: "E.9"
+    input: "静态 Scope 可链接，但 Runtime 策略不可读取或当前交集为空"
+    normativeExpected: "分别产生 SCOPE_POLICY_UNAVAILABLE、SCOPE_INTERSECTION_EMPTY，按 §24.2 停止或沿 DENIED"
+    expectedDiagnosticCodes: ["SCOPE_POLICY_UNAVAILABLE","SCOPE_INTERSECTION_EMPTY"]
+    applicablePhases: ["R_RUNTIME"]
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: ["§24.2"]
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E89
+    sourceSection: "E.9"
+    input: "成功输出的 policyAssociationRef 可缺失，局部 PASS 后直接绑定。对照成功输出将该字段声明为必需并保留同一绑定"
+    normativeExpected: "反例 SOURCE_NOT_AVAILABLE，正例在其余契约有效时通过"
+    expectedDiagnosticCodes: ["SOURCE_NOT_AVAILABLE"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "conditional-by-variant"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E90
+    sourceSection: "E.9"
+    input: "分别使用 `ue.registration_verified`、含空格的 GoalId 和含空段的 GoalId，正常参数与裸 `context` 分别绑定"
+    normativeExpected: "合法 GoalId 可解析；两个非法 GoalId 构建失败；裸 context 报 SOURCE_PATH_INVALID"
+    expectedDiagnosticCodes: ["SOURCE_PATH_INVALID"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "conditional-by-variant"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E91
+    sourceSection: "E.9"
+    input: "在同一快照的两个 ToolCatalog 文件中声明相同 callable ID，即使 kind 或 Owner 不同"
+    normativeExpected: "EXPORT_ID_AMBIGUOUS"
+    expectedDiagnosticCodes: ["EXPORT_ID_AMBIGUOUS"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E92
+    sourceSection: "E.12"
+    input: "抽象；E85 的 retryOf 增加原调用 SUCCEEDED 到重试的路径"
+    normativeExpected: "RETRY_CONTRACT_INVALID"
+    expectedDiagnosticCodes: ["RETRY_CONTRACT_INVALID"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E93
+    sourceSection: "E.12"
+    input: "摘要及授权；合法部署输入，随后独立篡改文件字节、替换为未授权发布者"
+    normativeExpected: "正例可链接；变体分别报 CAPABILITY_INPUT_DIGEST_MISMATCH、CAPABILITY_INPUT_UNTRUSTED"
+    expectedDiagnosticCodes: ["CAPABILITY_INPUT_DIGEST_MISMATCH","CAPABILITY_INPUT_UNTRUSTED"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "conditional-by-variant"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E94
+    sourceSection: "E.12"
+    input: "抽象；同一部署工件集重复 Capability ID"
+    normativeExpected: "CAPABILITY_DEFINITION_CONFLICT"
+    expectedDiagnosticCodes: ["CAPABILITY_DEFINITION_CONFLICT"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E95
+    sourceSection: "E.12"
+    input: "抽象；Host 根静态引用闭合对象，再将引用目标改为开放根或声明 request"
+    normativeExpected: "正例链接；变体 CONTEXT_REQUEST_COLLISION"
+    expectedDiagnosticCodes: ["CONTEXT_REQUEST_COLLISION"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "conditional-by-variant"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E96
+    sourceSection: "E.12"
+    input: "Runtime；分别存在已确认 PENDING 变更、仅未决调用、均无且原因确定"
+    normativeExpected: "SAFE_STOPPED、UNRESOLVED、FAILED"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E97
+    sourceSection: "E.12"
+    input: "Runtime；责任摘要返回 allResourcesCovered，但 Session Instance 与目标不同"
+    normativeExpected: "Goal 不得 PASS"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E98
+    sourceSection: "E.14"
+    input: "请参见规范中相同 ID 行的输入"
+    normativeExpected: "output 保证明示覆盖 output.result，记录可验证该子值，且子值 Schema 可赋给参数：通过。反向使用 output.result 保证绑定整个 output：PREDICATE_EVIDENCE_UNSATISFIABLE"
+    expectedDiagnosticCodes: ["PREDICATE_EVIDENCE_UNSATISFIABLE"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "conditional-by-variant"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E99
+    sourceSection: "E.14"
+    input: "请参见规范中相同 ID 行的输入"
+    normativeExpected: "向 Compiler 的分析图单测注入无可达入边的可达非入口阶段：REACHABLE_STAGE_NO_INCOMING_EDGE。此为内部不变量测试"
+    expectedDiagnosticCodes: ["REACHABLE_STAGE_NO_INCOMING_EDGE"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E100
+    sourceSection: "E.14"
+    input: "请参见规范中相同 ID 行的输入"
+    normativeExpected: "同一 Goal PASS 后分别经过 Procedure Script SUCCEEDED 和 Mutation SUCCEEDED：前者保留证明，后者清除。READ / Observation SUCCEEDED 同样保留原证明。若后续 READ 使原绑定失效，发布成功前按 §12.8 停止，禁止用新值顶替。显式绑定新 Producer 并取得 Goal PASS 后可重新建立证明"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: ["§12.8"]
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E101
+    sourceSection: "E.14"
+    input: "请参见规范中相同 ID 行的输入"
+    normativeExpected: "§13.3：将已验证 Host Session 身份直接绑定至 callable，通过。分别用同值 Script 输出、请求字段、含无权威身份的复合对象替换，报 CALLABLE_ARGUMENT_PROVENANCE_INVALID。原绑定构建通过但派发前无法核验时，报 CALLABLE_ARGUMENT_PROVENANCE_UNVERIFIED，且无派发"
+    expectedDiagnosticCodes: ["CALLABLE_ARGUMENT_PROVENANCE_INVALID","CALLABLE_ARGUMENT_PROVENANCE_UNVERIFIED"]
+    applicablePhases: ["C_STATIC","R_RUNTIME"]
+    buildBlocked: "conditional-by-variant"
+    expectedInvocationTerminals: []
+    citedClauses: ["§13.3"]
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E102
+    sourceSection: "E.14"
+    input: "请参见规范中相同 ID 行的输入"
+    normativeExpected: "§17.1.1：同身份域的独立来源及兼容的跨 Owner 映射可链接。移除用于独立组的来源身份投影或共同事实映射，或使 Scope 映射不可比较，报 EVIDENCE_GUARANTEE_LINK_INVALID。各描述符分别有效但组成员处于不可比较的身份域，报 PREDICATE_EVIDENCE_UNSATISFIABLE。链接成功但执行时只提供同一底层记录，Predicate 为 UNKNOWN"
+    expectedDiagnosticCodes: ["EVIDENCE_GUARANTEE_LINK_INVALID","PREDICATE_EVIDENCE_UNSATISFIABLE"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: ["§17.1.1"]
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E103
+    sourceSection: "E.14"
+    input: "请参见规范中相同 ID 行的输入"
+    normativeExpected: "§34.0：按所选 BuildRequest 版本提交同一文件集的不同枚举顺序，重算摘要一致。保留原摘要并变更原始文件的换行或 YAML/JSON 编码，构建按 §34.0 拒绝摘要不匹配"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: ["§34.0"]
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E104
+    sourceSection: "E.14"
+    input: "请参见规范中相同 ID 行的输入"
+    normativeExpected: "§11.6：有有效 Host 上界时分别省略 Skill 上界、声明更低和更高的上界，验证分别使用 Host、更低的 Skill、Host 上界。Host 上界缺失、为 0 或非法时拒绝启动"
+    expectedDiagnosticCodes: []
+    applicablePhases: []
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: ["§11.6"]
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E105
+    sourceSection: "G.9"
+    input: "分别令 PredicateId=foo..bar、Alias=ca:demo、ExportId=foo..bar、QualifiedSchemaId=ca::relative/path、LocalScriptPath=scripts/../x.py"
+    normativeExpected: "前两者 IDENTIFIER_INVALID；中间两者 QUALIFIED_REFERENCE_INVALID；最后 PACKAGE_PATH_INVALID；以上不依赖 YAML parser 是否把裸标量当作字符串"
+    expectedDiagnosticCodes: ["IDENTIFIER_INVALID","QUALIFIED_REFERENCE_INVALID","PACKAGE_PATH_INVALID"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E106
+    sourceSection: "G.9"
+    input: "G.3 requires + independence 两成员；删掉其中一个 requires；复制相同 member；运行时不同 Evidence Ref 其实来自同一底层记录"
+    normativeExpected: "合法字段静态链接通过；成员非法报 EVIDENCE_GUARANTEE_LINK_INVALID；静态合法但同源执行得 UNKNOWN"
+    expectedDiagnosticCodes: ["EVIDENCE_GUARANTEE_LINK_INVALID"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "conditional-by-variant"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E107
+    sourceSection: "G.9"
+    input: "G.2 正确的 Reconcile READ；分别改 Effect 为 MUTATION、kind 为 observation、inputSchema 多加可写字段、删除 proofPath、只 Grant 原 Mutation"
+    normativeExpected: "合法例通过链接；变体分别 EFFECT_MISMATCH、RECONCILE_CONTRACT_INVALID、RECONCILE_CONTRACT_INVALID、RECONCILE_CONTRACT_INVALID、CAPABILITY_NOT_GRANTED"
+    expectedDiagnosticCodes: ["EFFECT_MISMATCH","RECONCILE_CONTRACT_INVALID","CAPABILITY_NOT_GRANTED"]
+    applicablePhases: ["C_STATIC","R_RUNTIME"]
+    buildBlocked: "conditional-by-variant"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E108
+    sourceSection: "G.9"
+    input: "Reconcile Owner SUCCEEDED 与有效 COMMITTED 证明+恢复输出；取消恢复声明；提供无效恢复输出；证明 NOT_COMMITTED；Owner 直接发 COMMITTED"
+    normativeExpected: "分别为 COMMITTED+输出可用、COMMITTED+无输出、安全停止并 COMMITTED_OUTPUT_UNAVAILABLE、NOT_COMMITTED、诊断 OWNER_OUTCOME_UNDECLARED 并隔离停止"
+    expectedDiagnosticCodes: ["COMMITTED_OUTPUT_UNAVAILABLE","OWNER_OUTCOME_UNDECLARED"]
+    applicablePhases: ["R_RUNTIME"]
+    buildBlocked: null
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E109
+    sourceSection: "G.9"
+    input: "Reconcile Evidence Producer 以 Owner SUCCEEDED 绑定恢复结果，再替换为 Runtime 的 COMMITTED"
+    normativeExpected: "前者链接通过；后者 EVIDENCE_GUARANTEE_LINK_INVALID"
+    expectedDiagnosticCodes: ["EVIDENCE_GUARANTEE_LINK_INVALID"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "conditional-by-variant"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E110
+    sourceSection: "G.9"
+    input: "有效的 nullable / object / items Schema；替换任一为 anyOf、pattern 或动态引用"
+    normativeExpected: "前者按 F.5 赋值；三个不受支持变体均 SCHEMA_INVALID"
+    expectedDiagnosticCodes: ["SCHEMA_INVALID"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "conditional-by-variant"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E111
+    sourceSection: "G.9"
+    input: "CEL 使用 has(obj.optional) && obj.optional == \"X\"；删除 has；对 nullable 字段删除非 null 守卫；添加数组索引"
+    normativeExpected: "守卫版缺字段可按业务表达式得 FAIL；其余三项静态拒绝 CEL_INVALID"
+    expectedDiagnosticCodes: ["CEL_INVALID"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "true"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E112
+    sourceSection: "G.9"
+    input: "已确认 PENDING 资源后请求 FAILED；有可信 TRANSFERRED 记录且无其他待处理事实；仅有未决原调用且无已确认 PENDING"
+    normativeExpected: "实际终态分别 SAFE_STOPPED、FAILED、UNRESOLVED，并保留请求终态及理由"
+    expectedDiagnosticCodes: []
+    applicablePhases: ["R_RUNTIME"]
+    buildBlocked: null
+    expectedInvocationTerminals: ["SAFE_STOPPED","FAILED","UNRESOLVED"]
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E113
+    sourceSection: "G.9"
+    input: "Host Root 与 Request 根各自闭合，绑定整个 context.request；删除 requestSchema；Host Root 添加 request"
+    normativeExpected: "正例通过；反例 REQUEST_SCHEMA_MISSING、CONTEXT_REQUEST_COLLISION"
+    expectedDiagnosticCodes: ["REQUEST_SCHEMA_MISSING","CONTEXT_REQUEST_COLLISION"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "conditional-by-variant"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
+  - case: E114
+    sourceSection: "G.9"
+    input: "合法 skills/establish-pdu-session；加入 ../、绝对路径、反斜线、同目录大小写折叠碰撞的文件"
+    normativeExpected: "合法包通过；变体 PACKAGE_PATH_INVALID"
+    expectedDiagnosticCodes: ["PACKAGE_PATH_INVALID"]
+    applicablePhases: ["C_STATIC"]
+    buildBlocked: "conditional-by-variant"
+    expectedInvocationTerminals: []
+    citedClauses: []
+    ciFixture: null
+    evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
