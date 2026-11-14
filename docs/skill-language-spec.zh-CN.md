@@ -1173,6 +1173,8 @@ Freshness 由 Owner Contract 声明可执行的有效性规则（例如从 obser
 
 ## 17. Evidence 与 Predicate 参数
 
+SourcePath 可选字段、Evidence 重验及 Owner Schema 投影的作者模式参见[资料性指南](guides/ca-sl-v1alpha3-authoring-patterns.md)。指南不新增保证、不改变本章的静态与运行时判定。
+
 ### 17.1 业务签名与来源要求
 
 **效力：Normative（来源、保证和附录 F.3 描述符字段）。**
