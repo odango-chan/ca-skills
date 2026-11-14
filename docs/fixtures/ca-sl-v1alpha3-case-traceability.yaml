@@ -1154,12 +1154,12 @@ cases:
   - case: E105
     sourceSection: "G.9"
     input: "分别令 PredicateId=foo..bar、Alias=ca:demo、ExportId=foo..bar、QualifiedSchemaId=ca::relative/path、LocalScriptPath=scripts/../x.py"
-    normativeExpected: "前两者 IDENTIFIER_INVALID；中间两者 QUALIFIED_REFERENCE_INVALID；最后 PACKAGE_PATH_INVALID；以上不依赖 YAML parser 是否把裸标量当作字符串"
+    normativeExpected: "独立 PredicateId 与 Alias 字段报 IDENTIFIER_INVALID；位于完整 `Alias::ExportId` 中的非法 ExportId 以及 QualifiedSchemaId 均报 QUALIFIED_REFERENCE_INVALID；LocalScriptPath 报 PACKAGE_PATH_INVALID。此处 ExportId 为限定引用的组成部分而非独立源码字段（G.1）；诊断不依赖 YAML parser 的裸标量解析方式"
     expectedDiagnosticCodes: ["IDENTIFIER_INVALID","QUALIFIED_REFERENCE_INVALID","PACKAGE_PATH_INVALID"]
     applicablePhases: ["C_STATIC"]
     buildBlocked: "true"
     expectedInvocationTerminals: []
-    citedClauses: []
+    citedClauses: ["§G.1","§24.1","§G.9"]
     ciFixture: null
     evidenceStatus: NOT_EXECUTED_AS_V1ALPHA3_FIXTURE
   - case: E106
