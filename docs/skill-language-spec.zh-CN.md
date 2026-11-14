@@ -1988,7 +1988,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 1. 术语与概念模型评审；
 2. ToolCatalog Operation / Observation typed callable 结构定稿；
 3. CapabilityContracts callable membership 定稿；
-4. Observation Query 调用和 QueryContext 绑定语法定稿；
+4. Observation Query 调用语法（§12.4）和 ToolCatalog 中 QueryContext Schema 的声明与引用格式（§9.2）定稿；
 5. Host 与各 Owner 确认 Evidence 保证导出、权威绑定、有效性规则和 Runtime 校验；
 6. Schema ID 和 Dependency Alias 引用规则定稿；
 7. Predicate.parameters、CEL / Predicate Script 与 Procedure Script 类型环境定稿，确认 Script Contract 支持的类型与注解子集（包括 `Literal`、`Annotated`、`NotRequired`）；
@@ -2003,7 +2003,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 
 第 1–15 项是整份规范的冻结门槛。满足全部门槛前，文档的状态标记为 DESIGN REVIEW。Compiler、Runtime 和工具链验收按对应条目进行。
 
-**冻结候选。** §5–§17、§19–§22 和 §24.1 中的语言语义规则，包括阶段执行、路由、证明传播及 Evidence 校验。相关 Owner 可独立审定这一范围，无需等待第 2、3、5、9、10、15 项所列线格式、传递格式、Owner 契约及 Artifact 策略定稿。§9.2、§9.3 和 §17.1 的线格式、§21 的 Owner 契约，以及 §34 的传递格式和 Artifact 策略定稿时，须遵守 §5–§17、§19–§22 和 §24.1 中经 Owner 审定冻结的语言语义规则。
+**冻结候选。** §5–§17、§19–§22 和 §24.1 中的语言语义规则，包括阶段执行、路由、证明传播及 Evidence 校验。相关 Owner 可独立审定这一范围，无需等待第 2、3、5、9、10、15 项所列线格式、传递格式、Owner 契约及 Artifact 策略定稿。第 4 项中的 Observation Query 调用语法及调用端 `arguments` 的绑定规则（§12.4）也在冻结候选内。ToolCatalog 中 QueryContext Schema 的声明与引用格式（§9.2）继续评审，其定稿无需先于语言语义审定。语言语义审定与这些事项的评审可并行。§9.2、§9.3 和 §17.1 的线格式、§21 的 Owner 契约，以及 §34 的传递格式和 Artifact 策略定稿时，以届时经 Owner 审定冻结的语言语义版本为准。
 
 **继续 DESIGN REVIEW。** §9.2 ToolCatalog、§9.3 CapabilityContracts 和 §17.1 Evidence 描述符的线格式，以及 §21 的异步 Operation Owner 契约，按第 2、3、5、9 项验收。§34 整章继续评审，其中 §34.0 多 Owner 归属传递按第 10 项验收，§34.1–§34.2 的 Compiler Artifact Schema 序列化与外部依赖闭包策略按第 15 项验收。
 
