@@ -1,6 +1,6 @@
 # ConnectionAgent Skill Authoring Guide
 
-This guide follows the [CA-SL vNext Specification](skill-language-spec.zh-CN.md), the sole normative language authority.
+This guide follows the [CA-SL vNext / v1alpha3 Specification](skill-language-spec.zh-CN.md), the sole normative language authority. The author syntax and interoperability profile are frozen; product conformance and executable 5GC migration are separate §45.2 gates.
 
 ## 1. Current source baseline
 
