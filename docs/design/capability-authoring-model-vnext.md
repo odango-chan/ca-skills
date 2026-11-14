@@ -502,14 +502,14 @@ This section records the latest review direction and supersedes earlier authorin
 ### 25.2 Global conditions and Procedure execution
 
 - Contract `preconditions` lists Invocation-wide gates as Procedure Precondition stage references. All must PASS before a business Mutation or SUCCEEDED. If needed, explicit Observation can precede the Precondition to acquire trusted facts.
-- The final business Postcondition belongs at the end of the graph, before SUCCEEDED Terminal. It consumes explicit arguments from already-produced Operation / Observation / Context values.
+- The final business Postcondition belongs on each path to a SUCCEEDED route. It consumes explicit arguments from already-produced Operation / Observation / Context values.
 - There is no separate SkillContract.postconditions declaration, no from reference to a second evaluation, and no duplicate Predicate execution. The final Postcondition stage supplies the executable Goal proof.
 - Every SUCCEEDED path must carry a valid Goal Postcondition PASS. Different Postconditions can prove the same Goal across branches. Local Precondition and Postcondition stages are available for intermediate business gates.
 - The first version has one entry Procedure graph per Skill. It does not define nested ProcedureCall or graph cycles; business paths are represented by branches in the same graph.
 
 ### 25.3 Business Node stages and Script placement
 
-- A business Node may contain Precondition, Operation, Observation, and Postcondition stages, run in that order. Earlier stages advance within the Node on their normal outcomes. All cross-Node transitions use the current stage's `routes` map, including the last stage's normal outcome. A Terminal Node declares the outcome.
+- A business Node may contain Precondition, Operation, Observation, and Postcondition stages, run in that order. Earlier stages advance within the Node on their normal outcomes. The current stage's `routes` maps explicit branches to a Node ID or an Invocation terminal status, including the last stage's normal outcome.
 - Predicate remains a pure reusable judgment definition; it is not a Procedure node and does not acquire data.
 - A Procedure Script is a local pure execution target of a Node's Operation stage. It performs deterministic selection / transformation / structured-data construction and is not a Tool, Capability or external READ / MUTATION Effect.
 - A Predicate Script is the evaluator implementation of a Predicate. Its typed business inputs derive from Predicate.parameters; its strict return TypedDict generates the Predicate Evaluation Result Schema, including result, reasonCode and evidenceUsed.
@@ -519,7 +519,7 @@ This section records the latest review direction and supersedes earlier authorin
 
 - Stage `arguments` bind directly to admitted `context` fields or exact earlier stage outputs.
 - vNext first version supports static dot paths only; no dynamic selectors, interpolation, function calls or array indexing.
-- The Procedure graph is a DAG. Compiler validates producer availability, global Precondition PASS coverage over business Mutation and SUCCEEDED and Goal Postcondition PASS coverage on every successful path. Distinct final nodes may share a Terminal (§12.9).
+- The Procedure graph is a DAG. Compiler validates producer availability, global Precondition PASS coverage over business Mutation and SUCCEEDED and Goal Postcondition PASS coverage on every successful path. Distinct final nodes may each route directly to SUCCEEDED (§12.9).
 - Terminal outcomes include SUCCEEDED, FAILED, UNRESOLVED and SAFE_STOPPED. SAFE_STOPPED preserves partial resource / responsibility state and must not collapse into ordinary Predicate FAIL.
 
 ### 25.5 Schema and external dependency artifact boundary
@@ -539,7 +539,7 @@ The single [CA-SL specification](../skill-language-spec.zh-CN.md) contains the a
 | P0 Predicate arguments | Align every sample call's arity, order and type to its Predicate signature |
 | P0 Reconcile branches | COMMITTED does not restore an original lost success response; explicit recoverable typed output or independent Observation required |
 | P0 Dependency linking | Stable Package ID by Alias; trusted binding keyed to snapshot alias and verified digest; exact Owner/export links |
-| P0 Node grammar | Define precise nested mapping shape for Predicate versus Tool/Observation/Script arguments and forbid extra Reconcile/Terminal fields |
+| P0 Node grammar | Define precise nested mapping shape for Predicate versus Tool/Observation/Script arguments and define valid Reconcile fields and terminal route targets |
 | P1 Context | Host validates its admitted data against the Owner `contextSchema`; request fields use `requestSchema`; dynamic state comes from explicit Observation or sufficient Operation Results |
 | P1 Script | Procedure Script and Predicate Script are distinct pure local computation roles |
 | P1 Budget | Optional limits.maxActions is a stricter upper bound on the mandatory positive Host action budget |

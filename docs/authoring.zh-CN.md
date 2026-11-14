@@ -24,7 +24,7 @@ skills/<name>/
 三个 assurance 文件各司其职：
 
 - `contract.yaml`：Skill 的公共声明，包括 Goal、全局前置条件、公共 Request Schema、Host Invocation Context Schema、公共依赖身份和 Capability Grants。
-- `procedure.yaml`：唯一执行图，包括 `start`、业务 Node 和 Terminal。业务 Node 可按顺序声明 Precondition、Operation、Observation、Postcondition。非末阶段正常完成后继续同一 Node。所有跨 Node 跳转由当前阶段的 `routes` 声明，包括末阶段的正常 Outcome。
+- `procedure.yaml`：唯一执行图，包括 `start` 与业务 Node。业务 Node 可按顺序声明 Precondition、Operation、Observation、Postcondition。非末阶段正常完成后继续同一 Node。当前阶段的 `routes` 将 Outcome 映射为 Node ID 或 Invocation 终态，末阶段的正常 Outcome 也使用该映射。
 - `predicates.yaml`：可复用 Predicate 的参数签名和 CEL / Python evaluator。
 
 **Contract 保留为作者维护的源码。** 只移除冗余包装字段和可由其他信息确定的字段，不删除它承载的公共声明。Compiler 可从 Contract、Procedure、Predicate 和依赖快照生成规范化 Runtime 契约，但不以生成物取代作者源文件。
