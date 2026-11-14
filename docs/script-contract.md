@@ -36,6 +36,8 @@ Rules:
 A Predicate Script implements the evaluator of a declared Predicate. Its business input signature is exclusively Predicate.parameters; every call site's positional arguments must match the ordered signature and be type-compatible.
 
 ~~~python
+from __future__ import annotations
+
 from typing import Annotated, Literal, TypedDict
 
 class PredicateEvaluationResult(TypedDict):
@@ -43,12 +45,12 @@ class PredicateEvaluationResult(TypedDict):
     reasonCode: Annotated[str, {"minLength": 1}]
     evidenceUsed: list[str]
 
-def main(input: dict) -> PredicateEvaluationResult:
+def main(input: PredicateInput) -> PredicateEvaluationResult:
     ...
 ~~~
 
 Rules:
-- The only entry point is main(input: dict).
+- The entry point is `main(input: PredicateInput) -> PredicateEvaluationResult`. Use postponed annotations. Compiler generates the read-only virtual TypedDict from the Predicate signature and Evidence projection, and the build checker and LSP consume the same stub. See §32.2.
 - Business input types derive from the owning Predicate's ordered parameters.
 - Host / Runtime may attach a reserved, read-only Evidence projection; it is not an extra positional business parameter.
 - result is the only field that controls PASS / FAIL / UNKNOWN routing.
