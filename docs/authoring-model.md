@@ -26,16 +26,9 @@ Contract is author-maintained source, not a compiler-generated file. The source 
 
 ## Procedure graph
 
-There are four business node types:
+A business Node may declare `precondition`, `operation`, `observation`, and `postcondition`. Declare at least one stage. Runtime runs the declared stages in that order, uses each stage's `on` for exits, and follows `next` after normal completion. A Terminal Node declares the outcome.
 
-- precondition: invokes a Predicate before a protected action;
-- operation: invokes either an Owner-published Tool Operation or a Skill-owned pure Procedure Script;
-- observation: optionally invokes an Owner-published read-only query when existing values are insufficient or independent observation is required;
-- postcondition: invokes a Predicate to judge an intermediate or final business result.
-
-terminal declares an explicit terminal state; it is not a business action. Predicate is the reusable deterministic judgment definition, not a separate Procedure node. There is no generic computation node.
-
-Mark Invocation-wide entry gates with `precondition.entry: true`. Explicit Observation nodes may acquire the facts first. Every path to a Mutation must pass all marked entry gates. Mark a final Postcondition with `postcondition.goal` equal to the Contract Goal. Each SUCCEEDED path needs a valid PASS for that Goal; separate proof nodes may share the same success terminal. See §12.9.
+Mark Invocation-wide entry gates with `precondition.entry: true`. An earlier Node's Observation stage can acquire facts for a later Precondition. Every path to a Mutation must pass all marked entry gates. Mark a final Postcondition with `postcondition.goal` equal to the Contract Goal. Each SUCCEEDED path needs a valid PASS for that Goal; separate proof nodes may share the same success terminal. See §12.9.
 
 The first vNext version has one entry Procedure graph per Skill and does not define nested ProcedureCall or graph cycles. Branches and recovery are explicit nodes and routes.
 
@@ -44,13 +37,13 @@ The first vNext version has one entry Procedure graph per Skill and does not def
 - Tool Operation and Observation use a named arguments mapping defined by the Owner Input / Query Schema.
 - Procedure Script uses a named arguments mapping as its exact local input projection; its output Schema is derived from strict return TypedDict.
 - Precondition and Postcondition use an ordered arguments list matching the Predicate.parameters signature.
-- Nodes bind `arguments` directly to admitted `context` fields or prior-node outputs.
+- Stages bind `arguments` to admitted `context` fields or to earlier outputs qualified by Node and stage.
 - No implicit previous-node binding, parent Procedure state, ambient Context forwarding, or field-name guessing.
 - Reconcile is a constrained Operation mode targeting the original Mutation, not a separate business node. A COMMITTED result does not make the original successful output available: use only an Owner-guaranteed reconciled output or a separately acquired authoritative Observation.
 
 ## Script roles
 
-A Procedure Script is a pure local data transformation / selection invoked through an Operation node. It is not a Tool, Capability, or external READ / MUTATION effect.
+A Procedure Script is a pure local data transformation / selection invoked through a Node's `operation` stage. It is not a Tool, Capability, or external READ / MUTATION effect.
 
 A Predicate Script implements a Predicate evaluator and returns the structured PredicateEvaluationResult. Its business inputs derive from Predicate.parameters. Runtime verifies the Predicate's `evidence.requires` independently of the Script's `evidenceUsed` report.
 

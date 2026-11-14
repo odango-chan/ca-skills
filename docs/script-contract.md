@@ -6,18 +6,18 @@ Skill-owned Python is restricted deterministic local computation. It has two rol
 
 ## 1. Procedure Script
 
-A Procedure Script performs deterministic local selection, transformation or structured-data construction. It is invoked as a local target of an Operation node; it does not introduce a fifth Procedure node type.
+A Procedure Script performs deterministic local selection, transformation or structured-data construction. It runs as the local target of a Node's Operation stage.
 
 ~~~yaml
 prepare-policy-inputs:
   operation:
     script: scripts/build_pcf_policy_inputs.py
-  arguments:
-    subscriptionData: select-establishment-configuration.output.subscriptionData
-    subscriptionSource: select-establishment-configuration.output.subscriptionSource
-  'on':
-    SUCCEEDED: create-policy
-    FAILED: failed
+    arguments:
+      subscriptionData: select-establishment-configuration.operation.output.subscriptionData
+      subscriptionSource: select-establishment-configuration.operation.output.subscriptionSource
+    'on':
+      FAILED: failed
+  next: create-policy
 ~~~
 
 Rules:
@@ -25,7 +25,7 @@ Rules:
 - The call-site arguments mapping is the complete input projection.
 - Compiler derives the effective input type from the bound Producer / Context Schemas; no separately authored Script Input Schema is allowed.
 - The return annotation must be a strict TypedDict. Compiler generates its Output Schema, including supported Annotated, Literal and NotRequired constraints.
-- The result is exposed as node.output to later Procedure nodes.
+- The result is exposed as `<node-id>.operation.output` to later stages and reachable consumers.
 - A Procedure Script is pure and deterministic. It cannot access network, HTTP, MCP, shell, database, filesystem, credentials, environment variables, clock or randomness.
 - It cannot perform external side effects, declare Tool IDs, Capability IDs or READ/MUTATION Effect.
 - Host / Runtime owns sandboxing, resource budget, deadline and cancellation.

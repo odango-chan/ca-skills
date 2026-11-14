@@ -494,7 +494,7 @@ This section records the latest review direction and supersedes earlier authorin
 - Contract declares `goal`, `requestSchema`, `contextSchema`, a direct alias-to-Package-ID `dependencies` mapping, and the `capabilities` list.
 - Contract and Procedure have distinct ownership: Contract declares what the Skill requires and is allowed to request; Procedure declares how the goal is deterministically achieved, including the final executable Postcondition.
 - `apiVersion`, `kind`, and `metadata.name` are omitted from authored source because BuildRequest / Compiler Target selects the language version, file path determines source kind, and Package root determines Skill identity.
-- `entryProcedure` is unnecessary while one Skill has exactly one entry Procedure graph. Contract-level `postconditions` move to the final Postcondition node in Procedure.
+- `entryProcedure` is unnecessary while one Skill has exactly one entry Procedure graph. Final assurance is declared as a Node's Postcondition stage in Procedure.
 - Public dependency declarations contain stable Owner / Package identities only. They do not contain download URLs, branches, version locks, digests or dependency bytes. Skill Studio selects dependencies and Capability grants from available public catalogs, writes stable declarations into Contract, and supplies exact immutable snapshots to BuildRequest.
 - Compiler may derive a normalized Runtime contract projection from Contract + Procedure + Predicates + resolved dependency snapshots. It does not replace the author-maintained Contract. A separately named generated SkillContract file is emitted only if a concrete Host / Runtime interface requires it.
 - Runtime policy candidates such as action budgets and universal Mutation-UNKNOWN reconciliation are not repeated in each Skill unless a later review proves a Skill-specific semantic need.
@@ -503,21 +503,21 @@ This section records the latest review direction and supersedes earlier authorin
 
 - Invocation-wide Precondition belongs to the Procedure's entry gate. If necessary, explicit Observation can precede it to acquire trusted facts. Protected Mutation proceeds only on PASS.
 - The final business Postcondition belongs at the end of the graph, before SUCCEEDED Terminal. It consumes explicit arguments from already-produced Operation / Observation / Context values.
-- There is no separate SkillContract.postconditions declaration, no from reference to a second evaluation, and no duplicate Predicate execution. The final Postcondition node is the contract's executable proof.
-- Every SUCCEEDED path must carry a valid Goal Postcondition PASS. Different Postconditions can prove the same Goal across branches. Local Precondition / Postcondition nodes remain available for intermediate business gates.
+- There is no separate SkillContract.postconditions declaration, no from reference to a second evaluation, and no duplicate Predicate execution. The final Postcondition stage supplies the executable Goal proof.
+- Every SUCCEEDED path must carry a valid Goal Postcondition PASS. Different Postconditions can prove the same Goal across branches. Local Precondition and Postcondition stages are available for intermediate business gates.
 - The first version has one entry Procedure graph per Skill. It does not define nested ProcedureCall or graph cycles; business paths are represented by branches in the same graph.
 
-### 25.3 Four business node types; Script placement
+### 25.3 Business Node stages and Script placement
 
-- The four business node types remain Precondition, Operation, Observation and Postcondition. Terminal is only a terminal declaration.
+- A business Node may contain Precondition, Operation, Observation, and Postcondition stages, run in that order. Each stage owns its exits, and `next` follows normal completion. A Terminal Node declares the outcome.
 - Predicate remains a pure reusable judgment definition; it is not a Procedure node and does not acquire data.
-- A Procedure Script is a local pure execution target of an Operation node. It performs deterministic selection / transformation / structured-data construction and is not a Tool, Capability or external READ / MUTATION Effect.
+- A Procedure Script is a local pure execution target of a Node's Operation stage. It performs deterministic selection / transformation / structured-data construction and is not a Tool, Capability or external READ / MUTATION Effect.
 - A Predicate Script is the evaluator implementation of a Predicate. Its typed business inputs derive from Predicate.parameters; its strict return TypedDict generates the Predicate Evaluation Result Schema, including result, reasonCode and evidenceUsed.
 - No generic computation node is introduced. Script cannot access network, filesystem, shell, credentials, environment, clock, randomness or external side effects.
 
 ### 25.4 SourcePath and graph safety
 
-- Node `arguments` bind directly to admitted `context` fields or exact prior-node outputs.
+- Stage `arguments` bind directly to admitted `context` fields or exact earlier stage outputs.
 - vNext first version supports static dot paths only; no dynamic selectors, interpolation, function calls or array indexing.
 - The Procedure graph is a DAG. Compiler validates producer availability, entry-gate PASS coverage over protected mutations and Goal Postcondition PASS coverage on every successful path. Distinct final nodes may share a Terminal (§12.9).
 - Terminal outcomes include SUCCEEDED, FAILED, UNRESOLVED and SAFE_STOPPED. SAFE_STOPPED preserves partial resource / responsibility state and must not collapse into ordinary Predicate FAIL.
