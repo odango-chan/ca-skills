@@ -399,7 +399,7 @@ spec:
           scopePolicyRef: deployment.registration-read
 ~~~
 
-CapabilityContracts 使用稳定 Owner 身份、精确 callable ID 和 kind 标识成员。Compiler 查找该身份的所有成员记录，要求至少一个所属 Capability 已被 Skill Grant。每个能力成员须解析可信部署提供的 Scope 边界，缺失或不可解析时禁止链接。多个已 Grant 成员同时匹配时，实际 Scope 取这些成员边界与 callable、Invocation 授权范围的交集。空交集禁止派发。未 Grant 成员只参与 Effect 一致性检查。候选线格式可用成员级 `scopePolicyRef` 指向部署发布的规则。所有匹配记录的 Effect 必须与 ToolCatalog 一致，包括未获 Grant 的记录。Effect 描述 callable 本身，Grant 仅决定访问资格。检查未获 Grant 的成员可在授权变动前发现同一 callable 的身份冲突，部署侧须修复冲突记录后重新链接。同一 Capability 内重复声明同一成员报 `CAPABILITY_MEMBERSHIP_DUPLICATE`，跨 Capability 的一致成员合法。Runtime 在派发时对可信部署契约重新执行同一 Effect 与授权检查。缺少 Grant、重复记录或 Effect 冲突时禁止派发。该 YAML 是候选线格式。
+CapabilityContracts 使用稳定 Owner 身份、精确 callable ID 和 kind 标识成员。Compiler 查找该身份的所有成员记录，要求至少一个所属 Capability 已被 Skill Grant。仅对匹配且已 Grant 的成员解析 Scope。缺失或不可解析报 `CAPABILITY_SCOPE_UNRESOLVED`，静态可证的空交集报 `CAPABILITY_SCOPE_EMPTY_INTERSECTION`。未 Grant 成员无需解析 Scope，Effect 一致性检查仍适用。Scope 依赖实际 Runtime 参数时，在派发前裁决。多个已 Grant 成员同时匹配时，实际 Scope 取这些成员边界与 callable、Invocation 授权范围的交集。空交集禁止派发。未 Grant 成员只参与 Effect 一致性检查。候选线格式可用成员级 `scopePolicyRef` 指向部署发布的规则。所有匹配记录的 Effect 必须与 ToolCatalog 一致，包括未获 Grant 的记录。Effect 描述 callable 本身，Grant 仅决定访问资格。检查未获 Grant 的成员可在授权变动前发现同一 callable 的身份冲突，部署侧须修复冲突记录后重新链接。同一 Capability 内重复声明同一成员报 `CAPABILITY_MEMBERSHIP_DUPLICATE`，跨 Capability 的一致成员合法。Runtime 在派发时对可信部署契约重新执行同一 Effect 与授权检查。缺少 Grant、重复记录或 Effect 冲突时禁止派发。该 YAML 是候选线格式。
 
 ---
 
@@ -484,7 +484,7 @@ Postcondition     = map(predicate: PredicateId, arguments: list<Expression>,
                         goal?: GoalId, routes?: OutcomeRoutes)
 Operation         = ToolOperation | ScriptOperation | ReconcileOperation
 ToolOperation     = map(target: QualifiedCallableId, arguments: map<Name, Expression>,
-                        routes?: OutcomeRoutes)
+                        retryOf?: NodeId, routes?: OutcomeRoutes)
 ScriptOperation   = map(script: LocalScriptPath, arguments: map<Name, Expression>,
                         routes?: OutcomeRoutes)
 Observation       = map(target: QualifiedQueryId, arguments: map<Name, Expression>,
@@ -504,6 +504,8 @@ Node ID 与 `Identifier` 使用同一字符规则。Compiler 在解析 `start` �
 
 本版仅有单一 Procedure 图，不定义 entryProcedure、嵌套 ProcedureCall、通用 call、隐式 Step 或同名自动绑定。
 Compiler 必须设置文档字节数、嵌套深度、Alias 展开规模的有限上限，并在超限时拒绝输入。
+
+`context.request` 是根级保留路径。Host Schema 的嵌套对象可使用属性名 request。
 
 ## 11. Skill Contract 与 Procedure 源码
 
@@ -1163,7 +1165,21 @@ Runtime 只用可信且关联到本次原调用的证明记录提交状态。Own
 2. 没有安全契约时，OUTCOME_UNKNOWN 边必须直接指向 UNRESOLVED 或 SAFE_STOPPED。已有安全契约但当前不能派发时，Runtime 直接按 §12.8 停止。两种情况都保留原调用和责任。
 3. Reconcile 确认 COMMITTED 或 NOT_COMMITTED 时，更新原调用状态。若 COMMITTED 契约承诺恢复输出，只有有效的 Reconcile 自身输出才在 COMMITTED 后提供；提交已确认但承诺恢复的输出无效时，按 §20.1 的 COMMITTED_OUTPUT_UNAVAILABLE 停止。契约未承诺输出时，后续节点可以显式读取权威状态。原 Mutation 丢失的输出不可用。COMMITTED 只更新原调用的提交状态。要到达 SUCCEEDED，该路径仍须通过新的 Goal Postcondition PASS（§12.9）。
 4. Reconcile 缺少有效结论时沿 UNRESOLVED 边。该边必须直接指向 `UNRESOLVED` 或 `SAFE_STOPPED`，Runtime 按 §12.8 选择实际终态。普通业务查询不能替代原调用调和。
-5. 若另一个显式节点会重发同一业务 Mutation，只有它的每条到达路径都经过同一原调用的 NOT_COMMITTED 边（原 Mutation 或其 Reconcile）并持有 Owner 对该原调用的未提交证明，且该类别或调和证明明确允许重试并保证无遗留副作用时，才可派发。该记录是 §20.1 第三行的 Owner 证明，可来自原调用或其 Reconcile，Runtime 保存并复核它与原调用的关联。仅有边名或 Runtime 自记的状态不足以授予重试资格。是否为同一业务尝试按 Owner 契约定义的调用与业务身份判定，不能只比较图节点 ID。Compiler 检查该路径条件，Runtime 复核证明、Scope 和 Owner 的重试约束。
+5. 显式重发同一业务 Mutation 时，在普通 MUTATION Operation 上写 `retryOf: <original-mutation-node>`。目标必须是同一 Procedure 中另一普通 Mutation。Compiler 检查每条到达该重试 Operation 的可达路径均经过该目标原调用或其唯一 Reconcile 的 NOT_COMMITTED 边，且两侧链接到兼容的 Owner 业务身份规则及允许重试的契约。引用非法、覆盖不足或契约不兼容报 `RETRY_CONTRACT_INVALID`。Runtime 在派发前比较物化后的业务身份，复核原调用绑定、可信未提交证明、重试许可及无遗留副作用保证。失败时记 `RETRY_ADMISSION_DENIED`，按 §12.8 直接停止。未声明 retryOf 的 Mutation 在 Runtime 检出与本 Invocation 既有调用的业务身份相同，也必须拒绝重复派发。每条未提交证明至多授权一次实际新派发，由 Runtime 原子消费。一次新尝试获得独立调用身份。Compiler 不靠节点名称推断业务身份。
+
+### 20.3 Reconcile Owner 回包分类
+
+**Normative。** Reconcile Owner 业务结果集必须包含 SUCCEEDED，可声明 FAILED。该集合由调和 callable 自身发布。Runtime 分别校验回包分类、原调用绑定的提交证明和恢复输出。证据须来自该契约声明的证明位置及 Schema，并匹配持久化的原调用身份、业务身份、Scope 和 Correlation。
+
+| Owner 回包及独立证明 | Runtime 行为 |
+|---|---|
+| SUCCEEDED，可信证明已提交，承诺的恢复输出通过校验或未承诺恢复 | COMMITTED。仅发布已验证的恢复输出 |
+| SUCCEEDED，可信证明已提交，承诺的恢复输出缺失或不合法 | 记录已提交与 COMMITTED_OUTPUT_UNAVAILABLE，隔离输出，按 §12.8 直接停止 |
+| SUCCEEDED，可信证明未提交 | NOT_COMMITTED。重试许可与无遗留副作用保证单独校验 |
+| 已声明 FAILED、超时或证明不足、冲突 | 经独立验证且无冲突的提交结论仍记录。无有效结论时沿 UNRESOLVED，保留原调用责任。若独立证明已确定结论但回包无法进入正常分支，按 §12.8 直接停止 |
+| 未声明或不可识别的 Owner 结果（包括 Owner 自行返回 COMMITTED / NOT_COMMITTED / UNRESOLVED） | 隔离回包，保存可独立验证的原提交状态与责任，按 §24.2、§12.8 直接停止 |
+
+**Candidate。** §9.2.1 的 `reconcile` 示例可引用单独发布的调和 callable。该 callable 的结果集、证明路径与原调用绑定均须可解析，不能用恢复输出替代提交证明。
 
 ## 21. 异步 Operation：没有 Skill Wait
 
@@ -1197,6 +1213,18 @@ Predicate 的 PASS 表示命题得到充分支持。FAIL 表示命题被充分�
 普通 callable 的 Owner 业务结果为 SUCCEEDED、FAILED，以及仅 Mutation 可用的 NOT_COMMITTED。Owner 必须声明 SUCCEEDED，其余按支持情况声明。Runtime 保留普通 callable 的 DENIED、READ / Observation 的 UNKNOWN，以及 Mutation 的 OUTCOME_UNKNOWN。Owner 不得声明或返回这些 Runtime 结果。Reconcile 的 COMMITTED、NOT_COMMITTED、UNRESOLVED 是 Runtime 验证调和证明后产生的阶段结果。Predicate 和 Procedure Script 仍采用表中的完整集合。
 
 普通 callable 的允许路由键是已声明 Owner 结果与适用 Runtime 保留结果的并集。Owner 的非正常结果及 Mutation 的 OUTCOME_UNKNOWN 必须显式路由；DENIED 与 READ / Observation 的 UNKNOWN 路由可选，省略时按 §24.2 停止。正常结果在末阶段必填，在非末阶段自动推进且禁止显式声明。全局 CANCELLED 与 DEADLINE_EXCEEDED 直接停止，不作为路由键。未知或未声明的 Owner 回包按 §24.2 隔离并停止。Compiler 构图时对省略的可选 Runtime 路由建模为直接停止，不传播成功证明。
+
+### 22.1 路由矩阵
+
+| 阶段 | 正常结果：非末 / 末 | 必须显式配置的其余结果 | 可选结果 |
+|---|---|---|---|
+| Precondition / Postcondition | PASS：禁止 / 必填 | FAIL、UNKNOWN | 无 |
+| Procedure Script | SUCCEEDED：禁止 / 必填 | FAILED | 无 |
+| READ / Observation | SUCCEEDED：禁止 / 必填 | 已声明的 Owner FAILED | Runtime DENIED、UNKNOWN |
+| Mutation | SUCCEEDED：禁止 / 必填 | 已声明的 Owner FAILED、NOT_COMMITTED，以及 Runtime OUTCOME_UNKNOWN | Runtime DENIED |
+| Reconcile | COMMITTED：禁止 / 必填 | NOT_COMMITTED、UNRESOLVED | 无 |
+
+缺必填键报 ROUTE_OUTCOME_MISSING。可选 Runtime 边省略时直接进入 §12.8 的终态裁决，并保留诊断和责任。显式配置非末阶段的正常键报 ROUTE_NORMAL_OUTCOME_NOT_ALLOWED。Script FAILED 缺边的 §24.2 处理仅用于异常 Artifact。Studio 补全和 Compiler 校验应共用本矩阵。
 
 ## 23. 并发、UE 与 Session 隔离
 
@@ -1243,7 +1271,7 @@ Environment
 | CONTROL_FLOW_CYCLE | vNext DAG 中出现循环或 back-edge | 阻止构建 |
 | SOURCE_PATH_INVALID | SourcePath 使用未支持的根、索引、动态表达式或未声明的 Schema 路径段 | 阻止构建 |
 | CONTROL_FLOW_DANGLING | 路由值既非终态也未解析到现有 Node | 阻止构建 |
-| CONTROL_FLOW_AMBIGUOUS | 同一 Operation 阶段声明多种调用目标 | 阻止构建 |
+| CONTROL_FLOW_AMBIGUOUS | 同一 Operation 阶段同时声明多个互斥调用目标。重复 YAML 阶段键由解析器先拒绝 | 阻止构建 |
 | DEPENDENCY_REQUIREMENT_INVALID | dependencies 的值不是稳定 Package ID 字符串 | 阻止构建 |
 | DEPENDENCY_ALIAS_MISSING | SourcePath / Schema 引用的 Alias 未在 Contract 声明 | 阻止构建 |
 | DEPENDENCY_SNAPSHOT_MISSING | Contract 声明的实际使用依赖没有 Snapshot | 阻止构建 |
@@ -1273,6 +1301,9 @@ Environment
 | EVIDENCE_GUARANTEE_LINK_INVALID | `provides` 无法解析到唯一保证描述符，或 Producer、Outcome、值路径或实参引用不匹配 | 阻止构建 |
 | PREDICATE_EVIDENCE_REQUIRED | 来源按 §17.1 要求保证，但对应参数未声明 | 阻止构建 |
 | PREDICATE_EVIDENCE_UNSATISFIABLE | 参数绑定无法提供所声明的 Evidence 保证或缺少可验证的关联约束 | 阻止构建 |
+| RETRY_CONTRACT_INVALID | retryOf 引用非法、路径覆盖不足或身份及重试契约不兼容 | 阻止构建 |
+| CAPABILITY_SCOPE_UNRESOLVED | 已 Grant 成员的 Scope 丢失或无法链接 | 阻止构建 |
+| CAPABILITY_SCOPE_EMPTY_INTERSECTION | 已 Grant 成员的交集静态可证为空 | 阻止构建 |
 | RECONCILE_CONTRACT_INVALID | `OUTCOME_UNKNOWN` 的目标与安全调和契约不符，Reconcile Node 声明了 Precondition、被用作 `start` 或入边不符合 §20.2，原调用无法绑定，或 Reconcile 的 `UNRESOLVED` 未直接指向 `UNRESOLVED` / `SAFE_STOPPED` | 阻止构建 |
 | CAPABILITY_NOT_GRANTED | 未授予 Capability | 阻止构建 |
 | CAPABILITY_MAPPING_MISSING | callable 没有任何 Capability 成员记录 | 阻止构建 |
@@ -1299,7 +1330,7 @@ Compiler 不得为让文件编译而创建不存在的 Schema、用 object 逃�
 | AUTHORIZATION_DENIED | 派发前，普通 Tool Operation / Observation | 有已声明 DENIED 边则走该边，否则直接停止 |
 | AUTHORIZATION_DENIED | 派发前，Reconcile / Procedure Script | 直接停止 |
 | TOOL_UNAVAILABLE、OWNER_CONTRACT_UNAVAILABLE | 已派发 READ / Observation，结果不可验证 | 有已声明 UNKNOWN 边则走该边，否则按事实不确定停止 |
-| TOOL_UNAVAILABLE、OWNER_CONTRACT_UNAVAILABLE | 已派发 Mutation / Reconcile | 分别按 §20.1 / §20.2 核验独立证明，保留原调用及责任。Reconcile 无有效提交结论时沿 UNRESOLVED 边 |
+| TOOL_UNAVAILABLE、OWNER_CONTRACT_UNAVAILABLE | 已派发 Mutation / Reconcile | 分别按 §20.1 / §20.2 核验独立证明，保留原调用及责任。Reconcile 按 §20.3 分类 |
 | SCRIPT_EXECUTION_FAILED、OUTPUT_SCHEMA_INVALID | Procedure Script 已调用 | 隔离输出，沿 FAILED 边。执行图异常缺边时按确定执行错误停止 |
 | Owner 返回未声明或不可识别的 Outcome | 任何已派发外部调用 | 隔离输出并停止。Mutation / Reconcile 按 §20 判定并记录提交状态及责任，随后直接按 §12.8 停止 |
 
@@ -1328,6 +1359,10 @@ Compiler 不得为让文件编译而创建不存在的 Schema、用 object 逃�
 | ADMISSION_CONTEXT_INVALID | Host Context 必需字段缺失、Schema 校验失败或关联引用未通过 Host 准入校验时拒绝启动 |
 | ACTION_BUDGET_EXCEEDED | 不启动下一次 Action；保留已发生的外部副作用及未决调用责任，按 §12.8 停止 |
 | CONCURRENT_MODIFICATION | 校验 Scope 和版本；失败时不派发新动作，按 §12.8 停止 |
+
+派发前 Scope 策略不可读取或实际交集为空时，分别记录 `SCOPE_POLICY_UNAVAILABLE` 或 `SCOPE_INTERSECTION_EMPTY`。普通 callable 有 DENIED 边则走该边，否则按 §12.8 直接停止。Reconcile 直接停止并保留原调用责任。
+
+§12.8 的终态取决于状态。前置条件证据缺失或不可判定时，无已知待处置资源则候选 UNRESOLVED；已有充分证据证伪且提交状态确定时可候选 FAILED。已有已确认且待处置资源时，局部门禁失效优先为 SAFE_STOPPED。COMMITTED_OUTPUT_UNAVAILABLE 表示已知变更，按 §20.1 安全停止。DUPLICATE_RESOURCE 本身不决定提交状态，按 §20.1 判定。
 
 ## 25. 典型业务异常
 
@@ -1962,6 +1997,8 @@ Schema 的语义标准是受支持子集的 JSON Schema；JSON 与 YAML 只是�
 - “嵌入可达闭包还是保留外部引用”以及具体文件序列化格式属于独立的 Compiler / Deployment Artifact 设计，不阻塞本轮 CA-SL 语法评审。
 
 Compiler MUST NOT 联网获取依赖、管理版本 / Lock / Cache / Workspace、执行 Python、执行 Tool 或声称 Runtime READY。
+§34 的抽象绑定按 Skill 作用域建立：每个被引用的 Contract Alias 必须由调用方显式绑定到唯一快照身份，允许复用 Workspace 快照，但不得由同名自动推断。多 Owner 导出归属与该快照的可信身份及摘要绑定。BuildRequest 契约定义 Workspace 标识的字段名（现有 dependencyId）、路径大小写、分隔符及非法路径拒绝规则；CA-SL 定义链接所需的唯一性和身份校验。
+
 ## 35. Skill Studio 与 LSP
 
 Skill Studio 是 CA-SL 作者工作环境，不是第二个语言实现。应提供：
@@ -2082,7 +2119,9 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 
 ## 45. 冻结门槛
 
-设计方向通过评审，冻结审定暂缓。E.9 中 E67–E83 的阻断规则须有适用的 Compiler 或 Runtime 验收记录。
+本次评审认可设计方向，冻结审定仍不通过。先审定抽象语义，再审定候选线格式，最后验收 Compiler、Runtime、Trace、Studio 与 Native/WASM 一致性。§9.2、§9.3、§17.1 和 §34.0 的候选输入须由适用版本的解码器转换为抽象契约后再运行规范性校验。依赖具体字段名或装配格式的 E.3、E.4 及其变体随相应线格式验收。
+
+设计方向通过评审，冻结审定暂缓。E.9 中 E67–E89 的阻断规则须有适用的 Compiler 或 Runtime 验收记录。
 
 1. 术语与概念模型评审；
 2. ToolCatalog Operation / Observation typed callable 结构定稿；
@@ -2289,6 +2328,10 @@ Compiler 对所有声明检查路由目标和 Reconcile 唯一跨 Node 入边。
 
 单文件便于将评审意见定位到规则和用例。附录 E 给出验收预期，实际符合性由 Compiler / Runtime 验收记录确认。
 
+## 90. 为什么局部 Predicate PASS 不缩窄 SourcePath 类型？
+
+PASS 是 Runtime 对当前命题的判断。Compiler 使用 Producer 成功 Schema 所保证的字段集合。需要该引用时，应由 Owner 将字段声明为必需，或传递外层对象交给 Procedure Script 显式处理缺失，也可使用权威 Observation 获得保证存在的引用。见 §13.3、E89。
+
 # 附录 A：关键设计决定
 
 | ID | 决定 | 说明 |
@@ -2379,6 +2422,13 @@ Compiler 对所有声明检查路由目标和 Reconcile 唯一跨 Node 入边。
 # 附录 E：独立的最小链接样例与负例清单
 
 本附录给出一组独立的虚构 Owner 数据，用于评审静态链接和 Runtime 判定。E.1–E.4 的 YAML 及装配规则构成完整的逻辑输入。装配到具体 BuildRequest 线格式属于适配层。这里的 `urn:example` 身份仅用于该用例。
+
+| 子节 | 输入效力 | 预期与用途 |
+|---|---|---|
+| E.1、E.2、E.8 | informative Fixture | 预期由 normative 源码、Schema 和证明规则决定 |
+| E.3、E.4 | candidate 线格式、装配与 informative 数据 | 解码后的链接、Evidence 与授权规则为 normative |
+| E.5–E.7、E.9 | informative 验收设计 | 引用的诊断或行为由 normative 规则决定；具体字段、拼写或装配的变体是 candidate 格式验收 |
+| E.10、E.11 | informative 验收矩阵和索引 | 不代表实现已经通过 |
 
 ## E.1 Skill 作者源码
 
@@ -2598,7 +2648,7 @@ expected:
   terminal: SUCCEEDED
 ~~~
 
-## E.5 必须存在的正负例
+## E.5 符合性用例与预期结果
 
 | 场景 | 应产生的结果 |
 |---|---|
@@ -2810,6 +2860,13 @@ predicates:
 | E82 | 分别核验 FAILED 类别、不可重试 NOT_COMMITTED 类别、可重试且无遗留副作用的 NOT_COMMITTED 类别 | 仅第三类可按 §20.2 走受控新尝试 |
 | E83 | Goal PASS 后经局部 Predicate 的 FAIL 或 UNKNOWN，分支直接指向停止终态 | 构建允许，Runtime 按 §12.8 发布停止终态 |
 
+| E84 | 分别省略 Predicate 的 FAIL、UNKNOWN 或 Procedure Script 的 FAILED 路由 | 各自报 ROUTE_OUTCOME_MISSING |
+| E85 | retryOf 的路径全部经过原调用 NOT_COMMITTED，再加入一条绕过该边的到达路径 | 正例通过路径检查，绕过者报 RETRY_CONTRACT_INVALID。Runtime 对证明和业务身份独立验收 |
+| E86 | §20.3 的 SUCCEEDED 分别绑定已提交、未提交、不充分和错误原调用的证明。另测未声明的 Owner 结果与恢复输出违规 | 按映射表产生阶段结果或停止，并保留责任及已验证的提交状态 |
+| E87 | E81 分别让已 Grant 成员缺少 Scope、静态交集为空、未 Grant 成员缺少 Scope | 前两者分别报 CAPABILITY_SCOPE_UNRESOLVED、CAPABILITY_SCOPE_EMPTY_INTERSECTION，第三种允许链接 |
+| E88 | 静态 Scope 可链接，但 Runtime 策略不可读取或当前交集为空 | 分别产生 SCOPE_POLICY_UNAVAILABLE、SCOPE_INTERSECTION_EMPTY，按 §24.2 停止或沿 DENIED |
+| E89 | 成功输出的 policyAssociationRef 可缺失，局部 PASS 后直接绑定。对照成功输出将该字段声明为必需并保留同一绑定 | 反例 SOURCE_NOT_AVAILABLE，正例在其余契约有效时通过 |
+
 ### E.10 证明传播验收矩阵
 
 | 边 | passed | proof | 用例 |
@@ -2828,5 +2885,7 @@ predicates:
 | §22 路由覆盖 | ROUTE_OUTCOME_MISSING | E55、E76 |
 | §20.2 Reconcile 跨 Node 入边 | RECONCILE_CONTRACT_INVALID | E60 |
 | §9.3 Capability 成员 | EFFECT_MISMATCH / CAPABILITY_MEMBERSHIP_DUPLICATE | E72 |
+
+§22.1 路由覆盖见 E84，§20.2 重试契约见 E85，§20.3 调和结果见 E86，§9.3 和 §24.2 Scope 诊断见 E87–E88。
 
 **规范结束。**
