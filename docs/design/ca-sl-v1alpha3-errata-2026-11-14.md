@@ -5,7 +5,7 @@
 **Normative source:** [中文完整规范](../skill-language-spec.zh-CN.md)  
 **Frozen target:** CA-SL vNext / API v1alpha3; §45.2 product conformance remains **NOT QUALIFIED**.
 
-This errata follows the independent review after v1alpha3 was merged as PR #24. It corrects cross-references and explains how existing refusal/authority rules apply to the teaching model. **It does not grant new provenance, enable an unknown Owner outcome, relax Reconcile authorization, or change the final status algorithm.** Any actual change to permitted identity sources, Owner proof semantics, or Reconcile output visibility would require a separately reviewed v1alpha4 (or later) contract, not silent v1alpha3 edits.
+This errata follows the independent review after v1alpha3 was merged as PR #24. A [second post-freeze errata review](ca-sl-v1alpha3-errata-2026-11-14-r2.md) closes the later diagnostic, trust-input and terminology findings while preserving the frozen language version. It corrects cross-references and explains how existing refusal/authority rules apply to the teaching model. **It does not grant new provenance, enable an unknown Owner outcome, relax Reconcile authorization, or change the final status algorithm.** Any actual change to permitted identity sources, Owner proof semantics, or Reconcile output visibility would require a separately reviewed v1alpha4 (or later) contract, not silent v1alpha3 edits.
 
 ## Classification and resolution of the ten findings
 
