@@ -2,8 +2,8 @@
 
 **中文名称：** ConnectionAgent Skill 语言规范  
 **简称：** CA-SL  
-**目标版本：** vNext / API v1alpha3  
-**状态：** FROZEN — CA-SL vNext / API v1alpha3（语言与互操作规范；产品实现 NOT QUALIFIED）  
+**目标版本：** `connectionagent.io/v1alpha3`（简称 v1alpha3；`vNext` 仅为资料性系列别名）  
+**状态：** FROZEN — CA-SL v1alpha3（语言与已规定的互操作语义；产品实现 NOT QUALIFIED）  
 **规范所有者：** odango-chan/ca-skills  
 **适用对象：** Skill 作者、Skill Studio、Compiler、Agent Host / Runtime、Tool Owner、Schema Owner、语言服务及符合性评审机构  
 **更新日期：** 2026-11-14
@@ -12,7 +12,7 @@
 
 **规范性用语。** MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT、MAY、OPTIONAL 按 RFC 2119 和 RFC 8174 解释。相应中文规范性措辞包括“必须”“不得”“应当”“不建议”“可以”。
 
-**变更记录。** [勘误记录（一）](design/ca-sl-v1alpha3-errata-2026-11-14.md)、[勘误记录（二）](design/ca-sl-v1alpha3-errata-2026-11-14-r2.md)、[诊断追溯与 PSI 身份来源勘误](design/ca-sl-v1alpha3-diagnostic-trace-errata.md)、[互操作与实现基准澄清](design/ca-sl-v1alpha3-interop-clarifications-2026-11-14.md)、[Reconcile 与 Runtime 诊断归属勘误](design/ca-sl-v1alpha3-reconcile-runtime-errata-2026-11-14.md)、[Evidence 来源与 Scope/Schema 闭合性勘误](design/ca-sl-v1alpha3-evidence-source-and-routing-errata.md)、[编辑性澄清第三轮](design/ca-sl-v1alpha3-editorial-closure-2026-11-14.md)、[互操作审计与符合性分流澄清](design/ca-sl-v1alpha3-interop-audit-2026-11-14.md)、[Receipt 通道锚点与规范权威性审计](design/ca-sl-v1alpha3-receipt-anchor-audit-2026-11-15.md)。勘误不改变 v1alpha3 的规范性语义；产品符合性状态见 §45.2。
+**变更记录。** [勘误记录（一）](design/ca-sl-v1alpha3-errata-2026-11-14.md)、[勘误记录（二）](design/ca-sl-v1alpha3-errata-2026-11-14-r2.md)、[诊断追溯与 PSI 身份来源勘误](design/ca-sl-v1alpha3-diagnostic-trace-errata.md)、[互操作与实现基准澄清](design/ca-sl-v1alpha3-interop-clarifications-2026-11-14.md)、[Reconcile 与 Runtime 诊断归属勘误](design/ca-sl-v1alpha3-reconcile-runtime-errata-2026-11-14.md)、[Evidence 来源与 Scope/Schema 闭合性勘误](design/ca-sl-v1alpha3-evidence-source-and-routing-errata.md)、[编辑性澄清第三轮](design/ca-sl-v1alpha3-editorial-closure-2026-11-14.md)、[互操作审计与符合性分流澄清](design/ca-sl-v1alpha3-interop-audit-2026-11-14.md)、[Receipt 通道锚点与规范权威性审计](design/ca-sl-v1alpha3-receipt-anchor-audit-2026-11-15.md)、[摘录评审与冻结范围澄清](design/ca-sl-v1alpha3-excerpt-review-scope-2026-11-15.md)。勘误不改变 v1alpha3 的规范性语义；产品符合性状态见 §45.2。
 
 ---
 
@@ -30,7 +30,22 @@ CA-SL vNext / v1alpha3 的作者源码语法、静态语义、运行语义、附
 | `connectionagent.io/v1alpha3` | 本版语言目标的精确标识；构建时仍由 BuildRequest 明确指定 | 规范性目标 |
 | `API v1alpha3` | 本文规定的抽象互操作语言版本，不等于所有外部 Owner、BuildRequest 或 Artifact 协议均采用同一版本 | 规范性语义边界 |
 | `FROZEN` | 本版已冻结语言语法、链接和运行语义；语义变更按 §45.1 升版 | 语言状态 |
-| `NOT QUALIFIED` | §45.2 的独立产品符合性门槛尚未完成，不得推断 Compiler、Studio、Host、Tool Owner 或真实 5GC 已通过验收 | 产品状态 |附录 E 中的示例数据和测试装配为资料性内容（Informative），其明确规定的预期诊断和行为具有规范性效力。
+| `NOT QUALIFIED` | §45.2 的独立产品符合性门槛尚未完成，不得推断 Compiler、Studio、Host、Tool Owner 或真实 5GC 已通过验收 | 产品状态 |
+
+附录 E 中的示例数据和测试装配为资料性内容（Informative），其明确规定的预期诊断和行为具有规范性效力。
+
+**冻结范围及规范效力（交叉索引）：**
+
+| 规范内容 | 本版效力及唯一判定入口 |
+|---|---|
+| Contract / Procedure / PredicateSet 作者源码、阶段与图、SourcePath、Evidence、Reconcile 和终态 | **Normative、FROZEN**；§10–§24 与附录 G.1–G.9。§22.1 决定必需路由键；§24.1/§24.2 决定触发规则，附录 H 决定 `(Code, Phase)` 诊断身份及分类 |
+| ToolCatalog、CapabilityContracts、Evidence Descriptor 等已声明的抽象互操作逻辑属性 | **Normative、FROZEN**；附录 F/G 与 §9/§17/§34 共同规定；实际 Owner 发布与可信传输格式按独立版本契约和 §45.2 验收 |
+| 附录 E 的测试示例及组装数据 | **Informative 示例数据**；其明确写出的预期诊断和结果 **Normative**，不得因示例使用教学 Owner 身份而推断真实发布物已存在 |
+| §28–§31 的 5GC 教学 Procedure、Schema、CEL 片段及 §9 的示意 Owner ID | **Informative 教学数据**；引用的通用语义仍依对应 Normative 条款，示例的 Host/Owner 假设须在真实发布前独立验证 |
+| Skill Eligibility / Root Routing 的选中算法和完整 `Applicability` YAML 作者语法 | **未在 v1alpha3 作者源码语法中定义或冻结**；属于独立 Host/Root Routing 契约。§12.8 已冻结的“不能唯一匹配则拒绝准入”安全要求仍有效，但不得把此条件误认作完整选择协议已发布；不得默许旧 `applicability.when` |
+| Compiler Artifact、Runtime Trace、BuildRequest 的物理 framing/运输及真实 Tool Owner 的发布物 | **由各自版本契约拥有**；不得从 CA-SL FROZEN 推断其序列化格式或产品符合性已通过 |
+
+**规范文件完整性。** 附录 E（测试预期）、F（互操作字段）、G（闭合性补充）、H（诊断索引），以及 §30–§45 均属于**本文件的组成部分**；第十一部分 §46–§91 为资料性技术问答/设计说明，不存在必须另行读取的独立规范性 FAQ。它们并非缺失的外部规范性附件。仅摘取 §0–§29 或截断 CEL 片段不能用于替代完整文本的符合性评审；权威的精确文件为 `docs/skill-language-spec.zh-CN.md` 的受审提交版本。
 
 BuildRequest 传输格式、Compiler Artifact、Runtime Trace 及 Tool Owner 发布物分别受其自身的版本契约管理。本文件的冻结状态不构成上述产品或发布物通过符合性验收的证明。历史 v1alpha2 冻结记录及 v1alpha3 修订记录不覆盖本文件；互操作字段以附录 F/G 为准。
 
@@ -943,7 +958,7 @@ Trace 记录选中的终态路由和实际发布值。两者不同时另记 `TER
 
 Host 在派发 Mutation 前记录原调用身份和负责处理结果的 Owner / 责任引用。终态按发布时已接纳的状态判定；迟到结果由已登记责任方继续处理，并追加到责任记录。停止时持久化已有资源句柄、责任引用、未决调用与停止原因；即使没有已知资源，未知尝试的迟到结果责任也必须保留。后续清理或移交由已授权的 Owner 负责。
 
-Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时必须拒绝准入，不得采用随机选择或隐式默认目标。Procedure Predicate 仅判定业务条件，不负责 Skill 身份选择。完整 Applicability YAML 语法需要与 Root Routing 契约统一冻结；历史 applicability.when 不作为隐式兼容语法。
+Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时必须拒绝准入，不得采用随机选择或隐式默认目标。Procedure Predicate 仅判定业务条件，不负责 Skill 身份选择。**本版没有 `Applicability` 作者级 YAML 字段、Root Routing 选择算法或匹配优先级的完整规范，不能凭本版源码构造出这些字段。** 它们应在独立版本化的 Root Routing 契约中冻结；其发布之前 Host 必须采用本版已定义的拒绝歧义安全条件，而不得从缺失的选择协议推断某 Skill 默认适用。历史 `applicability.when` 不作为隐式兼容语法（§0、§10.1、§45.1）。
 
 ### 12.9 全局前置条件、最终验收与控制流
 
@@ -1185,6 +1200,8 @@ SourcePath 可选字段、Evidence 重验及 Owner Schema 投影的作者模式�
 **规范性说明。** 保证身份、适用性、证据判定与 E.3 描述符 DSL 的字段语义均按附录 F.3 冻结。文件组织不是跨包导出身份；真实 Owner 记录仍须验证。
 
 Predicate 的 `parameters` 声明业务值类型。`evidence.requires` 可选，是参数名到一组非空、无重复的精确 `alias::guaranteeId` 的映射；只允许引用已声明参数。每个列出的保证至少由一条有效 Evidence Ref 满足，列表全部满足才成立。需要独立证据时，引用不同保证并用 Owner 声明的独立来源约束校验，见 §17.1.1 与 §17.2。**省略某个已声明 Predicate 参数对应的 `evidence.requires` 条目**，仅在该参数于所有调用点的实参均满足下列来源豁免时合法；这里并非允许省略 `parameters` 参数或缩短 `arguments` 列表（两者仍受 §14 的严格 arity 约束）。**显式声明的 `evidence.requires` 优先于来源豁免：** 一旦为参数声明了任何保证，该参数在**每一个调用点**仍必须提供并通过这些保证；`context.ueRef`、`context.request.*`、字面量等来源豁免仅表示**在所有调用点均属可豁免来源时，允许不声明该参数的 `requires`**，绝不覆盖或取消已经声明的保证。若显式保证在某调用点静态无法满足，按 §17.2 报 `PREDICATE_EVIDENCE_UNSATISFIABLE`；静态可满足而本次执行缺少或无法验证有效记录时，Predicate 为 `UNKNOWN`。同一参数在不同调用点混用可豁免与非豁免来源而不声明保证，仍须报 `PREDICATE_EVIDENCE_REQUIRED`。不得通过优先级调整将任何声明的保证变为可选。
+
+**省略 `requires` 的两种教学对照（Informative，不新增豁免）：** 若 Predicate 声明 `parameters: [{expectedPsi: integer}]`、省略该参数的 `evidence.requires`，且每个调用点都仅绑定 `context.request.pduSessionId` 等 §17.1 允许豁免的来源，**仅就 Evidence 声明**可通过（业务类型和 Scope/身份来源另按 §13.3 校验）。反例是同一个 Predicate 的任何调用点改绑 `observe-session.observation.output.psi`：即使其他调用点仍绑定请求字段，该输出属于权威外部 Producer，缺少覆盖其值路径的显式保证必须报 `PREDICATE_EVIDENCE_REQUIRED`；不能因为其他调用点豁免而忽略它。若已声明 `requires`，两种来源在每个调用点都必须实际满足该保证。
 
 Compiler 按来源判定每个调用点的实参，覆盖所有可达路径。直接引用普通 Tool Operation、Observation 或 Reconcile 输出的实参必须为对应参数声明至少一个覆盖精确值路径的保证，即使该值仅用于比较。Host Context 字段同样要求保证，但请求字段 `context.request.*`、Host 已校验的身份 `context.ueRef`、关联信息 `context.correlation.*` 及其根对象 `context.correlation` **在未为相应参数显式声明保证时**可作为比对输入豁免。字面量和整个已校验的 `context.request` 也可豁免。此检查只约束参数来源。若 Goal 声明外部事实，Owner 须审定 Predicate 的命题与取证路径确实支持该 Goal。
 
@@ -1671,6 +1688,8 @@ nodes:
 这两个文件的职责不能合并：由 Contract 声明 Goal、全局前置条件、公共 Schema、依赖与 Capability Grants；只有 Procedure 承载执行图和最终 Postcondition。此处的 urn:example 身份是教学样例，不宣称真实 Owner 已发布或可以通过当前 Compiler 链接。完整可链接的目标样例需要 Owner 正式快照和 §34 的身份校验。
 
 ## 29. PredicateSet
+
+**教学示例（Informative）。** 本节的谓词参数与 CEL 片段属于 5GC 示例；其中 `expectedSessionInstanceRef` 必须与参数列表的精确名称一致，不能把截断文本里的 `expected` 当成已声明变量。无论示例是否完整，实际 Compiler 仍依 G.4 检查 CEL 输入和静态 boolean 约束。
 
 ~~~yaml
 predicates:
