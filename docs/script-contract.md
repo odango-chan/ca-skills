@@ -29,7 +29,7 @@ Rules:
 - A Procedure Script is pure and deterministic. It cannot access network, HTTP, MCP, shell, database, filesystem, credentials, environment variables, clock or randomness.
 - It cannot perform external side effects, declare Tool IDs, Capability IDs or READ/MUTATION Effect.
 - Host / Runtime owns sandboxing, resource budget, deadline and cancellation.
-- The function returns business data. Runtime emits SUCCEEDED after validating the return value against the derived Output Schema. An explicit exception or a return value that violates the Output Schema produces FAILED without a successful output. Runtime gives global cancellation and deadlines priority. See CA-SL §§24.2 and 32.1.
+- The function returns business data. Runtime emits SUCCEEDED after validating the return value against the derived Output Schema. Runtime emits FAILED with `SCRIPT_EXECUTION_FAILED` when the function raises an exception. A normal Python return that violates the derived Output Schema, including a non-mapping value, produces FAILED with `OUTPUT_SCHEMA_INVALID`. Both failure paths leave the successful output unavailable. Runtime gives global cancellation and deadlines priority. See CA-SL §§24.2 and 32.1.
 
 ## 2. Predicate Script
 

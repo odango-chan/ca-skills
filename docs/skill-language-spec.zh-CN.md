@@ -834,7 +834,9 @@ Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时不�
 - 全局 Postcondition 要求证明 Contract 的单一 `goal`。`postcondition.goal` 必须精确匹配该 Goal，其 PASS 建立证明。各成功分支可以由不同 Node 的 Postcondition 建立证明。`start` 可指向带有 Goal Postcondition 的 Node。若同一验收需要同时检查多项事实，可在一个 Predicate 中明确组合判断。
 - Runtime 发布 SUCCEEDED 前复核全部全局前置条件、当前 Goal 证明的来源与 Evidence，以及资源责任。所有门禁复核都使用原绑定和最新校验时间。若缺少要求的 PASS 或复核失败，按 §12.8 停止，保留原 Trace。Runtime 不隐式重新求值、查询、换绑证据或回退到更早的 Goal 证明。失败或停止终态按 §12.8 发布，无需全局 PASS 或 Goal 证明。
 
-Compiler 构建以 `(Node ID, 阶段名)` 为顶点的分析图。每个合法 Outcome 对应一条边，边记录来源顶点、Outcome 与目标。若还有后续阶段，正常 Outcome 生成一条自动推进边，目标为同一 Node 的下一已声明阶段。其他边来自 `routes`，目标为另一 Node 的首个阶段或终态。两种边都按来源阶段和 Outcome 应用相同的门禁及证明更新规则。伪代码中的 `vertex.effect` 是普通 Tool Operation 经过链接校验的 Effect，只在普通 Tool Operation 的阶段顶点上有值。Reconcile 和 Procedure Script 的该值为空。此处不增加作者源码字段。Compiler 先更新边上的状态，再检查每条可达的 `SUCCEEDED` 终态边。最后阶段的 Goal PASS 因此可以直接证明同一条成功边。入口顶点是 `start` Node 的第一个已声明阶段，进入时没有已通过的全局前置条件，也没有 Goal 证明。可达图是从该入口经显式路由和自动推进得到的可达闭包，包含所有可达阶段及其出边，包括终态边。不可达阶段的出边不参与任何汇合。每个可达的非入口阶段至少有一条来自可达阶段的入边。汇合点仅对这些入边计算已通过条件的交集和 Goal 证明的 AND。不可达 Node 另报 `UNREACHABLE_NODE`。若存在可达 SUCCEEDED 且没有可达的 Goal Postcondition，报告 `FINAL_POSTCONDITION_MISSING`；否则缺少证明的成功路径报告 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`。任一受保护的 Mutation 或成功终态绕过全局前置判断的 PASS 时，报告 `ENTRY_PRECONDITION_BYPASSED`。
+Compiler 构建以 `(Node ID, 阶段名)` 为顶点的分析图。每个合法 Outcome 对应一条边，边记录来源顶点、Outcome 与目标。若还有后续阶段，正常 Outcome 生成一条自动推进边，目标为同一 Node 的下一已声明阶段。其他边来自 `routes`，目标为另一 Node 的首个阶段或终态。两种边都按来源阶段和 Outcome 应用相同的门禁及证明更新规则。伪代码中的 `vertex.effect` 是普通 Tool Operation 经过链接校验的 Effect，只在普通 Tool Operation 的阶段顶点上有值。Reconcile 和 Procedure Script 的该值为空。下文的 READ Operation 指链接后的 Effect 为 READ 的普通 Tool Operation。此处不增加作者源码字段。Compiler 先更新边上的状态，再检查每条可达的 `SUCCEEDED` 终态边。最后阶段的 Goal PASS 因此可以直接证明同一条成功边。入口顶点是 `start` Node 的第一个已声明阶段，进入时没有已通过的全局前置条件，也没有 Goal 证明。可达图是从该入口经显式路由和自动推进得到的可达闭包，包含所有可达阶段及其出边，包括终态边。不可达阶段的出边不参与任何汇合。每个可达的非入口阶段至少有一条来自可达阶段的入边。汇合点仅对这些入边计算已通过条件的交集和 Goal 证明的 AND。不可达 Node 另报 `UNREACHABLE_NODE`。若存在可达 SUCCEEDED 且没有可达的 Goal Postcondition，报告 `FINAL_POSTCONDITION_MISSING`；否则缺少证明的成功路径报告 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`。任一受保护的 Mutation 或成功终态绕过全局前置判断的 PASS 时，报告 `ENTRY_PRECONDITION_BYPASSED`。
+
+Compiler 在证明传播前按 §12.7 和 §24.1 校验 `start`。入口无效时报告相应错误，跳过以下证明传播。
 
 ~~~text
 required = set(contract.preconditions or empty list)
@@ -1228,7 +1230,7 @@ Compiler 不得为让文件编译而创建不存在的 Schema、用 object 逃�
 ### 24.2 Runtime 异常
 
 回包无法解码时，记录 `RESPONSE_DECODE_FAILED`，再按调用类型处理。已派发 Mutation 在缺少独立有效提交证明时沿 OUTCOME_UNKNOWN；有独立提交证明时按 §20.1 处理，承诺的输出不可用时安全停止。
-下表中的异常码用于诊断，与阶段 Outcome 和 Invocation 终态分别记录。READ / Observation 回包无法支持该次查询结果时隔离输出，沿 Owner 契约的 UNKNOWN 边；没有该边时按关键事实不确定停止。Procedure Script 抛出异常时记录执行失败并沿 FAILED 边。返回值不符合已链接的 TypedDict 输出 Schema 时记录 `OUTPUT_SCHEMA_INVALID`，隔离该结果并沿 FAILED 边。两种情况都不产生成功输出。若执行图异常导致没有 FAILED 边，按确定执行错误停止。若异常发生在新动作派发前，只有 `DENIED` 等由契约声明的派发前 Outcome 可沿图路由；门禁失效、全局限制和 Reconcile 无法派发直接按 §12.8 停止。全局取消、Deadline 和预算限制优先于继续沿图派发。
+下表中的异常码用于诊断，与阶段 Outcome 和 Invocation 终态分别记录。READ / Observation 回包无法支持该次查询结果时隔离输出，沿 Owner 契约的 UNKNOWN 边；没有该边时按关键事实不确定停止。Procedure Script 抛出异常时记录 `SCRIPT_EXECUTION_FAILED`，沿 FAILED 边。若 `main` 正常返回，但 Python 返回值的类型或内容违反由 TypedDict 派生的输出 Schema（例如返回整数或缺少必需字段），记录 `OUTPUT_SCHEMA_INVALID`，隔离结果并沿 FAILED 边。两种情况都不产生成功输出。若执行图异常导致没有 FAILED 边，按确定执行错误停止。若异常发生在新动作派发前，只有 `DENIED` 等由契约声明的派发前 Outcome 可沿图路由；门禁失效、全局限制和 Reconcile 无法派发直接按 §12.8 停止。全局取消、Deadline 和预算限制优先于继续沿图派发。
 
 | 异常 | 处理原则 |
 |---|---|
@@ -1237,7 +1239,8 @@ Compiler 不得为让文件编译而创建不存在的 Schema、用 object 逃�
 | TOOL_UNAVAILABLE | 派发前为确定执行错误；已派发且提交状态不可证实时按 §20；READ / Observation 结果未知时按本节规则 |
 | INPUT_VALIDATION_FAILED | 拒绝调用 |
 | RESPONSE_DECODE_FAILED | READ / Observation 沿 UNKNOWN 或按事实不确定停止；Mutation / Reconcile 按 §20 验证独立证明并决定结果 |
-| OUTPUT_SCHEMA_INVALID | 已解码的输出未通过 Schema 校验。隔离输出；READ / Observation / Script 按本节失败规则处理，Mutation 按 §20.1 独立验证提交证明 |
+| SCRIPT_EXECUTION_FAILED | Procedure Script 抛出异常。保留执行失败原因，沿 FAILED 边，无成功输出 |
+| OUTPUT_SCHEMA_INVALID | 已解码的外部输出或 Procedure Script 的正常返回值未通过输出 Schema 校验。隔离输出。READ / Observation / Script 按本节失败规则处理，Mutation 按 §20.1 独立验证提交证明 |
 | SCOPE_MISMATCH / CORRELATION_MISMATCH | 已派发 Mutation / Reconcile 按 §20；其他调用结果隔离，按本节失败规则处理。Predicate 所需证据不匹配时沿 UNKNOWN |
 | EVIDENCE_MISSING / STALE / CONFLICT | Predicate 沿 UNKNOWN；入口或 Goal PASS 复核失败按 §12.8 停止；调用结果的强制保证无效时按 §20.1 或本节失败规则处理 |
 | DEADLINE_EXCEEDED / CANCELLED | 不再派发任何 Procedure 动作。记录已派发调用的已知状态及迟到结果责任，按 §12.8 停止 |
@@ -1802,7 +1805,7 @@ prepare-policy-inputs:
 - 输出通过 `<node-id>.operation.output` 暴露给后续 Producer / Consumer。
 - Procedure Script 是纯本地 Operation：不得访问网络、HTTP、MCP、Shell、数据库、文件系统、凭据、环境变量、时钟或随机源；不得执行外部副作用。
 - Procedure Script 不属于 ToolCatalog callable，不需要 Capability Grant，也不得声明 READ / MUTATION Effect。Host 仍负责沙箱、资源预算、超时和异常治理。
-- `main` 的返回值是业务数据。Runtime 在返回值通过派生 Output Schema 校验后产生 SUCCEEDED。Script 显式抛出异常表示计算无法完成，由 Runtime 产生 FAILED。违反输出契约的返回值也由 Runtime 归为 FAILED，处理见 §24.2。全局取消与 Deadline 优先。
+- `main` 的返回值是业务数据。Runtime 在返回值通过派生 Output Schema 校验后产生 SUCCEEDED。Script 抛出异常时，Runtime 产生 FAILED 并记录 `SCRIPT_EXECUTION_FAILED`。若 `main` 正常返回，Runtime 直接校验 Python 返回值的类型和内容。违反 TypedDict 派生 Schema 时产生 FAILED 并记录 `OUTPUT_SCHEMA_INVALID`（§24.2）。全局取消与 Deadline 优先。
 
 ### 32.2 Predicate Script
 
@@ -1998,7 +2001,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 14. Native / WASM / Studio 语义一致性验证；
 15. 独立确定 Compiler Artifact 的 Schema 序列化与外部依赖闭包策略。
 
-第七稿评审完成后的冻结候选范围为 §5–§17、§19–§22 和 §24.1 中的语言语义规则。其中 §9.2 ToolCatalog、§9.3 CapabilityContracts、§17.1 Evidence 描述符的线格式仍在 DESIGN REVIEW。§34.0 多 Owner 归属的传递格式和 §21 的异步 Operation Owner 契约也继续评审，按第 2、3、5、9、10 项收敛。
+冻结候选范围为 §5–§17、§19–§22 和 §24.1 中的语言语义规则。其中 §9.2 ToolCatalog、§9.3 CapabilityContracts、§17.1 Evidence 描述符的线格式仍在 DESIGN REVIEW。§34.0 多 Owner 归属的传递格式和 §21 的异步 Operation Owner 契约也继续评审，按第 2、3、5、9、10 项收敛。
 
 在以上事项完成之前，整份规范的状态保持 DESIGN REVIEW。实际 Compiler、Runtime 和工具链验收仍按上述门槛进行。
 
@@ -2559,7 +2562,7 @@ expected:
 | E63：移除 §12.1 Reconcile 的 COMMITTED 输出声明，保留 Observation 绑定 | RECONCILE_OUTPUT_UNAVAILABLE |
 | E64：已有 Goal PASS，后续 Mutation 的 SUCCEEDED 自动进入局部 Postcondition 并尝试成功 | SUCCESS_BYPASSES_FINAL_POSTCONDITION，Mutation 清除旧证明 |
 | E65：不可达 Node 指向可达的局部 Postcondition 阶段所在 Node（详见 E.7） | UNREACHABLE_NODE 警告。汇合时仍保留可达路径的 Goal 证明 |
-| E66：Procedure Script 读取外层对象中的可选字段（详见 E.7） | 合法返回走 SUCCEEDED。显式抛异常或返回值违反输出 Schema 时走 FAILED，且没有成功输出 |
+| E66：Procedure Script 读取外层对象中的可选字段（详见 E.7） | 合法返回走 SUCCEEDED。抛异常或无效返回都走 FAILED，分别记录 SCRIPT_EXECUTION_FAILED 或 OUTPUT_SCHEMA_INVALID，且没有成功输出 |
 
 此表是待落地的评审与 Compiler Fixture 契约，不是现有 CI 的实际通过记录。正式冻结必须由相应 Owner 提供发布的导出身份，并让 Native、WASM 和 Skill Studio 使用同一组正负例。
 
@@ -2643,7 +2646,7 @@ E60 从 §12.1 的正例独立派生四个变体。每个变体都必须报 `REC
 
 - E65 复用 E42 中保留 Goal 标记的正例，再加入 E44 的不可达 Precondition Node，并将其 PASS 路由改为 `verify-local`。该额外入边参与语法和链接校验，在 `verify-local.postcondition` 的可达入边汇合中排除。
 
-- E66 以 §32.1 的 Script Operation 为基线。将实参改为一个保证存在的外层对象，其 `policyRef` 可缺失。Script 成功输出 TypedDict 要求非空字符串 `policyRef`。先分别提供含有效字段和缺少字段的输入，后者触发 Script 显式抛异常。再单独在运行时校验点注入缺少该必需字段的正常返回值，预期记录 `OUTPUT_SCHEMA_INVALID`。异常和无效返回都走 Operation 的 FAILED 边，后续节点不能读取该次成功输出。
+- E66 以 §32.1 的 Script Operation 为基线。将实参改为一个保证存在的外层对象，其 `policyRef` 可缺失。Script 成功输出 TypedDict 要求非空字符串 `policyRef`。先分别提供含有效字段和缺少字段的输入。前者返回合法输出并走 SUCCEEDED，后者抛出异常并记录 `SCRIPT_EXECUTION_FAILED`。再独立注入两种正常返回值：缺少必需字段的映射、整数 `42`。两者均记录 `OUTPUT_SCHEMA_INVALID`。抛异常和无效返回都走 Operation 的 FAILED 边，后续节点不能读取该次成功输出。
 
 ## E.8 从 Goal Postcondition 开始的验证流程
 
