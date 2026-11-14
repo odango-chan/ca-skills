@@ -6,7 +6,7 @@
 **状态：** PUBLIC DESIGN REVIEW — NOT FROZEN  
 **规范所有者：** odango-chan/ca-skills  
 **消费者：** Skill 作者、Skill Studio、ca-skill-compiler、Agent Host / Runtime、Tool Owner、Schema Owner、语言服务和第三方评审者  
-**更新日期：** 2026-11-13
+**更新日期：** 2026-11-14
 
 > 本文是 CA-SL vNext 的综合规范评审稿，也是本仓库唯一的语言语义权威。它覆盖背景、设计原则、术语、架构、源码结构、YAML 语法、静态语义、运行语义、Tool / Observation / Evidence、Schema 所有权、异常处理、PDU Session 示例、工具链要求和 FAQ。其他文档可以补充实现细节，但不得另行定义或覆盖语言语义。
 >
@@ -818,14 +818,13 @@ Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时不�
 
 - Invocation 入口 Precondition 用 `precondition.entry: true` 标记。可以先执行显式 Observation 获取事实，再执行一个或多个入口 Precondition。从 start 到每个业务 Mutation 的每条路径都必须经过**每一个** `entry: true` 节点的 PASS 边，Compiler 逐路径检查。入口 FAIL 或 UNKNOWN 可以在 Mutation 前结束流程。没有 Invocation 级门禁时省略标记；局部门禁由 Procedure 的显式路由表达。
 - 每次业务 Mutation 派发前，Runtime 以当前 Scope 和校验时间复核本 Invocation 中全部入口 PASS 的原绑定及所需 Evidence（§17.2）。过期、被取代、关联失效或冲突时，所需事实在派发点未获充分证明，不派发 Mutation，记录 `ENTRY_PRECONDITION_INVALIDATED`（仅局部门禁失效时为 `PRECONDITION_INVALIDATED`），并按 §12.8 停止。Runtime 不重新执行 Predicate，不隐式查询或刷新；会变化且需要刷新以继续执行的条件，应建模为紧邻受保护动作的局部 Observation / Precondition；Invocation 级入口门禁用于整个 Invocation 都必须持续成立的条件；非入口 Precondition 或局部 Postcondition 的 PASS 直接连到 Mutation 时，Runtime 把该 PASS 作为本次派发的局部门禁并复核。中间隔有其他节点时，该 PASS 只决定路由。若需要派发前复核，应将相应判断放在 Mutation 的直接前驱。Reconcile 按原调用及 §20 独立准入，业务门禁证据过期本身不阻止对原调用的安全调和。
-- 最终 Postcondition 用 `postcondition.goal` 标记，值必须精确等于 `contract.yaml` 的 `goal`。局部 Postcondition 省略该字段，其 PASS 不计入最终验收。该标记只声明节点证明哪个 Goal；Predicate 和 arguments 仍由节点声明，Contract 无须重复列 Predicate 或绑定。
-- 对每个从 start 可达的 SUCCEEDED Terminal，每条控制流路径都必须有一条匹配 Goal 的 Postcondition PASS 边，且该边之后只经过局部 Predicate 的 PASS 或 READ / Observation / Procedure Script 的 SUCCEEDED。出现新的匹配 Goal PASS 时，以新判定为准；Mutation、Reconcile 或任何非成功边使已有证明失效。不同路径可由不同节点证明同一个 Goal，也可共享 Terminal。若可达 SUCCEEDED 且没有任何可达的匹配 Goal 节点，报告 `FINAL_POSTCONDITION_MISSING`；否则按以下规则检查绕过路径。
-
+- 最终 Postcondition 用 `postcondition.goal` 标记，值必须精确等于 `contract.yaml` 的 `goal`。`start` 可以指向这一种节点，例如只判断本次 Invocation 已准入的数据。到达 `start` 时尚无证明，该节点自己的 PASS 出边可以建立证明。节点只能匹配一种文法结构；入口 Precondition 与 Goal Postcondition 需要分别声明。局部 Postcondition 省略 `goal`，其 PASS 不能建立最终证明。该标记只声明节点证明哪个 Goal；Predicate 和 arguments 仍由节点声明，Contract 无须重复列 Predicate 或绑定。
+- 对每个从 start 可达的 SUCCEEDED Terminal，每条控制流路径都必须有一条匹配 Goal 的 Postcondition PASS 边，且该边之后只经过非入口 Precondition 的 PASS、无 `goal` 的 Postcondition 的 PASS，或 READ / Observation / Procedure Script 的 SUCCEEDED。这些出边只传递已有证明。入口 Precondition 的 PASS 清除已有证明，使最终验收发生在入口门禁之后。出现新的匹配 Goal PASS 时，以新判定为准；Mutation、Reconcile 或任何非成功边使已有证明失效。不同路径可由不同节点证明同一个 Goal，也可共享 Terminal。若可达 SUCCEEDED 且没有任何可达的匹配 Goal 节点，报告 `FINAL_POSTCONDITION_MISSING`；否则按以下规则检查绕过路径。
 - Runtime 沿本次实际执行的线性轨迹维护 Goal 判定，按边的执行顺序更新或清除。到达 SUCCEEDED 时只复核当前保存的 Goal PASS，检查其输入 lineage、Evidence 有效性和资源责任。若该判定过期、被取代或关联失效，视为 Goal 未获得充分证明，不得回退到更早的 PASS；资源状态或责任不明时，也按 §12.8 停止并记录原因。该检查复用本次判定及其证据，不再次调用 Predicate 或隐式查询外部系统。Compiler 验证标记、绑定与路径；Goal 与 Predicate 的业务含义是否相符由 Skill / 业务 Owner 评审。
 - 每个 SourcePath 的 Producer Output 必须在所有到达消费点的路径上实际可用。Compiler 从发布的 Outcome 契约判断输出可用性；普通成功输出只在 SUCCEEDED 边产生，Reconcile 的 COMMITTED 输出按 §12.7。运行时无效输出按 §20、§24.2 停止或路由，不进入要求该输出的成功边。
 - 第一版 Procedure 为 DAG，无隐式循环或任意 back-edge，每个 Skill 只有一张入口图。只有 §20 允许的受控新尝试可以用另一个显式 Operation 节点表达，并受 Deadline / Budget 限制。复用纯判断使用 Predicate，复用纯数据转换使用 Script。
 
-Compiler 按拓扑顺序处理从 start 可达的节点。`hasProof` 表示到达该节点的所有路径都持有结构上有效的 Goal PASS。汇合时对可达入边取 AND，入边各自保留其 Outcome。可达的成功 Terminal 无有效证明时报告 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`，缺少可达 Goal 节点时优先报告 `FINAL_POSTCONDITION_MISSING`。
+Compiler 按拓扑顺序处理从 start 可达的节点。`hasProof` 表示到达该节点的所有路径都持有结构上有效的 Goal PASS。汇合时只对源节点从 start 可达的入边取 AND，入边各自保留其 Outcome。来自不可达节点的入边不参与证明传播。Compiler 对不可达节点另报 `UNREACHABLE_NODE` 警告。可达的成功 Terminal 无有效证明时报告 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`，缺少可达 Goal 节点时优先报告 `FINAL_POSTCONDITION_MISSING`。
 
 ~~~text
 for node in reachable_nodes_in_topological_order:
@@ -835,7 +834,11 @@ for node in reachable_nodes_in_topological_order:
     for edge in node.outgoing_edges:
         if edge is a matching Goal Postcondition PASS:
             edge.proof = true
-        else if edge is a local Predicate PASS or a READ/Observation/Script SUCCEEDED:
+        else if edge is PASS from a Precondition without entry: true:
+            edge.proof = hasProof
+        else if edge is PASS from a Postcondition without goal:
+            edge.proof = hasProof
+        else if edge is SUCCEEDED from a READ Operation, Observation, or Procedure Script:
             edge.proof = hasProof
         else:
             edge.proof = false
@@ -894,7 +897,7 @@ Compiler 必须验证：
 - 参数名在目标 Schema 中存在；
 - 所有 Required 参数均提供；
 - 不得传入未声明字段；
-- SourcePath 必须在每条可达路径上存在。Compiler 先检查 Producer Outcome 和路径各段是否在适用 Schema 中必需，再检查类型可赋值性。若属性在该 Outcome 的 Schema 中可缺失（包括 TypedDict 的 `NotRequired`），直接取该属性的路径报告 `SOURCE_NOT_AVAILABLE`。可绑定保证存在的外层对象，再由消费者按其 Schema 处理可选成员。Predicate PASS 本身不缩窄后续 SourcePath 类型；
+- SourcePath 必须在每条可达路径上存在。Compiler 先解析 Producer 与其输出 Schema，再检查路径和 Outcome，最后检查类型可赋值性。路径某段未在对应 Schema 中声明时报告 `SOURCE_PATH_INVALID`。已声明的路径因当前分支没有相应 Producer Outcome 而不可用时报告 `SOURCE_NOT_AVAILABLE`；引用 Owner 未声明的 Reconcile 输出时按 §12.7 报 `RECONCILE_OUTPUT_UNAVAILABLE`。若属性在该 Outcome 的 Schema 中可缺失（包括 TypedDict 的 `NotRequired`），直接取该属性的路径报告 `SOURCE_NOT_AVAILABLE`。可绑定保证存在的外层对象，再由消费者按其 Schema 处理可选成员。Predicate PASS 本身不缩窄后续 SourcePath 类型。例如局部门禁确认 `read-policy.output` 中的可选 `policyRef` 有值，即使 PASS 边直接连到 Mutation，其 `arguments.policyRef: read-policy.output.policyRef` 仍报 `SOURCE_NOT_AVAILABLE`；
 - Source Schema 可赋给目标字段 Schema；
 - Optional、Nullability、enum、const、范围和数组元素约束兼容；
 - 来源的 Subject、Session、Lifecycle 和 Evidence Scope 没有被不安全地扩大；
@@ -986,7 +989,7 @@ Freshness 由 Owner Contract 声明可执行的有效性规则（例如从 obser
 
 Predicate 的 `parameters` 声明业务值类型。`evidence.requires` 可选，是参数名到一组非空、无重复的精确 `alias::guaranteeId` 的映射；只允许引用已声明参数。每个列出的保证至少由一条有效 Evidence Ref 满足，列表全部满足才成立。需要独立证据时，引用不同保证并用 Owner 声明的独立来源约束校验，见 §17.2。省略参数表示它不额外要求 Evidence，例如字面量、请求 DNN 或作为比对目标的已验证请求字段。用于证明外部状态的参数必须声明对应保证；纯本地判断和请求形状判断可以省略。Compiler 检查声明的要求和来源，业务 Owner 评审外部状态判断所需的保证是否齐全。
 
-保证引用解析到可信 Owner 契约中的唯一精确身份。可执行描述符至少给出权威 Owner、允许的 Producer 身份及值路径、适用的 Scope / Correlation 维度及其与当前 Invocation 或已校验调用参数的取值绑定、同一事实的记录选择规则，以及 Freshness 的时间基准和判定规则。Predicate 参数 Schema 由 `parameters` 声明。Producer 值的 Schema 从已发布的输出或 Host Context Schema 按值路径解析，并对参数 Schema 检查可赋值性。`provides[].guarantee` 是该发布方快照中精确的描述符导出键，可以指向同一快照内的独立契约。Compiler 必须解析到唯一导出，并核对描述符允许的 Producer 身份、Outcome 与 `provides[].path`；`output` 指整个已声明的输出。缺失、歧义或路径不匹配均拒绝链接。声明的 `provides` 引用解析失败时报告 `EVIDENCE_GUARANTEE_LINK_INVALID`。E.3 示范分文件声明。Operation Result 和 Observation Result 可提供同一个保证，前提是该权威 Owner 明确授权两条 Producer 路径。Skill 只引用保证 ID；Schema、Owner、相关性和有效期由 Owner 契约提供。描述符的传输格式仍待联调。
+保证引用解析到可信 Owner 契约中的唯一精确身份。可执行描述符至少给出权威 Owner、允许的 Producer 身份及值路径、适用的 Scope / Correlation 维度及其与当前 Invocation 或已校验调用参数的取值绑定、同一事实的记录选择规则，以及 Freshness 的时间基准和判定规则。Predicate 参数 Schema 由 `parameters` 声明。Producer 值的 Schema 从已发布的输出或 Host Context Schema 按值路径解析，并对参数 Schema 检查可赋值性。`provides[].guarantee` 是该发布方快照中精确的描述符导出键，可以指向同一快照内的独立契约。Compiler 必须解析到唯一导出，并核对描述符允许的 Producer 身份、Outcome 与 `provides[].path`；`output` 指整个已声明的输出。缺失、歧义或路径不匹配均拒绝链接。声明的 `provides` 引用解析失败时报告 `EVIDENCE_GUARANTEE_LINK_INVALID`。E.3 示范分文件声明。Operation Result 和 Observation Result 可提供同一个保证，前提是该权威 Owner 明确授权两条 Producer 路径。Skill 只引用保证 ID；Schema、Owner、相关性和有效期由 Owner 契约提供。描述符中，Observation Producer 的实参引用根为 `query`，Operation Producer 的实参引用根为 `arguments`。两者是保留根，指向相应 Producer 派发时物化并通过校验的实参。Compiler 按描述符中的 Producer kind 校验引用根与字段路径，未知根、根与 kind 不符或实参路径无法解析时报 `EVIDENCE_GUARANTEE_LINK_INVALID`。描述符的传输格式仍待联调。
 
 ### 17.2 静态绑定与运行校验
 
@@ -1072,7 +1075,7 @@ Runtime 只用可信且关联到本次原调用的证明记录提交状态。Own
 2. 没有安全契约时，OUTCOME_UNKNOWN 边必须直接指向 UNRESOLVED 或 SAFE_STOPPED。已有安全契约但当前不能派发时，Runtime 直接按 §12.8 停止。两种情况都保留原调用和责任。
 3. Reconcile 确认 COMMITTED 或 NOT_COMMITTED 时，更新原调用状态。若 COMMITTED 契约承诺恢复输出，只有有效的 Reconcile 自身输出才随 COMMITTED 边提供；提交已确认但承诺恢复的输出无效时，按 §20.1 的 COMMITTED_OUTPUT_UNAVAILABLE 停止。契约未承诺输出时，后续节点可以显式读取权威状态。原 Mutation 丢失的输出不可用。COMMITTED 只更新原调用的提交状态。要到达 SUCCEEDED，该路径仍须通过新的 Goal Postcondition PASS（§12.9）。
 4. Reconcile 缺少有效结论时沿 UNRESOLVED 边。该边必须直接进入停止 Terminal，Runtime 按 §12.8 选择实际终态。普通业务查询不能替代原调用调和。
-5. 若另一个显式节点会重发同一业务 Mutation，只有它的每条到达路径都经过同一原调用的 NOT_COMMITTED 边（原 Mutation 或其 Reconcile）并持有对应证明，且 Owner 契约允许时，才可派发。是否为同一业务尝试按 Owner 契约定义的调用与业务身份判定，不能只比较图节点 ID。Compiler 检查该路径条件，Runtime 复核证明、Scope 和 Owner 的重试约束。
+5. 若另一个显式节点会重发同一业务 Mutation，只有它的每条到达路径都经过同一原调用的 NOT_COMMITTED 边（原 Mutation 或其 Reconcile）并持有 Owner 对该原调用的未提交证明，且 Owner 契约允许时，才可派发。该记录是 §20.1 第三行的 Owner 证明，可来自原调用或其 Reconcile，Runtime 保存并复核它与原调用的关联。仅有边名或 Runtime 自记的状态不足以授予重试资格。是否为同一业务尝试按 Owner 契约定义的调用与业务身份判定，不能只比较图节点 ID。Compiler 检查该路径条件，Runtime 复核证明、Scope 和 Owner 的重试约束。
 
 ## 21. 异步 Operation：没有 Skill Wait
 
@@ -1136,7 +1139,7 @@ Environment
 | ENTRY_PRECONDITION_BYPASSED | 可到达 Mutation 而未经过全部入口 PASS 边 | 阻止构建 |
 | SUCCESS_BYPASSES_FINAL_POSTCONDITION | SUCCEEDED Terminal 可绕过最终 Postcondition PASS | 阻止构建 |
 | CONTROL_FLOW_CYCLE | vNext DAG 中出现循环或 back-edge | 阻止构建 |
-| SOURCE_PATH_INVALID | SourcePath 使用未支持的根、索引、动态表达式，或 Node ID 使用保留的根名 | 阻止构建 |
+| SOURCE_PATH_INVALID | SourcePath 使用未支持的根、索引、动态表达式、未声明的 Schema 路径段，或 Node ID 使用保留的根名 | 阻止构建 |
 | CONTROL_FLOW_DANGLING | 路由指向不存在 Node | 阻止构建 |
 | CONTROL_FLOW_AMBIGUOUS | 多个主动作 | 阻止构建 |
 | DEPENDENCY_REQUIREMENT_INVALID | dependencies 的值不是稳定 Package ID 字符串 | 阻止构建 |
@@ -1163,7 +1166,7 @@ Environment
 | ROUTE_OUTCOME_MISSING / ROUTE_OUTCOME_UNKNOWN | 规范 Outcome 缺少路由，或路由键不属于精确契约 | 阻止构建 |
 | PREDICATE_ARITY_MISMATCH | 参数数量不一致 | 阻止构建 |
 | PREDICATE_TYPE_MISMATCH | 参数类型不兼容 | 阻止构建 |
-| EVIDENCE_GUARANTEE_LINK_INVALID | `provides` 无法解析到唯一保证描述符，或 Producer 身份、Outcome、路径不匹配 | 阻止构建 |
+| EVIDENCE_GUARANTEE_LINK_INVALID | `provides` 无法解析到唯一保证描述符，或 Producer、Outcome、值路径或实参引用不匹配 | 阻止构建 |
 | PREDICATE_EVIDENCE_UNSATISFIABLE | 参数绑定无法提供所声明的 Evidence 保证或缺少可验证的关联约束 | 阻止构建 |
 | RECONCILE_CONTRACT_INVALID | UNKNOWN 路由与安全 Reconcile 契约不匹配、无法绑定原调用或 UNRESOLVED 路由未直接停止 | 阻止构建 |
 | CAPABILITY_NOT_GRANTED | 未授予 Capability | 阻止构建 |
@@ -1172,6 +1175,8 @@ Environment
 | SCRIPT_CONTRACT_INVALID | Script 入口 / TypedDict 不合规 | 阻止构建 |
 | UNSUPPORTED_WAIT | 出现 Wait / Await | 阻止构建 |
 | UNSUPPORTED_V02_SYNTAX | 使用旧版隐式语法 | 阻止构建 |
+
+`UNREACHABLE_NODE` 是警告，定位从 `start` 不可达的节点。该警告本身不阻止构建，节点仍须通过语法和链接校验。
 
 Compiler 不得为让文件编译而创建不存在的 Schema、用 object 逃逸、猜测 Operation ID、扩大 Capability、把 UNKNOWN 改成 PASS、静默删除未知字段或把旧语法映射成新语义。
 
@@ -1196,7 +1201,7 @@ Compiler 不得为让文件编译而创建不存在的 Schema、用 object 逃�
 | COMMITTED_OUTPUT_UNAVAILABLE | 保留已确认提交，隔离无效输出，按 §20.1 停止 |
 | ENTRY_PRECONDITION_INVALIDATED / PRECONDITION_INVALIDATED | 入口或局部门禁复核失败，不派发受保护的 Mutation，按 §12.8 停止 |
 | TERMINAL_STATE_MISMATCH | 按 §12.8 发布实际终态并记录声明值 |
-| DUPLICATE_RESOURCE | Predicate 有充分证据时沿 FAIL；已派发 Mutation 的提交状态按 §20.1 决定 |
+| DUPLICATE_RESOURCE | 诊断保留其来源。Predicate 有充分证据证明命题不成立时沿 FAIL。已派发 Mutation 按 §20.1 分类，只有 Owner 证明未提交且该确定失败类别保证没有遗留副作用时才沿 FAILED。只有重复资源的诊断且提交状态无可信证明时沿 OUTCOME_UNKNOWN |
 | STALE_LIFECYCLE | 按 §12.8 停止当前尝试 |
 | PARTIAL_COMPLETION | 需要停止且有已知部分完成时发布 SAFE_STOPPED，持久化已知资源及责任 |
 | OWNER_CONTRACT_UNAVAILABLE | 未派发时为确定执行错误；已派发 Mutation 的提交状态不可证实时按 §20 |
@@ -1818,8 +1823,8 @@ dependencies:
 复用 Compiler v0.1 已有的逻辑快照形状 `{dependencyId, digest, files}`。其中 `dependencyId` 是 Workspace 别名，`digest` 由 Compiler 从规范化文件集重算，二者均不能证明 Package ID 或 Owner。可信调用方依据既有来源配置、锁定快照和已验证 Owner 元数据，为同一 `(dependencyId, digest)` 提供稳定 Package ID 与允许的 Owner 身份。来源绑定可由 Studio 依赖目录或部署配置提供；上传内容或 MCP discovery 自报身份本身不构成可信绑定。
 
 1. 对每个被引用的 Alias 链接唯一快照，并校验规范化路径、文件集及摘要。按同一 Alias 和实测摘要获取可信身份绑定，与 `Contract.dependencies[alias]` 精确比较。无可信绑定、同一 Alias 对应多个快照或身份不匹配均阻断构建。
-2. 在该快照内解析唯一精确的 `alias::exportId`。用可信绑定核对导出 Owner，再校验 callable kind、Effect、Schema `$id`、引用闭包和 Evidence 保证。单 Owner 快照可由可信绑定为没有 Owner 字段的导出赋予该 Owner。多 Owner 快照必须由可信调用方提供显式的 `(exportKind, exportId) → owner` 归属；Owner 须在绑定的授权集合内。导出自带 Owner 字段时必须与可信归属一致。该规则也适用于引用闭包中实际链接的 Schema、Evidence 保证等导出。Compiler 按 §24.1 拒绝缺失、重复、冲突或越权的归属，不按文件路径、`$id` 前缀或文件顺序猜测。
-3. 外部 callable 还须在独立可信 CapabilityContracts 中，以精确 Owner、callable ID、kind、Effect 找到唯一归属的 Capability，并被 Skill Grant。单纯链接成功不授予执行权。
+2. 在该快照内解析唯一精确的 `alias::exportId`。用可信绑定核对导出 Owner，再校验 callable kind、Effect、Schema `$id`、引用闭包和 Evidence 保证。单 Owner 快照可由可信绑定为没有 Owner 字段的导出赋予该 Owner。多 Owner 快照必须由可信调用方提供显式的 `(exportKind, exportId) → owner` 归属；Owner 须在绑定的授权集合内。导出自带 Owner 字段时必须与可信归属一致。该规则也适用于引用闭包中实际链接的 Schema、Evidence 保证等导出。先解析唯一可信归属。多 Owner 快照中归属缺失、重复或歧义时报 `DEPENDENCY_EXPORT_OWNER_UNVERIFIED`。已有唯一归属，但 Owner 不在授权集合内，或与导出自带 Owner 不一致时，报 `DEPENDENCY_OWNER_MISMATCH`。Compiler 不按文件路径、`$id` 前缀或文件顺序猜测。
+3. 外部 callable 还须在独立可信 CapabilityContracts 中，以精确 Owner、callable ID 和 kind 找到唯一归属的 Capability，再检查 Effect 与 Skill Grant。单纯链接成功不授予执行权。
 4. 合法但未使用的 Contract 依赖产生 Warning。构建输入里的额外快照不得自动进入 Skill 链接范围。
 
 `dependency.yaml` 不作为必需输入。此规则复用快照线协议及锁定信息；CA-SL 只要求可验证的身份关联。Studio / Compiler 仍须确认怎样传入这份可信绑定，以及如何传递多 Owner 快照的导出级归属；当前 v0.1 的 SHA-256 输入摘要按 Compiler 的路径与原始文件字节 framing 契约计算；CA-SL 复用该规则，YAML 重排、换行变化或 JSON 重编码均不能在摘要计算前替换原始字节。若调用方无法提供可信身份，保留链接错误。Compiler 只消费调用方提供的字节和可信元数据，语言版本与传输字段由 Compiler BuildRequest 版本管理。
@@ -1954,7 +1959,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 4. Observation Query 调用和 QueryContext 绑定语法定稿；
 5. Host 与各 Owner 确认 Evidence 保证导出、权威绑定、有效性规则和 Runtime 校验；
 6. Schema ID 和 Dependency Alias 引用规则定稿；
-7. Predicate.parameters、CEL / Predicate Script 与 Procedure Script 类型环境定稿；
+7. Predicate.parameters、CEL / Predicate Script 与 Procedure Script 类型环境定稿，确认 Script Contract 支持的类型与注解子集（包括 `Literal`、`Annotated`、`NotRequired`）；
 8. Procedure 四种节点、入口 / 最终门禁、DAG、SourcePath 和路由正负例；
 9. 三个 5GC 异步完成 Operation 的 Owner 契约确认；
 10. Studio / Compiler 确认可信快照身份绑定的来源、传输方式及多 Owner 归属，通过 Appendix E 链接正负例；
@@ -2094,7 +2099,7 @@ Invocation Context 提供 Host 在准入时已经确认的 UE 和入口、生命
 
 ## 76. 为什么 Reconcile COMMITTED 后还需要新的 Goal PASS？
 
-COMMITTED 只确认原 Mutation 已提交，可按 Owner 契约恢复该调用的部分输出。此前的 Goal PASS 不能覆盖后续 Mutation 的影响。§30 的 UDM Reconcile 提交分支继续到 PCF，最终仍执行 Goal Postcondition；直接从 COMMITTED 走到 SUCCEEDED 会被 Compiler 拒绝。
+COMMITTED 只确认原 Mutation 已提交，可按 Owner 契约恢复该调用的部分输出。此前的 Goal PASS 不能覆盖后续 Mutation 的影响。§30 的 UDM Reconcile 提交分支继续到 PCF，最终仍执行 Goal Postcondition；直接从 COMMITTED 走到 SUCCEEDED 会被 Compiler 拒绝。`COMMITTED → READ SUCCEEDED → 新的 Goal PASS → SUCCEEDED` 可以通过证明覆盖校验。若该分支进入停止终态，则按 §12.8 判断，无需 Goal PASS。
 
 ## 77. 为什么复核不会自动用新 Evidence 重算旧 Predicate？
 
@@ -2115,6 +2120,14 @@ E.1–E.4 给出独立链接基线。E.6 从 E.1–E.4 的成功输入派生链�
 ## 81. 为什么现在还不能冻结各层契约？
 
 本稿用自包含示例表达语言规则。正式冻结还需要同一组用例在 Compiler、Studio 和 Runtime 中得出一致结果。ToolCatalog、CapabilityContracts、Evidence 描述符的线格式以及异步 Operation 的行为保证由各 Owner 确认，验收项见 §45。
+
+## 82. 为什么允许 start 直接指向 Goal Postcondition？
+
+`start` 标识首个执行节点，入口门禁由独立的 Precondition 节点表达。只判断已准入 Context 的 Skill 可以从 Goal Postcondition 开始。它进入时没有证明，只有自身的 PASS 出边才能建立证明。若需要入口门禁与最终判断，应使用两个节点；强制插入无业务作用的起始节点会增加路径，却不会增加证明。
+
+## 83. 为什么未声明的输出字段报 SOURCE_PATH_INVALID？
+
+Compiler 已找到对应的导出和 Schema，接下来要验证该 Schema 内的路径。字段未声明时路径本身无效。若字段已声明但当前分支没有产生该输出，才报告 SOURCE_NOT_AVAILABLE。EXPORT_ID_MISSING 和 SCHEMA_MISSING 用于导出或 Schema 自身缺失。
 
 # 附录 A：关键设计决定
 
@@ -2479,12 +2492,20 @@ expected:
 | E38：`provides` 引用不存在的保证 ID | EVIDENCE_GUARANTEE_LINK_INVALID |
 | E39：多 Owner 快照缺少某个实际链接的导出归属 | DEPENDENCY_EXPORT_OWNER_UNVERIFIED |
 | E40：较新的可信记录与旧绑定同值，但版本已取代旧绑定 | Trace 保留先前 PASS，终态 UNRESOLVED |
+| E41：首节点是 Goal Postcondition | 只有该节点的 PASS 边建立证明 |
+| E42：局部 Postcondition PASS 之后进入成功终态 | 已有证明则保持；无 Goal Postcondition 则报 FINAL_POSTCONDITION_MISSING |
+| E43：多 Owner 快照中已有唯一归属，但 Owner 越权 | DEPENDENCY_OWNER_MISMATCH |
+| E44：不可达节点有一条指向可达成功终态的边 | UNREACHABLE_NODE 警告；该边不影响证明 |
+| E45：Goal PASS 后经过入口 Precondition，再尝试成功 | SUCCESS_BYPASSES_FINAL_POSTCONDITION，入口 PASS 清除旧证明 |
+| E46：Observation 的保证描述符误用 Operation 的实参引用根 | EVIDENCE_GUARANTEE_LINK_INVALID |
 
 此表是待落地的评审与 Compiler Fixture 契约，不是现有 CI 的实际通过记录。正式冻结必须由相应 Owner 提供发布的导出身份，并让 Native、WASM 和 Skill Studio 使用同一组正负例。
 
 ## E.6 基于独立样例的最小变更
 
-每行独立从 E.1–E.4 的成功输入开始，按逻辑输入路径应用变更。修改快照文件时，除非该用例测试摘要或可信绑定失败，应重新计算该快照摘要并重新绑定其原可信身份，避免在目标诊断前被摘要检查拦截。路径中的 `contract`、`procedure`、`predicates` 指 E.1 的三个文件。`catalog` 和 `guarantees` 分别指 E.3 的 ToolCatalog 和保证描述符。`deployment` 指 E.4 的可信 CapabilityContracts。
+除 E07、E39 和 E43 使用各自注明的正例基线外，每行独立从 E.1–E.4 的成功输入开始，按逻辑输入路径应用变更。修改快照文件时，除非该用例测试摘要或可信绑定失败，应重新计算该快照摘要并重新绑定其原可信身份，避免在目标诊断前被摘要检查拦截。路径中的 `contract`、`procedure`、`predicates` 指 E.1 的三个文件。`catalog` 和 `guarantees` 分别指 E.3 的 ToolCatalog 和保证描述符。`deployment` 指 E.4 的可信 CapabilityContracts。
+
+E07 的 READ Operation 基线：将 `procedure.nodes.inspect-registration` 的 `observation` 键改为 `operation`，将 `catalog.spec.contracts[0]` 的 `kind` 改为 `operation`、`queryContextSchema` 键改为 `inputSchema`，并将 `guarantees["ue.registration-state"].producers[0].kind` 与 `deployment.spec.capabilities[0].callables[0].kind` 同步改为 `operation`。Producer 调用实参的证据绑定改用 `arguments.ueRef`；它与 Observation 的 `query.ueRef` 均读取已物化的同一调用实参。校验这一基线应通过链接，再修改部署侧 Effect。
 
 | 用例 | 最小改动 | 预期 |
 |---|---|---|
@@ -2493,7 +2514,7 @@ expected:
 | E04 | 删除 ca 快照按别名和摘要建立的可信绑定 | DEPENDENCY_IDENTITY_UNVERIFIED |
 | E05 | 将 `catalog.metadata.owner` 改为 `example-untrusted-owner` | DEPENDENCY_OWNER_MISMATCH |
 | E06 | 将 `contract.capabilities` 改为空列表 | CAPABILITY_NOT_GRANTED |
-| E07 | 先按表后说明构造同语义 READ Operation 正例，再单独将 `deployment.spec.capabilities[0].callables[0].effect` 改为 MUTATION | EFFECT_MISMATCH |
+| E07 | 从表前的 READ Operation 正例开始，将 `deployment.spec.capabilities[0].callables[0].effect` 改为 MUTATION | EFFECT_MISMATCH |
 | E08 | 在 `predicates.predicates["example.ue.registered"].parameters` 追加 `{second: string}` | PREDICATE_ARITY_MISMATCH |
 | E09 | 将 `procedure.nodes.verify-registration.postcondition.arguments[0]` 改为 `context.ueRef` | PREDICATE_TYPE_MISMATCH |
 | E12 | 删除 `contract.contextSchema` | CONTEXT_SCHEMA_UNDECLARED |
@@ -2504,13 +2525,12 @@ expected:
 | E35 | 将 `contract.dependencies.ca` 替换为 `{id: urn:example:ca:tools}` | DEPENDENCY_REQUIREMENT_INVALID |
 | E36 | 将 `procedure.nodes.inspect-registration.arguments.ueRef` 改为裸字符串 `ue-1` | SOURCE_PATH_INVALID |
 | E37 | 在 Registration 输出 Schema 的 `properties` 加入 `reason: {type: string}`，保持其可选，并将 `procedure.nodes.verify-registration.postcondition.arguments[0]` 改为 `inspect-registration.output.reason` | SOURCE_NOT_AVAILABLE，先检查路径可用性再检查类型 |
-
 | E38 | 将 `catalog.spec.contracts[0].guarantees.evidence.provides[0].guarantee` 改为 `ue.missing` | EVIDENCE_GUARANTEE_LINK_INVALID |
-| E39 | 将 ca 的可信 Owner 集合改为 `[example-ue-owner, example-other-owner]`，按表后说明赋予实际导出归属，再删掉 Registration 输出 Schema 的归属 | DEPENDENCY_EXPORT_OWNER_UNVERIFIED |
+| E39 | 从表后的多 Owner 正例开始，删除 Registration 输出 Schema 的归属 | DEPENDENCY_EXPORT_OWNER_UNVERIFIED |
+| E43 | 从同一个多 Owner 正例开始，将 Registration 输出 Schema 的唯一归属改为 `example-untrusted-owner` | DEPENDENCY_OWNER_MISMATCH |
+| E46 | 将 `guarantees["ue.registration-state"].scope.subject.equals` 从 `query.ueRef` 改为 `arguments.ueRef` | EVIDENCE_GUARANTEE_LINK_INVALID |
 
-E07 的 READ Operation 基线：将 `procedure.nodes.inspect-registration` 的 `observation` 键改为 `operation`，将 `catalog.spec.contracts[0]` 的 `kind` 改为 `operation`、`queryContextSchema` 键改为 `inputSchema`，并将 `guarantees["ue.registration-state"].producers[0].kind` 与 `deployment.spec.capabilities[0].callables[0].kind` 同步改为 `operation`。Producer 调用实参的证据绑定改用 `arguments.ueRef`；它与 Observation 的 `query.ueRef` 均读取已物化的同一调用实参。校验这一基线应通过链接，再修改部署侧 Effect。
-
-E39 的 ca 快照基线：在可信身份绑定中为实际链接的导出声明下表的归属。保留原有文件和摘要，校验多 Owner 输入应通过链接，再删除指定归属。表格描述逻辑绑定，具体 BuildRequest 线格式按 §34.0 确定。
+E39、E43 的 ca 快照基线：将可信 Owner 集合设为 `[example-ue-owner, example-other-owner]`，并在可信身份绑定中为实际链接的导出声明下表的归属。保留原有文件和摘要，先校验多 Owner 输入可以链接，再分别应用 E39 或 E43 的改动。表格描述逻辑绑定，具体 BuildRequest 线格式按 §34.0 确定。
 
 | exportKind | exportId | owner |
 |---|---|---|
@@ -2525,8 +2545,49 @@ E39 的 ca 快照基线：在可信身份绑定中为实际链接的导出声明
 |---|---|---|
 | E17 | §12.1 的正常与 Reconcile 路径，各自通过 Goal Postcondition 后汇入 complete | 静态证明覆盖检查通过 |
 | E18 | 将 §12.1 的 `reconcile-subscription.on.COMMITTED` 从 `inspect-after-reconcile` 改为 `complete` | SUCCESS_BYPASSES_FINAL_POSTCONDITION，即使另一条入边已持有 Goal PASS |
-| E10 | 将 §12.1 的 `inspect-after-reconcile.arguments.subscriptionRef` 改为 `create-subscription.output.subscriptionRef`；假定该字段在原 Mutation 的 SUCCEEDED 输出中存在 | SOURCE_NOT_AVAILABLE，当前分支没有该 SUCCEEDED 输出 |
+| E10 | 将 §12.1 的 `inspect-after-reconcile.arguments.subscriptionRef` 改为 `create-subscription.output.subscriptionRef`，并让原 Mutation 的 SUCCEEDED 输出 Schema 声明必需的 `subscriptionRef` | SOURCE_NOT_AVAILABLE，当前分支没有该 SUCCEEDED 输出。若该 Schema 未声明此字段，则按 §13.3 报 SOURCE_PATH_INVALID |
+| E41 | `start` 指向 E.8 的 `verify-subject`，它的 PASS 直接到 `complete` | Goal 覆盖通过。初始无证明，PASS 建立证明 |
+| E42 | 在 E.8 的 `verify-subject` PASS 后插入 `verify-local`，使用同一 Predicate 和实参，省略 `goal`，PASS 到 `complete`。再单独移除 `verify-subject` 的 `goal` | 有 Goal 标记时通过。两个判断都无 Goal 标记时报告 FINAL_POSTCONDITION_MISSING |
+| E44 | 在 E.8 增加一个从 `start` 不可达的节点 `unused`，声明 `precondition.predicate: example.subject.present`、实参 `context.ueRef`，其 PASS 到 `complete`，FAIL 到 `failed`，UNKNOWN 到 `unresolved` | 报 UNREACHABLE_NODE；`complete` 的证明覆盖仍通过 |
+| E45 | 在 E.8 的 `verify-subject` PASS 后插入一个 `entry: true` 的 Precondition，使用同一 Predicate 和实参，PASS 到 `complete`，其余边到相应停止终态 | SUCCESS_BYPASSES_FINAL_POSTCONDITION |
 | E30、E40 | 在 E.4 的 Predicate PASS 之后、终态复核前，加入同一 Invocation 下另一条已由 Owner 校验的证据，`ref: record-2`、`producerInvocationId: read-2`、`observedAt: 1800`，其已物化查询实参仍为 `ue-1`。E30 使用 `{state: DEREGISTERED, accessState: IDLE}`；E40 使用与 record-1 相同的值。此处只向测试 Host 的证据视图注入 Owner 记录 | 原绑定的 PASS 保留在 Trace，终态 UNRESOLVED。两种情况下均不得换绑或重新调用 Predicate |
+
+## E.8 从 Goal Postcondition 开始的验证流程
+
+复用 E.2 的 Host Schema 和 E.4 的 Invocation Context。此例的 Contract 只需 `goal: ue.subject_verified`、E.1 的 `contextSchema` 以及 `ca-context` 的依赖声明。该 Goal 只验证已准入的 UE 引用非空。
+
+~~~yaml
+# assurance/procedure.yaml
+start: verify-subject
+nodes:
+  verify-subject:
+    postcondition:
+      goal: ue.subject_verified
+      predicate: example.subject.present
+      arguments:
+        - context.ueRef
+    'on':
+      PASS: complete
+      FAIL: failed
+      UNKNOWN: unresolved
+  complete:
+    terminal: SUCCEEDED
+  failed:
+    terminal: FAILED
+  unresolved:
+    terminal: UNRESOLVED
+~~~
+
+~~~yaml
+# assurance/predicates.yaml
+predicates:
+  example.subject.present:
+    parameters:
+      - ueRef: string
+    evaluator:
+      type: cel
+      expression: ueRef != ""
+~~~
 
 ---
 
