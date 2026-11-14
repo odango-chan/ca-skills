@@ -3515,7 +3515,7 @@ receipt:
 | `reconcile-response:v1` 根 | 剥离 `output.`，定位可选的 `recovered`，以 `create-output:v1` 校验 `sessionRef/active` | 只认证**调和 READ 的 output**，不把 proof 当作资源输出 |
 | Runtime 原调用 Journal | `receipt.commit.originalInvocationId == mutation-7`，验证原 Mutation 的 Scope、Subject、Correlation 和证明来源 | 合法 COMMITTED 才可暴露恢复输出 |
 | Procedure Reconcile Node | 将已经验证的 `output.recovered` 映射为 `reconcile-session.operation.output`（示意 Node 名） | 后续读取 `reconcile-session.operation.output.sessionRef`；不得读取完整 `receipt` 或 `output` Envelope |
-| Evidence Producer | `owner=example.session.create` 所在的可信同 Owner 发布集合；`id=example.session.reconcile`、`kind=operation`、Owner `outcome=SUCCEEDED`、原始 `path=output.recovered`、`producerInvocationId=reconcile-read-9` | 保留调和 READ 来源及 `mutation-7` 原调用关联，**不得**改写成原 Mutation 的虚拟 SUCCEEDED Producer |
+| Evidence Producer | `owner` 取 ToolCatalog 中已认证的同一 Owner（不是 callable ID）；`id=example.session.reconcile`、`kind=operation`、Owner `outcome=SUCCEEDED`、原始 `path=output.recovered`、`producerInvocationId=reconcile-read-9` | 保留调和 READ 来源及 `mutation-7` 原调用关联，**不得**改写成原 Mutation 的虚拟 SUCCEEDED Producer |
 
 **同一字段级负例。** `receiptSchema.$ref` 仍为 `reconcile-receipt:v1` 时，若将契约 `proofPath` 错配为 `receipt.receipt.commit`，剥离首个锚点后不存在 `receipt.commit` 属性链，静态拒绝为既有 `RECONCILE_CONTRACT_INVALID`。如 Schema 与路径都合法但真实 Reconcile 回包缺少 `receipt.commit`、其 `originalInvocationId` 不等于 `mutation-7`、或实际未能核验来源签名，则 Runtime 不得建立 COMMITTED，并依 §20.3、§24.2 保留不确定性和责任，不可把 `output.recovered` 单独当作提交证明。该示例不假设真实 Owner 发布物已经通过验收。
 
