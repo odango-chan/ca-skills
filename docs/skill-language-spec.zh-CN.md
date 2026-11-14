@@ -3230,7 +3230,7 @@ FAILED 不得允许 retryable；NOT_COMMITTED 只有同时满足可验证的未�
 
 ## F.6 Python 类型与签名
 
-Procedure Script 必须是具有严格 TypedDict 输入、返回注解的 `main(input: InputTypedDict) -> OutputTypedDict`。Predicate Script 必须是 `main(input: PredicateInput) -> PredicateEvaluationResult`，PredicateInput 由唯一 Predicate.parameters 签名生成，禁止脚本自定义或覆盖。最低受支持注解为 `str/int/float/bool`、严格嵌套 TypedDict、`list[T]`、`Literal`、`Required/NotRequired` 和 `Annotated` 携带的、可保守解释为 §F.5 约束的 JSON Schema 映射。`Annotated` 的 Metadata 同样受 G.4 白名单约束：例如 `Annotated[str, {"minLength": 1}]` 可表达已支持的长度约束，`pattern`、`format`、组合断言与未知键不支持，不能因 Python 库允许而绕过 `SCHEMA_INVALID` / Script 静态拒绝。TypedDict 原有的字段必需性、可空性及赋值规则仍按 G.4 / F.5 处理；本节不授权新 Metadata 字段或任意解释插件。**本段定义语言支持的注解集合，不指定 Python 解释器的具体小版本，也不授权解释器支持的其他 typing 特性。**其他动态泛型、Any、无法静态解析的注解、开放字典及无法映射的 Annotated Metadata 必须拒绝，不能推断运行时行为来绕过。Runtime 仍验证输入输出并沙箱执行。
+Procedure Script 必须是具有严格 TypedDict 输入、返回注解的 `main(input: InputTypedDict) -> OutputTypedDict`。Predicate Script 必须是 `main(input: PredicateInput) -> PredicateEvaluationResult`，PredicateInput 由唯一 Predicate.parameters 签名生成，禁止脚本自定义或覆盖。最低受支持注解为 `str/int/float/bool`、严格嵌套 TypedDict、`list[T]`、`Literal`、`Required/NotRequired` 和 `Annotated` 携带的、可保守解释为 §F.5 约束的 JSON Schema 映射。`Annotated` 的 Metadata 同样受 G.4 白名单约束：例如 `Annotated[str, {"minLength": 1}]` 可表达已支持的长度约束，`pattern`、`format`、组合断言与未知键不支持，不能因 Python 库允许而绕过 Script 静态校验；不支持的 `Annotated` 元数据必须拒绝构建，具体诊断遵守 §32.1 与 §24.1 的既有分类，不在此另造优先级。TypedDict 原有的字段必需性、可空性及赋值规则仍按 G.4 / F.5 处理；本节不授权新 Metadata 字段或任意解释插件。**本段定义语言支持的注解集合，不指定 Python 解释器的具体小版本，也不授权解释器支持的其他 typing 特性。**其他动态泛型、Any、无法静态解析的注解、开放字典及无法映射的 Annotated Metadata 必须拒绝，不能推断运行时行为来绕过。Runtime 仍验证输入输出并沙箱执行。
 
 ## F.7 验收含义
 
