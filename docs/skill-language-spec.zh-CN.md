@@ -12,7 +12,7 @@
 
 **规范性用语。** MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT、MAY、OPTIONAL 按 RFC 2119 和 RFC 8174 解释。相应中文规范性措辞包括“必须”“不得”“应当”“不建议”“可以”。
 
-**变更记录。** [勘误记录（一）](design/ca-sl-v1alpha3-errata-2026-11-14.md)、[勘误记录（二）](design/ca-sl-v1alpha3-errata-2026-11-14-r2.md)、[诊断追溯与 PSI 身份来源勘误](design/ca-sl-v1alpha3-diagnostic-trace-errata.md)、[互操作与实现基准澄清](design/ca-sl-v1alpha3-interop-clarifications-2026-11-14.md)、[Reconcile 与 Runtime 诊断归属勘误](design/ca-sl-v1alpha3-reconcile-runtime-errata-2026-11-14.md)。勘误不改变 v1alpha3 的规范性语义；产品符合性状态见 §45.2。
+**变更记录。** [勘误记录（一）](design/ca-sl-v1alpha3-errata-2026-11-14.md)、[勘误记录（二）](design/ca-sl-v1alpha3-errata-2026-11-14-r2.md)、[诊断追溯与 PSI 身份来源勘误](design/ca-sl-v1alpha3-diagnostic-trace-errata.md)、[互操作与实现基准澄清](design/ca-sl-v1alpha3-interop-clarifications-2026-11-14.md)、[Reconcile 与 Runtime 诊断归属勘误](design/ca-sl-v1alpha3-reconcile-runtime-errata-2026-11-14.md)、[Evidence 来源与 Scope/Schema 闭合性勘误](design/ca-sl-v1alpha3-evidence-source-and-routing-errata.md)。勘误不改变 v1alpha3 的规范性语义；产品符合性状态见 §45.2。
 
 ---
 
