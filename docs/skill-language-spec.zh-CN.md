@@ -389,6 +389,7 @@ v1alpha3 按附录 F.1 的字段映射到抽象属性，并执行规范性校验
 
 ~~~text
 ownerOutcomes: [SUCCEEDED, FAILED, NOT_COMMITTED]
+receiptSchema: {$ref: "urn:example:smf:receipt:v1"}
 mutation:
   commitProof: {schema: "urn:example:smf:commit-proof:v1", path: receipt.commit, bind: originalInvocationId}
   failureClassPath: receipt.failureClass
@@ -3189,10 +3190,10 @@ inputSchema: {$ref: "urn:example:session:create-input:v1"}
 outputSchema: {$ref: "urn:example:session:create-output:v1"}
 receiptSchema: {$ref: "urn:example:session:create-receipt:v1"}
 mutation:
-  commitProof: {schema: "urn:example:session:commit-proof:v1", path: receipt.commit, bind: originalInvocationId}
+  commitProof: {schema: "urn:example:session:reconcile-proof:v1", path: receipt.commit, bind: originalInvocationId}
   failureClassPath: receipt.failureClass
   failureClasses:
-    - {id: not-committed, outcome: NOT_COMMITTED, proofSchema: "urn:example:session:not-committed-proof:v1", proofPath: receipt.commit, noSideEffect: true, retryable: false}
+    - {id: not-committed, outcome: NOT_COMMITTED, proofSchema: "urn:example:session:reconcile-proof:v1", proofPath: receipt.commit, noSideEffect: true, retryable: false}
   reconcile:
     callable: example.session.reconcile
     bind: originalInvocationId
@@ -3244,6 +3245,42 @@ additionalProperties: false
 required: [commit]
 properties:
   commit: {$ref: "urn:example:session:reconcile-proof:v1"}
+~~~
+
+
+~~~yaml
+# create-receipt.schema.yaml（Mutation receipt 的可信类型）
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: urn:example:session:create-receipt:v1
+type: object
+additionalProperties: false
+required: [commit]
+properties:
+  commit: {$ref: "urn:example:session:reconcile-proof:v1"}
+  failureClass: {type: string}
+~~~
+
+~~~yaml
+# create-input.schema.yaml（Owner 输入）
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: urn:example:session:create-input:v1
+type: object
+additionalProperties: false
+required: [subjectRef]
+properties:
+  subjectRef: {type: string, minLength: 1}
+~~~
+
+~~~yaml
+# create-output.schema.yaml（已验证恢复资源的规范化结构）
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: urn:example:session:create-output:v1
+type: object
+additionalProperties: false
+required: [sessionRef, active]
+properties:
+  sessionRef: {type: string, minLength: 1}
+  active: {type: boolean}
 ~~~
 
 以上只是各个嵌套位置的**片段**，不是可直接作为整个 ToolCatalog 解析的文档；完整根结构和可信依赖输入见 §9、§34。Deployment CapabilityContracts 还须以独立成员授权 example.session.reconcile 的 READ。恢复输出 Schema 必须与 Owner 回包中 recovered 子对象的 $ref 精确相同，而不是要求整个回包与资源结构相同；提交证明另从同一可信 Producer receipt 的 receipt.commit 路径验证。NOT_COMMITTED 响应的 recovered 可以不存在。
@@ -3310,7 +3347,7 @@ predicates:
 
 ### G.3.1 独立来源与共同事实的描述符形状
 
-当某保证被 Predicate independence 组引用时，其可信保证描述符必须额外提供 sourceIdentity（domain、path）；domain 是绝对 URI 且须由 Owner/部署信任绑定批准，path 为以 record 开头的静态属性路径，指向 Producer 验证的**底层来源记录身份**，而非本次 Evidence Ref 字符串。Runtime 对同一 domain 下的两个成员比较实际 path 值，必须两两不同才能满足独立性。不同 domain 只有受信部署明确声明它们代表不重叠的底层来源身份域时才可被判定独立，否则静态链接报 EVIDENCE_GUARANTEE_LINK_INVALID；不可以因为 Owner 名称不同而推断独立。
+当某保证被 Predicate independence 组引用时，其可信保证描述符必须额外提供 sourceIdentity（domain、path）；domain 是绝对 URI 且须由 Owner/部署信任绑定批准，path 为以 record 开头的静态属性路径，指向 Producer 验证的**底层来源记录身份**，而非本次 Evidence Ref 字符串。Runtime 对同一 domain 下的两个成员比较实际 path 值，必须两两不同才能满足独立性。不同 domain 只有受信部署明确声明它们代表不重叠的底层来源身份域时才可被判定独立，否则静态链接报 EVIDENCE_GUARANTEE_LINK_INVALID；可信输入必须提供 IndependentDomains 关系，即域 URI 的无序、无重复、非自反二元组集合。Runtime 对不同域仅在该无序域对属于 IndependentDomains 时才确认独立，不推导传递性，也不信任 Owner 自报的域对；不可以因为 Owner 名称不同而推断独立。
 
 ~~~yaml
 # 已发布保证描述符中的扩展字段片段
