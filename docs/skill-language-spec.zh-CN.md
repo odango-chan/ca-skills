@@ -1365,7 +1365,8 @@ Environment
 | ACTION_LIMIT_INVALID | limits.maxActions 不是正整数 | 阻止构建 |
 | EXPORT_ID_MISSING | callable / Schema 不存在 | 阻止构建 |
 | EXPORT_ID_AMBIGUOUS | 导出身份歧义 | 阻止构建 |
-| SCHEMA_MISSING / INVALID | 缺失或非法 Schema | 阻止构建 |
+| SCHEMA_MISSING | 缺失的精确 Schema | 阻止构建 |
+| SCHEMA_INVALID | Schema 不满足 G.4 子集或自相矛盾 | 阻止构建 |
 | INPUT_REQUIRED_MISSING | 缺少必填输入 | 阻止构建 |
 | REACHABLE_STAGE_NO_INCOMING_EDGE | 展开图的可达非入口阶段没有可达入边，属于图构造不变量失效 | 阻止构建 |
 | INPUT_TYPE_MISMATCH | Source 不可赋给 Target，包括 enum、const、范围和数组元素约束不兼容（空值冲突按专用诊断） | 阻止构建 |
@@ -1393,6 +1394,8 @@ Environment
 | CAPABILITY_MEMBERSHIP_DUPLICATE | 同一 Capability 内重复声明同一 callable 成员 | 阻止构建 |
 | EFFECT_MISMATCH | Tool 与任一匹配的 Capability 成员 Effect 不一致 | 阻止构建 |
 | SCRIPT_CONTRACT_INVALID | Script 入口 / TypedDict 不合规 | 阻止构建 |
+| CEL_INVALID | CEL 使用未允许的结构、类型或缺失字段守卫（G.4） | 阻止构建 |
+| PACKAGE_PATH_INVALID | Skill 逻辑根或任意输入文件路径不满足 G.7 | 阻止构建 |
 | UNSUPPORTED_WAIT | 出现 Wait / Await | 阻止构建 |
 | UNSUPPORTED_V02_SYNTAX | 使用旧版隐式语法 | 阻止构建 |
 
@@ -1430,7 +1433,7 @@ Compiler 不得为让文件编译而创建不存在的 Schema、用 object 逃�
 | SCRIPT_EXECUTION_FAILED | Procedure Script 抛出异常。保留执行失败原因，沿 FAILED 边，无成功输出 |
 | OUTPUT_SCHEMA_INVALID | 已解码的外部输出或 Procedure Script 的正常返回值未通过输出 Schema 校验。隔离输出。Procedure Script 沿 FAILED 边。READ / Observation 沿已声明的 UNKNOWN 边，未声明时按关键事实不确定停止。Mutation / Reconcile 按 §20.1 / §20.2 独立核验提交证明 |
 | SCOPE_MISMATCH / CORRELATION_MISMATCH | 已派发 Mutation / Reconcile 按 §20；其他调用结果隔离，按本节失败规则处理。Predicate 所需证据不匹配时沿 UNKNOWN |
-| EVIDENCE_MISSING / STALE / CONFLICT | Predicate 沿 UNKNOWN；入口或 Goal PASS 复核失败按 §12.8 停止；调用结果的强制保证无效时按 §20.1 或本节失败规则处理 |
+| EVIDENCE_MISSING / EVIDENCE_STALE / EVIDENCE_CONFLICT | Predicate 沿 UNKNOWN；入口或 Goal PASS 复核失败按 §12.8 停止；调用结果的强制保证无效时按 §20.1 或本节失败规则处理 |
 | DEADLINE_EXCEEDED / CANCELLED | 不再派发任何 Procedure 动作。记录已派发调用的已知状态及迟到结果责任，按 §12.8 停止 |
 | OUTCOME_UNKNOWN | 按 §20 调和原 Mutation 或停止并保留责任 |
 | RECONCILE_UNRESOLVED | 沿 Reconcile 的 UNRESOLVED 边请求停止，实际终态按 §12.8 |
@@ -1445,6 +1448,9 @@ Compiler 不得为让文件编译而创建不存在的 Schema、用 object 逃�
 | ADMISSION_CONTEXT_INVALID | Host Context 必需字段缺失、Schema 校验失败或关联引用未通过 Host 准入校验时拒绝启动 |
 | ACTION_BUDGET_EXCEEDED | 不启动下一次 Action；保留已发生的外部副作用及未决调用责任，按 §12.8 停止 |
 | CONCURRENT_MODIFICATION | 校验 Scope 和版本；失败时不派发新动作，按 §12.8 停止 |
+| RETRY_ADMISSION_DENIED | 缺少可信未提交证明、无遗留副作用承诺或重复派发许可，不重发，按 §12.8 停止 |
+| SCOPE_POLICY_UNAVAILABLE | 已 Grant 成员的 Runtime Scope 策略无法读取，普通 callable 有 DENIED 边则走该边，否则直接停止；Reconcile 直接停止 |
+| SCOPE_INTERSECTION_EMPTY | 派发时授权 Scope 交集为空，按拒绝派发处理 |
 
 构建期的策略解析与静态交集诊断见 §9.3 的 `CAPABILITY_SCOPE_UNRESOLVED` 和 `CAPABILITY_SCOPE_EMPTY_INTERSECTION`。派发前 Scope 策略不可读取或实际交集为空时，分别记录 `SCOPE_POLICY_UNAVAILABLE` 或 `SCOPE_INTERSECTION_EMPTY`。普通 callable 有 DENIED 边则走该边，否则按 §12.8 直接停止。Reconcile 直接停止并保留原调用责任。
 
@@ -3320,5 +3326,115 @@ E30/E40 的严格绑定规则有意保留：较新的已接纳权威记录即使
 
 G.1–G.9 的补充用例须与原 E01–E104 组合执行。文档审计不代表 Compiler、Native/WASM、Studio、Runtime 已实现上述语义；产品符合性依旧由 §45.2 控制。
 
+
+
+# 附录 H：统一诊断索引（v1alpha3）
+
+**Normative：诊断身份、分类和控制流含义；Informative：最小变更/用例入口。** §24.1、§24.2 是具体触发规则，本索引是唯一的名称分类入口。每个代码的来源与发生阶段必须独立记录；Compiler ERROR 必定阻断构建，Compiler WARNING 不自行阻断构建。Runtime DIAGNOSTIC 是事件原因，不是业务阶段 Outcome，不能直接把任一诊断名当作路由键。Runtime 按实际执行阶段与 §12.8 的资源/未决事实状态判定终态。
+
+| Code | 类别 | 阻断构建 | 触发阶段 | Runtime 终态/路由影响 | E 用例 |
+|---|---|---|---|---|---|
+| YAML_PARSE_ERROR | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | E105 |
+| SOURCE_ROOT_INVALID | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | E02 |
+| LANGUAGE_TARGET_UNSUPPORTED | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | E01 |
+| UNKNOWN_FIELD | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | E35 |
+| DUPLICATE_ID | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | E105 |
+| PROCEDURE_START_MISSING | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E56 |
+| NODE_ID_RESERVED | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E56 |
+| FINAL_POSTCONDITION_MISSING | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E11 |
+| FINAL_POSTCONDITION_GOAL_MISMATCH | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E42 |
+| ENTRY_PRECONDITION_REF_INVALID | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E52 |
+| ENTRY_PRECONDITION_BYPASSED | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E24/E51 |
+| SUCCESS_BYPASSES_FINAL_POSTCONDITION | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E18/E64 |
+| CONTROL_FLOW_CYCLE | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E60 |
+| SOURCE_PATH_INVALID | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E34/E36 |
+| CONTROL_FLOW_DANGLING | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E57 |
+| CONTROL_FLOW_AMBIGUOUS | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E60 |
+| DEPENDENCY_REQUIREMENT_INVALID | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E35 |
+| DEPENDENCY_ALIAS_MISSING | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E105 |
+| DEPENDENCY_SNAPSHOT_MISSING | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E04 |
+| DEPENDENCY_IDENTITY_UNVERIFIED | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E04 |
+| DEPENDENCY_ID_MISMATCH | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E03 |
+| DEPENDENCY_OWNER_MISMATCH | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E05/E43 |
+| DEPENDENCY_EXPORT_OWNER_UNVERIFIED | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E39 |
+| DEPENDENCY_DUPLICATE | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E05 |
+| CONTEXT_SCHEMA_UNDECLARED | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E12 |
+| CONTEXT_SCHEMA_MISMATCH | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E95 |
+| CONTEXT_REQUEST_COLLISION | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E25/E113 |
+| REQUEST_SCHEMA_MISSING | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E113 |
+| ACTION_LIMIT_INVALID | Compiler ERROR | 是 | Link / evidence | 不启动 Invocation | E104 |
+| EXPORT_ID_MISSING | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E105 |
+| EXPORT_ID_AMBIGUOUS | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E91 |
+| SCHEMA_MISSING | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E04 |
+| SCHEMA_INVALID | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E110 |
+| INPUT_REQUIRED_MISSING | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E67 |
+| REACHABLE_STAGE_NO_INCOMING_EDGE | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E99 |
+| INPUT_TYPE_MISMATCH | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E09 |
+| INPUT_NULLABILITY_MISMATCH | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E110 |
+| SOURCE_NOT_AVAILABLE | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E10/E89 |
+| RECONCILE_OUTPUT_UNAVAILABLE | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E63 |
+| ROUTE_OUTCOME_MISSING | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E55/E84 |
+| ROUTE_OUTCOME_UNKNOWN | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E69 |
+| ROUTE_NORMAL_OUTCOME_NOT_ALLOWED | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E54 |
+| PREDICATE_ARITY_MISMATCH | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E08 |
+| PREDICATE_TYPE_MISMATCH | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E09 |
+| EVIDENCE_GUARANTEE_LINK_INVALID | Compiler ERROR | 是 | Link / evidence | 不启动 Invocation | E38/E102/E106 |
+| CALLABLE_ARGUMENT_PROVENANCE_INVALID | Compiler ERROR | 是 | Link / evidence | 不启动 Invocation | E101 |
+| PREDICATE_EVIDENCE_REQUIRED | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E71 |
+| PREDICATE_EVIDENCE_UNSATISFIABLE | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E19/E102 |
+| RETRY_CONTRACT_INVALID | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E85 |
+| CAPABILITY_INPUT_DIGEST_MISMATCH | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E93 |
+| CAPABILITY_INPUT_UNTRUSTED | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E93 |
+| CAPABILITY_DEFINITION_CONFLICT | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E94 |
+| CAPABILITY_SCOPE_UNRESOLVED | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E87 |
+| CAPABILITY_SCOPE_EMPTY_INTERSECTION | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E87 |
+| RECONCILE_CONTRACT_INVALID | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | E60/E107 |
+| CAPABILITY_NOT_GRANTED | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E06/E107 |
+| CAPABILITY_MAPPING_MISSING | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E06 |
+| CAPABILITY_MEMBERSHIP_DUPLICATE | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E72 |
+| EFFECT_MISMATCH | Compiler ERROR | 是 | Link / authorization | 不启动 Invocation | E07/E107 |
+| SCRIPT_CONTRACT_INVALID | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E67/E75 |
+| UNSUPPORTED_WAIT | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | E115/E116（待实施） |
+| UNSUPPORTED_V02_SYNTAX | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | E115/E116（待实施） |
+| CEL_INVALID | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | E111 |
+| PACKAGE_PATH_INVALID | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | E114 |
+| UNUSED_DEPENDENCY | Compiler WARNING | 否（并发错误仍阻断） | Link / unused | 不改变 Runtime 终态 | E16 |
+| UNREACHABLE_NODE | Compiler WARNING | 否（并发错误仍阻断） | Graph / unreachable | 不改变 Runtime 终态 | E44/E65 |
+| TOOL_UNAVAILABLE | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E70 |
+| INPUT_VALIDATION_FAILED | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E70 |
+| OWNER_CONTRACT_UNAVAILABLE | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E70 |
+| CALLABLE_ARGUMENT_PROVENANCE_UNVERIFIED | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E101 |
+| AUTHORIZATION_DENIED | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | E79 |
+| SCRIPT_EXECUTION_FAILED | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Script FAILED；外部调用按 §20 / §24.2 | E66 |
+| OUTPUT_SCHEMA_INVALID | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Script FAILED；外部调用按 §20 / §24.2 | E66/E108 |
+| EFFECT_MISMATCH | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E07/E107 |
+| RESPONSE_DECODE_FAILED | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E70 |
+| SCOPE_MISMATCH | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | E20 |
+| CORRELATION_MISMATCH | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E20 |
+| EVIDENCE_MISSING | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate UNKNOWN；复核失败按 §12.8 | E20 |
+| EVIDENCE_STALE | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate UNKNOWN；复核失败按 §12.8 | E31 |
+| EVIDENCE_CONFLICT | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate UNKNOWN；复核失败按 §12.8 | E30 |
+| DEADLINE_EXCEEDED | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E70 |
+| CANCELLED | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E70 |
+| RECONCILE_UNRESOLVED | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Reconcile UNRESOLVED 边；§12.8 | E86 |
+| COMMITTED_OUTPUT_UNAVAILABLE | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | SAFE_STOPPED；原提交/责任保留 | E28/E108 |
+| ENTRY_PRECONDITION_INVALIDATED | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E53 |
+| PRECONDITION_INVALIDATED | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E70 |
+| TERMINAL_STATE_MISMATCH | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 采用实际终态，保留请求终态 | E58 |
+| DUPLICATE_RESOURCE | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E70 |
+| STALE_LIFECYCLE | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E20 |
+| PARTIAL_COMPLETION | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 已确认 PENDING → SAFE_STOPPED | E23/E112 |
+| ADMISSION_CONTEXT_INVALID | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E13 |
+| ACTION_BUDGET_EXCEEDED | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E104 |
+| CONCURRENT_MODIFICATION | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E70 |
+| RETRY_ADMISSION_DENIED | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 拒绝重发、直接按 §12.8 停止 | E85 |
+| SCOPE_POLICY_UNAVAILABLE | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | E88 |
+| SCOPE_INTERSECTION_EMPTY | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | E88 |
+
+**代码归一化。** §24.1 历史简写 SCHEMA_MISSING / INVALID 分别指 SCHEMA_MISSING 与 SCHEMA_INVALID。§24.2 的 STALE、CONFLICT 必须写全名为 EVIDENCE_STALE、EVIDENCE_CONFLICT；SCOPE_MISMATCH、CORRELATION_MISMATCH、DEADLINE_EXCEEDED、CANCELLED 是四个独立诊断。OUTCOME_UNKNOWN 是 Mutation 的阶段 Outcome，不是诊断代码。RECONCILE 的 COMMITTED、NOT_COMMITTED、UNRESOLVED 也是阶段 Outcome；RECONCILE_UNRESOLVED 是记录该停止条件的诊断，二者不得互换。最终 SUCCEEDED、FAILED、UNRESOLVED、SAFE_STOPPED 是 Invocation 终态，不属于本表的诊断。E115/E116 是对本表没有独立精确变体的静态/运行时边界进行后续机器 Fixture 补齐的受控清单，而非宣称对应测试已通过。
+
+**诊断优先级。** 同一绑定点：YAML/结构 → Package/依赖与 Owner 身份 → Schema/路径与支配可用性 → 类型 → 授权/Effect/Scope → Evidence 描述符链接 → Evidence 组合可满足性 → 运行时证据判定；与规范性更具体的 §13.3、§17.1.1 和 §24.1 的顺序相同。遇到较早的致命错误时，不基于未经解析的下游值推断新的错误。彼此独立的错误可以共同报告，诊断展示排序不是执行语义。
+
+---
 
 **规范结束。**
