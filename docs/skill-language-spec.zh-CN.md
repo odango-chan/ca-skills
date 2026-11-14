@@ -12,7 +12,7 @@
 
 **规范性用语。** MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT、MAY、OPTIONAL 按 RFC 2119 和 RFC 8174 解释。相应中文规范性措辞包括“必须”“不得”“应当”“不建议”“可以”。
 
-**变更记录。** [勘误记录（一）](design/ca-sl-v1alpha3-errata-2026-11-14.md)、[勘误记录（二）](design/ca-sl-v1alpha3-errata-2026-11-14-r2.md)、[诊断追溯与 PSI 身份来源勘误](design/ca-sl-v1alpha3-diagnostic-trace-errata.md)、[互操作与实现基准澄清](design/ca-sl-v1alpha3-interop-clarifications-2026-11-14.md)。勘误不改变 v1alpha3 的规范性语义；产品符合性状态见 §45.2。
+**变更记录。** [勘误记录（一）](design/ca-sl-v1alpha3-errata-2026-11-14.md)、[勘误记录（二）](design/ca-sl-v1alpha3-errata-2026-11-14-r2.md)、[诊断追溯与 PSI 身份来源勘误](design/ca-sl-v1alpha3-diagnostic-trace-errata.md)、[互操作与实现基准澄清](design/ca-sl-v1alpha3-interop-clarifications-2026-11-14.md)、[Reconcile 与 Runtime 诊断归属勘误](design/ca-sl-v1alpha3-reconcile-runtime-errata-2026-11-14.md)。勘误不改变 v1alpha3 的规范性语义；产品符合性状态见 §45.2。
 
 ---
 
@@ -906,7 +906,7 @@ verify-n4-session:
 
 ### 12.7 Reconcile
 
-Reconcile 唯一跨 Node 入边是构建期硬约束。来源 Node 不可达时仍检查入边（§20.2、E60）。
+Reconcile 唯一跨 Node 入边是构建期硬约束。来源 Node 不可达时仍检查入边（§20.2、E60）。原 Mutation 的 `mutation.reconcile` 虽声明 proof/recovery 字段，但其调和证明必须从独立 Reconcile READ callable 的 receipt 提取；输出仅为已验证 COMMITTED 后的可恢复业务子对象。完整字段归属参见 G.2 的证明与恢复字段归属表。
 
 Reconcile 是 `operation` 阶段的一种形态，用于调和已经派发的 Mutation。它引用本次 Procedure 中包含该原始 Mutation 的 Node ID：
 
@@ -2954,7 +2954,7 @@ expected:
 | E65：不可达 Node 指向可达的局部 Postcondition 阶段所在 Node（详见 E.7） | UNREACHABLE_NODE 警告。汇合时仍保留可达路径的 Goal 证明 |
 | E66：Procedure Script 读取外层对象中的可选字段（详见 E.7） | 合法返回走 SUCCEEDED。抛异常或无效返回都走 FAILED，分别记录 SCRIPT_EXECUTION_FAILED 或 OUTPUT_SCHEMA_INVALID，且没有成功输出 |
 
-此表定义已冻结的规范预期，不代表现有 CI 已通过。正式发布实现符合性仍须由 Owner 提供真实导出身份，并使 Native、WASM、Studio 与 Runtime 通过相同正反例（§45.2）。
+此表定义已冻结的规范预期，不代表现有 CI 已通过。正式发布实现符合性仍须由 Owner 提供真实导出身份，并使 Native、WASM、Studio 与 Runtime 通过相同正反例（§45.2）。E01–E114 的资料性[逐用例执行方式分类](fixtures/ca-sl-v1alpha3-case-traceability.yaml)用于区分静态 Fixture、Runtime 模拟、内部单测、业务评审与 Owner 集成评审；`proposedExecutionClass` 不改变本表预期，`executionPlanStatus: NOT_IMPLEMENTED` 不构成验收通过。
 
 ## E.6 基于独立样例的最小变更
 
@@ -3253,7 +3253,7 @@ Evaluator            = map(type: "cel", expression: NonEmptyString)
 ScalarLiteral        = QuotedYamlString | CoreBoolean | CoreNull | FiniteDecimalNumber ;
 ~~~
 
-NodeId 保留 context 与四个终态。所有普通标识符大小写敏感、每段以 ASCII 字母开头；中间允许数字、下划线和连字符；空段、连续点、尾点、冒号或空白不得作为 DottedId/ExportId。Alias 不能含点号或冒号。ExportId 只用于 callable / Evidence 保证，允许分段点号，但**不允许冒号**。**诊断适用位置：** PredicateId、GoalId、Alias 等独立语法位置违反 Identifier/DottedId 词法时报 `IDENTIFIER_INVALID`。ExportId 作为 `QualifiedCallableId`、`QualifiedQueryId` 或 `QualifiedGuaranteeId` 的组成部分时，Compiler 先校验完整的 `Alias::ExportId` 引用，任一组成部分不满足该限定引用文法即报 `QUALIFIED_REFERENCE_INVALID`。因此 G.9 的 E105 中 `ExportId=foo..bar` 是指限定引用的 ExportId 部分非法，而不是存在一个可单独声明 ExportId 的作者源码字段。此规则不允许空段，也不改变 G.1 的 `ExportId = DottedId` 词法限制。外部 Schema 身份采用另一种解析：仅在 QualifiedSchemaId 的**首个双冒号**处分开 Alias 与后面的完整绝对 URI；URI 可以含冒号，必须与受信 Schema $id 精确匹配，不得用 ExportId 词法解析。StablePackageId 为遵守 RFC 3986 的绝对 URI；这些 URI 均不得含空白、控制字符或未解析的穿越成分。不能由文件中的自报身份建立信任。
+NodeId 保留 context 与四个终态。所有普通标识符大小写敏感、每段以 ASCII 字母开头；中间允许数字、下划线和连字符；空段、连续点、尾点、冒号或空白不得作为 DottedId/ExportId。解析 `LocalSchemaPath` 和 `LocalScriptPath` 时，必须先从字符串最右侧精确剥离固定后缀 `.schema.yaml` 或 `.py`，再按 `/` 分段验证剩余路径与 `FileSegment`；不得将中间的点号当作第二个扩展名或按文件扩展名猜测身份。Alias 不能含点号或冒号。ExportId 只用于 callable / Evidence 保证，允许分段点号，但**不允许冒号**。**诊断适用位置：** PredicateId、GoalId、Alias 等独立语法位置违反 Identifier/DottedId 词法时报 `IDENTIFIER_INVALID`。ExportId 作为 `QualifiedCallableId`、`QualifiedQueryId` 或 `QualifiedGuaranteeId` 的组成部分时，Compiler 先校验完整的 `Alias::ExportId` 引用，任一组成部分不满足该限定引用文法即报 `QUALIFIED_REFERENCE_INVALID`。因此 G.9 的 E105 中 `ExportId=foo..bar` 是指限定引用的 ExportId 部分非法，而不是存在一个可单独声明 ExportId 的作者源码字段。此规则不允许空段，也不改变 G.1 的 `ExportId = DottedId` 词法限制。外部 Schema 身份采用另一种解析：仅在 QualifiedSchemaId 的**首个双冒号**处分开 Alias 与后面的完整绝对 URI；URI 可以含冒号，必须与受信 Schema $id 精确匹配，不得用 ExportId 词法解析。StablePackageId 为遵守 RFC 3986 的绝对 URI；这些 URI 均不得含空白、控制字符或未解析的穿越成分。不能由文件中的自报身份建立信任。
 
 NonEmptyList 表示长度至少 1 的 YAML 序列，ExactlyOneName 表示恰有一个非保留 Name 键的映射；AbsoluteSchemaUri 与 AbsolutePackageUri 为 RFC 3986 绝对 URI并由可信契约验证。LocalSchemaPath 与 LocalScriptPath 只接受包内 POSIX 相对路径；禁止绝对路径、反斜线、空段、点段、双点段和符号链接越界。PositiveInteger 为十进制且必须大于零、无前导零。无引号字符串只可能是合法 SourcePath；带引号的 YAML 字符串作为字面值，Boolean 只有 true/false、Null 只有 null；数字为有限十进制，不允许 NaN/Infinity、隐式八进制或任意字符串转数值。具体 SourcePath 规则继承 §13.2。
 
@@ -3265,7 +3265,7 @@ v1alpha3 **不引入新的 Effect**。Reconcile 使用独立 ToolCatalog callabl
 
 若实际 ToolCatalog effect 被改为 MUTATION 且已 Grant 成员仍声明 READ，优先报 EFFECT_MISMATCH；如部署成员也改成 MUTATION、一致但违反 Reconcile 只读限制，则报 RECONCILE_CONTRACT_INVALID。Reconcile READ 不得引入新业务副作用、重发原 Mutation、修改资源、替换 UE/Session/Scope，也不得用普通 Observation 代替原调用调和。Host journal 内部的责任/提交状态更新不是外部业务 Mutation。
 
-原 Mutation 的 mutation.reconcile 字段必须具备 callable、bind、proofSchema、proofPath；原 Mutation 与调和 READ callable 均必须发布精确 receiptSchema.$ref，允许 Compiler 按 receipt 根逐段链接 proofPath / failureClassPath 及其证明子值类型；若声明可恢复结果，则 recoverableOutputSchema 和 recoverableOutputPath 必须成对出现，否则两者均省略。bind 必须精确为 originalInvocationId。
+原 Mutation 的 mutation.reconcile 字段必须具备 callable、bind、proofSchema、proofPath；原 Mutation 与调和 READ callable 均必须发布精确 receiptSchema.$ref，允许 Compiler 按**各自实际返回的 receipt 根**逐段链接 proofPath / failureClassPath 及其证明子值类型；若声明可恢复结果，则 recoverableOutputSchema 和 recoverableOutputPath 必须成对出现，否则两者均省略。bind 必须精确为 originalInvocationId。字段归属见 G.2.2；声明位置属于原 Mutation 的 `mutation.reconcile`，**并不表示 proofPath 应从原 Mutation 的 receipt 中提取**。
 
 引用的 Reconcile callable 必须为同一受信 Owner 已发布的唯一 READ operation。其 inputSchema 是根部闭合的 object：唯一必需且允许的属性为 originalInvocationId，类型是非空字符串。Runtime 仅从持久化的原 Mutation Invocation 身份物化这个输入，发起前验证已保存的原 Operation ID、原始输入、请求摘要、Subject/Scope、Lifecycle、Correlation 和当前授权；作者的 operation.reconcile 不允许任何 arguments。
 
@@ -3289,6 +3289,21 @@ Compiler/Runtime 仅在已验证 COMMITTED 边把这个精确 Producer 原始子
 Compiler 的绑定链：operation.reconcile 的原 Node → 原普通 MUTATION Operation → mutation.reconcile.callable → 唯一 READ operation 导出 → 对该调和 callable 自身按 §9.3 检查 Owner/ID/kind/READ Effect、Scope 和**至少一个已 Grant Capability**。不能继承原 Mutation 的授权。Grant 缺失报 CAPABILITY_NOT_GRANTED，Effect 冲突报 EFFECT_MISMATCH，原调用绑定、Schema 或 proofPath 错误报 RECONCILE_CONTRACT_INVALID。
 
 Runtime 重做相同检查，对同一原调用最多派发一次受控 Reconcile。Reconcile 专用 callable 不得通过普通 operation.target 绕过原调用检验；一个 Capability 可以显式同时列 Mutation 与 Reconcile 两个成员。没有安全 Owner 调和能力时必须遵循 §20.2 的保全停止，不创建伪 Reconcile。
+
+**证明与恢复字段归属表（Normative 交叉索引）**
+
+下表将**契约声明位置**与**本次实际返回该值的 Owner callable**区分。路径根为数据通道，不得用声明位置或相同字段名替代 Producer 身份校验。
+
+| 契约字段 | 字段由谁声明 | 实际返回方及路径校验根 | 链接与运行要求 |
+|---|---|---|---|
+| `mutation.commitProof.schema/path/bind` | 原 Mutation callable 的 `mutation` 契约 | **原 Mutation** 本次返回的可信 `receiptSchema.$ref`；`commitProof.path` 指向 `receipt.*` | `schema` 校验提取的证明对象，`bind` 与原 Mutation Invocation 关联；不从调和 READ 回包取该字段 |
+| `mutation.failureClassPath` | 原 Mutation callable 的 `mutation` 契约 | **原 Mutation** 本次返回的可信 `receiptSchema.$ref`；路径指向 `receipt.*` 的失败类别 | 仅在已声明 `failureClasses[]` 时使用，类别须与已验证 Owner Outcome 对应 |
+| `mutation.failureClasses[].proofSchema/proofPath` | 原 Mutation callable 的 `failureClasses[]` | **原 Mutation** 本次返回的可信 `receiptSchema.$ref`；`proofPath` 指向其 `receipt.*` | `proofSchema` 校验该次未提交/失败证明；无残留和重试许可仍按 §20.1–§20.2 |
+| `mutation.reconcile.callable/bind` | **原 Mutation** callable 的 `mutation.reconcile` 契约 | 引用一个**独立的、同 Owner 的 Reconcile READ callable**；输入 `originalInvocationId` 由 Runtime 从原调用持久化身份物化 | 调和 callable 必须另有 READ Effect/Capability/Scope 准入；不得继承原 Mutation 授权 |
+| `mutation.reconcile.proofSchema/proofPath` | **原 Mutation** callable 的 `mutation.reconcile` 契约 | **Reconcile READ callable** 本次返回的可信 `receiptSchema.$ref`；`proofPath` 指向调和回包的 `receipt.*` | `proofSchema` 校验提取的调和证明对象，并按原 Mutation 的 Invocation/Scope/Correlation 验证；**不得从原 Mutation receipt 读取此 proofPath** |
+| `mutation.reconcile.recoverableOutputSchema/recoverableOutputPath` | **原 Mutation** callable 的 `mutation.reconcile` 契约 | **Reconcile READ callable** 本次返回的 `outputSchema.$ref`；路径以 `output.` 开头，指向完整回包中的可选业务子对象 | 只在受信调和证明判定 `COMMITTED`、且子对象存在并符合 `recoverableOutputSchema` 后，暴露为 Reconcile Node 的 `operation.output`；绝不暴露完整回包或 receipt |
+
+`mutation.commitProof` 与 `mutation.reconcile.proofSchema/proofPath` 可以引用相同的**证明对象 Schema 身份**，但其具体证明值由**不同调用的 receipt** 分别承载。Schema ID 相同并不允许跨调用借用 receipt。正常的 `Owner SUCCEEDED` 不是 `Runtime COMMITTED`；Runtime 必须独立验证调和证明后才能产生后者（§20.3、G.2.2）。
 
 ### G.2.1 最小可构造契约
 
@@ -3600,7 +3615,7 @@ G.1–G.9 的补充用例须与原 E01–E104 组合执行。文档审计不代�
 
 # 附录 H：统一诊断索引（v1alpha3）
 
-**Normative：诊断身份、分类和控制流含义；Informative：关联 E 用例及待补 Fixture。** §24.1、§24.2 是具体触发规则，本索引是诊断**代码、阶段与分类**的唯一规范性入口，不是已执行 Fixture 的完整清单；E 用例列只引用能够证明该 `(Code, Phase)` 的已定义变体，尚未具备精确变体的项标记为 `待补独立 Fixture`。覆盖状态是资料性的测试追踪信息，**不构成 CI PASS 或实现符合性证明**。诊断记录的唯一分类键为 `(Code, Phase)`，`Phase=C_STATIC | C_WARNING | R_RUNTIME`，三者分别表示 Compiler 静态错误、Compiler 警告、Runtime 诊断。原始 Code 字符串不被改名，但相同 Code 在不同 Phase（例如 EFFECT_MISMATCH）是不同的诊断事件。Compiler ERROR 必定阻断构建，Compiler WARNING 不自行阻断构建。Runtime DIAGNOSTIC 是事件原因，不是业务阶段 Outcome，不能直接把任一诊断名当作路由键。Runtime 按实际执行阶段与 §12.8 的资源/未决事实状态判定终态。
+**Normative：诊断身份、分类和控制流含义；Informative：关联 E 用例及待补 Fixture。** §24.1、§24.2 是具体触发规则，本索引是诊断**代码、阶段与分类**的唯一规范性入口，不是已执行 Fixture 的完整清单；E 用例列只引用能够证明该 `(Code, Phase)` 的已定义变体，尚未具备精确变体的项标记为 `待补独立 Fixture`。覆盖状态是资料性的测试追踪信息，**不构成 CI PASS 或实现符合性证明**。诊断记录的唯一分类键为 `(Code, Phase)`，`Phase=C_STATIC | C_WARNING | R_RUNTIME`，三者分别表示 Compiler 静态错误、Compiler 警告、Runtime 诊断。原始 Code 字符串不被改名，但相同 Code 在不同 Phase（例如 EFFECT_MISMATCH）是不同的诊断事件。Compiler/Runtime 的诊断记录、Trace、Studio 诊断与 CI 报告均须保留 `code`、`phase` 及对应的 `类别`；只传递 `code` 而无法确定阶段时，不能完整表达本附录定义的诊断身份。不得将两行 `EFFECT_MISMATCH` 合并为一个不区分阶段的处置规则。Compiler ERROR 必定阻断构建，Compiler WARNING 不自行阻断构建。Runtime DIAGNOSTIC 是事件原因，不是业务阶段 Outcome，不能直接把任一诊断名当作路由键。Runtime 按实际执行阶段与 §12.8 的资源/未决事实状态判定终态。
 
 | Code | Phase | 类别 | 阻断构建 | 触发位置 | Runtime 终态/路由影响 | 规范条款 | 代表用例 | 覆盖状态 |
 |---|---|---|---|---|---|---|---|---|
@@ -3672,41 +3687,43 @@ G.1–G.9 的补充用例须与原 E01–E104 组合执行。文档审计不代�
 | PACKAGE_PATH_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | E114 | 规范用例已定义 |
 | UNUSED_DEPENDENCY | C_WARNING | Compiler WARNING | 否（并发错误仍阻断） | Link / unused | 不改变 Runtime 终态 | §34.0、§24.1 | 待补独立 Fixture | 待 Fixture |
 | UNREACHABLE_NODE | C_WARNING | Compiler WARNING | 否（并发错误仍阻断） | Graph / unreachable | 不改变 Runtime 终态 | §12.9、§24.1 | E44/E65 | 规范用例已定义 |
-| TOOL_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 | 部分覆盖 |
-| INPUT_VALIDATION_FAILED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 | 部分覆盖 |
-| OWNER_OUTCOME_UNDECLARED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Owner response validation | 隔离输出；Mutation/Reconcile 保存已验证原提交状态及责任，§12.8 停止 | §20.1–§20.3、§24.2 | E86/E108 | 部分覆盖 |
-| OWNER_CONTRACT_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 | 部分覆盖 |
-| CALLABLE_ARGUMENT_PROVENANCE_UNVERIFIED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §13.3、§24.2 | E101 | 规范用例已定义 |
-| AUTHORIZATION_DENIED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | §9.3、§24.2 | E79 | 部分覆盖 |
-| SCRIPT_EXECUTION_FAILED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Script FAILED；外部调用按 §20 / §24.2 | §32.1、§24.2 | E66 | 规范用例已定义 |
-| OUTPUT_SCHEMA_INVALID | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Script FAILED；外部调用按 §20 / §24.2 | §32.1、§24.2 | E66 | 规范用例已定义 |
-| EFFECT_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §9.3、§24.2 | 待补独立 Fixture | 待 Fixture |
-| RESPONSE_DECODE_FAILED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 | 部分覆盖 |
-| SCOPE_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | §17.2、§24.2 | E20 | 部分覆盖 |
-| CORRELATION_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §17.2、§24.2 | E20 | 部分覆盖 |
-| EVIDENCE_MISSING | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate UNKNOWN；复核失败按 §12.8 | §17.2、§24.2 | E20 | 部分覆盖 |
-| EVIDENCE_STALE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate UNKNOWN；复核失败按 §12.8 | §17.2、§24.2 | E31 | 规范用例已定义 |
-| EVIDENCE_CONFLICT | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate UNKNOWN；复核失败按 §12.8 | §17.2、§24.2 | E30 | 规范用例已定义 |
-| DEADLINE_EXCEEDED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 | 部分覆盖 |
-| CANCELLED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 | 部分覆盖 |
-| RECONCILE_UNRESOLVED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Reconcile UNRESOLVED 边；§12.8 | §20.1–§20.3、§24.2 | E86 | 部分覆盖 |
-| COMMITTED_OUTPUT_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | SAFE_STOPPED；原提交/责任保留 | §20.1–§20.3、§24.2 | E28/E108 | 规范用例已定义 |
-| ENTRY_PRECONDITION_INVALIDATED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §12.9、§24.2 | E53 | 规范用例已定义 |
-| PRECONDITION_INVALIDATED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §12.9、§24.2 | E70 | 部分覆盖 |
-| TERMINAL_STATE_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 采用实际终态，保留请求终态 | §12.8、§G.5、§24.2 | E58 | 规范用例已定义 |
-| DUPLICATE_RESOURCE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 | 部分覆盖 |
-| STALE_LIFECYCLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §17.2、§24.2 | E20 | 部分覆盖 |
-| PARTIAL_COMPLETION | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 已确认 PENDING → SAFE_STOPPED | §12.8、§G.5、§24.2 | 待补独立 Fixture | 待 Fixture |
-| ADMISSION_CONTEXT_INVALID | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E13 | 规范用例已定义 |
-| ACTION_BUDGET_EXCEEDED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §11.6、§24.2 | 待补独立 Fixture | 待 Fixture |
-| CONCURRENT_MODIFICATION | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | §24.2 | E70 | 部分覆盖 |
-| RETRY_ADMISSION_DENIED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 拒绝重发、直接按 §12.8 停止 | §20.2、§24.2 | 待补独立 Fixture | 待 Fixture |
-| SCOPE_POLICY_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | §9.3、§24.2 | E88 | 规范用例已定义 |
-| SCOPE_INTERSECTION_EMPTY | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | §9.3、§24.2 | E88 | 规范用例已定义 |
+| TOOL_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 派发前：直接停止；已派发 READ/Observation：可走 UNKNOWN 边，否则按事实未决停止；已派发 Mutation/Reconcile：核对独立提交证明，分别按 §20.1/§20.3 处理，保留责任 | §24.2 | E70 | 部分覆盖 |
+| INPUT_VALIDATION_FAILED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Runtime 输入校验失败：禁止派发，直接按 §12.8 停止；不得沿 FAILED 或 DENIED 代替输入验证 | §24.2 | E70 | 部分覆盖 |
+| OWNER_OUTCOME_UNDECLARED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Owner response validation | 隔离未声明 Owner 结果并直接停止；已派发 Mutation/Reconcile 仅保留独立验证的提交状态和资源责任（§20、§24.2） | §20.1–§20.3、§24.2 | E86/E108 | 部分覆盖 |
+| OWNER_CONTRACT_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 派发前：直接停止；已派发 READ/Observation：可走 UNKNOWN 边，否则按事实未决停止；已派发 Mutation/Reconcile：按 §20.1/§20.3 校验证明并保存责任 | §24.2 | E70 | 部分覆盖 |
+| CALLABLE_ARGUMENT_PROVENANCE_UNVERIFIED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 禁止派发并直接按 §12.8 停止；身份关联无法核验时保留关键事实未决及此前资源责任 | §13.3、§24.2 | E101 | 规范用例已定义 |
+| AUTHORIZATION_DENIED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 Tool/Observation 派发前：有已声明 DENIED 边则走边，否则停止；Reconcile：直接停止，保留原调用责任 | §9.3、§24.2 | E79 | 部分覆盖 |
+| SCRIPT_EXECUTION_FAILED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Procedure Script 抛出异常：沿其 FAILED 边且无成功输出；若异常执行图缺少 FAILED 边，直接按 §12.8 停止 | §32.1、§24.2 | E66 | 规范用例已定义 |
+| OUTPUT_SCHEMA_INVALID | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 隔离无效输出；Script：FAILED 边；READ/Observation：有 UNKNOWN 边则走边，否则按关键事实未决停止；Mutation/Reconcile：独立核验证明并按 §20 裁决 | §32.1、§24.2 | E66 | 规范用例已定义 |
+| EFFECT_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Effect 不一致立即 fail-closed；阻止后续派发并按 §12.8 直接停止；已有已派发 Mutation/Reconcile 时仅按独立证明保存状态及责任，不得走 DENIED/UNKNOWN 代替 | §9.3、§24.2 | 待补独立 Fixture | 待 Fixture |
+| RESPONSE_DECODE_FAILED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 隔离无法解码的响应；READ/Observation：已声明 UNKNOWN 边，否则按事实未决停止；Mutation/Reconcile：按 §20 校验独立证明并保留提交不确定性 | §24.2 | E70 | 部分覆盖 |
+| SCOPE_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 派发前身份/Scope 校验失败：拒绝派发；已派发结果隔离，Mutation/Reconcile 按 §20；Predicate 证据 Scope 不符：UNKNOWN；实际终态按 §12.8 | §17.2、§24.2 | E20 | 部分覆盖 |
+| CORRELATION_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 派发前关联校验失败：拒绝派发；已派发结果隔离，Mutation/Reconcile 按 §20；Predicate 证据关联不符：UNKNOWN；实际终态按 §12.8 | §17.2、§24.2 | E20 | 部分覆盖 |
+| EVIDENCE_MISSING | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate 无足够保证：UNKNOWN；入口/Goal PASS 复核失败或调用所需保证无效时阻止成功，按 §12.8/§20.1 停止 | §17.2、§24.2 | E20 | 部分覆盖 |
+| EVIDENCE_STALE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate 证据过期：UNKNOWN；入口/Goal PASS 复核失败时按 §12.8 停止；Mutation 保证无效时依 §20.1 | §17.2、§24.2 | E31 | 规范用例已定义 |
+| EVIDENCE_CONFLICT | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate 保证冲突：UNKNOWN；入口/Goal PASS 复核失败按 §12.8 停止；已派发 Mutation 按 §20.1 | §17.2、§24.2 | E30 | 规范用例已定义 |
+| DEADLINE_EXCEEDED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 不再派发 Procedure Action；记录迟到结果及已派发调用的状态和责任，按 §12.8 停止 | §24.2 | E70 | 部分覆盖 |
+| CANCELLED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 停止后续 Procedure Action；记录迟到结果及已派发调用的状态和责任，按 §12.8 停止 | §24.2 | E70 | 部分覆盖 |
+| RECONCILE_UNRESOLVED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 沿 Reconcile UNRESOLVED 边请求终止（仅 UNRESOLVED/SAFE_STOPPED），按 §12.8 发布实际终态并保留原调用责任 | §20.1–§20.3、§24.2 | E86 | 部分覆盖 |
+| COMMITTED_OUTPUT_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 提交已确认但承诺的输出不可用：隔离无效数据，直接停止；有已确认待处置变更时 SAFE_STOPPED，保留提交与责任 | §20.1–§20.3、§24.2 | E28/E108 | 规范用例已定义 |
+| ENTRY_PRECONDITION_INVALIDATED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 全局前置条件不再具备 PASS：阻止业务 Mutation 及 SUCCEEDED，按 §12.8 停止 | §12.9、§24.2 | E53 | 规范用例已定义 |
+| PRECONDITION_INVALIDATED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 局部 Precondition 复核失败：禁止受保护的 Mutation 派发，按 §12.8 停止 | §12.9、§24.2 | E70 | 部分覆盖 |
+| TERMINAL_STATE_MISMATCH | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 按 §12.8 发布按事实裁决的实际终态；保留被请求的终态和不一致原因 | §12.8、§G.5、§24.2 | E58 | 规范用例已定义 |
+| DUPLICATE_RESOURCE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 证据足以证伪 Predicate 时走 FAIL；已派发 Mutation 按 §20.1 判断提交与失败类别；仅见重复资源诊断但提交未证实时沿 OUTCOME_UNKNOWN | §24.2 | E70 | 部分覆盖 |
+| STALE_LIFECYCLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 当前尝试对应的 Lifecycle 已过期：拒绝继续，按 §12.8 停止并保留原资源责任 | §17.2、§24.2 | E20 | 部分覆盖 |
+| PARTIAL_COMPLETION | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 停止时存在已确认 PENDING 资源：发布 SAFE_STOPPED，持久化部分完成记录与责任 | §12.8、§G.5、§24.2 | 待补独立 Fixture | 待 Fixture |
+| ADMISSION_CONTEXT_INVALID | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Host Context Schema 或关联未通过准入：拒绝启动 Invocation，不派发任何 Action | §24.2 | E13 | 规范用例已定义 |
+| ACTION_BUDGET_EXCEEDED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 禁止启动下一个 Action，保留此前提交与未决调用的责任；按 §12.8 停止 | §11.6、§24.2 | 待补独立 Fixture | 待 Fixture |
+| CONCURRENT_MODIFICATION | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Scope/版本并发复核失败：拒绝新的业务派发；保留此前调用责任并按 §12.8 停止 | §24.2 | E70 | 部分覆盖 |
+| RETRY_ADMISSION_DENIED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 缺少未提交证明、无残留承诺或重试许可：禁止重发，按 §12.8 直接停止 | §20.2、§24.2 | 待补独立 Fixture | 待 Fixture |
+| SCOPE_POLICY_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Runtime 授权 Scope 策略不可读取：普通 callable 有 DENIED 边则走边，否则停止；Reconcile 直接停止并保留原调用责任 | §9.3、§24.2 | E88 | 规范用例已定义 |
+| SCOPE_INTERSECTION_EMPTY | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 派发时 Scope 交集为空：普通 callable 有 DENIED 边则走边，否则停止；Reconcile 直接停止并保留原调用责任 | §9.3、§24.2 | E88 | 规范用例已定义 |
 
-**代码归一化。** §24.1 历史简写 SCHEMA_MISSING / INVALID 分别指 SCHEMA_MISSING 与 SCHEMA_INVALID。§24.2 的 STALE、CONFLICT 必须写全名为 EVIDENCE_STALE、EVIDENCE_CONFLICT；SCOPE_MISMATCH、CORRELATION_MISMATCH、DEADLINE_EXCEEDED、CANCELLED 是四个独立诊断。OUTCOME_UNKNOWN 是 Mutation 的阶段 Outcome，不是诊断代码。RECONCILE 的 COMMITTED、NOT_COMMITTED、UNRESOLVED 也是阶段 Outcome；RECONCILE_UNRESOLVED 是记录该停止条件的诊断，二者不得互换。
+**代码归一化。** 缺失精确 Schema 的唯一诊断代码是 `SCHEMA_MISSING`；Schema 不满足 G.4 或自相矛盾的唯一诊断代码是 `SCHEMA_INVALID`。斜杠并列写法只用于说明两项错误类别，**不是诊断代码或合法别名**。诊断记录不得使用单独的 `INVALID` 或缺少 `Phase` 的不完整身份。§24.2 的 STALE、CONFLICT 必须写全名为 EVIDENCE_STALE、EVIDENCE_CONFLICT；SCOPE_MISMATCH、CORRELATION_MISMATCH、DEADLINE_EXCEEDED、CANCELLED 是四个独立诊断。OUTCOME_UNKNOWN 是 Mutation 的阶段 Outcome，不是诊断代码。RECONCILE 的 COMMITTED、NOT_COMMITTED、UNRESOLVED 也是阶段 Outcome；RECONCILE_UNRESOLVED 是记录该停止条件的诊断，二者不得互换。
 
 最终 SUCCEEDED、FAILED、UNRESOLVED、SAFE_STOPPED 是 Invocation 终态，不属于本表的诊断。`待补独立 Fixture` 表示当前 E01–E114 未明确给出与该 `(Code, Phase)` 完全一致的触发输入及预期，属于实现符合性测试债务，**不是**新增的 E 编号、通过证明或可跳过的规范要求。新增精确用例须单独评审编号，并同步 §45.2 的验收范围。
+
+**冻结与测试覆盖。** `FROZEN` 只限定规范性语言与互操作行为，不意味着当前机器用例均已生成或执行。既往提议但未正式定义的扩展用例编号不属于 v1alpha3 的 E01–E114 集合；`UNSUPPORTED_WAIT` 与 `UNSUPPORTED_V02_SYNTAX` 本身已由 §24.1 定义，仍是阻断构建的既有诊断，其可执行测试按缺口登记补齐，不影响语言效力。
 
 **覆盖状态定义（资料性）。** `规范用例已定义` 表示所列 E 变体在规范文本中有对应预期，尚未提供或核实执行证据；`部分覆盖` 表示所引 E 用例仅覆盖一般规则、部分分支或间接判定，不足以单独证明当前 `(Code, Phase)`；`待 Fixture` 表示尚无可精确引用的变体，必须另行提供输入与预期。所有状态均不表示测试已经执行或通过。相关候选测试清单参见 [诊断 Fixture 缺口登记](fixtures/ca-sl-v1alpha3-diagnostic-fixture-gaps.yaml)，该清单不增加 E 编号、规范性语义或 CI 验收结论。
 
