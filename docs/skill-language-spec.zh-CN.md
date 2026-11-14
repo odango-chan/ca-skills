@@ -892,7 +892,7 @@ reconcile-policy:
       UNRESOLVED: SAFE_STOPPED
 ~~~
 
-Runtime 必须使用原始 Mutation 的不可变 Invocation、Operation 身份、输入、Scope 和 Correlation 执行对应 Owner 契约的 Reconcile。Reconcile 不得变成新的 Create / Update 请求，不得接受另一组业务参数来改变原操作目标。Compiler 必须验证目标存在、目标确为 MUTATION 且发布了安全 Reconcile 契约。有安全 Reconcile 契约时，原 Mutation 的 `operation.routes.OUTCOME_UNKNOWN` 直接指向执行该 Reconcile 的 Node。含 `operation.reconcile` 的 Node 不得声明 `precondition`，且不得用作 `start`。该 Node 从 Operation 阶段开始，可在 COMMITTED 后执行同一 Node 的 Observation 和 Postcondition。Compiler 按 §20.2 核对进入该 Node 的唯一跨 Node 路由，Runtime 只接纳该路由对应的未决、尚未调和的原调用。没有安全契约时按 §20.2 停止。Compiler 将 `reconcile-node.operation.output` 链接到原 Mutation Owner 契约声明的 **Reconcile Output Schema**。该 Schema 在 Reconcile COMMITTED 后提供给本 Node 后续阶段和可达消费者，形状可与原 Mutation 的成功输出不同。Owner 未声明恢复输出时，COMMITTED 后不提供 `operation.output`，后续可显式读取权威状态。承诺的输出未通过校验时按 §20.2 停止。本节示例的 UNRESOLVED 边请求 SAFE_STOPPED，因为假定已有部分资源待保全。§12.1 的独立示例请求 UNRESOLVED。两种写法都由 Runtime 按 §12.8 计算实际终态。
+Runtime 必须使用原始 Mutation 的不可变 Invocation、Operation 身份、输入、Scope 和 Correlation 执行对应 Owner 契约的 Reconcile。Reconcile 不得变成新的 Create / Update 请求，不得接受另一组业务参数来改变原操作目标。Compiler 必须验证目标存在、目标确为 MUTATION 且发布了安全 Reconcile 契约。有安全 Reconcile 契约时，原 Mutation 的 `operation.routes.OUTCOME_UNKNOWN` 直接指向执行该 Reconcile 的 Node。含 `operation.reconcile` 的 Node 不得声明 `precondition`，且不得用作 `start`。该 Node 从 Operation 阶段开始，可在 COMMITTED 后执行同一 Node 的 Observation 和 Postcondition。Compiler 按 §20.2 核对进入该 Node 的唯一跨 Node 路由，Runtime 只接纳该路由对应的未决、尚未调和的原调用。没有安全契约时按 §20.2 停止。Compiler 仅将 `reconcile-node.operation.output` 链接到原 Mutation 的 `mutation.reconcile.recoverableOutputSchema`；它由 `recoverableOutputPath` 指向调和 callable **完整 Owner 回包内的恢复子对象**。完整的 Reconcile Owner `outputSchema` 和认证 `receiptSchema` 不是 Procedure 可绑定的 SourcePath。只有该子对象在 Reconcile `COMMITTED` 且经证明与 Schema 校验后才对后续阶段和可达消费者可用，其形状可与原 Mutation 的成功输出不同。Owner 未声明恢复输出时，COMMITTED 后不提供 `operation.output`，后续可显式读取权威状态。承诺的输出未通过校验时按 §20.2 停止。本节示例的 UNRESOLVED 边请求 SAFE_STOPPED，因为假定已有部分资源待保全。§12.1 的独立示例请求 UNRESOLVED。两种写法都由 Runtime 按 §12.8 计算实际终态。
 
 ### 12.8 Invocation 终态与 Applicability
 
@@ -964,7 +964,17 @@ for vertex in topological_order(graph.stages):
 
 例如，全局 Precondition 的 PASS 自动推进到同一 Node 的 Mutation 时，该边先将 `<node-id>.precondition` 加入已通过集合。全局 Precondition 的 PASS 保留已有 Goal 证明。Mutation、Reconcile 和非正常 Outcome 清除证明。业务 Mutation 派发前及成功终态边仍必须满足全部全局前置条件。Mutation 的 SUCCEEDED 即使自动推进也会清除证明，随后 Goal Postcondition 的 PASS 可以重新建立证明。
 
-§12.9 的伪代码只验证构建期的全局门禁路径覆盖与 Goal 证明。局部门禁的派发前复核由 Runtime 执行。缺全局门禁 PASS 或 Goal 证明的成功路径会阻断构建。实际执行到 SUCCEEDED 路由时，Runtime 仍按 §12.8、§17.2、§20 复核证据、提交状态与资源责任。若证据到期或其他发布条件不成立，保留原 Trace 并发布相应停止终态。Node 间的图必须为 DAG，Node 内的阶段按固定顺序推进。受控新尝试由 §20 规定。
+§12.9 的伪代码只验证构建期的全局门禁路径覆盖与 Goal 证明。局部门禁的派发前复核由 Runtime 执行。
+
+| 门禁/准入条件 | Compiler 构建期 | Runtime 派发或终态复核 |
+|---|---|---|
+| 同 Node Precondition 的 PASS | 检查阶段次序、PASS 边及可达性，不假定 Predicate 真值 | 在保护动作派发前复核其已接受的 PASS 及 Evidence 是否仍有效 |
+| 直接前驱 Node 的局部 Postcondition PASS | 检查直接连接和可达性，不将局部 PASS 自动视为 Contract Goal | 在受保护 Mutation 派发前复核该 Postcondition 的关联、Scope 和时效 |
+| 跨 Node 直接进入 Mutation 首阶段的局部判定 | 证明结构上的直接前驱及正常路由存在；无法证明业务事实真值 | 依据实际选中边与原局部证明复核；不隐式重新执行 Predicate |
+| Contract 全局 Precondition | §12.9 路径敏感 PASS 交集、Mutation 与 SUCCEEDED 全覆盖 | 派发业务 Mutation 前以及发布 SUCCEEDED 前重验此前证明的来源/关联/时效 |
+| Reconcile 独立准入 | §20.2 唯一入边、原调用和独立 READ callable/Grant 链接 | 核验原 Invocation、当前 Scope/Capability、预算、Deadline、取消和至多一次派发 |
+
+**边界：** Compiler 静态检查的是必经的证明来源和图结构，不在构建时执行 Predicate；Runtime 只复核已选执行路径对应的证明及准入条件，不因直接前驱的某个分支名字自动授予权限。缺全局门禁 PASS 或 Goal 证明的成功路径会阻断构建。实际执行到 SUCCEEDED 路由时，Runtime 仍按 §12.8、§17.2、§20 复核证据、提交状态与资源责任。若证据到期或其他发布条件不成立，保留原 Trace 并发布相应停止终态。Node 间的图必须为 DAG，Node 内的阶段按固定顺序推进。受控新尝试由 §20 规定。
 
 ## 13. Arguments 与数据来源
 
@@ -1033,7 +1043,7 @@ Compiler 必须验证：
 - 来源的 Subject、Session、Lifecycle 和 Evidence Scope 没有被不安全地扩大；
 - Reconcile 不接受普通 arguments，而引用原始 Mutation Invocation。
 
-**Scope 与身份实参。** 外部 callable Owner 须在抽象契约中标明参与 Subject、Session、Lifecycle、Correlation 或资源句柄的输入值路径，包括复合实参内的相关子路径。可信部署 Scope 策略声明其参与授权计算的输入路径。Compiler 取两者并集，并对每条路径验证直接绑定来自对该身份有权威的 Producer 输出，或由 Host 契约提供可验证关联的 Context 子路径。权威和关联须覆盖对应身份维度，且可链接到当前 Invocation 所要求的 Scope。仅有相同 Schema、字段名或值不足以证明该关联。将外层对象作为实参时，同样检查其所含身份字段的来源。请求字段、字面量及 Procedure Script 输出不能直接充当此类来源。Compiler 须追溯 Script 派生实参的全部来源类别。身份标注缺失到无法判定所需绑定、来源无法追溯或身份绑定不符合上述规则时，报 `CALLABLE_ARGUMENT_PROVENANCE_INVALID`。Owner 标注与 Host 关联的传输格式按相应契约评审。
+**Scope 与身份实参。** 外部 callable Owner 须在抽象契约中标明参与 Subject、Session、Lifecycle、Correlation 或资源句柄的输入值路径，包括复合实参内的相关子路径。可信部署 Scope 策略声明其参与授权计算的输入路径。Compiler 取两者并集，并对每条路径验证直接绑定来自对该身份有权威的 Producer 输出，或由 Host 契约提供可验证关联的 Context 子路径。权威和关联须覆盖对应身份维度，且可链接到当前 Invocation 所要求的 Scope。仅有相同 Schema、字段名或值不足以证明该关联。将外层对象作为实参时，同样检查其所含身份字段的来源。请求字段、字面量及 Procedure Script 输出不能直接充当此类来源。**请求中的 pduSessionId、dnn 和 sNssai 不是天然可信的 Session/Scope 身份**：若 Owner 身份路径标注或部署 Scope 策略的授权路径包含其中任一字段，就必须为相应参数改用 Host 契约确认关联的身份/范围投影（例如已验证的 Session/PSI 绑定）或独立权威 Producer 的输出；不能因为请求已被接纳而豁免 provenance 检查。若这些字段仅用于选择/过滤查询或业务参数，且不用于授权身份归属与资源句柄比较，则原 Request SourcePath 可作为普通业务数据，Runtime 仍必须独立检查其业务范围和可信关系。Compiler 须追溯 Script 派生实参的全部来源类别。身份标注缺失到无法判定所需绑定、来源无法追溯或身份绑定不符合上述规则时，报 `CALLABLE_ARGUMENT_PROVENANCE_INVALID`。Owner 标注与 Host 关联的传输格式按相应契约评审。
 
 Runtime 在 Operation / Observation 派发前，对已物化身份实参逐项核验原绑定、来源记录与当前 Invocation 的关联，再执行 Capability Scope 检查。等待派发资格后按实际派发时重新核验。无法核验时记录 `CALLABLE_ARGUMENT_PROVENANCE_UNVERIFIED`，按 §24.2 停止。Reconcile 的原调用绑定仍按 §20 校验。
 
@@ -1524,7 +1534,7 @@ properties:
         type: [string, "null"]
 ~~~
 
-UE 身份来自 Host Context，而不是调用方任意伪造的 UE Ref。
+UE 身份来自 Host Context，而不是调用方任意伪造的 UE Ref。此 Request Schema 只声明请求数据的形状，**不证明** pduSessionId、DNN 或 S-NSSAI 已被 Host 赋予身份权威。若真实 Tool Owner 把请求中的任何字段列为授权/资源身份实参，则须先通过可信 Host Context 或权威 Producer 的可验证投影取得绑定值；不能把请求字段强行作为身份来源（§13.3、E101）。
 
 ## 28. 5GC Skill 公共契约与 Procedure 入口
 
@@ -1708,7 +1718,7 @@ predicates:
 
 ## 30. Procedure
 
-**教学 Owner 假设。** `ca-context` 发布 Host Context；`ca-responsibility` 独立发布责任 Schema、保证及 callable。责任摘要按预期 Session Instance 聚合并返回 currentSessionInstanceRef。PCF 调和只有经验证的恢复输出才能取出原关联标识。UDM Subscription 的教学 Owner 契约保证，SUCCEEDED 或调和确认 COMMITTED 后可验证订阅归属及生命周期，并有已确认的资源责任记录。真实部署若缺少这些保证，须增加显式验收路径。
+**教学 Owner 假设。** 本图中的 `context.request.pduSessionId`、`context.request.dnn`、`context.request.sNssai` 是**未被教学 ToolCatalog/Capability Scope Policy 标记为身份或授权来源**的请求选择参数；身份与资源 Scope 由 Host 已验证的 `context.ueRef`、`context.correlation.lifecycleRef` 和实际 Owner 产生的关联/资源证明独立确定。该假设仅解释图为何可按 §13.3 链接，不表示真实 5GC Owner 一定使用此声明。若实际 Owner 将 PSI、DNN 或 S-NSSAI 标记为身份/授权输入，使用当前请求来源的对应调用必须报 `CALLABLE_ARGUMENT_PROVENANCE_INVALID`；迁移时须提供已验证的 Host/Owner 投影并显式换绑，不能借教学示例豁免。`ca-context` 发布 Host Context；`ca-responsibility` 独立发布责任 Schema、保证及 callable。责任摘要按预期 Session Instance 聚合并返回 currentSessionInstanceRef。PCF 调和只有经验证的恢复输出才能取出原关联标识。UDM Subscription 的教学 Owner 契约保证，SUCCEEDED 或调和确认 COMMITTED 后可验证订阅归属及生命周期，并有已确认的资源责任记录。真实部署若缺少这些保证，须增加显式验收路径。
 
 ~~~yaml
 # assurance/procedure.yaml — 公共声明仅在 §28 contract.yaml 中
@@ -3093,7 +3103,7 @@ ToolCatalog 须有 `apiVersion: connectionagent.io/toolcatalog/v1alpha3`、`kind
 
 ## F.4 可信依赖装配
 
-每份实际使用的快照必须有 `dependencyId`（与 Contract alias 精确关联）、按所选 BuildRequest 版本重算的 `digest`、完整文件集、与该 alias + digest 绑定的受信 Package ID 和授权 Owner 集。多 Owner 快照须为每个实际使用的 `(exportKind, exportId)` 提供唯一受信 Owner 归属。部署 CapabilityContracts 另外需要实际文件字节、摘要、独立部署身份、已授权发布者和受信校验。具体传输字段属于 BuildRequest 的版本，但缺少任一强制逻辑属性时无论协议版本均必须拒绝，不得从文件名、README、同名 Schema 或上传者自述推断。
+每份实际使用的快照必须有 `dependencyId`（与 Contract alias 精确关联）、按所选 BuildRequest 版本重算的 `digest`、完整文件集、与该 alias + digest 绑定的受信 Package ID 和授权 Owner 集。多 Owner 快照须为每个实际使用的 `(exportKind, exportId)` 提供唯一受信 Owner 归属。使用跨域独立性时，还须额外提供 §G.3.1 的受信 `IndependentDomains` 逻辑关系（部署、发布者、实测摘要、域集合、域对集合）及相应授权验证；使用跨 Owner 共同事实映射时须提供 §G.3.1 的 `factIdentity` 可信比较绑定。缺失或验证失败按 `EVIDENCE_GUARANTEE_LINK_INVALID` 拒绝，不得从 Owner 描述符中自动生成。部署 CapabilityContracts 另外需要实际文件字节、摘要、独立部署身份、已授权发布者和受信校验。具体传输字段属于 BuildRequest 的版本，但缺少任一强制逻辑属性时无论协议版本均必须拒绝，不得从文件名、README、同名 Schema 或上传者自述推断。
 
 ## F.5 Schema 赋值与失败策略
 
@@ -3161,7 +3171,7 @@ PredicateSet 根必须只含 predicates 映射；每个 Predicate 的 parameters
 
 ## G.2 Reconcile callable 的安全身份与类型
 
-v1alpha3 **不引入新的 Effect**。Reconcile 使用独立 ToolCatalog callable：kind 为 operation、effect 必须 READ，ownerOutcomes 必须包含 SUCCEEDED、可以声明 FAILED；Runtime 的 COMMITTED、NOT_COMMITTED 和 UNRESOLVED 不得写进 Owner 的 ownerOutcomes。若实际 ToolCatalog effect 被改为 MUTATION 且已 Grant 成员仍声明 READ，优先报 EFFECT_MISMATCH；如部署成员也改成 MUTATION、一致但违反 Reconcile 只读限制，则报 RECONCILE_CONTRACT_INVALID。Reconcile READ 不得引入新业务副作用、重发原 Mutation、修改资源、替换 UE/Session/Scope，也不得用普通 Observation 代替原调用调和。Host journal 内部的责任/提交状态更新不是外部业务 Mutation。
+v1alpha3 **不引入新的 Effect**。Reconcile 使用独立 ToolCatalog callable：kind 为 operation、effect 必须 READ，ownerOutcomes 必须包含 SUCCEEDED、可以声明 FAILED；Runtime 的 COMMITTED、NOT_COMMITTED 和 UNRESOLVED 不得写进 Owner 的 ownerOutcomes。**SourcePath 可绑定范围：** `reconcile-node.operation.output` 仅表示已经过 `recoverableOutputPath`/`recoverableOutputSchema` 验证的业务恢复子对象；`outputSchema` 定义的原始 Owner 回包以及 `receiptSchema` 定义的证明根均不得被 Procedure 以 `operation.output` 或其它 SourcePath 访问。若实际 ToolCatalog effect 被改为 MUTATION 且已 Grant 成员仍声明 READ，优先报 EFFECT_MISMATCH；如部署成员也改成 MUTATION、一致但违反 Reconcile 只读限制，则报 RECONCILE_CONTRACT_INVALID。Reconcile READ 不得引入新业务副作用、重发原 Mutation、修改资源、替换 UE/Session/Scope，也不得用普通 Observation 代替原调用调和。Host journal 内部的责任/提交状态更新不是外部业务 Mutation。
 
 原 Mutation 的 mutation.reconcile 字段必须具备 callable、bind、proofSchema、proofPath；原 Mutation 与调和 READ callable 均必须发布精确 receiptSchema.$ref，允许 Compiler 按 receipt 根逐段链接 proofPath / failureClassPath 及其证明子值类型；若声明可恢复结果，则 recoverableOutputSchema 和 recoverableOutputPath 必须成对出现，否则两者均省略。bind 必须精确为 originalInvocationId。引用的 Reconcile callable 必须为同一受信 Owner 已发布的唯一 READ operation。其 inputSchema 是根部闭合的 object：唯一必需且允许的属性为 originalInvocationId，类型是非空字符串。Runtime 仅从持久化的原 Mutation Invocation 身份物化这个输入，发起前验证已保存的原 Operation ID、原始输入、请求摘要、Subject/Scope、Lifecycle、Correlation 和当前授权；作者的 operation.reconcile 不允许任何 arguments。Owner 必须能用该 ID 验证和定位其原始调用；若不能，则安全停止并保留原调用责任。proofPath 为 Owner 可信 receiptSchema 中的静态证明路径，proofSchema 定义该位置实际值的精确 Schema；同理，原 Mutation 的 receiptSchema 必须包含与 commitProof.path 和任何 failureClasses[].proofPath 相应的字段。输出本身不得替代提交证明。
 
@@ -3349,6 +3359,22 @@ predicates:
 
 当某保证被 Predicate independence 组引用时，其可信保证描述符必须额外提供 sourceIdentity（domain、path）；domain 是绝对 URI 且须由 Owner/部署信任绑定批准，path 为以 record 开头的静态属性路径，指向 Producer 验证的**底层来源记录身份**，而非本次 Evidence Ref 字符串。Runtime 对同一 domain 下的两个成员比较实际 path 值，必须两两不同才能满足独立性。不同 domain 只有受信部署明确声明它们代表不重叠的底层来源身份域时才可被判定独立，否则静态链接报 EVIDENCE_GUARANTEE_LINK_INVALID；可信输入必须提供 IndependentDomains 关系，即域 URI 的无序、无重复、非自反二元组集合。Runtime 对不同域仅在该无序域对属于 IndependentDomains 时才确认独立，不推导传递性，也不信任 Owner 自报的域对；不可以因为 Owner 名称不同而推断独立。
 
+`IndependentDomains` 的**最小逻辑模型**由 `deploymentId`（非空受信部署身份）、`publisherId`（受权发布者）、`snapshotDigest`（受信绑定的本次策略字节摘要）、`domains`（唯一绝对域 URI 集合）、`independentPairs`（无序域二元组集合）组成。每个二元组必须恰有两个不同的已声明域 URI，按字节顺序规范化后不得重复；关系非自反、不推导传递闭包。以下是逻辑属性的教学装配，不规定 BuildRequest 中的物理字段名：
+
+~~~yaml
+IndependentDomains:
+  deploymentId: urn:example:deployment:test
+  publisherId: urn:example:authority:operator
+  snapshotDigest: urn:example:digest:verified-by-buildrequest
+  domains:
+    - urn:example:record-domain:ran
+    - urn:example:record-domain:upf
+  independentPairs:
+    - [urn:example:record-domain:ran, urn:example:record-domain:upf]
+~~~
+
+编译期必须通过受信构建输入独立核验发布者授权、部署绑定、实测摘要与被引用保证域的精确对应（§F.4）；Owner 描述符自报的关系不构成授权。使用跨域独立性要求但**缺少**可信关系、未授权或摘要/部署不一致、自反或重复域对、二元组包含未声明域，均报 `EVIDENCE_GUARANTEE_LINK_INVALID` 并阻断构建。只有在关系被静态批准后，Runtime 才读取 Producer 实际 sourceIdentity 值检查本次记录是否独立；无法核实时 Predicate UNKNOWN。
+
 ~~~yaml
 # 已发布保证描述符中的扩展字段片段
 sourceIdentity:
@@ -3356,7 +3382,7 @@ sourceIdentity:
   path: record.sourceRecordId
 ~~~
 
-跨 Owner 对**同一事实**比较还须由各 Owner 发布 factIdentity（namespace、fact、scopePaths、valuePath）；namespace 是同一可信共同事实域的绝对 URI，fact 是非空 DottedId，scopePaths 是明确命名的受信 record 属性路径映射，valuePath 是要比较的规范化事实值路径。部署的共同事实绑定必须明确授权参与的 Owner、命名空间、作用域归一化和可比较值的 Schema；仅有两个 Owner 自报相同 namespace 不授予等价关系。不同事实的独立性检查不要求它们虚构一个共同事实 ID，但仍须通过 sourceIdentity 的两两独立性证明。
+跨 Owner 对**同一事实**比较还须由各 Owner 发布 factIdentity（namespace、fact、scopePaths、valuePath）；namespace 是同一可信共同事实域的绝对 URI，fact 是非空 DottedId，scopePaths 是明确命名的受信 record 属性路径映射，valuePath 是要比较的规范化事实值路径。部署的共同事实绑定最低须包含目标 `deploymentId`、受权 `publisherId`、可信 `snapshotDigest`、参与 Owner 集、共同 `namespace/fact`、逐维 Scope 映射以及可比较值的精确 Schema 身份；这些属性必须通过受信构建输入校验。此为逻辑必要属性，不指定外部 BuildRequest 传输线格式；仅有两个 Owner 自报相同 namespace 不授予等价关系。不同事实的独立性检查不要求它们虚构一个共同事实 ID，但仍须通过 sourceIdentity 的两两独立性证明。
 
 ~~~yaml
 factIdentity:
