@@ -2954,7 +2954,7 @@ expected:
 | E65：不可达 Node 指向可达的局部 Postcondition 阶段所在 Node（详见 E.7） | UNREACHABLE_NODE 警告。汇合时仍保留可达路径的 Goal 证明 |
 | E66：Procedure Script 读取外层对象中的可选字段（详见 E.7） | 合法返回走 SUCCEEDED。抛异常或无效返回都走 FAILED，分别记录 SCRIPT_EXECUTION_FAILED 或 OUTPUT_SCHEMA_INVALID，且没有成功输出 |
 
-此表定义已冻结的规范预期，不代表现有 CI 已通过。正式发布实现符合性仍须由 Owner 提供真实导出身份，并使 Native、WASM、Studio 与 Runtime 通过相同正反例（§45.2）。
+此表定义已冻结的规范预期，不代表现有 CI 已通过。正式发布实现符合性仍须由 Owner 提供真实导出身份，并使 Native、WASM、Studio 与 Runtime 通过相同正反例（§45.2）。E01–E114 的资料性[逐用例执行方式分类](fixtures/ca-sl-v1alpha3-case-traceability.yaml)用于区分静态 Fixture、Runtime 模拟、内部单测、业务评审与 Owner 集成评审；`proposedExecutionClass` 不改变本表预期，`executionPlanStatus: NOT_IMPLEMENTED` 不构成验收通过。
 
 ## E.6 基于独立样例的最小变更
 
