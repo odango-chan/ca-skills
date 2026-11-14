@@ -52,6 +52,8 @@ CA-SL 的规范性输入集合由 G.4、F.6、§32 定义，不由具体第三�
 - 附录 B/D 明确标记为历史记录，现行八项符合性门槛仍为 §45.2。
 - 诊断的唯一规范性名称索引仍为附录 H；[E01–E114 预期索引](../fixtures/ca-sl-v1alpha3-case-traceability.yaml)与[39 项诊断缺口清单](../fixtures/ca-sl-v1alpha3-diagnostic-fixture-gaps.yaml)继续独立追踪。
 
+资料性的 [符合性报告模板](../fixtures/ca-sl-v1alpha3-conformance-report.template.yaml) 为八项门槛预留实现提交、CEL/Python/Schema 工具链版本和原始 CI 证据位置；其中全部状态保持 `NOT_TESTED`，不得视为已经执行。
+
 ## 5. 发布裁决
 
 这是一份 **v1alpha3 冻结后勘误与澄清**，不重新冻结语言、不修改 E01–E114 的预期、不替代 §45.2 任何 Owner/Compiler/Studio/Runtime/5GC 的实测符合性。
