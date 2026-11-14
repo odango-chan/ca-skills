@@ -45,7 +45,7 @@ CA-SL vNext / v1alpha3 的作者源码语法、静态语义、运行语义、附
 | Skill Eligibility / Root Routing 的选中算法和完整 `Applicability` YAML 作者语法 | **未在 v1alpha3 作者源码语法中定义或冻结**；属于独立 Host/Root Routing 契约。§12.8 已冻结的“不能唯一匹配则拒绝准入”安全要求仍有效，但不得把此条件误认作完整选择协议已发布；不得默许旧 `applicability.when` |
 | Compiler Artifact、Runtime Trace、BuildRequest 的物理 framing/运输及真实 Tool Owner 的发布物 | **由各自版本契约拥有**；不得从 CA-SL FROZEN 推断其序列化格式或产品符合性已通过 |
 
-**规范文件完整性。** 附录 E（测试预期）、F（互操作字段）、G（闭合性补充）、H（诊断索引），以及 §30–§45、FAQ 均属于**本文件的组成部分**，并非另行缺失的规范性附件。仅摘取 §0–§29 或截断 CEL 片段不能用于替代完整文本的符合性评审；权威的精确文件为 `docs/skill-language-spec.zh-CN.md` 的受审提交版本。
+**规范文件完整性。** 附录 E（测试预期）、F（互操作字段）、G（闭合性补充）、H（诊断索引），以及 §30–§45 均属于**本文件的组成部分**；第十一部分 §46–§89 为资料性技术问答/设计说明，不存在必须另行读取的独立规范性 FAQ。它们并非缺失的外部规范性附件。仅摘取 §0–§29 或截断 CEL 片段不能用于替代完整文本的符合性评审；权威的精确文件为 `docs/skill-language-spec.zh-CN.md` 的受审提交版本。
 
 BuildRequest 传输格式、Compiler Artifact、Runtime Trace 及 Tool Owner 发布物分别受其自身的版本契约管理。本文件的冻结状态不构成上述产品或发布物通过符合性验收的证明。历史 v1alpha2 冻结记录及 v1alpha3 修订记录不覆盖本文件；互操作字段以附录 F/G 为准。
 
