@@ -3,7 +3,7 @@
 **中文名称：** ConnectionAgent Skill 语言规范  
 **简称：** CA-SL  
 **目标版本：** vNext / API v1alpha2  
-**状态：** PUBLIC DESIGN REVIEW — NOT FROZEN  
+**状态：** FROZEN — CA-SL vNext / API v1alpha2（语言契约；实现与部署另行验收）  
 **规范所有者：** odango-chan/ca-skills  
 **消费者：** Skill 作者、Skill Studio、ca-skill-compiler、Agent Host / Runtime、Tool Owner、Schema Owner、语言服务和第三方评审者  
 **更新日期：** 2026-11-14
@@ -20,7 +20,7 @@
 
 ## 0. 规范效力与成熟度
 
-各部分的标题下标注默认效力，子节继承该效力；混合子节在标题下列明适用范围，并用 **Normative**、**Candidate** 或 **Informative** 标记对应段落。正文引用尚待审定的线格式字段时，用 [candidate] 标明字段拼写的效力。Normative 表示用于评审和验收的抽象规则；正式冻结状态按 §45 管理。Candidate 表示待 Owner 审定的线格式，其中的字段名、键编码与示例 YAML 不构成已发布契约。Informative 表示解释或示例；附录 E.3–E.4 的候选线格式及装配格式为 candidate，输入工件是 informative fixture，预期结果由其引用的 normative 规则决定。教学片段和 `urn:example` 使用同一约定。
+本版的 CA-SL 作者源码、静态和运行语义、诊断以及附录 F 定义的 ToolCatalog / CapabilityContracts / Evidence **互操作剖面均已冻结（Normative）**。E.1–E.4 的 `urn:example` 数据、历史设计记录与测试装配说明为 Informative，但其预期诊断与行为具有 Normative 效力。外部 BuildRequest 文件传输、Compiler Artifact、Runtime Trace 和真实 Tool Owner 发布物由其独立版本治理；本规范冻结不冒充它们已获 Owner 签署或通过 CI。此前标成 Candidate 的 v1alpha2 字段以附录 F 的唯一规范性定义为准；与其不符的旧提示仅视为历史评审文字。
 
 ### 作者快速入门
 
@@ -2232,47 +2232,30 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 3. 为 Procedure Script 声明 TypedDict 签名，为 Predicate Script 使用生成输入类型，复跑 §45 的验收。
 4. 在 vNext 源码保留旧式 `verify` Node 字段时，Compiler 对已识别的旧语法报 `UNSUPPORTED_V02_SYNTAX`，迁移为 `postcondition` 阶段和显式路由。
 
-## 45. 冻结门槛
+## 45. 冻结裁决与产品符合性
 
-未来提案：评审可验证的 PASS 类型收窄。vNext 当前仍按 §13.3 检查，Studio 可提供外层对象绑定与显式处理缺失字段的模板。
+### 45.1 已冻结的语言契约
 
-本次评审认可设计方向，冻结审定仍不通过。先审定抽象语义，再审定候选线格式，最后验收 Compiler、Runtime、Trace、Studio 与 Native/WASM 一致性。§9.2、§9.3、§17.1 和 §34.0 的候选输入须由适用版本的解码器转换为抽象契约后再运行规范性校验。依赖具体字段名或装配格式的 E.3、E.4 及其变体随相应线格式验收。
+本版本冻结 **Contract / Procedure / Predicate 源语法、单一 DAG、四个阶段、显式 arguments、Context 与 SourcePath、类型与 Evidence 证明、Effect / Capability / Scope、Mutation UNKNOWN / Reconcile、门禁与 Goal 传播、终态及诊断优先级**。§9 / §17 / §34 中的跨 Owner 互操作字段按附录 F 固定；产品可采用独立版本化传输外壳，但不能改变其抽象语义或降低可信输入要求。
 
-设计方向通过评审，冻结审定暂缓。E.9、E.12 和 E.14 中的阻断规则须有适用的 Compiler 或 Runtime 验收记录。
+冻结依据：§10–14 的唯一源码结构与闭合语法；§12.9、§17、§20、§22 的路径敏感证明与 fail-closed 规则；§F.1–F.6 的精确字段、数据流类型及拒绝策略；附录 E01–E104 的规范预期和负例。无法静态证明兼容的 Schema / Owner 导出必须拒绝链接，不能靠样例值、运行时回退或 Studio 自动猜测。v0.2 是既有可执行基线，编译器不得静默迁移到本版。
 
-1. 术语与概念模型评审；
-2. ToolCatalog Operation / Observation typed callable 结构定稿；
-3. CapabilityContracts callable membership 定稿；
-4. Observation Query 调用语法（§12.4）和 ToolCatalog 中 QueryContext Schema 的声明与引用格式（§9.2）定稿；
-5. Host 与各 Owner 确认 Evidence 保证导出、权威绑定、有效性规则和 Runtime 校验；
-6. Schema ID 和 Dependency Alias 引用规则定稿；
-7. Predicate.parameters、CEL / Predicate Script 与 Procedure Script 类型环境定稿，确认 Script Contract 支持的类型与注解子集（包括 `Literal`、`Annotated`、`NotRequired`）；
-8. Procedure Node 的四个阶段、入口 / 最终门禁、DAG、SourcePath 和路由正负例；
-9. 三个 5GC 异步完成 Operation 的 Owner 契约确认；
-10. Studio / Compiler 确认可信快照身份绑定的来源、传输方式及多 Owner 归属，通过 Appendix E 链接正负例；
-11. 完整 5GC PDU Skill 迁移演练；
-12. Compiler 正负例、诊断及对应 Runtime 行为验收。E67–E104 逐条落为机器可执行 Fixture，记录规则引用、输入工件集、变更、预期诊断或终态，并由对应 CI 执行。E100 为 Goal 证明传播的必验项。Evidence 保证与独立性链接用例同时用于第 5 项；
-13. Skill Studio 语义体验验收；
-14. Native / WASM / Studio 语义一致性验证；
-15. 独立确定 Compiler Artifact 的 Schema 序列化与外部依赖闭包策略；
-16. 审定 Runtime Artifact Contract 的 Trace 线格式与版本兼容。至少可表达调用来源、阶段 Outcome、所选边、请求和发布终态、诊断、证据关联、停止原因及责任记录引用。
+冻结后对任何字段、路由、默认值、证据/身份解释、允许的 Schema 关键字、Script 注解或诊断结果作语义性改变，必须明确升级语言或相应互操作契约版本。纯笔误勘正不得改变 Appendix E 的预期。语言规范 Owner 与外部 Tool/Host/Deployment Owner 各自拥有其版本，不能代替对方批准发布物。
 
-第 1–16 项是整份规范的冻结门槛。满足全部门槛前，文档的状态标记为 DESIGN REVIEW。Compiler、Runtime 和工具链验收按对应条目进行。
+### 45.2 未完成的实现符合性门槛
 
-第 1–16 项的当前状态与评审责任见附录 B。文档路径检查只记录为规范复核，实际产品符合性以对应验收记录为准。
+以下是**声称某个实现可编译、可运行或可部署本规范**之前必须逐一验收的门槛，不能因为语言规范 FROZEN 而跳过：
 
-**实现符合性。** 抽象规则以解码后的契约为输入。下表线格式仍为 Candidate，其诊断及样例随对应版本验收。
+1. Tool / Observation / Evidence Owner 发布精确 Input/Output/Proof/Reconcile、资源责任、Scope、Correlation、Freshness 和结果分类的正式导出。
+2. Deployment 提供受信 CapabilityContracts、Scope 策略和对每份快照摘要/Package ID/Owner 归属的可信绑定。
+3. Compiler 在 CI 中执行 Appendix E01–E104 的适用正反例，覆盖错误码、类型、SourcePath、Evidence、图可达性及 Goal/Precondition 证明传播。
+4. Native / WASM / Studio 同一输入返回相同的链接和诊断结果；LSP 补全与检查共用规范源，不能发明不同解释。
+5. Runtime / Host 验证安全派发、预算、Deadline、取消、Reconcile、并发隔离、证据复核、Trace 和资源责任终态。
+6. 三个 5GC 异步完成 Operation 由其 Owner 确认；将真实 5GC Skill 迁移后执行 36 个 Case 的 vNext 回归；MAS 不冒充运行基线。
+7. Compiler Artifact Contract 独立冻结生成 Schema 的序列化与可达依赖闭包；Runtime Artifact Contract 独立冻结 Trace 线格式、版本和兼容性。
+8. 交付符合性记录：语言目标版本、每项 Owner 导出及摘要、发布授权、执行 Fixture、原始 CI 结果、实际代码提交和未通过项。缺项不得标记 Runtime READY / live E2E PASS。
 
-| 抽象规则 | 候选输入 | 诊断 | 验收用例 |
-|---|---|---|---|
-| Evidence 保证与独立性 | §17.1 | `EVIDENCE_GUARANTEE_LINK_INVALID`、`PREDICATE_EVIDENCE_UNSATISFIABLE` | E38、E68、E73、E102 |
-| Capability Scope 与身份来源 | §9.2–§9.3 | `CAPABILITY_SCOPE_*`、`CALLABLE_ARGUMENT_PROVENANCE_INVALID` | E81、E87–E88、E101 |
-| Reconcile 契约 | §9.2.1 | `RECONCILE_CONTRACT_INVALID` | E60、E78 |
-| 依赖身份绑定 | §34.0 | `DEPENDENCY_*` | E03–E05、E39、E43、E103 |
-
-**冻结审定前置。** 第 1–16 项仍适用于整份规范。本轮及前轮阻断规则按附录 E.9 复审并取得 Compiler / Runtime 验收记录后，再独立审定 §5–§17、§19–§22、§24.1 的抽象语义。保证身份、Scope、Correlation、Freshness 的判定及 Runtime 复核属于抽象语义；描述符字段名、文件组织和导出键编码属于线格式，继续按对应契约版本评审。§12.4 的调用端语义可与 §9.2 的 QueryContext Schema 线格式并行评审。
-
-**继续 DESIGN REVIEW。** §9.2 ToolCatalog、§9.3 CapabilityContracts 和 §17.1 Evidence 描述符的线格式，以及 §21 的异步 Operation Owner 契约，按第 2、3、5、9 项验收。§34 整章继续评审，其中 §34.0 多 Owner 归属传递按第 10 项验收，§34.1–§34.2 的 Compiler Artifact Schema 序列化与外部依赖闭包策略按第 15 项验收。
+**裁决：CA-SL v1alpha2 语言规范 FROZEN；产品符合性 NOT QUALIFIED。** 规范源审查、YAML 解析或 PR 审批不等于第 1–8 项的实际测试通过。真实 Owner 或工具链缺失时应阻断相应发布，而不是重新打开已冻结的语言语义。
 
 ---
 
@@ -2424,7 +2407,7 @@ E.1–E.4 给出独立链接基线。E.6 从 E.1–E.4 的成功输入派生链�
 
 ## 81. 为什么现在还不能冻结各层契约？
 
-本稿用自包含示例表达语言规则。正式冻结还需要同一组用例在 Compiler、Studio 和 Runtime 中得出一致结果。ToolCatalog、CapabilityContracts、Evidence 描述符的线格式以及异步 Operation 的行为保证由各 Owner 确认，验收项见 §45。
+本规范的示例固定语言规则。Compiler、Studio、Runtime 一致性与真实 Owner 发布按 §45.2 独立验收，不能用实现尚未完成否定既定语义，也不能以该规范冻结冒充实现通过。
 
 ## 82. 为什么允许 start 直接指向 Goal Postcondition？
 
@@ -2513,7 +2496,7 @@ flowchart LR
 
 # 附录 B：当前状态与待评审事项
 
-本文是可供外部评审的完整设计稿，但仍为 PUBLIC DESIGN REVIEW / NOT FROZEN。
+本规范的 v1alpha2 语言契约已经冻结。下表是历史 16 项门槛在**独立产品与 Owner 符合性**上的未完成状态，不代表语言仍在设计讨论。
 
 | 对应 §45 项 | 交付范围 | 状态 | 评审责任 |
 |---|---|---|---|
@@ -2866,7 +2849,7 @@ expected:
 | E65：不可达 Node 指向可达的局部 Postcondition 阶段所在 Node（详见 E.7） | UNREACHABLE_NODE 警告。汇合时仍保留可达路径的 Goal 证明 |
 | E66：Procedure Script 读取外层对象中的可选字段（详见 E.7） | 合法返回走 SUCCEEDED。抛异常或无效返回都走 FAILED，分别记录 SCRIPT_EXECUTION_FAILED 或 OUTPUT_SCHEMA_INVALID，且没有成功输出 |
 
-此表是待落地的评审与 Compiler Fixture 契约，不是现有 CI 的实际通过记录。正式冻结必须由相应 Owner 提供发布的导出身份，并让 Native、WASM 和 Skill Studio 使用同一组正负例。
+此表定义已冻结的规范预期，不代表现有 CI 已通过。正式发布实现符合性仍须由 Owner 提供真实导出身份，并使 Native、WASM、Studio 与 Runtime 通过相同正反例（§45.2）。
 
 ## E.6 基于独立样例的最小变更
 
@@ -3072,5 +3055,43 @@ predicates:
 | E104 | §11.6：有有效 Host 上界时分别省略 Skill 上界、声明更低和更高的上界，验证分别使用 Host、更低的 Skill、Host 上界。Host 上界缺失、为 0 或非法时拒绝启动 |
 
 §45 第 12 项要求将对应验收条目落为机器可执行 Fixture。此表记录预期行为。
+
+# 附录 F：v1alpha2 已冻结的互操作与类型剖面
+
+**Normative。** §9、§17、§34 中仍使用“Candidate/候选”描述的互操作字段，在 CA-SL v1alpha2 中以本附录为唯一冻结定义；早期说明不构成修改本版的授权。下列字段描述互操作的**逻辑契约**，而不强制把它们塞入独立版本的 BuildRequest 或 Runtime Trace。无法解码并校验到这些属性必须失败封闭。
+
+## F.1 ToolCatalog / Mutation 发布
+
+ToolCatalog 须有 `apiVersion: connectionagent.io/toolcatalog/v1alpha2`、`kind: ToolCatalog`、非空 `metadata.owner` 与 `spec.contracts[]`。每个 callable 须有 `kind: operation | observation`、唯一的 `id`、`effect`、`ownerOutcomes`、`outputSchema.$ref`；Operation 使用 `inputSchema.$ref`，Observation 使用 `queryContextSchema.$ref`，两者互斥。Observation 的 Effect 必须为 READ。READ 只能发布 SUCCEEDED / FAILED；Mutation 可发布 NOT_COMMITTED；每个 callable 必须声明 SUCCEEDED。DENIED、UNKNOWN、OUTCOME_UNKNOWN 属 Runtime，不得由 Owner 发布。所有 Schema 引用须解析为该快照中精确、可验证的 `$id`。一个快照跨文件、跨 kind 共享 callable ID 唯一空间。可选 `adapter` 仅属于 Owner 内部实现，不参与 Skill 身份、授权和 Evidence。
+
+`guarantees.evidence.provides[]` 的每项仅含 `guarantee`（精确保证 ID）和 `path`（输出值路径），不得复制权威、Scope 或时间规则。Mutation 的 `mutation.commitProof` 需 `schema/path/bind`；每项 `failureClasses[]` 需唯一 `id`、`outcome`、`proofSchema`、`noSideEffect`、`retryable`。FAILED 不得允许 retryable；NOT_COMMITTED 只有同时满足可验证的未提交与无残留才可受控重试。`mutation.reconcile` 有 `callable/bind/proofSchema`，可选 `recoverableOutputSchema`；`resourceOutputs[]` 各项需 `path/resourceKind/responsibilitySchema`。缺少声明不等于默认具备承诺。Proof、原调用绑定或资源责任路径不可验证则拒绝链接或按 §20 停止。
+
+## F.2 CapabilityContracts
+
+部署授权输入须有 `apiVersion: connectionagent.io/capability-contracts/v1alpha2`、`kind: CapabilityContracts`、`spec.capabilities[]`。每个 Capability 有唯一非空 `id`、`owner` 和 `callables[]`。成员有 `owner/id/kind/effect`，已 Grant 成员必须有受信、可解析的 `scopePolicyRef` 或等价的受信拒绝全部策略。缺少 Scope 不得默许放行。Effect 冲突在未 Grant 成员上也会报错，同一 Capability 重复成员拒绝，跨 Capability 的一致成员合法。交集和派发前重验按 §9.3。Skill 不能自报受信部署授权。
+
+## F.3 Evidence Descriptor
+
+独立发布的保证描述符导出键唯一。描述符有 `authority/fact/producers/scope/correlation/factValue/selection/freshness`，`producers[]` 各项有 `owner/kind/id/outcome/path`；须匹配 ToolCatalog 的真实 Producer 及 `provides.path`。路径为静态点分字段：`record` 根读取受信 Evidence；`query` 根读取 Observation 已物化实参；`arguments` 根读取 Operation 已物化实参；`execution` 根读取 Runtime 分配的 Invocation / Producer 调用身份。根与 Producer kind 不匹配时报 EVIDENCE_GUARANTEE_LINK_INVALID。
+
+`selection.mode` 为 exact 或 latest；latest 要求可信 `orderBy`；`freshness.timestamp` 为可信时间字段，`maxAgeMs` 为正整数且边界采用 §17.2 的严格小于规则。Scope / Correlation 使用可信记录、原调用实参、执行身份进行显式等值验证。需要独立来源时，Predicate 的 `evidence.independence` 只可指向已在 `evidence.requires` 出现的参数/保证对；Owner 提供 `sourceIdentity`（底层来源身份），跨 Owner 比较须有可信 `factIdentity`（共同事实身份与可比较映射）。来源不可比或无法证明的情况必须按 §17 拒绝链接或返回 UNKNOWN，Script 不能创造保证。
+
+## F.4 可信依赖装配
+
+每份实际使用的快照必须有 `dependencyId`（与 Contract alias 精确关联）、按所选 BuildRequest 版本重算的 `digest`、完整文件集、与该 alias + digest 绑定的受信 Package ID 和授权 Owner 集。多 Owner 快照须为每个实际使用的 `(exportKind, exportId)` 提供唯一受信 Owner 归属。部署 CapabilityContracts 另外需要实际文件字节、摘要、独立部署身份、已授权发布者和受信校验。具体传输字段属于 BuildRequest 的版本，但缺少任一强制逻辑属性时无论协议版本均必须拒绝，不得从文件名、README、同名 Schema 或上传者自述推断。
+
+## F.5 Schema 赋值与失败策略
+
+对 Source 到 Target 的静态赋值，Compiler 必须保守证明 `Source ⊆ Target`。integer 可以赋给 number，反向不成立；不做字符串/数字强制转换。Source enum / const 的所有可能值必须在 Target 允许集合内；Source 的空值可能性必须被 Target 接纳，否则 INPUT_NULLABILITY_MISMATCH。目标必需键都必须由 Source 保证存在并逐字段可赋值；Source 可能包含 Target 禁止的额外键则不兼容。数组元素类型及长度限制、数值上下界和字符串长度界限必须由 Source 约束蕴含 Target 约束。字段可缺失与字段可为 null 不同。`default` 不物化值。组合 Schema 只有在保守包含关系得到证明时才可接受；不支持的 JSON Schema 关键字、循环/动态引用及无法证明的组合必须报 SCHEMA_INVALID 或 INPUT_TYPE_MISMATCH，绝不可忽略断言、接受 `any` 或宽泛 object。CEL 必须静态得出 boolean，运行时 true/false 对应 PASS/FAIL；无法判定为 UNKNOWN。
+
+## F.6 Python 类型与签名
+
+Procedure Script 必须是具有严格 TypedDict 输入、返回注解的 `main(input: InputTypedDict) -> OutputTypedDict`。Predicate Script 必须是 `main(input: PredicateInput) -> PredicateEvaluationResult`，PredicateInput 由唯一 Predicate.parameters 签名生成，禁止脚本自定义或覆盖。最低受支持注解为 `str/int/float/bool`、严格嵌套 TypedDict、`list[T]`、`Literal`、`Required/NotRequired` 和 `Annotated` 携带的、可保守解释为 §F.5 约束的 JSON Schema 映射。其他动态泛型、Any、无法静态解析的注解、开放字典及无法映射的 Annotated Metadata 必须拒绝，不能推断运行时行为来绕过。Runtime 仍验证输入输出并沙箱执行。
+
+## F.7 验收含义
+
+Appendix E 的正负例是冻结的预期结果而非声称已经运行的测试。任何宣称通过 v1alpha2 的实现必须完成 §45.2 的 Owner 发布和 CI 记录。冻结只说明规范在本版内不再留给 Compiler / Studio / Runtime 自行发明语义。
+
+---
 
 **规范结束。**
