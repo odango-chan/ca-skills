@@ -806,7 +806,7 @@ reconcile-policy:
       UNRESOLVED: SAFE_STOPPED
 ~~~
 
-Runtime 必须使用原始 Mutation 的不可变 Invocation、Operation 身份、输入、Scope 和 Correlation 执行对应 Owner 契约的 Reconcile。Reconcile 不得变成新的 Create / Update 请求，不得接受另一组业务参数来改变原操作目标。Compiler 必须验证目标存在、目标确为 MUTATION 且发布了安全 Reconcile 契约。有安全 Reconcile 契约时，原 Mutation 的 `operation.routes.OUTCOME_UNKNOWN` 直接指向执行该 Reconcile 的 Node。含 `operation.reconcile` 的 Node 不得声明 `precondition`，且不得用作 `start`。该 Node 从 Operation 阶段开始，可在 COMMITTED 后执行同一 Node 的 Observation 和 Postcondition。Compiler 按 §20.2 核对该 Node 的唯一入边，Runtime 只接纳这条边对应的未决、尚未调和的原调用。没有安全契约时按 §20.2 停止。Compiler 将 `reconcile-node.operation.output` 链接到原 Mutation Owner 契约声明的 **Reconcile Output Schema**。该 Schema 在 Reconcile COMMITTED 后提供给本 Node 后续阶段和可达消费者，形状可与原 Mutation 的成功输出不同。Owner 未声明恢复输出时，COMMITTED 后不提供 `operation.output`，后续可显式读取权威状态。承诺的输出未通过校验时按 §20.2 停止。本节示例的 UNRESOLVED 边请求 SAFE_STOPPED，因为假定已有部分资源待保全。§12.1 的独立示例请求 UNRESOLVED。两种写法都由 Runtime 按 §12.8 计算实际终态。
+Runtime 必须使用原始 Mutation 的不可变 Invocation、Operation 身份、输入、Scope 和 Correlation 执行对应 Owner 契约的 Reconcile。Reconcile 不得变成新的 Create / Update 请求，不得接受另一组业务参数来改变原操作目标。Compiler 必须验证目标存在、目标确为 MUTATION 且发布了安全 Reconcile 契约。有安全 Reconcile 契约时，原 Mutation 的 `operation.routes.OUTCOME_UNKNOWN` 直接指向执行该 Reconcile 的 Node。含 `operation.reconcile` 的 Node 不得声明 `precondition`，且不得用作 `start`。该 Node 从 Operation 阶段开始，可在 COMMITTED 后执行同一 Node 的 Observation 和 Postcondition。Compiler 按 §20.2 核对进入该 Node 的唯一跨 Node 路由，Runtime 只接纳该路由对应的未决、尚未调和的原调用。没有安全契约时按 §20.2 停止。Compiler 将 `reconcile-node.operation.output` 链接到原 Mutation Owner 契约声明的 **Reconcile Output Schema**。该 Schema 在 Reconcile COMMITTED 后提供给本 Node 后续阶段和可达消费者，形状可与原 Mutation 的成功输出不同。Owner 未声明恢复输出时，COMMITTED 后不提供 `operation.output`，后续可显式读取权威状态。承诺的输出未通过校验时按 §20.2 停止。本节示例的 UNRESOLVED 边请求 SAFE_STOPPED，因为假定已有部分资源待保全。§12.1 的独立示例请求 UNRESOLVED。两种写法都由 Runtime 按 §12.8 计算实际终态。
 
 ### 12.8 Invocation 终态与 Applicability
 
@@ -819,7 +819,7 @@ Runtime 必须使用原始 Mutation 的不可变 Invocation、Operation 身份�
 | `UNRESOLVED` | 执行需要停止，无上述待处理的已知资源或外部变更，但关键事实或已派发调用的提交状态仍不确定 |
 | `FAILED` | 执行需要停止，无待处理的已知资源或外部变更，关键事实及提交状态均已确定 |
 
-停止时按 `SAFE_STOPPED`、`UNRESOLVED`、`FAILED` 的顺序选择第一个满足条件的状态。任何停止路由都不会发布 `SUCCEEDED`。例如，`FAIL: FAILED` 遇到已确认的部分资源时发布 `SAFE_STOPPED`。若 `SUCCEEDED` 路由未通过 §12.9，或执行因异常需要停止，也按同一顺序选择，保留原停止原因。没有匹配路由或 Outcome 未识别时，先按 §20 确定已派发 Mutation 的已知状态。派发前拒绝见 §24.2。
+停止时按 `SAFE_STOPPED`、`UNRESOLVED`、`FAILED` 的顺序选择第一个满足条件的状态。任何停止路由都不会发布 `SUCCEEDED`。例如，`FAIL: FAILED` 遇到已确认的部分资源时发布 `SAFE_STOPPED`。若已通过静态校验的 `SUCCEEDED` 路由在运行时未通过发布复核，或执行因异常需要停止，也按同一顺序选择，保留原停止原因。没有匹配路由或 Outcome 未识别时，先按 §20 确定已派发 Mutation 的已知状态。派发前拒绝见 §24.2。
 
 Trace 记录选中的终态路由和实际发布值。两者不同时另记 `TERMINAL_STATE_MISMATCH`。若异常发生时还未选中终态路由，记录原诊断和实际发布值。
 
@@ -834,16 +834,23 @@ Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时不�
 - 全局 Postcondition 要求证明 Contract 的单一 `goal`。`postcondition.goal` 必须精确匹配该 Goal，其 PASS 建立证明。各成功分支可以由不同 Node 的 Postcondition 建立证明。`start` 可指向带有 Goal Postcondition 的 Node。若同一验收需要同时检查多项事实，可在一个 Predicate 中明确组合判断。
 - Runtime 发布 SUCCEEDED 前复核全部全局前置条件、当前 Goal 证明的来源与 Evidence，以及资源责任。所有门禁复核都使用原绑定和最新校验时间。若缺少要求的 PASS 或复核失败，按 §12.8 停止，保留原 Trace。Runtime 不隐式重新求值、查询、换绑证据或回退到更早的 Goal 证明。失败或停止终态按 §12.8 发布，无需全局 PASS 或 Goal 证明。
 
-Compiler 构建以 `(Node ID, 阶段名)` 为顶点的分析图。每个合法 Outcome 对应一条边，边记录来源顶点、Outcome 与目标。若还有后续阶段，正常 Outcome 生成一条自动推进边，目标为同一 Node 的下一已声明阶段。其他边来自 `routes`，目标为另一 Node 的首个阶段或终态。两种边都按来源阶段和 Outcome 应用相同的门禁及证明更新规则。Compiler 先更新边上的状态，再检查每条可达的 `SUCCEEDED` 终态边。最后阶段的 Goal PASS 因此可以直接证明同一条成功边。入口没有已通过的全局前置条件，也没有 Goal 证明。汇合点对已通过条件取可达入边的交集，对 Goal 证明取可达入边的 AND。不可达 Node 另报 `UNREACHABLE_NODE`。若存在可达 SUCCEEDED 且没有可达的 Goal Postcondition，报告 `FINAL_POSTCONDITION_MISSING`；否则缺少证明的成功路径报告 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`。任一受保护的 Mutation 或成功终态绕过全局前置判断的 PASS 时，报告 `ENTRY_PRECONDITION_BYPASSED`。
+Compiler 构建以 `(Node ID, 阶段名)` 为顶点的分析图。每个合法 Outcome 对应一条边，边记录来源顶点、Outcome 与目标。若还有后续阶段，正常 Outcome 生成一条自动推进边，目标为同一 Node 的下一已声明阶段。其他边来自 `routes`，目标为另一 Node 的首个阶段或终态。两种边都按来源阶段和 Outcome 应用相同的门禁及证明更新规则。Compiler 先更新边上的状态，再检查每条可达的 `SUCCEEDED` 终态边。最后阶段的 Goal PASS 因此可以直接证明同一条成功边。入口顶点是 `start` Node 的第一个已声明阶段，进入时没有已通过的全局前置条件，也没有 Goal 证明。可达图包含从该入口经显式路由和自动推进可到达的阶段及其边。每个可达的非入口阶段至少有一条来自可达阶段的入边。汇合点仅对这些入边计算已通过条件的交集和 Goal 证明的 AND。不可达 Node 另报 `UNREACHABLE_NODE`。若存在可达 SUCCEEDED 且没有可达的 Goal Postcondition，报告 `FINAL_POSTCONDITION_MISSING`；否则缺少证明的成功路径报告 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`。任一受保护的 Mutation 或成功终态绕过全局前置判断的 PASS 时，报告 `ENTRY_PRECONDITION_BYPASSED`。
 
 ~~~text
 required = set(contract.preconditions or empty list)
-for vertex in reachable_stages_in_topological_order:
-    passed = empty at the start stage, else INTERSECT(reachable incoming passed sets)
-    proof = false at the start stage, else AND(reachable incoming proofs)
+entry = first declared stage of the start Node
+graph = reachable outcome graph from entry  # explicit routes and automatic advances
+for vertex in graph.stages in topological order:
+    if vertex == entry:
+        passed = empty set
+        proof = false
+    else:
+        incoming = graph.incoming_edges(vertex)
+        passed = INTERSECT(edge.passed for edge in incoming)
+        proof = AND(edge.proof for edge in incoming)
     if vertex is a business Mutation:
         require required is a subset of passed
-    for each outgoing outcome edge from vertex, including automatic advances:
+    for edge in graph.outgoing_edges(vertex):  # includes automatic advances and terminal edges
         edge.passed = passed
         if vertex.stage == precondition and edge.outcome == PASS:
             ref = vertex.node_id + ".precondition"
@@ -921,7 +928,7 @@ Compiler 必须验证：
 - 参数名在目标 Schema 中存在；
 - 所有 Required 参数均提供；
 - 不得传入未声明字段；
-- SourcePath 必须在每条可达路径上存在。Compiler 先解析 Producer 与其输出 Schema，再检查路径和 Outcome，最后检查类型可赋值性。路径某段未在对应 Schema 中声明时报告 `SOURCE_PATH_INVALID`。已声明的路径因当前分支没有相应 Producer Outcome 而不可用时报告 `SOURCE_NOT_AVAILABLE`；引用 Owner 未声明的 Reconcile 输出时按 §12.7 报 `RECONCILE_OUTPUT_UNAVAILABLE`。若属性在该 Outcome 的 Schema 中可缺失（包括 TypedDict 的 `NotRequired`），直接取该属性的路径报告 `SOURCE_NOT_AVAILABLE`。可绑定保证存在的外层对象，再由消费者按其 Schema 处理可选成员。Predicate PASS 本身不缩窄后续 SourcePath 类型。例如局部门禁确认 `read-policy.operation.output` 中的可选 `policyRef` 有值，即使 PASS 边直接连到 Mutation，其 `arguments.policyRef: read-policy.operation.output.policyRef` 仍报 `SOURCE_NOT_AVAILABLE`；
+- SourcePath 必须在每条可达路径上存在。Compiler 先解析 Producer 与其输出 Schema，再检查路径和 Outcome，最后检查类型可赋值性。路径某段未在对应 Schema 中声明时报告 `SOURCE_PATH_INVALID`。已声明的路径因当前分支没有相应 Producer Outcome 而不可用时报告 `SOURCE_NOT_AVAILABLE`；引用 Owner 未声明的 Reconcile 输出时按 §12.7 报 `RECONCILE_OUTPUT_UNAVAILABLE`。若属性在该 Outcome 的 Schema 中可缺失（包括 TypedDict 的 `NotRequired`），直接取该属性的路径报告 `SOURCE_NOT_AVAILABLE`。可绑定保证存在的外层对象，再由消费者按其 Schema 处理可选成员。Predicate PASS 本身不缩窄后续 SourcePath 类型。例如局部门禁确认 `read-policy.operation.output` 中的可选 `policyRef` 有值，即使 PASS 边直接连到 Mutation，其 `arguments.policyRef: read-policy.operation.output.policyRef` 仍报 `SOURCE_NOT_AVAILABLE`。若目标 Schema 允许，可省略该实参。若业务必需，由 Owner 在输出 Schema 中声明必需字段，或将保证存在的外层对象传给 Procedure Script。Script 必须显式处理字段缺失，只有能产生有效引用时才返回带必需字段的成功输出，缺失且无法得出有效引用时走 FAILED；
 - Source Schema 可赋给目标字段 Schema；
 - Optional、Nullability、enum、const、范围和数组元素约束兼容；
 - 来源的 Subject、Session、Lifecycle 和 Evidence Scope 没有被不安全地扩大；
@@ -1095,7 +1102,7 @@ Runtime 只用可信且关联到本次原调用的证明记录提交状态。Own
 
 ### 20.2 调和与受控新尝试
 
-1. 有安全 Owner 契约时，原 Mutation 阶段的 `operation.routes.OUTCOME_UNKNOWN` 必须直接指向对应的 Reconcile Node。反向校验也必须成立：每个 Reconcile Node 的唯一声明入边必须来自其 `reconcile` 所引用的 Mutation 的 Operation 阶段，且 Outcome 为 `OUTCOME_UNKNOWN`。Compiler 检查所有已声明路由，包括不可达 Node 的路由。Reconcile Node 不得用作 `start`。Runtime 校验实际进入的边、未决调用的身份和状态，以及本次授权、Scope、Correlation、预算、Deadline 和取消状态，对同一次原调用至多派发一次。Reconcile 不引入新的业务副作用。
+1. 有安全 Owner 契约时，原 Mutation 阶段的 `operation.routes.OUTCOME_UNKNOWN` 必须直接指向对应的 Reconcile Node。反向校验也必须成立：每个 Reconcile Node 的唯一声明入边是进入该 Node 的跨 Node 路由，必须来自其 `reconcile` 所引用的 Mutation 的 Operation 阶段，且 Outcome 为 `OUTCOME_UNKNOWN`。Compiler 检查所有已声明路由，包括不可达 Node 的路由。Reconcile Node 不得用作 `start`。Runtime 校验实际进入的边、未决调用的身份和状态，以及本次授权、Scope、Correlation、预算、Deadline 和取消状态，对同一次原调用至多派发一次。Reconcile 不引入新的业务副作用。
 2. 没有安全契约时，OUTCOME_UNKNOWN 边必须直接指向 UNRESOLVED 或 SAFE_STOPPED。已有安全契约但当前不能派发时，Runtime 直接按 §12.8 停止。两种情况都保留原调用和责任。
 3. Reconcile 确认 COMMITTED 或 NOT_COMMITTED 时，更新原调用状态。若 COMMITTED 契约承诺恢复输出，只有有效的 Reconcile 自身输出才在 COMMITTED 后提供；提交已确认但承诺恢复的输出无效时，按 §20.1 的 COMMITTED_OUTPUT_UNAVAILABLE 停止。契约未承诺输出时，后续节点可以显式读取权威状态。原 Mutation 丢失的输出不可用。COMMITTED 只更新原调用的提交状态。要到达 SUCCEEDED，该路径仍须通过新的 Goal Postcondition PASS（§12.9）。
 4. Reconcile 缺少有效结论时沿 UNRESOLVED 边。该边必须直接指向 `UNRESOLVED` 或 `SAFE_STOPPED`，Runtime 按 §12.8 选择实际终态。普通业务查询不能替代原调用调和。
@@ -1214,7 +1221,7 @@ Environment
 | UNSUPPORTED_WAIT | 出现 Wait / Await | 阻止构建 |
 | UNSUPPORTED_V02_SYNTAX | 使用旧版隐式语法 | 阻止构建 |
 
-`UNREACHABLE_NODE` 是警告，定位从 `start` 不可达的节点。该警告本身不阻止构建，节点仍须通过语法和链接校验。
+`UNREACHABLE_NODE` 是警告，定位从 `start` 不可达的节点。节点仍须通过语法和链接校验。路由结构足以判定可达性时，可同时报告该警告和阻止构建的错误。是否阻止构建由错误决定，无需规定诊断输出顺序。
 
 Compiler 不得为让文件编译而创建不存在的 Schema、用 object 逃逸、猜测 Operation ID、扩大 Capability、把 UNKNOWN 改成 PASS、静默删除未知字段或把旧语法映射成新语义。
 
@@ -2167,6 +2174,10 @@ Compiler 已找到对应的导出和 Schema，接下来要验证该 Schema 内�
 
 自动推进和显式路由都产生来源明确的 Outcome 边。门禁和 Goal 证明只依赖来源阶段与 Outcome。比如全局 Precondition 的 PASS 在同一 Node 内进入 Operation 前计入门禁集合，Mutation 的 SUCCEEDED 在同一 Node 内进入 Postcondition 前清除旧 Goal 证明。§12.1 的 Reconcile 查询使用 Owner 已恢复的精确资源引用，满足该条件时可以留在同一 Node。
 
+## 88. 为什么不可达的路由仍要通过链接校验？
+
+声明结构和路径证明使用不同的范围。Compiler 对所有声明检查路由目标和 Reconcile 唯一入边。建立门禁和 Goal 证明时，只传播 `start` 可达的显式路由和自动推进边。E60 的额外 Reconcile 入边会阻止构建，E65 的不可达入边只产生警告，成功证明由可达路径决定。
+
 # 附录 A：关键设计决定
 
 | ID | 决定 | 说明 |
@@ -2545,6 +2556,7 @@ expected:
 | E62：Operation 返回 DENIED，后续 Postcondition 绑定其成功输出 | 直接走 DENIED 路由。Postcondition 不执行，Operation 不提供成功输出 |
 | E63：移除 §12.1 Reconcile 的 COMMITTED 输出声明，保留 Observation 绑定 | RECONCILE_OUTPUT_UNAVAILABLE |
 | E64：已有 Goal PASS，后续 Mutation 的 SUCCEEDED 自动进入局部 Postcondition 并尝试成功 | SUCCESS_BYPASSES_FINAL_POSTCONDITION，Mutation 清除旧证明 |
+| E65：不可达 Node 指向可达的局部 Postcondition 阶段所在 Node | UNREACHABLE_NODE 警告。汇合时仍保留可达路径的 Goal 证明 |
 
 此表是待落地的评审与 Compiler Fixture 契约，不是现有 CI 的实际通过记录。正式冻结必须由相应 Owner 提供发布的导出身份，并让 Native、WASM 和 Skill Studio 使用同一组正负例。
 
@@ -2612,7 +2624,12 @@ E39、E43 的 ca 快照基线：将可信 Owner 集合设为 `[example-ue-owner,
 - E58 用 §31 为基线，将 `create-policy.postcondition.routes.FAIL` 改为 `FAILED`。令 Operation 已确认提交，链路上的 Observation 已获取足以证伪的证据，Postcondition 返回 FAIL，并且资源仍需保全。
 - E59 将 §12.1 的 `reconcile-subscription.operation.routes.UNRESOLVED` 分别改为 `FAILED` 和一个新增的有效业务 Node。该 Node 可以复用 E.8 的上下文判断，正常和异常 Outcome 都直接请求停止。
 
-- E60 从 §12.1 的正例独立派生四个变体：将 `start` 改为 `reconcile-subscription`。保留正确的 OUTCOME_UNKNOWN 边，再将 `create-subscription.operation.routes.FAILED` 指向同一 Reconcile。另增一个不可达的 Precondition Node，其 PASS 也指向同一 Reconcile，FAIL 和 UNKNOWN 分别指向 FAILED 和 UNRESOLVED。再单独为 Reconcile Node 添加 E.8 的上下文 Predicate 作为 Precondition。它只配置 FAIL 和 UNKNOWN 停止路由，PASS 按一般阶段规则自动推进。四种变体都必须报 `RECONCILE_CONTRACT_INVALID`。
+E60 从 §12.1 的正例独立派生四个变体。每个变体都必须报 `RECONCILE_CONTRACT_INVALID`。
+
+1. 将 `start` 改为 `reconcile-subscription`，违反入口约束。
+2. 保留原 OUTCOME_UNKNOWN 路由，并将 `create-subscription.operation.routes.FAILED` 也指向同一 Reconcile，违反唯一跨 Node 入边约束。
+3. 新增不可达的 Precondition Node，其 PASS 也指向同一 Reconcile，FAIL 和 UNKNOWN 分别指向 FAILED 和 UNRESOLVED。额外路由违反唯一跨 Node 入边约束，构建失败，同时可报告该节点的 `UNREACHABLE_NODE` 警告。
+4. 给 Reconcile Node 添加 E.8 的上下文 Predicate 作为 Precondition，只配置 FAIL 和 UNKNOWN 的停止路由，验证禁用 Precondition 的规则。
 
 阶段推进变体：
 
@@ -2620,6 +2637,8 @@ E39、E43 的 ca 快照基线：将可信 Owner 集合设为 `[example-ue-owner,
 - E62 以 §12.1 为基线，令 `create-subscription.operation` 在派发前返回 DENIED。其路由为 FAILED。该 Node 的 Postcondition 不执行，原调用没有成功输出或已派发记录。
 - E63 以 §12.1 配套 Owner 契约为基线，删除 Reconcile 的 COMMITTED 输出 Schema 声明，保留 `reconcile-subscription.observation.arguments.subscriptionRef`。
 - E64 以 §12.1 为基线，将 Contract Goal 改为 E.8 的 Goal，保留本例原有的 Request、Context 和依赖声明。合入 E.8 的上下文 Predicate 与 `verify-subject` 作为入口，其 PASS 路由到 `create-subscription`。保留原 Create 后的局部订阅检查和 PASS 到 SUCCEEDED 的路由，只移除其 Goal 标记。将 Reconcile 的最终 Postcondition 改为 E.8 的上下文判断及 Goal，保留 Reconcile 的其余阶段和路由。该变体应拒绝直接 Create 成功路径，因为隐式 SUCCEEDED 已清除入口证明。
+
+- E65 复用 E42 中保留 Goal 标记的正例，再加入 E44 的不可达 Precondition Node，并将其 PASS 路由改为 `verify-local`。该额外入边参与语法和链接校验，在 `verify-local.postcondition` 的可达入边汇合中排除。
 
 ## E.8 从 Goal Postcondition 开始的验证流程
 
