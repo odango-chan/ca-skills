@@ -2226,7 +2226,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 
 本次评审认可设计方向，冻结审定仍不通过。先审定抽象语义，再审定候选线格式，最后验收 Compiler、Runtime、Trace、Studio 与 Native/WASM 一致性。§9.2、§9.3、§17.1 和 §34.0 的候选输入须由适用版本的解码器转换为抽象契约后再运行规范性校验。依赖具体字段名或装配格式的 E.3、E.4 及其变体随相应线格式验收。
 
-设计方向通过评审，冻结审定暂缓。E.9 中 E67–E89 的阻断规则须有适用的 Compiler 或 Runtime 验收记录。
+设计方向通过评审，冻结审定暂缓。E.9、E.12 和 E.14 中的阻断规则须有适用的 Compiler 或 Runtime 验收记录。
 
 1. 术语与概念模型评审；
 2. ToolCatalog Operation / Observation typed callable 结构定稿；
@@ -2246,6 +2246,8 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 16. 审定 Runtime Artifact Contract 的 Trace 线格式与版本兼容。至少可表达调用来源、阶段 Outcome、所选边、请求和发布终态、诊断、证据关联、停止原因及责任记录引用。
 
 第 1–16 项是整份规范的冻结门槛。满足全部门槛前，文档的状态标记为 DESIGN REVIEW。Compiler、Runtime 和工具链验收按对应条目进行。
+
+第 1–16 项的当前状态与评审责任见附录 B。文档路径检查只记录为规范复核，实际产品符合性以对应验收记录为准。
 
 **冻结审定前置。** 第 1–16 项仍适用于整份规范。本轮及前轮阻断规则按附录 E.9 复审并取得 Compiler / Runtime 验收记录后，再独立审定 §5–§17、§19–§22、§24.1 的抽象语义。保证身份、Scope、Correlation、Freshness 的判定及 Runtime 复核属于抽象语义；描述符字段名、文件组织和导出键编码属于线格式，继续按对应契约版本评审。§12.4 的调用端语义可与 §9.2 的 QueryContext Schema 线格式并行评审。
 
@@ -2439,6 +2441,19 @@ Compiler 对所有声明检查路由目标和 Reconcile 唯一跨 Node 入边。
 
 PASS 是 Runtime 对当前命题的判断。Compiler 使用 Producer 成功 Schema 所保证的字段集合。需要该引用时，应由 Owner 将字段声明为必需，或传递外层对象交给 Procedure Script 显式处理缺失，也可使用权威 Observation 获得保证存在的引用。见 §13.3、E89。
 
+## 91. 为什么同一原调用只允许一次 Reconcile？
+
+当前 Invocation 以一次调和尝试裁决执行路径，并按 §11.6 计费。UNRESOLVED 后由 Owner 按独立责任契约处理；后来取得的新证据可以支持该处置。见 §20.2。
+
+### Goal 证明传播示例
+
+~~~mermaid
+flowchart LR
+    A["Goal PASS：建立证明"] --> B["Mutation SUCCEEDED：清除证明"]
+    B --> C["Goal PASS：重新建立证明"]
+    C --> D["SUCCEEDED：运行复核"]
+~~~
+
 # 附录 A：关键设计决定
 
 | ID | 决定 | 说明 |
@@ -2479,20 +2494,24 @@ PASS 是 Runtime 对当前命题的判断。Compiler 使用 Producer 成功 Sche
 
 本文是可供外部评审的完整设计稿，但仍为 PUBLIC DESIGN REVIEW / NOT FROZEN。
 
-| 项目 | 状态 | 评审责任 |
-|---|---|---|
-| 术语、概念与职责边界 | 已形成提案 | 架构 / 业务 Owner |
-| Procedure 主节点和显式绑定 | 已形成提案 | 语言 / Compiler |
-| ToolCatalog typed callable | 候选 YAML，未冻结 | Tool Owner / Compiler |
-| CapabilityContracts callable mapping | 候选 YAML，未冻结 | Host / Deployment |
-| Observation Query 语法 | 候选表达，待冻结 | Tool Owner / Compiler |
-| Evidence 参数要求与 Runtime 校验 | §17 提案；Owner 保证、关联与有效性契约待发布 | Host / Evidence Owner |
-| Predicate CEL / Python 类型派生 | 原则已定义，工具链待验证 | Compiler / Studio |
-| JSON Schema 支持子集 | 待冻结 | Compiler |
-| Applicability / Root Routing | 需与独立契约统一 | Host / Skill |
-| 三个异步 Operation Owner 契约 | 目标责任已分配，需确认 | SMF / Provider |
-| 5GC 全量迁移 | 未完成 | Skill Owner / Runtime |
-| Studio 完整语义体验 | 未完成 | Studio |
+| 对应 §45 项 | 交付范围 | 状态 | 评审责任 |
+|---|---|---|---|
+| 1 | 术语与责任边界 | 提案待审定 | 语言 / 业务 Owner |
+| 2 | ToolCatalog callable | 候选线格式待定稿 | Tool Owner / Compiler |
+| 3 | CapabilityContracts 与 Scope | 候选线格式待定稿 | Deployment / Compiler |
+| 4 | Observation 调用及 QueryContext | 调用语义已写明，线格式待审定 | 语言 / Observation Owner |
+| 5 | Evidence 保证及复核 | 抽象规则已写明，Owner 契约与 Runtime 验收待完成 | Evidence Owner / Host |
+| 6 | Schema ID、支持子集与依赖 Alias | 链接规则已写明，子集待审定 | Compiler / Schema Owner |
+| 7 | Predicate / Script 类型 | 静态检查规则已写明，类型子集与实现待验收 | Compiler / Studio |
+| 8 | Procedure、门禁、路由与 SourcePath | 语义及文档样例已更新，Compiler 验收待完成 | 语言 / Compiler |
+| 9 | 三个 5GC 异步 Operation | Owner 契约待确认 | SMF / Provider |
+| 10 | 可信输入、多 Owner 归属与装配 | 抽象绑定规则已写明，传输与链接验收待完成 | Studio / Compiler / Deployment |
+| 11 | 5GC PDU Skill 迁移 | 完整迁移演练待完成 | Skill Owner / Runtime |
+| 12 | Compiler 正负例与诊断 | 文档用例已有，机器 Fixture 与 CI 验收待完成 | Compiler |
+| 13 | Studio 语义体验 | 实际验收待完成 | Studio |
+| 14 | Native / WASM / Studio 一致性 | 跨入口验收待完成 | Compiler / Studio |
+| 15 | Compiler Artifact 序列化与闭包 | 独立策略待审定 | Compiler / Deployment |
+| 16 | Runtime Artifact Trace | 字段要求已写明，线格式与版本兼容待审定 | Host / Runtime |
 
 评审意见必须归入：规范语义错误、语法表达不清、Owner 契约缺失、Compiler 无法静态验证、Studio 无法正确呈现、Runtime 尚未实现、业务流程尚未验证。不得把所有问题归结为“Compiler 再支持一下”，也不得让 Skill 源码承担其他 Owner 的缺失契约。
 
