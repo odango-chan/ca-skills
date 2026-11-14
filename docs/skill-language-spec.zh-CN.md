@@ -2365,19 +2365,19 @@ Temporal 是持久化 Workflow 执行平台，CA-SL 不定义该类平台的执�
 
 ## 48. Observation 的显式查询模型
 
-Agent 有时必须主动向权威 Owner 查询当前事实。该查询具有输入、权限、Effect、Owner、输出 Schema、Scope 和 Evidence 保证，应是显式可治理的 Tool 调用，而不是 Predicate 内部隐藏获取。同时 Observation 不应拥有独立于 ToolCatalog 的依赖、Schema、Capability 和 Runtime 管理系统。
+事实查询是由权威 Owner 提供的受治理 Tool 调用，须具备明确的输入、授权、Effect、Owner、输出 Schema、Scope 和 Evidence 保证。Predicate 不得隐式执行查询；Observation 复用 ToolCatalog 的依赖、Schema、Capability 与 Runtime 治理机制。
 
 ## 49. Observation 与 Mutation 的关系
 
-Operation 输出有时已经足够；有时一个 Observation 服务多个 Operation；有时一个 Tool 暴露多个查询；有些 Mutation 不需要独立查询。强制一一对应会导致冗余查询和不必要的接口声明。
+Operation 与 Observation Query 不要求一一对应。一次 Operation 的结果可能已满足事实证明要求；同一 Observation Query 可服务多个 Operation，而部分 Mutation 无需额外查询。强制一一对应会增加冗余查询和接口声明。
 
 ## 50. Operation Result 与 Observation Result 的区别
 
-Operation Result 记录一次操作返回了什么；Observation Result 是 Owner 对事实进行查询后的状态视图。只有 Operation 契约明确保证所需事实、Scope、Correlation、Freshness 和 Evidence 时，才能直接复用。
+Operation Result 表示对应调用产生的结果；Observation Result 表示权威 Owner 针对指定事实和查询时点返回的状态。仅当 Operation 契约提供所需的事实、Scope、Correlation、Freshness 和 Evidence 保证时，才允许直接使用 Operation Result 作为事实依据。
 
 ## 51. Predicate 的纯函数边界
 
-这样 Predicate 就不再是纯函数，会隐藏网络访问、授权、超时、重试、Freshness 和 Evidence 获取。必须先显式查询，再把结果交给 Predicate。
+Predicate 不得发起外部查询。查询的授权、超时、重试、Freshness 与 Evidence 获取应由显式的 Observation 阶段承担；查询结果通过声明的参数传递给 Predicate，以保持纯函数语义。
 
 ## 52. Skill Wait 的排除
 
@@ -2401,15 +2401,15 @@ Adapter 是 Tool Owner 的实现细节。Skill 应引用稳定契约身份，而
 
 ## 57. Procedure Script 与 Predicate Script 的输入声明
 
-Procedure Script 用输入 TypedDict 声明消费契约，并在每个调用点校验 `arguments`。Predicate Script 使用 Compiler 与 LSP 共享的生成类型 `PredicateInput`，其来源为 `parameters` 与 §17.3 的投影。两者都不维护第二份手写输入 Schema。
+Procedure Script 的输入契约由 TypedDict 声明，Compiler 在每个调用点检查 `arguments`。Predicate Script 使用 Compiler 和 LSP 依据 `parameters` 及 §17.3 生成的 `PredicateInput`。两者均不维护独立的手写输入 Schema。
 
 ## 58. 跨 Node 的显式数据传递
 
-隐式前序绑定会让节点移动改变语义，使分支路径难以静态验证，也会让同名字段的来源、Scope 和生命周期不明确。Operation / Observation 使用 arguments 具名映射，Precondition / Postcondition 使用有序 arguments 列表；每个消费者必须明确声明数据来源。
+隐式前序绑定会使节点移动影响数据来源，并增加分支路径、Scope 与生命周期关联的静态验证歧义。Operation / Observation 使用 arguments 具名映射，Precondition / Postcondition 使用有序 arguments 列表；每个消费者必须明确声明数据来源。
 
 ## 59. 自动同名绑定的限制
 
-显式绑定更容易审查，不会因字段重名意外传值。Studio 可以辅助生成显式 Binding。未来若语义 ID、Schema、Scope 和 CFG 可用性能够完整证明，可另行提案。
+本版仅支持显式绑定，以避免字段重名引起未经声明的数据传递。Studio 可以生成显式 Binding；自动同名绑定若在后续版本引入，必须先证明语义 ID、Schema、Scope 与控制流可用性满足相应安全条件。
 
 ## 60. 业务 Payload 与 Evidence 的分离
 
@@ -2455,7 +2455,7 @@ Observation 是可选的事实获取机制。若 Operation Result 已包含目�
 
 ## 70. Operation Result 作为 Observation 输入
 
-可以。Operation Result 可以提供 Observation Query 所需的资源引用、Session Instance、SEID 或 Correlation。但 Observation Result 必须由 Observation Owner 实际查询产生，不能把 Operation Result 包装成 Observation Result，也不能丢失其原始 Producer 身份。
+Operation Result 可向后续 Observation Query 提供资源引用、Session Instance、SEID 或 Correlation。Observation Result 仍必须由 Observation Owner 的实际查询产生；不得将 Operation Result 重新标记为 Observation Result，且必须保留原始 Producer 身份。
 
 ## 71. Reconcile 的 Operation 阶段形式
 
@@ -2503,7 +2503,7 @@ E.1–E.4 给出独立链接基线。E.6 从 E.1–E.4 的成功输入派生链�
 
 ## 82. 以 Goal Postcondition 作为入口
 
-`start` 标识首个业务 Node。只判断已准入 Context 的 Skill 可以声明一个只有 Goal Postcondition 的 Node。进入时尚无证明，Postcondition PASS 才建立证明。若同一业务步骤还需前置判断，可在同一 Node 声明 Precondition，Runtime 按阶段顺序执行。
+`start` 标识首个业务 Node。对于仅依据已准入 Context 作出判断的 Skill，可以声明只包含 Goal Postcondition 的 Node。进入时尚无证明，Postcondition PASS 才建立证明。若同一业务步骤还需前置判断，可在同一 Node 声明 Precondition，Runtime 按阶段顺序执行。
 
 ## 83. SOURCE_PATH_INVALID 与 SOURCE_NOT_AVAILABLE 的适用边界
 
@@ -3490,7 +3490,7 @@ factIdentity:
 
 ## G.4 JSON Schema 白名单、静态兼容与 CEL 型别
 
-本版不支持整个 JSON Schema Draft 2020-12，而是一个故意收窄且可独立实现的子集。所有参与链接、静态可赋值性和 Script 类型派生的 Schema 根必须显式声明 $schema: https://json-schema.org/draft/2020-12/schema。缺少或不同方言即 SCHEMA_INVALID，不允许从文件扩展名、外部发布者名称、Compiler 配置或声明顺序猜测。许可**验证关键字**仅为：$ref、type、properties、required、additionalProperties、items、minItems、maxItems、minLength、maxLength、minimum、maximum、exclusiveMinimum、exclusiveMaximum、enum、const。
+本版仅定义 JSON Schema Draft 2020-12 的有限、可互操作子集。所有参与链接、静态可赋值性和 Script 类型派生的 Schema 根必须显式声明 $schema: https://json-schema.org/draft/2020-12/schema。缺少或不同方言即 SCHEMA_INVALID，不允许从文件扩展名、外部发布者名称、Compiler 配置或声明顺序猜测。许可**验证关键字**仅为：$ref、type、properties、required、additionalProperties、items、minItems、maxItems、minLength、maxLength、minimum、maximum、exclusiveMinimum、exclusiveMaximum、enum、const。
 
 许可的**非断言注解**仅为：$schema、$id、title、description、default、examples；default 不合成值。所有未知字段及其他断言一律 SCHEMA_INVALID，不可以“验证器忽略了所以安全”处理。特别不支持 allOf、anyOf、oneOf、not、if/then/else、pattern、patternProperties、unevaluatedProperties、contains、prefixItems、format、动态引用或扩展关键字。来自现实 Owner 的复杂 Schema 应由其 Owner 发布语义等价、正式版本化且受支持的投影，不得由 Skill 复制影子结构。
 
