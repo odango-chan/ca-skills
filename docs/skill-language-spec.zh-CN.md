@@ -1183,9 +1183,9 @@ SourcePath 可选字段、Evidence 重验及 Owner Schema 投影的作者模式�
 
 **规范性说明。** 保证身份、适用性、证据判定与 E.3 描述符 DSL 的字段语义均按附录 F.3 冻结。文件组织不是跨包导出身份；真实 Owner 记录仍须验证。
 
-Predicate 的 `parameters` 声明业务值类型。`evidence.requires` 可选，是参数名到一组非空、无重复的精确 `alias::guaranteeId` 的映射；只允许引用已声明参数。每个列出的保证至少由一条有效 Evidence Ref 满足，列表全部满足才成立。需要独立证据时，引用不同保证并用 Owner 声明的独立来源约束校验，见 §17.1.1 与 §17.2。**省略某个已声明 Predicate 参数对应的 `evidence.requires` 条目**，仅在该参数于所有调用点的实参均满足下列来源豁免时合法；这里并非允许省略 `parameters` 参数或缩短 `arguments` 列表（两者仍受 §14 的严格 arity 约束）。
+Predicate 的 `parameters` 声明业务值类型。`evidence.requires` 可选，是参数名到一组非空、无重复的精确 `alias::guaranteeId` 的映射；只允许引用已声明参数。每个列出的保证至少由一条有效 Evidence Ref 满足，列表全部满足才成立。需要独立证据时，引用不同保证并用 Owner 声明的独立来源约束校验，见 §17.1.1 与 §17.2。**省略某个已声明 Predicate 参数对应的 `evidence.requires` 条目**，仅在该参数于所有调用点的实参均满足下列来源豁免时合法；这里并非允许省略 `parameters` 参数或缩短 `arguments` 列表（两者仍受 §14 的严格 arity 约束）。**显式声明的 `evidence.requires` 优先于来源豁免：** 一旦为参数声明了任何保证，该参数在**每一个调用点**仍必须提供并通过这些保证；`context.ueRef`、`context.request.*`、字面量等来源豁免仅表示**在所有调用点均属可豁免来源时，允许不声明该参数的 `requires`**，绝不覆盖或取消已经声明的保证。若显式保证在某调用点静态无法满足，按 §17.2 报 `PREDICATE_EVIDENCE_UNSATISFIABLE`；静态可满足而本次执行缺少或无法验证有效记录时，Predicate 为 `UNKNOWN`。同一参数在不同调用点混用可豁免与非豁免来源而不声明保证，仍须报 `PREDICATE_EVIDENCE_REQUIRED`。不得通过优先级调整将任何声明的保证变为可选。
 
-Compiler 按来源判定每个调用点的实参，覆盖所有可达路径。直接引用普通 Tool Operation、Observation 或 Reconcile 输出的实参必须为对应参数声明至少一个覆盖精确值路径的保证，即使该值仅用于比较。Host Context 字段同样要求保证，但请求字段 `context.request.*`、Host 已校验的身份 `context.ueRef`、关联信息 `context.correlation.*` 及其根对象 `context.correlation` 可作为比对输入豁免。字面量和整个已校验的 `context.request` 也可豁免。此检查只约束参数来源。若 Goal 声明外部事实，Owner 须审定 Predicate 的命题与取证路径确实支持该 Goal。
+Compiler 按来源判定每个调用点的实参，覆盖所有可达路径。直接引用普通 Tool Operation、Observation 或 Reconcile 输出的实参必须为对应参数声明至少一个覆盖精确值路径的保证，即使该值仅用于比较。Host Context 字段同样要求保证，但请求字段 `context.request.*`、Host 已校验的身份 `context.ueRef`、关联信息 `context.correlation.*` 及其根对象 `context.correlation` **在未为相应参数显式声明保证时**可作为比对输入豁免。字面量和整个已校验的 `context.request` 也可豁免。此检查只约束参数来源。若 Goal 声明外部事实，Owner 须审定 Predicate 的命题与取证路径确实支持该 Goal。
 
 Procedure Script 输出保守继承其全部绑定实参的来源类别，包括上游 Script 的传递来源。仅当全部来源均可豁免时，其输出可无保证。涉及外部事实的 Procedure Script 输出可用于 Operation 或 Observation 的非身份实参，须满足 §13.3 的来源追溯、类型与授权校验。需要 Evidence 的 Predicate 参数必须改绑到权威 Producer 输出或绑定到由 Host 契约提供可验证关联的 Context 子路径。直接绑定该 Script 输出不能满足所需保证。Script 不能继承输入 Evidence。缺少强制声明报 `PREDICATE_EVIDENCE_REQUIRED`；已声明却无法满足者按 §17.2 校验。
 
@@ -2185,7 +2185,7 @@ dependencies:
 Schema 的语义标准是受支持子集的 JSON Schema；JSON 与 YAML 只是同一数据模型的两种序列化形式。保守赋值和不支持关键字的处理按附录 F.5，不能由实现自行放宽。
 
 - Skill 自有 Request Schema 的作者源码可以使用 YAML（例如 schemas/establishment-request.schema.yaml），并继续作为唯一可编辑源。
-- Compiler 解析后必须先归一化到同一 Schema Model，再进行引用解析、组合、类型检查和生成。
+- Compiler 解析后必须先归一化到同一受支持 Schema Model，再进行精确引用解析、静态赋值/类型检查和生成；不得对 G.4 排除的组合关键字进行兼容转换或求值。
 - BuildResult 的 Schema 文件究竟输出 YAML 还是 canonical JSON，属于 Compiler Artifact Contract，不是 CA-SL 节点语法。建议机器消费的生成 Schema 使用 canonical JSON，以便稳定序列化和比较；但本 PR 不冻结该输出格式。
 - 生成文件不得反向覆盖作者 YAML 源码。
 
@@ -3195,7 +3195,7 @@ FAILED 不得允许 retryable；NOT_COMMITTED 只有同时满足可验证的未�
 
 对 Source 到 Target 的静态赋值，Compiler 必须保守证明 `Source ⊆ Target`。integer 可以赋给 number，反向不成立；不做字符串/数字强制转换。Source enum / const 的所有可能值必须在 Target 允许集合内；Source 的空值可能性必须被 Target 接纳，否则 INPUT_NULLABILITY_MISMATCH。目标必需键都必须由 Source 保证存在并逐字段可赋值；Source 可能包含 Target 禁止的额外键则不兼容。数组元素类型及长度限制、数值上下界和字符串长度界限必须由 Source 约束蕴含 Target 约束。
 
-字段可缺失与字段可为 null 不同。`default` 不物化值。组合 Schema 只有在保守包含关系得到证明时才可接受；不支持的 JSON Schema 关键字、循环/动态引用及无法证明的组合必须报 SCHEMA_INVALID 或 INPUT_TYPE_MISMATCH，绝不可忽略断言、接受 `any` 或宽泛 object。CEL 必须静态得出 boolean，运行时 true/false 对应 PASS/FAIL；无法判定为 UNKNOWN。
+字段可缺失与字段可为 null 不同。`default` 不物化值。**v1alpha3 不接受 JSON Schema 组合断言**（包括 `allOf`、`anyOf`、`oneOf`、`not`、`if/then/else`）：出现 G.4 白名单之外的组合关键字、动态/循环引用或其他不受支持关键字时，必须报 `SCHEMA_INVALID`，**不得通过保守包含关系证明将其视为可接受**。只有双方 Schema 均属于 G.4 支持子集、且静态无法证明 Source ⊆ Target 时，才按类型不兼容场景报 `INPUT_TYPE_MISMATCH`（空值冲突按专用诊断）。不得忽略断言、接受 `any` 或宽泛 object。CEL 必须静态得出 boolean，运行时 true/false 对应 PASS/FAIL；无法判定为 UNKNOWN。
 
 ## F.6 Python 类型与签名
 
