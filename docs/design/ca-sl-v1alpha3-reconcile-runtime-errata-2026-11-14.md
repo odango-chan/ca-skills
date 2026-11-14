@@ -18,7 +18,7 @@
 
 ## 2. Reconcile receipt 与 proofPath 的归属
 
-**新增的 G.2.0 是原 G.2、G.2.1、G.2.2 已规定“各自 Owner callable 的 receipt 根”的字段归属表。** 它区分契约声明在原 Mutation 下，与实际由哪个 callable 返回受信数据：
+**新增的 G.2 字段归属表是原 G.2、G.2.1、G.2.2 已规定“各自 Owner callable 的 receipt 根”的规范性交叉索引。** 它区分契约声明在原 Mutation 下，与实际由哪个 callable 返回受信数据：
 
 - `mutation.commitProof.path`、`failureClassPath`、`failureClasses[].proofPath` → **原 Mutation 调用** 的 `receiptSchema`。
 - `mutation.reconcile.proofPath` → **独立 Reconcile READ 调用** 的 `receiptSchema`；虽然该字段声明在原 Mutation 的 `mutation.reconcile` 对象中，但其证明必须来自调和 callable 本次响应。
