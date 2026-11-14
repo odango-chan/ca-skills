@@ -3719,11 +3719,11 @@ G.1–G.9 的补充用例须与原 E01–E104 组合执行。文档审计不代�
 | SCOPE_POLICY_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Runtime 授权 Scope 策略不可读取：普通 callable 有 DENIED 边则走边，否则停止；Reconcile 直接停止并保留原调用责任 | §9.3、§24.2 | E88 | 规范用例已定义 |
 | SCOPE_INTERSECTION_EMPTY | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 派发时 Scope 交集为空：普通 callable 有 DENIED 边则走边，否则停止；Reconcile 直接停止并保留原调用责任 | §9.3、§24.2 | E88 | 规范用例已定义 |
 
-**代码归一化。** “`SCHEMA_MISSING / INVALID`”仅是并列提及两个已有诊断的缩写，**不构成单独代码或新别名**。其规范性代码分别为 `SCHEMA_MISSING`（精确 Schema 未找到）与 `SCHEMA_INVALID`（Schema 不满足 G.4）。诊断记录不得使用单独的 `INVALID`、`SCHEMA_MISSING / INVALID` 或省略阶段的歧义身份。§24.2 的 STALE、CONFLICT 必须写全名为 EVIDENCE_STALE、EVIDENCE_CONFLICT；SCOPE_MISMATCH、CORRELATION_MISMATCH、DEADLINE_EXCEEDED、CANCELLED 是四个独立诊断。OUTCOME_UNKNOWN 是 Mutation 的阶段 Outcome，不是诊断代码。RECONCILE 的 COMMITTED、NOT_COMMITTED、UNRESOLVED 也是阶段 Outcome；RECONCILE_UNRESOLVED 是记录该停止条件的诊断，二者不得互换。
+**代码归一化。** 缺失精确 Schema 的唯一诊断代码是 `SCHEMA_MISSING`；Schema 不满足 G.4 或自相矛盾的唯一诊断代码是 `SCHEMA_INVALID`。斜杠并列写法只用于说明两项错误类别，**不是诊断代码或合法别名**。诊断记录不得使用单独的 `INVALID` 或缺少 `Phase` 的不完整身份。§24.2 的 STALE、CONFLICT 必须写全名为 EVIDENCE_STALE、EVIDENCE_CONFLICT；SCOPE_MISMATCH、CORRELATION_MISMATCH、DEADLINE_EXCEEDED、CANCELLED 是四个独立诊断。OUTCOME_UNKNOWN 是 Mutation 的阶段 Outcome，不是诊断代码。RECONCILE 的 COMMITTED、NOT_COMMITTED、UNRESOLVED 也是阶段 Outcome；RECONCILE_UNRESOLVED 是记录该停止条件的诊断，二者不得互换。
 
 最终 SUCCEEDED、FAILED、UNRESOLVED、SAFE_STOPPED 是 Invocation 终态，不属于本表的诊断。`待补独立 Fixture` 表示当前 E01–E114 未明确给出与该 `(Code, Phase)` 完全一致的触发输入及预期，属于实现符合性测试债务，**不是**新增的 E 编号、通过证明或可跳过的规范要求。新增精确用例须单独评审编号，并同步 §45.2 的验收范围。
 
-**冻结与测试覆盖。** `FROZEN` 只限定规范性语言与互操作行为，不意味着当前机器用例均已生成或执行。原先提出但未编号的 E115/E116 不属于 v1alpha3 的 E01–E114 用例集合；`UNSUPPORTED_WAIT` 与 `UNSUPPORTED_V02_SYNTAX` 本身已由 §24.1 定义，仍是阻断构建的既有诊断，其可执行测试按缺口登记补齐，不影响语言效力。
+**冻结与测试覆盖。** `FROZEN` 只限定规范性语言与互操作行为，不意味着当前机器用例均已生成或执行。既往提议但未正式定义的扩展用例编号不属于 v1alpha3 的 E01–E114 集合；`UNSUPPORTED_WAIT` 与 `UNSUPPORTED_V02_SYNTAX` 本身已由 §24.1 定义，仍是阻断构建的既有诊断，其可执行测试按缺口登记补齐，不影响语言效力。
 
 **覆盖状态定义（资料性）。** `规范用例已定义` 表示所列 E 变体在规范文本中有对应预期，尚未提供或核实执行证据；`部分覆盖` 表示所引 E 用例仅覆盖一般规则、部分分支或间接判定，不足以单独证明当前 `(Code, Phase)`；`待 Fixture` 表示尚无可精确引用的变体，必须另行提供输入与预期。所有状态均不表示测试已经执行或通过。相关候选测试清单参见 [诊断 Fixture 缺口登记](fixtures/ca-sl-v1alpha3-diagnostic-fixture-gaps.yaml)，该清单不增加 E 编号、规范性语义或 CI 验收结论。
 
