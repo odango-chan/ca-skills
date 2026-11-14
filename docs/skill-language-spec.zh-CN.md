@@ -320,7 +320,7 @@ type: schemas/establishment-request.schema.yaml
 
 ToolCatalog 是 Tool Owner 发布的 callable 契约集合。vNext 要求同一 ToolCatalog 和依赖快照能够容纳 Operation 与 Observation Query 两种 callable。两者是不同类型，但共享精确导出身份、Owner、Schema、Effect、依赖解析、Capability 授权和 Runtime Admission。
 
-### 9.2 Observation 在 ToolCatalog 中的候选表达
+### 9.2 Observation 在 ToolCatalog 中的规范表达
 
 **效力：Normative（抽象规则及附录 F 的 v1alpha2 字段）；Informative（示例身份）。**
 
@@ -632,7 +632,7 @@ nodes:
         UNKNOWN: UNRESOLVED
 ~~~
 
-本例要求 Registration 查询输出与 §29 的 Registration 参数 Schema 匹配；UDM Get 的 output.result 与 Session Profile 参数 Schema 匹配。它是候选 Owner 契约下的说明性示例，而非当前已可链接的真实 5GC Skill。
+本例要求 Registration 查询输出与 §29 的 Registration 参数 Schema 匹配；UDM Get 的 output.result 与 Session Profile 参数 Schema 匹配。它使用虚构 Owner 契约来说明已冻结的语言语义，而非当前已可链接的真实 5GC Skill。
 
 ### 11.3 Contract 字段
 
@@ -2090,7 +2090,7 @@ dependencies:
 
 ### 34.1 Schema 的源格式与编译格式
 
-Schema 的语义标准是受支持子集的 JSON Schema；JSON 与 YAML 只是同一数据模型的两种序列化形式。
+Schema 的语义标准是受支持子集的 JSON Schema；JSON 与 YAML 只是同一数据模型的两种序列化形式。保守赋值和不支持关键字的处理按附录 F.5，不能由实现自行放宽。
 
 - Skill 自有 Request Schema 的作者源码可以使用 YAML（例如 schemas/establishment-request.schema.yaml），并继续作为唯一可编辑源。
 - Compiler 解析后必须先归一化到同一 Schema Model，再进行引用解析、组合、类型检查和生成。
@@ -2542,10 +2542,10 @@ flowchart LR
 | Predicate Script 类型派生不明确 | Predicate.parameters 是唯一业务输入签名；Script 入口引用生成的 PredicateInput；Compiler / LSP 使用同一虚拟 stub | 语义已明确；生成 stub / overlay 的工具链方式待验证 |
 | Schema ID 与路径混淆 | 外部引用使用 dependency-alias::精确 Schema $id；Skill 自有 Schema 使用包内路径；路径不是公共身份 | 规则已明确；需要 Compiler 正负例验证 |
 | primitive 类型兼容、nullable 和 CEL 规则不完整 | 附录 F.5 保守赋值规则，未支持关键字必须拒绝 | 语言规则已冻结；实现待验收 |
-| 自动同名绑定保留键冲突 | vNext 第一版不支持隐式同名绑定；Studio 可生成显式 arguments | 已纳入本版候选语法 |
+| 自动同名绑定保留键冲突 | vNext 第一版不支持隐式同名绑定；Studio 可生成显式 arguments | 本版源码语法已冻结 |
 | 三个异步 Operation 的 Owner 契约尚未确认 | 责任目标映射到 UPN.CREATE_UP_SESSION、SSM.SIGNAL_UE_AN、UPN.MODIFY_UP_SESSION | 仅为目标责任；ToolCatalog / Output / Evidence 仍待 Owner 确认 |
 
-本附录是评审答复记录，不表示所有问题已实现或已冻结。评审者若不同意某项决定，应指出所影响的术语、语法、静态语义、运行语义或 Owner 边界，并提供正例和反例。
+本附录是历史评审记录，不表示外部 Owner 或产品实现已经通过本版符合性验收。评审者若不同意某项决定，应指出所影响的术语、语法、静态语义、运行语义或 Owner 边界，并提供正例和反例。
 
 ---
 
@@ -2983,7 +2983,7 @@ predicates:
 | E76 | 非末 READ 阶段只声明 SUCCEEDED，对照末阶段和另声明 FAILED 的变体，三例均省略 routes | 首例合法，后两例报 ROUTE_OUTCOME_MISSING |
 | E77 | 分别执行本地 Script、外部调用和 Reconcile，再在任一动作启动前拒绝 | 每次启动计一，拒绝计零 |
 
-| E78 | §9.2.1 的候选 Mutation 契约，随后将 Reconcile 的关联从原调用改为当前调和调用 | 正例可链接；反例 RECONCILE_CONTRACT_INVALID。候选格式验收 |
+| E78 | §9.2.1 的 v1alpha2 Mutation 契约，将 Reconcile 的关联从原调用改为当前调和调用 | 正例可链接；反例 RECONCILE_CONTRACT_INVALID。按附录 F.1 验收 |
 | E79 | 在 E62 的 Owner 结果集中及调用路由中移除 FAILED、NOT_COMMITTED，保留 SUCCEEDED、Runtime DENIED 与 OUTCOME_UNKNOWN 的处理，令 Runtime 拒绝派发 | 走 DENIED 边；移除该可选边后直接停止 |
 | E80 | E32 的独立组分别绑定底层来源相同及各异的有效记录 | 同来源 UNKNOWN；独立记录组合满足保证后按 Predicate 求值 |
 | E81 | E72 的两个已 Grant 成员分别允许 {A,B} 和 {B,C} | 仅 B 可派发，A 与 C 均被拒绝 |
@@ -3068,7 +3068,7 @@ ToolCatalog 须有 `apiVersion: connectionagent.io/toolcatalog/v1alpha2`、`kind
 
 ## F.2 CapabilityContracts
 
-部署授权输入须有 `apiVersion: connectionagent.io/capability-contracts/v1alpha2`、`kind: CapabilityContracts`、`spec.capabilities[]`。每个 Capability 有唯一非空 `id`、`owner` 和 `callables[]`。成员有 `owner/id/kind/effect`，已 Grant 成员必须有受信、可解析的 `scopePolicyRef` 或等价的受信拒绝全部策略。缺少 Scope 不得默许放行。Effect 冲突在未 Grant 成员上也会报错，同一 Capability 重复成员拒绝，跨 Capability 的一致成员合法。交集和派发前重验按 §9.3。Skill 不能自报受信部署授权。
+部署授权输入须有 `apiVersion: connectionagent.io/capability-contracts/v1alpha2`、`kind: CapabilityContracts`、`spec.capabilities[]`。每个 Capability 有唯一非空 `id`、`owner` 和 `callables[]`。成员有 `owner/id/kind/effect`，已 Grant 成员必须有受信、可解析的 `scopePolicyRef`；拒绝全部也必须是明确命名的受信策略，不能通过缺省字段表达。缺少 Scope 不得默许放行。Effect 冲突在未 Grant 成员上也会报错，同一 Capability 重复成员拒绝，跨 Capability 的一致成员合法。交集和派发前重验按 §9.3。Skill 不能自报受信部署授权。
 
 ## F.3 Evidence Descriptor
 
