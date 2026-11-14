@@ -1,0 +1,65 @@
+# Informative machine-readable mirror of CA-SL v1alpha3 §22.1.
+# The canonical Chinese specification takes precedence. Do not treat this file
+# as a new owner protocol, executable Compiler test, or Runtime grant.
+languageTarget: connectionagent.io/v1alpha3
+authority: docs/skill-language-spec.zh-CN.md#section-22.1
+status: informative-mirror
+normalRouting:
+  nonFinalStage: forbidden-explicit-route-auto-advance
+  finalStage: required-explicit-route
+stages:
+  precondition:
+    normalOutcome: PASS
+    requiredExplicitOutcomes: [FAIL, UNKNOWN]
+    optionalRuntimeOutcomes: []
+    ownerDeclaredOutcomes: []
+  postcondition:
+    normalOutcome: PASS
+    requiredExplicitOutcomes: [FAIL, UNKNOWN]
+    optionalRuntimeOutcomes: []
+    ownerDeclaredOutcomes: []
+  procedureScript:
+    normalOutcome: SUCCEEDED
+    requiredExplicitOutcomes: [FAILED]
+    optionalRuntimeOutcomes: []
+    ownerDeclaredOutcomes: []
+  readOperation:
+    normalOutcome: SUCCEEDED
+    requiredExplicitOutcomes: []
+    requiredIfDeclaredByOwner: [FAILED]
+    optionalRuntimeOutcomes: [DENIED, UNKNOWN]
+    ownerMayDeclare: [SUCCEEDED, FAILED]
+    ownerMustDeclare: [SUCCEEDED]
+    missingOptionalRoute: stop-via-section-12.8
+  observation:
+    normalOutcome: SUCCEEDED
+    requiredExplicitOutcomes: []
+    requiredIfDeclaredByOwner: [FAILED]
+    optionalRuntimeOutcomes: [DENIED, UNKNOWN]
+    ownerMayDeclare: [SUCCEEDED, FAILED]
+    ownerMustDeclare: [SUCCEEDED]
+    missingOptionalRoute: stop-via-section-12.8
+  mutationOperation:
+    normalOutcome: SUCCEEDED
+    requiredExplicitOutcomes: [OUTCOME_UNKNOWN]
+    requiredIfDeclaredByOwner: [FAILED, NOT_COMMITTED]
+    optionalRuntimeOutcomes: [DENIED]
+    ownerMayDeclare: [SUCCEEDED, FAILED, NOT_COMMITTED]
+    ownerMustDeclare: [SUCCEEDED]
+    missingOptionalRoute: stop-via-section-12.8
+  reconcile:
+    normalOutcome: COMMITTED
+    requiredExplicitOutcomes: [NOT_COMMITTED, UNRESOLVED]
+    optionalRuntimeOutcomes: []
+    ownerCallableKind: operation
+    ownerCallableEffect: READ
+    ownerMayDeclare: [SUCCEEDED, FAILED]
+    ownerMustDeclare: [SUCCEEDED]
+    # Owner SUCCEEDED is verified and mapped to a stage COMMITTED,
+    # NOT_COMMITTED, or terminal-safe-stop, never to a direct Invocation success.
+diagnostics:
+  missingRequired: ROUTE_OUTCOME_MISSING
+  explicitNonFinalNormal: ROUTE_NORMAL_OUTCOME_NOT_ALLOWED
+  unsupportedOutcomeKey: ROUTE_OUTCOME_UNKNOWN
+  unknownTarget: CONTROL_FLOW_DANGLING
+testCaseRefs: [E54, E55, E69, E76, E79, E84, E86]
