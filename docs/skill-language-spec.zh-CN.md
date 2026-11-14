@@ -3,12 +3,12 @@
 **中文名称：** ConnectionAgent Skill 语言规范  
 **简称：** CA-SL  
 **目标版本：** vNext / API v1alpha3  
-**状态：** v1alpha3 CLOSURE REVIEW（规范闭合性验收中；产品实现 NOT QUALIFIED）  
+**状态：** FROZEN — CA-SL vNext / API v1alpha3（语言与互操作规范；产品实现 NOT QUALIFIED）  
 **规范所有者：** odango-chan/ca-skills  
 **消费者：** Skill 作者、Skill Studio、ca-skill-compiler、Agent Host / Runtime、Tool Owner、Schema Owner、语言服务和第三方评审者  
 **更新日期：** 2026-11-14
 
-> 本文是 CA-SL vNext 的综合规范评审稿，也是本仓库唯一的语言语义权威。它覆盖背景、设计原则、术语、架构、源码结构、YAML 语法、静态语义、运行语义、Tool / Observation / Evidence、Schema 所有权、异常处理、PDU Session 示例、工具链要求和 FAQ。其他文档可以补充实现细节，但不得另行定义或覆盖语言语义。
+> 本文是 CA-SL vNext / v1alpha3 已冻结的规范文本，也是本仓库唯一的语言语义权威。它覆盖背景、设计原则、术语、架构、源码结构、YAML 语法、静态语义、运行语义、Tool / Observation / Evidence、Schema 所有权、异常处理、PDU Session 示例、工具链要求和 FAQ。其他文档可以补充实现细节，但不得另行定义或覆盖语言语义。
 >
 > MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT、MAY、OPTIONAL 等关键字遵循 RFC 2119 / RFC 8174。中文“必须、不得、应当、不建议、可以”具有相同规范效力。
 
@@ -20,7 +20,7 @@
 
 ## 0. 规范效力与成熟度
 
-本版拟将 CA-SL 作者源码、静态与运行语义，以及附录 F/G 的互操作剖面冻结为 Normative。v1alpha2 已冻结的历史记录不代表 v1alpha3 新增安全语义已经验收。E.1–E.4 的 `urn:example` 数据、历史设计记录与测试装配说明为 Informative，但其预期诊断与行为具有 Normative 效力。外部 BuildRequest 文件传输、Compiler Artifact、Runtime Trace 和真实 Tool Owner 发布物由其独立版本治理；本规范冻结不冒充它们已获 Owner 签署或通过 CI。此前标成 Candidate 的 v1alpha3 字段以附录 F 的唯一规范性定义为准；与其不符的旧提示仅视为历史评审文字。
+本版将 CA-SL 作者源码、静态与运行语义、附录 F/G 的互操作剖面以及附录 H 的诊断分类冻结为 Normative。v1alpha2 的历史冻结记录独立保留；本版在闭合性复审后作为 v1alpha3 的新版本发布，不回写旧版安全语义。E.1–E.4 的 `urn:example` 数据、历史设计记录与测试装配说明为 Informative，但其预期诊断与行为具有 Normative 效力。外部 BuildRequest 文件传输、Compiler Artifact、Runtime Trace 和真实 Tool Owner 发布物由其独立版本治理；本规范冻结不冒充它们已获 Owner 签署或通过 CI。此前标成 Candidate 的 v1alpha3 字段以附录 F/G 的唯一规范性定义为准；与其不符的旧提示仅视为历史评审文字。
 
 ### 作者快速入门
 
@@ -2248,9 +2248,9 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 
 ### 45.1 已冻结的语言契约
 
-本版本冻结 **Contract / Procedure / Predicate 源语法、单一 DAG、四个阶段、显式 arguments、Context 与 SourcePath、类型与 Evidence 证明、Effect / Capability / Scope、Mutation UNKNOWN / Reconcile、门禁与 Goal 传播、终态及诊断优先级**。§9 / §17 / §34 中的跨 Owner 互操作字段按附录 F 固定；产品可采用独立版本化传输外壳，但不能改变其抽象语义或降低可信输入要求。
+本版本冻结 **Contract / Procedure / Predicate 源语法、单一 DAG、四个阶段、显式 arguments、Context 与 SourcePath、类型与 Evidence 证明、Effect / Capability / Scope、Mutation UNKNOWN / Reconcile、门禁与 Goal 传播、终态及诊断优先级**。§9 / §17 / §34 中的跨 Owner 互操作字段按附录 F/G 固定；产品可采用独立版本化传输外壳，但不能改变其抽象语义或降低可信输入要求。
 
-冻结依据：§10–14 的唯一源码结构与闭合语法；§12.9、§17、§20、§22 的路径敏感证明与 fail-closed 规则；§F.1–F.6 的精确字段、数据流类型及拒绝策略；附录 E01–E104 的规范预期和负例。无法静态证明兼容的 Schema / Owner 导出必须拒绝链接，不能靠样例值、运行时回退或 Studio 自动猜测。v0.2 是既有可执行基线，编译器不得静默迁移到本版。
+冻结依据：§10–14 的唯一源码结构与闭合语法；§12.9、§17、§20、§22 的路径敏感证明与 fail-closed 规则；§F.1–F.6 / §G.1–G.9 的精确字段、Receipt/Proof/SourceIdentity、Schema-CEL 和责任模型，附录 H 的诊断索引；E01–E114 的规范预期及负例。无法静态证明兼容的 Schema / Owner 导出必须拒绝链接，不能靠样例值、运行时回退或 Studio 自动猜测。v0.2 是既有可执行基线，编译器不得静默迁移到本版。
 
 冻结后对任何字段、路由、默认值、证据/身份解释、允许的 Schema 关键字、Script 注解或诊断结果作语义性改变，必须明确升级语言或相应互操作契约版本。纯笔误勘正不得改变 Appendix E 的预期。语言规范 Owner 与外部 Tool/Host/Deployment Owner 各自拥有其版本，不能代替对方批准发布物。
 
@@ -2267,7 +2267,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 7. Compiler Artifact Contract 独立冻结生成 Schema 的序列化与可达依赖闭包；Runtime Artifact Contract 独立冻结 Trace 线格式、版本和兼容性。
 8. 交付符合性记录：语言目标版本、每项 Owner 导出及摘要、发布授权、执行 Fixture、原始 CI 结果、实际代码提交和未通过项。缺项不得标记 Runtime READY / live E2E PASS。
 
-**当前裁决：v1alpha3 规范闭合性待复核；产品符合性 NOT QUALIFIED。** 规范源审查、YAML 解析或 PR 审批不等于第 1–8 项的实际测试通过。真实 Owner 或工具链缺失时应阻断相应发布，而不是重新打开已冻结的语言语义。审查范围、图检查结果及跨仓库事实见 [非规范性的冻结决策记录](design/ca-sl-v1alpha3-freeze-record.md)。
+**当前裁决：CA-SL v1alpha3 语言及互操作规范 FROZEN；产品符合性 NOT QUALIFIED。** 规范源审查、YAML 解析或 PR 审批不等于第 1–8 项的实际测试通过。真实 Owner 或工具链缺失时应阻断相应发布，而不是重新打开已冻结的语言语义。审查范围、图检查结果及跨仓库事实见 [非规范性的冻结决策记录](design/ca-sl-v1alpha3-freeze-record.md)。
 
 ---
 
@@ -2508,9 +2508,9 @@ flowchart LR
 
 # 附录 B：当前状态与待评审事项
 
-本规范正进行 v1alpha3 规范闭合性复核。下表是历史 16 项门槛在**独立产品与 Owner 符合性**上的未完成状态，不代表语言仍在设计讨论。
+本规范的 v1alpha3 语言与互操作剖面已经冻结。下表保留历史设计阶段的 16 项门槛，说明独立产品与 Owner 符合性仍未完成；它们不是再次开放语言设计的清单。
 
-| 对应 §45 项 | 交付范围 | 状态 | 评审责任 |
+| 历史门槛号（非现行 §45 编号） | 交付范围 | 产品符合性状态 | 评审责任 |
 |---|---|---|---|
 | 1 | 术语与责任边界 | 规范已冻结；产品使用待审 | 语言 / 业务 Owner |
 | 2 | ToolCatalog callable | 附录 F.1 已冻结；真实 Owner 发布待验收 | Tool Owner / Compiler |
@@ -3069,7 +3069,7 @@ predicates:
 | E103 | §34.0：按所选 BuildRequest 版本提交同一文件集的不同枚举顺序，重算摘要一致。保留原摘要并变更原始文件的换行或 YAML/JSON 编码，构建按 §34.0 拒绝摘要不匹配 |
 | E104 | §11.6：有有效 Host 上界时分别省略 Skill 上界、声明更低和更高的上界，验证分别使用 Host、更低的 Skill、Host 上界。Host 上界缺失、为 0 或非法时拒绝启动 |
 
-§45 第 12 项要求将对应验收条目落为机器可执行 Fixture。此表记录预期行为。
+§45.2 第 3 项要求将对应验收条目落为机器可执行 Fixture；新增 v1alpha3 用例见 G.9。此表只记录预期行为。
 
 # 附录 F：v1alpha3 已冻结的互操作与类型剖面
 
