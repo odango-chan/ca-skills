@@ -1425,7 +1425,7 @@ Compiler 不得为让文件编译而创建不存在的 Schema、用 object 逃�
 | TOOL_UNAVAILABLE、OWNER_CONTRACT_UNAVAILABLE | 已派发 READ / Observation，结果不可验证 | 有已声明 UNKNOWN 边则走该边，否则按事实不确定停止 |
 | TOOL_UNAVAILABLE、OWNER_CONTRACT_UNAVAILABLE | 已派发 Mutation / Reconcile | 分别按 §20.1 / §20.2 核验独立证明，保留原调用及责任。Reconcile 按 §20.3 分类 |
 | SCRIPT_EXECUTION_FAILED、OUTPUT_SCHEMA_INVALID | Procedure Script 已调用 | 隔离输出，沿 FAILED 边。执行图异常缺边时按确定执行错误停止 |
-| Owner 返回未声明或不可识别的 Outcome | 任何已派发外部调用 | 隔离输出并停止。Mutation / Reconcile 按 §20 判定并记录提交状态及责任，随后直接按 §12.8 停止 |
+| OWNER_OUTCOME_UNDECLARED：Owner 返回未声明或不可识别的 Outcome | 任何已派发外部调用 | 隔离输出并停止。Mutation / Reconcile 按 §20 判定并记录提交状态及责任，随后直接按 §12.8 停止 |
 
 | 异常 | 处理原则 |
 |---|---|
@@ -2625,6 +2625,7 @@ predicates:
 ## E.2 Host Context 依赖快照
 
 ~~~yaml
+$schema: https://json-schema.org/draft/2020-12/schema
 # invocation-context.schema.yaml（由 ca-context 快照提供）
 $id: urn:example:ca:invocation-context:v1
 type: object
@@ -2639,6 +2640,7 @@ properties:
 ## E.3 Observation Tool 依赖快照
 
 ~~~yaml
+$schema: https://json-schema.org/draft/2020-12/schema
 # registration-query.schema.yaml（由 ca 快照提供）
 $id: urn:example:ca:registration-query:v1
 type: object
@@ -2651,6 +2653,7 @@ properties:
 ~~~
 
 ~~~yaml
+$schema: https://json-schema.org/draft/2020-12/schema
 # registration.schema.yaml（由 ca 快照提供）
 $id: urn:example:ca:registration:v1
 type: object
@@ -3207,6 +3210,7 @@ outputSchema: {$ref: "urn:example:session:reconcile-response:v1"}
 ~~~
 
 ~~~yaml
+$schema: https://json-schema.org/draft/2020-12/schema
 # reconcile-response.schema.yaml
 $id: urn:example:session:reconcile-response:v1
 type: object
@@ -3216,6 +3220,7 @@ properties:
 ~~~
 
 ~~~yaml
+$schema: https://json-schema.org/draft/2020-12/schema
 # reconcile-input.schema.yaml
 $id: urn:example:session:reconcile-input:v1
 type: object
@@ -3257,7 +3262,7 @@ predicates:
 
 ## G.4 JSON Schema 白名单、静态兼容与 CEL 型别
 
-本版不支持整个 JSON Schema Draft 2020-12，而是一个故意收窄且可独立实现的子集。所有参与链接、静态可赋值性和 Script 类型派生的 Schema 必须显式使用 Draft 2020-12 $schema，或由受信 Owner 发布契约确定此方言。许可**验证关键字**仅为：$ref、type、properties、required、additionalProperties、items、minItems、maxItems、minLength、maxLength、minimum、maximum、exclusiveMinimum、exclusiveMaximum、enum、const。许可的**非断言注解**仅为：$schema、$id、title、description、default、examples；default 不合成值。所有未知字段及其他断言一律 SCHEMA_INVALID，不可以“验证器忽略了所以安全”处理。特别不支持 allOf、anyOf、oneOf、not、if/then/else、pattern、patternProperties、unevaluatedProperties、contains、prefixItems、format、动态引用或扩展关键字。来自现实 Owner 的复杂 Schema 应由其 Owner 发布语义等价、正式版本化且受支持的投影，不得由 Skill 复制影子结构。
+本版不支持整个 JSON Schema Draft 2020-12，而是一个故意收窄且可独立实现的子集。所有参与链接、静态可赋值性和 Script 类型派生的 Schema 根必须显式声明 $schema: https://json-schema.org/draft/2020-12/schema。缺少或不同方言即 SCHEMA_INVALID，不允许从文件扩展名、外部发布者名称、Compiler 配置或声明顺序猜测。许可**验证关键字**仅为：$ref、type、properties、required、additionalProperties、items、minItems、maxItems、minLength、maxLength、minimum、maximum、exclusiveMinimum、exclusiveMaximum、enum、const。许可的**非断言注解**仅为：$schema、$id、title、description、default、examples；default 不合成值。所有未知字段及其他断言一律 SCHEMA_INVALID，不可以“验证器忽略了所以安全”处理。特别不支持 allOf、anyOf、oneOf、not、if/then/else、pattern、patternProperties、unevaluatedProperties、contains、prefixItems、format、动态引用或扩展关键字。来自现实 Owner 的复杂 Schema 应由其 Owner 发布语义等价、正式版本化且受支持的投影，不得由 Skill 复制影子结构。
 
 type 仅接受单值 string、integer、number、boolean、object、array、null，或恰好两个不同成员的 [T, "null"]；不接受一般 union。required 必须是唯一的 properties 键集合子集；SourcePath 可直接使用的对象必须有声明属性及 additionalProperties:false；additionalProperties 只允许 true/false，true 的开放对象没有可猜测的动态字段。items 仅为单一 Schema，禁止 tuple 数组；min/maxItems 为非负整数且一致。string 与 number 的区间必须可同时满足；enum/const 值必须被对应基础 type 与其他约束接受。$ref 是独立引用对象，除 $schema/$id/title/description 之外不得和其他断言并列；必须链接到受信快照精确 $id，不能循环、动态化或猜测文件名。空或无法满足的 Schema 不会被自动归入 any；应拒绝不合法/自相矛盾的 Schema。静态赋值仍按 F.5 的 Source ⊆ Target，无法证明时拒绝而不是执行一个任意 Schema 求值猜测结果。
 
@@ -3330,7 +3335,7 @@ E30/E40 的严格绑定规则有意保留：较新的已接纳权威记录即使
 | E105 | 分别令 PredicateId=foo..bar、Alias=ca:demo、ExportId=foo..bar、QualifiedSchemaId=ca::relative/path、LocalScriptPath=scripts/../x.py | 前两者 IDENTIFIER_INVALID；中间两者 QUALIFIED_REFERENCE_INVALID；最后 PACKAGE_PATH_INVALID；以上不依赖 YAML parser 是否把裸标量当作字符串 |
 | E106 | G.3 requires + independence 两成员；删掉其中一个 requires；复制相同 member；运行时不同 Evidence Ref 其实来自同一底层记录 | 合法字段静态链接通过；成员非法报 EVIDENCE_GUARANTEE_LINK_INVALID；静态合法但同源执行得 UNKNOWN |
 | E107 | G.2 正确的 Reconcile READ；分别改 Effect 为 MUTATION、kind 为 observation、inputSchema 多加可写字段、删除 proofPath、只 Grant 原 Mutation | 合法例通过链接；变体分别 EFFECT_MISMATCH、RECONCILE_CONTRACT_INVALID、RECONCILE_CONTRACT_INVALID、RECONCILE_CONTRACT_INVALID、CAPABILITY_NOT_GRANTED |
-| E108 | Reconcile Owner SUCCEEDED 与有效 COMMITTED 证明+恢复输出；取消恢复声明；提供无效恢复输出；证明 NOT_COMMITTED；Owner 直接发 COMMITTED | 分别为 COMMITTED+输出可用、COMMITTED+无输出、安全停止并 COMMITTED_OUTPUT_UNAVAILABLE、NOT_COMMITTED、未知回包隔离停止 |
+| E108 | Reconcile Owner SUCCEEDED 与有效 COMMITTED 证明+恢复输出；取消恢复声明；提供无效恢复输出；证明 NOT_COMMITTED；Owner 直接发 COMMITTED | 分别为 COMMITTED+输出可用、COMMITTED+无输出、安全停止并 COMMITTED_OUTPUT_UNAVAILABLE、NOT_COMMITTED、诊断 OWNER_OUTCOME_UNDECLARED 并隔离停止 |
 | E109 | Reconcile Evidence Producer 以 Owner SUCCEEDED 绑定恢复结果，再替换为 Runtime 的 COMMITTED | 前者链接通过；后者 EVIDENCE_GUARANTEE_LINK_INVALID |
 | E110 | 有效的 nullable / object / items Schema；替换任一为 anyOf、pattern 或动态引用 | 前者按 F.5 赋值；三个不受支持变体均 SCHEMA_INVALID |
 | E111 | CEL 使用 has(obj.optional) && obj.optional == "X"；删除 has；对 nullable 字段删除非 null 守卫；添加数组索引 | 守卫版缺字段可按业务表达式得 FAIL；其余三项静态拒绝 CEL_INVALID |
@@ -3418,6 +3423,7 @@ G.1–G.9 的补充用例须与原 E01–E104 组合执行。文档审计不代�
 | UNREACHABLE_NODE | Compiler WARNING | 否（并发错误仍阻断） | Graph / unreachable | 不改变 Runtime 终态 | E44/E65 |
 | TOOL_UNAVAILABLE | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E70 |
 | INPUT_VALIDATION_FAILED | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E70 |
+| OWNER_OUTCOME_UNDECLARED | Runtime DIAGNOSTIC | 不适用 | Owner response validation | 隔离输出；Mutation/Reconcile 保存已验证原提交状态及责任，§12.8 停止 | E86/E108 |
 | OWNER_CONTRACT_UNAVAILABLE | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E70 |
 | CALLABLE_ARGUMENT_PROVENANCE_UNVERIFIED | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 依据 §24.2 的调用阶段和 §12.8 的责任/事实状态决定，不凭错误码推断成功 | E101 |
 | AUTHORIZATION_DENIED | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 普通 callable：有 DENIED 边则走边；否则 §12.8；Reconcile 直接停止 | E79 |
