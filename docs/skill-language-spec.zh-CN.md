@@ -1309,6 +1309,17 @@ Runtime 只用可信且关联到本次原调用的证明记录提交状态。Own
 4. Reconcile 缺少有效结论时沿 UNRESOLVED 边。该边必须直接指向 `UNRESOLVED` 或 `SAFE_STOPPED`，Runtime 按 §12.8 选择实际终态。普通业务查询不能替代原调用调和。
 5. 显式重发同一业务 Mutation 时，在普通 MUTATION Operation 上写 `retryOf: <original-mutation-node>`。目标必须是同一 Procedure 中另一普通 Mutation。Compiler 检查每条到达该重试 Operation 的可达路径均须经过目标原调用的 NOT_COMMITTED 边，或其唯一 Reconcile 的 NOT_COMMITTED 边。经过原调用本身不能满足路径检查。Compiler 还要求两侧链接到兼容的 Owner 业务身份规则及允许重试的契约。引用非法、覆盖不足或契约不兼容报 `RETRY_CONTRACT_INVALID`。Runtime 在派发前比较物化后的业务身份，复核原调用绑定、可信未提交证明、重试许可及无遗留副作用保证。失败时记 `RETRY_ADMISSION_DENIED`，按 §12.8 直接停止。未声明 retryOf 的 Mutation 在 Runtime 检出与本 Invocation 既有调用的业务身份相同，也必须拒绝重复派发。每条未提交证明至多授权一次实际新派发，由 Runtime 原子消费。一次新尝试获得独立调用身份。Compiler 不靠节点名称推断业务身份。
 
+**`retryOf` 路径验收示意（Informative）。** 以下均为同一原 Mutation、同一受信业务身份的可达控制流；前提是 Owner 明确允许重试、原调用未提交证明有效且没有残留副作用。
+
+| 路径 | §20.2 静态验收 | 原因 |
+|---|---|---|
+| `create-session` 的 `OUTCOME_UNKNOWN` → 唯一 `reconcile-session` 的 `NOT_COMMITTED` → `retry-session`（声明 `retryOf: create-session`） | 符合路径覆盖条件；仍须验证 Owner/Scope/Proof/Capability | 所有到达重试的路径均经过**该原调用**的已证明 `NOT_COMMITTED` 出边 |
+| `create-session` 的 `NOT_COMMITTED` → `retry-session`（相同 `retryOf`） | 符合路径覆盖条件；仍须独立检查无残留副作用及重试许可 | 直接的原调用 `NOT_COMMITTED` 出边同样可构成证明 |
+| `create-session` 的 `SUCCEEDED` → `retry-session`，或旁路 Node → `retry-session` | `RETRY_CONTRACT_INVALID`，阻断构建 | 存在一条到达重试的路径没有经过目标原调用或其唯一 Reconcile 的 `NOT_COMMITTED` 出边 |
+| 汇合路径：一条经 `reconcile-session.NOT_COMMITTED`，另一条从未证实状态直接进入 `retry-session` | `RETRY_CONTRACT_INVALID`，阻断构建 | 合流时不得把一条路径取得的未提交资格授予其他路径 |
+
+本表不改变 `UNRESOLVED` 的终止责任、`NOT_COMMITTED` 的一次性消费规则，也不将普通 Observation 代替原调用 Reconcile；精确判断仍以本条第 5 项为准。
+
 ### 20.3 Reconcile Owner 回包分类
 
 **Normative。** Reconcile Owner 业务结果集必须包含 SUCCEEDED，可声明 FAILED。该集合由调和 callable 自身发布。Runtime 分别校验回包分类、原调用绑定的提交证明和恢复输出。证据须来自该契约声明的证明位置及 Schema，并匹配持久化的原调用身份、业务身份、Scope 和 Correlation。
@@ -1774,7 +1785,7 @@ predicates:
 
 **教学 Owner 的 Scope 与 PSI 约束。** 本图中的 `context.request.pduSessionId`、`context.request.dnn`、`context.request.sNssai` 仅为请求选择参数，**不得直接用于建立 Session/PSI 的可信身份或提升 Scope**；教学 ToolCatalog/Capability Scope Policy 不将这些 Request SourcePath 标注为身份或授权来源。教学场景仍须按 §23 对目标 `(UE, Lifecycle, PSI)` 分别隔离：在相关调用的派发准入中，Host 已验证的 `context.ueRef`、`context.correlation.lifecycleRef` 和受信入口关联、Owner 返回的 Session/资源关联证明必须共同约束并核对请求指定的 PSI。请求的 PSI 数值只参与与受信目标的比较，不构成该目标的权威证明。不同 PSI 不得因使用相同 UE Ref 而共用资源或通过 Scope 检查。若调用无法取得或核验目标 PSI 的受信绑定，则必须拒绝该调用；不得采用仅有 UE/Lifecycle 而无法区分 PSI 的宽泛授权。以上是教学 Owner 的前置契约假设，**不是对当前示例已具备真实 Host/Owner 发布物的符合性声明**。
 
-若实际 Owner 或部署 Scope 策略将 PSI、DNN 或 S-NSSAI 字段列为身份/授权输入，则从 `context.request.*` 直接绑定这些输入的调用必须报 `CALLABLE_ARGUMENT_PROVENANCE_INVALID`；迁移时应使用由 Host 契约确认关联的 Session/PSI 引用（例如 Host 发布并验证的 Session Scope 投影）或权威 Producer 的结果显式换绑。Host 或 Owner 仅校验数值相等而未证明身份归属，也不构成所需的可信绑定。教学假设不能用于绕过真实部署的授权策略。`ca-context` 发布 Host Context；`ca-responsibility` 独立发布责任 Schema、保证及 callable。责任摘要按预期 Session Instance 聚合并返回 currentSessionInstanceRef。PCF 调和只有经验证的恢复输出才能取出原关联标识。
+若实际 Owner 或部署 Scope 策略将 PSI、DNN 或 S-NSSAI 字段列为身份/授权输入，则从 `context.request.*` 直接绑定这些输入的调用必须报 `CALLABLE_ARGUMENT_PROVENANCE_INVALID`；迁移时应使用由 Host 契约确认关联的 Session/PSI 引用（例如 Host **确已发布并验证**的 `context.session.psiRef` 或 `context.correlation.pduSessionRef`，若其字段及类型由 Host Context Schema 正式定义）或权威 Producer 的结果显式换绑。**这两个候选路径不是 v1alpha3 内置字段**；没有对应受信 Host Schema、Scope 关联和验收证据时，不得在真实 Skill 中引用。Host 或 Owner 仅校验数值相等而未证明身份归属，也不构成所需的可信绑定。教学假设不能用于绕过真实部署的授权策略。`ca-context` 发布 Host Context；`ca-responsibility` 独立发布责任 Schema、保证及 callable。责任摘要按预期 Session Instance 聚合并返回 currentSessionInstanceRef。PCF 调和只有经验证的恢复输出才能取出原关联标识。
 
 UDM Subscription 的**教学 Owner 契约特例**要求：普通 Create 的 `SUCCEEDED` 回包和 Reconcile `COMMITTED` 的受信证明/必要恢复结果，在 Runtime 校验成功后**已经**包含足以支持继续执行所需的业务值、订阅归属、生命周期、Scope、Correlation、Freshness 与 Evidence（§12.6、§17、G.2）；且 Host 已持久化对应已确认资源责任。这里的 `COMMITTED` 仅证明原调用提交，**并不自动等于业务验收通过**；流程之所以可以直接继续，是因为上述教学 Owner **已发布、已链接且已被 Runtime 验证的附加保证**共同成立。
 
@@ -2182,7 +2193,7 @@ dependencies:
 | 跨 Owner 同一事实比较的可信共同事实绑定 | `deploymentId`、`publisherId`、受信 `snapshotDigest`、共同 `namespace/fact`、参与 Owner 的唯一授权身份集、每个必要维度的 Scope 归一化映射和精确可比较值 Schema 身份 | 对每个 Owner 认证、映射字段可解析、Scope 不歧义、值投影 Schema 可赋值；缺失或权限/字节/域绑定不一致 → EVIDENCE_GUARANTEE_LINK_INVALID |
 | 实际执行记录 | 静态已受信的映射及每次 Producer 的真实 sourceIdentity/factIdentity/Scope/Evidence | 静态通过后实际值不能比较或缺少独立组合 → Predicate UNKNOWN；不允许由 Runtime 临时授信 |
 
-**摘要边界。** 上述两类可信工件必须以原始字节及其受信摘要进入 BuildRequest 的**已验证输入闭包**，并与当前目标部署、发布者授权、Owner 导出及具体保证引用绑定。其他不可变工件承诺可作为附加签署/身份材料，但不得替代 G.3.1 必需的 `snapshotDigest`。任何工件字节或绑定的变更都必须令此前验证过的内容承诺失效。若所选 BuildRequest 版本还定义整个请求的聚合摘要，则这两类输入**必须**被其摘要/可达不可变输入闭包覆盖。CA-SL 不自行定义新的 BuildRequest 字段名、摘要 framing 或要求一个不存在的顶层 `buildRequestDigest`；但不支持承载、校验这些必须属性的构建版本**不得声明 v1alpha3 互操作符合性**。上述缺失统一按 Evidence 保证链接错误拒绝；CapabilityContracts 自身的摘要错误仍沿 §34.0.1 的 CAPABILITY_INPUT_* 诊断，不相互代替。
+**摘要边界。** 上述两类可信工件必须以原始字节及其受信摘要进入 BuildRequest 的**已验证输入闭包**，并与当前目标部署、发布者授权、Owner 导出及具体保证引用绑定。其他不可变工件承诺可作为附加签署/身份材料，但不得替代 G.3.1 必需的 `snapshotDigest`。任何工件字节或绑定的变更都必须令此前验证过的内容承诺失效。若所选 BuildRequest 版本还定义整个请求的聚合摘要，则这两类输入**必须**被其摘要/可达不可变输入闭包覆盖。CA-SL 不自行定义新的 BuildRequest 字段名、摘要 framing 或要求一个不存在的顶层 `buildRequestDigest`；`IndependentDomains` / 共同事实绑定的物理字段名、序列化和不可变字节装配由选定的**部署信任工件契约及 BuildRequest 版本**共同定义，Deployment/受信构建入口负责提供与验证，Compiler 验证其抽象属性和授权/摘要闭包（§F.4、G.3.1）。本文件冻结逻辑必需属性，不宣称这些外部线格式已完成发布；不支持承载、校验这些必须属性的构建版本**不得声明 v1alpha3 互操作符合性**。上述缺失统一按 Evidence 保证链接错误拒绝；CapabilityContracts 自身的摘要错误仍沿 §34.0.1 的 CAPABILITY_INPUT_* 诊断，不相互代替。
 
 ### 34.1 Schema 的源格式与编译格式
 
