@@ -26,7 +26,7 @@ Contract is author-maintained source, not a compiler-generated file. The source 
 
 ## Procedure graph
 
-A business Node may declare `precondition`, `operation`, `observation`, and `postcondition`. Declare at least one stage. Runtime runs the declared stages in that order, uses each stage's `on` for exits, and follows `next` after normal completion. A Terminal Node declares the outcome.
+A business Node may declare `precondition`, `operation`, `observation`, and `postcondition`. Declare at least one stage. Runtime runs the declared stages in that order. A normal outcome advances within the Node when another stage follows. Each cross-Node transition uses that stage's `routes` map, including the last stage's normal outcome. A Terminal Node declares the outcome.
 
 List Invocation-wide gates in Contract `preconditions` as `<node-id>.precondition` references. An earlier Node's Observation stage can acquire facts for a later Precondition. Every path to a business Mutation or SUCCEEDED must pass every listed gate. Mark a final Postcondition with `postcondition.goal` equal to the Contract Goal. Each SUCCEEDED path needs a valid PASS for that Goal; separate proof nodes may share the same success terminal. See §12.9.
 

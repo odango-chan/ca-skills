@@ -416,19 +416,19 @@ nodes:
       target: ca::ue.registration.current
       arguments:
         ueRef: context.ueRef
-      'on':
+      routes:
+        SUCCEEDED: check-ue-registration
         FAILED: failed
         UNKNOWN: unresolved
-    next: check-ue-registration
   check-ue-registration:
     precondition:
       predicate: createdsession.ue.registered
       arguments:
         - observe-registration.observation.output
-      'on':
+      routes:
+        PASS: read-subscription
         FAIL: failed
         UNKNOWN: unresolved
-    next: read-subscription
 ~~~
 
 规范性结构文法（抽象对象文法；map 表示 YAML 映射，字段 Schema 和静态语义另见 §11–14）：
@@ -445,27 +445,26 @@ PreconditionRef   = NodeId "." "precondition"
 Procedure         = map(start: NodeId, nodes: map<NodeId, Node>)
 Node              = BusinessNode | TerminalNode
 BusinessNode      = map(precondition?: Precondition, operation?: Operation,
-                        observation?: Observation, postcondition?: Postcondition,
-                        next: NodeId)
+                        observation?: Observation, postcondition?: Postcondition)
 Precondition      = map(predicate: PredicateId, arguments: list<Expression>,
-                        on: PredicateExitRoutes)
+                        routes?: OutcomeRoutes)
 Postcondition     = map(predicate: PredicateId, arguments: list<Expression>,
-                        goal?: GoalId, on: PredicateExitRoutes)
+                        goal?: GoalId, routes?: OutcomeRoutes)
 Operation         = ToolOperation | ScriptOperation | ReconcileOperation
 ToolOperation     = map(target: QualifiedCallableId, arguments: map<Name, Expression>,
-                        on?: OperationExitRoutes)
+                        routes?: OutcomeRoutes)
 ScriptOperation   = map(script: LocalScriptPath, arguments: map<Name, Expression>,
-                        on: map(FAILED: NodeId))
+                        routes?: OutcomeRoutes)
 Observation       = map(target: QualifiedQueryId, arguments: map<Name, Expression>,
-                        on?: ObservationExitRoutes)
+                        routes?: OutcomeRoutes)
 ReconcileOperation = map(reconcile: OriginalMutationNodeId,
-                        on: map(NOT_COMMITTED: NodeId, UNRESOLVED: NodeId))
+                        routes?: OutcomeRoutes)
 TerminalNode      = map(terminal: TerminalStatus)
-PredicateExitRoutes = map(FAIL: NodeId, UNKNOWN: NodeId)
+OutcomeRoutes     = map<Outcome, NodeId>
 TerminalStatus    = SUCCEEDED | FAILED | UNRESOLVED | SAFE_STOPPED
 ~~~
 
-Node ID 与 `Identifier` 使用同一字符规则，保留 `context`。业务 Node 至少有一个阶段，各阶段最多声明一次。阶段内写自己的 `arguments` 与非成功路由 `on`。`next` 指向整个 Node 正常完成后的目标。Terminal 只声明 `terminal`，Reconcile 不接收 `arguments`。Tool Operation / Observation 的退出路由必须精确覆盖链接契约中除 SUCCEEDED 以外的 Outcome。没有退出 Outcome 时可省略 `on` 或使用空映射。解析器拒绝未知字段和重复阶段，保留 YAML 标量的引号风格。
+Node ID 与 `Identifier` 使用同一字符规则，保留 `context`。业务 Node 至少有一个阶段，各阶段最多声明一次。各阶段在自己的 `routes` 中按 Outcome 声明跨 Node 路由。该映射的允许键和必填键由 §12.1、§22 决定。仅当该阶段没有跨 Node 路由时可以省略 `routes` 或使用空映射。Terminal 只声明 `terminal`，Reconcile 不接收 `arguments`。解析器拒绝未知字段和重复阶段，保留 YAML 标量的引号风格。
 
 本版仅有单一 Procedure 图，不定义 entryProcedure、嵌套 ProcedureCall、通用 call、隐式 Step 或同名自动绑定。
 ## 11. Skill Contract 与 Procedure 源码
@@ -514,19 +513,19 @@ nodes:
       target: ca::ue.registration.current
       arguments:
         ueRef: context.ueRef
-      'on':
+      routes:
+        SUCCEEDED: check-registration
         FAILED: failed
         UNKNOWN: unresolved
-    next: check-registration
   check-registration:
     precondition:
       predicate: createdsession.ue.registered
       arguments:
         - observe-registration.observation.output
-      'on':
+      routes:
+        PASS: read-subscription
         FAIL: failed
         UNKNOWN: unresolved
-    next: read-subscription
   read-subscription:
     operation:
       target: ca::sbi.udm.sm_data.get
@@ -534,7 +533,7 @@ nodes:
         ueRef: context.ueRef
         dnn: context.request.dnn
         sNssai: context.request.sNssai
-      'on':
+      routes:
         FAILED: failed
         DENIED: failed
         UNKNOWN: unresolved
@@ -544,10 +543,10 @@ nodes:
       arguments:
         - read-subscription.operation.output.result
         - context.request.dnn
-      'on':
+      routes:
+        PASS: complete
         FAIL: failed
         UNKNOWN: unresolved
-    next: complete
   complete:
     terminal: SUCCEEDED
   failed:
@@ -607,12 +606,18 @@ vNext 不允许直接把 Operation ID 放入 Capability 授权列表，不允许
 
 Procedure 是确定性的有向执行图。一个业务 Node 可包含以下阶段，按此顺序执行，省略未声明的阶段：
 
-1. `precondition` 调用 Predicate。PASS 继续，FAIL 或 UNKNOWN 走该阶段的 `on`。
-2. `operation` 调用 Tool、运行纯 Script 或调和原 Mutation。SUCCEEDED（Reconcile 为 COMMITTED）继续，其他 Outcome 走该阶段的 `on`。
-3. `observation` 调用只读查询。SUCCEEDED 继续，其他 Outcome 走该阶段的 `on`。
-4. `postcondition` 调用 Predicate。PASS 继续，FAIL 或 UNKNOWN 走该阶段的 `on`。
+1. `precondition` 调用 Predicate，正常 Outcome 为 PASS。
+2. `operation` 调用 Tool、运行纯 Script 或调和原 Mutation。普通操作的正常 Outcome 为 SUCCEEDED，Reconcile 为 COMMITTED。
+3. `observation` 调用只读查询，正常 Outcome 为 SUCCEEDED。
+4. `postcondition` 调用 Predicate，正常 Outcome 为 PASS。
 
-只有全部已声明阶段正常完成才走 Node 的 `next`。阶段退出时不再运行本 Node 后续阶段，也不走 `next`。同名 Outcome 在不同阶段分别路由。Runtime trace 记录 Node ID、阶段和原始 Outcome。
+每个阶段以自身的 Outcome 决定如何推进：
+
+- **仍有后续阶段，且返回正常 Outcome**：自动进入同一 Node 中的下一个已声明阶段。该 Outcome 不得出现在此阶段的 `routes` 中。
+- **当前是最后一个阶段，且返回正常 Outcome**：必须在该阶段的 `routes` 中配置该 Outcome 对应的目标 Node。
+- **任一阶段返回其他合法 Outcome**：必须在该阶段的 `routes` 中配置目标 Node，跳转时跳过当前 Node 的剩余阶段。
+
+`routes` 使用精确的 Outcome 键，每项指向一个现有 Node。多个 Outcome 可以指向同一 Node。声明顺序无关，无默认分支。Runtime Trace 记录 Node ID、阶段和原始 Outcome。
 
 如果前置条件依赖新读取的状态，将查询安排到前序 Node。跨业务步骤的数据与可恢复边仍通过图显式连接。外部调用、Script 和 Reconcile 仍按 §11.6 逐次计入 Action Budget。Runtime 在各阶段按其契约检查授权、Scope、Evidence 及取消状态。后续判断失败不会撤销已经提交的 Operation。
 
@@ -628,7 +633,7 @@ nodes:
       arguments:
         ueRef: context.ueRef
         dnn: context.request.dnn
-      'on':
+      routes:
         NOT_COMMITTED: failed
         OUTCOME_UNKNOWN: reconcile-subscription
         DENIED: failed
@@ -639,14 +644,14 @@ nodes:
       arguments:
         - create-subscription.operation.output.subscription
         - context.request.dnn
-      'on':
+      routes:
+        PASS: complete
         FAIL: safe-stopped
         UNKNOWN: safe-stopped
-    next: complete
   reconcile-subscription:
     operation:
       reconcile: create-subscription
-      'on':
+      routes:
         NOT_COMMITTED: failed
         UNRESOLVED: unresolved
     observation:
@@ -654,7 +659,7 @@ nodes:
       arguments:
         ueRef: context.ueRef
         subscriptionRef: reconcile-subscription.operation.output.subscriptionRef
-      'on':
+      routes:
         FAILED: safe-stopped
         UNKNOWN: safe-stopped
     postcondition:
@@ -663,10 +668,10 @@ nodes:
       arguments:
         - reconcile-subscription.observation.output.subscription
         - context.request.dnn
-      'on':
+      routes:
+        PASS: complete
         FAIL: safe-stopped
         UNKNOWN: safe-stopped
-    next: complete
   complete:
     terminal: SUCCEEDED
   failed:
@@ -689,13 +694,13 @@ check-ue-registration:
     predicate: createdsession.ue.registered
     arguments:
       - observe-ue-registration.observation.output
-    'on':
+    routes:
+      PASS: create-session
       FAIL: reject-request
       UNKNOWN: unresolved
-  next: create-session
 ~~~
 
-本片段引用 §30 的 Registration Observation 输出和 §29 的 Registration Schema。Precondition 的 PASS 继续本 Node，FAIL 与 UNKNOWN 分别在本阶段声明退出路由。两条退出边可以指向同一节点，Trace 仍保留原 Outcome。
+本片段引用 §30 的 Registration Observation 输出和 §29 的 Registration Schema。这个 Node 只声明 Precondition，因此在同一张 `routes` 表中列出 PASS、FAIL 和 UNKNOWN。若在这个 Node 内还声明 Operation，PASS 自动进入 Operation，FAIL 和 UNKNOWN 仍可各自跳转。
 
 ### 12.3 Operation
 
@@ -710,13 +715,22 @@ create-policy:
       pduSessionId: context.request.pduSessionId
       dnn: context.request.dnn
       sNssai: context.request.sNssai
-    'on':
+    routes:
       NOT_COMMITTED: failed
       OUTCOME_UNKNOWN: reconcile-policy
       DENIED: failed
       FAILED: failed
-  next: verify-policy
+  postcondition:
+    predicate: createdsession.pcf.association_owned
+    arguments:
+      - create-policy.operation.output
+    routes:
+      PASS: create-n4-session
+      FAIL: safe-stopped
+      UNKNOWN: safe-stopped
 ~~~
+
+本片段复用 §30 的 Create 输出和 §29 的 Predicate，假定该输出及其 Evidence 足以支持验收。Operation 的 SUCCEEDED 在同一 Node 内进入 Postcondition，只有 Postcondition 的 PASS 才继续到下一项业务步骤。
 
 Operation 的 arguments 是具名映射，键必须是 Owner Input Schema 中的字段名；值是显式来源表达式或 YAML 标量字面量。Compiler 按 Schema 检查 Required、类型、Optional、Nullability 和额外字段。Operation 的 Effect 由 ToolCatalog 和 CapabilityContracts 决定，Skill 不得自行声明或覆盖。
 
@@ -731,13 +745,20 @@ inspect-policy:
     arguments:
       ueRef: context.ueRef
       pduSessionId: context.request.pduSessionId
-    'on':
+    routes:
       FAILED: failed
       UNKNOWN: unresolved
-  next: verify-policy
+  postcondition:
+    predicate: createdsession.pcf.association_owned
+    arguments:
+      - inspect-policy.observation.output
+    routes:
+      PASS: create-n4-session
+      FAIL: failed
+      UNKNOWN: unresolved
 ~~~
 
-Observation 的 arguments 同样是具名映射，并按 Query Input Schema 校验。Observation Query 可以使用前序 Operation Result 作为查询依据，例如：
+本片段假定查询输出与 §29 的 Association 参数 Schema 兼容，并满足 Predicate 所需的 Evidence。Observation 的 arguments 同样是具名映射，并按 Query Input Schema 校验。Observation Query 可以使用前序 Operation Result 作为查询依据，例如：
 
 ~~~yaml
 inspect-n4-resources:
@@ -749,7 +770,7 @@ inspect-n4-resources:
       baselineRef: read-n4-baseline.observation.output.baselineRef
 ~~~
 
-这里 Operation Result 只提供查询目标和关联身份；Observation 必须由其权威 Owner 实际执行查询并返回自己的 Result / Evidence，不得把 Operation Result 包装或改名成 Observation Result。
+上段只展示查询实参。完整 Node 仍须按 §12.1 声明所需路由。这里 Operation Result 只提供查询目标和关联身份；Observation 必须由其权威 Owner 实际执行查询并返回自己的 Result / Evidence，不得把 Operation Result 包装或改名成 Observation Result。
 
 ### 12.5 Postcondition
 
@@ -762,10 +783,10 @@ verify-n4-session:
     arguments:
       - inspect-n4-resources.observation.output
       - read-n4-baseline.observation.output.baselineRef
-    'on':
+    routes:
+      PASS: next-step
       FAIL: failed
       UNKNOWN: unresolved
-  next: next-step
 ~~~
 
 本片段假设前序 `read-n4-baseline` 在 PRE_CREATE 阶段成功产生已确认的 `baselineRef`，且该输出在所有到达路径上可用。POST_CREATE 查询与 Predicate 均绑定同一 Ref；`inspect-n4-resources.observation.output` 使用 §29 所示的权威输出类型。
@@ -790,13 +811,13 @@ Reconcile 是 `operation` 阶段的一种形态，用于调和已经派发的 Mu
 reconcile-policy:
   operation:
     reconcile: create-policy
-    'on':
+    routes:
+      COMMITTED: next-step
       NOT_COMMITTED: failed
       UNRESOLVED: safe-stopped
-  next: next-step
 ~~~
 
-Runtime 必须使用原始 Mutation 的不可变 Invocation、Operation 身份、输入、Scope 和 Correlation 执行对应 Owner 契约的 Reconcile。Reconcile 不得变成新的 Create / Update 请求，不得接受另一组业务参数来改变原操作目标。Compiler 必须验证目标存在、目标确为 MUTATION 且发布了安全 Reconcile 契约。原 Mutation 的 `operation.on.OUTCOME_UNKNOWN` 直接指向执行该 Reconcile 的 Node。该 Node 不设前置阶段，可在 COMMITTED 后声明 Observation 和 Postcondition。该次原始调用尚未调和。Compiler 将 `reconcile-node.operation.output` 链接到原 Mutation Owner 契约声明的 **Reconcile Output Schema**。该 Schema 在 Reconcile COMMITTED 后提供给本 Node 后续阶段和可达消费者，形状可与原 Mutation 的成功输出不同。Owner 未声明恢复输出时，COMMITTED 后不提供 `operation.output`，后续可显式读取权威状态。承诺的输出未通过校验时按 §20.2 停止。示例假定此前有部分资源需要保全，因此 UNRESOLVED 边指向 SAFE_STOPPED。
+Runtime 必须使用原始 Mutation 的不可变 Invocation、Operation 身份、输入、Scope 和 Correlation 执行对应 Owner 契约的 Reconcile。Reconcile 不得变成新的 Create / Update 请求，不得接受另一组业务参数来改变原操作目标。Compiler 必须验证目标存在、目标确为 MUTATION 且发布了安全 Reconcile 契约。原 Mutation 的 `operation.routes.OUTCOME_UNKNOWN` 直接指向执行该 Reconcile 的 Node。该 Node 不设前置阶段，可在 COMMITTED 后声明 Observation 和 Postcondition。该次原始调用尚未调和。Compiler 将 `reconcile-node.operation.output` 链接到原 Mutation Owner 契约声明的 **Reconcile Output Schema**。该 Schema 在 Reconcile COMMITTED 后提供给本 Node 后续阶段和可达消费者，形状可与原 Mutation 的成功输出不同。Owner 未声明恢复输出时，COMMITTED 后不提供 `operation.output`，后续可显式读取权威状态。承诺的输出未通过校验时按 §20.2 停止。示例假定此前有部分资源需要保全，因此 UNRESOLVED 边指向 SAFE_STOPPED。
 
 ### 12.8 Terminal 与 Applicability
 
@@ -817,7 +838,7 @@ Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时不�
 - 全局 Postcondition 要求证明 Contract 的单一 `goal`。`postcondition.goal` 必须精确匹配该 Goal，其 PASS 建立证明。各成功分支可以由不同 Node 的 Postcondition 建立证明。`start` 可指向带有 Goal Postcondition 的 Node。若同一验收需要同时检查多项事实，可在一个 Predicate 中明确组合判断。
 - Runtime 发布 SUCCEEDED 前复核全部全局前置条件、当前 Goal 证明的来源与 Evidence，以及资源责任。所有门禁复核都使用原绑定和最新校验时间。若缺少要求的 PASS 或复核失败，按 §12.8 停止，保留原 Trace。Runtime 不隐式重新求值、查询、换绑证据或回退到更早的 Goal 证明。失败或停止终态按 §12.8 发布，无需全局 PASS 或 Goal 证明。
 
-Compiler 按固定阶段顺序和 Outcome 路由分析控制流。阶段正常 Outcome 进入下一个已声明阶段或 `next`，阶段退出进入其 `on` 目标。入口没有已通过的全局前置条件，也没有 Goal 证明。汇合点对已通过条件取可达入边的交集，对 Goal 证明取可达入边的 AND。不可达 Node 另报 `UNREACHABLE_NODE`。若存在可达 SUCCEEDED 且没有可达的 Goal Postcondition，报告 `FINAL_POSTCONDITION_MISSING`；否则缺少证明的成功路径报告 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`。任一受保护的 Mutation 或成功终态绕过全局前置判断的 PASS 时，报告 `ENTRY_PRECONDITION_BYPASSED`。
+Compiler 按固定阶段顺序和 Outcome 路由分析控制流。非末阶段的正常 Outcome 进入同一 Node 的下一阶段，其余边按该阶段的 `routes` 连接目标 Node。入口没有已通过的全局前置条件，也没有 Goal 证明。汇合点对已通过条件取可达入边的交集，对 Goal 证明取可达入边的 AND。不可达 Node 另报 `UNREACHABLE_NODE`。若存在可达 SUCCEEDED 且没有可达的 Goal Postcondition，报告 `FINAL_POSTCONDITION_MISSING`；否则缺少证明的成功路径报告 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`。任一受保护的 Mutation 或成功终态绕过全局前置判断的 PASS 时，报告 `ENTRY_PRECONDITION_BYPASSED`。
 
 ~~~text
 required = set(contract.preconditions or empty list)
@@ -852,7 +873,7 @@ vNext 删除 Procedure Node 上的 `with` / `from` / `value` 包装，统一使�
 
 - Tool Operation.arguments：具名映射，键为 Owner Input Schema 字段；Procedure Script Operation.arguments：具名映射，作为该次 Script 调用的完整输入投影；
 - Observation.arguments：具名映射，键为 Query Input Schema 字段，值为来源表达式或标量字面量；
-- Precondition / Postcondition.arguments：有序列表，位置与 Predicate.parameters 严格对应。各阶段的实参及退出路由写在该阶段内部。
+- Precondition / Postcondition.arguments：有序列表，位置与 Predicate.parameters 严格对应。各阶段的实参及跨 Node 路由写在该阶段内部。
 
 ~~~yaml
 # assurance/procedure.yaml 的语法片段；Goal/授权属于 contract.yaml
@@ -864,9 +885,9 @@ nodes:
       arguments:
         ueRef: context.ueRef
         dnn: context.request.dnn
-      'on':
+      routes:
+        SUCCEEDED: verify-session
         FAILED: failed
-    next: verify-session
 ~~~
 
 该片段仅示范参数表达，不是完整可执行图：所有跳转目标以及最终 Postcondition / Terminal 必须在完整源文件中定义。
@@ -1044,7 +1065,7 @@ State 不自动等于 Evidence；Handle 不自动等于 State；Mutation 成功�
 4. Host 物化本次 Invocation 的可信上下文，Runtime 按 §11.5 分别校验 Host Context 和调用方 Request；
 5. Runtime 创建隔离 Invocation；
 6. Procedure 从 start 指定的入口 Node 执行；Invocation 级入口门禁可以由显式 Observation 获取所需事实，再由 Precondition 作出判断；
-7. Runtime 按 §12.1 顺序执行 Node 声明的阶段。阶段退出走对应 on；全部正常完成才走 next；
+7. Runtime 按 §12.1 执行各阶段。非末阶段正常完成时继续执行同一 Node，跨 Node 跳转使用当前阶段的 `routes`；
 8. 必要时显式执行 Observation Query，Predicate 只消费已物化输入和 Host 附加 Evidence；
 9. Mutation 结果不确定时，按阶段的退出路由和 §20 调和原调用或停止；
 10. 到达 SUCCEEDED Terminal 时按 §12.9 检查实际路径的全局前置条件、Goal PASS 和责任状态；
@@ -1073,7 +1094,7 @@ Runtime 只用可信且关联到本次原调用的证明记录提交状态。Own
 
 ### 20.2 调和与受控新尝试
 
-1. 有安全 Owner 契约时，Compiler 要求 operation.on.OUTCOME_UNKNOWN 直接指向对应 Reconcile 的 Node。Runtime 校验本次授权、原调用身份、Scope、Correlation、预算、Deadline 和取消状态后，对同一次原调用至多派发一次。Reconcile 不引入新的业务副作用。
+1. 有安全 Owner 契约时，Compiler 要求 operation.routes.OUTCOME_UNKNOWN 直接指向对应 Reconcile 的 Node。Runtime 校验本次授权、原调用身份、Scope、Correlation、预算、Deadline 和取消状态后，对同一次原调用至多派发一次。Reconcile 不引入新的业务副作用。
 2. 没有安全契约时，OUTCOME_UNKNOWN 边必须直接指向 UNRESOLVED 或 SAFE_STOPPED。已有安全契约但当前不能派发时，Runtime 直接按 §12.8 停止。两种情况都保留原调用和责任。
 3. Reconcile 确认 COMMITTED 或 NOT_COMMITTED 时，更新原调用状态。若 COMMITTED 契约承诺恢复输出，只有有效的 Reconcile 自身输出才在 COMMITTED 后提供；提交已确认但承诺恢复的输出无效时，按 §20.1 的 COMMITTED_OUTPUT_UNAVAILABLE 停止。契约未承诺输出时，后续节点可以显式读取权威状态。原 Mutation 丢失的输出不可用。COMMITTED 只更新原调用的提交状态。要到达 SUCCEEDED，该路径仍须通过新的 Goal Postcondition PASS（§12.9）。
 4. Reconcile 缺少有效结论时沿 UNRESOLVED 边。该边必须直接进入停止 Terminal，Runtime 按 §12.8 选择实际终态。普通业务查询不能替代原调用调和。
@@ -1098,7 +1119,7 @@ Host / Runtime 仍负责 Deadline、Cancellation、Correlation、预算、UNKNOW
 
 Predicate：PASS 表示命题得到充分支持；FAIL 表示命题被充分证伪；UNKNOWN 表示无法可靠判断。
 
-READ Operation 与 Observation 的合法 Outcome 为 SUCCEEDED、FAILED、DENIED、UNKNOWN。Mutation 的合法 Outcome 为 SUCCEEDED、FAILED、DENIED、NOT_COMMITTED、OUTCOME_UNKNOWN。Reconcile 使用 §12.7 的结果，Procedure Script 使用 SUCCEEDED 或 FAILED。阶段正常 Outcome 按 §12.1 推进，阶段的 `on` 必须精确覆盖其余已声明 Outcome。未能产生有效业务 Outcome 的 Runtime 异常按 §24.2 处理。未识别状态不得映射为 SUCCEEDED。
+READ Operation 与 Observation 的合法 Outcome 为 SUCCEEDED、FAILED、DENIED、UNKNOWN。Mutation 的合法 Outcome 为 SUCCEEDED、FAILED、DENIED、NOT_COMMITTED、OUTCOME_UNKNOWN。Reconcile 使用 §12.7 的结果，Procedure Script 使用 SUCCEEDED 或 FAILED。Tool Operation / Observation 按所链接的 Owner 契约取得该调用的精确 Outcome 集，其余阶段使用语言规定的 Outcome 集。末阶段的 `routes` 必须覆盖整个集合，其他阶段的 `routes` 必须覆盖除正常 Outcome 外的全部键。未能产生有效业务 Outcome 的 Runtime 异常按 §24.2 处理。未识别状态不得映射为 SUCCEEDED。
 
 ## 23. 并发、UE 与 Session 隔离
 
@@ -1166,7 +1187,9 @@ Environment
 | INPUT_NULLABILITY_MISMATCH | nullable Source 绑定非 nullable Target | 阻止构建 |
 | SOURCE_NOT_AVAILABLE | Producer 非所有路径可用，例如 Reconcile COMMITTED 后引用丢失的原始成功输出 | 阻止构建 |
 | RECONCILE_OUTPUT_UNAVAILABLE | Reconcile 后使用未由 Owner 声明可恢复的输出 | 阻止构建 |
-| ROUTE_OUTCOME_MISSING / ROUTE_OUTCOME_UNKNOWN | 规范 Outcome 缺少路由，或路由键不属于精确契约 | 阻止构建 |
+| ROUTE_OUTCOME_MISSING | 阶段缺少必须显式声明的 Outcome 路由 | 阻止构建 |
+| ROUTE_OUTCOME_UNKNOWN | 路由键不属于该阶段的精确 Outcome 集 | 阻止构建 |
+| ROUTE_NORMAL_OUTCOME_NOT_ALLOWED | 在非末阶段的 `routes` 中声明正常 Outcome，可能跳过同一 Node 的后续阶段 | 阻止构建 |
 | PREDICATE_ARITY_MISMATCH | 参数数量不一致 | 阻止构建 |
 | PREDICATE_TYPE_MISMATCH | 参数类型不兼容 | 阻止构建 |
 | EVIDENCE_GUARANTEE_LINK_INVALID | `provides` 无法解析到唯一保证描述符，或 Producer、Outcome、值路径或实参引用不匹配 | 阻止构建 |
@@ -1311,19 +1334,19 @@ nodes:
       target: ca::ue.registration.current
       arguments:
         ueRef: context.ueRef
-      'on':
+      routes:
+        SUCCEEDED: check-ue-registration
         FAILED: failed
         UNKNOWN: unresolved
-    next: check-ue-registration
   check-ue-registration:
     precondition:
       predicate: createdsession.ue.registered
       arguments:
         - observe-ue-registration.observation.output
-      'on':
+      routes:
+        PASS: read-udm-subscription
         FAIL: failed
         UNKNOWN: unresolved
-    next: read-udm-subscription
 ~~~
 
 这两个文件的职责不能合并：由 Contract 声明 Goal、全局前置条件、公共 Schema、依赖与 Capability Grants；只有 Procedure 承载执行图和最终 Postcondition。此处的 urn:example 身份是教学样例，不宣称真实 Owner 已发布或可以通过当前 Compiler 链接。完整可链接的目标样例需要 Owner 正式快照和 §34 的身份校验。
@@ -1461,19 +1484,19 @@ nodes:
       target: ca::ue.registration.current
       arguments:
         ueRef: context.ueRef
-      'on':
+      routes:
+        SUCCEEDED: check-ue-registration
         FAILED: failed
         UNKNOWN: unresolved
-    next: check-ue-registration
   check-ue-registration:
     precondition:
       predicate: createdsession.ue.registered
       arguments:
         - observe-ue-registration.observation.output
-      'on':
+      routes:
+        PASS: read-udm-subscription
         FAIL: failed
         UNKNOWN: unresolved
-    next: read-udm-subscription
   read-udm-subscription:
     operation:
       target: ca::sbi.udm.sm_data.get
@@ -1481,7 +1504,7 @@ nodes:
         ueRef: context.ueRef
         dnn: context.request.dnn
         sNssai: context.request.sNssai
-      'on':
+      routes:
         FAILED: failed
         DENIED: failed
         UNKNOWN: unresolved
@@ -1490,29 +1513,29 @@ nodes:
       arguments:
         - read-udm-subscription.operation.output.result
         - context.request.dnn
-      'on':
+      routes:
+        PASS: create-udm-subscription
         FAIL: failed
         UNKNOWN: unresolved
-    next: create-udm-subscription
   create-udm-subscription:
     operation:
       target: ca::sbi.udm.sdm_subscription.create
       arguments:
         ueRef: context.ueRef
         sessionProfile: read-udm-subscription.operation.output.result
-      'on':
+      routes:
+        SUCCEEDED: create-pcf-association
         NOT_COMMITTED: failed
         OUTCOME_UNKNOWN: reconcile-udm-subscription
         DENIED: failed
         FAILED: failed
-    next: create-pcf-association
   reconcile-udm-subscription:
     operation:
       reconcile: create-udm-subscription
-      'on':
+      routes:
+        COMMITTED: create-pcf-association
         NOT_COMMITTED: failed
         UNRESOLVED: unresolved
-    next: create-pcf-association
   create-pcf-association:
     operation:
       target: ca::sbi.pcf.sm_policy.create
@@ -1521,7 +1544,7 @@ nodes:
         pduSessionId: context.request.pduSessionId
         dnn: context.request.dnn
         sNssai: context.request.sNssai
-      'on':
+      routes:
         NOT_COMMITTED: safe-stopped
         OUTCOME_UNKNOWN: reconcile-pcf-association
         DENIED: safe-stopped
@@ -1530,14 +1553,14 @@ nodes:
       predicate: createdsession.pcf.association_owned
       arguments:
         - create-pcf-association.operation.output
-      'on':
+      routes:
+        PASS: create-n4-session
         FAIL: safe-stopped
         UNKNOWN: safe-stopped
-    next: create-n4-session
   reconcile-pcf-association:
     operation:
       reconcile: create-pcf-association
-      'on':
+      routes:
         NOT_COMMITTED: safe-stopped
         UNRESOLVED: safe-stopped
     observation:
@@ -1546,69 +1569,69 @@ nodes:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
         policyAssociationRef: reconcile-pcf-association.operation.output.policyAssociationRef
-      'on':
+      routes:
         FAILED: safe-stopped
         UNKNOWN: safe-stopped
     postcondition:
       predicate: createdsession.pcf.association_owned
       arguments:
         - reconcile-pcf-association.observation.output
-      'on':
+      routes:
+        PASS: create-n4-session
         FAIL: safe-stopped
         UNKNOWN: safe-stopped
-    next: create-n4-session
   create-n4-session:
     operation:
       target: ca::UPN.CREATE_UP_SESSION
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
-      'on':
+      routes:
+        SUCCEEDED: transfer-n1n2
         OUTCOME_UNKNOWN: safe-stopped
         FAILED: safe-stopped
         DENIED: safe-stopped
-    next: transfer-n1n2
   transfer-n1n2:
     operation:
       target: ca::sbi.amf.n1n2.transfer
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
-      'on':
+      routes:
+        SUCCEEDED: signal-ran
         OUTCOME_UNKNOWN: reconcile-n1n2-transfer
         NOT_COMMITTED: safe-stopped
         FAILED: safe-stopped
         DENIED: safe-stopped
-    next: signal-ran
   reconcile-n1n2-transfer:
     operation:
       reconcile: transfer-n1n2
-      'on':
+      routes:
+        COMMITTED: signal-ran
         NOT_COMMITTED: safe-stopped
         UNRESOLVED: safe-stopped
-    next: signal-ran
   signal-ran:
     operation:
       target: ca::SSM.SIGNAL_UE_AN
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
-      'on':
+      routes:
+        SUCCEEDED: modify-n4-forwarding
         OUTCOME_UNKNOWN: safe-stopped
         FAILED: safe-stopped
         DENIED: safe-stopped
-    next: modify-n4-forwarding
   modify-n4-forwarding:
     operation:
       target: ca::UPN.MODIFY_UP_SESSION
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
-      'on':
+      routes:
+        SUCCEEDED: read-ran-setup
         OUTCOME_UNKNOWN: safe-stopped
         FAILED: safe-stopped
         DENIED: safe-stopped
-    next: read-ran-setup
   read-ran-setup:
     observation:
       target: ca::ran.setup.current
@@ -1616,10 +1639,10 @@ nodes:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
         sessionInstanceRef: create-n4-session.operation.output.sessionInstanceRef
-      'on':
+      routes:
+        SUCCEEDED: read-n4-forwarding
         FAILED: safe-stopped
         UNKNOWN: safe-stopped
-    next: read-n4-forwarding
   read-n4-forwarding:
     observation:
       target: ca::n4.forwarding.current
@@ -1627,7 +1650,7 @@ nodes:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
         sessionInstanceRef: create-n4-session.operation.output.sessionInstanceRef
-      'on':
+      routes:
         FAILED: safe-stopped
         UNKNOWN: safe-stopped
     postcondition:
@@ -1636,10 +1659,10 @@ nodes:
         - read-ran-setup.observation.output
         - read-n4-forwarding.observation.output
         - create-n4-session.operation.output.sessionInstanceRef
-      'on':
+      routes:
+        PASS: transfer-resource-responsibility
         FAIL: safe-stopped
         UNKNOWN: safe-stopped
-    next: transfer-resource-responsibility
   transfer-resource-responsibility:
     operation:
       target: ca-context::ca.session.resource_responsibility.transfer
@@ -1648,19 +1671,19 @@ nodes:
         pduSessionId: context.request.pduSessionId
         lifecycleRef: context.correlation.lifecycleRef
         sessionInstanceRef: create-n4-session.operation.output.sessionInstanceRef
-      'on':
+      routes:
+        SUCCEEDED: read-resource-responsibility
         OUTCOME_UNKNOWN: reconcile-resource-responsibility
         NOT_COMMITTED: safe-stopped
         DENIED: safe-stopped
         FAILED: safe-stopped
-    next: read-resource-responsibility
   reconcile-resource-responsibility:
     operation:
       reconcile: transfer-resource-responsibility
-      'on':
+      routes:
+        COMMITTED: read-resource-responsibility
         NOT_COMMITTED: safe-stopped
         UNRESOLVED: safe-stopped
-    next: read-resource-responsibility
   read-resource-responsibility:
     observation:
       target: ca-context::ca.session.resource_responsibility.current
@@ -1668,7 +1691,7 @@ nodes:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
         lifecycleRef: context.correlation.lifecycleRef
-      'on':
+      routes:
         FAILED: safe-stopped
         UNKNOWN: safe-stopped
     postcondition:
@@ -1679,10 +1702,10 @@ nodes:
         - read-n4-forwarding.observation.output
         - read-resource-responsibility.observation.output
         - create-n4-session.operation.output.sessionInstanceRef
-      'on':
+      routes:
+        PASS: complete
         FAIL: safe-stopped
         UNKNOWN: safe-stopped
-    next: complete
   complete:
     terminal: SUCCEEDED
   failed:
@@ -1707,7 +1730,7 @@ create-policy:
     predicate: example.subject.present
     arguments:
       - context.ueRef
-    'on':
+    routes:
       FAIL: failed
       UNKNOWN: unresolved
   operation:
@@ -1715,7 +1738,7 @@ create-policy:
     arguments:
       ueRef: context.ueRef
       pduSessionId: context.request.pduSessionId
-    'on':
+    routes:
       NOT_COMMITTED: failed
       OUTCOME_UNKNOWN: reconcile-policy
       DENIED: failed
@@ -1726,17 +1749,17 @@ create-policy:
       ueRef: context.ueRef
       pduSessionId: context.request.pduSessionId
       policyAssociationRef: create-policy.operation.output.policyAssociationRef
-    'on':
+    routes:
       FAILED: safe-stopped
       UNKNOWN: safe-stopped
   postcondition:
     predicate: createdsession.pcf.association_owned
     arguments:
       - create-policy.observation.output
-    'on':
+    routes:
+      PASS: continue-session
       FAIL: safe-stopped
       UNKNOWN: safe-stopped
-  next: continue-session
 ~~~
 
 本例引用 E.8 的 `example.subject.present` 和 §29 的 `createdsession.pcf.association_owned`，假定 Create 输出包含 `policyAssociationRef`，且查询契约接受该引用。这四段共同属于 create-policy。如果 Operation Result 已足以支持同一验收，可以省略 Observation，并将 Postcondition 实参绑定到 `create-policy.operation.output`。
@@ -1757,9 +1780,9 @@ prepare-policy-inputs:
     arguments:
       subscriptionData: select-establishment-configuration.operation.output.subscriptionData
       subscriptionSource: select-establishment-configuration.operation.output.subscriptionSource
-    'on':
+    routes:
+      SUCCEEDED: create-policy
       FAILED: failed
-  next: create-policy
 ~~~
 
 - 唯一入口为 main(input: dict)。
@@ -1861,7 +1884,7 @@ Skill Studio 是 CA-SL 作者工作环境，不是第二个语言实现。应提
 11. Hover：Owner、Effect、Schema、Capability、Scope / Freshness / Evidence 保证；
 12. Completion：只补全当前已选依赖快照中真实存在的导出身份；
 13. Diagnostics：区分语法、链接、类型、授权和业务警告；
-14. Procedure Designer：以业务 Node 为图节点，在卡片内显示阶段、由 Contract 引用的全局前置条件和 Goal 标记。连线标识正常完成或退出的阶段和 Outcome。编辑最终 Postcondition 时从 Contract 提取 Goal 供选择；
+14. Procedure Designer：以业务 Node 为图节点，在卡片内显示阶段、由 Contract 引用的全局前置条件和 Goal 标记。跨 Node 连线标识来源阶段和 Outcome，卡片内按固定顺序显示由正常 Outcome 推进的阶段。编辑最终 Postcondition 时从 Contract 提取 Goal 供选择；
 15. Data Flow：展示 Context / Operation / Observation 到 Predicate 的值流、所需 Evidence 保证及其 Producer；
 16. Package View：区分 Skill 自有文件、只读依赖和生成 Artifact；
 17. Case View：展示语义义务，不伪装成 Runtime 结果；
@@ -2128,6 +2151,10 @@ Compiler 已找到对应的导出和 Schema，接下来要验证该 Schema 内�
 
 `preconditions` 是全局前置判断的列表，每项都必须 PASS。执行顺序和取证位置由 Procedure 决定。全局验收只有一个 Contract Goal，正常路径和 Reconcile 路径分别用标记同一 Goal 的 Postcondition 证明。Compiler 检查每条成功路径，Runtime 复核实际路径上的判断和证据。Contract 无需再维护一份成功分支列表。
 
+## 85. 为什么各阶段使用 routes？
+
+`routes` 表达已声明的 Outcome 到目标 Node 的映射，例如 `PASS`、`FAIL`、`UNKNOWN` 各自对应一个目标。非末阶段的正常 Outcome 自动推进到同一 Node 的下一阶段。末阶段的正常 Outcome 也使用 `routes`，所以整个 Node 无需额外声明 `next`。字段名 `routes` 在 YAML 1.1 和 1.2 中都可以裸写，避免旧示例中 `on` 被部分解析器当成布尔值。`case` 常用于标记 `switch` 的单个分支。这里的键已经是精确的 Outcome，`routes` 直接表达整个映射。
+
 # 附录 A：关键设计决定
 
 | ID | 决定 | 说明 |
@@ -2241,7 +2268,7 @@ nodes:
       target: ca::ue.registration.current
       arguments:
         ueRef: context.ueRef
-      'on':
+      routes:
         FAILED: failed
         UNKNOWN: unresolved
     postcondition:
@@ -2249,10 +2276,10 @@ nodes:
       predicate: example.ue.registered
       arguments:
         - inspect-registration.observation.output
-      'on':
+      routes:
+        PASS: complete
         FAIL: failed
         UNKNOWN: unresolved
-    next: complete
   complete:
     terminal: SUCCEEDED
   failed:
@@ -2501,6 +2528,8 @@ expected:
 | E51：两条路径各自只通过一项全局前置条件，随后汇合并证明 Goal | ENTRY_PRECONDITION_BYPASSED，即使流程只读 |
 | E52：Contract 引用 Postcondition、缺失阶段或重复引用同一个 Precondition | ENTRY_PRECONDITION_REF_INVALID |
 | E53：全局 Precondition 曾 PASS，发布成功前该项证据过期，当前 Goal 证明仍有效 | ENTRY_PRECONDITION_INVALIDATED；按 §12.8 停止，保留历史 PASS |
+| E54：在非末阶段为正常 Outcome 配置跨 Node 路由 | ROUTE_NORMAL_OUTCOME_NOT_ALLOWED |
+| E55：末阶段漏写正常 Outcome 的路由 | ROUTE_OUTCOME_MISSING |
 
 此表是待落地的评审与 Compiler Fixture 契约，不是现有 CI 的实际通过记录。正式冻结必须由相应 Owner 提供发布的导出身份，并让 Native、WASM 和 Skill Studio 使用同一组正负例。
 
@@ -2547,19 +2576,19 @@ E39、E43 的 ca 快照基线：将可信 Owner 集合设为 `[example-ue-owner,
 | 用例 | 基线与最小改动 | 预期 |
 |---|---|---|
 | E17 | §12.1 的正常与 Reconcile 路径，各自通过 Goal Postcondition 后汇入 complete | 静态证明覆盖检查通过 |
-| E18 | 在 §12.1 中删除 `reconcile-subscription` 的 Observation 与 Postcondition，保留 `next: complete` | SUCCESS_BYPASSES_FINAL_POSTCONDITION，即使另一条入边已持有 Goal PASS |
+| E18 | 在 §12.1 中删除 `reconcile-subscription` 的 Observation 与 Postcondition，并设置 `operation.routes.COMMITTED: complete` | SUCCESS_BYPASSES_FINAL_POSTCONDITION，即使另一条入边已持有 Goal PASS |
 | E10 | 将 §12.1 的 `reconcile-subscription.observation.arguments.subscriptionRef` 改为 `create-subscription.operation.output.subscriptionRef`，并让原 Mutation 的 SUCCEEDED 输出 Schema 声明必需的 `subscriptionRef` | SOURCE_NOT_AVAILABLE，当前分支没有该 SUCCEEDED 输出。若该 Schema 未声明此字段，则按 §13.3 报 SOURCE_PATH_INVALID |
 | E41 | `start` 指向 E.8 的 `verify-subject`，它的 PASS 直接到 `complete` | Goal 覆盖通过。初始无证明，PASS 建立证明 |
-| E42 | 在 E.8 的 `verify-subject.next` 后插入 `verify-local`，使用同一 Predicate 和实参，省略 `goal`，正常完成后到 `complete`。再单独移除 `verify-subject` 的 `goal` | 有 Goal 标记时通过。两个判断都无 Goal 标记时报告 FINAL_POSTCONDITION_MISSING |
-| E44 | 在 E.8 增加一个从 `start` 不可达的节点 `unused`，声明 `precondition.predicate: example.subject.present`、实参 `context.ueRef`，其 `next` 指向 `complete`，阶段的 FAIL 到 `failed`，UNKNOWN 到 `unresolved` | 报 UNREACHABLE_NODE；`complete` 的证明覆盖仍通过 |
-| E45 | 在 E.8 的 `verify-subject.next` 后插入 `check-subject`，使用同一 Predicate 和实参，正常完成后到 `complete`，其余边到相应停止终态。Contract 声明 `preconditions: [check-subject.precondition]` | SUCCESS_BYPASSES_FINAL_POSTCONDITION |
-| E50 | 在 E.8 的 `verify-subject` 前串联 `check-a`、`check-b`，并改 `start: check-a`。两节点用同一 Predicate 和实参，FAIL 到 `failed`、UNKNOWN 到 `unresolved`。Contract 声明 `preconditions: [check-b.precondition, check-a.precondition]` | 静态覆盖通过。两项 PASS 都出现在 Goal PASS 之前 |
-| E51 | 复用 E50，在开头追加一个使用同一 Predicate 的 `choose` Precondition，并设为 `start`。PASS 走 `next: check-a`，FAIL 到 `check-b`，UNKNOWN 到 `unresolved`。令 `check-a` 和 `check-b` 的 `next` 均指向 `verify-subject` | ENTRY_PRECONDITION_BYPASSED；两条入边分别通过不同的条件，交集为空 |
+| E42 | 在 E.8 的 `verify-subject.postcondition.routes.PASS` 边上插入 `verify-local`，使用同一 Predicate 和实参，省略 `goal`，正常完成后到 `complete`。再单独移除 `verify-subject` 的 `goal` | 有 Goal 标记时通过。两个判断都无 Goal 标记时报告 FINAL_POSTCONDITION_MISSING |
+| E44 | 在 E.8 增加一个从 `start` 不可达的节点 `unused`，声明 `precondition.predicate: example.subject.present`、实参 `context.ueRef`，其 `precondition.routes` 将 PASS 指向 `complete`、FAIL 指向 `failed`、UNKNOWN 指向 `unresolved` | 报 UNREACHABLE_NODE；`complete` 的证明覆盖仍通过 |
+| E45 | 在 E.8 的 `verify-subject.postcondition.routes.PASS` 边上插入 `check-subject`，使用同一 Predicate 和实参，正常完成后到 `complete`，其余边到相应停止终态。Contract 声明 `preconditions: [check-subject.precondition]` | SUCCESS_BYPASSES_FINAL_POSTCONDITION |
+| E50 | 在 E.8 增加 `check-a`、`check-b`，并改 `start: check-a`。两节点用同一 Predicate 和实参，`precondition.routes` 中 FAIL 到 `failed`、UNKNOWN 到 `unresolved`，PASS 分别到 `check-b` 和 `verify-subject`。Contract 声明 `preconditions: [check-b.precondition, check-a.precondition]` | 静态覆盖通过。两项 PASS 都出现在 Goal PASS 之前 |
+| E51 | 复用 E50，在开头追加一个使用同一 Predicate 的 `choose` Precondition，并设为 `start`。在 `choose.precondition.routes` 中将 PASS 指向 `check-a`、FAIL 指向 `check-b`、UNKNOWN 指向 `unresolved`。令 `check-a` 和 `check-b` 的 `precondition.routes.PASS` 均指向 `verify-subject` | ENTRY_PRECONDITION_BYPASSED；两条入边分别通过不同的条件，交集为空 |
 | E52 | 复用 E50，分别将首项改为 `verify-subject.postcondition`、`no-such-node.precondition`、`verify-subject.precondition` 或 `check-a.precondition` | 四种变体均报 ENTRY_PRECONDITION_REF_INVALID |
 | E53 | 以 E.1–E.4 为基线，将 Observation 提取到前序 Node，以其输出供新增的 `check-registration` Precondition 使用。添加 `preconditions: [check-registration.precondition]`，该阶段复用注册 Predicate。PASS 后进入 E.8 的 `verify-subject`，并将 E.8 的 Predicate 定义合入 PredicateSet，Contract 的 `goal` 改为 E.8 对应 Goal。复用 E.4 的 `checkedAt.predicate` 执行两个 Predicate，将 `checkedAt.terminal` 改为 11000 | 注册证据到期而 Goal 证明有效；ENTRY_PRECONDITION_INVALIDATED，终态 UNRESOLVED，保留两个 PASS |
 | E30、E40 | 在 E.4 的 Predicate PASS 之后、终态复核前，加入同一 Invocation 下另一条已由 Owner 校验的证据，`ref: record-2`、`producerInvocationId: read-2`、`observedAt: 1800`，其已物化查询实参仍为 `ue-1`。E30 使用 `{state: DEREGISTERED, accessState: IDLE}`；E40 使用与 record-1 相同的值。此处只向测试 Host 的证据视图注入 Owner 记录 | 原绑定的 PASS 保留在 Trace，终态 UNRESOLVED。两种情况下均不得换绑或重新调用 Predicate |
 
-同 Node 的阶段用例以 §31 为基线。E47 将 precondition 的首个实参改为 `create-policy.observation.output`。E48 分别令前置判断返回 FAIL 和 UNKNOWN，预期离开 Node 前只运行该判断。E49 令前置判断 PASS、Operation SUCCEEDED、Observation UNKNOWN，预期到达 `safe-stopped`，并保留 Operation 的提交状态和 Trace。
+同 Node 的阶段用例以 §31 为基线。E54 添加 `create-policy.operation.routes.SUCCEEDED: continue-session`，验证它不能跳过 Observation 和 Postcondition。E55 删除 `create-policy.postcondition.routes.PASS`。E47 将 precondition 的首个实参改为 `create-policy.observation.output`。E48 分别令前置判断返回 FAIL 和 UNKNOWN，预期离开 Node 前只运行该判断。E49 令前置判断 PASS、Operation SUCCEEDED、Observation UNKNOWN，预期到达 `safe-stopped`，并保留 Operation 的提交状态和 Trace。
 
 ## E.8 从 Goal Postcondition 开始的验证流程
 
@@ -2575,10 +2604,10 @@ nodes:
       predicate: example.subject.present
       arguments:
         - context.ueRef
-      'on':
+      routes:
+        PASS: complete
         FAIL: failed
         UNKNOWN: unresolved
-    next: complete
   complete:
     terminal: SUCCEEDED
   failed:

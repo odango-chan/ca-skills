@@ -509,7 +509,7 @@ This section records the latest review direction and supersedes earlier authorin
 
 ### 25.3 Business Node stages and Script placement
 
-- A business Node may contain Precondition, Operation, Observation, and Postcondition stages, run in that order. Each stage owns its exits, and `next` follows normal completion. A Terminal Node declares the outcome.
+- A business Node may contain Precondition, Operation, Observation, and Postcondition stages, run in that order. Earlier stages advance within the Node on their normal outcomes. All cross-Node transitions use the current stage's `routes` map, including the last stage's normal outcome. A Terminal Node declares the outcome.
 - Predicate remains a pure reusable judgment definition; it is not a Procedure node and does not acquire data.
 - A Procedure Script is a local pure execution target of a Node's Operation stage. It performs deterministic selection / transformation / structured-data construction and is not a Tool, Capability or external READ / MUTATION Effect.
 - A Predicate Script is the evaluator implementation of a Predicate. Its typed business inputs derive from Predicate.parameters; its strict return TypedDict generates the Predicate Evaluation Result Schema, including result, reasonCode and evidenceUsed.

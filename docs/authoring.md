@@ -24,7 +24,7 @@ skills/<name>/
 The three assurance files have separate responsibilities:
 
 - `contract.yaml`: public Skill declaration — Goal, global Precondition references, public Request Schema, Host Invocation Context Schema, public dependency identities and Capability Grants.
-- `procedure.yaml`: the single execution graph — start, business Nodes with ordered optional phases, and Terminal Nodes. A Node's phases are Precondition, Operation, Observation, and Postcondition.
+- `procedure.yaml`: the single execution graph — start, business Nodes with ordered optional phases, and Terminal Nodes. Precondition, Operation, Observation, and Postcondition run in that order when declared. An earlier stage's normal outcome advances within the Node. All cross-Node transitions use the current stage's `routes` map.
 - `predicates.yaml`: reusable Predicate parameter signatures and CEL / Python evaluators.
 
 The Contract remains author-maintained source. Only redundant wrapper fields and values derivable elsewhere are removed; the public declarations it owns are not deleted. Compiler may derive a normalized Runtime contract from Contract, Procedure, Predicates and dependency snapshots, but that artifact does not replace the source Contract.
