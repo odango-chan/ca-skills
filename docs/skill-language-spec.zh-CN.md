@@ -12,7 +12,7 @@
 
 **规范性用语。** MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT、MAY、OPTIONAL 按 RFC 2119 和 RFC 8174 解释。相应中文规范性措辞包括“必须”“不得”“应当”“不建议”“可以”。
 
-**变更记录。** [勘误记录（一）](design/ca-sl-v1alpha3-errata-2026-11-14.md)、[勘误记录（二）](design/ca-sl-v1alpha3-errata-2026-11-14-r2.md)、[诊断追溯与 PSI 身份来源勘误](design/ca-sl-v1alpha3-diagnostic-trace-errata.md)、[互操作与实现基准澄清](design/ca-sl-v1alpha3-interop-clarifications-2026-11-14.md)、[Reconcile 与 Runtime 诊断归属勘误](design/ca-sl-v1alpha3-reconcile-runtime-errata-2026-11-14.md)、[Evidence 来源与 Scope/Schema 闭合性勘误](design/ca-sl-v1alpha3-evidence-source-and-routing-errata.md)。勘误不改变 v1alpha3 的规范性语义；产品符合性状态见 §45.2。
+**变更记录。** [勘误记录（一）](design/ca-sl-v1alpha3-errata-2026-11-14.md)、[勘误记录（二）](design/ca-sl-v1alpha3-errata-2026-11-14-r2.md)、[诊断追溯与 PSI 身份来源勘误](design/ca-sl-v1alpha3-diagnostic-trace-errata.md)、[互操作与实现基准澄清](design/ca-sl-v1alpha3-interop-clarifications-2026-11-14.md)、[Reconcile 与 Runtime 诊断归属勘误](design/ca-sl-v1alpha3-reconcile-runtime-errata-2026-11-14.md)、[Evidence 来源与 Scope/Schema 闭合性勘误](design/ca-sl-v1alpha3-evidence-source-and-routing-errata.md)、[编辑性澄清第三轮](design/ca-sl-v1alpha3-editorial-closure-2026-11-14.md)。勘误不改变 v1alpha3 的规范性语义；产品符合性状态见 §45.2。
 
 ---
 
@@ -1043,7 +1043,7 @@ nodes:
 
 `context` 单独使用时报 SOURCE_PATH_INVALID。只能绑定有 Schema 的子路径，例如 `context.request` 或 `context.correlation`；适用的 Evidence 豁免按 §17.1 判定。
 
-- `arguments` 映射的每个值和列表的每个元素都是 Expression。使用 YAML 1.2 Core 标量规则，并保留标量是否加引号。裸字符串仅在匹配 SourcePath 文法时合法；字符串常量须加引号。例如 context.ueRef、context.request.dnn、read-subscription.operation.output.result、read-subscription.operation.output.result.subscription.dnn。
+- `arguments` 映射的每个值和列表的每个元素都是 Expression。使用 YAML 1.2 Core 的**受支持标量子集**（G.1），并保留标量是否加引号及原始词法。解析器即使把 `Null`、`NULL` 或 `~` 识别为 Core Null，也不得当作本版合法的 null 字面量；本版只接受裸写 `null`，Boolean 只接受裸写 `true` / `false`，数字使用 G.1 限定的有限十进制。裸字符串仅在匹配 SourcePath 文法时合法；字符串常量须加引号。例如 context.ueRef、context.request.dnn、read-subscription.operation.output.result、read-subscription.operation.output.result.subscription.dnn。
 - YAML 原生 Boolean、Number、Null 和带引号的 String 表示字面量。例如 `phase: "POST_CREATE"` 是合法字符串常量，`phase: POST_CREATE` 报 `SOURCE_PATH_INVALID`。`baselineRef: read-n4-baseline.observation.output.baselineRef` 是来源引用。
 - 本版（v1alpha3）不允许在 arguments 中内联任意对象或数组字面量；复杂对象必须来自一个有 Schema 的 Request、Context 或 Producer Output。`context` 路径读取 §11.5 已校验的 Invocation 值。节点输出路径只能读取当前执行路径上已产生的有效输出。
 - Predicate.arguments 必须是有序列表，位置与 Predicate.parameters 严格对应。
@@ -1121,6 +1121,7 @@ predicates:
 - Precondition / Postcondition 的 arguments 数量必须完全一致，顺序必须一致；
 - 不允许隐式 Optional、跳过位置、自动 null、类型猜测或重排；
 - Predicate 签名是唯一业务输入契约；`evidence` 是独立的来源要求，字段和校验见 §17。
+- `evidence.independence` 的结构和校验优先级见 G.1/G.3；每个 `(parameter, guarantee)` 成员必须已包含在同一 Predicate 的 `evidence.requires[parameter]` 列表中，不允许以独立性声明凭空增加 Evidence 来源。
 
 当前 Evaluator 支持 CEL 和 Skill 自有 Script。Predicate 不得调用 Tool、Observation、网络、文件系统、时钟、随机数或全局 Context，也不得修改外部状态。
 
@@ -2032,6 +2033,8 @@ nodes:
 
 ## 31. 在同一个 Node 写四个阶段
 
+本节示例继承 §30 的教学 Owner / Host 先决条件。`context.request.pduSessionId` 仍是请求选择值，不能因同一 Node 合并多个阶段而变为 Session/PSI 的权威身份来源；实际身份实参与授权检查须遵守 §13.3 和 §23。
+
 ~~~yaml
 create-policy:
   precondition:
@@ -2162,9 +2165,9 @@ dependencies:
   ca: urn:example:connectionagent:5gc-tool-contracts
 ~~~
 
-复用 Compiler v0.1 已有的逻辑快照形状 `{dependencyId, digest, files}`。其中 `dependencyId` 是 Workspace 别名，`digest` 由 Compiler 按所选 BuildRequest 版本规定的 framing，对经校验的文件路径及原始内容字节重算，二者均不能证明 Package ID 或 Owner。可信调用方依据既有来源配置、锁定快照和已验证 Owner 元数据，为同一 `(dependencyId, digest)` 提供稳定 Package ID 与允许的 Owner 身份。来源绑定可由 Studio 依赖目录或部署配置提供；上传内容或 MCP discovery 自报身份本身不构成可信绑定。
+复用 Compiler v0.1 已有的逻辑快照形状 `{dependencyId, digest, files}`。其中 `dependencyId` 是 Workspace 别名，且对本次被 `Contract.dependencies[alias]` 引用的快照必须与该 `alias` **逐字相同（大小写敏感）**；这两个“别名”分属 Workspace 输入和 Skill 源码，但在本版按相同字符串作唯一匹配，不存在隐式重命名或由 Package ID 推断 Alias。`digest` 由 Compiler 按所选 BuildRequest 版本规定的 framing，对经校验的文件路径及原始内容字节重算，二者均不能证明 Package ID 或 Owner。可信调用方依据既有来源配置、锁定快照和已验证 Owner 元数据，为同一 `(dependencyId, digest)` 提供稳定 Package ID 与允许的 Owner 身份。来源绑定可由 Studio 依赖目录或部署配置提供；上传内容或 MCP discovery 自报身份本身不构成可信绑定。
 
-1. 对每个被引用的 Alias 链接唯一快照，并校验规范化路径、文件集及摘要。按同一 Alias 和实测摘要获取可信身份绑定，与 `Contract.dependencies[alias]` 精确比较。无可信绑定、同一 Alias 对应多个快照或身份不匹配均阻断构建。
+1. 对每个被引用的 Alias，以 `snapshot.dependencyId == alias` 唯一选定快照，并校验规范化路径、文件集及摘要。可信身份绑定的查找键是 `(dependencyId = alias, 实测 digest)`；绑定所给的稳定 Package ID 必须与 `Contract.dependencies[alias]` 精确一致。缺少该别名对应的快照按既有 `DEPENDENCY_SNAPSHOT_MISSING` 处理，同一别名对应多个快照报 `DEPENDENCY_DUPLICATE`，缺少可信身份绑定报 `DEPENDENCY_IDENTITY_UNVERIFIED`，Package ID 不一致报 `DEPENDENCY_ID_MISMATCH`。`dependencyId` 不等于该别名的其他 Workspace 快照不得借其 Package ID 或摘要自动替代，也不得自动创建别名映射。
 2. 在该快照内解析唯一精确的 `alias::exportId`。用可信绑定核对导出 Owner，再校验 callable kind、Effect、Schema `$id`、引用闭包和 Evidence 保证。单 Owner 快照可由可信绑定为没有 Owner 字段的导出赋予该 Owner。多 Owner 快照必须由可信调用方提供显式的 `(exportKind, exportId) → owner` 归属；Owner 须在绑定的授权集合内。导出自带 Owner 字段时必须与可信归属一致。该规则也适用于引用闭包中实际链接的 Schema、Evidence 保证等导出。先解析唯一可信归属。多 Owner 快照中归属缺失、重复或歧义时报 `DEPENDENCY_EXPORT_OWNER_UNVERIFIED`。已有唯一归属，但 Owner 不在授权集合内，或与导出自带 Owner 不一致时，报 `DEPENDENCY_OWNER_MISMATCH`。Compiler 不按文件路径、`$id` 前缀或文件顺序猜测。
 3. 外部 callable 还须在独立可信 CapabilityContracts 中，以精确 Owner、callable ID 和 kind 按 §9.3 核对所有成员的 Effect 并检查至少一个匹配的 Capability 已获 Skill Grant。单纯链接成功不授予执行权。
 4. 合法但未使用的 Contract 依赖产生 UNUSED_DEPENDENCY 警告。构建输入里的额外快照不得自动进入 Skill 链接范围。
@@ -3270,7 +3273,7 @@ ScalarLiteral        = QuotedYamlString | CoreBoolean | CoreNull | FiniteDecimal
 
 NodeId 保留 context 与四个终态。所有普通标识符大小写敏感、每段以 ASCII 字母开头；中间允许数字、下划线和连字符；空段、连续点、尾点、冒号或空白不得作为 DottedId/ExportId。解析 `LocalSchemaPath` 和 `LocalScriptPath` 时，必须先从字符串最右侧精确剥离固定后缀 `.schema.yaml` 或 `.py`，再按 `/` 分段验证剩余路径与 `FileSegment`；不得将中间的点号当作第二个扩展名或按文件扩展名猜测身份。Alias 不能含点号或冒号。ExportId 只用于 callable / Evidence 保证，允许分段点号，但**不允许冒号**。**诊断适用位置：** PredicateId、GoalId、Alias 等独立语法位置违反 Identifier/DottedId 词法时报 `IDENTIFIER_INVALID`。ExportId 作为 `QualifiedCallableId`、`QualifiedQueryId` 或 `QualifiedGuaranteeId` 的组成部分时，Compiler 先校验完整的 `Alias::ExportId` 引用，任一组成部分不满足该限定引用文法即报 `QUALIFIED_REFERENCE_INVALID`。因此 G.9 的 E105 中 `ExportId=foo..bar` 是指限定引用的 ExportId 部分非法，而不是存在一个可单独声明 ExportId 的作者源码字段。此规则不允许空段，也不改变 G.1 的 `ExportId = DottedId` 词法限制。外部 Schema 身份采用另一种解析：仅在 QualifiedSchemaId 的**首个双冒号**处分开 Alias 与后面的完整绝对 URI；URI 可以含冒号，必须与受信 Schema $id 精确匹配，不得用 ExportId 词法解析。StablePackageId 为遵守 RFC 3986 的绝对 URI；这些 URI 均不得含空白、控制字符或未解析的穿越成分。不能由文件中的自报身份建立信任。
 
-NonEmptyList 表示长度至少 1 的 YAML 序列，ExactlyOneName 表示恰有一个非保留 Name 键的映射；AbsoluteSchemaUri 与 AbsolutePackageUri 为 RFC 3986 绝对 URI并由可信契约验证。LocalSchemaPath 与 LocalScriptPath 只接受包内 POSIX 相对路径；禁止绝对路径、反斜线、空段、点段、双点段和符号链接越界。PositiveInteger 为十进制且必须大于零、无前导零。无引号字符串只可能是合法 SourcePath；带引号的 YAML 字符串作为字面值，Boolean 只有 true/false、Null 只有 null；数字为有限十进制，不允许 NaN/Infinity、隐式八进制或任意字符串转数值。具体 SourcePath 规则继承 §13.2。
+NonEmptyList 表示长度至少 1 的 YAML 序列，ExactlyOneName 表示恰有一个非保留 Name 键的映射；AbsoluteSchemaUri 与 AbsolutePackageUri 为 RFC 3986 绝对 URI并由可信契约验证。LocalSchemaPath 与 LocalScriptPath 只接受包内 POSIX 相对路径；禁止绝对路径、反斜线、空段、点段、双点段和符号链接越界。例如 `schemas/session.profile.schema.yaml` 与 `scripts/build.input.py` 合法；`schemas/../session.schema.yaml`、`schemas/.schema.yaml` 和 `scripts//step.py` 非法。固定后缀的优先剥离规则仅用于消除文法读取歧义，不放宽 FileSegment 或路径安全约束。PositiveInteger 为十进制且必须大于零、无前导零。无引号字符串只可能是合法 SourcePath；带引号的 YAML 字符串作为字面值，Boolean 只有 true/false、Null 只有 null；数字为有限十进制，不允许 NaN/Infinity、隐式八进制或任意字符串转数值。具体 SourcePath 规则继承 §13.2。
 
 PredicateSet 根必须只含 predicates 映射；每个 Predicate 的 parameters 按声明顺序传入，名称唯一；零参数允许空列表。每个 Parameter 恰好一个 Name → PrimitiveType 或精确 QualifiedSchemaId。Evidence requires 只可引用已声明参数，列表非空、各保证 ID 唯一；省略 requires 与空映射等价。Independence 每组至少两个不同的 (parameter, guarantee) 成员，且每个成员均在对应 requires 列表内。各组对底层来源的独立性必须经 Owner 发布的描述符验证，不可由两个不同 Ref 的字面值推断。Script evaluator 的字段固定为 evaluator.type=script、evaluator.script 为 LocalScriptPath；CEL evaluator 固定为 type=cel 与 expression；混用两种字段拒绝。
 
