@@ -228,9 +228,9 @@ Precondition 和 Postcondition 只调用纯 Predicate，Operation 和 Observatio
 
 - **Tool：** 由 Owner 注册、实现并发布契约的外部能力单元，可由 HTTP Adapter、MCP、内建集成或其他受治理实现提供。Tool 是实现和契约发布单元，不是 Skill 授权身份。
 - **Tool Operation：** Tool 提供的精确外部可调用业务接口，作者通过 `operation.tool` 以 `Alias::ExportId` 引用；它声明唯一 ID、Effect、Input Schema、Output Schema，以及对 Mutation 可选的 `mutation.reconcile.recoverableOutputSchema/recoverableOutputPath` 恢复子对象定义。完整 Owner 调和回包仍由其独立 `outputSchema` 描述，不能按恢复子对象读取。它必须通过 CapabilityContracts 授权。
-- **作者引用与授权分层：** `operation.tool`、`observation.tool` 均是精确 callable 引用，必须先按依赖 Alias + 可信 Owner + kind/Effect/Schema 链接，再按 `contract.capabilities` 与部署授权检查成员、Scope 和 Effect。一个 Capability 可以覆盖多个 callable，**不能把 CapabilityId 当成这两个 `tool` 字段的值**。Reconcile 继续使用 `operation.reconcile` 对原 Mutation Node 的引用。
-- **Operation 阶段：** Node 的三种互斥形态是：（1）**普通 Tool Operation**，调用已链接的外部 callable，受 READ/MUTATION Effect、Capability Grant、Scope 和派发准入约束；（2）**Procedure Script Operation**，只执行 Skill 自有的无外部业务副作用计算，不是 Tool callable、无需 Capability；（3）**Reconcile Operation**，按 §12.7 引用原 Mutation，通过该 Mutation 发布的**独立 READ Tool callable**调和，仍须为调和 callable 本身取得 Capability Grant、执行 Scope/原调用证明/预算校验，不能继承原 Mutation 的授权。三者均占用 `operation` 阶段，但只第（2）种属于本地纯计算。
-- **Operation Result：** 普通 Tool Operation 与本地 Procedure Script 的规范化成功输出，以及 Reconcile 在已验证 `COMMITTED` 后按 `mutation.reconcile.recoverableOutputSchema/recoverableOutputPath` 提取、校验并可选暴露的**恢复业务子对象**。Reconcile 的完整 Owner 查询回包和 receipt 不是可绑定 Operation Result。所有实际可绑定结果保留其真实 Producer 身份及 Evidence 关联，不能伪装为 Observation Result（§12.7、G.2）。
+- **作者引用与授权分层：** `operation.tool`、`observation.tool` 均是精确 callable 引用，必须先按依赖 Alias + 可信 Owner + kind/Effect/Schema 链接，再按 `contract.capabilities` 与部署授权检查成员、Scope 和 Effect。一个 Capability 可以覆盖多个 callable，**不能把 CapabilityId 当成这两个 `tool` 字段的值**。原 Mutation 的 `mutation.reconcile` 仅存在于受信 Owner 发布物，不是作者 Procedure 语法。
+- **Operation 阶段：** Node 有两种互斥形态：（1）**普通 Tool Operation**，调用已链接的外部 callable，受 READ/MUTATION Effect、Capability Grant、Scope 和派发准入约束；（2）**Procedure Script Operation**，只执行 Skill 自有的无外部业务副作用计算，不是 Tool callable、无需 Capability。**原 Mutation 的 Reconcile 由 Host 公共执行边界在同一次操作结算期间执行**，不是第三种作者调用形态；其独立 READ callable 仍须独立 Capability Grant、Scope、证明及预算校验，不能继承原 Mutation 授权。
+- **Operation Result：** 普通 Tool Operation 和本地 Procedure Script 的规范化成功输出；原 Mutation 在 Host 确认已提交后，只有恢复子对象经 `mutation.reconcile.recoverableOutputSchema/recoverableOutputPath` 校验、且**可无损赋给原 Operation 输出契约及所需 Evidence**，才可作为该原 Mutation 的 `operation.output` 沿 SUCCEEDED 继续。单独 `COMMITTED` 仅证明已提交、**没有**可绑定的原成功输出；Reconcile READ 完整 Owner 回包和 receipt 永不成为作者可绑定 Result。所有输出保留实际 Owner/Producer 与 Evidence 来源（§12.7、G.2）。
 
 ### 6.6 Fact、Observation Query、Observation Result
 
@@ -292,7 +292,7 @@ Payload 是 Predicate 判断的业务值；Evidence 是 Host 判断该值是否�
 - **Predicate：** 纯、可重复、无副作用的确定性计算 / 判断函数，声明有序类型参数，使用 CEL 或受限 Python Script 实现，返回 PASS / FAIL / UNKNOWN。它由 Procedure 的 Precondition 或 Postcondition 阶段调用，不是独立 Procedure Node。
 - **Capability：** 部署侧授权分组和资源边界，不是 callable，也不是 Operation 别名。一个 Capability 可以包含多个 Operation 和 Observation Query。Skill 只声明 Capability Grant。
 - **Effect：** 初始支持 READ 和 MUTATION。READ 仍需要授权、Scope 和审计。
-- **Reconcile：** 对已经发起但结果不确定的原始 Mutation 进行调和。它是 Operation 的受约束执行模式，不是独立业务节点类型；必须针对原始身份、Operation Ref、Correlation 和 Scope，不得在未经声明及授权的情况下创建新 Mutation。
+- **Reconcile：** 受信 Tool Owner 发布的原 Mutation **提交结果确认能力**，由 Host 公共执行安全边界处理不确定结果；作者无需且不得创建 Reconcile/Resolve 专用阶段。每次查询必须绑定原调用身份、Scope 和 Correlation，不得发起新的业务 Mutation。LLM 与确定性 Procedure 调用相同的受控 Mutation Tool 接口并接收相同的规范化 Outcome；LLM 不直接调用专用 Reconcile READ、伪造证明或绕过 Host。
 
 ### 6.9.1 Evidence 互操作术语（说明性索引）
 
@@ -300,7 +300,7 @@ Payload 是 Predicate 判断的业务值；Evidence 是 Host 判断该值是否�
 - **可信绑定（Trusted Binding）：** 由获授权发布者和可信部署构建入口认证的 Package/Owner/导出/工件摘要及部署 Scope 对应关系，不由 Skill YAML、文件名或 Owner 自述建立权限。
 - **独立域关系（IndependentDomains）：** 受信装配的底层来源身份域及经授权、不自反且无重复的无序独立域对；它不表示“Owner 名字不同就独立”，也不推导传递性（§34.0.2、G.3.1）。
 - **共同事实绑定（Shared Fact Binding）：** 受信部署将多个 Owner 的 `factIdentity` 指向同一 namespace/fact，并验证参与 Owner、Scope 归一化、值 Schema 与发布者授权的关系（§G.3.1）。
-- **可恢复输出 Schema（Recoverable Output Schema）：** 原 Mutation 发布的 `mutation.reconcile.recoverableOutputSchema`，只在调和已证明 `COMMITTED` 且 `recoverableOutputPath` 子对象校验成功时用于 `reconcile-node.operation.output`；不同于 Reconcile READ callable 的完整 `outputSchema`（§12.7、G.2）。
+- **可恢复输出 Schema（Recoverable Output Schema）：** 原 Mutation 发布的 `mutation.reconcile.recoverableOutputSchema`，仅在 Host 已独立证明原调用 `COMMITTED`、`recoverableOutputPath` 子对象有效并可赋给原成功输出 Schema 时，可成为**原 Mutation Node** 的 `operation.output`。它不同于 Reconcile READ callable 的完整 `outputSchema`（§12.7、G.2）。
 
 这些术语为已有规范的导航，不创建额外字段或授予隐式授权。
 
@@ -424,7 +424,7 @@ spec:
 
 不得通过通用 observation.read 和任意字符串 selector 暴露任意内部数据。字段含义按附录 F.1 固定；Tool Owner、Compiler 和 Runtime 须以相应版本的导出和 Fixture 完成产品符合性验收。
 
-E.3 给出了带精确 Outcome 与 Evidence 描述符的独立 READ 样例。普通调用仅在 SUCCEEDED 边暴露成功输出。Reconcile 的路由和输出见 §12.7。
+E.3 给出了带精确 Outcome 与 Evidence 描述符的独立 READ 样例。普通调用仅在 SUCCEEDED 边暴露成功输出；Host 调和后只能按 §12.7/§20 归并为原 Mutation 的 SUCCEEDED/COMMITTED/NOT_COMMITTED/OUTCOME_UNKNOWN，不能创设独立作者阶段。
 
 ### 9.2.1 Mutation 发布契约
 
@@ -590,14 +590,12 @@ Precondition      = map(predicates: NonEmptyList<PredicateCall>,
                         routes?: OutcomeRoutes)
 Postcondition     = map(predicates: NonEmptyList<PredicateCall>,
                         routes?: OutcomeRoutes)
-Operation         = ToolOperation | ScriptOperation | ReconcileOperation
+Operation         = ToolOperation | ScriptOperation
 ToolOperation     = map(tool: QualifiedCallableId, arguments: map<Name, Expression>,
                         retryOf?: NodeId, routes?: OutcomeRoutes)
 ScriptOperation   = map(script: LocalScriptPath, arguments: map<Name, Expression>,
                         routes?: OutcomeRoutes)
 Observation       = map(tool: QualifiedQueryId, arguments: map<Name, Expression>,
-                        routes?: OutcomeRoutes)
-ReconcileOperation = map(reconcile: OriginalMutationNodeId,
                         routes?: OutcomeRoutes)
 QualifiedCallableId = Alias "::" ExportId
 QualifiedQueryId  = QualifiedCallableId  # resolves to an Observation export
@@ -610,7 +608,7 @@ TerminalStatus    = SUCCEEDED | FAILED | UNRESOLVED | SAFE_STOPPED
 
 **v1alpha4 阶段语法（Normative）。** 一个 Node 仍仅能有一项 `precondition` 与一项 `postcondition` 阶段声明。两者内部使用相同的非空有序 `predicates` 列表，**即使只有一个 Predicate 也必须写成列表**。每项 `PredicateCall` 恰有 `predicate` 和位置参数 `arguments`；禁止在阶段根使用旧版直接 `predicate/arguments`，也不得在 Postcondition 阶段根或任一调用项中定义 `goal`，或在单个列表项中定义 `routes`。Precondition/Postcondition 只拥有**一组阶段级** `PASS/FAIL/UNKNOWN` 路由；Postcondition 阶段或其成员均不得声明 `goal`。Contract 的 `goal` 是唯一业务目标；`contract.precondition` 是至多一个全局门禁阶段引用。这不是对 v1alpha3 旧作者源码的隐式转换或语法别名。列表为空、类型不符、成员缺字段或含未知字段报 `PREDICATE_GROUP_INVALID`，重复 Mapping Key 与非法 YAML 先报 `YAML_PARSE_ERROR`。成员中 Predicate 引用、参数位置/Schema、Evidence 错误仍按既有专用诊断逐成员检查（§13、§17、§24/H）。
 
-Node ID 与 `Identifier` 使用同一字符规则。Compiler 在解析 `start` 和路由前拒绝使用 `context` 或任一 `TerminalStatus` 精确拼写的 Node ID。`start` 必须引用真实 Node。Node 至少有一个阶段，各阶段最多声明一次。各阶段在自己的 `routes` 中按 Outcome 指定目标，允许键和必填键由 §12.1、§22 决定。省略 `routes` 与空映射等价，两者仅在该阶段的没有必须显式路由的非正常 Outcome 且后面还有阶段时合法。其他情况须写全 §22 要求的路由，缺键阻断构建。Reconcile 不接收 `arguments`。解析器拒绝未知字段和重复阶段，保留 YAML 标量的引号风格。
+Node ID 与 `Identifier` 使用同一字符规则。Compiler 在解析 `start` 和路由前拒绝使用 `context` 或任一 `TerminalStatus` 精确拼写的 Node ID。`start` 必须引用真实 Node。Node 至少有一个阶段，各阶段最多声明一次。各阶段在自己的 `routes` 中按 Outcome 指定目标，允许键和必填键由 §12.1、§22 决定。省略 `routes` 与空映射等价，两者仅在该阶段的没有必须显式路由的非正常 Outcome 且后面还有阶段时合法。其他情况须写全 §22 要求的路由，缺键阻断构建。**作者 Procedure 不接受 `operation.reconcile`、`operation.resolve` 或独立 Reconcile Node 调用形态；原 Mutation 的恢复能力只由受信 Owner `mutation.reconcile` 发布（§9.2.1、§12.7、§20），并由公共 Host 安全边界执行。**解析器拒绝未知字段和重复阶段，保留 YAML 标量的引号风格。
 
 本版仅有单一 Procedure 图，不定义 entryProcedure、嵌套 ProcedureCall、通用 call、隐式 Step 或同名自动绑定。完整 PredicateSet 文法、标识符、绝对 Schema URI 以及 ScalarLiteral 字符集见 G.1；合法 YAML 但违反 CA-SL 标识符文法的源码必须以 IDENTIFIER_INVALID 或 QUALIFIED_REFERENCE_INVALID 拒绝。
 Compiler 必须设置文档字节数、嵌套深度、Alias 展开规模的有限上限，并在超限时拒绝输入。
@@ -752,7 +750,7 @@ vNext 不允许直接把 Operation ID 放入 Capability 授权列表，不允许
 Procedure 是确定性的有向执行图。一个业务 Node 可包含以下阶段，按此顺序执行，省略未声明的阶段：
 
 1. `precondition` 按有序 `predicates` 列表逐条调用纯 Predicate，**全部 PASS** 时产生阶段正常 Outcome PASS。
-2. `operation` 调用 Tool、运行纯 Script 或调和原 Mutation。普通操作的正常 Outcome 为 SUCCEEDED，Reconcile 为 COMMITTED。
+2. `operation` 调用 Tool 或运行纯 Script；受信 Host 可在同一 Mutation Operation 派发后执行 Owner 发布的安全调和，不创建作者级 Reconcile 阶段。普通操作正常 Outcome 为 SUCCEEDED；确认已提交但缺少可复用成功输出时可产生 Runtime `COMMITTED` 分支（§20）。
 3. `observation` 调用只读查询，正常 Outcome 为 SUCCEEDED。
 4. `postcondition` 同样按有序 `predicates` 列表调用纯 Predicate，全部 PASS 时产生阶段正常 Outcome PASS；**其 `PASS` 直接路由 `SUCCEEDED` 时是本次 Invocation 的最终验收**，否则只是局部判断。
 
@@ -852,7 +850,7 @@ check-ue-registration:
 
 ### 12.3 Operation
 
-Operation 是 Node 内执行一次业务动作的阶段。外部调用使用 `operation.tool: Alias::ExportId`，这里的 `tool` **只引用 ToolCatalog 中精确的 Operation callable**（`kind: operation`），不是整个 ToolCatalog、网络地址、业务目标或 Capability Grant。Compiler 从受信依赖快照解析其 Owner、Effect、Input/Output Schema、Capability 成员和必要的 Reconcile 契约，Skill 不得声明或覆盖这些属性。本地确定性 Python 使用互斥的 `operation.script`（§32），而调和使用特殊的 `operation.reconcile` 原 Mutation Node 引用。三者**只能择一**，本版不支持 `target` 的旧作者语法别名。
+Operation 是 Node 内执行一次业务动作的阶段。外部调用使用 `operation.tool: Alias::ExportId`，这里的 `tool` **只引用 ToolCatalog 中精确的 Operation callable**（`kind: operation`），不是整个 ToolCatalog、网络地址、业务目标或 Capability Grant。Compiler 从受信依赖快照解析其 Owner、Effect、Input/Output Schema、Capability 成员和必要的 Reconcile 契约，Skill 不得声明或覆盖这些属性。本地确定性 Python 使用互斥的 `operation.script`（§32），而不再提供作者级调和调用形态。**作者只选择互斥的 `tool` 或 `script`**；外部 Mutation 不确定性由 Host 执行受信 Owner 发布的安全调和后归并为同一个 Operation 的 Outcome。不得使用 `operation.reconcile` / `resolve` 或 `target` 旧字段。
 
 ~~~yaml
 create-policy:
