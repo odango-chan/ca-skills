@@ -3,12 +3,12 @@
 **中文名称：** ConnectionAgent Skill 语言规范  
 **简称：** CA-SL  
 **目标版本：** `connectionagent.io/v1alpha4`（简称 v1alpha4；`vNext` 仅为资料性系列别名）  
-**状态：** C-CLASS REVIEW CANDIDATE — v1alpha4 UNIFIED VERSION PROFILE NOT YET RE-FROZEN（旧版 v1alpha4 冻结提交独立可追溯；产品/Owner NOT_QUALIFIED）  
+**状态：** FROZEN — LANGUAGE & EXPLICIT INTEROP PROFILE ONLY（v1alpha4 版本统一 C 类复审完成；ToolCatalog/CapabilityContracts 直接链接版本均 v1alpha4；产品/Owner NOT_QUALIFIED）  
 **规范所有者：** odango-chan/ca-skills  
 **适用对象：** Skill 作者、Skill Studio、Compiler、Agent Host / Runtime、Tool Owner、Schema Owner、语言服务及符合性评审机构  
 **更新日期：** 2026-11-15
 
-**文件效力。** 本文件是 CA-SL v1alpha4 的完整单文件规范，本轮为 **v1alpha4 跨协议版本统一的 C 类变更候选**；此前的 v1alpha4 语言冻结历史与 v1alpha3 原版保持可追溯，当前改动不能当作静默勘误。此候选未形成真实产品符合性承诺。旧版 v1alpha3 作者语法、ToolCatalog 和 CapabilityContracts 的历史发布物保持原版本，不再属于本版直接可链接的输入。
+**文件效力。** 本文件是 CA-SL v1alpha4 的完整单文件规范，本轮已经按 **v1alpha4 跨协议版本统一的 C 类变更**独立复审并重新冻结；此前的 v1alpha4 语言冻结历史与 v1alpha3 原版保持可追溯，当前改动不能当作静默勘误。此候选未形成真实产品符合性承诺。旧版 v1alpha3 作者语法、ToolCatalog 和 CapabilityContracts 的历史发布物保持原版本，不再属于本版直接可链接的输入。
 
 **规范性用语。** MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT、MAY、OPTIONAL 按 RFC 2119 和 RFC 8174 解释。相应中文规范性措辞包括“必须”“不得”“应当”“不建议”“可以”。
 
@@ -2483,7 +2483,7 @@ v1alpha4 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 Observatio
 
 **实施与证据边界：** 一切实际受信 ToolCatalog/CapabilityContracts 发布物必须以其**真实版本字段和真实身份**通过链接检查，不能通过给旧内容字符串替换为 v1alpha4 就声称 Owner、部署、Compiler、Studio、Host 已符合。本规范的 F.1/F.2 冻结**候选接口语义**，仍需独立发布者正式供给实际 v1alpha4 材料及 §45.2 测试证明；在此之前全部产品/Owner 为 `NOT_QUALIFIED`，缺失 v1alpha4 发布物时必须拒绝。未来独立 BuildRequest/Trace/Evidence Descriptor 物理协议没有在本语言中被虚构出 v1alpha4 的 `apiVersion`；它们仍按独立契约版本校验其受信材料。
 
-**冻结前一致性检查：** 所有本文件的 ToolCatalog/CapabilityContracts 规范示例及 F.1/F.2 的 apiVersion 均与 F.0 一致；§20.2 的 retryOf、§22.1 的路由键条件、§17 Evidence、E01–E120 预期和附录 H 的诊断身份未因版本统一而放宽。产品/Owner 的机器验收与真实 5GC 执行不纳入本语言版本文字冻结声明。
+**C 类重新冻结的文本一致性检查：** 所有本文件的 ToolCatalog/CapabilityContracts 规范示例及 F.1/F.2 的 apiVersion 均与 F.0 一致；§20.2 的 retryOf、§22.1 的路由键条件、§17 Evidence、E01–E120 预期和附录 H 的诊断身份未因版本统一而放宽。产品/Owner 的机器验收与真实 5GC 执行不纳入本语言版本文字冻结声明。
 
 ### 45.2 未完成的实现符合性门槛
 
@@ -3343,9 +3343,9 @@ predicates:
 
 # 附录 F：继承自 v1alpha3 的互操作与类型剖面（v1alpha4 FROZEN）
 
-**Normative、v1alpha4 C 类版本统一候选（产品/Owner NOT_QUALIFIED）。** §9、§17、§34 的逻辑互操作安全下限仍可参考历史 v1alpha3，但本版**直接接受的版本标识统一为 v1alpha4**：CA-SL、ToolCatalog 和 CapabilityContracts 均使用其命名空间下的 v1alpha4，不再以旧版 ToolCatalog/CapabilityContracts v1alpha3 作为本版可直接链接输入。字段结构并未仅因修改 apiVersion 就获得真实 Owner 互操作保证。版本组合和准入以 F.0 为权威；BuildRequest/Trace 的外部物理版本仍由各自契约声明，不得凭语言版本猜测。
+**Normative、FROZEN（v1alpha4 C 类版本统一后；产品/Owner NOT_QUALIFIED）。** §9、§17、§34 的逻辑互操作安全下限仍可参考历史 v1alpha3，但本版**直接接受的版本标识统一为 v1alpha4**：CA-SL、ToolCatalog 和 CapabilityContracts 均使用其命名空间下的 v1alpha4，不再以旧版 ToolCatalog/CapabilityContracts v1alpha3 作为本版可直接链接输入。字段结构并未仅因修改 apiVersion 就获得真实 Owner 互操作保证。新的 v1alpha4 版本组合是**规范目标，不是已经存在的真实发布物清单**。版本组合和准入以 F.0 为权威；BuildRequest/Trace 的外部物理版本仍由各自契约声明，不得凭语言版本猜测。
 
-## F.0 v1alpha4 统一版本标识与外部发布物准入（C 类审议，Normative 候选）
+## F.0 v1alpha4 统一版本标识与外部发布物准入（C 类复审已闭合，Normative）
 
 本版直接使用的**三个显式 apiVersion 均为 v1alpha4**，不再维持“语言 v1alpha4 + ToolCatalog/CapabilityContracts v1alpha3”的混合组合。旧版历史文件与提交不予改写，但**本版当前链接契约不设 v1alpha3 fallback、隐式转换、自动探测或版本协商**。
 
@@ -3357,7 +3357,7 @@ predicates:
 | Request/Host/Owner Schema | JSON Schema Draft 2020-12 + G.4 白名单；`$schema` 精确匹配 | G.4、G.6、F.5 |
 | Evidence Descriptor、独立性域、BuildRequest/DependencySnapshot、Runtime Trace/Artifact | 本语言规范**未发明这些物理协议的 v1alpha4 apiVersion**；只接受其各自受信、明确版本化的发布材料与本文件的抽象语义约束 | F.3/F.4、G.3、§12.8、§34、§45.2 |
 
-**版本校验（Normative 候选）：** 对已定义的三个 apiVersion，必须精确匹配上述值。旧 `/v1alpha3`、未知 `/vX`、缺版本或同名异版本发布物一律不得在本版**直接**链接；不能因为字段名、摘要格式或 LLM 文字相似就绕过。未来要消费其他版本，应另行明确升级该外部契约和本语言的显式受信互操作规则，不得默许兼容。这里改变的是受信发布物的**规范性版本匹配集合**，因此属 C 类破坏性调整，不可伪装为 A/B 勘误。
+**版本校验（Normative）：** 对已定义的三个 apiVersion，必须精确匹配上述值。旧 `/v1alpha3`、未知 `/vX`、缺版本或同名异版本发布物一律不得在本版**直接**链接；不能因为字段名、摘要格式或 LLM 文字相似就绕过。未来要消费其他版本，应另行明确升级该外部契约和本语言的显式受信互操作规则，不得默许兼容。这里改变的是受信发布物的**规范性版本匹配集合**，因此属 C 类破坏性调整，已经按 §45.1.3 重新冻结，不可伪装为 A/B 勘误。
 
 **产品现实边界：** 仅把示例与规范写成 v1alpha4 **不代表已有真实 ToolCatalog/CapabilityContracts v1alpha4 发布物**。Compiler、Studio、Host、Owner 和部署在取得受信的 v1alpha4 实际契约及 §45.2 机器符合性结果之前均为 `NOT_QUALIFIED`，缺发布物时 fail-closed。历史 v1alpha3 发布物继续归原版本管理，不自动升级或篡改身份。
 
