@@ -12,7 +12,7 @@
 
 **规范性用语。** MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT、MAY、OPTIONAL 按 RFC 2119 和 RFC 8174 解释。相应中文规范性措辞包括“必须”“不得”“应当”“不建议”“可以”。
 
-**v1alpha4 单文件冻结审查摘要（2026-11-15）。** 基于已冻结 v1alpha3 完整规范，集中恢复 Precondition 与 Postcondition 阶段中多个 Predicate 的统一表达：**阶段名保持 `precondition` / `postcondition` 单数；阶段内部无论一条或多条均使用 `predicates` 非空列表。** Contract 改为可选的 `precondition: <node>.precondition` 单一引用，唯一 `goal` 保留在 Contract；Postcondition 不再声明 `goal`，最终证明通过阶段聚合 `PASS: SUCCEEDED` 建立。E01–E120 的**规范预期已冻结**但机器 Fixture/CI 尚未实施完成；本版语言 FROZEN，产品 NOT QUALIFIED。
+**v1alpha4 单文件冻结复审摘要（2026-11-15）。** 本版在 v1alpha3 独立冻结基线之上，以单数 `precondition` / `postcondition` 阶段和阶段内非空有序 `predicates` 列表统一多 Predicate；Contract 仍以单个 `goal` 和可选单数 `precondition: <node>.precondition` 表达目标与全局门禁；最终成功只接受 Postcondition 聚合 PASS 直达 SUCCEEDED。**复审另外关闭 G.1 标量词法、单路径 DAG 执行、E11/E18 错误优先级和 DUPLICATE_ID 内部不变量四个阻塞项**，并作出显式 C 类架构裁决：**不再暴露作者级 `operation.reconcile` / `resolve`**，Owner 仍发布 `mutation.reconcile`，Host 公共 Tool 安全边界统一处理 LLM/确定性执行的结果确认；业务重试显式 `retryOf`，默认 0、每原始 Mutation 家族最多 1 次新派发。E01–E120 为更新后本版规范预期，机器 Fixture/产品符合性仍 NOT_QUALIFIED；正式冻结发布对象以 §45.1.1 所载的本次复审合并提交为准。
 
 **评审导航：** §0 确定效力与范围；§9–§14 检查 Owner 契约、DAG、SourcePath 和数据绑定；§17–§24 检查 Evidence、Reconcile、路由与诊断；§32–§45 检查 Script、可信依赖及产品门槛；**附录 E** 含全部 E01–E120 预期，**F/G** 为规范性互操作和 Schema/CEL 规则，**H** 为统一诊断索引；**I/J/K** 分别是作者指南、最终裁决与待实施验收材料（资料性）。所有内容均在当前文件中。
 
@@ -60,7 +60,7 @@ CA-SL v1alpha4 的作者源码语法、静态语义、运行语义、附录 F/G 
 | **Root Routing 产品符合性** | 独立版本化的 Eligibility / `Applicability` 选择协议及 Host 歧义拒绝验收，须写明对应版本和范围 | §12.8 仅冻结拒绝歧义原则，不提供完整选择算法 |
 | **集成/真实 5GC E2E 符合性** | 上述实际适用层已获可信证据，§45.2 第 6 项真实 5GC 36 Case 与相关 Owner 验证；记录失败和遗漏 | 单独编译通过、规范文本冻结、未执行的 E/DFX 不构成 E2E PASS |
 
-**声明规则：** 在报告中按实际执行层分别注明 `claimScope`、规范提交、所用外部协议版本、确切 Fixture/测试套件版本、已执行变体、失败/未覆盖、原始结果与发布者授权；未覆盖的层写 `NOT_TESTED` 或 `NOT_QUALIFIED`。其中 `claimScope` 等名称只描述附录 K 的**资料性报告视图**，不是本语言新增的线协议字段。E01–E114 为继承的已冻结预期，E115–E120 是本版新增且已冻结的预期，完整 E 列表和 H 的诊断集合均**不意味着已存在可执行套件**；套件的具体版本、覆盖率与执行证据须单独登记（§45.2、K.4）。
+**声明规则：** 在报告中按实际执行层分别注明 `claimScope`、规范提交、所用外部协议版本、确切 Fixture/测试套件版本、已执行变体、失败/未覆盖、原始结果与发布者授权；未覆盖的层写 `NOT_TESTED` 或 `NOT_QUALIFIED`。其中 `claimScope` 等名称只描述附录 K 的**资料性报告视图**，不是本语言新增的线协议字段。E01–E114 的**用例编号**从旧版继承，其中涉及恢复/路由/成功优先级的预期已按本次 v1alpha4 **明确 C 类复审**更新，不再声称与 v1alpha3 的旧语义相同；E115–E120 是本版新增预期。完整 E 列表和 H 的诊断集合均**不意味着已存在可执行套件**；套件的具体版本、覆盖率与执行证据须单独登记（§45.2、K.4）。
 
 **规范文件完整性。** 附录 E（测试预期）、F（互操作字段）、G（闭合性补充）、H（诊断索引），以及 §30–§45 均属于**本文件的组成部分**；第十一部分 §46–§91 为资料性技术问答/设计说明。附录 I/J/K 已收编原先另行维护的作者指南、决策追踪、勘误裁决及测试/报告辅助材料，全部为 Informative；它们不增加字段或放宽 Normative 条款。本版唯一中文冻结文本为 `docs/skill-language-spec.v1alpha4.zh-CN.md`；全文评审只依据其**同一受审/发布提交**，无需跨文件拼合；仅摘取 §0–§29 或截断 CEL 片段不能替代全文符合性评审。
 
@@ -2401,7 +2401,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 
 ### 45.1 v1alpha4 C 类变更评审边界
 
-本版继承 v1alpha3 中仍适用的 SourcePath、Evidence、Capability、Reconcile 与 DAG 安全约束；**全局门禁、Goal 证明及最终成功路由则以 v1alpha4 本版规则为准**，不得错误地沿用 v1alpha3 的证明传播模型。**v1alpha4 的 C 类改变涵盖单数 `contract.precondition`、Pre/Postcondition 的 `predicates` 列表、移除 Node 级 `goal` 与成功直接由最终 Postcondition PASS 路由证明**；这不改写 v1alpha3 既有合法输入与结果。本版的 §45.1 C 类语言设计评审与 E115–E120 规范预期审查已经纳入冻结裁决；机器执行属于 §45.2 的独立产品门槛。
+本版仅继承 v1alpha3 中**仍一致且未被本版明确改变**的 SourcePath、Evidence、Capability、Owner/Scope 与责任安全下限；v1alpha4 的作者源码和静态/运行结论完全以**本文件**为准，不把 v1alpha3 的跨 Node Goal 传播或作者 Reconcile 节点默许为兼容语法。**v1alpha4 的 C 类改变**包括：单数 Contract 全局 `precondition`、Pre/Postcondition 非空 `predicates` 列表、移除 Node 级 `goal` 和最终 Postcondition PASS 直达成功；G.1 词法闭合、单路径 DAG 执行、明确错误优先级；将作者级 Reconcile 改为受信 Owner + 共享 Host 安全结算、原 Mutation 合成 COMMITTED / 完整恢复的 SUCCEEDED、真实 Evidence Producer 双路径校验；重试显式 `retryOf` 且默认 0、最多 1 次。**这里是 v1alpha4 的重新开放、复审与重新冻结裁决，不追溯修改已经冻结的 v1alpha3，也不是把 C 类改变假称 A/B 勘误。**产品实现与机器执行属于 §45.2 独立门槛。
 
 本 v1alpha4 语言已冻结的判定依据：§10–14 的唯一源码结构与闭合语法；§12.9、§17、§20、§22 的路径敏感证明与 fail-closed 规则；§F.1–F.6 / §G.1–G.9 的精确字段、Receipt/Proof/SourceIdentity、Schema-CEL 和责任模型，附录 H 的诊断索引；E01–E120 的规范预期及负例。无法静态证明兼容的 Schema / Owner 导出必须拒绝链接，不能靠样例值、运行时回退或 Studio 自动猜测。v0.2 是既有可执行基线，编译器不得静默迁移到本版。
 
@@ -2417,15 +2417,26 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 
 每项修订均须注明版本、分类、受影响条款、受影响诊断与 E 用例、静态一致性检查以及尚未完成的 §45.2 产品门槛。无法证明属于 A/B 的改动一律按 C 升版评审。已冻结规范的技术文本仍是唯一 Normative 来源，历史勘误记录用于审计，不能单独发明新字段或授予权限。
 
-### 45.1.1 v1alpha4 语言冻结裁决（2026-11-15）
+### 45.1.1 v1alpha4 语言冻结复审裁决（2026-11-15）
 
-**决定：CA-SL v1alpha4 = FROZEN（语言层）；Compiler、Studio/LSP、Host/Runtime、Tool/Schema Owner、Deployment 和真实 5GC 的实现符合性 = NOT QUALIFIED。** 本裁决仅冻结本文件标为 Normative 的作者语法、静态及运行语义、E01–E120 的明确预期、F/G 的抽象互操作规则、H 的诊断身份与分类。I/J/K 的实现跟踪仍为 Informative。v1alpha3 的冻结版本以及外部 ToolCatalog/CapabilityContracts/BuildRequest/Artifact/Trace 物理契约不受本裁决替代或自动升版。
+**决定：对 PR #44 曾作出的 v1alpha4 早期 FROZEN 裁决予以明确撤回并重新进行 C 类设计复审；本次复审封闭后发布的 v1alpha4 单文件为新唯一 Normative 基线。** 原 v1alpha3 保持独立 FROZEN，不受该次纠正影响。Compiler、Studio/LSP、Host/Runtime、Tool/Schema Owner、Deployment 和真实 5GC **均 NOT QUALIFIED**，不得从语言冻结推断任何产品 PASS。
 
-**评审来源与可追踪发布对象。** PR #42 完成 Pre/Postcondition 对称多 Predicate 设计；PR #43 统一单数 Contract 门禁、唯一 Contract Goal、最终 Postcondition 直达成功和 `operation/observation.tool`，冻结修订之前的 main 基线为 `5236d563f3ec66c77c22e75a325884fdc860072e`。正式冻结对象是**包含本裁决且合并到 main 的 `docs/skill-language-spec.v1alpha4.zh-CN.md` 文件所在不可变提交**，对外报告必须明确引用该提交，不能仅指向浮动分支或此前的草案提交。
+**裁决与审计轨迹：** PR #42 完成对称多 Predicate 设计；PR #43 统一 Contract 单数门禁、最终成功边和 `operation/observation.tool`；PR #44 的最早 v1alpha4 冻结提交为 `69c840884c7ca94a8d669710f215f6e424bcdca9`，其后的正式评审确认词法、执行汇聚、诊断分派和防御诊断存在语言层未闭合项。当前修订并未把这些 C 类差异伪装成 B 类勘误：**撤回该早期冻结裁决，标记 FROZEN CANDIDATE，重新打开 v1alpha4 审查**；本文件合并后，**重新冻结的规范发布身份只能是本次复审修订合并到 main 后的不可变提交**，不能用 #44 的旧提交或浮动 main 代替。
 
-**语言审查结论。** 已检查 Contract/Procedure/PredicateSet 单一入口、单数全局 Precondition、Pre/Postcondition `predicates` 非空有序列表及三态聚合、唯一的最终 Postcondition PASS→SUCCEEDED 边、§22.1 路由矩阵、Tool callable/Capability Grant/Effect 的分离、受信 Schema/SourcePath/Evidence/Scope、Mutation/Reconcile 与责任终态、附录 E/G.9 预期及 H 诊断索引。文本层面无保留的语言语义 P0/P1；后续发现新的语义差异应按本节 A/B/C 变更控制处理，不得在已冻结版本中静默修正。
+| 评审阻塞或重要裁决 | 本次 Normative 闭合 | 可逐项核对的预期 |
+|---|---|---|
+| G.1 未定义完整 ScalarLiteral | 精确限定 YAML 1.2 单/双引号、裸小写 bool/null、int64 整数、有限 binary64 十进制；拒绝前导零/+号/非十进制/无穷及未支持标量 | G.1、K.2.1 LEX-001 |
+| DAG 汇聚执行次数/Producer 身份 | 每个 Invocation 串行单路径、同一 (NodeId,Stage) 至多一次；多入边 AND 仅为 Compiler 全路径证明，不构成多路 Runtime Join | §12.9、E51、E120 |
+| 成功边诊断 E11/E18 冲突 | 无任何可达合法最终 Postcondition PASS→SUCCEEDED 时优先 FINAL_POSTCONDITION_MISSING；有合法最终边而同时出现非法边才报 SUCCESS_BYPASSES_FINAL_POSTCONDITION | §12.9/§24.1、E11、E18、E42、E64、E100 |
+| DUPLICATE_ID 作者源码不可表达 | H 精确定位为内部 IR 不变量诊断；重复 YAML Mapping Key 仍是 YAML_PARSE_ERROR，跨角色同名不创造隐式共享命名空间 | §24.1、H、DFX-003 |
+| E10 多预期不可独立验收 | 在单一 E10 编号下明确 E10a=SOURCE_NOT_AVAILABLE、E10b=RECONCILE_OUTPUT_UNAVAILABLE，两者分别需要 Fixture/原始结果 | E.5、E.7、§13.3 |
+| Reconcile 与 Retry 的 Agent 执行边界 | 作者不再声明 `operation.reconcile`/`resolve`；Owner 发布 `mutation.reconcile`，共享 Host 对结果未决的原调用按安全前提恰好一次内部 READ 确认，不自动重发业务 Mutation；LLM/Procedure 相同安全下限 | §6.9、§12.7、§20、G.2、E17/E59–E63/E77/E86/E107–E109 |
+| 恢复业务结果的可信性 | 已确认 COMMITTED 但无承诺普通输出，原 Mutation 为 COMMITTED、无 `operation.output`；完整可赋值且保证可认证的恢复才可归并原 Mutation SUCCEEDED，保留真实 READ Producer/Evidence 身份 | §12.7、§13.3、§17、§20、G.2、E10/E17/E108 |
+| 受控 Retry 次数与 LLM 共用下限 | 不声明 `retryOf` 不重试；显式授权在证明 NOT_COMMITTED + 无残留副作用后最多一次新业务派发，不能 retry-of-retry；同一原调用家族凭证原子消费，所有 Action 计预算 | §11.6、§20.2、E82/E85/E92、DFX-039 |
 
-**产品证据保留。** E01–E120 是规范预期而不是 120 项已运行机器 Fixture；附录 K 的 `NOT_IMPLEMENTED`、`NOT_TESTED`、诊断 Fixture 缺口及 Root Routing/外部物理协议未交付均保留。语言冻结只证明本次审查的文本规则闭合；Compiler Native/WASM、Studio/LSP、Runtime/Host、Owner、真实 5GC 仍须分别通过 §45.2 的适用门槛并提交不可变原始结果，不能由本裁决推断 PASS。
+**重新冻结边界。** CA-SL 只冻结本文抽象的作者语法、静态/运行安全语义、E01–E120 的**本版**明确预期、F/G 互操作抽象以及 H 的诊断身份/类别。外部 Host/Tool API 的物理 Retry 意图字段、ToolCatalog / CapabilityContracts 具体独立协议版本、Root Routing 全量选择协议和 Artifact/Trace framing **不属于本次语言发布**；缺少这些材料时实际产品只能 fail-closed，不能把规范性安全条件当作产品实现证明。
+
+**文本复核与产品边界。** 本轮仅进行规范文本/示例/诊断索引的结构、引用与预期一致性审查；E01–E120、DFX-001–041、LEX-001 的实际 Compiler Native/WASM、Studio/LSP、Host/Runtime、Owner/5GC 机器执行均不能仅据本次文档检查记为 PASS。附录 K 保留 `NOT_IMPLEMENTED` / `NOT_TESTED`，§45.2 八项产品门槛未因文本冻结而完成。
 
 ### 45.2 未完成的实现符合性门槛
 
