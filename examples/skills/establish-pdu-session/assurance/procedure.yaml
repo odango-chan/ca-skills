@@ -10,6 +10,12 @@ nodes:
             - context.request.requestType
             - context.request.requestedPduSessionType
             - context.request.requestedSscMode
+        - predicate: establishment.ingress.eligible
+          arguments:
+            - context.ingress
+        - predicate: establishment.lifecycle.ready
+          arguments:
+            - context.lifecycle
       routes:
         PASS: read-udm
         FAIL: FAILED
@@ -84,10 +90,18 @@ nodes:
         lifecycleRef: context.correlation.lifecycleRef
         waiterRef: bind-udm-hold.operation.output.holdRef
       routes:
-        SUCCEEDED: bind-pcf-hold
-        FAILED: SAFE_STOPPED
+        FAILED: finalize-failed
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
+    postcondition:
+      predicates:
+        - predicate: establishment.udm.subscription_owned
+          arguments:
+            - subscribe-udm.operation.output
+      routes:
+        PASS: bind-pcf-hold
+        FAIL: finalize-failed
+        UNKNOWN: SAFE_STOPPED
   bind-pcf-hold:
     operation:
       tool: ca::ca.session.pcf_hold.bind
@@ -97,10 +111,19 @@ nodes:
         ingressRef: context.correlation.ingressRef
         lifecycleRef: context.correlation.lifecycleRef
       routes:
-        SUCCEEDED: read-pcf-inputs
-        FAILED: SAFE_STOPPED
-        UNKNOWN: UNRESOLVED
+        FAILED: finalize-failed
+        UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
+    postcondition:
+      predicates:
+        - predicate: establishment.pcf.hold_bound
+          arguments:
+            - bind-pcf-hold.operation.output
+            - context.correlation.lifecycleRef
+      routes:
+        PASS: read-pcf-inputs
+        FAIL: finalize-failed
+        UNKNOWN: SAFE_STOPPED
   read-pcf-inputs:
     operation:
       tool: ca::ca.session.pcf_create_inputs.read
@@ -114,10 +137,19 @@ nodes:
         fabricHoldRef: bind-pcf-hold.operation.output.holdRef
         selection: select-establishment-configuration.operation.output
       routes:
-        SUCCEEDED: build-pcf-policy-inputs
-        FAILED: SAFE_STOPPED
-        UNKNOWN: UNRESOLVED
+        FAILED: finalize-failed
+        UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
+    postcondition:
+      predicates:
+        - predicate: establishment.pcf.create_inputs.ready
+          arguments:
+            - read-pcf-inputs.operation.output
+            - bind-pcf-hold.operation.output
+      routes:
+        PASS: build-pcf-policy-inputs
+        FAIL: finalize-failed
+        UNKNOWN: SAFE_STOPPED
   build-pcf-policy-inputs:
     operation:
       script: scripts/build-pcf-policy-inputs.py
@@ -154,18 +186,42 @@ nodes:
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
-    # No Skill-level wait: the future published Owner MUST guarantee that
-    # this SUCCEEDED output includes completed initial-N4 state and Evidence.
-    # The existing legacy PCF create callable does not establish that contract.
+    # PCF policy association is NOT N4 establishment. Do not infer an N4
+    # completion state from the SBI create reply or its waiter/hold reference.
+    postcondition:
+      predicates:
+        - predicate: establishment.pcf.association_owned
+          arguments:
+            - create-pcf.operation.output
+            - read-pcf-inputs.operation.output
+      routes:
+        PASS: create-initial-n4
+        FAIL: finalize-failed
+        UNKNOWN: SAFE_STOPPED
+  create-initial-n4:
+    # §21 target design only: real UPN Owner/Schema/Evidence MUST be published.
+    # Completes the actual N4 CREATE operation internally; no Skill wait loop.
+    operation:
+      tool: upn::UPN.CREATE_UP_SESSION
+      arguments:
+        ueRef: context.ueRef
+        pduSessionId: context.request.pduSessionId
+        lifecycleRef: context.correlation.lifecycleRef
+        policyAssociationRef: read-pcf-inputs.operation.output.pcfPolicyAssociationRef
+        policyResultRef: create-pcf.operation.output.policyResultRef
+      routes:
+        FAILED: finalize-failed
+        OUTCOME_UNKNOWN: SAFE_STOPPED
+        DENIED: SAFE_STOPPED
     postcondition:
       predicates:
         - predicate: establishment.n4.initial_resources_ready
           arguments:
-            - create-pcf.operation.output
+            - create-initial-n4.operation.output
       routes:
         PASS: read-operation-context
-        FAIL: SAFE_STOPPED
-        UNKNOWN: UNRESOLVED
+        FAIL: finalize-failed
+        UNKNOWN: SAFE_STOPPED
   read-operation-context:
     operation:
       tool: ca::ca.session.operation_context.read
@@ -180,10 +236,19 @@ nodes:
         policyResultRef: create-pcf.operation.output.policyResultRef
         purpose: "nas-and-n2-delivery"
       routes:
-        SUCCEEDED: prepare-response
-        FAILED: SAFE_STOPPED
-        UNKNOWN: UNRESOLVED
+        FAILED: finalize-failed
+        UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
+    postcondition:
+      predicates:
+        - predicate: establishment.delivery_context.ready
+          arguments:
+            - read-operation-context.operation.output
+            - context.correlation.lifecycleRef
+      routes:
+        PASS: prepare-response
+        FAIL: finalize-failed
+        UNKNOWN: SAFE_STOPPED
   prepare-response:
     operation:
       tool: ca::ca.session.establishment_response.prepare
@@ -250,21 +315,65 @@ nodes:
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
-    # RAN adoption and N4 forwarding convergence belong to the asynchronous
-    # Tool/Owner operation, NOT a Skill wait/poll loop. Old AMF transfer output
-    # is insufficient without an updated published Owner completion contract.
+    # AMF N1N2 delivery only proves transfer initiation, never RAN adoption.
+    postcondition:
+      predicates:
+        - predicate: establishment.amf.transfer_initiated
+          arguments:
+            - transfer-n1n2.operation.output
+      routes:
+        PASS: signal-ran
+        FAIL: finalize-failed
+        UNKNOWN: SAFE_STOPPED
+  signal-ran:
+    # §21 SSM Owner executes RAN signaling/adoption to completion.
+    operation:
+      tool: ssm::SSM.SIGNAL_UE_AN
+      arguments:
+        ueRef: context.ueRef
+        pduSessionId: context.request.pduSessionId
+        pti: context.request.pti
+        ingressRef: context.correlation.ingressRef
+        lifecycleRef: context.correlation.lifecycleRef
+        operationContextRef: read-operation-context.operation.output.contextRef
+        transferOperationRef: transfer-n1n2.operation.output.operationRef
+        initialN4Result: create-initial-n4.operation.output
+      routes:
+        FAILED: finalize-failed
+        OUTCOME_UNKNOWN: SAFE_STOPPED
+        DENIED: SAFE_STOPPED
     postcondition:
       predicates:
         - predicate: establishment.ran.adopted
           arguments:
-            - transfer-n1n2.operation.output
+            - signal-ran.operation.output
+      routes:
+        PASS: modify-forwarding
+        FAIL: finalize-failed
+        UNKNOWN: SAFE_STOPPED
+  modify-forwarding:
+    # §21 UPN Owner executes N4 forwarding mutation to completion.
+    operation:
+      tool: upn::UPN.MODIFY_UP_SESSION
+      arguments:
+        ueRef: context.ueRef
+        pduSessionId: context.request.pduSessionId
+        lifecycleRef: context.correlation.lifecycleRef
+        initialN4Result: create-initial-n4.operation.output
+        ranResult: signal-ran.operation.output
+      routes:
+        FAILED: finalize-failed
+        OUTCOME_UNKNOWN: SAFE_STOPPED
+        DENIED: SAFE_STOPPED
+    postcondition:
+      predicates:
         - predicate: establishment.n4.forwarding_ready
           arguments:
-            - transfer-n1n2.operation.output
+            - modify-forwarding.operation.output
       routes:
         PASS: transfer-responsibility
-        FAIL: SAFE_STOPPED
-        UNKNOWN: UNRESOLVED
+        FAIL: finalize-failed
+        UNKNOWN: SAFE_STOPPED
   transfer-responsibility:
     operation:
       tool: ca::ca.session.resource_responsibility.transfer
@@ -276,15 +385,32 @@ nodes:
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
+  finalize-failed:
+    # Only reached from definitive business FAIL/FAILED with a confirmed
+    # original Mutation outcome. OUTCOME_UNKNOWN must directly SAFE_STOP.
+    # Requires separately trusted responsibility-Owner/Scope grant.
+    operation:
+      tool: ca::ca.session.resource_responsibility.transfer
+      arguments:
+        lifecycleRef: context.correlation.lifecycleRef
+        disposition: "failed"
+      routes:
+        SUCCEEDED: FAILED
+        FAILED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
+        DENIED: SAFE_STOPPED
   verify-final:
     postcondition:
       predicates:
         - predicate: establishment.ran.adopted
           arguments:
-            - transfer-n1n2.operation.output
+            - signal-ran.operation.output
         - predicate: establishment.n4.forwarding_ready
           arguments:
-            - transfer-n1n2.operation.output
+            - modify-forwarding.operation.output
+        - predicate: establishment.n4.initial_resources_ready
+          arguments:
+            - create-initial-n4.operation.output
         - predicate: establishment.resources.managed
           arguments:
             - transfer-responsibility.operation.output
