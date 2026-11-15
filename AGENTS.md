@@ -9,7 +9,7 @@
 
 ## Source scope
 
-- Current syntax examples: `skills/establish-pdu-session/` and `skills/establish-pdu-session-mas/`.
+- The present 5GC packages `skills/establish-pdu-session/` and `skills/establish-pdu-session-mas/` are legacy v0.2/v1alpha1 behavioral/source examples, NOT v1alpha4 author syntax authority.
 - Other historical Skill directories remain outside this refresh and must not be treated as current syntax authority.
 - Preserve current business Procedure and Operation identities unless an explicit business-owner decision changes them.
 - The MAS Skill's 16 `ca.pdu_session.*` Operation references remain unresolved. Do not invent or approve a ToolCatalog.
@@ -17,20 +17,19 @@
 ## Language contracts
 
 Read before editing:
-1. `docs/skill-language-spec.md`
-2. `docs/script-contract.md`
+1. `docs/skill-language-spec.v1alpha4.zh-CN.md` (the current frozen v1alpha4 normative text)
+2. `docs/script-contract.md` (legacy v0 source companion; cannot override v1alpha4)
 3. `docs/schema-ownership.md`
 4. `docs/authoring-model.md`
 5. `docs/current-5gc-skill-baseline.md`
-6. `language/semantic-tokens.v1.json`
+6. `language/semantic-tokens.v1.json` (legacy v0.2 selectors, not v1alpha4 syntax)
 
 Key rules:
-- Procedure `call` is a scalar exact Operation ID. No dependency/operation wrapper.
-- Main node intents: `call`, `script`, `procedure`, `verify`, `reconcile`, `terminal`.
-- Preconditions/postconditions steps: `call`, `script`, `verify`.
-- Script identity is Skill + relative file path. No `connectionagent-tool` metadata and no independent local Tool ID.
-- Script signature is `main(input: dict) -> NonEmptyOutputTypedDict`; inputs derive from Procedure `with` or Predicate Evaluation Context; output Schema is generated.
-- External Producer Schemas come from real Owner files. `requiredFacts` is not a Schema. Missing Owner files remain explicit blockers.
+- Current v1alpha4 Node stages are `precondition`, `operation`, `observation`, `postcondition`; Pre/Post stages have one nonempty ordered `predicates` list each.
+- Contract has one `goal` and may declare a **singular** `precondition: <node-id>.precondition`. Do NOT author Contract `preconditions`/`postconditions` or a `postcondition.goal` field.
+- Exact external callable references use `operation.tool` / `observation.tool`; author `operation.reconcile` / `resolve` is forbidden. Trusted Owner `mutation.reconcile` belongs to the common Host safety boundary.
+- Only a final Postcondition aggregate `PASS` routed directly to `SUCCEEDED` proves the Goal; PASS is not carried across Nodes.
+- Source Schemas, Evidence and v1alpha4 ToolCatalog/CapabilityContracts require trusted Owner publications. Missing sources are blockers; a legacy `call`/`with` Script or Owner metadata snapshot cannot be silently relabeled as v1alpha4.
 - Cases are source obligations only. Do not add a Qualification engine or claim Case execution.
 
 ## Validation

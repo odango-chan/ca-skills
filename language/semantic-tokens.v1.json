@@ -3,10 +3,11 @@
   "schemaVersion": 1,
   "version": "0.2.0",
   "status": "current",
+  "languageCompatibility": "legacy-v0.2-only; status=current means available for legacy coloring, NOT v1alpha4 grammar compatibility",
   "authority": {
-    "semantics": "ca-skills Skill Language v0.2 and Script Contract v0",
-    "grammar": "docs/skill-language-spec.md and docs/script-contract.md",
-    "note": "This is a source-position projection only. It does not validate YAML, resolve references, execute Scripts/Tools, or imply Runtime readiness."
+    "semantics": "LEGACY ca-skills Skill Language v0.2 and Script Contract v0; NOT CA-SL v1alpha4",
+    "grammar": "legacy v0.2 positional selectors; current normative CA-SL v1alpha4 in docs/skill-language-spec.v1alpha4.zh-CN.md is NOT implemented by these selectors",
+    "note": "LEGACY positional projection only. Do not treat the registry as v1alpha4 grammar or qualification. It cannot validate YAML, resolve references, execute Scripts/Tools, or imply Runtime readiness."
   },
   "legend": {
     "tokenTypes": [

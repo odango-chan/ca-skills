@@ -1,12 +1,12 @@
 # ConnectionAgent Skill Authoring Guide
 
-This guide follows the [CA-SL vNext / v1alpha3 Specification](skill-language-spec.zh-CN.md), the sole normative language authority. The author syntax and interoperability profile are frozen; product conformance and executable 5GC migration are separate §45.2 gates.
+This guide follows the [CA-SL v1alpha4 Specification](skill-language-spec.v1alpha4.zh-CN.md), the sole normative language authority. The author syntax and interoperability profile are frozen; product conformance and executable 5GC migration are separate §45.2 gates.
 
 ## 1. Current source baseline
 
-The runnable 5GC Skills remain on the v0.2 business/source baseline and have not yet been migrated to vNext. MAS is a design candidate, not the first live execution acceptance baseline. Do not rewrite the current runnable packages before a separately reviewed migration.
+The runnable 5GC Skills remain on the v0.2 business/source baseline and have not yet been migrated to v1alpha4. MAS is a design candidate, not the first live execution acceptance baseline. Do not rewrite the current runnable packages before a separately reviewed migration.
 
-## 2. Canonical vNext Skill package
+## 2. Canonical v1alpha4 Skill package
 
 ~~~text
 skills/<name>/
@@ -41,8 +41,8 @@ The Contract remains author-maintained source. Only redundant wrapper fields and
 | `apiVersion`, `kind` | Omit from source; selected by Compiler Target / file structure |
 | `metadata.name` | Derive from Skill Package root |
 | `entryProcedure` | Omit: one Procedure entry per Skill |
-| `preconditions` | Optional list of `<node-id>.precondition` references. Every listed gate must PASS before a business Mutation or SUCCEEDED |
-| `postconditions` | Procedure nodes mark the Goal they prove with `postcondition.goal`; each success path must carry a valid Goal PASS |
+| `precondition` | Optional **single** `<node-id>.precondition` reference. Its stage may contain multiple `predicates`; only aggregate PASS satisfies the global gate |
+| `postconditions` / `postcondition.goal` | **Not supported**; final Postcondition aggregate `PASS` must route directly to `SUCCEEDED` to prove the Goal |
 | `planning.allowDynamicProcedure` | Omit: static DAG is a language invariant |
 | `planning.maxActions` | Superseded; optional `limits.maxActions` imposes a stricter Skill action bound. Host's positive budget is mandatory |
 | `failureSemantics.outcomeUnknown.requireReconcile` | General safety rule for Mutation UNKNOWN, not a per-Skill toggle |

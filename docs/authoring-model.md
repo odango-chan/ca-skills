@@ -1,12 +1,12 @@
 # Authoring Model — Companion Notes
 
-**Status:** Non-normative companion to the [CA-SL vNext Specification](skill-language-spec.zh-CN.md).
+**Status:** Non-normative companion to the [CA-SL v1alpha4 Specification](skill-language-spec.v1alpha4.zh-CN.md).
 
 The comprehensive specification is the sole normative language authority. If this file conflicts with it, the specification takes precedence.
 
 ## Author-maintained source
 
-vNext retains three assurance source files with distinct responsibilities:
+v1alpha4 retains three assurance source files with distinct responsibilities:
 
 - `assurance/contract.yaml`: Skill's public contract — Goal, global Precondition references, public Request Schema, the Host Invocation Context Schema, shared dependency identities and Capability Grants.
 - `assurance/procedure.yaml`: the single deterministic execution graph — start, nodes, routes, reconciliation and final Postcondition.
@@ -28,7 +28,7 @@ Contract is author-maintained source, not a compiler-generated file. The source 
 
 A business Node may declare `precondition`, `operation`, `observation`, and `postcondition`. Declare at least one stage. Runtime runs the declared stages in that order. A normal outcome advances within the Node when another stage follows. The current stage's `routes` maps an Outcome to a Node ID or one of the four Invocation terminal statuses. The last stage's normal outcome uses this map.
 
-List Invocation-wide gates in Contract `preconditions` as `<node-id>.precondition` references. An earlier Node's Observation stage can acquire facts for a later Precondition. Every path to a business Mutation or SUCCEEDED must pass every listed gate. Mark a final Postcondition with `postcondition.goal` equal to the Contract Goal. Each SUCCEEDED path needs a valid PASS for that Goal; distinct proof nodes may each route directly to SUCCEEDED. See §12.9.
+Contract may declare **one** global gate using `precondition: <node-id>.precondition`. That stage may evaluate multiple ordered `predicates`, and its **aggregate PASS** must precede every business Mutation or SUCCEEDED request. Each final success path uses a Postcondition aggregate `PASS: SUCCEEDED` edge directly; there is no `postcondition.goal`, Contract `preconditions` list or Goal proof carried across Nodes (§12.9).
 
 The first vNext version has one entry Procedure graph per Skill and does not define nested ProcedureCall or graph cycles. Branches and recovery are explicit nodes and routes.
 
@@ -39,7 +39,7 @@ The first vNext version has one entry Procedure graph per Skill and does not def
 - Precondition and Postcondition use an ordered arguments list matching the Predicate.parameters signature.
 - Stages bind `arguments` to admitted `context` fields or to earlier outputs qualified by Node and stage.
 - No implicit previous-node binding, parent Procedure state, ambient Context forwarding, or field-name guessing.
-- Reconcile is a constrained Operation mode targeting the original Mutation, not a separate business node. A COMMITTED result does not make the original successful output available: use only an Owner-guaranteed reconciled output or a separately acquired authoritative Observation.
+- Reconcile READ is an Owner-published, Host-controlled **internal outcome-resolution ability**, never an author `operation.reconcile`/`resolve` stage. `COMMITTED` alone does not expose the original output; only verified recovery normalizing the original Operation to SUCCEEDED, or an independent authoritative Observation, can support subsequent proof.
 
 ## Script roles
 

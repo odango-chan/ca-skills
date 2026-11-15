@@ -1,12 +1,12 @@
 # ConnectionAgent Skill 编写指南
 
-**语言权威：** [CA-SL vNext / v1alpha3 综合规范](skill-language-spec.zh-CN.md)。本指南只做导航，不另行定义语法。语言及互操作规范已冻结；Compiler / Runtime / Studio / 5GC 产品符合性仍需按 §45.2 验收。
+**语言权威：** [CA-SL v1alpha4 完整规范](skill-language-spec.v1alpha4.zh-CN.md)。本指南只做导航，不另行定义语法。语言及互操作规范已冻结；Compiler / Runtime / Studio / 5GC 产品符合性仍需按 §45.2 验收。
 
 ## 1. 当前正式源码基线
 
-当前 5GC 可执行 Skill 仍以 v0.2 为业务行为基线，尚未完成 vNext 迁移。MAS 是设计候选，不是第一阶段真实执行验收基线。迁移前不改写现有可运行源码。
+当前 5GC 可执行 Skill 仍以 v0.2 为业务行为基线，尚未完成 v1alpha4 迁移。MAS 是设计候选，不是第一阶段真实执行验收基线。迁移前不改写现有可运行源码。
 
-## 2. vNext Skill Package
+## 2. v1alpha4 Skill Package
 
 ~~~text
 skills/<name>/
@@ -41,8 +41,8 @@ skills/<name>/
 | `apiVersion`、`kind` | 不写入源码，由 Compiler Target 和文件结构确定 |
 | `metadata.name` | 由 Skill Package 根目录确定 |
 | `entryProcedure` | 单一 Procedure 入口，不需要重复字段 |
-| `preconditions` | 可选的 `<node-id>.precondition` 引用列表。业务 Mutation 派发前及成功发布前必须全部 PASS |
-| `postconditions` | 最终 Postcondition 在 Procedure 用 `postcondition.goal` 对应 Contract Goal；各成功路径可以由不同节点证明 |
+| `precondition` | 可选**单一** `<node-id>.precondition` 阶段引用；阶段可含多个 `predicates`，整个阶段聚合 PASS 才通过全局门禁 |
+| `postconditions` / `postcondition.goal` | **不支持。** 最终 Postcondition 聚合 `PASS` 必须直接路由 `SUCCEEDED`，才可证明 Contract Goal |
 | `planning.allowDynamicProcedure` | 静态 DAG 规则已禁止动态执行图，无需重复 |
 | `planning.maxActions` | 旧字段取消；可选 `limits.maxActions` 只设 Skill 更严格的上界，Host 必须另有正数预算且不可被放宽 |
 | `failureSemantics.outcomeUnknown.requireReconcile` | 作为 Mutation UNKNOWN 的通用安全规则，不由每个 Skill 重复开关 |
