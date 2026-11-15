@@ -162,33 +162,17 @@ nodes:
         sdmSubscriptionRef: subscribe-udm.operation.output.subscriptionRef
         waiterRef: bind-pcf-hold.operation.output.holdRef
       routes:
-        SUCCEEDED: await-initial-n4
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
-  await-initial-n4:
-    # Preserve PRE-N4 semantics: the PCF policy association is a selector,
-    # not an already-established N4/UPF session identity.
-    operation:
-      tool: ca::ca.session.evidence.await
-      arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
-        pti: context.request.pti
-        requestType: context.request.requestType
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
-        pcfPolicyAssociationRef: read-pcf-inputs.operation.output.pcfPolicyAssociationRef
-        absencePolicy: "CONTINUE"
-      routes:
-        FAILED: SAFE_STOPPED
-        UNKNOWN: UNRESOLVED
-        DENIED: SAFE_STOPPED
+    # No Skill-level wait: the future published Owner MUST guarantee that
+    # this SUCCEEDED output includes completed initial-N4 state and Evidence.
+    # The existing legacy PCF create callable does not establish that contract.
     postcondition:
       predicates:
         - predicate: establishment.n4.initial_resources_ready
           arguments:
-            - await-initial-n4.operation.output
+            - create-pcf.operation.output
       routes:
         PASS: read-operation-context
         FAIL: SAFE_STOPPED
@@ -274,56 +258,20 @@ nodes:
         waiterRef: bind-n1n2-hold.operation.output.holdRef
         delivery: build-n1n2-delivery.operation.output
       routes:
-        SUCCEEDED: await-ran-acceptance
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
-  await-ran-acceptance:
-    operation:
-      tool: ca::ca.session.evidence.await
-      arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
-        pti: context.request.pti
-        requestType: context.request.requestType
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
-        operationContextRef: read-operation-context.operation.output.contextRef
-        afterOperationRef: transfer-n1n2.operation.output.operationRef
-      routes:
-        FAILED: SAFE_STOPPED
-        UNKNOWN: UNRESOLVED
-        DENIED: SAFE_STOPPED
+    # RAN adoption and N4 forwarding convergence belong to the asynchronous
+    # Tool/Owner operation, NOT a Skill wait/poll loop. Old AMF transfer output
+    # is insufficient without an updated published Owner completion contract.
     postcondition:
       predicates:
         - predicate: establishment.ran.adopted
           arguments:
-            - await-ran-acceptance.operation.output
-      routes:
-        PASS: await-forwarding
-        FAIL: SAFE_STOPPED
-        UNKNOWN: UNRESOLVED
-  await-forwarding:
-    operation:
-      tool: ca::ca.session.evidence.await
-      arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
-        pti: context.request.pti
-        requestType: context.request.requestType
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
-        operationContextRef: read-operation-context.operation.output.contextRef
-        afterOperationRef: transfer-n1n2.operation.output.operationRef
-      routes:
-        FAILED: SAFE_STOPPED
-        UNKNOWN: UNRESOLVED
-        DENIED: SAFE_STOPPED
-    postcondition:
-      predicates:
+            - transfer-n1n2.operation.output
         - predicate: establishment.n4.forwarding_ready
           arguments:
-            - await-forwarding.operation.output
+            - transfer-n1n2.operation.output
       routes:
         PASS: transfer-responsibility
         FAIL: SAFE_STOPPED
@@ -344,10 +292,10 @@ nodes:
       predicates:
         - predicate: establishment.ran.adopted
           arguments:
-            - await-ran-acceptance.operation.output
+            - transfer-n1n2.operation.output
         - predicate: establishment.n4.forwarding_ready
           arguments:
-            - await-forwarding.operation.output
+            - transfer-n1n2.operation.output
         - predicate: establishment.resources.managed
           arguments:
             - transfer-responsibility.operation.output
