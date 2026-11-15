@@ -1,3 +1,6 @@
+# MAS v1alpha4 Predicate declarations. The MAS Owner output Schemas and
+# guarantees below are EXAMPLE-ONLY candidates, never published/link-qualified.
+# Each check reintroduces a named business gate from the legacy policy-first flow.
 predicates:
   establishment.request.supported:
     parameters:
@@ -7,39 +10,174 @@ predicates:
     evaluator:
       type: cel
       expression: requestType == 1 && pduType == "IPV4" && sscMode == 1
-  establishment.mas.subscription_usable:
+
+  establishment.mas.eligible:
+    parameters:
+      - result: mas::urn:example:mas:entry-eligibility:v1
+    evidence:
+      requires:
+        result: [mas::establishment.eligible]
+    evaluator:
+      type: cel
+      expression: result.eligible == true
+
+  establishment.mas.subscription_valid:
     parameters:
       - result: mas::urn:example:mas:subscription-state:v1
     evidence:
       requires:
-        result: [mas::subscription.verified]
+        result: [mas::establishment.subscription_valid]
     evaluator:
       type: cel
-      expression: result.valid == true
+      expression: result.subscription_valid == true
+
+  establishment.mas.secondary_auth_resolved:
+    parameters:
+      - result: mas::urn:example:mas:secondary-auth-state:v1
+    evidence:
+      requires:
+        result: [mas::establishment.secondary_auth_resolved]
+    evaluator:
+      type: cel
+      expression: result.secondary_auth_resolved == true
+
+  establishment.mas.context_ready:
+    parameters:
+      - result: mas::urn:example:mas:context-state:v1
+    evidence:
+      requires:
+        result: [mas::establishment.context_ready]
+    evaluator:
+      type: cel
+      expression: result.context_ready == true
+
+  establishment.mas.uecm_registered:
+    parameters:
+      - result: mas::urn:example:mas:uecm-state:v1
+    evidence:
+      requires:
+        result: [mas::establishment.uecm_registered]
+    evaluator:
+      type: cel
+      expression: result.uecm_registered == true
+
+  establishment.mas.policy_created:
+    parameters:
+      - result: mas::urn:example:mas:policy-state:v1
+    evidence:
+      requires:
+        result: [mas::establishment.policy_created]
+    evaluator:
+      type: cel
+      expression: result.policy_created == true
+
+  establishment.mas.anchor_selected:
+    parameters:
+      - result: mas::urn:example:mas:anchor-state:v1
+    evidence:
+      requires:
+        result: [mas::establishment.anchor_selected]
+    evaluator:
+      type: cel
+      expression: result.anchor_selected == true
+
+  establishment.mas.address_ready:
+    parameters:
+      - result: mas::urn:example:mas:address-state:v1
+    evidence:
+      requires:
+        result: [mas::establishment.address_ready]
+    evaluator:
+      type: cel
+      expression: result.address_ready == true
+
+  establishment.mas.policy_updated:
+    parameters:
+      - result: mas::urn:example:mas:policy-update-state:v1
+    evidence:
+      requires:
+        result: [mas::establishment.policy_updated]
+    evaluator:
+      type: cel
+      expression: result.policy_updated == true
+
+  establishment.mas.charging_owned:
+    parameters:
+      - result: mas::urn:example:mas:charging-state:v1
+    evidence:
+      requires:
+        result: [mas::establishment.charging_owned]
+    evaluator:
+      type: cel
+      expression: result.charging_owned == true
+
+  establishment.mas.initial_resources_ready:
+    parameters:
+      - result: mas::urn:example:mas:initial-n4-state:v1
+    evidence:
+      requires:
+        result: [mas::establishment.initial_resources_ready]
+    evaluator:
+      type: cel
+      expression: result.initial_resources_ready == true
+
+  establishment.mas.address_confirmed:
+    parameters:
+      - result: mas::urn:example:mas:address-confirm-state:v1
+    evidence:
+      requires:
+        result: [mas::establishment.address_confirmed]
+    evaluator:
+      type: cel
+      expression: result.address_confirmed == true
+
   establishment.mas.ran_adopted:
     parameters:
       - result: mas::urn:example:mas:ran-state:v1
     evidence:
       requires:
-        result: [mas::ran.adopted]
+        result: [mas::establishment.ran_adopted]
     evaluator:
       type: cel
-      expression: result.adopted == true
+      expression: result.ran_accepted == true
+
   establishment.mas.forwarding_ready:
     parameters:
-      - result: mas::urn:example:mas:n4-state:v1
+      - result: mas::urn:example:mas:forwarding-state:v1
     evidence:
       requires:
-        result: [mas::n4.forwarding-ready]
+        result: [mas::establishment.forwarding_ready]
     evaluator:
       type: cel
-      expression: result.ready == true
+      expression: result.forwarding_ready == true
+
+  establishment.mas.events_accounted:
+    parameters:
+      - result: mas::urn:example:mas:events-state:v1
+    evidence:
+      requires:
+        result: [mas::establishment.events_accounted]
+    evaluator:
+      type: cel
+      expression: result.events_accounted == true
+
   establishment.mas.resources_managed:
     parameters:
       - result: mas::urn:example:mas:responsibility-state:v1
     evidence:
       requires:
-        result: [mas::resources.managed]
+        result: [mas::establishment.resources_managed]
     evaluator:
       type: cel
-      expression: result.durable == true
+      expression: result.resources_managed == true
+
+  establishment.mas.cleanup_complete:
+    parameters:
+      - result: mas::urn:example:mas:cleanup-state:v1
+    evidence:
+      requires:
+        result: [mas::establishment.cleanup_complete]
+    evaluator:
+      type: cel
+      expression: result.cleanup_complete == true
+
