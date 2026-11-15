@@ -294,6 +294,8 @@ Payload 是 Predicate 判断的业务值；Evidence 是 Host 判断该值是否�
 - **Case：** 业务场景和预期语义义务声明，不是执行器，不证明真实运行通过。
 - **Reference：** 给 Agent 阅读的补充知识，不是 Tool Schema、Evidence 或自动 Runtime 输入。
 
+**结果与诊断的命名空间提示（Informative，不新增 Trace 线格式）：** Owner Outcome、Procedure Stage Outcome、Route Target、Invocation Terminal Status 与 Diagnostic 是不同语义维度；具体允许集合及转换见 §22、§22.1、§24、附录 H。实现内部或可审计报告可分别命名为 `ownerOutcome`、`stageOutcome`、`routeTarget`、`terminalStatus`、`diagnostic.code` / `diagnostic.phase`，防止裸 `SUCCEEDED` / `FAILED` 被误解为最终状态。**这些名称只是示意性逻辑投影，不是 v1alpha3 新增的 JSON/YAML 字段**；真实 Trace 的物理字段、版本和兼容性归独立 Runtime Artifact Contract，按 §45.2 第 7/8 项验收。任何实际记录都必须能区分相应来源、阶段与终态，不得将阶段成功推断为 Invocation SUCCEEDED。
+
 ### 6.11 Action 与阶段 Outcome
 
 Action 是按 §11.6 计入预算的一次执行动作。阶段 Outcome 是当前阶段用于选择后继边的结果，枚举见 §22。Invocation 终态按 §12.8 判定。
@@ -1202,6 +1204,19 @@ SourcePath 可选字段、Evidence 重验及 Owner Schema 投影的作者模式�
 **规范性说明。** 保证身份、适用性、证据判定与 E.3 描述符 DSL 的字段语义均按附录 F.3 冻结。文件组织不是跨包导出身份；真实 Owner 记录仍须验证。
 
 Predicate 的 `parameters` 声明业务值类型。`evidence.requires` 可选，是参数名到一组非空、无重复的精确 `alias::guaranteeId` 的映射；只允许引用已声明参数。每个列出的保证至少由一条有效 Evidence Ref 满足，列表全部满足才成立。需要独立证据时，引用不同保证并用 Owner 声明的独立来源约束校验，见 §17.1.1 与 §17.2。**省略某个已声明 Predicate 参数对应的 `evidence.requires` 条目**，仅在该参数于所有调用点的实参均满足下列来源豁免时合法；这里并非允许省略 `parameters` 参数或缩短 `arguments` 列表（两者仍受 §14 的严格 arity 约束）。**显式声明的 `evidence.requires` 优先于来源豁免：** 一旦为参数声明了任何保证，该参数在**每一个调用点**仍必须提供并通过这些保证；`context.ueRef`、`context.request.*`、字面量等来源豁免仅表示**在所有调用点均属可豁免来源时，允许不声明该参数的 `requires`**，绝不覆盖或取消已经声明的保证。若显式保证在某调用点静态无法满足，按 §17.2 报 `PREDICATE_EVIDENCE_UNSATISFIABLE`；静态可满足而本次执行缺少或无法验证有效记录时，Predicate 为 `UNKNOWN`。同一参数在不同调用点混用可豁免与非豁免来源而不声明保证，仍须报 `PREDICATE_EVIDENCE_REQUIRED`。不得通过优先级调整将任何声明的保证变为可选。
+
+**逐参数、逐调用点的 Evidence 判定表（Informative；§17.1–§17.2 既有规则的可读性展开）：**
+
+| 参数的 `evidence.requires` | 此参数所有调用点的真实来源 | 静态结果 | Runtime 结果 |
+|---|---|---|---|
+| 省略 | 全部来自已允许的 Request / Host 校验身份或关联 / 字面量；Script 衍生值仅继承可豁免来源 | 对此参数无 `PREDICATE_EVIDENCE_REQUIRED`；仍须通过类型、Scope 与其他约束 | 不凭来源豁免证明 Goal 或外部事实；按 Predicate 与其他门禁判断 |
+| 省略 | 任一调用点直接使用需要 Evidence 的外部 Operation / Observation / Reconcile 输出，或 Script 输出继承不可豁免来源 | `PREDICATE_EVIDENCE_REQUIRED`；其他调用点豁免无效 | 构建已拒绝，不运行 |
+| 已声明至少一个保证 | 任意调用点来源（包括表面上可豁免的 Request / Host 数据）不能静态满足全部已声明的精确保证 | `PREDICATE_EVIDENCE_UNSATISFIABLE`，不得取消已声明保证 | 构建已拒绝，不运行 |
+| 已声明且全部调用点可静态满足 | 本次有与精确 Producer、Scope、Correlation、Freshness 一致的有效记录 | 本项不因来源或保证拒绝；还须通过 Schema/图/授权检查 | 验证全部声明保证后，才按业务表达式判断 PASS/FAIL |
+| 已声明且全部调用点可静态满足 | 本次缺失、过期、冲突或不能认证必需记录 | 静态可链接，不能预先当作成功 | Predicate 为 `UNKNOWN`，依 §22.1 路由；入口或 Goal 复核不得发布成功 |
+| 任一状态 | 保证描述符本身缺少可信 Owner/Producer、路径或独立性装配且无法链接 | **先按现有专用规则** `EVIDENCE_GUARANTEE_LINK_INVALID`；不能把结构错误伪装成“来源豁免” | 构建已拒绝，不运行 |
+
+**判定顺序提示：** Compiler 为**每一个已声明参数**遍历**所有可达调用点**，先依 §13.3、§14、§17 验证有效路径和来源类别，再按有无 `requires` 作上表判断；独立性组再按 §17.1.1 检查。此表不改变 §24.1 的更具体诊断优先级，也不把可豁免 Request 字段提升为可信身份。对应规范预期 E19、E71、E74、E98 保持不变。
 
 **省略 `requires` 的两种教学对照（Informative，不新增豁免）：** 若 Predicate 声明 `parameters: [{expectedPsi: integer}]`、省略该参数的 `evidence.requires`，且每个调用点都仅绑定 `context.request.pduSessionId` 等 §17.1 允许豁免的来源，**仅就 Evidence 声明**可通过（业务类型和 Scope/身份来源另按 §13.3 校验）。反例是同一个 Predicate 的任何调用点改绑 `observe-session.observation.output.psi`：即使其他调用点仍绑定请求字段，该输出属于权威外部 Producer，缺少覆盖其值路径的显式保证必须报 `PREDICATE_EVIDENCE_REQUIRED`；不能因为其他调用点豁免而忽略它。若已声明 `requires`，两种来源在每个调用点都必须实际满足该保证。
 
@@ -2414,6 +2429,18 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 7. Compiler Artifact Contract 独立冻结生成 Schema 的序列化与可达依赖闭包；Runtime Artifact Contract 独立冻结 Trace 线格式、版本和兼容性。
 8. 交付符合性记录：语言目标版本、每项 Owner 导出及摘要、发布授权、执行 Fixture、原始 CI 结果、实际代码提交和未通过项。缺项不得标记 Runtime READY / live E2E PASS。
 
+**外部互操作交付的显式核验项（本节第 1/2/5/7/8 项的资料性分解；不新增 v1alpha3 物理字段）。** 报告应分别记录以下外部协议/可信发布物的名称、独立版本、不可变摘要、发布者授权、是否实际可消费以及原始验证证据。缺少本次产品路径所必需的受信材料时不得声称该范围内的 v1alpha3 产品互操作符合性；对只测试 Compiler 语法的报告，不得偷换成完整 Host/Root Routing 产品声明。
+
+| 互操作依赖 | 既有规范边界 | 缺失时的符合性裁决 |
+|---|---|---|
+| 身份输入路径的可信 Owner 标注 | §13.3/F.1 定义最低逻辑属性，不定义 `identityInputs` 物理发布字段 | 实际使用此类 callable 时无法满足来源认证，Compiler/Host 不得以未认证值放行；Owner 互操作门槛未通过 |
+| 跨快照 / 跨发布物 Reconcile 专用 callable 关联 | G.2 在同快照检查所有 Mutation 引用；跨快照禁止凭 README/名称/独立 READ Grant 推测专用身份 | 缺少认证关联时不能把可疑 READ 当普通调用绕开调和保护，也不能声称跨快照调用符合性；需要另行版本化契约 |
+| Skill Eligibility / Root Routing | §0/§12.8 冻结拒绝歧义原则，但完整 `Applicability` 和匹配算法属于独立 Host 协议 | 不能声称完整 Root Routing 已符合；仅限已有精确准入前提的测试必须明确声明范围 |
+| `IndependentDomains` 与跨 Owner `factIdentity` | §34.0.2/F.4/G.3.1 规定受信独立域、共同事实、Scope 映射等逻辑属性 | 使用该类保证而无相应可信装配或发布者授权时拒绝链接；E102/E106 的预期不构成通过证明 |
+| BuildRequest / Compiler Artifact / Runtime Trace | §34、§45.2 第 7 项；物理 framing、摘要算法、字段和版本兼容由各自独立契约拥有 | 只验证 CA-SL 语义不代表已通过 Artifact/Trace 线格式及跨产品互操作验收 |
+
+附录 K.4 提供**资料性报告列**供逐项填报，字段名不是新的 Owner/BuildRequest/Runtime Artifact 线协议。任何语义性变更仍按 §45.1 C 类另行版本化。
+
 **E01–E114 的分层符合性责任（不变更用例预期）。** 同一 E 编号可包含静态/运行期多个变体；第 3 项所称 Compiler“适用正反例”仅针对可静态判定的变体，不能把 Runtime 行为测试硬塞进 Compiler CI。
 
 | 变体类型及代表用例 | Compiler Native/WASM | Host/Runtime | Studio/LSP | Owner/Deployment Fixture |
@@ -3525,6 +3552,8 @@ properties:
 
 ### G.2.2 提交证明最小结构和 Owner receipt 分层
 
+> **实现提示（复述既有 Normative 规则）：** `receipt.` 和 `output.` 只是两个受信**逻辑通道选择锚点**，不是对应 Schema 根中的同名包装字段。Compiler **仅剥离首段锚点**，再从各自 `receiptSchema.$ref` / `outputSchema.$ref` 根解析后续字段；Runtime 分别验真，不得自动补全、重复锚点、回退成裸路径或跨调用借用证明。E107/E108 也按 G.2.1 的相同规则审查。
+
 为了使两种实现能从同一回包唯一判断 COMMITTED 或 NOT_COMMITTED，mutation.commitProof.schema 和 mutation.reconcile.proofSchema 必须解析到含以下两个必需字段的闭合 object Schema：originalInvocationId 为非空 string，commitState 为字符串枚举 [COMMITTED, NOT_COMMITTED]。实际 Schema 还可声明与 Owner 已发布合同一致的额外业务身份、Scope 或签名字段，但不可改变两字段含义。
 
 ~~~yaml
@@ -3912,6 +3941,18 @@ v1alpha3 允许 Owner 为不能直接落入受支持 JSON Schema 子集的业务
 
 **迁移核对顺序（Informative）：** 先由真实 Owner 盘点原始 Input/Output/Receipt 和 Evidence Descriptor，识别 G.4 不支持的 `anyOf/oneOf/pattern/format/$defs` 等关键字；再由 Owner 发布正式版本化、属于受信快照且带独立 `$id` 的闭合投影，显式确认其字段意义、Scope、Correlation、Producer 与 Evidence 保证仍一致；随后 Studio 以精确快照字节和可信 Package/Owner 绑定交给 Compiler 检查，Runtime 验证 Owner 返回值与证明。任何环节不得让 Skill 复制影子 Schema、让 Compiler 静默丢弃不支持的约束、或让 `default` 补造值。
 
+**常见 Owner Schema 不兼容特性的迁移对照（Informative，不是由 Compiler 自动执行的等价变换）：**
+
+| 原始 Owner Schema 用法 | 可考虑的 Owner 正式投影 | 必须保留的语义约束 |
+|---|---|---|
+| `$defs` / `definitions`、`#/$defs/...` | Owner 将被引用对象作为独立且精确 `$id` 的受信 Schema 导出，并在允许的 `$ref` 位置引用 | 不得借用局部 JSON Pointer、按文件路径自动推导类型或改变字段必需性 |
+| `oneOf` / `anyOf` 或多个形状联合 | Owner 分别发布明确的规范化输出契约、选择入口，或提供单一可受信验证的闭合形状 | **不存在通用的无损替换公式**；不能把分支条件静默删除成宽泛 object |
+| `pattern` / `format` | Owner 输出已验证、归一化的值并按 G.4 允许的可表达断言发布其 Schema；必要的格式/业务验真应由权威 Owner 单独证明 | `minLength` 等**不能等价替代任意正则或日期格式语义**；不得丢失受信校验 |
+| `if/then/else` / `allOf` / `not` | Owner 在接口边界验证并正式发布受支持的精确投影，或拆为各有契约的 callable | 条件关系、失败类别和资源/Scope 归属不能被 Compiler 默默忽略 |
+| 任意开放字典 / 动态 JSON 属性 | Owner 发布具有显式 `properties` 与闭合键集合的输出，或按独立 Schema 拆分 | 不能把未知键视为已验证事实；动态键不进入 SourcePath |
+
+**Owner 投影发布清单（Informative）：** 核对原业务输入/输出/receipt → 验证新投影保留必要约束 → 为投影分配精确独立 `$id` 与 Owner 归属 → 绑定受信 Package ID、快照摘要、Scope/Correlation/Evidence 保证 → 在构建时由 Compiler 校验 G.4 与 F.5 → 在运行时由 Host/Runtime 校验真实返回值及证明。任何不受支持的原关键字若直接出现在待链接 Schema 中，仍必须 `SCHEMA_INVALID`；不能靠假想投影使原 Schema 合法。
+
 如果部署需要显式的“原结构 ↔ 投影等价性”签署、源版本字段或新证据证明，这属于 Owner/互操作契约的新增发布要求；其线格式与授权方式应单独版本化，不得通过 Skill 注释、README 或无来源的转换结果代替。当前规范没有为此定义额外的强制签署字段。
 
 ### I.6 CEL、Python 与 Schema 的实现版本
@@ -3923,6 +3964,18 @@ G.4 与 F.6 已限定允许的表达式、类型和注解集合。不得因为�
 `$defs`、`definitions`、本地 JSON Pointer 引用及循环引用在 v1alpha3 的 G.4 闭合白名单之外，不得作为实现扩展。有关是否在后续版本允许这些写法，应提交独立的语言契约修订。
 
 **CEL 子集与计算归一化：** 本版故意只允许 G.4 的确定性表达式。若业务必须做数组遍历、字符串排序或复杂值归一化，应把**纯本地计算**放在符合 §32 的 Procedure Script 中，再让 Runtime 按严格 TypedDict Schema 校验其输出；如需 Predicate 判断，可将经证明可绑定的值作为显式参数传入 Predicate。Script 不得执行查询、创造 Evidence 或从请求数据制造可信 UE/Session/Scope 身份，且不自动使 Producer 输出免于 Evidence 要求。这是作者实践模式，不是对 CEL 扩展语法的授权。
+
+**CEL 可选/可空字段的最小短路写法（Informative）。** 假设 `obj` 的 Schema 已声明 `optional` 为可缺失的 string、`nullable` 为必需但可为 null 的 string、`optionalNullable` 同时可缺失和可空；以下仅用于说明 G.4 的既有守卫原则：
+
+```cel
+has(obj.optional) && obj.optional == "READY"
+obj.nullable != null && obj.nullable == "READY"
+has(obj.optionalNullable) &&
+  obj.optionalNullable != null &&
+  obj.optionalNullable == "READY"
+```
+
+反例 `obj.optional == "READY"` 缺少 `has`，`obj.nullable == "READY"` 缺少非 null 守卫；`has(obj.optional) || obj.optional == "READY"` 在左侧 false 时仍会读取缺失字段，不能算合法短路保护。Compiler 应按 G.4 在可静态证明的**同一短路表达式**上判定，不可先求值再猜测是否安全；未证明所需保护时按既有 `CEL_INVALID` 拒绝。**这组写法是便于跨实现验收的最小实例，不排斥 G.4 已允许且能正确静态证明的其他布尔组合**；不得借实现指南缩小或扩大冻结的 CEL 表达式集合。
 
 ### I.7 Reconcile UNRESOLVED 与资源责任边界
 
@@ -4185,6 +4238,24 @@ flowchart TD
 | DFX-040 | `RECONCILE_CONTRACT_INVALID` / C_STATIC | 同一受信 ToolCatalog 快照的一个 Mutation 的 mutation.reconcile.callable 指向精确 READ operation；另一个 Skill 在普通 operation.target 中调用该 READ，且提供独立的 READ Capability Grant。Compiler 必须检查整份快照的 Mutation 关联并阻断普通调用，不得只检索本 Skill 已引用的 Mutation | NOT_RUN |
 | DFX-041 | `RECONCILE_CONTRACT_INVALID` / C_STATIC | 以 G.2.1 有效 Reconcile READ + receiptSchema 作为基线：先验证 proofPath receipt.commit 可在移除逻辑 receipt 锚点后从 schema 根解析。单独将路径改成 receipt.receipt.commit 或裸 commit；前者多出未声明 Schema 段，后者缺少必需通道锚点，二者都不得自动改写或链接通过 | NOT_RUN |
 
+### K.2.1 YAML 标量原始词法跨实现一致性候选（Informative，LEX-001）
+
+以下是**一组未执行的跨 Native/WASM/Studio 联合候选**，不是新增 E 编号或 DFX-042，也不改变现有 DFX-001–DFX-041 的状态。运行时必须保留 YAML 标量的原始词法与是否加引号的信息，按 §13.2/G.1 同一规则分类；测试须将同一结构化输入分别交给 Native Compiler、WASM Compiler 和 Studio/LSP，核对合法性、`(Code, Phase)`、SourcePath 解析与值类型一致。
+
+| `arguments` 中的输入值（其余构建输入有效） | 已有 v1alpha3 判定 |
+|---|---|
+| `null`、`true`、`false`（均无引号） | 合法 Core Null/Boolean 字面量，仍受目标参数 Schema 类型约束 |
+| `Null`、`NULL`、`~` | **不能**作为合法 v1alpha3 null；即使 YAML 库能解码也应按既有语法/表达式规则拒绝 |
+| `TRUE`、`False` | **不能**作为合法 v1alpha3 Boolean；不可自动大小写规范化 |
+| `0x10` | 不属于 G.1 的有限十进制数字形态，不能因 YAML 库支持其他进制而当作合法数值 |
+| `01` | 保留原始词法，**先依据所在语法位置**判定：G.1 的 `PositiveInteger` 明确拒绝前导零；作为 `arguments` 的 `FiniteDecimalNumber` 时必须核对该类别的冻结定义，不得在本候选中擅自新增“所有前导零均非法”的规则。若文本尚不足以唯一裁决，记录待独立词法评审，不将其作为已通过或确定的负例 |
+| `"12"`、`"true"`、`"null"`（带引号） | 是 string 字面量，不得被词法归一化为数值、Boolean 或 null；与目标类型不匹配时使用既有类型诊断 |
+| `context.request.dnn`（无引号） | 符合 SourcePath 词法的字段引用，但还必须做已声明字段、路径可用性与类型检查 |
+| `"context.request.dnn"`（带引号） | 字符串字面量，**不是** SourcePath |
+| `POST_CREATE`（无引号）、`"POST_CREATE"`（带引号） | 前者不是合法 SourcePath，须拒绝；后者是合法字符串字面量，再检查 Schema 类型 |
+
+**诊断边界：** 表只冻结了**已有行为的验收预期**，不为所有词法错误统一新增诊断码：实际错误依 §13.2/G.1/§24.1 的解析、SourcePath 与类型判定优先级确定；若某个案例在当前文法中不可构造，应明确记录不可表达原因，而不是填造测试 PASS。此组候选的 `fixtureExists=false`、`executed=false`、`passed=false`、`rawResultRef=null`，后续填报见 K.4。
+
 ## K.3 冻结后复审的六项回归候选（Informative）
 
 编号 RFX-117–RFX-122 只是审查工作的资料性追踪标识，**不**属于 E01–E114，不是 E115–E122 的别名，也不承诺将来会以相同编号进入正式符合性范围。以下均 **NOT_IMPLEMENTED**；缺少可信 Owner/Host Fixture、实际执行结果及原始证据时不能写 PASS。
@@ -4202,7 +4273,9 @@ flowchart TD
 
 ## K.4 符合性报告模板（Informative，未测试）
 
-报告的八项门槛由 §45.2 定义。下述 YAML 只是填写结构的资料性示例；内部的 `same-document` 引用用于定位本文件附录，不是新的正式 URI 或 BuildRequest 字段。**不得**在缺少原始、不可变 CI / Owner/部署证据时把 `NOT_TESTED` 改成 `PASS`。
+报告的八项门槛由 §45.2 定义。下述 YAML 只是填写结构的**资料性建议报告格式**；内部的 `same-document` 引用用于定位本文件附录，不是新的正式 URI 或 BuildRequest 字段。为了避免把附录 H 的“规范用例已定义”误报为“运行通过”，建议每一个精确 `(Code,Phase)` / E 用例**执行变体**分别填报 `specExpected`、`fixtureExists`、`executed`、`passed`、`rawResultRef`。只有真实 Fixture 存在、确实运行、符合预期且能查到不可变原始结果时，才有资格计入已通过的实现覆盖；不满足的列应保留 false / null，不能以规范预期替代实际执行。此类列名是附录 K 的报告模板建议，不是擅自冻结 Runtime Trace / BuildRequest 的传输字段。
+
+**不得**在缺少原始、不可变 CI / Owner/部署证据时把 `NOT_TESTED` 改成 `PASS`。跨快照 Reconcile、Owner 身份输入、Root Routing 和共同事实受信装配的实际覆盖范围应逐项注明；不覆盖的功能不得被写成完整产品符合性。
 
 ```yaml
 # Informative reporting template; this is NOT an executable CA-SL fixture.
@@ -4224,6 +4297,48 @@ implementation:
       packageId: null
       snapshotDigest: null
       publisherAuthorizationRef: null
+  # 独立互操作契约的逻辑核验记录（资料性字段；非 BuildRequest Schema）
+  interoperabilityDependencies:
+    - name: owner-identity-input-provenance
+      scope: "§13.3/F.1 identity paths"
+      contractVersion: null
+      immutableDigest: null
+      publisherAuthorizationRef: null
+      verified: false
+      rawResultRef: null
+    - name: cross-snapshot-reconcile-only-association
+      scope: "G.2 independent READ callable ownership"
+      contractVersion: null
+      immutableDigest: null
+      publisherAuthorizationRef: null
+      verified: false
+      rawResultRef: null
+    - name: root-routing-applicability
+      scope: "§12.8 external Host routing; specify whether this product claims it"
+      contractVersion: null
+      immutableDigest: null
+      publisherAuthorizationRef: null
+      verified: false
+      rawResultRef: null
+    - name: independent-domains-common-fact-binding
+      scope: "§34.0.2/F.4/G.3.1 trusted deployment relation"
+      contractVersion: null
+      immutableDigest: null
+      publisherAuthorizationRef: null
+      verified: false
+      rawResultRef: null
+    - name: build-and-runtime-artifact-profiles
+      scope: "§45.2 independent BuildRequest, Compiler Artifact and Trace contracts"
+      contractVersion: null
+      immutableDigest: null
+      publisherAuthorizationRef: null
+      verified: false
+      rawResultRef: null
+  # 每项适用性由本次产品声称的功能范围决定；未覆盖必须说明
+  claimScope:
+    compilerOnly: false
+    hostRootRoutingIncluded: false
+    ownerInteroperabilityIncluded: false
   toolchain:
     cel:
       implementation: null
@@ -4254,12 +4369,34 @@ caseMatrix:
   rawResultRef: null
   executedCaseCount: 0
   passedCaseCount: 0
+  coverageRows:
+    - caseOrVariantId: E01
+      specExpected: "Appendix E.5: static linking PASS (normative expectation only)"
+      fixtureExists: false
+      executed: false
+      passed: false
+      rawResultRef: null
   status: NOT_TESTED
 diagnosticMatrix:
   normativeIndex: "same-document:Appendix-H"
   gapRegister: "same-document:Appendix-K.2"
   executableSuiteRef: null
   rawResultRef: null
+  coverageRows:
+    - code: EFFECT_MISMATCH
+      phase: C_STATIC
+      specExpected: "Appendix H: static Effect conflict blocks build"
+      fixtureExists: false
+      executed: false
+      passed: false
+      rawResultRef: null
+    - code: EFFECT_MISMATCH
+      phase: R_RUNTIME
+      specExpected: "Appendix H: Runtime fail-closed and retain responsibility"
+      fixtureExists: false
+      executed: false
+      passed: false
+      rawResultRef: null
   status: NOT_TESTED
 gates:
   - id: 1
@@ -4299,6 +4436,8 @@ gates:
 ## K.5 单文件审查的完成条件
 
 **文本完整性：** §0–§45、附录 A–H、已合并作者指南 I、决策与历史裁决 J、诊断/符合性计划 K 均在同一个 Markdown 文件中，无须从外部勘误记录拼接才能理解现行语义。
+
+**执行证据分离：** 附录 E/H 的规范预期状态仅代表文本已定义。附录 K.4 的 `specExpected` 不能转化为 `passed`；`fixtureExists`、`executed`、`passed` 和 `rawResultRef` 应逐变体记录并由原始报告核验。真实实现不能仅凭“规范用例已定义”或空白报告模板声称符合。
 
 **实现真实性：** 本次单文件整合与 Source Hygiene 检查最多说明文档结构及基本校验完成；只有实际 Owner 发布物、受信部署输入、Native/WASM/Studio 的机器 Fixture、Runtime Trace、真实 5GC Case 结果及 §45.2 的逐项报告经独立核验后才能改变相应产品状态。现行统一裁决仍为 **CA-SL v1alpha3 FROZEN；产品 NOT QUALIFIED**。
 
