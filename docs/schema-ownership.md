@@ -1,6 +1,6 @@
 # Schema Ownership — Companion Notes
 
-**Status:** Non-normative companion to the [CA-SL vNext Specification](skill-language-spec.zh-CN.md).
+**Status:** Non-normative Schema ownership companion to the [current CA-SL v1alpha4 specification](skill-language-spec.v1alpha4.zh-CN.md). Historical examples in this note have no authority to override its exact Schema/Evidence/Owner rules; existing unported 5GC source files remain legacy.
 
 The comprehensive specification is the sole normative source for Schema ownership, identity, Evidence, Observation and argument binding. If this note conflicts with the specification, the specification takes precedence.
 
