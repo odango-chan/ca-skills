@@ -6,13 +6,13 @@
 **状态：** FROZEN — CA-SL v1alpha3（语言与已规定的互操作语义；产品实现 NOT QUALIFIED）  
 **规范所有者：** odango-chan/ca-skills  
 **适用对象：** Skill 作者、Skill Studio、Compiler、Agent Host / Runtime、Tool Owner、Schema Owner、语言服务及符合性评审机构  
-**更新日期：** 2026-11-14
+**更新日期：** 2026-11-15
 
 **文件效力。** 本文件是 CA-SL vNext / v1alpha3 的规范性语言定义。源码格式、静态链接、执行语义、授权、Evidence、诊断及附录所列规范性预期均以本文件为准。其他资料不得覆盖本文件的规范性要求。
 
 **规范性用语。** MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT、MAY、OPTIONAL 按 RFC 2119 和 RFC 8174 解释。相应中文规范性措辞包括“必须”“不得”“应当”“不建议”“可以”。
 
-**变更记录。** [勘误记录（一）](design/ca-sl-v1alpha3-errata-2026-11-14.md)、[勘误记录（二）](design/ca-sl-v1alpha3-errata-2026-11-14-r2.md)、[诊断追溯与 PSI 身份来源勘误](design/ca-sl-v1alpha3-diagnostic-trace-errata.md)、[互操作与实现基准澄清](design/ca-sl-v1alpha3-interop-clarifications-2026-11-14.md)、[Reconcile 与 Runtime 诊断归属勘误](design/ca-sl-v1alpha3-reconcile-runtime-errata-2026-11-14.md)、[Evidence 来源与 Scope/Schema 闭合性勘误](design/ca-sl-v1alpha3-evidence-source-and-routing-errata.md)、[编辑性澄清第三轮](design/ca-sl-v1alpha3-editorial-closure-2026-11-14.md)、[互操作审计与符合性分流澄清](design/ca-sl-v1alpha3-interop-audit-2026-11-14.md)、[Receipt 通道锚点与规范权威性审计](design/ca-sl-v1alpha3-receipt-anchor-audit-2026-11-15.md)、[摘录评审与冻结范围澄清](design/ca-sl-v1alpha3-excerpt-review-scope-2026-11-15.md)。勘误不改变 v1alpha3 的规范性语义；产品符合性状态见 §45.2。
+**变更记录。** [勘误记录（一）](design/ca-sl-v1alpha3-errata-2026-11-14.md)、[勘误记录（二）](design/ca-sl-v1alpha3-errata-2026-11-14-r2.md)、[诊断追溯与 PSI 身份来源勘误](design/ca-sl-v1alpha3-diagnostic-trace-errata.md)、[互操作与实现基准澄清](design/ca-sl-v1alpha3-interop-clarifications-2026-11-14.md)、[Reconcile 与 Runtime 诊断归属勘误](design/ca-sl-v1alpha3-reconcile-runtime-errata-2026-11-14.md)、[Evidence 来源与 Scope/Schema 闭合性勘误](design/ca-sl-v1alpha3-evidence-source-and-routing-errata.md)、[编辑性澄清第三轮](design/ca-sl-v1alpha3-editorial-closure-2026-11-14.md)、[互操作审计与符合性分流澄清](design/ca-sl-v1alpha3-interop-audit-2026-11-14.md)、[Receipt 通道锚点与规范权威性审计](design/ca-sl-v1alpha3-receipt-anchor-audit-2026-11-15.md)、[摘录评审与冻结范围澄清](design/ca-sl-v1alpha3-excerpt-review-scope-2026-11-15.md)、[冻结后诊断/术语/互操作一致性审计](design/ca-sl-v1alpha3-postfreeze-consistency-review-2026-11-15.md)。勘误不改变 v1alpha3 的规范性语义；产品符合性状态见 §45.2。
 
 ---
 
@@ -195,7 +195,7 @@ vNext 保留作者维护的 assurance/contract.yaml，但不再使用重复的 a
 
 ### 6.3 Invocation Context
 
-- **Context：** 本次 Invocation 对 Procedure 开放的已校验数据。Host 按 `contextSchema` 提供上下文对象，调用方的请求按 `requestSchema` 校验后通过 `context.request` 暴露。
+- **Invocation Context / 有效 `context`：** 本次 Invocation 对 Procedure 开放的已校验逻辑数据视图。**Host Context** 仅指 Host 依据 `contextSchema` 物化并校验的 Invocation Context **Host 提供部分**；调用方 Request 经 `requestSchema` 独立校验后由 Runtime 在保留路径 `context.request` 拼接。两部分合成的只读逻辑视图称 `effectiveContext`（§11.5、G.6），不是并列存在的第二份可变 Context，也不能把 `request` 当成 Host Schema 自有字段重新校验。
 - **UE Ref：** 本次业务执行的 UE 稳定引用，由 Host 解析并提供。
 - **Correlation：** Host 接纳本次调用时确认的关联引用。5GC Invocation Context 包含 `correlation.ingressRef` 和 `correlation.lifecycleRef`。入口消息和原始 Evidence 由 Host 保管。
 
@@ -911,7 +911,7 @@ verify-n4-session:
 
 ### 12.6 Operation Result 充分性原则
 
-**Result Sufficiency Principle（结果充分性原则）：** Procedure SHOULD 优先复用已有且满足当前判断要求的 Operation Result、Context 和 Evidence。业务评审判断信息是否充分、是否需要独立权威观察。Compiler 校验可判定的类型、路径和 Evidence 绑定。
+**Result Sufficiency Principle（结果充分性原则）：** Procedure SHOULD 优先复用已有且满足当前判断要求的 Operation Result、Context 和 Evidence。**本节的 SHOULD 是业务设计与 Studio Review Checklist 的判断原则，不是凭字段名推断“结果足够”的 Compiler 静态规则，也不新增独立诊断代码。** 业务评审需判断是否充分、是否需要独立权威观察；Compiler 只校验可静态判定的类型、值路径、可用性、授权链接和 Evidence 绑定，不能据此证明业务事实充分。
 
 - Operation Result 已满足业务判断和 Evidence 要求时，按本节充分性原则评审是否复用已有结果。
 - Operation Result 只证明请求已接受、未证明目标状态时，应根据业务需要执行 Observation 或等待由 Operation Owner 提供最终完成结果。
@@ -2191,7 +2191,9 @@ Skill 源码只引用本包拥有的文件，或通过 Contract 声明的 Alias 
 
 **规范性说明。** 身份、Owner 和多 Owner 导出级归属的最低可信属性均按附录 F.4 冻结；BuildRequest 如何编码这些属性由其独立版本决定。
 
-`contract.yaml` 的 `dependencies` 将每个别名直接映射到一个稳定 Package ID 字符串。这个包可以提供 Schema、ToolCatalog callable 和 Evidence 保证，引用时再选择具体导出。版本、下载位置和快照内容不写进 Skill 源码。
+**依赖身份三分法（术语澄清，不修改既有匹配规则）：** `Contract.dependencies` 的映射**键**统一称 **Dependency Alias**（Skill 作者源码的 Alias）；BuildRequest / Workspace 快照字段 `dependencyId` 统一称 **Workspace Dependency ID**（可信输入中的快照键）；映射**值**称 **Stable Package ID**（受信包身份）。三者不能互换。§34.0 已规定本次引用的快照 `snapshot.dependencyId == Dependency Alias` 必须逐字精确相同，且由可信 `(dependencyId, digest)` 绑定得到的 Stable Package ID 必须等于 `Contract.dependencies[alias]`；不允许默认重命名、按 Package ID 查找或从内容摘要推断别名。
+
+`contract.yaml` 的 `dependencies` 将每个 Dependency Alias 直接映射到一个稳定 Package ID 字符串。这个包可以提供 Schema、ToolCatalog callable 和 Evidence 保证，引用时再选择具体导出。版本、下载位置和快照内容不写进 Skill 源码。
 
 ~~~yaml
 dependencies:
@@ -2420,6 +2422,17 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 | 附录 H 的部分覆盖/待 Fixture `(Code, Phase)` | 补 C_STATIC/C_WARNING 的对应 Fixture | 补 R_RUNTIME 的对应 Fixture | 保持同一静态 Code/Phase | 提供必要受信模拟/Owner 证据 |
 
 本矩阵的例子不是完整分配表，也不改变 E01–E114 原有预期；最终以精确变体和 `(Code, Phase)` 为测试粒度。没有 Owner 发布物及 CI 原始记录的项不能标记 PASS。
+
+**Script 静态检查最低验收清单（对 §32.1 / §32.2 / F.6 既有门槛的测试分解，不扩大语言剖面）。** Compiler Native/WASM 与 Studio/LSP 必须在同一源码及受信类型环境下给出一致结论；具体实现/分析器版本须记录于第 8 项符合性报告，不固定为本版强制 Python 小版本。
+
+| 需验收的既有检查 | 最小正/反验证及诊断边界 |
+|---|---|
+| 入口与严格类型 | Procedure `main(input: InputTypedDict) -> OutputTypedDict` / Predicate 生成 `PredicateInput`，缺失、不支持签名或非法开放字典按 `SCRIPT_CONTRACT_INVALID` 拒绝；§32.1、§32.2 |
+| 字面量键与访问有效性 | 已声明键合法；未知键、无法界定的动态键、缺失必需字段拒绝；E67/E75 |
+| `NotRequired` 缺失保护 | 对可缺失字段显式守卫或允许缺失的读取，直接不安全索引拒绝；§32.1 |
+| 返回 TypedDict 与输出校验 | 构建期生成严格 Output Schema 并验证声明；Runtime 缺少必需返回值或返回非对象记 `OUTPUT_SCHEMA_INVALID`；E66 |
+| `Literal` / `Annotated` / 不支持类型 | 仅接受 F.6 与 G.4 的有限注解和 Metadata；未知元数据/Any/动态泛型拒绝；不能因 Python 实现宽容而放行 |
+| 派生结果与跨平台一致性 | Native/WASM/Studio 使用相同 SourcePath、Schema、AST/类型结果与 `(Code, Phase)`；留下原始 Fixture、工具版本和差异记录；§45.2 第 3/4/8 项 |
 
 **当前裁决：CA-SL v1alpha3 语言及互操作规范 FROZEN；产品符合性 NOT QUALIFIED。** 实现使用的 CEL/Python/JSON Schema 解析器版本及其跨入口一致性，应在 §45.2 的实际符合性记录中明确；[实现基准澄清记录](design/ca-sl-v1alpha3-interop-clarifications-2026-11-14.md)及[资料性符合性报告模板](fixtures/ca-sl-v1alpha3-conformance-report.template.yaml)不取代原始 CI 与 Owner 证据。 规范源审查、YAML 解析或 PR 审批不等于第 1–8 项的实际测试通过。缺少必需的 Owner 契约或工具链符合性证据时，应阻止相应产品发布；语言语义的修订遵循 §45.1 的版本变更流程。审查范围、图检查结果及跨仓库事实见 [非规范性的冻结决策记录](design/ca-sl-v1alpha3-freeze-record.md)。
 
@@ -3241,6 +3254,17 @@ Observation 的 Effect 必须为 READ。READ 只能发布 SUCCEEDED / FAILED；M
 
 FAILED 不得允许 retryable；NOT_COMMITTED 只有同时满足可验证的未提交与无残留才可受控重试。`mutation.reconcile` 有 `callable/bind/proofSchema/proofPath`，其 `recoverableOutputSchema/recoverableOutputPath` 必须成对出现；`resourceOutputs[]` 各项需 `path/resourceKind/responsibilitySchema`。缺少声明不等于默认具备承诺。Proof、Owner receiptSchema 关联、原调用绑定或资源责任路径不可验证则拒绝链接或按 §20 停止。
 
+**Mutation / Reconcile 字段权威索引（Normative 字段与既有链接规则的交叉表；不增加新字段或触发条件）。** 每行的“验收”只是归纳 §9.2.1、§20、G.2/G.2.2 和附录 E 的已有约束；详细路径优先遵循 G.2.2，表格不能替代原条款的精确条件。
+
+| 已有抽象职责 | v1alpha3 字段 / 发布位置 | Compiler 链接校验 | Runtime 处理与参考用例 |
+|---|---|---|---|
+| Owner 普通输出、可信证明通道 | callable `outputSchema.$ref` / Mutation 与 Reconcile READ 各自的 `receiptSchema.$ref` | 精确 Schema `$id`、双通道独立根及路径（G.2.2） | 每次原调用与 Reconcile READ 的 receipt 分别验真；G.2.1、E107/E108 |
+| 原 Mutation 提交证明 | `mutation.commitProof.schema/path/bind` | `receipt.` 锚点、证明值 Schema 与 `originalInvocationId` 绑定 | 可信提交或未提交状态，不从业务输出猜测；E78、G.2.2 |
+| 失败类别、无残留及重试承诺 | `mutation.failureClassPath`、`failureClasses[].id/outcome/proofSchema/proofPath/noSideEffect/retryable` | 类别与 Owner Outcome 一致、证明路径和 Schema 可解析 | 无独立证明不得确定 FAILED/NOT_COMMITTED 或重发；§20.1–§20.2、E85 |
+| 调和目标及原调用关联 | 原 Mutation `mutation.reconcile.callable/bind/proofSchema/proofPath` | 同受信 Owner 的独立 READ、精确输入与 Scope/Capability/Proof；不得绕过普通调用限制 | 只对原 Invocation 调和至多一次；E60、E78、E107 |
+| COMMITTED 后恢复业务输出 | `mutation.reconcile.recoverableOutputSchema/recoverableOutputPath` | 两字段配对，路径在 Reconcile READ 的 `outputSchema` 根可验证 | 仅 COMMITTED 且有效时暴露子对象；E108/E109、G.2.1 |
+| 已确认变更与资源责任 | `resourceOutputs[].path/resourceKind/responsibilitySchema` | 可链接资源路径、种类与责任 Schema | 按 §12.8、G.5 保留资源/迟到结果责任；E23/E58 |
+
 ## F.2 CapabilityContracts
 
 部署授权输入须有 `apiVersion: connectionagent.io/capability-contracts/v1alpha3`、`kind: CapabilityContracts`、`spec.capabilities[]`。每个 Capability 有唯一非空 `id`、`owner` 和 `callables[]`。成员有 `owner/id/kind/effect`，已 Grant 成员必须有受信、可解析的 `scopePolicyRef`；拒绝全部也必须是明确命名的受信策略，不能通过缺省字段表达。缺少 Scope 不得默许放行。Effect 冲突在未 Grant 成员上也会报错，同一 Capability 重复成员拒绝，跨 Capability 的一致成员合法。交集和派发前重验按 §9.3。Skill 不能自报受信部署授权。
@@ -3250,6 +3274,19 @@ FAILED 不得允许 retryable；NOT_COMMITTED 只有同时满足可验证的未�
 独立发布的保证描述符导出键唯一。描述符有 `authority/fact/producers/scope/correlation/factValue/selection/freshness`，`producers[]` 各项有 `owner/kind/id/outcome/path`；须匹配 ToolCatalog 的真实 Producer 及 `provides.path`。路径为静态点分字段：`record` 根读取受信 Evidence；`query` 根读取 Observation 已物化实参；`arguments` 根读取 Operation 已物化实参；`execution` 根读取 Runtime 分配的 Invocation / Producer 调用身份。根与 Producer kind 不匹配时报 EVIDENCE_GUARANTEE_LINK_INVALID。
 
 `selection.mode` 为 exact 或 latest；latest 要求可信 `orderBy`；`freshness.timestamp` 为可信时间字段，`maxAgeMs` 为正整数且边界采用 §17.2 的严格小于规则。Scope / Correlation 使用可信记录、原调用实参、执行身份进行显式等值验证。需要独立来源时，Predicate 的 `evidence.independence` 只可指向已在 `evidence.requires` 出现的参数/保证对；Owner 提供 `sourceIdentity`（底层来源身份），跨 Owner 比较须有可信 `factIdentity`（共同事实身份与可比较映射）。来源不可比或无法证明的情况必须按 §17 拒绝链接或返回 UNKNOWN，Script 不能创造保证。
+
+**Evidence 描述符权威索引（Normative 字段的交叉表；不是新描述符 Schema）。** 精确结构及检查仍以 §17.1–§17.2、G.3/G.3.1 为准；Runtime 证据缺失、冲突与过期的诊断见 §24.2 / H。
+
+| 已声明属性 | 语义及链接依据 | Runtime / 典型失败 |
+|---|---|---|
+| `authority`、`fact` | 唯一可信事实权威与 Owner 内事实标识；不得靠命名推断跨 Owner 等价 | Owner 不匹配/事实键不可验证时按 §17 判定；E20/E102 |
+| `producers[]`（`owner/kind/id/outcome/path`） | 必须对应实际 ToolCatalog 导出、`guarantees.evidence.provides.path` 及精确值路径 | Producer 身份或保证链失配：`EVIDENCE_GUARANTEE_LINK_INVALID`；E19/E38/E46 |
+| `scope`、`correlation` | 对受信记录、原实参及本次 Invocation 做明确维度映射，绝不按同名字段自动关联 | Runtime 对错误 Scope/Correlation 的证据给 UNKNOWN；E20 |
+| `factValue` | 保证指向的实际业务事实值及其可比较型别 | 无效值/Schema/来源不能冒充有效保证；§17.2、E98 |
+| `selection` | `exact/latest` 及可靠的 `orderBy`；同一事实候选集合不得模糊挑选 | 过期/覆盖/冲突按 §17.2；E30/E40 |
+| `freshness` | 可信时间、正整数 `maxAgeMs` 与严格小于界限 | 过期为 UNKNOWN，门禁/终态复核失败安全停止；E31 |
+| `sourceIdentity` 与受信 `IndependentDomains` | 经授权的底层来源标识、无重复非自反域对；不是“两个 Ref 即独立” | 缺少可信绑定为 `EVIDENCE_GUARANTEE_LINK_INVALID`；静态不可满足为 `PREDICATE_EVIDENCE_UNSATISFIABLE`，本次同源为 UNKNOWN；E102/E106 |
+| `factIdentity`（跨 Owner） | 共同 namespace/fact、参与 Owner、Scope 归一化与可比值 Schema 受信绑定 | 无授权共同事实关系不能推断跨 Owner 一致性；G.3.1、E102 |
 
 ## F.4 可信依赖装配
 
@@ -3374,6 +3411,8 @@ Runtime 重做相同检查，对同一原调用最多派发一次受控 Reconcil
 `mutation.commitProof` 与 `mutation.reconcile.proofSchema/proofPath` 可以引用相同的**证明对象 Schema 身份**，但其具体证明值由**不同调用的 receipt** 分别承载。Schema ID 相同并不允许跨调用借用 receipt。正常的 `Owner SUCCEEDED` 不是 `Runtime COMMITTED`；Runtime 必须独立验证调和证明后才能产生后者（§20.3、G.2.2）。
 
 ### G.2.1 最小可构造契约
+
+**[Informative 教学 Fragment；字段结构及检查按 F.1/G.2/G.2.2 Normative 规则]** 以下两段仅为 `ToolCatalog.spec.contracts[]` 的 callable 条目，不是含 `apiVersion/kind/metadata/spec` 的完整发布文档。Schema 的精确 `$id` 与受信授权须另行装配；不要把示意值视为真实 Owner 已发布。
 
 ~~~yaml
 # ToolCatalog.spec.contracts[0] — 原 Mutation
