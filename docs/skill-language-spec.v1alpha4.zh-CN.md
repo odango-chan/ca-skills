@@ -739,7 +739,7 @@ Skill Studio 创建 Skill 时应让作者从可用的公共依赖目录和可信
 
 ### 11.6 动作预算
 
-`limits.maxActions` 可省略；省略时有效上限等于 Host 按部署策略提供的强制预算。若声明，必须是大于 0 的整数；每次外部 Operation、Observation 或 Reconcile 实际派发计一个 Action。每次本地 Procedure Script 执行开始计一个 Action。启动后的失败或不确定结果照计，启动前拒绝不计；受控再次尝试单独计数。Predicate 和终态发布不计 Action，仍受 Runtime 时间预算约束。Host 可另设内部节点预算，按进入业务 Node 计数。该预算由部署配置，不属于 Skill Contract。声明 Skill 上界时，有效上限为该值与 Host 上界的较小值。Admission 必须取得有效的 Host 上界。Host 上界缺失、不是正整数或为 0 时拒绝启动。不存在隐式 Runtime 默认值。该字段不影响 Capability Grant，不提供额外重试权限，也不能覆盖 Runtime 的 Deadline / Cancellation。
+`limits.maxActions` 可省略；省略时有效上限等于 Host 按部署策略提供的强制预算。若声明，必须是大于 0 的整数；每次外部 Operation、Observation 或由 Host 启动的 Reconcile READ 实际派发计一个 Action。每次本地 Procedure Script 执行开始计一个 Action。启动后的失败或不确定结果照计，启动前拒绝不计；受控再次尝试单独计数。Predicate 和终态发布不计 Action，仍受 Runtime 时间预算约束。Host 可另设内部节点预算，按进入业务 Node 计数。该预算由部署配置，不属于 Skill Contract。声明 Skill 上界时，有效上限为该值与 Host 上界的较小值。Admission 必须取得有效的 Host 上界。Host 上界缺失、不是正整数或为 0 时拒绝启动。不存在隐式 Runtime 默认值。该字段不影响 Capability Grant，不提供额外重试权限，也不能覆盖 Runtime 的 Deadline / Cancellation。
 
 vNext 不允许直接把 Operation ID 放入 Capability 授权列表，不允许 localTools，不允许把 Host 内部 dataclass 路径写入 Skill，不允许推断未发布的 Context 字段，也不允许使用物理 lib 路径充当公共依赖身份。
 
@@ -1370,42 +1370,33 @@ Runtime 只用可信且关联到本次原调用的证明记录提交状态。Own
 
 因停止条件裁决终态时，有任何已确认的 PENDING 记录则 SAFE_STOPPED。否则有未决提交状态或关键业务事实不可判定则 UNRESOLVED，其余按 §12.8 评估为 FAILED。处置状态只能在责任转移或清理得到验证后解除待处置。线格式随 Runtime Artifact Contract 审定。
 
-### 20.2 调和与受控新尝试
+### 20.2 Host 统一结果确认与受控新尝试
 
-唯一入边校验覆盖声明图，防止图编辑让原先不可达的非法入口随节点变为可达而继承未经审定的连接。删除多余入边或改接合法目的节点。Reconcile 的至多一次保证原调用责任和预算按单次调和尝试核算。UNRESOLVED 当前 Invocation 结束，后续独立处置由 Owner 负责；另一次查询可能看到新事实，须遵守独立的责任和准入契约。
+**Normative。** 原 Mutation 的 `OUTCOME_UNKNOWN` 不直接证明任何提交结论，也不授予重试许可；Host 使用 §12.7 受信 Owner `mutation.reconcile` 独立 READ，在同一次 Mutation Outcome 结算时最多执行一次安全确认。此确认是 Host 公共 Tool 执行能力的**安全处理**，在 LLM_ONLY / LLM_RUNTIME / RUNTIME_ONLY 中规则完全一致，不是确定性 Procedure Runtime 私有行为；LLM 不得直接持有该专用内部 READ callable 的权限，也不得将自由文本当成提交证明。
 
-1. 有安全 Owner 契约时，原 Mutation 阶段的 `operation.routes.OUTCOME_UNKNOWN` 必须直接指向对应的 Reconcile Node。反向校验也必须成立：每个 Reconcile Node 的唯一声明入边是进入该 Node 的跨 Node 路由，必须来自其 `reconcile` 所引用的 Mutation 的 Operation 阶段，且 Outcome 为 `OUTCOME_UNKNOWN`。Compiler 检查所有已声明路由，包括不可达 Node 的路由。Reconcile Node 不得用作 `start`。Runtime 校验实际进入的边、未决调用的身份和状态，以及本次授权、Scope、Correlation、预算、Deadline 和取消状态，对同一次原调用至多派发一次。Reconcile 不引入新的业务副作用。
-2. 没有安全契约时，OUTCOME_UNKNOWN 边必须直接指向 UNRESOLVED 或 SAFE_STOPPED。已有安全契约但当前不能派发时，Runtime 直接按 §12.8 停止。两种情况都保留原调用和责任。
-3. Reconcile 确认 COMMITTED 或 NOT_COMMITTED 时，更新原调用状态。若 COMMITTED 契约承诺恢复输出，只有有效的 Reconcile 自身输出才在 COMMITTED 后提供；提交已确认但承诺恢复的输出无效时，按 §20.1 的 COMMITTED_OUTPUT_UNAVAILABLE 停止。契约未承诺输出时，后续节点可以显式读取权威状态。原 Mutation 丢失的输出不可用。COMMITTED 只更新原调用的提交状态。要到达 SUCCEEDED，该路径须由之后的最终 Postcondition 聚合 PASS **直接**路由到 `SUCCEEDED`（§12.9）。
-4. Reconcile 缺少有效结论时沿 UNRESOLVED 边。该边必须直接指向 `UNRESOLVED` 或 `SAFE_STOPPED`，Runtime 按 §12.8 选择实际终态。普通业务查询不能替代原调用调和。
-5. 显式重发同一业务 Mutation 时，在普通 MUTATION Operation 上写 `retryOf: <original-mutation-node>`。目标必须是同一 Procedure 中另一普通 Mutation。Compiler 检查每条到达该重试 Operation 的可达路径均须经过目标原调用的 NOT_COMMITTED 边，或其唯一 Reconcile 的 NOT_COMMITTED 边。经过原调用本身不能满足路径检查。Compiler 还要求两侧链接到兼容的 Owner 业务身份规则及允许重试的契约。引用非法、覆盖不足或契约不兼容报 `RETRY_CONTRACT_INVALID`。Runtime 在派发前比较物化后的业务身份，复核原调用绑定、可信未提交证明、重试许可及无遗留副作用保证。失败时记 `RETRY_ADMISSION_DENIED`，按 §12.8 直接停止。未声明 retryOf 的 Mutation 在 Runtime 检出与本 Invocation 既有调用的业务身份相同，也必须拒绝重复派发。每条未提交证明至多授权一次实际新派发，由 Runtime 原子消费。一次新尝试获得独立调用身份。Compiler 不靠节点名称推断业务身份。
+1. **确认准入：** 原业务 Mutation 必须真实已派发、状态未决，且原调用/请求/Scope/Correlation 已持久化。Host 从受信 Owner `mutation.reconcile.callable` 精确定位同 Owner 的 READ callable，独立验证 Capability Grant、Scope、Deadline、取消、Action Budget 和不可变原调用身份；任何缺失都不得发起恢复 READ 或重新发业务 Mutation。无安全契约、独立授权缺失或预算不足时保留 `OUTCOME_UNKNOWN` 并安全终止，保存迟到结果责任。
+2. **状态归并：** 受信证明已提交且恢复业务输出完整满足**原 Mutation 的普通成功输出契约及 Evidence** → 原 Operation `SUCCEEDED`；已提交但 Owner 没有承诺恢复输出 → 原 Operation `COMMITTED`，不得伪造 `operation.output`；已提交且承诺恢复输出却损坏/缺失 → `COMMITTED_OUTPUT_UNAVAILABLE` 强制安全停止；受信证明未提交 → 原 Operation `NOT_COMMITTED`；无足够证明 → `OUTCOME_UNKNOWN`。这里的 COMMITTED 只证明提交，不能被当成最终业务 Goal PASS。已完成的原 Mutation 和本次恢复 READ 分别记账，恢复读取不得继承原 Mutation Capability。
+3. **显式业务重试：** 只有原 Operation `NOT_COMMITTED` 且 Owner 证明 `retryable:true`、`noSideEffect:true` 时，作者才可通过其 `NOT_COMMITTED` 路由进入一个**不同业务 Node**，在新的普通 MUTATION Operation 上声明 `retryOf: <original-mutation-node>`。Compiler 必须证明到达该重试 Node 的每一条可达路径均经过该原 Mutation 的已证实 `NOT_COMMITTED` 边；仅到达过原 Node 不够。Compiler 还须核对 Tool/Owner 业务身份可兼容，Scope、Schema 与允许重试的受信契约；否则 `RETRY_CONTRACT_INVALID`。不得从 `COMMITTED`、`SUCCEEDED`、`OUTCOME_UNKNOWN`、`FAILED` 或旁路直接授权同一业务身份重试。
+4. **次数与预算：** 默认重试次数 **0**（没有显式 `retryOf` 不重发）。本版一个原逻辑 Mutation 家族最多允许**一次**新的业务派发，即原调用至多 1 次 + 显式受控 Retry 至多 1 次；`retryOf` 指向原始非重试 Node，禁止重试节点再声明 `retryOf` 形成第二代重试。Compiler 对违反此结构的可达图报 `RETRY_CONTRACT_INVALID`；多个分支候选引用同一原 Node 可同时存在，但 Runtime 对同一逻辑原调用家族建立唯一的**原子重试资格消费记录**，第一个实际获准派发的候选消耗许可，其余候选报 `RETRY_ADMISSION_DENIED` 并保全停止。Host/部署可再收紧至 0，不得放宽到 2；`limits.maxActions` 同时限制原调用、恢复 READ、新派发等实际 Action，不能以它替代独立 Retry 上限。每次新派发生成独立调用身份、责任记录和证明链。
+5. **失败关口：** Runtime/Host 派发前比较物化业务身份及有效原调用的受信未提交证明、当前 Scope/授权、Deadline、取消、Action Budget、无副作用和重试许可；任何一项不能验证，`RETRY_ADMISSION_DENIED` 并按 §12.8 安全停止，不能绕过这一判定。未声明 `retryOf` 的同业务身份第二次 Mutation 必须拒绝。恢复 READ 自己的重试、网络超时后的隐式业务重发、自动回跳先前 Node、通用 Retrier 包装均不属于 v1alpha4 许可的重试行为。
+6. **终止与责任：** `OUTCOME_UNKNOWN` 只允许路由到 `UNRESOLVED` / `SAFE_STOPPED` 并由 §12.8 计算实际终态，不能继续调用新的业务 Mutation；任何已确认待处置变更按 SAFE_STOPPED 优先。确定已提交但没有可用输出的 `COMMITTED` 路径可进行独立权威 Observation 及随后最终 Postcondition 验证，也可安全停止；不得从该结果直接到 `SUCCEEDED`。后续独立 Invocation 可由 Owner 另行处置，但不继承本次消费过的 Retry 资格。
 
-**`retryOf` 路径验收示意（Informative）。** 以下均为同一原 Mutation、同一受信业务身份的可达控制流；前提是 Owner 明确允许重试、原调用未提交证明有效且没有残留副作用。
+**对应历史模型的约束：** 早期以 `NOT_COMMITTED: original-node` 构造的回边不再合法，因为本版单次 Invocation 必须是 DAG 且每个 Stage 至多执行一次。历史 Runtime 的 `controlledRetry` 不再是隐式重试授权，只有作者显式 `retryOf`、Owner 许可与 Host 安全准入同时成立才派发。LLM 的再次 Tool 请求也受同一 Retry 家族去重、证明、预算和责任约束，不能被当成新任务绕过原操作身份。
 
-| 路径 | §20.2 静态验收 | 原因 |
-|---|---|---|
-| `create-session` 的 `OUTCOME_UNKNOWN` → 唯一 `reconcile-session` 的 `NOT_COMMITTED` → `retry-session`（声明 `retryOf: create-session`） | 符合路径覆盖条件；仍须验证 Owner/Scope/Proof/Capability | 所有到达重试的路径均经过**该原调用**的已证明 `NOT_COMMITTED` 出边 |
-| `create-session` 的 `NOT_COMMITTED` → `retry-session`（相同 `retryOf`） | 符合路径覆盖条件；仍须独立检查无残留副作用及重试许可 | 直接的原调用 `NOT_COMMITTED` 出边同样可构成证明 |
-| `create-session` 的 `SUCCEEDED` → `retry-session`，或旁路 Node → `retry-session` | `RETRY_CONTRACT_INVALID`，阻断构建 | 存在一条到达重试的路径没有经过目标原调用或其唯一 Reconcile 的 `NOT_COMMITTED` 出边 |
-| 汇合路径：一条经 `reconcile-session.NOT_COMMITTED`，另一条从未证实状态直接进入 `retry-session` | `RETRY_CONTRACT_INVALID`，阻断构建 | 合流时不得把一条路径取得的未提交资格授予其他路径 |
+### 20.3 Reconcile Owner 回包分类（仅 Host 内部使用）
 
-**多个 `retryOf` 候选与同一未提交证明（Informative；不新增静态禁令或结果码）。** 本版未规定不同合法重试 Node 不得引用同一原 Mutation；但静态 `retryOf` 路径覆盖只证明**可达前提**，不会给每个 Node 各发一张重试资格。Runtime 对**同一个原 Mutation Invocation 的已验证未提交凭证**建立唯一消费记录：实际派发新的业务 Mutation 前，必须在原调用/证明/Scope/业务身份均验证后**原子抢占并消费一次**，成功者取得独立新 Invocation；其余候选（即使静态图上合法、另一个分支仍可达）不得复用同一证明，按现有 `RETRY_ADMISSION_DENIED` 保全停止。审计中保留原 Invocation ID、证明引用/验证结果、每个候选 Node/新调用身份、抢占/已消费状态和拒绝原因；不同执行调度不能使同一证明多次授权。**这里不新增并发调度顺序保证、不要求静态拒绝全部多候选图，也不改变 §20.2 第 5 项的受信前提。**
+**Normative。** 受信 Reconcile Owner 业务结果集必须包含 SUCCEEDED，可声明 FAILED；其 callable 是普通独立 READ 导出，但仅 Host 根据原 Mutation `mutation.reconcile` 内部引用，**不属于作者可直接使用的 `operation.tool`、`observation.tool`**。Host 分别校验该 READ 回包结果、原调用绑定的提交证明及可恢复输出，证据来自受信声明的 receipt/output Schema 并匹配已持久化原调用、Scope 与 Correlation。
 
-本表不改变 `UNRESOLVED` 的终止责任、`NOT_COMMITTED` 的一次性消费规则，也不将普通 Observation 代替原调用 Reconcile；精确判断仍以本条第 5 项为准。
-
-### 20.3 Reconcile Owner 回包分类
-
-**Normative。** Reconcile Owner 业务结果集必须包含 SUCCEEDED，可声明 FAILED。该集合由调和 callable 自身发布。Runtime 分别校验回包分类、原调用绑定的提交证明和恢复输出。证据须来自该契约声明的证明位置及 Schema，并匹配持久化的原调用身份、业务身份、Scope 和 Correlation。
-
-| Owner 回包及独立证明 | Runtime 行为 |
+| Reconcile READ Owner 回包及受信证明 | Host 对**原 Mutation** 的归并 |
 |---|---|
-| SUCCEEDED，可信证明已提交，承诺的恢复输出通过校验或未承诺恢复 | COMMITTED。仅发布已验证的恢复输出 |
-| SUCCEEDED，可信证明已提交，承诺的恢复输出缺失或不合法 | 记录已提交与 COMMITTED_OUTPUT_UNAVAILABLE，隔离输出，按 §12.8 直接停止 |
-| SUCCEEDED，可信证明未提交 | NOT_COMMITTED。重试许可与无遗留副作用保证单独校验 |
-| 已声明 FAILED、超时或证明不足、冲突 | 经独立验证且无冲突的提交结论仍记录。无有效结论时沿 UNRESOLVED，保留原调用责任。若独立证明已确定结论但回包无法进入正常分支，按 §12.8 直接停止 |
-| 未声明或不可识别的 Owner 结果（包括 Owner 自行返回 COMMITTED / NOT_COMMITTED / UNRESOLVED） | 隔离回包，保存可独立验证的原提交状态与责任，按 §24.2、§12.8 直接停止 |
+| SUCCEEDED，可信提交证明，恢复输出存在且完整满足原普通成功输出 Schema/Evidence | 原 Operation SUCCEEDED；保留恢复调用/实际 Producer lineage |
+| SUCCEEDED，可信提交证明，Owner 未承诺恢复成功输出 | 原 Operation COMMITTED；无 `operation.output`，允许作者显式观察或安全终止 |
+| SUCCEEDED，可信提交证明，承诺的恢复输出缺失或无效 | `COMMITTED_OUTPUT_UNAVAILABLE`，保留已提交与责任并强制按 §12.8 停止 |
+| SUCCEEDED，可信证明未提交 | 原 Operation NOT_COMMITTED；是否允许重试仍按 §20.2 第 3–5 项独立检查 |
+| 已声明 FAILED、超时、证明不足或互相矛盾 | 原 Operation OUTCOME_UNKNOWN，保留独立验证过的事实及责任；不存在可授予重试的证明 |
+| Owner 回包是未声明或保留 Runtime 值（包括自行返回 COMMITTED/NOT_COMMITTED/UNRESOLVED） | `OWNER_OUTCOME_UNDECLARED`，隔离回包；若原 Mutation 提交状态仍不明，保持 OUTCOME_UNKNOWN 并安全停止 |
 
-**Normative。** §9.2.1 的 `reconcile` 示例可引用单独发布的调和 callable。该 callable 的结果集、证明路径与原调用绑定均须可解析，不能用恢复输出替代提交证明。
+**无隐式回退：** Host 不得从普通 Owner READ 的同名字段、未受信的 LLM 提示、其他 Invocation 的 Evidence 或常规 Observation 猜测提交状态。§G.2 的证明与恢复通道规则不因从作者节点移至 Host 而放宽。
 
 ## 21. 异步 Operation：没有 Skill Wait
 
