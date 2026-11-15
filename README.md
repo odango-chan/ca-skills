@@ -8,7 +8,9 @@ Official Skill source and Skill-language contract for ConnectionAgent.
 
 **This repository is the only authoritative input for official Skill source and language semantics.** `ca-agent-demo` is used as a current behavior/implementation reference when refreshing examples; Compiler and Studio consume the official source from this repository.
 
-## Current 5GC source
+## Current 5GC source (legacy v0.2/v1alpha1; not CA-SL v1alpha4)
+
+**Version boundary:** CA-SL v1alpha4 is the current frozen language. The 5GC source and ToolCatalog below are legacy behavioral baselines, not v1alpha4-conforming files. No Owner publication or product qualification is implied.
 
 | Package | Purpose | Source status |
 | --- | --- | --- |
@@ -21,7 +23,7 @@ The current 5GC business flows and scalar Operation `call` identities are preser
 
 ## Language and authoring
 
-- [Skill Language Specification v0.2](docs/skill-language-spec.md)
+- [Current CA-SL v1alpha4 language specification](docs/skill-language-spec.md)
 - [Script Contract v0](docs/script-contract.md)
 - [Schema Ownership](docs/schema-ownership.md)
 - [Authoring Model](docs/authoring-model.md)
