@@ -720,7 +720,7 @@ nodes:
 - `skillType`：vNext Skill 都使用统一执行模型；除非未来出现有实质语义差异的 Skill 类型，否则不作为必填字段。
 - `entryProcedure`：每个 Skill 只有一张入口 Procedure 图，入口由唯一 `procedure.yaml` 确定。
 - `precondition`（**仅 Contract**）是可省略的**单一**全局门禁阶段引用，必须是精确 `<node-id>.precondition` 字符串；不存在“空列表”等价语义，省略表示没有全局前置阶段，空值、数组、对象与不存在的阶段均按 `ENTRY_PRECONDITION_REF_INVALID` 拒绝。此字段不能引用内部某个 Predicate，也不允许把多个独立前置阶段写成列表。若业务要组合多个全局前置事实，请放进该 Node 的 `precondition.predicates` 非空列表。Procedure 其他 Node 仍可拥有局部 Precondition。Contract 不声明 `postcondition` 或 `postconditions`，最终成功只由 Procedure 的最终 Postcondition 聚合 PASS 直达 `SUCCEEDED` 证明。
-- 全局 Postcondition 的验收目标由 `goal` 指定。Procedure 的显式 Postcondition 阶段提供该 Goal 的证明，记录 arguments、执行位置、Evidence lineage 和三态结果。
+- 最终目标由 Contract 的唯一 `goal` 指定；Procedure 的**最终** Postcondition 阶段以聚合 PASS 直接请求 SUCCEEDED 证明该目标，并记录每个 Predicate 的 arguments、执行位置、Evidence lineage 和三态结果；不允许在该阶段重复配置 `goal`。
 - `inputs`、`context.requiredFacts`、`context.schemas`：旧包装与拆分声明。公共请求和 Host 上下文分别通过顶层 `requestSchema`、`contextSchema` 声明，字段必需性由对应 Schema 和 Host 准入规则约束。
 - `evidenceSchema`：通用 Evidence Envelope 由 Host / Runtime 统一定义和校验，不由 Skill 重复声明。
 - `planning.allowDynamicProcedure`：不再需要。vNext Procedure 是静态 DAG，动态生成执行图不属于语言能力。
@@ -1624,7 +1624,7 @@ Compiler 不得自动补造 Schema、以开放对象规避类型检查、推断�
 | SCRIPT_EXECUTION_FAILED | Procedure Script 抛出异常。保留执行失败原因，沿 FAILED 边，无成功输出 |
 | OUTPUT_SCHEMA_INVALID | 已解码的外部输出或 Procedure Script 的正常返回值未通过输出 Schema 校验。隔离输出。Procedure Script 沿 FAILED 边。READ / Observation 沿已声明的 UNKNOWN 边，未声明时按关键事实不确定停止。Mutation / Reconcile 按 §20.1 / §20.2 独立核验提交证明 |
 | SCOPE_MISMATCH / CORRELATION_MISMATCH | **已派发**的 READ / Observation 回包不满足本次 Scope 或 Correlation 时隔离输出；有已声明 UNKNOWN 边则沿 UNKNOWN，否则按关键事实未决停止。已派发 Mutation / Reconcile 必须按 §20 独立核验原调用的提交证明、保留责任；Predicate 所需 Evidence 不匹配时 Predicate 返回 UNKNOWN。派发前的授权 Scope 交集为空属于 `SCOPE_INTERSECTION_EMPTY`，普通 callable 才可按 §24.2 沿已声明 DENIED 边；不得将回包校验失败重分类为授权拒绝或沿 DENIED 边继续 |
-| EVIDENCE_MISSING / EVIDENCE_STALE / EVIDENCE_CONFLICT | Predicate 沿 UNKNOWN；入口或 Goal PASS 复核失败按 §12.8 停止；调用结果的强制保证无效时按 §20.1 或本节失败规则处理 |
+| EVIDENCE_MISSING / EVIDENCE_STALE / EVIDENCE_CONFLICT | Predicate 沿 UNKNOWN；入口全局门禁或最终 Postcondition PASS 复核失败按 §12.8 停止；调用结果的强制保证无效时按 §20.1 或本节失败规则处理 |
 | DEADLINE_EXCEEDED / CANCELLED | 不再派发任何 Procedure 动作。记录已派发调用的已知状态及迟到结果责任，按 §12.8 停止 |
 | OUTCOME_UNKNOWN | 按 §20 调和原 Mutation 或停止并保留责任 |
 | RECONCILE_UNRESOLVED | 沿 Reconcile 的 UNRESOLVED 边请求停止，实际终态按 §12.8 |
@@ -2492,7 +2492,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 
 1. Tool / Observation / Evidence Owner 发布精确 Input/Output/Proof/Reconcile、资源责任、Scope、Correlation、Freshness 和结果分类的正式导出。
 2. Deployment 提供受信 CapabilityContracts、Scope 策略和对每份快照摘要/Package ID/Owner 归属的可信绑定。
-3. Compiler 在 CI 中执行附录 E01–E120 的适用正反例（包含 G.9），覆盖错误码、类型、SourcePath、Evidence、图可达性及 Goal/Precondition 证明传播。附录 H 中标记为“部分覆盖”或“待 Fixture”的诊断仍需通过独立的、与 `(Code, Phase)` 精确对应的可执行用例验收。本文件**附录 K 的资料性诊断 Fixture 缺口表**用于跟踪候选输入，**不增加 E01–E120 的规范性编号范围，也不构成 CI 通过证据**。声称符合本版的实现不得以 E 编号完整代替对未覆盖诊断的校验。
+3. Compiler 在 CI 中执行附录 E01–E120 的适用正反例（包含 G.9），覆盖错误码、类型、SourcePath、Evidence、全局 Precondition 必经性、汇合 AND 以及最终 Postcondition 直接成功边。附录 H 中标记为“部分覆盖”或“待 Fixture”的诊断仍需通过独立的、与 `(Code, Phase)` 精确对应的可执行用例验收。本文件**附录 K 的资料性诊断 Fixture 缺口表**用于跟踪候选输入，**不增加 E01–E120 的规范性编号范围，也不构成 CI 通过证据**。声称符合本版的实现不得以 E 编号完整代替对未覆盖诊断的校验。
 4. Native / WASM / Studio 同一输入返回相同的链接和诊断结果；LSP 补全与检查共用规范源，不能发明不同解释。
 5. Runtime / Host 验证安全派发、预算、Deadline、取消、Reconcile、并发隔离、证据复核、Trace 和资源责任终态。
 6. 三个 5GC 异步完成 Operation 由其 Owner 确认；将真实 5GC Skill 迁移后执行 36 个 Case 的 vNext 回归；MAS 不列入已完成的运行验收基线。
@@ -2665,7 +2665,7 @@ Invocation Context 提供 Host 在准入时已经确认的 UE 和入口、生命
 
 ## 76. COMMITTED 后的 Goal 验收
 
-COMMITTED 只确认原 Mutation 已提交，可按 Owner 契约恢复该调用的部分输出。此前局部 Postcondition 的 PASS 不能覆盖后续 Mutation 的影响。§30 的 UDM Reconcile 提交分支继续到 PCF，最终仍执行 Goal Postcondition；直接从 COMMITTED 走到 SUCCEEDED 会被 Compiler 拒绝。`COMMITTED → READ SUCCEEDED → 最终 Postcondition 聚合 PASS: SUCCEEDED` 可以通过成功边检查。若该分支进入停止终态，则按 §12.8 判断，无需 Goal PASS。
+COMMITTED 只确认原 Mutation 已提交，可按 Owner 契约恢复该调用的部分输出。此前局部 Postcondition 的 PASS 不能覆盖后续 Mutation 的影响。§30 的 UDM Reconcile 提交分支继续到 PCF，最终仍执行最终 Postcondition；直接从 COMMITTED 走到 SUCCEEDED 会被 Compiler 拒绝。`COMMITTED → READ SUCCEEDED → 最终 Postcondition 聚合 PASS: SUCCEEDED` 可以通过成功边检查。若该分支进入停止终态，则按 §12.8 判断，无需 Goal PASS。
 
 ## 77. Evidence 更新与 Predicate 证明绑定
 
@@ -2727,14 +2727,16 @@ PASS 是 Runtime 对当前命题的判断。Compiler 使用 Producer 成功 Sche
 
 当前 Invocation 以一次调和尝试裁决执行路径，并按 §11.6 计费。UNRESOLVED 后由 Owner 按独立责任契约处理；后来取得的新证据可以支持该处置。见 §20.2。
 
-### Goal 证明传播示例
+### v1alpha4 最终验收直接成功的路径示例（Informative）
 
 ~~~mermaid
 flowchart LR
-    A["Goal PASS：建立证明"] --> B["Mutation SUCCEEDED：清除证明"]
-    B --> C["Goal PASS：重新建立证明"]
-    C --> D["SUCCEEDED：运行复核"]
+    A["全局 Precondition 聚合 PASS"] --> B["Mutation / Reconcile"]
+    B --> C["最终 Postcondition 聚合 PASS"]
+    C --> D["SUCCEEDED：复核 Evidence 与责任"]
 ~~~
+
+此图只显示正常成功路径，不表示 Mutation 的阶段 Outcome 可以直接发布 Invocation 终态，也不表示此前的局部 PASS 可跨节点充当 Goal 证明。
 
 # 附录 A：关键设计决定
 
@@ -2758,7 +2760,7 @@ flowchart LR
 | D-16 | Build / Runtime / Network Acceptance 分层 | 不混淆成功含义 |
 | D-17 | 多 UE / 多 Session 使用精确 Scope | 不用全局最新状态猜测 |
 | D-18 | MAS 不作为第一可执行验收基线 | 先以真实 5GC Skill 验证 |
-| D-19 | 业务 Node 可组合四个阶段 | 按 Precondition → Operation → Observation → Postcondition 执行，阶段路由可直接指向终态 |
+| D-19 | 业务 Node 可组合四个阶段 | 按 Precondition → Operation → Observation → Postcondition 执行；停止终态可由阶段路由请求，成功终态仅允许最终 Postcondition 聚合 PASS 直接请求 |
 | D-20 | Predicate 是确定性计算 / 判断定义 | 由 Precondition / Postcondition 调用；CEL 或 Python 实现，不设 computation Node |
 | D-21 | Observation 遵循结果充分性原则 | Operation Result 足够时直接验证，不强制 Observation |
 | D-22 | 调用参数统一使用 arguments | Operation / Observation 具名映射；Predicate 有序位置参数；删除 with/from/value 包装 |
@@ -2769,7 +2771,7 @@ flowchart LR
 | D-27 | Reconcile 结果不隐式恢复原成功输出 | 原始响应缺失时使用 Owner 明确保证的恢复输出或独立 Observation |
 | D-28 | Host Context 由单一 Owner Schema 描述 | Host 负责准入及关联校验，Procedure 用显式查询获取动态状态 |
 | D-29 | 可选 limits.maxActions | 只允许收紧 Host 强制正数预算，不得增加授权或重试权限 |
-| D-30 | 全局前置条件和 Goal PASS 覆盖所有成功路径 | 前置条件全部满足，同一 Goal 可由各分支的 Postcondition 分别证明 |
+| D-30 | 单数全局门禁与最终 Postcondition 约束所有成功路径 | 唯一全局前置阶段（若存在）必经且整体 PASS，各分支必须由自己的最终 Postcondition 聚合 PASS 直达成功 |
 | D-31 | Predicate 明确声明所需 Evidence 保证 | Compiler 检查绑定，Runtime 验证实际证据 |
 
 # 附录 B：历史实施事项（非现行符合性门槛）
@@ -3174,7 +3176,7 @@ E39、E43 的 ca 快照基线：将可信 Owner 集合设为 `[example-ue-owner,
 
 | 用例 | 基线与最小改动 | 预期 |
 |---|---|---|
-| E17 | §12.1 的正常与 Reconcile 路径，各自通过 Goal Postcondition 后各自沿 PASS 路由到 SUCCEEDED | 静态证明覆盖检查通过 |
+| E17 | §12.1 的正常与 Reconcile 路径，各自由最终 Postcondition 聚合 PASS 直接路由 SUCCEEDED | 两条成功路径分别通过最终成功边的静态检查；无需 Goal 标记和跨 Node 证明传播 |
 | E18 | 在 §12.1 中删除 `reconcile-subscription` 的 Observation 与 Postcondition，并设置 `operation.routes.COMMITTED: SUCCEEDED` | SUCCESS_BYPASSES_FINAL_POSTCONDITION。即使正常分支另有合法最终 Postcondition，该 Reconcile 分支也不得直接请求 Invocation SUCCEEDED |
 | E10 | 将 §12.1 的 `reconcile-subscription.observation.arguments.subscriptionRef` 改为 `create-subscription.operation.output.subscriptionRef`，并让原 Mutation 的 SUCCEEDED 输出 Schema 声明必需的 `subscriptionRef` | SOURCE_NOT_AVAILABLE，当前分支没有该 SUCCEEDED 输出。若该 Schema 未声明此字段，则按 §13.3 报 SOURCE_PATH_INVALID |
 | E41 | `start` 指向 E.8 的 `verify-subject`，它的 PASS 直接路由到 `SUCCEEDED` | Goal 覆盖通过。初始无证明，PASS 建立证明 |
@@ -3282,14 +3284,15 @@ predicates:
 | E90 | 分别使用 `ue.registration_verified`、含空格的 GoalId 和含空段的 GoalId，正常参数与裸 `context` 分别绑定 | 合法 GoalId 可解析；两个非法 GoalId 构建失败；裸 context 报 SOURCE_PATH_INVALID |
 | E91 | 在同一快照的两个 ToolCatalog 文件中声明相同 callable ID，即使 kind 或 Owner 不同 | EXPORT_ID_AMBIGUOUS |
 
-### E.10 证明传播验收矩阵
+### E.10 单数全局门禁与最终成功边验收矩阵
 
-| 边 | passed | proof | 用例 |
+| 边或场景 | 全局门禁 passedGlobal | Goal 最终成功判定 | 用例 |
 |---|---|---|---|
-| 全局 Precondition PASS 自动推进或显式路由 | 加入该引用 | 保留 | E45、E61 |
-| 普通 Mutation SUCCEEDED 自动推进或显式路由 | 保留 | 清除 | E64 |
-| Goal Postcondition PASS 到终态 | 保留 | 建立，并检查终态边 | E17、E41 |
-| 局部 PASS 在汇合后继续 | 对可达入边取交集 | 对可达入边取 AND | E51、E65 |
+| Contract 引用的 Precondition 聚合 PASS（自动推进或显式路由） | 设置 true | 尚未完成目标证明 | E45、E50、E61 |
+| READ、Observation、Script、Mutation 的正常推进 | 保持其可达路径原门禁状态 | 不产生可携带的 Goal 证明，不能直接终态成功 | E64、E100 |
+| 最终 Postcondition 聚合 PASS 直接路由 SUCCEEDED | 必须满足（若声明） | 本条边建立并验证最终 Goal 证明 | E17、E41、E117 |
+| 两条可达路径汇合，至少一条绕过全局 Precondition | 取全部可达入边的逻辑 AND | 若仍缺门禁，后续 Mutation 或终态必须拒绝 | E51、E120 |
+| 局部 Postcondition PASS 后继续到另一个 Node | 保留 | 不建立可继承的成功证明，后续必须另有最终 Postcondition | E42、E65、E100 |
 
 ### E.11 规则与诊断索引
 
@@ -3320,7 +3323,7 @@ predicates:
 - E40 保留严格的绑定替换规则。即使值相同，新记录也可能改变可审计的版本、时点及证据组合，因此旧判断不自动继承新记录。长流程可在接近成功发布时重新读取并求值。在本版语义下，采用新记录必须经显式 Producer 绑定，并由最终 Postcondition 聚合 PASS 直接请求 SUCCEEDED。Owner 可另行提案评审不同的重绑定策略。
 - §17.1 的身份和关联值豁免只覆盖其作为比对基准的用途。若 Predicate 以这类输入单独主张外部事实，Owner 须补充权威取证，不能依赖该豁免通过语义评审。
 - §44 最小兼容规则：源码使用目标语言版本明确支持的 Schema 子集。Owner 工件版本须有该版本的解码器并能映射到同一抽象规则。Schema 依赖按精确 ID 链接。Skill Package Revision 不隐式提升任何契约版本。
-- Studio 与 Compiler 共用路由、诊断和 Evidence 规则。不可达节点仍检查语法、链接和 Reconcile 入边，门禁与证明只传播可达边。
+- Studio 与 Compiler 共用路由、诊断和 Evidence 规则。不可达节点仍检查语法、链接和 Reconcile 入边，全局门禁只传播可达边，Goal 仅由可达的最终 Postcondition PASS→SUCCEEDED 证明。
 
 ### E.14 扩展符合性用例
 
@@ -4274,7 +4277,7 @@ flowchart TD
 | E117 | 静态链接 + Goal 运行复核 | NOT_IMPLEMENTED |
 | E118 | 静态参数/类型/Evidence | NOT_IMPLEMENTED |
 | E119 | 静态结构负例与诊断优先级 | NOT_IMPLEMENTED |
-| E120 | 全局门禁与 Goal 证明传播 | NOT_IMPLEMENTED |
+| E120 | 单数全局门禁、汇合 AND 与最终成功直达检查 | NOT_IMPLEMENTED |
 
 ## K.2 诊断 Fixture 负例候选（Informative，DFX-001–DFX-041）
 
@@ -4375,19 +4378,19 @@ nodes:
 | RFX-119 · §24/H | 校验 H 的 `(Code,Phase)` 唯一性，并注入已派发 READ/Observation 的 Scope/Correlation 回包失配 | 不得合并跨阶段诊断；回包失配只能隔离并按已声明 UNKNOWN 或安全停止，不得改走派发前 DENIED |
 | RFX-120 · F.5/G.4 | 各自注入不支持的 `allOf/anyOf/oneOf/not/if-then-else`；再测试有效 Schema 之间的静态不可赋值 | 前一组 `SCHEMA_INVALID`，后一组（非可空性专用错误时）`INPUT_TYPE_MISMATCH` |
 | RFX-121 · §34.0.2/F.4/G.3.1 | 独立域关系缺失、重复、自反、越权；关系合法但本次两个 Ref 同源；关系与本次来源都确实独立 | 受信关系无效则静态 `EVIDENCE_GUARANTEE_LINK_INVALID`；本次不独立时 Predicate UNKNOWN；全部通过才业务求值 |
-| RFX-122 · §12.8/§20/G.5 | Goal PASS 且还有已认证 PENDING 责任；对照所有确认责任已验证转移/清理且其他门禁满足 | 前者发布 `SAFE_STOPPED` 并保留责任；后者也只有在所有门禁、提交和证据复核通过后才可发布 Invocation `SUCCEEDED` |
+| RFX-122 · §12.8/§20/G.5 | 最终 Postcondition 聚合 PASS 且还有已认证 PENDING 责任；对照所有确认责任已验证转移/清理且其他门禁满足 | 前者发布 `SAFE_STOPPED` 并保留责任；后者也只有在所有门禁、提交和证据复核通过后才可发布 Invocation `SUCCEEDED` |
 
 所有 RFX 项的执行状态都是 **NOT_IMPLEMENTED**，不为它们分配新的规范性诊断代码。
 
-### K.3.1 §12.9 证明传播的三类最小候选（Informative）
+### K.3.1 §12.9 单数全局门禁与直接成功边的三类最小候选（Informative）
 
 以下只是进一步拆分 §12.9 已有不变量的测试计划，**不是**新增正式 E 编号，也没有真实执行结果：
 
 | 候选 | 最小控制流对照 | 冻结预期 |
 |---|---|---|
-| `PFX-JOIN-PRE` | 两条可达边合流，一条具有全局 Precondition PASS，另一条绕过 | `passed` 取交集，合流后的 Mutation / SUCCEEDED 不得借一条边证明所有路径 |
-| `PFX-JOIN-GOAL` | 一条路径建立 Goal PASS，另一条没有 Goal PASS，随后在同一 Stage 合流 | `proof` 取 AND，合流后不可直达受承诺的 Invocation SUCCEEDED |
-| `PFX-AUTO-REBUILD` | 同 Node 自动推进经过 MUTATION SUCCEEDED；对照后续 Goal Postcondition PASS 与仅局部 Postcondition PASS | Mutation 清除旧 `proof`，只有精确 Goal PASS 可重建；局部 PASS 只能保留，不能创建证明 |
+| `PFX-JOIN-PRE` | 两条可达边合流，一条经过唯一全局 Precondition 聚合 PASS，另一条绕过 | `passedGlobal` 取 AND，合流后的 Mutation / SUCCEEDED 不得借另一条路径的门禁 |
+| `PFX-JOIN-GOAL` | 两条路径在普通业务 Node 合流：一条此前通过局部 Postcondition PASS，另一条没有；从合流 Node 的 Operation/Observation 直接请求 SUCCEEDED | 无可携带 Goal 证明，最终成功必须来自某个后续 Postcondition 聚合 PASS 直达 SUCCEEDED；旁支的旧 PASS 不授权成功 |
+| `PFX-AUTO-REBUILD` | 同 Node Mutation SUCCEEDED 自动推进；对照最终 Postcondition PASS→SUCCEEDED、局部 Postcondition PASS→下一 Node 后直接终态 | 只有前者的**最终阶段聚合 PASS 直接终态**合法；局部 PASS 不构成 Goal 证明，即使前面发生过其他局部 PASS 也不能授权终态 |
 
 所有候选 `fixtureExists=false`、`executed=false`、`passed=false`、`rawResultRef=null`；实现时须依据 §24.1/§12.9 选取确切既有诊断和优先级，不新增语言路由规则。
 
@@ -4550,7 +4553,7 @@ diagnosticMatrix:
       rawResultRef: null
     - code: CONTROL_FLOW_AMBIGUOUS
       phase: C_STATIC
-      specExpected: "§24.1/H: mutually exclusive Operation targets in one YAML mapping"
+      specExpected: "§24.1/H: mutually exclusive Operation call forms (tool/script) in one YAML mapping"
       representability: CONSTRUCTIBLE_NOT_EXECUTED
       fixtureExists: false
       executed: false
