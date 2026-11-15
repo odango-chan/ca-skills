@@ -995,6 +995,8 @@ Trace 记录选中的终态路由和实际发布值。两者不同时另记 `TER
 
 Host 在派发 Mutation 前记录原调用身份和负责处理结果的 Owner / 责任引用。终态按发布时已接纳的状态判定；迟到结果由已登记责任方继续处理，并追加到责任记录。停止时持久化已有资源句柄、责任引用、未决调用与停止原因；即使没有已知资源，未知尝试的迟到结果责任也必须保留。后续清理或移交由已授权的 Owner 负责。
 
+**停止/恢复 Trace 的最低语义投影（Normative 抽象义务，不冻结线格式）：** 一次实际停止或终态发布必须使审计者可按**同一次 Invocation**关联以下信息：①实际选中的 `(NodeId,Stage,Outcome,routeTarget)`；若在选择路由前被强制停止，应明确记为“未选择”，不得伪造 Route；②**实际发布的 Invocation 终态**及其与所请求终态不一致时的 `(Diagnostic Code,Phase)`；③所有已派发 Mutation 的**不可变原调用 ID/Owner/Scope/Correlation** 和已验证或未决的提交状态；④若存在受控 Reconcile READ，附其**独立调用 ID、实际 Owner Outcome、受信证明引用、归并后的原 Mutation Stage Outcome**，未发起则记录未发起原因而不伪造 READ ID；⑤**确认/未决资源与责任引用、状态和持久化句柄**（若确有），以及迟到结果责任归属；⑥**停止原因**及与之有关的原诊断 `(Code,Phase)`，包括 Deadline/Cancel/预算/授权拒绝。缺少相关动作时对应维度应明确为“不适用/未执行”，而非伪造记录。Host 必须能通过这些语义维度还原原始路由请求、实际终态、安全确认及保全责任；不能把提交证明、Reconcile READ 的 Outcome、最终业务 Goal PASS 混为一个状态。**物理字段名、序列化、版本化和传输**仍属于独立 Runtime Artifact/Trace Contract，须按 §45.2 第 7/8 项实际验收；本条不授予新的作者字段或 Tool 权限。
+
 Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时必须拒绝准入，不得采用随机选择或隐式默认目标。Procedure Predicate 仅判定业务条件，不负责 Skill 身份选择。**本版没有 `Applicability` 作者级 YAML 字段、Root Routing 选择算法或匹配优先级的完整规范，不能凭本版源码构造出这些字段。** 它们应在独立版本化的 Root Routing 契约中冻结；其发布之前 Host 必须采用本版已定义的拒绝歧义安全条件，而不得从缺失的选择协议推断某 Skill 默认适用。历史 `applicability.when` 不作为隐式兼容语法（§0、§10.1、§45.1）。
 
 ### 12.9 单一全局前置阶段、最终验收与控制流
@@ -3085,7 +3087,7 @@ expected:
 | E55：末阶段漏写正常 Outcome 的路由 | ROUTE_OUTCOME_MISSING |
 | E56：使用保留的终态拼写作 Node ID，或用终态作 start | 分别报 NODE_ID_RESERVED 和 PROCEDURE_START_MISSING |
 | E57：终态拼写错误，且没有对应 Node | CONTROL_FLOW_DANGLING |
-| E58：路由预期 FAILED，但已有部分完成资源待保全 | Runtime 发布 SAFE_STOPPED，记录原 Outcome 和 TERMINAL_STATE_MISMATCH |
+| E58：路由预期 FAILED，但已有部分完成资源待保全 | Runtime 发布 SAFE_STOPPED，Trace 同时记录请求路由、实际终态、原调用/责任引用、停止原因和 (TERMINAL_STATE_MISMATCH,R_RUNTIME)；无 Reconcile READ 时该 ID 不适用 |
 | E59：原 Mutation 的 OUTCOME_UNKNOWN 改成直接 FAILED 或继续进入新业务 Mutation Node | RECONCILE_CONTRACT_INVALID；未知提交状态只能请求安全停止 |
 | E60：Owner `mutation.reconcile` 缺 callable、bind 非 originalInvocationId、proofPath 无效、或恢复 Schema 无法赋给原普通输出 Schema | RECONCILE_CONTRACT_INVALID；不再构造作者级 Reconcile Node |
 | E61：同 Node 全局 Precondition 聚合 PASS 通过**带 PASS 标签的自动推进边**进入 Mutation，随后返回 OUTCOME_UNKNOWN；对照该全局阶段返回 FAIL/UNKNOWN | PASS 自动边不触发 ENTRY_PRECONDITION_BYPASSED；Host 受控确认仍不明则 OUTCOME_UNKNOWN 安全停止，后续 Postcondition 不执行；FAIL/UNKNOWN 只沿其停止边，Mutation 不派发 |
@@ -3819,7 +3821,7 @@ E30/E40 的严格绑定规则有意保留：较新的已接纳权威记录即使
 | E109 | Reconcile Evidence Producer 以 Owner SUCCEEDED 绑定恢复结果，再替换为 Runtime 的 COMMITTED | 前者链接通过；后者 EVIDENCE_GUARANTEE_LINK_INVALID |
 | E110 | 有效的 nullable / object / items Schema；替换任一为 anyOf、pattern 或动态引用 | 前者按 F.5 赋值；三个不受支持变体均 SCHEMA_INVALID |
 | E111 | CEL 使用 has(obj.optional) && obj.optional == "X"；删除 has；对 nullable 字段删除非 null 守卫；添加数组索引 | 守卫版缺字段可按业务表达式得 FAIL；其余三项静态拒绝 CEL_INVALID |
-| E112 | 已确认 PENDING 资源后请求 FAILED；有可信 TRANSFERRED 记录且无其他待处理事实；仅有未决原调用且无已确认 PENDING | 实际终态分别 SAFE_STOPPED、FAILED、UNRESOLVED，并保留请求终态及理由 |
+| E112 | 已确认 PENDING 资源后请求 FAILED；有可信 TRANSFERRED 记录且无其他待处理事实；仅有未决原调用且无已确认 PENDING；再模拟原 Mutation 未决时 Host 恰好一次受控 Reconcile READ 后仍不明 | 实际终态依次 SAFE_STOPPED、FAILED、UNRESOLVED、UNRESOLVED（若另有 PENDING 则 SAFE_STOPPED）；每个变体都保存请求路由/实际终态/原诊断/原调用身份/责任引用/停止原因，最后一个还必须保存独立恢复 READ 身份及原 Mutation OUTCOME_UNKNOWN，不伪造不存在的 Producer |
 | E113 | Host Root 与 Request 根各自闭合，绑定整个 context.request；删除 requestSchema；Host Root 添加 request | 正例通过；反例 REQUEST_SCHEMA_MISSING、CONTEXT_REQUEST_COLLISION |
 | E114 | 合法 skills/establish-pdu-session；加入 ../、绝对路径、反斜线、同目录大小写折叠碰撞的文件 | 合法包通过；变体 PACKAGE_PATH_INVALID |
 | E115 | Pre/Postcondition 均采用单成员 `predicates` 非空列表，再改为两个合法成员 | 两阶段共享相同作者形状并可链接；单成员也只产生一次阶段三态 |
@@ -3836,6 +3838,17 @@ G.1–G.9 的继承用例与新增 E115–E120 共同组成 v1alpha4 已冻结�
 # 附录 H：统一诊断索引（v1alpha4）
 
 **Normative：诊断身份、分类和控制流含义；Informative：关联 E 用例及待补 Fixture。** §24.1、§24.2 是具体触发规则，本索引是诊断**代码、阶段与分类**的唯一规范性入口，不是已执行 Fixture 的完整清单；E 用例列只引用能够证明该 `(Code, Phase)` 的已定义变体，尚未具备精确变体的项标记为 `待补独立 Fixture`。覆盖状态是资料性的测试追踪信息，**不构成 CI PASS 或实现符合性证明**。诊断记录的唯一分类键为 `(Code, Phase)`，`Phase=C_STATIC | C_WARNING | R_RUNTIME`，三者分别表示 Compiler 静态错误、Compiler 警告、Runtime 诊断。原始 Code 字符串不被改名，但相同 Code 在不同 Phase（例如 EFFECT_MISMATCH）是不同的诊断事件。Compiler/Runtime 的诊断记录、Trace、Studio 诊断与 CI 报告均须保留 `code`、`phase` 及对应的 `类别`；只传递 `code` 而无法确定阶段时，不能完整表达本附录定义的诊断身份。不得将两行 `EFFECT_MISMATCH` 合并为一个不区分阶段的处置规则。Compiler ERROR 必定阻断构建，Compiler WARNING 不自行阻断构建。Runtime DIAGNOSTIC 是事件原因，不是业务阶段 Outcome，不能直接把任一诊断名当作路由键。Runtime 按实际执行阶段与 §12.8 的资源/未决事实状态判定终态。
+
+**H.0 最终成功边诊断优先级（Normative；映射 §12.9 与 E11/E18）：** 本表仅在源码/路由已满足更早的 YAML/结构合法性、且已构造 `start` 可达图之后判断 `SUCCEEDED` 请求；`FINAL_POSTCONDITION_MISSING` 与 `SUCCESS_BYPASSES_FINAL_POSTCONDITION` 对同一图的主诊断互斥。表内的“合法最终边”仅指可达 Postcondition 阶段的聚合 `PASS: SUCCEEDED`，不是任何此前局部 PASS。
+
+| 可达 SUCCEEDED 请求 | 可达合法最终 PASS 边 | 其他非法 SUCCEEDED 边 | 唯一主判定 / 代表用例 |
+|---|---|---|---|
+| 有 | 无 | 有（必然） | `FINAL_POSTCONDITION_MISSING / C_STATIC` 优先；E11、E42 反例 |
+| 有 | 有 | 有 | `SUCCESS_BYPASSES_FINAL_POSTCONDITION / C_STATIC`；E18、E64、E100 |
+| 有 | 有 | 无 | 不产生上述两项诊断；仍须通过全局门禁、Schema、Evidence、责任等检查 |
+| 无 | 无 | 无 | 不因缺少成功边而单独产生 FINAL_POSTCONDITION_MISSING；只要所有可达终态/路由合法，纯停止流程可按其停止路径处理 |
+
+**全局门禁主诊断区别：** Contract 引用不存在、类型错误或已存在但从 start 不可达的 Precondition，先按 `ENTRY_PRECONDITION_REF_INVALID / C_STATIC`；**引用可达**但某条实际可达路径绕过其聚合 PASS，则按 `ENTRY_PRECONDITION_BYPASSED / C_STATIC`。同 Node 隐式 PASS 自动边按 §12.9 视为已通过门禁（E52/E61），不能误报 BYPASSED。此表不新增诊断 Code，不改动下列 98 条复合诊断身份。
 
 | Code | Phase | 类别 | 阻断构建 | 触发位置 | Runtime 终态/路由影响 | 规范条款 | 代表用例 | 覆盖状态 |
 |---|---|---|---|---|---|---|---|---|
