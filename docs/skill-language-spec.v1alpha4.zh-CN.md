@@ -12,7 +12,7 @@
 
 **规范性用语。** MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT、MAY、OPTIONAL 按 RFC 2119 和 RFC 8174 解释。相应中文规范性措辞包括“必须”“不得”“应当”“不建议”“可以”。
 
-**v1alpha4 单文件评审稿（2026-11-15）。** 基于已冻结 v1alpha3 完整规范，集中恢复 Precondition 与 Postcondition 阶段中多个 Predicate 的统一表达：**阶段名保持 `precondition` / `postcondition` 单数；阶段内部无论一条或多条均使用 `predicates` 非空列表。** `Contract.preconditions` 依旧是全局前置阶段引用列表，`postcondition.goal` 仍是整个阶段的单一 Goal 声明。新版所有测试预期 E01–E120 均待机器实现；本稿语言 NOT FROZEN，产品 NOT QUALIFIED。
+**v1alpha4 单文件评审稿（2026-11-15）。** 基于已冻结 v1alpha3 完整规范，集中恢复 Precondition 与 Postcondition 阶段中多个 Predicate 的统一表达：**阶段名保持 `precondition` / `postcondition` 单数；阶段内部无论一条或多条均使用 `predicates` 非空列表。** Contract 改为可选的 `precondition: <node>.precondition` 单一引用，唯一 `goal` 保留在 Contract；Postcondition 不再声明 `goal`，最终证明通过阶段聚合 `PASS: SUCCEEDED` 建立。新版所有测试预期 E01–E120 均待机器实现；本稿语言 NOT FROZEN，产品 NOT QUALIFIED。
 
 **评审导航：** §0 确定效力与范围；§9–§14 检查 Owner 契约、DAG、SourcePath 和数据绑定；§17–§24 检查 Evidence、Reconcile、路由与诊断；§32–§45 检查 Script、可信依赖及产品门槛；**附录 E** 含全部 E01–E120 预期，**F/G** 为规范性互操作和 Schema/CEL 规则，**H** 为统一诊断索引；**I/J/K** 分别是作者指南、最终裁决与待实施验收材料（资料性）。所有内容均在当前文件中。
 
@@ -526,8 +526,7 @@ vNext 的作者 assurance 源码由三个独立角色组成：**Skill Contract**
 ~~~yaml
 # assurance/contract.yaml
 goal: pdu_session.initial_request_fulfilled
-preconditions:
-  - check-ue-registration.precondition
+precondition: check-ue-registration.precondition
 requestSchema: schemas/establishment-request.schema.yaml
 contextSchema: ca-context::urn:connectionagent:ca:context:invocation:v1
 dependencies:
@@ -574,7 +573,7 @@ nodes:
 
 ~~~ebnf
 Contract          = map(goal: GoalId,
-                        preconditions?: list<PreconditionRef>,
+                        precondition?: PreconditionRef,
                         requestSchema?: LocalSchemaPath,
                         contextSchema?: QualifiedSchemaId,
                         dependencies?: map<Alias, StablePackageId>,
@@ -589,7 +588,7 @@ PredicateCall     = map(predicate: PredicateId, arguments: list<Expression>)
 Precondition      = map(predicates: NonEmptyList<PredicateCall>,
                         routes?: OutcomeRoutes)
 Postcondition     = map(predicates: NonEmptyList<PredicateCall>,
-                        goal?: GoalId, routes?: OutcomeRoutes)
+                        routes?: OutcomeRoutes)
 Operation         = ToolOperation | ScriptOperation | ReconcileOperation
 ToolOperation     = map(target: QualifiedCallableId, arguments: map<Name, Expression>,
                         retryOf?: NodeId, routes?: OutcomeRoutes)
@@ -608,7 +607,7 @@ RouteTarget       = NodeId | TerminalStatus
 TerminalStatus    = SUCCEEDED | FAILED | UNRESOLVED | SAFE_STOPPED
 ~~~
 
-**v1alpha4 阶段语法（Normative）。** 一个 Node 仍仅能有一项 `precondition` 与一项 `postcondition` 阶段声明。两者内部使用相同的非空有序 `predicates` 列表，**即使只有一个 Predicate 也必须写成列表**。每项 `PredicateCall` 恰有 `predicate` 和位置参数 `arguments`；禁止在阶段根使用旧版直接 `predicate/arguments`，或在单个列表项中定义 `routes/goal`。Precondition/Postcondition 只拥有**一组阶段级** `PASS/FAIL/UNKNOWN` 路由；仅 Postcondition 可在阶段级声明 `goal`。这不是对 v1alpha3 旧作者源码的隐式转换或语法别名。列表为空、类型不符、成员缺字段或含未知字段报 `PREDICATE_GROUP_INVALID`，重复 Mapping Key 与非法 YAML 先报 `YAML_PARSE_ERROR`。成员中 Predicate 引用、参数位置/Schema、Evidence 错误仍按既有专用诊断逐成员检查（§13、§17、§24/H）。
+**v1alpha4 阶段语法（Normative）。** 一个 Node 仍仅能有一项 `precondition` 与一项 `postcondition` 阶段声明。两者内部使用相同的非空有序 `predicates` 列表，**即使只有一个 Predicate 也必须写成列表**。每项 `PredicateCall` 恰有 `predicate` 和位置参数 `arguments`；禁止在阶段根使用旧版直接 `predicate/arguments`，或在单个列表项中定义 `routes/goal`。Precondition/Postcondition 只拥有**一组阶段级** `PASS/FAIL/UNKNOWN` 路由；Postcondition 阶段或其成员均不得声明 `goal`。Contract 的 `goal` 是唯一业务目标；`contract.precondition` 是至多一个全局门禁阶段引用。这不是对 v1alpha3 旧作者源码的隐式转换或语法别名。列表为空、类型不符、成员缺字段或含未知字段报 `PREDICATE_GROUP_INVALID`，重复 Mapping Key 与非法 YAML 先报 `YAML_PARSE_ERROR`。成员中 Predicate 引用、参数位置/Schema、Evidence 错误仍按既有专用诊断逐成员检查（§13、§17、§24/H）。
 
 Node ID 与 `Identifier` 使用同一字符规则。Compiler 在解析 `start` 和路由前拒绝使用 `context` 或任一 `TerminalStatus` 精确拼写的 Node ID。`start` 必须引用真实 Node。Node 至少有一个阶段，各阶段最多声明一次。各阶段在自己的 `routes` 中按 Outcome 指定目标，允许键和必填键由 §12.1、§22 决定。省略 `routes` 与空映射等价，两者仅在该阶段的没有必须显式路由的非正常 Outcome 且后面还有阶段时合法。其他情况须写全 §22 要求的路由，缺键阻断构建。Reconcile 不接收 `arguments`。解析器拒绝未知字段和重复阶段，保留 YAML 标量的引号风格。
 
@@ -630,8 +629,7 @@ vNext 保留独立的 `assurance/contract.yaml`。它不是旧式带版本包装
 ~~~yaml
 # assurance/contract.yaml
 goal: pdu_session.initial_request_fulfilled
-preconditions:
-  - check-ue-registration.precondition
+precondition: check-ue-registration.precondition
 
 requestSchema: schemas/establishment-request.schema.yaml
 contextSchema: ca-context::urn:connectionagent:ca:context:invocation:v1
@@ -652,7 +650,7 @@ capabilities:
 
 ### 11.2 Procedure 示例
 
-以下是独立的只读教学 Skill。其 Contract 声明 `goal: udm.session_profile_verified` 和 `preconditions: [check-registration.precondition]`。完整 Contract 还需声明本例使用的 Request、Host Context Schema、依赖和 READ Capability。Predicate 签名见 §29。
+以下是独立的只读教学 Skill。其 Contract 声明 `goal: udm.session_profile_verified` 和 `precondition: check-registration.precondition`。完整 Contract 还需声明本例使用的 Request、Host Context Schema、依赖和 READ Capability。Predicate 签名见 §29。
 
 ~~~yaml
 # assurance/procedure.yaml
@@ -690,7 +688,6 @@ nodes:
         DENIED: FAILED
         UNKNOWN: UNRESOLVED
     postcondition:
-      goal: udm.session_profile_verified
       predicates:
         - predicate: createdsession.udm.session_profile_usable
           arguments:
@@ -709,7 +706,7 @@ nodes:
 | 字段 | 语义 | 约束 |
 |---|---|---|
 | goal | Skill 的业务目标及全局成功验收目标 | 必须声明。每条成功路径均须证明该 Goal |
-| preconditions | 本次 Invocation 必须通过的**全局前置阶段** | 可省略；列表每项引用一个不同的 `<node-id>.precondition` 阶段，全部阶段必须 PASS。每个阶段的内部 `predicates` 全部 PASS 才建立该阶段 PASS；执行顺序由 Procedure 图决定 |
+| precondition | 唯一的全局 Precondition 阶段引用 | 可省略；若声明，只接受精确 `<node-id>.precondition` 标量，不接受数组或对象；所引用阶段的全部 `predicates` 均 PASS 才成立，必须在所有业务 Mutation 与成功终态之前通过 |
 | requestSchema | 公共 Request Schema | 有调用方 Request 时声明；指向 Skill 自有 `schemas/` 文件 |
 | contextSchema | Host 提供的 Invocation Context | 引用已声明依赖别名的精确 Owner Schema ID；使用 Host Context 字段时必须声明 |
 | dependencies | 公共依赖声明 | Alias → 精确稳定 Package ID，必须与可信调用方提供的快照身份绑定核对；不声明 URL、digest 或获取方式 |
@@ -722,7 +719,7 @@ nodes:
 - `metadata.name`：由 Skill Package 根目录确定，不重复维护。
 - `skillType`：vNext Skill 都使用统一执行模型；除非未来出现有实质语义差异的 Skill 类型，否则不作为必填字段。
 - `entryProcedure`：每个 Skill 只有一张入口 Procedure 图，入口由唯一 `procedure.yaml` 确定。
-- `preconditions`（**仅 Contract**）引用本 Skill 唯一 Procedure 中的 Precondition **阶段**。省略和空列表语义相同；每项引用须解析到存在的 `<node>.precondition` 且不得重复。这里的复数表示多个全局阶段引用，**不是**在一个 Node 内声明多个 `precondition` 阶段。`postconditions` 不属于当前 Contract 语法，最终目标仍由唯一 `goal` 和可达 Postcondition 阶段证明。
+- `precondition`（**仅 Contract**）是可省略的**单一**全局门禁阶段引用，必须是精确 `<node-id>.precondition` 字符串；不存在“空列表”等价语义，省略表示没有全局前置阶段，空值、数组、对象与不存在的阶段均按 `ENTRY_PRECONDITION_REF_INVALID` 拒绝。此字段不能引用内部某个 Predicate，也不允许把多个独立前置阶段写成列表。若业务要组合多个全局前置事实，请放进该 Node 的 `precondition.predicates` 非空列表。Procedure 其他 Node 仍可拥有局部 Precondition。Contract 不声明 `postcondition` 或 `postconditions`，最终成功只由 Procedure 的最终 Postcondition 聚合 PASS 直达 `SUCCEEDED` 证明。
 - 全局 Postcondition 的验收目标由 `goal` 指定。Procedure 的显式 Postcondition 阶段提供该 Goal 的证明，记录 arguments、执行位置、Evidence lineage 和三态结果。
 - `inputs`、`context.requiredFacts`、`context.schemas`：旧包装与拆分声明。公共请求和 Host 上下文分别通过顶层 `requestSchema`、`contextSchema` 声明，字段必需性由对应 Schema 和 Host 准入规则约束。
 - `evidenceSchema`：通用 Evidence Envelope 由 Host / Runtime 统一定义和校验，不由 Skill 重复声明。
@@ -756,7 +753,7 @@ Procedure 是确定性的有向执行图。一个业务 Node 可包含以下阶�
 1. `precondition` 按有序 `predicates` 列表逐条调用纯 Predicate，**全部 PASS** 时产生阶段正常 Outcome PASS。
 2. `operation` 调用 Tool、运行纯 Script 或调和原 Mutation。普通操作的正常 Outcome 为 SUCCEEDED，Reconcile 为 COMMITTED。
 3. `observation` 调用只读查询，正常 Outcome 为 SUCCEEDED。
-4. `postcondition` 同样按有序 `predicates` 列表调用纯 Predicate，全部 PASS 时产生阶段正常 Outcome PASS；若关联 `goal`，只由此聚合 PASS 建立 Goal 证明。
+4. `postcondition` 同样按有序 `predicates` 列表调用纯 Predicate，全部 PASS 时产生阶段正常 Outcome PASS；**其 `PASS` 直接路由 `SUCCEEDED` 时是本次 Invocation 的最终验收**，否则只是局部判断。
 
 **两个判断阶段的列表汇总（v1alpha4 Normative）：** `precondition`、`postcondition` 均先在各自阶段内按 §12.2/§12.5 将成员三态归并为唯一阶段 Outcome，之后才按 §22.1 选择路线。成员 Predicate 没有独立的路由键、Node ID、阶段 ID 或 Action Budget 计数；任一成员的 PASS 都不等于该阶段 PASS。
 
@@ -788,7 +785,6 @@ nodes:
         DENIED: FAILED
         FAILED: FAILED
     postcondition:
-      goal: udm.subscription_verified
       predicates:
         - predicate: createdsession.udm.subscription_usable
           arguments:
@@ -813,7 +809,6 @@ nodes:
         FAILED: SAFE_STOPPED
         UNKNOWN: SAFE_STOPPED
     postcondition:
-      goal: udm.subscription_verified
       predicates:
         - predicate: createdsession.udm.subscription_usable
           arguments:
@@ -930,7 +925,7 @@ inspect-n4-resources:
 
 Postcondition 与 Precondition **采用同一套阶段名/列表结构**：阶段键是单数 `postcondition`，内部必需非空有序 `predicates` 列表，单成员也写列表形式。每个成员分别按自身声明的 `arguments` 调用纯 Predicate，结果按 §12.2 的同一三态合取归并为一次阶段级 `PASS/FAIL/UNKNOWN`，共用一份 `routes`。参数可以来自 Operation Result、Observation Result、Invocation Context 或多个来源的组合。Evidence、SourcePath、Scope 与已确认的 Producer 归属必须逐成员验证，不因其中一个成员有证据或 PASS 而为其他成员背书。
 
-**Goal 与局部验收（Normative）：** `postcondition.goal` 是**整个 Postcondition 阶段**的可选属性，必须精确等于 `contract.goal`；列表项不得各自声明 Goal。若声明 `goal`，**只有完整列表全部 PASS 得到的阶段 PASS** 才建立单一 Contract Goal 证明，任一 FAIL 或 UNKNOWN 都不能建立；只有某一个 Predicate PASS 不够。省略 `goal` 的局部 Postcondition 即使全部 PASS，也只能保留之前已有的 Goal 证明，绝不自动新建证明。§12.9 的证明清除/重建与汇合点规则维持原样。单成员与多成员 Postcondition 都依赖 Runtime 发布成功前对全部原绑定和 Evidence 进行复核。
+**Goal 与局部验收（Normative）：** Skill 唯一业务目标由 `contract.goal` 声明，Postcondition **不得**重复定义 `goal`。`postcondition.routes.PASS: SUCCEEDED` 是最终验收的唯一声明方法：**同一阶段全部 `predicates` 得到聚合 PASS**，并直接请求终态 `SUCCEEDED`；FAIL/UNKNOWN 不得证明 Goal。Postcondition PASS 指向其他 Node 时是**局部验收**，不会建立任何可跨 Node 携带的最终 Goal 证明；随后若要成功，必须到达另一个 Postcondition 再聚合 PASS 并直接请求 `SUCCEEDED`。正常建立与 Reconcile 路径可以采用各自的最终 Postcondition，不需要 Contract 额外登记列表。Runtime 按 §12.8/§12.9 复核最终阶段每个成员的原始绑定和 Evidence，以及全局门禁、提交状态和资源责任。
 
 ~~~yaml
 verify-n4-session:
@@ -968,7 +963,6 @@ nodes:
 
   verify-session:
     postcondition:
-      goal: session.established
       predicates:
         - predicate: demo.session.established
           arguments:
@@ -982,7 +976,7 @@ nodes:
         UNKNOWN: UNRESOLVED
 ~~~
 
-这里两个阶段均只有**一个** `routes`，内部两条 Predicate 都不各自路由；`precondition` 聚合 PASS 才能准入下一步，带 `goal` 的 `postcondition` 聚合 PASS 才能建立成功证明。**没有**新的 `preconditions` / `postconditions` Node 级阶段；Contract 中已有的复数 `preconditions` 仍仅指向全局前置**阶段引用集合**。
+这里两个阶段均只有**一个** `routes`，内部两条 Predicate 都不各自路由；`precondition` 聚合 PASS 才能准入下一步，`postcondition` 聚合 PASS **直接**路由 `SUCCEEDED` 才构成最终证明。Contract 只有可选的**单数** `precondition` 阶段引用，没有 `postcondition(s)` 列表。
 
 如果 Operation Result 已包含满足 Predicate 所需的事实、Scope、Correlation、Freshness 和 Evidence，可以直接作为 Postcondition 输入，不需要 Observation。
 
@@ -1753,8 +1747,7 @@ UE 身份来自 Host Context，而不是调用方任意伪造的 UE Ref。此 Re
 ~~~yaml
 # assurance/contract.yaml（Owner ID 为教学占位，非已发布契约）
 goal: pdu_session.initial_request_fulfilled
-preconditions:
-  - check-ue-registration.precondition
+precondition: check-ue-registration.precondition
 requestSchema: schemas/establishment-request.schema.yaml
 contextSchema: ca-context::urn:connectionagent:ca:context:invocation:v1
 dependencies:
@@ -2162,7 +2155,6 @@ nodes:
         FAILED: SAFE_STOPPED
         UNKNOWN: SAFE_STOPPED
     postcondition:
-      goal: pdu_session.initial_request_fulfilled
       predicates:
         - predicate: createdsession.session.established
           arguments:
@@ -2895,7 +2887,6 @@ nodes:
         FAILED: FAILED
         UNKNOWN: UNRESOLVED
     postcondition:
-      goal: ue.registration_verified
       predicates:
         - predicate: example.ue.registered
           arguments:
@@ -3256,7 +3247,6 @@ start: verify-subject
 nodes:
   verify-subject:
     postcondition:
-      goal: ue.subject_verified
       predicates:
         - predicate: example.subject.present
           arguments:
@@ -4446,7 +4436,7 @@ reportStatus: NOT_TESTED
 conformanceClaims:
   - claimType: language-specification
     subject: "CA-SL v1alpha4 single-file design review (not frozen)"
-$1 NOT_FROZEN
+    status: NOT_FROZEN
     evidenceRef: null
   - claimType: compiler-static
     status: NOT_TESTED
