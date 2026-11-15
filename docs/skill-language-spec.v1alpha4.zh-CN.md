@@ -546,7 +546,7 @@ start: observe-ue-registration
 nodes:
   observe-ue-registration:
     observation:
-      target: ca::ue.registration.current
+      tool: ca::ue.registration.current
       arguments:
         ueRef: context.ueRef
       routes:
@@ -590,11 +590,11 @@ Precondition      = map(predicates: NonEmptyList<PredicateCall>,
 Postcondition     = map(predicates: NonEmptyList<PredicateCall>,
                         routes?: OutcomeRoutes)
 Operation         = ToolOperation | ScriptOperation | ReconcileOperation
-ToolOperation     = map(target: QualifiedCallableId, arguments: map<Name, Expression>,
+ToolOperation     = map(tool: QualifiedCallableId, arguments: map<Name, Expression>,
                         retryOf?: NodeId, routes?: OutcomeRoutes)
 ScriptOperation   = map(script: LocalScriptPath, arguments: map<Name, Expression>,
                         routes?: OutcomeRoutes)
-Observation       = map(target: QualifiedQueryId, arguments: map<Name, Expression>,
+Observation       = map(tool: QualifiedQueryId, arguments: map<Name, Expression>,
                         routes?: OutcomeRoutes)
 ReconcileOperation = map(reconcile: OriginalMutationNodeId,
                         routes?: OutcomeRoutes)
@@ -659,7 +659,7 @@ start: observe-registration
 nodes:
   observe-registration:
     observation:
-      target: ca::ue.registration.current
+      tool: ca::ue.registration.current
       arguments:
         ueRef: context.ueRef
       routes:
@@ -678,7 +678,7 @@ nodes:
         UNKNOWN: UNRESOLVED
   read-subscription:
     operation:
-      target: ca::sbi.udm.sm_data.get
+      tool: ca::sbi.udm.sm_data.get
       arguments:
         ueRef: context.ueRef
         dnn: context.request.dnn
@@ -775,7 +775,7 @@ start: create-subscription
 nodes:
   create-subscription:
     operation:
-      target: ca::sbi.udm.sdm_subscription.create
+      tool: ca::sbi.udm.sdm_subscription.create
       arguments:
         ueRef: context.ueRef
         dnn: context.request.dnn
@@ -801,7 +801,7 @@ nodes:
         NOT_COMMITTED: FAILED
         UNRESOLVED: UNRESOLVED
     observation:
-      target: ca::udm.subscription.current
+      tool: ca::udm.subscription.current
       arguments:
         ueRef: context.ueRef
         subscriptionRef: reconcile-subscription.operation.output.subscriptionRef
@@ -851,12 +851,12 @@ check-ue-registration:
 
 ### 12.3 Operation
 
-Operation 是 Node 内执行一次业务动作的阶段。若目标是外部 Tool Operation，其精确 callable 身份、Effect、Input / Output Schema 和必要的 Reconcile 契约由 Tool Owner 在 ToolCatalog 中发布；若目标是本地 Script，则按 §32 的纯计算约束执行，不属于 ToolCatalog 或 Capability 授权体系。
+Operation 是 Node 内执行一次业务动作的阶段。外部调用使用 `operation.tool: Alias::ExportId`，这里的 `tool` **只引用 ToolCatalog 中精确的 Operation callable**（`kind: operation`），不是整个 ToolCatalog、网络地址、业务目标或 Capability Grant。Compiler 从受信依赖快照解析其 Owner、Effect、Input/Output Schema、Capability 成员和必要的 Reconcile 契约，Skill 不得声明或覆盖这些属性。本地确定性 Python 使用互斥的 `operation.script`（§32），而调和使用特殊的 `operation.reconcile` 原 Mutation Node 引用。三者**只能择一**，本版不支持 `target` 的旧作者语法别名。
 
 ~~~yaml
 create-policy:
   operation:
-    target: ca::sbi.pcf.sm_policy.create
+    tool: ca::sbi.pcf.sm_policy.create
     arguments:
       ueRef: context.ueRef
       pduSessionId: context.request.pduSessionId
@@ -884,12 +884,12 @@ Operation 的 arguments 是具名映射，键必须是 Owner Input Schema 中的
 
 ### 12.4 Observation
 
-Observation 是 ToolCatalog 中由权威 Owner 发布的只读查询能力。它是可选阶段。按 §12.6 的结果充分性规则决定是否需要查询。
+Observation 是 ToolCatalog 中由权威 Owner 发布的只读查询能力，源码统一使用 `observation.tool: Alias::ExportId` 引用精确的 `kind: observation` callable，不是 Operation 中 `kind: operation` 的导出。Compiler 校验精确身份、Effect=READ、QueryContext Schema、Capability 和 Evidence。它是可选阶段，按 §12.6 的结果充分性原则决定是否需要查询。
 
 ~~~yaml
 inspect-policy:
   observation:
-    target: ca::pcf.policy_association.current
+    tool: ca::pcf.policy_association.current
     arguments:
       ueRef: context.ueRef
       pduSessionId: context.request.pduSessionId
@@ -912,7 +912,7 @@ inspect-policy:
 ~~~yaml
 inspect-n4-resources:
   observation:
-    target: ca::smf.session.n4_resources
+    tool: ca::smf.session.n4_resources
     arguments:
       phase: "POST_CREATE"
       sessionInstanceRef: create-n4-session.operation.output.sessionInstanceRef
@@ -1106,7 +1106,7 @@ start: create-session
 nodes:
   create-session:
     operation:
-      target: ca::smf.session.create
+      tool: ca::smf.session.create
       arguments:
         ueRef: context.ueRef
         dnn: context.request.dnn
@@ -1744,7 +1744,7 @@ start: observe-ue-registration
 nodes:
   observe-ue-registration:
     observation:
-      target: ca::ue.registration.current
+      tool: ca::ue.registration.current
       arguments:
         ueRef: context.ueRef
       routes:
@@ -1913,7 +1913,7 @@ start: observe-ue-registration
 nodes:
   observe-ue-registration:
     observation:
-      target: ca::ue.registration.current
+      tool: ca::ue.registration.current
       arguments:
         ueRef: context.ueRef
       routes:
@@ -1932,7 +1932,7 @@ nodes:
         UNKNOWN: UNRESOLVED
   read-udm-subscription:
     operation:
-      target: ca::sbi.udm.sm_data.get
+      tool: ca::sbi.udm.sm_data.get
       arguments:
         ueRef: context.ueRef
         dnn: context.request.dnn
@@ -1953,7 +1953,7 @@ nodes:
         UNKNOWN: UNRESOLVED
   create-udm-subscription:
     operation:
-      target: ca::sbi.udm.sdm_subscription.create
+      tool: ca::sbi.udm.sdm_subscription.create
       arguments:
         ueRef: context.ueRef
         sessionProfile: read-udm-subscription.operation.output.result
@@ -1972,7 +1972,7 @@ nodes:
         UNRESOLVED: UNRESOLVED
   create-pcf-association:
     operation:
-      target: ca::sbi.pcf.sm_policy.create
+      tool: ca::sbi.pcf.sm_policy.create
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
@@ -1999,7 +1999,7 @@ nodes:
         NOT_COMMITTED: SAFE_STOPPED
         UNRESOLVED: SAFE_STOPPED
     observation:
-      target: ca::pcf.policy_association.current
+      tool: ca::pcf.policy_association.current
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
@@ -2018,7 +2018,7 @@ nodes:
         UNKNOWN: SAFE_STOPPED
   create-n4-session:
     operation:
-      target: ca::UPN.CREATE_UP_SESSION
+      tool: ca::UPN.CREATE_UP_SESSION
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
@@ -2029,7 +2029,7 @@ nodes:
         DENIED: SAFE_STOPPED
   transfer-n1n2:
     operation:
-      target: ca::sbi.amf.n1n2.transfer
+      tool: ca::sbi.amf.n1n2.transfer
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
@@ -2048,7 +2048,7 @@ nodes:
         UNRESOLVED: SAFE_STOPPED
   signal-ran:
     operation:
-      target: ca::SSM.SIGNAL_UE_AN
+      tool: ca::SSM.SIGNAL_UE_AN
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
@@ -2059,7 +2059,7 @@ nodes:
         DENIED: SAFE_STOPPED
   modify-n4-forwarding:
     operation:
-      target: ca::UPN.MODIFY_UP_SESSION
+      tool: ca::UPN.MODIFY_UP_SESSION
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
@@ -2070,7 +2070,7 @@ nodes:
         DENIED: SAFE_STOPPED
   read-ran-setup:
     observation:
-      target: ca::ran.setup.current
+      tool: ca::ran.setup.current
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
@@ -2081,7 +2081,7 @@ nodes:
         UNKNOWN: SAFE_STOPPED
   read-n4-forwarding:
     observation:
-      target: ca::n4.forwarding.current
+      tool: ca::n4.forwarding.current
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
@@ -2102,7 +2102,7 @@ nodes:
         UNKNOWN: SAFE_STOPPED
   transfer-resource-responsibility:
     operation:
-      target: ca-responsibility::ca.session.resource_responsibility.transfer
+      tool: ca-responsibility::ca.session.resource_responsibility.transfer
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
@@ -2123,7 +2123,7 @@ nodes:
         UNRESOLVED: SAFE_STOPPED
   read-resource-responsibility:
     observation:
-      target: ca-responsibility::ca.session.resource_responsibility.current
+      tool: ca-responsibility::ca.session.resource_responsibility.current
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
@@ -2166,7 +2166,7 @@ create-policy:
       FAIL: FAILED
       UNKNOWN: UNRESOLVED
   operation:
-    target: ca::sbi.pcf.sm_policy.create
+    tool: ca::sbi.pcf.sm_policy.create
     arguments:
       ueRef: context.ueRef
       pduSessionId: context.request.pduSessionId
@@ -2176,7 +2176,7 @@ create-policy:
       DENIED: FAILED
       FAILED: FAILED
   observation:
-    target: ca::pcf.policy_association.current
+    tool: ca::pcf.policy_association.current
     arguments:
       ueRef: context.ueRef
       pduSessionId: context.request.pduSessionId
@@ -2857,7 +2857,7 @@ start: inspect-registration
 nodes:
   inspect-registration:
     observation:
-      target: ca::ue.registration.current
+      tool: ca::ue.registration.current
       arguments:
         ueRef: context.ueRef
       routes:
@@ -3492,9 +3492,9 @@ Compiler/Runtime 仅在已验证 COMMITTED 边把这个精确 Producer 原始子
 
 Compiler 的绑定链：operation.reconcile 的原 Node → 原普通 MUTATION Operation → mutation.reconcile.callable → 唯一 READ operation 导出 → 对该调和 callable 自身按 §9.3 检查 Owner/ID/kind/READ Effect、Scope 和**至少一个已 Grant Capability**。不能继承原 Mutation 的授权。Grant 缺失报 CAPABILITY_NOT_GRANTED，Effect 冲突报 EFFECT_MISMATCH，原调用绑定、Schema 或 proofPath 错误报 RECONCILE_CONTRACT_INVALID。
 
-Runtime 重做相同检查，对同一原调用最多派发一次受控 Reconcile。Reconcile 专用 callable 不得通过普通 `operation.target` 绕过原调用检验；一个 Capability 可以显式同时列 Mutation 与 Reconcile 两个成员。
+Runtime 重做相同检查，对同一原调用最多派发一次受控 Reconcile。Reconcile 专用 callable 不得通过普通 `operation.tool` 绕过原调用检验；一个 Capability 可以显式同时列 Mutation 与 Reconcile 两个成员。
 
-**同一受信快照内的可检查情形。** Compiler 必须检查该快照中所有已发布 Mutation 的 `mutation.reconcile.callable` 目标，而非仅当前 Skill 已直接引用的 Mutation；若普通 `operation.target` 指向其中一个已识别的专用 READ callable，报既有 `RECONCILE_CONTRACT_INVALID`。Runtime 派发前须根据同一受信 Owner 发布关系复核，不能因该成员为 READ 或具有单独 Capability Grant 而跳过原调用核验。此检查仅落实已明确禁止的同快照绕过；不允许根据 `originalInvocationId` 等同名字段臆测专用身份。跨快照/跨发布物的完整性仍须由 Owner 的版本化发布契约提供可验证关联，未经真实验收不得声称该范围的互操作符合性已通过。**跨快照情形的解释性边界（不新增物理关联字段）：** 可以消费由**独立、受信、版本化** Owner/部署契约实际证明的 `(Owner, Mutation callable, 专用 Reconcile READ callable, 原调用绑定, Scope)` 关联，且仍须通过同一 Owner、精确 READ、独立 Capability、Proof/Receipt 与反绕过校验；**没有**该实际关联或不能解码验证时，既不能猜测存在专用 Reconcile 身份，也不能以普通 READ Grant 规避规则。不能证明安全链接的跨快照调和按已有 `RECONCILE_CONTRACT_INVALID` / 对应受信依赖链接错误拒绝，Runtime 保留原调用并安全停止。该逻辑属性清单只是已有 G.2 规则的检查视图，**不代表** v1alpha4 已冻结其跨发布物线格式或证明物；需要另行交付版本化契约并按 §45.2 验收。没有安全 Owner 调和能力时必须遵循 §20.2 的保全停止，不创建伪 Reconcile。
+**同一受信快照内的可检查情形。** Compiler 必须检查该快照中所有已发布 Mutation 的 `mutation.reconcile.callable` 目标，而非仅当前 Skill 已直接引用的 Mutation；若普通 `operation.tool` 指向其中一个已识别的专用 READ callable，报既有 `RECONCILE_CONTRACT_INVALID`。Runtime 派发前须根据同一受信 Owner 发布关系复核，不能因该成员为 READ 或具有单独 Capability Grant 而跳过原调用核验。此检查仅落实已明确禁止的同快照绕过；不允许根据 `originalInvocationId` 等同名字段臆测专用身份。跨快照/跨发布物的完整性仍须由 Owner 的版本化发布契约提供可验证关联，未经真实验收不得声称该范围的互操作符合性已通过。**跨快照情形的解释性边界（不新增物理关联字段）：** 可以消费由**独立、受信、版本化** Owner/部署契约实际证明的 `(Owner, Mutation callable, 专用 Reconcile READ callable, 原调用绑定, Scope)` 关联，且仍须通过同一 Owner、精确 READ、独立 Capability、Proof/Receipt 与反绕过校验；**没有**该实际关联或不能解码验证时，既不能猜测存在专用 Reconcile 身份，也不能以普通 READ Grant 规避规则。不能证明安全链接的跨快照调和按已有 `RECONCILE_CONTRACT_INVALID` / 对应受信依赖链接错误拒绝，Runtime 保留原调用并安全停止。该逻辑属性清单只是已有 G.2 规则的检查视图，**不代表** v1alpha4 已冻结其跨发布物线格式或证明物；需要另行交付版本化契约并按 §45.2 验收。没有安全 Owner 调和能力时必须遵循 §20.2 的保全停止，不创建伪 Reconcile。
 
 **证明与恢复字段归属表（Normative 交叉索引）**
 
@@ -4287,7 +4287,7 @@ flowchart TD
 | DFX-003 | `DUPLICATE_ID` / C_STATIC | **当前未找到**不使用重复 Mapping Key 的独立最小构造。重复 `nodes.foo` 或 `predicates.bar` 应由 YAML 解析器先报 `YAML_PARSE_ERROR`；跨角色同名是否构成同一身份尚无 v1alpha4 规范性规则，不得自造触发。标为**可表达性未闭合/防御性目录项**，不得标为已有 Fixture 或通过 | NOT_RUN |
 | DFX-004 | `FINAL_POSTCONDITION_GOAL_MISMATCH` / C_STATIC | 保持成功路径和 Postcondition 可达，令 Postcondition.goal 与 Contract.goal 不相等 | NOT_RUN |
 | DFX-005 | `CONTROL_FLOW_CYCLE` / C_STATIC | 在两个既有业务 Node 间增加一条返回前驱 Node 的路由，形成可达 back-edge；确保无其他更早的解析错误 | NOT_RUN |
-| DFX-006 | `CONTROL_FLOW_AMBIGUOUS` / C_STATIC | **可构造的不同字段互斥冲突**：同一 `operation` 映射同时声明有效 `target: ca::valid.read` 与 `script: scripts/valid.py`（均处于同一 YAML Mapping 且没有重复键）；依 §24.1 同阶段多种调用目标应触发本码。完整 Fixture 须提供受信 READ、合法 Script 与其余有效文件；重复 YAML Key 仍应先报 `YAML_PARSE_ERROR` | NOT_RUN |
+| DFX-006 | `CONTROL_FLOW_AMBIGUOUS` / C_STATIC | **可构造的不同字段互斥冲突**：同一 `operation` 映射同时声明有效 `tool: ca::valid.read` 与 `script: scripts/valid.py`（均处于同一 YAML Mapping 且没有重复键）；依 §24.1 同阶段多种调用目标应触发本码。完整 Fixture 须提供受信 READ、合法 Script 与其余有效文件；重复 YAML Key 仍应先报 `YAML_PARSE_ERROR` | NOT_RUN |
 | DFX-007 | `DEPENDENCY_ALIAS_MISSING` / C_STATIC | 保留一个合法外部 callable 引用 ca::x，移除 Contract.dependencies 中的 ca alias；其余快照及 Scope 保持可信 | NOT_RUN |
 | DFX-008 | `DEPENDENCY_SNAPSHOT_MISSING` / C_STATIC | Contract.dependencies 声明 ca alias 对应 Package ID，但受信 BuildRequest 对该 alias 不提供快照；保留目标引用 | NOT_RUN |
 | DFX-009 | `DEPENDENCY_DUPLICATE` / C_STATIC | 同一 Alias 在可信构建绑定中指向两份不同的快照身份或字节集；不改变 Skill 源文件 | NOT_RUN |
@@ -4321,7 +4321,7 @@ flowchart TD
 | DFX-037 | `ACTION_BUDGET_EXCEEDED` / R_RUNTIME | 已到达 Host 有效动作上限后再尝试一个外部 Action；验证未超额派发及停止决策 | NOT_RUN |
 | DFX-038 | `CONCURRENT_MODIFICATION` / R_RUNTIME | 外部事实在准入和实际派发之间被其他 Invocation 版本化修改；拒绝错误版本继续提交 | NOT_RUN |
 | DFX-039 | `RETRY_ADMISSION_DENIED` / R_RUNTIME | 尝试第二次消费同一个已验证 NOT_COMMITTED 重试凭证，或在缺少原调用关联时重发 | NOT_RUN |
-| DFX-040 | `RECONCILE_CONTRACT_INVALID` / C_STATIC | 同一受信 ToolCatalog 快照的一个 Mutation 的 mutation.reconcile.callable 指向精确 READ operation；另一个 Skill 在普通 operation.target 中调用该 READ，且提供独立的 READ Capability Grant。Compiler 必须检查整份快照的 Mutation 关联并阻断普通调用，不得只检索本 Skill 已引用的 Mutation | NOT_RUN |
+| DFX-040 | `RECONCILE_CONTRACT_INVALID` / C_STATIC | 同一受信 ToolCatalog 快照的一个 Mutation 的 mutation.reconcile.callable 指向精确 READ operation；另一个 Skill 在普通 operation.tool 中调用该 READ，且提供独立的 READ Capability Grant。Compiler 必须检查整份快照的 Mutation 关联并阻断普通调用，不得只检索本 Skill 已引用的 Mutation | NOT_RUN |
 | DFX-041 | `RECONCILE_CONTRACT_INVALID` / C_STATIC | 以 G.2.1 有效 Reconcile READ + receiptSchema 作为基线：先验证 proofPath receipt.commit 可在移除逻辑 receipt 锚点后从 schema 根解析。单独将路径改成 receipt.receipt.commit 或裸 commit；前者多出未声明 Schema 段，后者缺少必需通道锚点，二者都不得自动改写或链接通过 | NOT_RUN |
 
 ### K.2.0 两个诊断的可表达性复核（Informative，不修改 H 的规范性分类）
@@ -4334,7 +4334,7 @@ flowchart TD
 nodes:
   choose:
     operation:
-      target: ca::valid.read
+      tool: ca::valid.read
       script: scripts/valid.py
       arguments: {}
       routes:
@@ -4342,7 +4342,7 @@ nodes:
         FAILED: FAILED
 ```
 
-此处 `target` 和 `script` 是两个**互斥目标**，而非重复的 YAML Key；在有效、可信的 `ca::valid.read` 导出和 Script 都存在、其他入口/路由/Goal 检查前提合法时，§24.1 已将同阶段互斥调用目标归入 `CONTROL_FLOW_AMBIGUOUS`。该片段只是输入差异，不是完整作者源码或通过验证的 Fixture。若改为重复写两个 `target` 键，仍应优先产生 `YAML_PARSE_ERROR`。**两者执行证据均为 NOT_RUN。**
+此处 `tool` 和 `script` 是两个**互斥调用方式**，而非重复的 YAML Key；在有效、可信的 `ca::valid.read` 导出和 Script 都存在、其他入口/路由/Goal 检查前提合法时，§24.1 已将同阶段互斥调用目标归入 `CONTROL_FLOW_AMBIGUOUS`。该片段只是输入差异，不是完整作者源码或通过验证的 Fixture。若改为重复写两个 `tool` 键，仍应优先产生 `YAML_PARSE_ERROR`。**两者执行证据均为 NOT_RUN。**
 
 **诊断可达性验收原则：** 每个需要主张实现覆盖的 `(Code,Phase)` 必须有经过规范性前置检查、能单独触发该码的确切文件/Build 输入、预期和原始结果；不能用无法构造的负例获得 PASS，且不可改变 H 的诊断优先级来强行触发。当前无法证明可构造的项应记录为 `REPRESENTABILITY_UNRESOLVED`（仅本报告的资料性覆盖状态，**不是新诊断码**）；完整 H 验收门槛仍未满足。
 
