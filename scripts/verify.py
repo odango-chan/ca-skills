@@ -135,23 +135,23 @@ def validate_v1alpha4_example(skill_name: str, errors: list[str]) -> None:
     predicates = (skill / "assurance" / "predicates.yaml").read_text(encoding="utf-8")
 
     for field in ("goal", "precondition", "requestSchema", "contextSchema", "dependencies", "capabilities"):
-        if not re.search(r"(?m)^" + field + r":\\s*", contract):
+        if not re.search(r"(?m)^" + field + r":\s*", contract):
             errors.append(f"{skill_name}: v1alpha4 Contract missing {field}")
-    if not re.search(r"(?m)^start: [a-z][a-z0-9-]+$", procedure) or not re.search(r"(?m)^nodes:\\s*$", procedure):
+    if not re.search(r"(?m)^start: [a-z][a-z0-9-]+$", procedure) or not re.search(r"(?m)^nodes:\s*$", procedure):
         errors.append(f"{skill_name}: v1alpha4 Procedure must have start and nodes")
-    if not re.search(r"(?m)^predicates:\\s*$", predicates):
+    if not re.search(r"(?m)^predicates:\s*$", predicates):
         errors.append(f"{skill_name}: v1alpha4 PredicateSet must have predicates root")
 
     for path, body in (("contract", contract), ("procedure", procedure), ("predicates", predicates)):
         for field in ("apiVersion", "kind", "metadata", "entryProcedure", "preconditions", "postconditions"):
-            if re.search(r"(?m)^\\s*" + field + r":", body):
+            if re.search(r"(?m)^\s*" + field + r":", body):
                 errors.append(f"{skill_name}/{path}: legacy v0.x field {field}")
     for field in ("call", "with", "reconcile", "resolve", "verify", "on"):
-        if re.search(r"(?m)^\\s*" + field + r":", procedure):
+        if re.search(r"(?m)^\s*" + field + r":", procedure):
             errors.append(f"{skill_name}: v1alpha4 Procedure cannot contain legacy {field}")
-    if not re.search(r"(?m)^\\s+PASS: SUCCEEDED\\s*$", procedure):
+    if not re.search(r"(?m)^\s+PASS: SUCCEEDED\s*$", procedure):
         errors.append(f"{skill_name}: no final PASS: SUCCEEDED candidate")
-    if not re.search(r"(?m)^\\s+OUTCOME_UNKNOWN: (UNRESOLVED|SAFE_STOPPED)\\s*$", procedure):
+    if not re.search(r"(?m)^\s+OUTCOME_UNKNOWN: (UNRESOLVED|SAFE_STOPPED)\s*$", procedure):
         errors.append(f"{skill_name}: no conservative Mutation uncertainty branch")
 
     request_path = skill / "schemas" / "establishment-request.schema.yaml"
@@ -159,7 +159,7 @@ def validate_v1alpha4_example(skill_name: str, errors: list[str]) -> None:
         errors.append(f"{skill_name}: missing Skill-owned request Schema")
     else:
         request = request_path.read_text(encoding="utf-8")
-        if re.search(r"(?m)^\\s*(pattern|format|allOf|anyOf|oneOf|\\$defs):", request):
+        if re.search(r"(?m)^\s*(pattern|format|allOf|anyOf|oneOf|\$defs):", request):
             errors.append(f"{skill_name}: unsupported G.4 Schema keyword in request Schema")
         if "https://json-schema.org/draft/2020-12/schema" not in request:
             errors.append(f"{skill_name}: request Schema missing frozen Draft 2020-12 dialect")
