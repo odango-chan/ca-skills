@@ -3,16 +3,16 @@
 **中文名称：** ConnectionAgent Skill 语言规范  
 **简称：** CA-SL  
 **目标版本：** `connectionagent.io/v1alpha4`（简称 v1alpha4；`vNext` 仅为资料性系列别名）  
-**状态：** PUBLIC DESIGN REVIEW — NOT FROZEN（v1alpha4 C 类语言候选；v1alpha3 维持 FROZEN；产品实现 NOT QUALIFIED）  
+**状态：** FROZEN — LANGUAGE SPECIFICATION ONLY（v1alpha4 已冻结；v1alpha3 独立保持 FROZEN；产品/Owner 符合性 NOT QUALIFIED）  
 **规范所有者：** odango-chan/ca-skills  
 **适用对象：** Skill 作者、Skill Studio、Compiler、Agent Host / Runtime、Tool Owner、Schema Owner、语言服务及符合性评审机构  
 **更新日期：** 2026-11-15
 
-**文件效力。** 本文件是 CA-SL v1alpha4 的**完整单文件设计评审稿**，不替代已冻结的 v1alpha3 版本。标为 Normative 的内容是本版本的候选语义，尚未冻结，不代表任何 Compiler、Host 或 Owner 已通过新版本验收。只有通过 §45.1 C 类评审后才能正式发布 v1alpha4。原 v1alpha3 的作者语法及外部 ToolCatalog/CapabilityContracts 的既有独立发布版本保持不变。
+**文件效力。** 本文件是 CA-SL v1alpha4 的**完整、已冻结单文件语言规范**，不追溯改变 v1alpha3。标为 Normative 的内容依 §45.1.1 冻结；该语言裁决**不代表** Compiler、Studio、Host/Runtime 或 Owner 已通过任何 §45.2 产品验收。原 v1alpha3 的作者语法及外部 ToolCatalog/CapabilityContracts 的既有独立发布版本保持不变。
 
 **规范性用语。** MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT、MAY、OPTIONAL 按 RFC 2119 和 RFC 8174 解释。相应中文规范性措辞包括“必须”“不得”“应当”“不建议”“可以”。
 
-**v1alpha4 单文件评审稿（2026-11-15）。** 基于已冻结 v1alpha3 完整规范，集中恢复 Precondition 与 Postcondition 阶段中多个 Predicate 的统一表达：**阶段名保持 `precondition` / `postcondition` 单数；阶段内部无论一条或多条均使用 `predicates` 非空列表。** Contract 改为可选的 `precondition: <node>.precondition` 单一引用，唯一 `goal` 保留在 Contract；Postcondition 不再声明 `goal`，最终证明通过阶段聚合 `PASS: SUCCEEDED` 建立。新版所有测试预期 E01–E120 均待机器实现；本稿语言 NOT FROZEN，产品 NOT QUALIFIED。
+**v1alpha4 单文件冻结摘要（2026-11-15）。** 基于已冻结 v1alpha3 完整规范，集中恢复 Precondition 与 Postcondition 阶段中多个 Predicate 的统一表达：**阶段名保持 `precondition` / `postcondition` 单数；阶段内部无论一条或多条均使用 `predicates` 非空列表。** Contract 改为可选的 `precondition: <node>.precondition` 单一引用，唯一 `goal` 保留在 Contract；Postcondition 不再声明 `goal`，最终证明通过阶段聚合 `PASS: SUCCEEDED` 建立。E01–E120 的**规范预期已冻结**但机器 Fixture/CI 尚未实施完成；本版语言 FROZEN，产品 NOT QUALIFIED。
 
 **评审导航：** §0 确定效力与范围；§9–§14 检查 Owner 契约、DAG、SourcePath 和数据绑定；§17–§24 检查 Evidence、Reconcile、路由与诊断；§32–§45 检查 Script、可信依赖及产品门槛；**附录 E** 含全部 E01–E120 预期，**F/G** 为规范性互操作和 Schema/CEL 规则，**H** 为统一诊断索引；**I/J/K** 分别是作者指南、最终裁决与待实施验收材料（资料性）。所有内容均在当前文件中。
 
@@ -24,15 +24,15 @@
 
 ## 0. 规范状态与适用范围
 
-CA-SL v1alpha4 的作者源码语法、静态语义、运行语义、附录 F/G 的既有互操作约束及附录 H 的诊断分类，按候选 Normative 条款编写供评审；**本稿未冻结，不是已发布的 v1alpha4 标准**。已冻结 v1alpha3 仍以原文档为准。
+CA-SL v1alpha4 的作者源码语法、静态语义、运行语义、附录 F/G 的既有互操作约束及附录 H 的诊断分类，作为本版正式 Normative 条款**已冻结并发布**；实际产品符合性须独立验收。已冻结 v1alpha3 仍以原文档为准。
 
 | 术语或状态 | 含义 | 效力 |
 |---|---|---|
 | `vNext` | 本规范对应的演进版语言系列名称，不独立指定机器可解析版本 | 资料性别名 |
 | `connectionagent.io/v1alpha4` | 本版语言目标的精确标识；构建时仍由 BuildRequest 明确指定 | 规范性目标 |
 | `API v1alpha4` | 本文规定的抽象互操作语言版本，不等于所有外部 Owner、BuildRequest 或 Artifact 协议均采用同一版本 | 规范性语义边界 |
-| `FROZEN` | 上一个 v1alpha3 版本的语言语法及现行受信互操作语义冻结 | 前一正式版本 |
-| `PUBLIC DESIGN REVIEW — NOT FROZEN` | v1alpha4 的 C 类语法变更尚在评审 | 当前稿状态 |
+| `FROZEN` | 当前 v1alpha4 规范性语言语义冻结；v1alpha3 原版独立保持冻结 | 当前语言版本状态 |
+| `语言冻结 ≠ 产品符合` | §45.1 语言语义裁决与 §45.2 产品/Owner 验收属于独立层次 | 状态边界 |
 | `NOT QUALIFIED` | §45.2 的独立产品符合性门槛尚未完成，不得推断 Compiler、Studio、Host、Tool Owner 或真实 5GC 已通过验收 | 产品状态 |
 
 附录 E 中的示例数据和测试装配为资料性内容（Informative），其明确规定的预期诊断和行为具有规范性效力。
@@ -48,11 +48,11 @@ CA-SL v1alpha4 的作者源码语法、静态语义、运行语义、附录 F/G 
 | Skill Eligibility / Root Routing 的选中算法和完整 `Applicability` YAML 作者语法 | **未在 v1alpha4 作者源码语法中定义或冻结**；属于独立 Host/Root Routing 契约。§12.8 已冻结的“不能唯一匹配则拒绝准入”安全要求仍有效，但不得把此条件误认作完整选择协议已发布；不得默许旧 `applicability.when` |
 | Compiler Artifact、Runtime Trace、BuildRequest 的物理 framing/运输及真实 Tool Owner 的发布物 | **由各自版本契约拥有**；不得从 CA-SL FROZEN 推断其序列化格式或产品符合性已通过 |
 
-**符合性声明类型矩阵（Informative）。** 本矩阵继承 v1alpha3 的产品分层原则，但 **v1alpha4 目前 NOT FROZEN**；任何产品在完成本稿正式冻结和 §45.2 机器/Owner 验收前都不得宣称已通过。
+**符合性声明类型矩阵（Informative）。** 本矩阵继承 v1alpha3 的产品分层原则，**v1alpha4 语言已经 FROZEN**；任何产品仍须完成适用的 §45.2 机器/Owner 验收并提交原始证据，才能宣称对应产品通过。
 
 | 可声明的范围 | 所需精确边界与已存在的验收门槛 | 不得推导的结论 |
 |---|---|---|
-| **语言规范评审/冻结状态** | `connectionagent.io/v1alpha4` 仍是设计稿，须单独记录受审提交与 §45.1 C 类冻结结果 | 现在不能称 v1alpha4 已冻结或已获得产品 PASS |
+| **语言规范评审/冻结状态** | `connectionagent.io/v1alpha4` 已按 §45.1.1 冻结；发布身份为包含本冻结修订的规范提交 | 不能由此推定任何产品已获 PASS |
 | **Compiler 静态符合性** | §45.2 第 2/3/4/8 项中适用于静态链接的受信输入、E 变体和 H 的 `C_STATIC/C_WARNING` 诊断；Native/WASM 使用同一冻结源与原始结果 | 不表示 Runtime/Owner、Root Routing 或完整部署已验收 |
 | **Studio/LSP 静态一致性** | 相同源码与依赖快照下与 Compiler 的诊断/语言行为一致；§45.2 第 4/8 项，注明该产品实现版本 | 不表示 Studio 实现了 Runtime 或取得真实 Owner 证据 |
 | **Host/Runtime 执行符合性** | §45.2 第 1/2/5/7/8 项及适用动态用例，要求经版本化的 Artifact/Trace、隔离、Scope、责任和真实回包/模拟证据 | 不包含未交付的 Owner 物理协议或完整 Root Routing 自动选中能力 |
@@ -60,9 +60,9 @@ CA-SL v1alpha4 的作者源码语法、静态语义、运行语义、附录 F/G 
 | **Root Routing 产品符合性** | 独立版本化的 Eligibility / `Applicability` 选择协议及 Host 歧义拒绝验收，须写明对应版本和范围 | §12.8 仅冻结拒绝歧义原则，不提供完整选择算法 |
 | **集成/真实 5GC E2E 符合性** | 上述实际适用层已获可信证据，§45.2 第 6 项真实 5GC 36 Case 与相关 Owner 验证；记录失败和遗漏 | 单独编译通过、规范文本冻结、未执行的 E/DFX 不构成 E2E PASS |
 
-**声明规则：** 在报告中按实际执行层分别注明 `claimScope`、规范提交、所用外部协议版本、确切 Fixture/测试套件版本、已执行变体、失败/未覆盖、原始结果与发布者授权；未覆盖的层写 `NOT_TESTED` 或 `NOT_QUALIFIED`。其中 `claimScope` 等名称只描述附录 K 的**资料性报告视图**，不是本语言新增的线协议字段。E01–E114 为继承的已冻结预期，E115–E120 为本稿待冻结的预期，完整 E 列表和 H 的诊断集合均**不意味着已存在可执行套件**；套件的具体版本、覆盖率与执行证据须单独登记（§45.2、K.4）。
+**声明规则：** 在报告中按实际执行层分别注明 `claimScope`、规范提交、所用外部协议版本、确切 Fixture/测试套件版本、已执行变体、失败/未覆盖、原始结果与发布者授权；未覆盖的层写 `NOT_TESTED` 或 `NOT_QUALIFIED`。其中 `claimScope` 等名称只描述附录 K 的**资料性报告视图**，不是本语言新增的线协议字段。E01–E114 为继承的已冻结预期，E115–E120 是本版新增且已冻结的预期，完整 E 列表和 H 的诊断集合均**不意味着已存在可执行套件**；套件的具体版本、覆盖率与执行证据须单独登记（§45.2、K.4）。
 
-**规范文件完整性。** 附录 E（测试预期）、F（互操作字段）、G（闭合性补充）、H（诊断索引），以及 §30–§45 均属于**本文件的组成部分**；第十一部分 §46–§91 为资料性技术问答/设计说明。附录 I/J/K 已收编原先另行维护的作者指南、决策追踪、勘误裁决及测试/报告辅助材料，全部为 Informative；它们不增加字段或放宽 Normative 条款。本版完整评审仅需当前 `docs/skill-language-spec.zh-CN.md` 的**同一受审提交**，无需跨文件拼合；仅摘取 §0–§29 或截断 CEL 片段不能替代全文符合性评审。
+**规范文件完整性。** 附录 E（测试预期）、F（互操作字段）、G（闭合性补充）、H（诊断索引），以及 §30–§45 均属于**本文件的组成部分**；第十一部分 §46–§91 为资料性技术问答/设计说明。附录 I/J/K 已收编原先另行维护的作者指南、决策追踪、勘误裁决及测试/报告辅助材料，全部为 Informative；它们不增加字段或放宽 Normative 条款。本版唯一中文冻结文本为 `docs/skill-language-spec.v1alpha4.zh-CN.md`；全文评审只依据其**同一受审/发布提交**，无需跨文件拼合；仅摘取 §0–§29 或截断 CEL 片段不能替代全文符合性评审。
 
 BuildRequest 传输格式、Compiler Artifact、Runtime Trace 及 Tool Owner 发布物分别受其自身的版本契约管理。本文件的冻结状态不构成上述产品或发布物通过符合性验收的证明。历史 v1alpha2 冻结记录及 v1alpha4 修订记录不覆盖本文件；互操作字段以附录 F/G 为准。
 
@@ -1034,7 +1034,7 @@ Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时必�
 
 ### 12.9 单一全局前置阶段、最终验收与控制流
 
-**v1alpha4 候选 Normative：唯一全局门禁与最终 Postcondition 直达成功。** Contract 的 `goal` 是业务目标声明；`precondition` 可省略，若存在必须是**一个**精确的 `<node-id>.precondition` 阶段引用，而不是列表。它引用的阶段可以包含多个纯 Predicate，只有**整个阶段聚合 PASS** 才表示全局门禁通过。未声明此字段表示没有 Contract 级全局门禁，但 Procedure 仍可有局部 Precondition 与 Postcondition。
+**v1alpha4 Normative、FROZEN：唯一全局门禁与最终 Postcondition 直达成功。** Contract 的 `goal` 是业务目标声明；`precondition` 可省略，若存在必须是**一个**精确的 `<node-id>.precondition` 阶段引用，而不是列表。它引用的阶段可以包含多个纯 Predicate，只有**整个阶段聚合 PASS** 才表示全局门禁通过。未声明此字段表示没有 Contract 级全局门禁，但 Procedure 仍可有局部 Precondition 与 Postcondition。
 
 - **全局门禁必经性：** 对每条从 `start` 到业务 MUTATION 派发或 Invocation `SUCCEEDED` 的可达路径，若声明 Contract `precondition`，该路径必须经过这个唯一阶段的聚合 `PASS`。先前 PASS 的 Trace/原绑定保留，经过后续其他 Node 时不凭阶段名称重做判断；Runtime 每次派发业务 Mutation 以及发布成功前按 §17/§24 复核原已接受的全体成员及 Evidence。否则报 `ENTRY_PRECONDITION_BYPASSED`；无效标量、数组/对象、错误身份或不存在的阶段报 `ENTRY_PRECONDITION_REF_INVALID`。多个业务前置判断放进同一阶段的 `predicates` 列表，Procedure 其他 Precondition 仍为局部门禁。
 - **局部门禁：** 每次业务 Mutation 派发前，Runtime 还复核同 Node 的 Precondition，以及正常完成并直接进入该 Mutation 的局部判断；跨 Node 的局部判定仅在直接前驱判断沿正常结果边进入目标 Node、且 Mutation 为其首阶段时复核。全局门禁与局部门禁重合时同一执行结果只复核一次。Reconcile 仍按 §20 的独立条件准入。
@@ -2473,9 +2473,9 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 
 ### 45.1 v1alpha4 C 类变更评审边界
 
-本稿继承 v1alpha3 已冻结的 Contract、SourcePath、Evidence、Capability、Reconcile、DAG、Goal 证明与终态规则。**v1alpha4 的 C 类改变涵盖单数 `contract.precondition`、Pre/Postcondition 的 `predicates` 列表、移除 Node 级 `goal` 与成功直接由最终 Postcondition PASS 路由证明**；这不改写 v1alpha3 既有合法输入与结果。新版本需通过 §45.1 的正式冻结评审及 E115–E120 验收。
+本版继承 v1alpha3 中仍适用的 SourcePath、Evidence、Capability、Reconcile 与 DAG 安全约束；**全局门禁、Goal 证明及最终成功路由则以 v1alpha4 本版规则为准**，不得错误地沿用 v1alpha3 的证明传播模型。**v1alpha4 的 C 类改变涵盖单数 `contract.precondition`、Pre/Postcondition 的 `predicates` 列表、移除 Node 级 `goal` 与成功直接由最终 Postcondition PASS 路由证明**；这不改写 v1alpha3 既有合法输入与结果。本版的 §45.1 C 类语言设计评审与 E115–E120 规范预期审查已经纳入冻结裁决；机器执行属于 §45.2 的独立产品门槛。
 
-本 v1alpha4 候选稿待冻结的验收依据：§10–14 的唯一源码结构与闭合语法；§12.9、§17、§20、§22 的路径敏感证明与 fail-closed 规则；§F.1–F.6 / §G.1–G.9 的精确字段、Receipt/Proof/SourceIdentity、Schema-CEL 和责任模型，附录 H 的诊断索引；E01–E120 的规范预期及负例。无法静态证明兼容的 Schema / Owner 导出必须拒绝链接，不能靠样例值、运行时回退或 Studio 自动猜测。v0.2 是既有可执行基线，编译器不得静默迁移到本版。
+本 v1alpha4 语言已冻结的判定依据：§10–14 的唯一源码结构与闭合语法；§12.9、§17、§20、§22 的路径敏感证明与 fail-closed 规则；§F.1–F.6 / §G.1–G.9 的精确字段、Receipt/Proof/SourceIdentity、Schema-CEL 和责任模型，附录 H 的诊断索引；E01–E120 的规范预期及负例。无法静态证明兼容的 Schema / Owner 导出必须拒绝链接，不能靠样例值、运行时回退或 Studio 自动猜测。v0.2 是既有可执行基线，编译器不得静默迁移到本版。
 
 冻结后对任何字段、路由、默认值、证据/身份解释、允许的 Schema 关键字、Script 注解或诊断结果作语义性改变，必须明确升级语言或相应互操作契约版本。纯笔误勘正不得改变 Appendix E 的预期。语言规范 Owner 与外部 Tool/Host/Deployment Owner 各自拥有其版本，不能代替对方批准发布物。
 
@@ -2485,13 +2485,23 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 |---|---|---|
 | A · 纯编辑勘误 | 错字、失效链接、标题、准确的交叉引用与错误示例编号；不改变任何合法输入集合、错误/Outcome 或 Runtime 判断 | 独立 PR，列出更正前后文本及不变性证据；保留 v1alpha4 |
 | B · 既有规则的消歧与信任装配澄清 | 仅将 §9/§17/§34、F/G 等**已有规则**合并说明，或在同一输入适用多个已定义错误码时写明专用诊断优先级；不得增加授权来源、减少所需 Evidence、变更有效输入/终态或推翻 E01–E120 已确定的预期 | 独立勘误记录，逐项给出冻结条款、判定差异、用例与可信输入边界；若审查证明改变了已冻结的诊断预期或安全结论，**不得作为 B 合入** |
-| C · 语义或互操作变更 | 放宽/收紧实际可接受的 SourcePath、身份/Scope/Effect/Schema、Evidence 比较、Reconcile 输出与提交分类、终态算法、正式用例预期或授权输入来源 | 必须明确升级语言或对应互操作协议版本（例如 v1alpha4），完成独立设计评审与新的正负例；不得修改已冻结版本的含义 |
+| C · 语义或互操作变更 | 放宽/收紧实际可接受的 SourcePath、身份/Scope/Effect/Schema、Evidence 比较、Reconcile 输出与提交分类、终态算法、正式用例预期或授权输入来源 | 必须明确升级语言或对应互操作协议版本（例如 v1alpha5 或后续版本），完成独立设计评审与新的正负例；不得修改已冻结版本的含义 |
 
 每项修订均须注明版本、分类、受影响条款、受影响诊断与 E 用例、静态一致性检查以及尚未完成的 §45.2 产品门槛。无法证明属于 A/B 的改动一律按 C 升版评审。已冻结规范的技术文本仍是唯一 Normative 来源，历史勘误记录用于审计，不能单独发明新字段或授予权限。
 
+### 45.1.1 v1alpha4 语言冻结裁决（2026-11-15）
+
+**决定：CA-SL v1alpha4 = FROZEN（语言层）；Compiler、Studio/LSP、Host/Runtime、Tool/Schema Owner、Deployment 和真实 5GC 的实现符合性 = NOT QUALIFIED。** 本裁决仅冻结本文件标为 Normative 的作者语法、静态及运行语义、E01–E120 的明确预期、F/G 的抽象互操作规则、H 的诊断身份与分类。I/J/K 的实现跟踪仍为 Informative。v1alpha3 的冻结版本以及外部 ToolCatalog/CapabilityContracts/BuildRequest/Artifact/Trace 物理契约不受本裁决替代或自动升版。
+
+**评审来源与可追踪发布对象。** PR #42 完成 Pre/Postcondition 对称多 Predicate 设计；PR #43 统一单数 Contract 门禁、唯一 Contract Goal、最终 Postcondition 直达成功和 `operation/observation.tool`，冻结修订之前的 main 基线为 `5236d563f3ec66c77c22e75a325884fdc860072e`。正式冻结对象是**包含本裁决且合并到 main 的 `docs/skill-language-spec.v1alpha4.zh-CN.md` 文件所在不可变提交**，对外报告必须明确引用该提交，不能仅指向浮动分支或此前的草案提交。
+
+**语言审查结论。** 已检查 Contract/Procedure/PredicateSet 单一入口、单数全局 Precondition、Pre/Postcondition `predicates` 非空有序列表及三态聚合、唯一的最终 Postcondition PASS→SUCCEEDED 边、§22.1 路由矩阵、Tool callable/Capability Grant/Effect 的分离、受信 Schema/SourcePath/Evidence/Scope、Mutation/Reconcile 与责任终态、附录 E/G.9 预期及 H 诊断索引。文本层面无保留的语言语义 P0/P1；后续发现新的语义差异应按本节 A/B/C 变更控制处理，不得在已冻结版本中静默修正。
+
+**产品证据保留。** E01–E120 是规范预期而不是 120 项已运行机器 Fixture；附录 K 的 `NOT_IMPLEMENTED`、`NOT_TESTED`、诊断 Fixture 缺口及 Root Routing/外部物理协议未交付均保留。语言冻结只证明本次审查的文本规则闭合；Compiler Native/WASM、Studio/LSP、Runtime/Host、Owner、真实 5GC 仍须分别通过 §45.2 的适用门槛并提交不可变原始结果，不能由本裁决推断 PASS。
+
 ### 45.2 未完成的实现符合性门槛
 
-以下是**声称某个实现可编译、可运行或可部署本规范**之前必须逐一验收的门槛。**v1alpha4 当前 NOT FROZEN；将来即使冻结也不能跳过真实 §45.2 产品验收**：
+以下是**声称某个实现可编译、可运行或可部署本规范**之前必须逐一验收的门槛。**v1alpha4 语言已 FROZEN，但不能据此跳过真实 §45.2 产品验收**：
 
 1. Tool / Observation / Evidence Owner 发布精确 Input/Output/Proof/Reconcile、资源责任、Scope、Correlation、Freshness 和结果分类的正式导出。
 2. Deployment 提供受信 CapabilityContracts、Scope 策略和对每份快照摘要/Package ID/Owner 归属的可信绑定。
@@ -2536,7 +2546,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 | `Literal` / `Annotated` / 不支持类型 | 仅接受 F.6 与 G.4 的有限注解和 Metadata；未知元数据/Any/动态泛型拒绝；不能因 Python 实现宽容而放行 |
 | 派生结果与跨平台一致性 | Native/WASM/Studio 使用相同 SourcePath、Schema、AST/类型结果与 `(Code, Phase)`；留下原始 Fixture、工具版本和差异记录；§45.2 第 3/4/8 项 |
 
-**当前裁决：v1alpha4 为 PUBLIC DESIGN REVIEW — NOT FROZEN；原 v1alpha3 保持 FROZEN；全部产品/Owner 符合性 NOT QUALIFIED。** 只有 §45.1 C 类评审、E115–E120 及 §45.2 的真实机器、Owner 和部署证据完成后，才可分别更新语言与产品状态。本稿的 Source Hygiene 不能替代 Compiler Native/WASM、Studio/Runtime/Owner 的实际验收。
+**当前裁决：CA-SL v1alpha4 语言 FROZEN；原 v1alpha3 独立保持 FROZEN；全部产品/Owner 符合性 NOT QUALIFIED。** §45.1.1 记录冻结范围和审查结果；E115–E120 的规范预期不等于已运行机器测试。只有在 §45.2 的真实机器、Owner 和部署证据经核验后，才可分别更新产品状态；Source Hygiene 不等于 Compiler Native/WASM、Studio/Runtime/Owner 实际验收。
 
 ---
 
@@ -2825,7 +2835,7 @@ flowchart LR
 | Predicate Script 类型派生不明确 | Predicate.parameters 是唯一业务输入签名；Script 入口引用生成的 PredicateInput；Compiler / LSP 使用同一虚拟 stub | 语义已明确；生成 stub / overlay 的工具链方式待验证 |
 | Schema ID 与路径混淆 | 外部引用使用 dependency-alias::精确 Schema $id；Skill 自有 Schema 使用包内路径；路径不是公共身份 | 规则已明确；需要 Compiler 正负例验证 |
 | primitive 类型兼容、nullable 和 CEL 规则不完整 | 附录 F.5 保守赋值规则，未支持关键字必须拒绝 | 语言规则已冻结；实现待验收 |
-| 自动同名绑定保留键冲突 | 本版（v1alpha4）不支持隐式同名绑定；Studio 可生成显式 arguments | 本稿对应旧版已冻结的规则（v1alpha4 尚在评审） |
+| 自动同名绑定保留键冲突 | 本版（v1alpha4）不支持隐式同名绑定；Studio 可生成显式 arguments | 本版继承且已冻结的显式绑定规则（产品实现未验收） |
 | 三个异步 Operation 的 Owner 契约尚未确认 | 责任目标映射到 UPN.CREATE_UP_SESSION、SSM.SIGNAL_UE_AN、UPN.MODIFY_UP_SESSION | 仅为目标责任；ToolCatalog / Output / Evidence 仍待 Owner 确认 |
 
 本附录仅记录历史评审事项，不独立产生规范性要求，也不构成 Owner 发布物或产品符合性证明。现行实现验收依 §45.2 的八项门槛执行。任何修订申请均应明确影响的术语、语法、静态语义、运行语义或 Owner 边界，并附相应正反例。
@@ -3135,7 +3145,7 @@ expected:
 | E65：不可达 Node 指向可达的最终 Postcondition 所在 Node（详见 E.7） | UNREACHABLE_NODE 警告；只考虑可达入边，全局门禁仍由可达入边的 AND 判定 |
 | E66：Procedure Script 读取外层对象中的可选字段（详见 E.7） | 合法返回产生 **Script Operation 的阶段 Outcome SUCCEEDED**，按既有阶段路由继续，不能由 Script 直接请求 Invocation SUCCEEDED；抛异常或无效返回都走阶段 FAILED，分别记录 SCRIPT_EXECUTION_FAILED 或 OUTPUT_SCHEMA_INVALID，且没有成功输出 |
 
-此表给出 v1alpha4 待冻结的规范预期，不代表现有 CI 已通过。正式发布实现符合性仍须由 Owner 提供真实导出身份，并使 Native、WASM、Studio 与 Runtime 通过相同正反例（§45.2）。E01–E120 的**资料性逐用例执行方式分类现已合并进本文件附录 K**，用于区分静态 Fixture、Runtime 模拟、内部单测、业务评审与 Owner 集成评审；`proposedExecutionClass` 不改变本表预期，`executionPlanStatus: NOT_IMPLEMENTED` 不构成验收通过。
+此表给出 v1alpha4 已冻结的规范预期，不代表现有 CI 已通过。正式发布实现符合性仍须由 Owner 提供真实导出身份，并使 Native、WASM、Studio 与 Runtime 通过相同正反例（§45.2）。E01–E120 的**资料性逐用例执行方式分类现已合并进本文件附录 K**，用于区分静态 Fixture、Runtime 模拟、内部单测、业务评审与 Owner 集成评审；`proposedExecutionClass` 不改变本表预期，`executionPlanStatus: NOT_IMPLEMENTED` 不构成验收通过。
 
 ## E.6 基于独立样例的最小变更
 
@@ -3343,9 +3353,9 @@ predicates:
 
 §45.2 第 3 项要求将对应验收条目落为机器可执行 Fixture；新增 v1alpha4 用例见 G.9。本文件附录 K 的非规范性逐用例追溯只记录测试执行计划；`ciFixture: null` 不表示测试通过。附录 E/G.9 保持唯一规范性预期来源。
 
-# 附录 F：继承自 v1alpha3 的互操作与类型剖面（v1alpha4 候选稿）
+# 附录 F：继承自 v1alpha3 的互操作与类型剖面（v1alpha4 FROZEN）
 
-**候选 Normative（v1alpha4；外部物理协议版本保持独立）。** §9、§17、§34 的逻辑互操作属性由 v1alpha3 已冻结契约继承。本稿只修改作者级 Precondition/Postcondition 聚合，不新增外部 ToolCatalog/CapabilityContracts/BuildRequest/Trace 线字段。实际 ToolCatalog 与 CapabilityContracts 例子仍显示其各自发布的 v1alpha3 API 版本。
+**Normative、FROZEN（v1alpha4；外部物理协议版本保持独立）。** §9、§17、§34 的逻辑互操作属性由 v1alpha3 已冻结契约继承。本版的作者级变化还包括单数 Contract 全局门禁、删除 Postcondition 根的 Goal、直接最终 PASS→SUCCEEDED 和 `operation/observation.tool`；这些变化均不新增外部 ToolCatalog/CapabilityContracts/BuildRequest/Trace 线字段。实际 ToolCatalog 与 CapabilityContracts 例子仍显示其各自发布的 v1alpha3 API 版本。
 
 ## F.1 ToolCatalog / Mutation 发布
 
@@ -3420,7 +3430,7 @@ Appendix E 的正负例是冻结的预期结果而非声称已经运行的测试
 
 # 附录 G：v1alpha4 规范闭合性补充
 
-**效力：候选 Normative（v1alpha4）。** G.2–G.9 的原有受信互操作语义继承 v1alpha3；新增多 Predicate 阶段形状和三态聚合以 §10.1、§12.2、§12.5、§12.9 和 E115–E120 为准。新语义尚未冻结，产品符合性仍需独立验收。
+**效力：Normative、FROZEN（v1alpha4）。** G.2–G.9 的原有受信互操作语义继承 v1alpha3；新增多 Predicate 阶段形状和三态聚合以 §10.1、§12.2、§12.5、§12.9 和 E115–E120 为准。本版语言规则已冻结，产品符合性仍需独立验收。
 
 ## G.1 完整词法与 PredicateSet 文法
 
@@ -3836,9 +3846,9 @@ Skill 的规范化逻辑根是 skills/<skill-name>，skill-name 是 G.1 的 Iden
 
 E30/E40 的严格绑定规则有意保留：较新的已接纳权威记录即使规范化值相同，也可能使旧 PASS 的 Producer/Evidence 绑定失效。建议的显式模式是在最终 Postcondition 前重新执行授权的权威 Observation，将新 Producer output 作为参数来源，绑定新 Evidence，再取得阶段聚合 PASS 并直接请求 SUCCEEDED；Trace 保留此前的旧 PASS/旧 Evidence、新判断和所有派发事件。不得隐式换绑、自动刷新、悄悄重算旧 Predicate。未来若要支持受控重验策略，须显式升级契约版本。
 
-## G.9 新增验收 E105–E114
+## G.9 规范预期 E105–E120（含 v1alpha4 新增 E115–E120）
 
-本节每个用例均为 v1alpha4 候选规范的**待冻结预期**，不是当前产品已经 PASS 的证明。所有 Owner 数据、Scope 和证明来源必须是可信 Fixture；不得在失败用例中把缺失的发布物臆造为有效输入。
+本节每个用例均为 v1alpha4 **已冻结的规范预期**，不是当前产品已经 PASS 的证明。所有 Owner 数据、Scope 和证明来源必须是可信 Fixture；不得在失败用例中把缺失的发布物臆造为有效输入。
 
 | 用例 | 输入变化 | 必须得到的结果 |
 |---|---|---|
@@ -3859,7 +3869,7 @@ E30/E40 的严格绑定规则有意保留：较新的已接纳权威记录即使
 | E119 | Pre/Postcondition `predicates` 为空/非列表、成员缺 `arguments` 或带 `routes/goal`、Postcondition 根带 `goal`、阶段根旧 `predicate/arguments`；普通 Operation/Observation 仍写 `target`；重复 YAML Key 对照 | Predicate 组结构违反 §10.1 → `PREDICATE_GROUP_INVALID`；旧 `target` 单字段 → `UNKNOWN_FIELD`（不做兼容转换）；重复 YAML Mapping Key → `YAML_PARSE_ERROR` |
 | E120 | Contract 单数 `precondition: check-ready.precondition` 引用含两 Predicate 的阶段；对照一项 PASS 一项 UNKNOWN、全部 PASS、汇合路径仅一条通过全局门禁；最终 Postcondition PASS 后又经 Mutation，再从非 Postcondition 请求成功 | 只有整个阶段 PASS 才满足唯一全局门禁；汇合路径不允许借 PASS；最终成功必须来自新的 Postcondition 聚合 PASS→SUCCEEDED，旧局部 PASS 不可复用；Runtime 逐项复核原绑定 Evidence |
 
-G.1–G.9 的继承用例与新增 E115–E120 共同组成 v1alpha4 候选预期集。E115–E120 尚无实际执行的机器 Fixture 或 CI 通过证明。文档审计不代表 Compiler、Native/WASM、Studio、Runtime 已实现上述语义；产品符合性依旧由 §45.2 控制。
+G.1–G.9 的继承用例与新增 E115–E120 共同组成 v1alpha4 已冻结的规范预期集。E115–E120 尚无实际执行的机器 Fixture 或 CI 通过证明。文档审计不代表 Compiler、Native/WASM、Studio、Runtime 已实现上述语义；产品符合性依旧由 §45.2 控制。
 
 
 
@@ -3912,7 +3922,7 @@ G.1–G.9 的继承用例与新增 E115–E120 共同组成 v1alpha4 候选预�
 | ROUTE_OUTCOME_MISSING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E55/E84 | 规范用例已定义 |
 | ROUTE_OUTCOME_UNKNOWN | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | 待补独立 Fixture | 待 Fixture |
 | ROUTE_NORMAL_OUTCOME_NOT_ALLOWED | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E54 | 规范用例已定义 |
-| PREDICATE_GROUP_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§12.2、§12.5、§24.1 | E119 | v1alpha4 候选规范预期，未运行 |
+| PREDICATE_GROUP_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§12.2、§12.5、§24.1 | E119 | 规范预期已冻结，机器用例未执行 |
 | PREDICATE_ARITY_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E08 | 规范用例已定义 |
 | PREDICATE_TYPE_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E09 | 规范用例已定义 |
 | EVIDENCE_GUARANTEE_LINK_INVALID | C_STATIC | Compiler ERROR | 是 | Link / evidence | 不启动 Invocation | §17.1–§17.2、§G.3.1、§24.1 | E38/E46/E68/E102/E106/E109 | 规范用例已定义 |
@@ -4157,7 +4167,7 @@ flowchart TD
 
 ## K.1 E01–E120 的执行责任计划（Informative）
 
-以下 E01–E114 的计划从 v1alpha3 冻结版继承，E115–E120 是当前 v1alpha4 **新增、尚未执行**的聚合 Predicate 正反例候选。所有 `NOT_IMPLEMENTED` 均不代表机器测试通过；必须同时提供版本化 Fixture、实际执行结果及原始证据后才可计入 §45.2。
+以下 E01–E114 的计划从 v1alpha3 冻结版继承，E115–E120 是 v1alpha4 **新增并冻结、但机器尚未执行**的聚合 Predicate 正反例。所有 `NOT_IMPLEMENTED` 均不代表机器测试通过；必须同时提供版本化 Fixture、实际执行结果及原始证据后才可计入 §45.2。
 
 | 用例 | 建议执行类别 | 本登记状态 |
 |---|---|---|
@@ -4411,14 +4421,14 @@ nodes:
 # Authoritative gates: CA-SL v1alpha4 §45.2 (items 1–8).
 reportKind: ca-sl-implementation-conformance
 languageTarget: connectionagent.io/v1alpha4
-languageContract: NOT_FROZEN
+languageContract: FROZEN
 productConformance: NOT_QUALIFIED
 reportStatus: NOT_TESTED
 # 资料性符合性声明范围；单独声明具体类型、版本和原始证据
 conformanceClaims:
   - claimType: language-specification
-    subject: "CA-SL v1alpha4 single-file design review (not frozen)"
-    status: NOT_FROZEN
+    subject: "CA-SL v1alpha4 frozen single-file language specification"
+    status: FROZEN
     evidenceRef: null
   - claimType: compiler-static
     status: NOT_TESTED
@@ -4618,7 +4628,7 @@ gates:
 
 **执行证据分离：** 附录 E/H 的规范预期状态仅代表文本已定义。附录 K.4 的 `specExpected` 不能转化为 `passed`；`fixtureExists`、`executed`、`passed` 和 `rawResultRef` 应逐变体记录并由原始报告核验。真实实现不能仅凭“规范用例已定义”或空白报告模板声称符合。
 
-**实现真实性：** 本次单文件整合与 Source Hygiene 检查最多说明文档结构及基本校验完成；只有实际 Owner 发布物、受信部署输入、Native/WASM/Studio 的机器 Fixture、Runtime Trace、真实 5GC Case 结果及 §45.2 的逐项报告经独立核验后才能改变相应产品状态。本稿裁决为 **CA-SL v1alpha4 NOT FROZEN；产品 NOT QUALIFIED**；v1alpha3 原版仍 FROZEN。
+**实现真实性：** 本次单文件整合与 Source Hygiene 检查最多说明文档结构及基本校验完成；只有实际 Owner 发布物、受信部署输入、Native/WASM/Studio 的机器 Fixture、Runtime Trace、真实 5GC Case 结果及 §45.2 的逐项报告经独立核验后才能改变相应产品状态。本版裁决为 **CA-SL v1alpha4 语言 FROZEN；产品 NOT QUALIFIED**；v1alpha3 原版仍 FROZEN。
 
 ---
 
