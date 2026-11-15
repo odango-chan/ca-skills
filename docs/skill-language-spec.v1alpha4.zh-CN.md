@@ -948,6 +948,42 @@ verify-n4-session:
 
 本片段假设前序 `read-n4-baseline` 在 PRE_CREATE 阶段成功产生已确认的 `baselineRef`，且该输出在所有到达路径上可用。POST_CREATE 查询与 Predicate 均绑定同一 Ref；`inspect-n4-resources.observation.output` 使用 §29 所示的权威输出类型。
 
+**Precondition/Postcondition 完全对称的多 Predicate 教学片段（Informative）。** 以下只演示作者结构；`demo.*` Predicate、前序 Observation、Owner 保证、Contract 和目标节点仍须由真实 Skill 的完整文件与可信依赖提供，不能将片段直接当作可运行的 Skill：
+
+~~~yaml
+nodes:
+  check-ue-ready:
+    precondition:
+      predicates:
+        - predicate: demo.ue.registered
+          arguments:
+            - context.ueRef
+        - predicate: demo.ue.active
+          arguments:
+            - context.ueRef
+      routes:
+        PASS: inspect-session
+        FAIL: FAILED
+        UNKNOWN: UNRESOLVED
+
+  verify-session:
+    postcondition:
+      goal: session.established
+      predicates:
+        - predicate: demo.session.established
+          arguments:
+            - inspect-session.observation.output
+        - predicate: demo.resources.transferred
+          arguments:
+            - inspect-responsibility.observation.output
+      routes:
+        PASS: SUCCEEDED
+        FAIL: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
+~~~
+
+这里两个阶段均只有**一个** `routes`，内部两条 Predicate 都不各自路由；`precondition` 聚合 PASS 才能准入下一步，带 `goal` 的 `postcondition` 聚合 PASS 才能建立成功证明。**没有**新的 `preconditions` / `postconditions` Node 级阶段；Contract 中已有的复数 `preconditions` 仍仅指向全局前置**阶段引用集合**。
+
 如果 Operation Result 已包含满足 Predicate 所需的事实、Scope、Correlation、Freshness 和 Evidence，可以直接作为 Postcondition 输入，不需要 Observation。
 
 ### 12.6 Operation Result 充分性原则
