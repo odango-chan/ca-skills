@@ -3022,8 +3022,8 @@ expected:
 | E14：Host Action Budget 为 0 或非法 | Admission fail-closed，不允许 Skill limits 放宽 |
 | E15（informative，业务评审）：Observation 已可从充分 Operation Result 中获得且满足 Evidence 要求 | 不应为了形式强制增加 Observation 阶段 |
 | E16：未引用的额外 Snapshot 被传入 BuildRequest | 按声明边界链接，额外导出不可访问 |
-| E17：正常与 Reconcile 路径各有自己的最终 Postcondition 聚合 PASS，直接请求 SUCCEEDED | 每条路径独立符合最终验收直接成功要求，不要求合流，也不得借用其他路径 PASS |
-| E18：其中一支由 Reconcile Operation 直接请求 SUCCEEDED，跳过该路径的最终 Postcondition PASS | SUCCESS_BYPASSES_FINAL_POSTCONDITION |
+| E17：原 Mutation 直接成功与 Host 可信恢复后归并为 SUCCEEDED，均到达原 Node 的最终 Postcondition | 两种结果来源都须由本次 Postcondition 聚合 PASS 直接请求 SUCCEEDED；恢复不能伪造 Owner 原回包或借用旧 PASS |
+| E18：保留正常 SUCCEEDED→最终 Postcondition PASS 的合法成功边，另将原 Mutation 的 COMMITTED 直接路由 SUCCEEDED | SUCCESS_BYPASSES_FINAL_POSTCONDITION；已存在合法最终边但另有非法成功边 |
 | E19：相同 Payload Schema 的 Producer 缺少参数要求的保证 | PREDICATE_EVIDENCE_UNSATISFIABLE |
 | E20：多保证参数缺一条有效记录；另测错误 Owner、错 PSI / Lifecycle、过期、同 Scope 冲突 | UNKNOWN，即使业务值使 evaluator 返回 PASS |
 | E21：所有保证有效，Script 返回 PASS 且 evidenceUsed 为空；另测其引用未附加 Ref | 前者 PASS 并由 Runtime 记录支撑证据；后者 UNKNOWN |
@@ -3064,11 +3064,11 @@ expected:
 | E56：使用保留的终态拼写作 Node ID，或用终态作 start | 分别报 NODE_ID_RESERVED 和 PROCEDURE_START_MISSING |
 | E57：终态拼写错误，且没有对应 Node | CONTROL_FLOW_DANGLING |
 | E58：路由预期 FAILED，但已有部分完成资源待保全 | Runtime 发布 SAFE_STOPPED，记录原 Outcome 和 TERMINAL_STATE_MISMATCH |
-| E59：Reconcile 的 UNRESOLVED 边改成 FAILED 或新业务 Node | RECONCILE_CONTRACT_INVALID |
-| E60：Reconcile Node 被用作 start、声明 Precondition，或从原 Mutation 的其他 Outcome、另一 Node 进入 | RECONCILE_CONTRACT_INVALID |
-| E61：同 Node 全局 Precondition 隐式 PASS 后，Mutation 返回 OUTCOME_UNKNOWN | 门禁覆盖通过。仅执行对应 Reconcile，跳过原 Node 后续阶段 |
+| E59：原 Mutation 的 OUTCOME_UNKNOWN 改成直接 FAILED 或继续进入新业务 Mutation Node | RECONCILE_CONTRACT_INVALID；未知提交状态只能请求安全停止 |
+| E60：Owner `mutation.reconcile` 缺 callable、bind 非 originalInvocationId、proofPath 无效、或恢复 Schema 无法赋给原普通输出 Schema | RECONCILE_CONTRACT_INVALID；不再构造作者级 Reconcile Node |
+| E61：同 Node 全局 Precondition 隐式 PASS 后，Mutation 返回 OUTCOME_UNKNOWN | 门禁覆盖通过；Host 只可作一次受控状态确认，仍不明则沿原 Operation 的 OUTCOME_UNKNOWN 安全停止；本 Node 后续 Postcondition 不执行 |
 | E62：Runtime 在派发前发出 DENIED，后续 Postcondition 绑定其成功输出 | 直接走 DENIED 路由。Postcondition 不执行，Operation 不提供成功输出 |
-| E63：移除 §12.1 Reconcile 的 COMMITTED 输出声明，保留 Observation 绑定 | RECONCILE_OUTPUT_UNAVAILABLE |
+| E63：Owner 未声明 `recoverableOutputSchema`，原 Mutation COMMITTED 路径的 Observation 却绑定其 `operation.output` | RECONCILE_OUTPUT_UNAVAILABLE；该路径没有可绑定的恢复业务输出 |
 | E64：前序局部 Postcondition PASS 后又发生 Mutation，随后尝试从 Operation 或 Precondition 直接请求成功 | SUCCESS_BYPASSES_FINAL_POSTCONDITION；任何旧局部 PASS 都不能跨节点证明最终 Goal |
 | E65：不可达 Node 指向可达的最终 Postcondition 所在 Node（详见 E.7） | UNREACHABLE_NODE 警告；只考虑可达入边，全局门禁仍由可达入边的 AND 判定 |
 | E66：Procedure Script 读取外层对象中的可选字段（详见 E.7） | 合法返回产生 **Script Operation 的阶段 Outcome SUCCEEDED**，按既有阶段路由继续，不能由 Script 直接请求 Invocation SUCCEEDED；抛异常或无效返回都走阶段 FAILED，分别记录 SCRIPT_EXECUTION_FAILED 或 OUTPUT_SCHEMA_INVALID，且没有成功输出 |
@@ -3117,14 +3117,14 @@ E39、E43 的 ca 快照基线：将可信 Owner 集合设为 `[example-ue-owner,
 
 | 用例 | 基线与最小改动 | 预期 |
 |---|---|---|
-| E17 | §12.1 的正常与 Reconcile 路径，各自由最终 Postcondition 聚合 PASS 直接路由 SUCCEEDED | 两条成功路径分别通过最终成功边的静态检查；无需 Goal 标记和跨 Node 证明传播 |
-| E18 | 在 §12.1 中删除 `reconcile-subscription` 的 Observation 与 Postcondition，并设置 `operation.routes.COMMITTED: SUCCEEDED` | SUCCESS_BYPASSES_FINAL_POSTCONDITION。即使正常分支另有合法最终 Postcondition，该 Reconcile 分支也不得直接请求 Invocation SUCCEEDED |
-| E10a | 在受信 Reconcile COMMITTED 分支读取原 Mutation 没有产生的 SUCCEEDED 输出，且其输出 Schema 声明必需的 `subscriptionRef` | SOURCE_NOT_AVAILABLE；若 Schema 没声明字段则先报 SOURCE_PATH_INVALID |
-| E10b | 在相同前提下引用 Reconcile Operation 的 `output`，但 Owner 未声明可恢复输出 Schema | RECONCILE_OUTPUT_UNAVAILABLE；必须与 E10a 分别拥有 Fixture/结果 |
+| E17 | §12.1 原 Mutation 直接 SUCCEEDED，以及超时后经 Host 受信 Reconcile READ 证明提交且恢复完整普通输出后归并 SUCCEEDED；均到达同一 Postcondition | 同一最终 Postcondition 聚合 PASS→SUCCEEDED；保留两种不同的真实 Producer lineage，无伪造原 Owner 成功回包 |
+| E18 | 保留 §12.1 正常 SUCCEEDED→Postcondition PASS→SUCCEEDED，另改 `create-subscription.operation.routes.COMMITTED: SUCCEEDED` | SUCCESS_BYPASSES_FINAL_POSTCONDITION；即使另一条合法最终 Postcondition 边存在，COMMITTED 也不得直接发布 Invocation SUCCEEDED |
+| E10a | §12.1 将 `create-subscription.operation.routes.NOT_COMMITTED` 指向新 Observation Node，该 Observation 输入绑定 `create-subscription.operation.output.subscriptionRef`（原普通成功 Schema 中必需） | SOURCE_NOT_AVAILABLE；NOT_COMMITTED 不产生正常成功输出；若字段未声明则先报 SOURCE_PATH_INVALID |
+| E10b | Owner `mutation.reconcile` 不声明 recoverableOutputSchema/path；将原 Mutation `routes.COMMITTED` 指向一个新的 Observation，它绑定 `create-subscription.operation.output.subscriptionRef` | RECONCILE_OUTPUT_UNAVAILABLE；COMMITTED 无恢复输出承诺，区别于 E10a 的 NOT_COMMITTED；需独立 Fixture/原始结果 |
 | E41 | `start` 指向 E.8 的 `verify-subject`，它的 PASS 直接路由到 `SUCCEEDED` | Goal 覆盖通过。初始无证明，PASS 建立证明 |
-| E42 | 在 E.8 中把 `verify-subject.postcondition.routes.PASS` 改为 `verify-local`；新增 `verify-local` 为只含 Precondition 的 Node，其 PASS 直达 `SUCCEEDED`。对照将 `verify-local` 改为只含 Postcondition 的 Node，聚合 PASS 直达 SUCCEEDED | 前者 SUCCESS_BYPASSES_FINAL_POSTCONDITION；后者有效，最终证明由最后一个 Postcondition PASS 完成。两个变体都不写 `goal` |
+| E42 | 在 E.8 中把 `verify-subject.postcondition.routes.PASS` 改为 `verify-local`；新增 `verify-local` 为只含 Precondition 的 Node，其 PASS 直达 `SUCCEEDED`。对照将 `verify-local` 改为只含 Postcondition 的 Node，聚合 PASS 直达 SUCCEEDED | 前者 FINAL_POSTCONDITION_MISSING（没有任何可达合法最终边，优先于 BYPASSES）；后者有效。两个变体都不写 `goal` |
 | E44 | 在 E.8 增加一个从 `start` 不可达的 Node `unused`，声明 `precondition.predicates[0].predicate: example.subject.present`、对应 `arguments: [context.ueRef]`；其 `precondition.routes` 将 PASS 指向 `verify-subject`、FAIL 指向 `FAILED`、UNKNOWN 指向 `UNRESOLVED` | 报 UNREACHABLE_NODE；该来源节点不可达，其 PASS→verify-subject 不参与可达路径的全局门禁汇合；此处故意不使用非法的 Precondition PASS→SUCCEEDED |
-| E45 | 以 E.8 为基线新增 `check-subject.precondition`（使用 E.8 的 context.ueRef Predicate），把 `start` 改为 `check-subject`，PASS 进入 `verify-subject`、FAIL/UNKNOWN 停止，Contract 声明 `precondition: check-subject.precondition`。反向把 `verify-subject.postcondition.routes.PASS` 改为 `check-subject`、将其 `precondition.routes.PASS` 改为 `SUCCEEDED` | 正向有效：全局门禁先 PASS，再由最终 Postcondition PASS→SUCCEEDED；反向 SUCCESS_BYPASSES_FINAL_POSTCONDITION，不能从 Precondition PASS 请求成功 |
+| E45 | 以 E.8 为基线新增 `check-subject.precondition`（使用 E.8 的 context.ueRef Predicate），把 `start` 改为 `check-subject`，PASS 进入 `verify-subject`、FAIL/UNKNOWN 停止，Contract 声明 `precondition: check-subject.precondition`。反向把 `verify-subject.postcondition.routes.PASS` 改为 `check-subject`、将其 `precondition.routes.PASS` 改为 `SUCCEEDED` | 正向有效：全局门禁先 PASS，再由最终 Postcondition PASS→SUCCEEDED；反向 FINAL_POSTCONDITION_MISSING（此变体没有合法最终边），不能从 Precondition PASS 请求成功 |
 | E50 | 在 E.8 新增 `check-ready`，其 `precondition.predicates` 列出两项 `example.subject.present`（均显式绑定 `context.ueRef`），PASS 指向 `verify-subject`，FAIL→FAILED、UNKNOWN→UNRESOLVED；改 `start: check-ready` 并在 Contract 写 `precondition: check-ready.precondition` | 静态覆盖通过；Runtime 只有两成员全部 PASS 才能通过唯一全局 Precondition。重复 PredicateId 是合法调用，不构成重复键 |
 | E51 | 复用 E50，在开头加入局部 `choose.precondition` 并设为 `start`，其 PASS→`check-ready`、FAIL→`verify-subject`、UNKNOWN→UNRESOLVED；`check-ready` 的 PASS 仍→`verify-subject`，后者最终 PASS→SUCCEEDED | ENTRY_PRECONDITION_BYPASSED；两条可达入边汇合时，全局 `check-ready.precondition` 只被一条路径通过 |
 | E52 | 复用 E50，将 Contract `precondition` 标量分别改为 `verify-subject.postcondition`、`no-such-node.precondition`、`verify-subject.precondition`、数组 `[check-ready.precondition]` 或空字符串 | 五种变体均报 ENTRY_PRECONDITION_REF_INVALID；只有一个正确的标量阶段引用合法 |
@@ -3138,20 +3138,20 @@ E39、E43 的 ca 快照基线：将可信 Owner 集合设为 `[example-ue-owner,
 - E56 在 E.8 中把 `verify-subject` 改名为 `SUCCEEDED` 并同步更新 `start`。另一个变体保留原 Node 名，只把 `start` 改为 `SUCCEEDED`。
 - E57 将 E.8 的 `verify-subject.postcondition.routes.PASS` 改为 `SUCCEDED`。
 - E58 用 §31 为基线，将 `create-policy.postcondition.routes.FAIL` 改为 `FAILED`。令 Operation 已确认提交，链路上的 Observation 已获取足以证伪的证据，Postcondition 返回 FAIL，并且资源仍需保全。
-- E59 将 §12.1 的 `reconcile-subscription.operation.routes.UNRESOLVED` 分别改为 `FAILED` 和一个新增的有效业务 Node。该 Node 可以复用 E.8 的上下文判断，正常和异常 Outcome 都直接请求停止。
+- E59 将 §12.1 的 `create-subscription.operation.routes.OUTCOME_UNKNOWN` 分别改为 `FAILED` 和一个新增的有效业务 Mutation Node。两者均违反 §20.2 未确认提交时必须安全保全的要求，报 RECONCILE_CONTRACT_INVALID。
 
-E60 从 §12.1 的正例独立派生四个变体。每个变体都必须报 `RECONCILE_CONTRACT_INVALID`。
+E60 从 §12.1 的正例独立派生四个**Owner 发布物负例**。每个变体均必须报 `RECONCILE_CONTRACT_INVALID`，不再需要作者级 Reconcile Node。
 
-1. 将 `start` 改为 `reconcile-subscription`，违反入口约束。
-2. 保留原 OUTCOME_UNKNOWN 路由，并将 `create-subscription.operation.routes.FAILED` 也指向同一 Reconcile，违反唯一跨 Node 入边约束。
-3. 新增不可达的 Precondition Node，其 PASS 也指向同一 Reconcile，FAIL 和 UNKNOWN 分别指向 FAILED 和 UNRESOLVED。额外路由违反唯一跨 Node 入边约束，构建失败，同时可报告该节点的 `UNREACHABLE_NODE` 警告。
-4. 给 Reconcile Node 添加 E.8 的上下文 Predicate 作为 Precondition，只配置 FAIL 和 UNKNOWN 的停止路由，验证禁用 Precondition 的规则。
+1. `mutation.reconcile.callable` 不存在或未解析到受信导出（其余 Snapshot 有效）。
+2. `mutation.reconcile.bind` 改为任意非 `originalInvocationId` 的身份。
+3. `mutation.reconcile.proofPath` 指向独立 READ receiptSchema 中不存在的字段。
+4. `mutation.reconcile.recoverableOutputSchema` 可解析，但按 F.5 无法赋给该原 Mutation 普通 `outputSchema`。
 
 阶段推进变体：
 
-- E61 以 §12.1 为基线，把 E.8 的上下文 Predicate 加到 PredicateSet，并在 `create-subscription` 增加引用该 Predicate 的 Precondition，实参为 `context.ueRef`。FAIL 和 UNKNOWN 直接停止，PASS 自动进入 Operation。Contract 只增加 `precondition: create-subscription.precondition`。令 Precondition PASS、Create 返回 OUTCOME_UNKNOWN。原 Node 的 Postcondition 不执行，直接进入 `reconcile-subscription`。
+- E61 以 §12.1 为基线，把 E.8 的上下文 Predicate 加到 PredicateSet，并在 `create-subscription` 增加引用该 Predicate 的 Precondition，实参为 `context.ueRef`。FAIL 和 UNKNOWN 直接停止，PASS 自动进入 Operation。Contract 只增加 `precondition: create-subscription.precondition`。令 Precondition PASS、Create 超时后 Host 受控调和仍为 OUTCOME_UNKNOWN，原 Node 的 Postcondition 不执行，只沿其 OUTCOME_UNKNOWN 安全终止。
 - E62 以 §12.1 为基线，令 `create-subscription.operation` 在派发前由 Runtime 发出 DENIED。其路由为 FAILED。该 Node 的 Postcondition 不执行，原调用没有成功输出或已派发记录。
-- E63 以 §12.1 配套 Owner 契约为基线，删除 Reconcile 的 COMMITTED 输出 Schema 声明，保留 `reconcile-subscription.observation.arguments.subscriptionRef`。
+- E63 以 §12.1 为基线，在 Owner `mutation.reconcile` 中删除恢复输出 Schema/path，令 `create-subscription.operation.routes.COMMITTED` 指向一个新 Observation，它的参数绑定 `create-subscription.operation.output.subscriptionRef`。因为 COMMITTED 没有普通成功输出，报 RECONCILE_OUTPUT_UNAVAILABLE；不是重试也不是原始回包伪造。
 - E64 以 §12.1 为基线，追加 `verify-subject` 作为入口局部 Postcondition，将其 PASS 指向 `create-subscription`（不得在阶段级写 Goal）。从 `create-subscription` 中移除 Postcondition，并让 Operation 的正常 SUCCEEDED 请求 Invocation `SUCCEEDED`；Reconcile 恢复路径的最终 Postcondition 仍保持聚合 PASS→SUCCEEDED。该变体必须拒绝正常 Create 路径，因为成功请求直接来自 Operation 而不是最终 Postcondition，报 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`。正向对照保留原 `create-subscription.postcondition`，使其聚合 PASS 直接路由 SUCCEEDED，即可在完成全部 Evidence/责任检查后合法结束。
 
 - E65 复用 E42 中由 `verify-local.postcondition` 聚合 PASS→SUCCEEDED 的正例，再加入 E44 的不可达 Precondition Node，并将其 PASS 路由改为 `verify-local`。该额外入边参与语法和链接校验，但不参与 `verify-local.postcondition` 的全局门禁可达入边汇合；不会产生可携带的旧 Goal 证明。
