@@ -4238,6 +4238,23 @@ flowchart TD
 | DFX-040 | `RECONCILE_CONTRACT_INVALID` / C_STATIC | 同一受信 ToolCatalog 快照的一个 Mutation 的 mutation.reconcile.callable 指向精确 READ operation；另一个 Skill 在普通 operation.target 中调用该 READ，且提供独立的 READ Capability Grant。Compiler 必须检查整份快照的 Mutation 关联并阻断普通调用，不得只检索本 Skill 已引用的 Mutation | NOT_RUN |
 | DFX-041 | `RECONCILE_CONTRACT_INVALID` / C_STATIC | 以 G.2.1 有效 Reconcile READ + receiptSchema 作为基线：先验证 proofPath receipt.commit 可在移除逻辑 receipt 锚点后从 schema 根解析。单独将路径改成 receipt.receipt.commit 或裸 commit；前者多出未声明 Schema 段，后者缺少必需通道锚点，二者都不得自动改写或链接通过 | NOT_RUN |
 
+### K.2.1 YAML 标量原始词法跨实现一致性候选（Informative，LEX-001）
+
+以下是**一组未执行的跨 Native/WASM/Studio 联合候选**，不是新增 E 编号或 DFX-042，也不改变现有 DFX-001–DFX-041 的状态。运行时必须保留 YAML 标量的原始词法与是否加引号的信息，按 §13.2/G.1 同一规则分类；测试须将同一结构化输入分别交给 Native Compiler、WASM Compiler 和 Studio/LSP，核对合法性、`(Code, Phase)`、SourcePath 解析与值类型一致。
+
+| `arguments` 中的输入值（其余构建输入有效） | 已有 v1alpha3 判定 |
+|---|---|
+| `null`、`true`、`false`（均无引号） | 合法 Core Null/Boolean 字面量，仍受目标参数 Schema 类型约束 |
+| `Null`、`NULL`、`~` | **不能**作为合法 v1alpha3 null；即使 YAML 库能解码也应按既有语法/表达式规则拒绝 |
+| `TRUE`、`False` | **不能**作为合法 v1alpha3 Boolean；不可自动大小写规范化 |
+| `0x10`、`01` | 不属于允许的有限十进制/无前导零形态（按具体语法位置判定），不能把其他进制或不规范数值当作合法整数 |
+| `"12"`、`"true"`、`"null"`（带引号） | 是 string 字面量，不得被词法归一化为数值、Boolean 或 null；与目标类型不匹配时使用既有类型诊断 |
+| `context.request.dnn`（无引号） | 符合 SourcePath 词法的字段引用，但还必须做已声明字段、路径可用性与类型检查 |
+| `"context.request.dnn"`（带引号） | 字符串字面量，**不是** SourcePath |
+| `POST_CREATE`（无引号）、`"POST_CREATE"`（带引号） | 前者不是合法 SourcePath，须拒绝；后者是合法字符串字面量，再检查 Schema 类型 |
+
+**诊断边界：** 表只冻结了**已有行为的验收预期**，不为所有词法错误统一新增诊断码：实际错误依 §13.2/G.1/§24.1 的解析、SourcePath 与类型判定优先级确定；若某个案例在当前文法中不可构造，应明确记录不可表达原因，而不是填造测试 PASS。此组候选的 `fixtureExists=false`、`executed=false`、`passed=false`、`rawResultRef=null`，后续填报见 K.4。
+
 ## K.3 冻结后复审的六项回归候选（Informative）
 
 编号 RFX-117–RFX-122 只是审查工作的资料性追踪标识，**不**属于 E01–E114，不是 E115–E122 的别名，也不承诺将来会以相同编号进入正式符合性范围。以下均 **NOT_IMPLEMENTED**；缺少可信 Owner/Host Fixture、实际执行结果及原始证据时不能写 PASS。
@@ -4255,7 +4272,9 @@ flowchart TD
 
 ## K.4 符合性报告模板（Informative，未测试）
 
-报告的八项门槛由 §45.2 定义。下述 YAML 只是填写结构的资料性示例；内部的 `same-document` 引用用于定位本文件附录，不是新的正式 URI 或 BuildRequest 字段。**不得**在缺少原始、不可变 CI / Owner/部署证据时把 `NOT_TESTED` 改成 `PASS`。
+报告的八项门槛由 §45.2 定义。下述 YAML 只是填写结构的**资料性建议报告格式**；内部的 `same-document` 引用用于定位本文件附录，不是新的正式 URI 或 BuildRequest 字段。为了避免把附录 H 的“规范用例已定义”误报为“运行通过”，建议每一个精确 `(Code,Phase)` / E 用例**执行变体**分别填报 `specExpected`、`fixtureExists`、`executed`、`passed`、`rawResultRef`。只有真实 Fixture 存在、确实运行、符合预期且能查到不可变原始结果时，才有资格计入已通过的实现覆盖；不满足的列应保留 false / null，不能以规范预期替代实际执行。此类列名是附录 K 的报告模板建议，不是擅自冻结 Runtime Trace / BuildRequest 的传输字段。
+
+**不得**在缺少原始、不可变 CI / Owner/部署证据时把 `NOT_TESTED` 改成 `PASS`。跨快照 Reconcile、Owner 身份输入、Root Routing 和共同事实受信装配的实际覆盖范围应逐项注明；不覆盖的功能不得被写成完整产品符合性。
 
 ```yaml
 # Informative reporting template; this is NOT an executable CA-SL fixture.
@@ -4277,6 +4296,48 @@ implementation:
       packageId: null
       snapshotDigest: null
       publisherAuthorizationRef: null
+  # 独立互操作契约的逻辑核验记录（资料性字段；非 BuildRequest Schema）
+  interoperabilityDependencies:
+    - name: owner-identity-input-provenance
+      scope: "§13.3/F.1 identity paths"
+      contractVersion: null
+      immutableDigest: null
+      publisherAuthorizationRef: null
+      verified: false
+      rawResultRef: null
+    - name: cross-snapshot-reconcile-only-association
+      scope: "G.2 independent READ callable ownership"
+      contractVersion: null
+      immutableDigest: null
+      publisherAuthorizationRef: null
+      verified: false
+      rawResultRef: null
+    - name: root-routing-applicability
+      scope: "§12.8 external Host routing; specify whether this product claims it"
+      contractVersion: null
+      immutableDigest: null
+      publisherAuthorizationRef: null
+      verified: false
+      rawResultRef: null
+    - name: independent-domains-common-fact-binding
+      scope: "§34.0.2/F.4/G.3.1 trusted deployment relation"
+      contractVersion: null
+      immutableDigest: null
+      publisherAuthorizationRef: null
+      verified: false
+      rawResultRef: null
+    - name: build-and-runtime-artifact-profiles
+      scope: "§45.2 independent BuildRequest, Compiler Artifact and Trace contracts"
+      contractVersion: null
+      immutableDigest: null
+      publisherAuthorizationRef: null
+      verified: false
+      rawResultRef: null
+  # 每项适用性由本次产品声称的功能范围决定；未覆盖必须说明
+  claimScope:
+    compilerOnly: false
+    hostRootRoutingIncluded: false
+    ownerInteroperabilityIncluded: false
   toolchain:
     cel:
       implementation: null
@@ -4307,12 +4368,34 @@ caseMatrix:
   rawResultRef: null
   executedCaseCount: 0
   passedCaseCount: 0
+  coverageRows:
+    - caseOrVariantId: E01
+      specExpected: "Appendix E.5: static linking PASS (normative expectation only)"
+      fixtureExists: false
+      executed: false
+      passed: false
+      rawResultRef: null
   status: NOT_TESTED
 diagnosticMatrix:
   normativeIndex: "same-document:Appendix-H"
   gapRegister: "same-document:Appendix-K.2"
   executableSuiteRef: null
   rawResultRef: null
+  coverageRows:
+    - code: EFFECT_MISMATCH
+      phase: C_STATIC
+      specExpected: "Appendix H: static Effect conflict blocks build"
+      fixtureExists: false
+      executed: false
+      passed: false
+      rawResultRef: null
+    - code: EFFECT_MISMATCH
+      phase: R_RUNTIME
+      specExpected: "Appendix H: Runtime fail-closed and retain responsibility"
+      fixtureExists: false
+      executed: false
+      passed: false
+      rawResultRef: null
   status: NOT_TESTED
 gates:
   - id: 1
@@ -4352,6 +4435,8 @@ gates:
 ## K.5 单文件审查的完成条件
 
 **文本完整性：** §0–§45、附录 A–H、已合并作者指南 I、决策与历史裁决 J、诊断/符合性计划 K 均在同一个 Markdown 文件中，无须从外部勘误记录拼接才能理解现行语义。
+
+**执行证据分离：** 附录 E/H 的规范预期状态仅代表文本已定义。附录 K.4 的 `specExpected` 不能转化为 `passed`；`fixtureExists`、`executed`、`passed` 和 `rawResultRef` 应逐变体记录并由原始报告核验。真实实现不能仅凭“规范用例已定义”或空白报告模板声称符合。
 
 **实现真实性：** 本次单文件整合与 Source Hygiene 检查最多说明文档结构及基本校验完成；只有实际 Owner 发布物、受信部署输入、Native/WASM/Studio 的机器 Fixture、Runtime Trace、真实 5GC Case 结果及 §45.2 的逐项报告经独立核验后才能改变相应产品状态。现行统一裁决仍为 **CA-SL v1alpha3 FROZEN；产品 NOT QUALIFIED**。
 
