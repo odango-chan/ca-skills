@@ -47,6 +47,20 @@ CA-SL vNext / v1alpha3 的作者源码语法、静态语义、运行语义、附
 | Skill Eligibility / Root Routing 的选中算法和完整 `Applicability` YAML 作者语法 | **未在 v1alpha3 作者源码语法中定义或冻结**；属于独立 Host/Root Routing 契约。§12.8 已冻结的“不能唯一匹配则拒绝准入”安全要求仍有效，但不得把此条件误认作完整选择协议已发布；不得默许旧 `applicability.when` |
 | Compiler Artifact、Runtime Trace、BuildRequest 的物理 framing/运输及真实 Tool Owner 的发布物 | **由各自版本契约拥有**；不得从 CA-SL FROZEN 推断其序列化格式或产品符合性已通过 |
 
+**符合性声明类型矩阵（Informative，细分 §45.2 已有验收义务，不是新的语言语法或产品协议）。** 对外报告不得只写“符合 CA-SL v1alpha3”而不列实现对象、测试能力、版本与受信证据。规范文本的 `FROZEN` 不是任一种产品的 PASS。
+
+| 可声明的范围 | 所需精确边界与已存在的验收门槛 | 不得推导的结论 |
+|---|---|---|
+| **规范语义冻结**（Language specification） | 精确 `connectionagent.io/v1alpha3` 和本规范受审提交；§45.1 的变更边界 | 不表示任何 Compiler、Host、Owner 已执行通过 |
+| **Compiler 静态符合性** | §45.2 第 2/3/4/8 项中适用于静态链接的受信输入、E 变体和 H 的 `C_STATIC/C_WARNING` 诊断；Native/WASM 使用同一冻结源与原始结果 | 不表示 Runtime/Owner、Root Routing 或完整部署已验收 |
+| **Studio/LSP 静态一致性** | 相同源码与依赖快照下与 Compiler 的诊断/语言行为一致；§45.2 第 4/8 项，注明该产品实现版本 | 不表示 Studio 实现了 Runtime 或取得真实 Owner 证据 |
+| **Host/Runtime 执行符合性** | §45.2 第 1/2/5/7/8 项及适用动态用例，要求经版本化的 Artifact/Trace、隔离、Scope、责任和真实回包/模拟证据 | 不包含未交付的 Owner 物理协议或完整 Root Routing 自动选中能力 |
+| **Owner/Deployment 互操作符合性** | 版本化的可信 Owner 发布物、身份输入标注、Capability、Evidence 域/共同事实、Reconcile 专用关联及真实原始字节/摘要/授权；§45.2 第 1/2/8 项 | 无发布物时不能凭 F/G 的逻辑模型宣称互操作通过 |
+| **Root Routing 产品符合性** | 独立版本化的 Eligibility / `Applicability` 选择协议及 Host 歧义拒绝验收，须写明对应版本和范围 | §12.8 仅冻结拒绝歧义原则，不提供完整选择算法 |
+| **集成/真实 5GC E2E 符合性** | 上述实际适用层已获可信证据，§45.2 第 6 项真实 5GC 36 Case 与相关 Owner 验证；记录失败和遗漏 | 单独编译通过、规范文本冻结、未执行的 E/DFX 不构成 E2E PASS |
+
+**声明规则：** 在报告中按实际执行层分别注明 `claimScope`、规范提交、所用外部协议版本、确切 Fixture/测试套件版本、已执行变体、失败/未覆盖、原始结果与发布者授权；未覆盖的层写 `NOT_TESTED` 或 `NOT_QUALIFIED`。其中 `claimScope` 等名称只描述附录 K 的**资料性报告视图**，不是本语言新增的线协议字段。E01–E114 只是冻结的规范预期编号，完整 E 列表和 H 的诊断集合均**不意味着已存在可执行套件**；套件的具体版本、覆盖率与执行证据须单独登记（§45.2、K.4）。
+
 **规范文件完整性。** 附录 E（测试预期）、F（互操作字段）、G（闭合性补充）、H（诊断索引），以及 §30–§45 均属于**本文件的组成部分**；第十一部分 §46–§91 为资料性技术问答/设计说明。附录 I/J/K 已收编原先另行维护的作者指南、决策追踪、勘误裁决及测试/报告辅助材料，全部为 Informative；它们不增加字段或放宽 Normative 条款。本版完整评审仅需当前 `docs/skill-language-spec.zh-CN.md` 的**同一受审提交**，无需跨文件拼合；仅摘取 §0–§29 或截断 CEL 片段不能替代全文符合性评审。
 
 BuildRequest 传输格式、Compiler Artifact、Runtime Trace 及 Tool Owner 发布物分别受其自身的版本契约管理。本文件的冻结状态不构成上述产品或发布物通过符合性验收的证明。历史 v1alpha2 冻结记录及 v1alpha3 修订记录不覆盖本文件；互操作字段以附录 F/G 为准。
@@ -1019,6 +1033,20 @@ for vertex in topological_order(graph.stages):
 
 例如，全局 Precondition 的 PASS 自动推进到同一 Node 的 Mutation 时，该边先将 `<node-id>.precondition` 加入已通过集合。全局 Precondition 的 PASS 保留已有 Goal 证明。Mutation、Reconcile 和非正常 Outcome 清除证明。业务 Mutation 派发前及成功终态边仍必须满足全部全局前置条件。Mutation 的 SUCCEEDED 即使自动推进也会清除证明，随后 Goal Postcondition 的 PASS 可以重新建立证明。
 
+**证明传播等价判断表（Informative；只是上面伪代码的判定展开，不新增可接受路径）。** `passed` 是本阶段入口沿全部可达入边交集取得的全局 Precondition PASS 集合；`proof` 是全部可达入边的 Goal 证明逻辑 AND。仅来自入口的初始状态为空集/false。所有边（包括同 Node 的自动推进）均先更新 `passed`，后独立更新 `proof`，绝不把局部 PASS 当作 Goal PASS。
+
+| 入边/出边位置及情形 | `passed` 与 `proof` 的精确更新 | 对成功路径的后果 |
+|---|---|---|
+| 两条及更多**可达**入边汇入同一阶段 | `passed=∩ incoming.passed`，`proof=AND(incoming.proof)`；不按最后到达边取值；不可达边不参与 | 任一可能路径缺少全局门禁或 Goal 证明，都不能让汇合点继承该证明 |
+| Contract 所列 Precondition 的 PASS | 当前边的 `passed` 增加本阶段精确 Ref；`proof` 保留入边值 | 不等于直接建立新的 Goal 证明 |
+| 非全局 Precondition 的 PASS 或无 `goal` 的**局部 Postcondition** PASS | `passed` 不凭局部判断增加全局集合；`proof` 保留 | 局部 PASS 只受 §12.9 的 Runtime 局部门禁规则约束，不建立全局 Goal 证明 |
+| `postcondition.goal == contract.goal` 的 PASS | `proof=true`；`passed` 不变 | 只有此边可重新建立 Goal 证明（前提是已通过静态 Goal 匹配校验） |
+| READ Operation、Observation、Procedure Script 正常 SUCCEEDED（含自动推进） | 保留已有 `proof` 与 `passed`；不能换绑原证明所引用的值 | 仍受发布前的最新 Evidence 和原始绑定复核 |
+| Mutation 的 SUCCEEDED、Reconcile COMMITTED、各类非正常结果 | `proof=false`；已有全局 `passed` 集合不自动伪造新的 PASS | Mutation 后若要成功，必须显式到新的 Goal Postcondition PASS 重建证明 |
+| 显式 `SUCCEEDED` 终态边 | 必须具备完整全局 `passed` 和 `proof=true` | 即使静态通过，Runtime 仍按 §12.8 核验资源责任和最新 Evidence |
+
+**现有规范的三个反例/正例组合（资料性，非新增 E 编号）：** （a）两条路径汇合，仅一条经过全局 Precondition PASS：交集缺项，后续业务 Mutation/成功终态拒绝；（b）一条边的 Goal PASS 与另一条没有 Goal PASS 的路径汇合：AND=false，不能靠前者借证明；（c）同 Node 自动推进经过 Mutation SUCCEEDED 后，先前的 Goal 证明清零，必须由**之后**的 Goal Postcondition PASS 显式重建；局部 Postcondition PASS 无 `goal` 时只能保留已有证明，不能重建。上述例子的精确机器 Fixture 仍需交付，参见 K.3 的复审候选说明。
+
 §12.9 的伪代码只验证构建期的全局门禁路径覆盖与 Goal 证明。局部门禁的派发前复核由 Runtime 执行。
 
 | 门禁/准入条件 | Compiler 构建期 | Runtime 派发或终态复核 |
@@ -1102,7 +1130,7 @@ Compiler 必须验证：
 
 将外层对象作为实参时，同样检查其所含身份字段的来源。请求字段、字面量及 Procedure Script 输出不能直接充当此类来源。**请求中的 pduSessionId、dnn 和 sNssai 不是天然可信的 Session/Scope 身份**：若 Owner 身份路径标注或部署 Scope 策略的授权路径包含其中任一字段，就必须为相应参数改用 Host 契约确认关联的身份/范围投影（例如已验证的 Session/PSI 绑定）或独立权威 Producer 的输出；不能因为请求已被接纳而豁免 provenance 检查。若这些字段仅用于选择/过滤查询或业务参数，且不用于授权身份归属与资源句柄比较，则原 Request SourcePath 可作为普通业务数据，Runtime 仍必须独立检查其业务范围和可信关系。
 
-Compiler 须追溯 Script 派生实参的全部来源类别。身份标注缺失到无法判定所需绑定、来源无法追溯或身份绑定不符合上述规则时，报 `CALLABLE_ARGUMENT_PROVENANCE_INVALID`。Owner 标注与 Host 关联的传输格式按相应契约评审。
+Compiler 须追溯 Script 派生实参的全部来源类别。身份标注缺失到无法判定所需绑定、来源无法追溯或身份绑定不符合上述规则时，报 `CALLABLE_ARGUMENT_PROVENANCE_INVALID`。Owner 标注与 Host 关联的传输格式按相应契约评审。**缺失与可信空集合不得混同（对现有规则的解释）：** 若 Owner 或部署 Scope 声明表明某个输入路径参与身份/授权，却拿不到该路径的可信身份标注、Schema 或来源关联，按既有 `CALLABLE_ARGUMENT_PROVENANCE_INVALID` 阻断链接。若一个 callable 的所有实参**确实只承载非身份业务数据**，也不能因 Owner 发布物“没写标注”就默认其身份路径集合为空；必须通过受信 Owner/部署契约判定本次实际需要检查的身份路径集合（可以经认证确认为空），并继续检查所有其他 Scope、输入和 Capability 义务。**无法认证究竟是空集合还是缺失资料时仍 fail-closed。** 该澄清不定义 `identityInputs` 的物理字段，也不放宽 §13.3 已有来源规则。
 
 Runtime 在 Operation / Observation 派发前，对已物化身份实参逐项核验原绑定、来源记录与当前 Invocation 的关联，再执行 Capability Scope 检查。等待派发资格后按实际派发时重新核验。无法核验时记录 `CALLABLE_ARGUMENT_PROVENANCE_UNVERIFIED`，按 §24.2 停止。Reconcile 的原调用绑定仍按 §20 校验。
 
