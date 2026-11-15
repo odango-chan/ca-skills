@@ -1543,7 +1543,7 @@ Environment
 | SOURCE_ROOT_INVALID | 文件根结构与文件角色不匹配 | 阻止构建 |
 | LANGUAGE_TARGET_UNSUPPORTED | BuildRequest 指定的语言目标不受支持 | 阻止构建 |
 | UNKNOWN_FIELD | 未定义语义字段 | 阻止构建 |
-| DUPLICATE_ID | Procedure / Node / Predicate 重名 | 阻止构建 |
+| DUPLICATE_ID | **仅内部不变量：** 已完成无重复键 YAML 解析后，Compiler 自身 IR/符号表产生同一命名空间重复实体；重复 YAML Key 先报 YAML_PARSE_ERROR，跨角色同名不得触发 | 阻止构建 |
 | PROCEDURE_START_MISSING | Procedure start 未解析到入口 Node，包括把终态写作 start | 阻止构建 |
 | NODE_ID_RESERVED | Node ID 使用 `context` 或任一终态的精确拼写 | 阻止构建 |
 | FINAL_POSTCONDITION_MISSING | 存在可达 SUCCEEDED 终态请求，但不存在可达的 Postcondition 聚合 `PASS: SUCCEEDED` 终态边 | 阻止构建 |
@@ -3098,7 +3098,8 @@ expected:
 | E07：可信 CapabilityContracts 对同一 Owner、ID 和 kind 的 READ Operation 声明了不同的预期 Effect | EFFECT_MISMATCH |
 | E08：Predicate 参数增加一个必填位置参数但不改调用 | PREDICATE_ARITY_MISMATCH |
 | E09：把 Predicate 所需 Registration 结构替换成 context.ueRef 字符串 | PREDICATE_TYPE_MISMATCH |
-| E10：Reconcile COMMITTED 分支读取原 Mutation 的成功输出，或读取未声明的 Reconcile 输出 | 前者 SOURCE_NOT_AVAILABLE；后者 RECONCILE_OUTPUT_UNAVAILABLE |
+| E10a：在未生成 SUCCEEDED 输出的路径引用原 Mutation 成功输出 | SOURCE_NOT_AVAILABLE（Schema 必需字段已声明、但当前路径未生成） |
+| E10b：引用 Owner 未声明的 Reconcile 恢复输出 | RECONCILE_OUTPUT_UNAVAILABLE；E10a/E10b 是同一 E10 下两条独立预期 |
 | E11：省略所有最终 Postcondition，直接进入 SUCCEEDED | FINAL_POSTCONDITION_MISSING |
 | E12：引用 context.ueRef 却未声明 contextSchema | CONTEXT_SCHEMA_UNDECLARED |
 | E13：E.4 的 Host Context 缺少必需的 ueRef | ADMISSION_CONTEXT_INVALID，拒绝启动 |
@@ -3202,7 +3203,8 @@ E39、E43 的 ca 快照基线：将可信 Owner 集合设为 `[example-ue-owner,
 |---|---|---|
 | E17 | §12.1 的正常与 Reconcile 路径，各自由最终 Postcondition 聚合 PASS 直接路由 SUCCEEDED | 两条成功路径分别通过最终成功边的静态检查；无需 Goal 标记和跨 Node 证明传播 |
 | E18 | 在 §12.1 中删除 `reconcile-subscription` 的 Observation 与 Postcondition，并设置 `operation.routes.COMMITTED: SUCCEEDED` | SUCCESS_BYPASSES_FINAL_POSTCONDITION。即使正常分支另有合法最终 Postcondition，该 Reconcile 分支也不得直接请求 Invocation SUCCEEDED |
-| E10 | 将 §12.1 的 `reconcile-subscription.observation.arguments.subscriptionRef` 改为 `create-subscription.operation.output.subscriptionRef`，并让原 Mutation 的 SUCCEEDED 输出 Schema 声明必需的 `subscriptionRef` | SOURCE_NOT_AVAILABLE，当前分支没有该 SUCCEEDED 输出。若该 Schema 未声明此字段，则按 §13.3 报 SOURCE_PATH_INVALID |
+| E10a | 在受信 Reconcile COMMITTED 分支读取原 Mutation 没有产生的 SUCCEEDED 输出，且其输出 Schema 声明必需的 `subscriptionRef` | SOURCE_NOT_AVAILABLE；若 Schema 没声明字段则先报 SOURCE_PATH_INVALID |
+| E10b | 在相同前提下引用 Reconcile Operation 的 `output`，但 Owner 未声明可恢复输出 Schema | RECONCILE_OUTPUT_UNAVAILABLE；必须与 E10a 分别拥有 Fixture/结果 |
 | E41 | `start` 指向 E.8 的 `verify-subject`，它的 PASS 直接路由到 `SUCCEEDED` | Goal 覆盖通过。初始无证明，PASS 建立证明 |
 | E42 | 在 E.8 中把 `verify-subject.postcondition.routes.PASS` 改为 `verify-local`；新增 `verify-local` 为只含 Precondition 的 Node，其 PASS 直达 `SUCCEEDED`。对照将 `verify-local` 改为只含 Postcondition 的 Node，聚合 PASS 直达 SUCCEEDED | 前者 SUCCESS_BYPASSES_FINAL_POSTCONDITION；后者有效，最终证明由最后一个 Postcondition PASS 完成。两个变体都不写 `goal` |
 | E44 | 在 E.8 增加一个从 `start` 不可达的 Node `unused`，声明 `precondition.predicates[0].predicate: example.subject.present`、对应 `arguments: [context.ueRef]`；其 `precondition.routes` 将 PASS 指向 `verify-subject`、FAIL 指向 `FAILED`、UNKNOWN 指向 `UNRESOLVED` | 报 UNREACHABLE_NODE；该来源节点不可达，其 PASS→verify-subject 不参与可达路径的全局门禁汇合；此处故意不使用非法的 Precondition PASS→SUCCEEDED |
@@ -3905,7 +3907,7 @@ G.1–G.9 的继承用例与新增 E115–E120 共同组成 v1alpha4 已冻结�
 | SOURCE_ROOT_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | E02 | 规范用例已定义 |
 | LANGUAGE_TARGET_UNSUPPORTED | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | 待补独立 Fixture | 待 Fixture |
 | UNKNOWN_FIELD | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | E35 | 规范用例已定义 |
-| DUPLICATE_ID | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | 待补独立 Fixture | 待 Fixture |
+| DUPLICATE_ID | C_STATIC | Compiler ERROR（内部不变量） | 是 | Compiler IR / invariant | 不启动 Invocation | §10.1、§24.1 | 需注入异常 IR 的内部单测，不是作者源码负例 | INTERNAL_INVARIANT_ONLY |
 | PROCEDURE_START_MISSING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E56 | 规范用例已定义 |
 | NODE_ID_RESERVED | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E34/E56 | 规范用例已定义 |
 | FINAL_POSTCONDITION_MISSING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E11 | 规范用例已定义 |
@@ -4320,7 +4322,7 @@ flowchart TD
 |---|---|---|---|
 | DFX-001 | `YAML_PARSE_ERROR` / C_STATIC | 重复 YAML Mapping Key 或非法基本标量；保持其他源码及构建目标有效 | NOT_RUN |
 | DFX-002 | `LANGUAGE_TARGET_UNSUPPORTED` / C_STATIC | 在其余文件有效的 BuildRequest 中指定当前 Compiler 不支持的 languageTarget | NOT_RUN |
-| DFX-003 | `DUPLICATE_ID` / C_STATIC | **当前未找到**不使用重复 Mapping Key 的独立最小构造。重复 `nodes.foo` 或 `predicates.bar` 应由 YAML 解析器先报 `YAML_PARSE_ERROR`；跨角色同名是否构成同一身份尚无 v1alpha4 规范性规则，不得自造触发。标为**可表达性未闭合/防御性目录项**，不得标为已有 Fixture 或通过 | NOT_RUN |
+| DFX-003 | `DUPLICATE_ID` / C_STATIC | **内部不变量码，无作者源码 Fixture**：合法 YAML 的 nodes/predicates 是 Mapping，重复 Key 必须先报 YAML_PARSE_ERROR；跨角色同名不触发。仅对已安全解析后的 IR 人工注入同一命名空间实体重复身份时触发；需 Compiler 内部单测，未执行，不可声称 PASS | NOT_RUN |
 | DFX-004 | `PREDICATE_GROUP_INVALID` / C_STATIC | 在原本可达的有效最终 Postcondition 阶段根非法增加 `goal: other.goal`，其余谓词、路由、Contract 保持不变；验证删除字段后构建可以继续 | NOT_RUN |
 | DFX-005 | `CONTROL_FLOW_CYCLE` / C_STATIC | 在两个既有业务 Node 间增加一条返回前驱 Node 的路由，形成可达 back-edge；确保无其他更早的解析错误 | NOT_RUN |
 | DFX-006 | `CONTROL_FLOW_AMBIGUOUS` / C_STATIC | **可构造的不同字段互斥冲突**：同一 `operation` 映射同时声明有效 `tool: ca::valid.read` 与 `script: scripts/valid.py`（均处于同一 YAML Mapping 且没有重复键）；依 §24.1 同阶段多种调用目标应触发本码。完整 Fixture 须提供受信 READ、合法 Script 与其余有效文件；重复 YAML Key 仍应先报 `YAML_PARSE_ERROR` | NOT_RUN |
@@ -4362,7 +4364,7 @@ flowchart TD
 
 ### K.2.0 两个诊断的可表达性复核（Informative，不修改 H 的规范性分类）
 
-**DFX-003 / `DUPLICATE_ID`：尚未构造成功。** 当前 v1alpha4 的 `nodes` / `predicates` 采用 Mapping；在单一 Mapping 中重复同名键属于 §10.1 更早的 `YAML_PARSE_ERROR`。跨角色 `NodeId`、`PredicateId` 和 `GoalId` 并不自动共用一个全局身份空间；不能为让这个 Code 可触发而引入未声明的跨类别去重规则。本轮保留附录 H 的 `(DUPLICATE_ID,C_STATIC)` 冻结身份作为**防御性分类 / 可表达性审计缺口**，但**没有**足以要求某实现产出此码的独立合法解析输入。需要实际证明存在其他可构造路径，或以 §45.1 C 类审议该诊断在未来版本的定位。不能借此声称 H 全量机器诊断套件已通过。
+**DFX-003 / `DUPLICATE_ID`：内部不变量码。** 当前 v1alpha4 的 `nodes` / `predicates` 采用 Mapping；在单一 Mapping 中重复同名键属于 §10.1 更早的 `YAML_PARSE_ERROR`。跨角色 `NodeId`、`PredicateId` 和 `GoalId` 并不自动共用一个全局身份空间；不能为让这个 Code 可触发而引入未声明的跨类别去重规则。本轮保留附录 H 的 `(DUPLICATE_ID,C_STATIC)` 作为**仅内部 IR 不变量诊断**，没有作者源码触发入口；需要注入异常 IR 的内部单测，不能以不存在的作者 Fixture 计算覆盖；当前也没有的独立合法解析输入。需要实际证明存在其他可构造路径，或以 §45.1 C 类审议该诊断在未来版本的定位。不能借此声称 H 全量机器诊断套件已通过。
 
 **DFX-006 / `CONTROL_FLOW_AMBIGUOUS`：具有不重复 YAML Key 的最小违例形状。** 在原本有效的 Procedure/依赖快照中把某一个原本有效的 Operation Node 改成（其他字段和路由维持已合法版本）：
 
@@ -4580,8 +4582,8 @@ diagnosticMatrix:
   coverageRows:
     - code: DUPLICATE_ID
       phase: C_STATIC
-      specExpected: "Appendix H: defensive code, independent valid-parse trigger unproven"
-      representability: REPRESENTABILITY_UNRESOLVED
+      specExpected: "Appendix H: Compiler IR duplicate identity invariant; not an author-source error"
+      representability: INTERNAL_INVARIANT_ONLY
       fixtureExists: false
       executed: false
       passed: false
