@@ -1,15 +1,15 @@
 """Select the exact already prepared N1/N2 artifact, never send it."""
 from __future__ import annotations
-from typing import Literal, TypedDict
+from typing import Annotated, Literal, TypedDict
 
 
 class PreparedResponse(TypedDict):
     profileRef: Literal["createdsession-n1n2-sm@0.1.0"]
-    responseArtifactRef: str
-    artifactDigest: str
-    nasDigest: str
-    n2Digest: str
-    validUntil: str
+    responseArtifactRef: Annotated[str, {"minLength": 1}]
+    artifactDigest: Annotated[str, {"minLength": 1}]
+    nasDigest: Annotated[str, {"minLength": 1}]
+    n2Digest: Annotated[str, {"minLength": 1}]
+    validUntil: Annotated[str, {"minLength": 1}]
 
 
 class DeliveryInput(TypedDict):
