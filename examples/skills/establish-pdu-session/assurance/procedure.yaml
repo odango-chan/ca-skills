@@ -11,15 +11,26 @@ nodes:
             - context.request.requestedPduSessionType
             - context.request.requestedSscMode
       routes:
-        PASS: read-udm
+        PASS: prepare-selection
         FAIL: FAILED
         UNKNOWN: UNRESOLVED
+  prepare-selection:
+    operation:
+      script: scripts/prepare-selection.py
+      arguments:
+        dnn: context.request.dnn
+        sst: context.request.sNssai.sst
+        pduType: context.request.requestedPduSessionType
+        sscMode: context.request.requestedSscMode
+      routes:
+        SUCCEEDED: read-udm
+        FAILED: FAILED
   read-udm:
     operation:
       tool: ca::sbi.udm.sm_data.get
       arguments:
         ueRef: context.ueRef
-        dnn: context.request.dnn
+        dnn: prepare-selection.operation.output.dnn
         sNssai: context.request.sNssai
         servingPlmn: context.request.servingPlmn
       routes:
@@ -53,6 +64,16 @@ nodes:
         UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
   subscribe-udm:
+    precondition:
+      predicates:
+        - predicate: establishment.udm.hold_bound
+          arguments:
+            - bind-udm-hold.operation.output
+            - context.request.dnn
+            - context.request.sNssai.sst
+      routes:
+        FAIL: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
     operation:
       tool: ca::sbi.udm.sdm_subscription.create
       arguments:
@@ -99,6 +120,18 @@ nodes:
         UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
   create-pcf:
+    # The old 5GC baseline requires both PCF create governance and a proven
+    # PRE-N4 no-pair baseline. Those Owner/Evidence guarantees are not published
+    # in v1alpha4 yet: linker must fail closed rather than skip this gate.
+    precondition:
+      predicates:
+        - predicate: establishment.pcf.create_governed
+          arguments:
+            - read-pcf-inputs.operation.output
+            - context.correlation.lifecycleRef
+      routes:
+        FAIL: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
     operation:
       tool: ca::sbi.pcf.sm_policy.create
       arguments:
@@ -110,10 +143,37 @@ nodes:
         sdmSubscriptionRef: subscribe-udm.operation.output.subscriptionRef
         waiterRef: bind-pcf-hold.operation.output.holdRef
       routes:
-        SUCCEEDED: read-operation-context
+        SUCCEEDED: await-initial-n4
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
+  await-initial-n4:
+    # Preserve PRE-N4 semantics: the PCF policy association is a selector,
+    # not an already-established N4/UPF session identity.
+    operation:
+      tool: ca::ca.session.evidence.await
+      arguments:
+        ueRef: context.ueRef
+        pduSessionId: context.request.pduSessionId
+        pti: context.request.pti
+        requestType: context.request.requestType
+        ingressRef: context.correlation.ingressRef
+        lifecycleRef: context.correlation.lifecycleRef
+        pcfPolicyAssociationRef: read-pcf-inputs.operation.output.pcfPolicyAssociationRef
+        absencePolicy: "CONTINUE"
+      routes:
+        FAILED: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
+        DENIED: SAFE_STOPPED
+    postcondition:
+      predicates:
+        - predicate: establishment.n4.initial_resources_ready
+          arguments:
+            - await-initial-n4.operation.output
+      routes:
+        PASS: read-operation-context
+        FAIL: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
   read-operation-context:
     operation:
       tool: ca::ca.session.operation_context.read
@@ -126,7 +186,7 @@ nodes:
         lifecycleRef: context.correlation.lifecycleRef
         selection: read-udm.operation.output.result.selection
         policyResultRef: create-pcf.operation.output.policyResultRef
-        purpose: "N1N2_DELIVERY"
+        purpose: "nas-and-n2-delivery"
       routes:
         SUCCEEDED: prepare-response
         FAILED: SAFE_STOPPED
@@ -136,8 +196,8 @@ nodes:
     operation:
       tool: ca::ca.session.establishment_response.prepare
       arguments:
-        operationContextRef: read-operation-context.operation.output.operationContextRef
-        runtimeInvocationRef: read-pcf-inputs.operation.output.runtimeInvocationRef
+        operationContextRef: read-operation-context.operation.output.contextRef
+        runtimeInvocationRef: read-operation-context.operation.output.runtimeInvocationRef
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
         pti: context.request.pti
@@ -163,11 +223,20 @@ nodes:
         UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
   transfer-n1n2:
+    precondition:
+      predicates:
+        - predicate: establishment.n1n2.hold_bound
+          arguments:
+            - bind-n1n2-hold.operation.output
+            - context.correlation.lifecycleRef
+      routes:
+        FAIL: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
     operation:
       tool: ca::sbi.amf.n1n2.transfer
       arguments:
-        operationContextRef: read-operation-context.operation.output.operationContextRef
-        runtimeInvocationRef: read-pcf-inputs.operation.output.runtimeInvocationRef
+        operationContextRef: read-operation-context.operation.output.contextRef
+        runtimeInvocationRef: read-operation-context.operation.output.runtimeInvocationRef
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
         lifecycleRef: context.correlation.lifecycleRef
@@ -175,11 +244,11 @@ nodes:
         waiterRef: bind-n1n2-hold.operation.output.holdRef
         delivery: prepare-response.operation.output
       routes:
-        SUCCEEDED: await-network-evidence
+        SUCCEEDED: await-ran-acceptance
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
-  await-network-evidence:
+  await-ran-acceptance:
     operation:
       tool: ca::ca.session.evidence.await
       arguments:
@@ -189,13 +258,46 @@ nodes:
         requestType: context.request.requestType
         ingressRef: context.correlation.ingressRef
         lifecycleRef: context.correlation.lifecycleRef
-        operationContextRef: read-operation-context.operation.output.operationContextRef
+        operationContextRef: read-operation-context.operation.output.contextRef
         afterOperationRef: transfer-n1n2.operation.output.operationRef
       routes:
-        SUCCEEDED: transfer-responsibility
         FAILED: SAFE_STOPPED
         UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
+    postcondition:
+      predicates:
+        - predicate: establishment.ran.adopted
+          arguments:
+            - await-ran-acceptance.operation.output
+      routes:
+        PASS: await-forwarding
+        FAIL: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
+  await-forwarding:
+    operation:
+      tool: ca::ca.session.evidence.await
+      arguments:
+        ueRef: context.ueRef
+        pduSessionId: context.request.pduSessionId
+        pti: context.request.pti
+        requestType: context.request.requestType
+        ingressRef: context.correlation.ingressRef
+        lifecycleRef: context.correlation.lifecycleRef
+        operationContextRef: read-operation-context.operation.output.contextRef
+        afterOperationRef: transfer-n1n2.operation.output.operationRef
+      routes:
+        FAILED: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
+        DENIED: SAFE_STOPPED
+    postcondition:
+      predicates:
+        - predicate: establishment.n4.forwarding_ready
+          arguments:
+            - await-forwarding.operation.output
+      routes:
+        PASS: transfer-responsibility
+        FAIL: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
   transfer-responsibility:
     operation:
       tool: ca::ca.session.resource_responsibility.transfer
@@ -212,10 +314,10 @@ nodes:
       predicates:
         - predicate: establishment.ran.adopted
           arguments:
-            - await-network-evidence.operation.output
+            - await-ran-acceptance.operation.output
         - predicate: establishment.n4.forwarding_ready
           arguments:
-            - await-network-evidence.operation.output
+            - await-forwarding.operation.output
         - predicate: establishment.resources.managed
           arguments:
             - transfer-responsibility.operation.output
