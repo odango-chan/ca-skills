@@ -292,7 +292,7 @@ Payload 是 Predicate 判断的业务值；Evidence 是 Host 判断该值是否�
 - **Predicate：** 纯、可重复、无副作用的确定性计算 / 判断函数，声明有序类型参数，使用 CEL 或受限 Python Script 实现，返回 PASS / FAIL / UNKNOWN。它由 Procedure 的 Precondition 或 Postcondition 阶段调用，不是独立 Procedure Node。
 - **Capability：** 部署侧授权分组和资源边界，不是 callable，也不是 Operation 别名。一个 Capability 可以包含多个 Operation 和 Observation Query。Skill 只声明 Capability Grant。
 - **Effect：** 初始支持 READ 和 MUTATION。READ 仍需要授权、Scope 和审计。
-- **Reconcile：** 受信 Tool Owner 发布的原 Mutation **提交结果确认能力**，由 Host 公共执行安全边界处理不确定结果；作者无需且不得创建 Reconcile/Resolve 专用阶段。每次查询必须绑定原调用身份、Scope 和 Correlation，不得发起新的业务 Mutation。LLM 与确定性 Procedure 调用相同的受控 Mutation Tool 接口并接收相同的规范化 Outcome；LLM 不直接调用专用 Reconcile READ、伪造证明或绕过 Host。
+- **Reconcile：** 受信 Tool Owner 发布的原 Mutation **提交结果确认能力**，由 Host 公共执行安全边界处理不确定结果；作者无需且不得创建 Reconcile/Resolve 专用阶段。每次查询必须绑定原调用身份、Scope 和 Correlation，不得发起新的业务 Mutation。LLM 与确定性 Procedure 调用相同的受控 Mutation Tool 安全接口并接收相同的规范化 Outcome；LLM 不直接调用专用 Reconcile READ、伪造证明或绕过 Host。LLM_ONLY 没有 Skill Contract 时，调用者的 Host 授权/Scope/预算来自独立的受信执行会话，不是隐式继承某份不存在的 `contract.capabilities`；Host 与 Owner 的全部安全下限仍强制适用。
 
 ### 6.9.1 Evidence 互操作术语（说明性索引）
 
@@ -966,14 +966,14 @@ nodes:
 
 ### 12.7 Host/Owner Mutation Outcome Resolution（无作者级 Reconcile 语法）
 
-**Normative。** v1alpha4 作者源码不存在 `operation.reconcile` 或 `operation.resolve`。原 Mutation 的受信 Tool Owner 可在 `mutation.reconcile` 下发布独立的 READ 状态确认 callable、原调用身份绑定、proof/receipt 与可恢复输出 Schema（§9.2.1、G.2）；这不是要让 Skill 作者编写第三类 Operation。公共 Host 工具执行安全边界根据同一原调用的不可变 Invocation、Scope、Correlation 和授权状态，在原业务调用结果不确定时受控确认其提交结果。**LLM_ONLY、LLM_RUNTIME 和 RUNTIME_ONLY 必须使用同一受治理执行能力，不存在 LLM 特权或仅 Runtime 才有的安全规则。** LLM/Procedure 决定业务工具调用、是否进入显式重试分支以及最终业务取证；Host 决定提交证明是否可采信及派发能否准入。自动确认属于**同一次已请求 Mutation 的安全结算**，不是 Host 自主发起新的业务 Mutation。
+**Normative。** v1alpha4 作者源码不存在 `operation.reconcile` 或 `operation.resolve`。原 Mutation 的受信 Tool Owner 可在 `mutation.reconcile` 下发布独立的 READ 状态确认 callable、原调用身份绑定、proof/receipt 与可恢复输出 Schema（§9.2.1、G.2）；这不是要让 Skill 作者编写第三类 Operation。公共 Host 工具执行安全边界根据同一原调用的不可变 Invocation、Scope、Correlation 和授权状态，在原业务调用结果不确定时按确定的准入条件受控确认其提交结果。**LLM_ONLY、LLM_RUNTIME 和 RUNTIME_ONLY 必须使用同一受治理执行能力，不存在 LLM 特权或仅 Runtime 才有的安全规则。** LLM/Procedure 决定业务工具调用、是否进入显式重试分支以及最终业务取证；Host 决定提交证明是否可采信及派发能否准入。自动确认属于**同一次已请求 Mutation 的安全结算**，不是 Host 自主发起新的业务 Mutation。
 
-**确认触发和上限：** 只有原业务 Mutation 已派发、提交状态仍不可判定、且存在已可信链接的 Owner `mutation.reconcile`、独立 READ Capability/Scope 授权、剩余 Action Budget/Deadline/取消允许时，Host 才能派发**至多一次**专用 Reconcile READ；不满足时保留 OUTCOME_UNKNOWN 和未决责任并安全停止。不得在 Host 层对 `NOT_COMMITTED` 或超时作隐式业务重发。完整原调用数据、恢复查询的独立调用身份、有效证明及保全责任必须被持久化，终态或取消不能清除已派发的未决责任。此规则适用于所有 Agent 执行模式，不能由 LLM 生成的文字或自由格式结果充当证明。
+**确认触发和上限：** 只有原业务 Mutation 已派发、提交状态仍不可判定、且存在已可信链接的 Owner `mutation.reconcile`、独立 READ Capability/Scope 授权、剩余 Action Budget/Deadline/取消允许时，Host **必须派发且仅派发一次**专用 Reconcile READ；任一准入条件不满足时**不得派发**，保留 OUTCOME_UNKNOWN 和未决责任并安全停止。不能由 LLM 或某个 Runtime profile 自行省略已经准入的安全确认，也不能因超时再发第二次 READ。不得在 Host 层对 `NOT_COMMITTED` 或超时作隐式业务重发。完整原调用数据、恢复查询的独立调用身份、有效证明及保全责任必须被持久化，终态或取消不能清除已派发的未决责任。此规则适用于所有 Agent 执行模式，不能由 LLM 生成的文字或自由格式结果充当证明。
 
 **同一原 Mutation Operation 的结果归并：**
 - 原 Owner 直接成功且输出/证明有效：`SUCCEEDED`；若超时后通过受信恢复 READ 证明 `COMMITTED`，且已验证的恢复业务子对象**完整满足原普通 SUCCEEDED 输出 Schema、Producer/Evidence 保证及 Scope/Correlation**，也归并为该原 Operation 的 `SUCCEEDED`，原绑定 provenance 和恢复 lineage 必须保留；不得无证据复写原响应。若 Owner **承诺**了恢复输出却返回缺失或无效数据，`COMMITTED_OUTPUT_UNAVAILABLE`，按 §20.1/§12.8 强制停止。
 - 若可信恢复证明 `COMMITTED`，但 Owner **没有承诺可恢复的普通成功输出**：同一原 Operation 产生 Runtime `COMMITTED`（非 Owner Outcome）；其 `operation.output` **不可用**。作者可在本 Operator 的 `routes.COMMITTED` 走独立权威 Observation/后继 Postcondition，或直接安全停止；在能够独立取得业务充分证明之前不得发布 SUCCEEDED。
-- 若可信证明原调用 `NOT_COMMITTED`：同一原 Operation 的 `NOT_COMMITTED` 边；是否允许下一次独立 Mutation 按 §20.2 `retryOf` 严格准入。失败类别、无残留副作用及重试许可必须单独由 Owner 验证。
+- 若可信证明原调用 `NOT_COMMITTED`、且原 Mutation Owner 已发布可验证的 NOT_COMMITTED 类别/Outcome：同一原 Operation 的 `NOT_COMMITTED` 边；否则只保留可信未提交事实并安全停止，不在没有契约的前提下虚构路由键。是否允许下一次独立 Mutation 按 §20.2 `retryOf` 严格准入。失败类别、无残留副作用及重试许可必须单独由 Owner 验证。
 - 没有可信结论或恢复能力不可派发：仍为该原 Operation 的 `OUTCOME_UNKNOWN`；该结果只允许沿安全停止终态，不得路由到新的业务 Mutation。Host 保留原调用及迟到结果责任。任何 Reconcile READ 自身的失败都不得伪装为 NOT_COMMITTED。
 
 **SourcePath 与作用域：** 作者只能读取原 Mutation 的 `<node>.operation.output`，并且**仅在该 Operation 的 SUCCEEDED 路径**上可用；COMMITTED/NOT_COMMITTED/OUTCOME_UNKNOWN 路径上即使原 Owner 有声明成功 Schema，也不能使用它。Reconcile READ 的完整 `outputSchema` 或 `receiptSchema` 绝不成为 Procedure Producer；它只用于 Host 验证、责任与 Trace。Compiler 按 §13.3 的每条可达路径检查输出与 Evidence，不能通过某一成功分支借用另一未到达分支的输出。
@@ -1374,14 +1374,14 @@ Runtime 只用可信且关联到本次原调用的证明记录提交状态。Own
 
 **Normative。** 原 Mutation 的 `OUTCOME_UNKNOWN` 不直接证明任何提交结论，也不授予重试许可；Host 使用 §12.7 受信 Owner `mutation.reconcile` 独立 READ，在同一次 Mutation Outcome 结算时最多执行一次安全确认。此确认是 Host 公共 Tool 执行能力的**安全处理**，在 LLM_ONLY / LLM_RUNTIME / RUNTIME_ONLY 中规则完全一致，不是确定性 Procedure Runtime 私有行为；LLM 不得直接持有该专用内部 READ callable 的权限，也不得将自由文本当成提交证明。
 
-1. **确认准入：** 原业务 Mutation 必须真实已派发、状态未决，且原调用/请求/Scope/Correlation 已持久化。Host 从受信 Owner `mutation.reconcile.callable` 精确定位同 Owner 的 READ callable，独立验证 Capability Grant、Scope、Deadline、取消、Action Budget 和不可变原调用身份；任何缺失都不得发起恢复 READ 或重新发业务 Mutation。无安全契约、独立授权缺失或预算不足时保留 `OUTCOME_UNKNOWN` 并安全终止，保存迟到结果责任。
-2. **状态归并：** 受信证明已提交且恢复业务输出完整满足**原 Mutation 的普通成功输出契约及 Evidence** → 原 Operation `SUCCEEDED`；已提交但 Owner 没有承诺恢复输出 → 原 Operation `COMMITTED`，不得伪造 `operation.output`；已提交且承诺恢复输出却损坏/缺失 → `COMMITTED_OUTPUT_UNAVAILABLE` 强制安全停止；受信证明未提交 → 原 Operation `NOT_COMMITTED`；无足够证明 → `OUTCOME_UNKNOWN`。这里的 COMMITTED 只证明提交，不能被当成最终业务 Goal PASS。已完成的原 Mutation 和本次恢复 READ 分别记账，恢复读取不得继承原 Mutation Capability。
+1. **确认准入：** 原业务 Mutation 必须真实已派发、状态未决，且原调用/请求/Scope/Correlation 已持久化。Host 从受信 Owner `mutation.reconcile.callable` 精确定位同 Owner 的 READ callable，独立验证 Capability Grant、Scope、Deadline、取消、Action Budget 和不可变原调用身份；任一条件不满足时不得发起恢复 READ 或重发业务 Mutation；全部条件满足时必须恰好派发一次受控 READ。无安全契约、独立授权缺失或预算不足时保留 `OUTCOME_UNKNOWN` 并安全终止，保存迟到结果责任。
+2. **状态归并：** 受信证明已提交且恢复业务输出完整满足**原 Mutation 的普通成功输出契约及 Evidence** → 原 Operation `SUCCEEDED`；已提交但 Owner 没有承诺恢复输出 → 原 Operation `COMMITTED`，不得伪造 `operation.output`；已提交且承诺恢复输出却损坏/缺失 → `COMMITTED_OUTPUT_UNAVAILABLE` 强制安全停止；受信证明未提交且原 Mutation 已发布相应 NOT_COMMITTED Outcome/失败类别 → 原 Operation `NOT_COMMITTED`；若仅有未提交证明但缺少相应 Owner 路由契约则保留事实并安全停止；无足够证明 → `OUTCOME_UNKNOWN`。这里的 COMMITTED 只证明提交，不能被当成最终业务 Goal PASS。已完成的原 Mutation 和本次恢复 READ 分别记账，恢复读取不得继承原 Mutation Capability。
 3. **显式业务重试：** 只有原 Operation `NOT_COMMITTED` 且 Owner 证明 `retryable:true`、`noSideEffect:true` 时，作者才可通过其 `NOT_COMMITTED` 路由进入一个**不同业务 Node**，在新的普通 MUTATION Operation 上声明 `retryOf: <original-mutation-node>`。Compiler 必须证明到达该重试 Node 的每一条可达路径均经过该原 Mutation 的已证实 `NOT_COMMITTED` 边；仅到达过原 Node 不够。Compiler 还须核对 Tool/Owner 业务身份可兼容，Scope、Schema 与允许重试的受信契约；否则 `RETRY_CONTRACT_INVALID`。不得从 `COMMITTED`、`SUCCEEDED`、`OUTCOME_UNKNOWN`、`FAILED` 或旁路直接授权同一业务身份重试。
 4. **次数与预算：** 默认重试次数 **0**（没有显式 `retryOf` 不重发）。本版一个原逻辑 Mutation 家族最多允许**一次**新的业务派发，即原调用至多 1 次 + 显式受控 Retry 至多 1 次；`retryOf` 指向原始非重试 Node，禁止重试节点再声明 `retryOf` 形成第二代重试。Compiler 对违反此结构的可达图报 `RETRY_CONTRACT_INVALID`；多个分支候选引用同一原 Node 可同时存在，但 Runtime 对同一逻辑原调用家族建立唯一的**原子重试资格消费记录**，第一个实际获准派发的候选消耗许可，其余候选报 `RETRY_ADMISSION_DENIED` 并保全停止。Host/部署可再收紧至 0，不得放宽到 2；`limits.maxActions` 同时限制原调用、恢复 READ、新派发等实际 Action，不能以它替代独立 Retry 上限。每次新派发生成独立调用身份、责任记录和证明链。
 5. **失败关口：** Runtime/Host 派发前比较物化业务身份及有效原调用的受信未提交证明、当前 Scope/授权、Deadline、取消、Action Budget、无副作用和重试许可；任何一项不能验证，`RETRY_ADMISSION_DENIED` 并按 §12.8 安全停止，不能绕过这一判定。未声明 `retryOf` 的同业务身份第二次 Mutation 必须拒绝。恢复 READ 自己的重试、网络超时后的隐式业务重发、自动回跳先前 Node、通用 Retrier 包装均不属于 v1alpha4 许可的重试行为。
 6. **终止与责任：** `OUTCOME_UNKNOWN` 只允许路由到 `UNRESOLVED` / `SAFE_STOPPED` 并由 §12.8 计算实际终态，不能继续调用新的业务 Mutation；任何已确认待处置变更按 SAFE_STOPPED 优先。确定已提交但没有可用输出的 `COMMITTED` 路径可进行独立权威 Observation 及随后最终 Postcondition 验证，也可安全停止；不得从该结果直接到 `SUCCEEDED`。后续独立 Invocation 可由 Owner 另行处置，但不继承本次消费过的 Retry 资格。
 
-**对应历史模型的约束：** 早期以 `NOT_COMMITTED: original-node` 构造的回边不再合法，因为本版单次 Invocation 必须是 DAG 且每个 Stage 至多执行一次。历史 Runtime 的 `controlledRetry` 不再是隐式重试授权，只有作者显式 `retryOf`、Owner 许可与 Host 安全准入同时成立才派发。LLM 的再次 Tool 请求也受同一 Retry 家族去重、证明、预算和责任约束，不能被当成新任务绕过原操作身份。
+**对应历史模型的约束：** 早期以 `NOT_COMMITTED: original-node` 构造的回边不再合法，因为本版单次 Invocation 必须是 DAG 且每个 Stage 至多执行一次。历史 Runtime 的 `controlledRetry` 不再是隐式重试授权，只有作者显式 `retryOf`、Owner 许可与 Host 安全准入同时成立才派发。LLM 的再次 Tool 请求也受同一 Retry 家族去重、证明、预算和责任约束，不能被当成新任务绕过原操作身份。**LLM_ONLY 不拥有 Procedure 的 `retryOf` 字段**，但其公共 Host Tool 调用接口必须提供等价的**显式、经认证原调用关联的 Retry 意图**，并被同一准入与一次性消费规则验证；该接口的物理字段由独立 Host/Tool 协议冻结，本语言不发明新的 YAML 字段。没有可验证原调用关联或独立授权时，LLM 的相同业务身份再次派发必须拒绝，而不能偷偷视为新首次调用。
 
 ### 20.3 Reconcile Owner 回包分类（仅 Host 内部使用）
 
