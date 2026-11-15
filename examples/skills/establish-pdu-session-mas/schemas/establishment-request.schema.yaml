@@ -1,5 +1,5 @@
 $schema: https://json-schema.org/draft/2020-12/schema
-$id: urn:connectionagent:example:5gc:establishment-request:v1alpha4
+$id: urn:connectionagent:example:mas:establishment-request:v1alpha4
 title: EstablishmentRequest
 description: Skill-owned request constraints for the illustrative initial IPv4/SSC1 PDU session.
 type: object
