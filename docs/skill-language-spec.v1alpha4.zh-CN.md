@@ -52,7 +52,7 @@ CA-SL v1alpha4 的作者源码语法、静态语义、运行语义、附录 F/G 
 
 | 可声明的范围 | 所需精确边界与已存在的验收门槛 | 不得推导的结论 |
 |---|---|---|
-| **规范语义冻结**（Language specification） | 精确 `connectionagent.io/v1alpha4` 和本规范受审提交；§45.1 的变更边界 | 不表示任何 Compiler、Host、Owner 已执行通过 |
+| **语言规范评审/冻结状态** | `connectionagent.io/v1alpha4` 仍是设计稿，须单独记录受审提交与 §45.1 C 类冻结结果 | 现在不能称 v1alpha4 已冻结或已获得产品 PASS |
 | **Compiler 静态符合性** | §45.2 第 2/3/4/8 项中适用于静态链接的受信输入、E 变体和 H 的 `C_STATIC/C_WARNING` 诊断；Native/WASM 使用同一冻结源与原始结果 | 不表示 Runtime/Owner、Root Routing 或完整部署已验收 |
 | **Studio/LSP 静态一致性** | 相同源码与依赖快照下与 Compiler 的诊断/语言行为一致；§45.2 第 4/8 项，注明该产品实现版本 | 不表示 Studio 实现了 Runtime 或取得真实 Owner 证据 |
 | **Host/Runtime 执行符合性** | §45.2 第 1/2/5/7/8 项及适用动态用例，要求经版本化的 Artifact/Trace、隔离、Scope、责任和真实回包/模拟证据 | 不包含未交付的 Owner 物理协议或完整 Root Routing 自动选中能力 |
@@ -60,7 +60,7 @@ CA-SL v1alpha4 的作者源码语法、静态语义、运行语义、附录 F/G 
 | **Root Routing 产品符合性** | 独立版本化的 Eligibility / `Applicability` 选择协议及 Host 歧义拒绝验收，须写明对应版本和范围 | §12.8 仅冻结拒绝歧义原则，不提供完整选择算法 |
 | **集成/真实 5GC E2E 符合性** | 上述实际适用层已获可信证据，§45.2 第 6 项真实 5GC 36 Case 与相关 Owner 验证；记录失败和遗漏 | 单独编译通过、规范文本冻结、未执行的 E/DFX 不构成 E2E PASS |
 
-**声明规则：** 在报告中按实际执行层分别注明 `claimScope`、规范提交、所用外部协议版本、确切 Fixture/测试套件版本、已执行变体、失败/未覆盖、原始结果与发布者授权；未覆盖的层写 `NOT_TESTED` 或 `NOT_QUALIFIED`。其中 `claimScope` 等名称只描述附录 K 的**资料性报告视图**，不是本语言新增的线协议字段。E01–E120 只是冻结的规范预期编号，完整 E 列表和 H 的诊断集合均**不意味着已存在可执行套件**；套件的具体版本、覆盖率与执行证据须单独登记（§45.2、K.4）。
+**声明规则：** 在报告中按实际执行层分别注明 `claimScope`、规范提交、所用外部协议版本、确切 Fixture/测试套件版本、已执行变体、失败/未覆盖、原始结果与发布者授权；未覆盖的层写 `NOT_TESTED` 或 `NOT_QUALIFIED`。其中 `claimScope` 等名称只描述附录 K 的**资料性报告视图**，不是本语言新增的线协议字段。E01–E114 为继承的已冻结预期，E115–E120 为本稿待冻结的预期，完整 E 列表和 H 的诊断集合均**不意味着已存在可执行套件**；套件的具体版本、覆盖率与执行证据须单独登记（§45.2、K.4）。
 
 **规范文件完整性。** 附录 E（测试预期）、F（互操作字段）、G（闭合性补充）、H（诊断索引），以及 §30–§45 均属于**本文件的组成部分**；第十一部分 §46–§91 为资料性技术问答/设计说明。附录 I/J/K 已收编原先另行维护的作者指南、决策追踪、勘误裁决及测试/报告辅助材料，全部为 Informative；它们不增加字段或放宽 Normative 条款。本版完整评审仅需当前 `docs/skill-language-spec.zh-CN.md` 的**同一受审提交**，无需跨文件拼合；仅摘取 §0–§29 或截断 CEL 片段不能替代全文符合性评审。
 
@@ -561,9 +561,9 @@ nodes:
           arguments:
             - observe-ue-registration.observation.output
       routes:
-            PASS: read-udm-subscription
-            FAIL: FAILED
-            UNKNOWN: UNRESOLVED
+        PASS: read-udm-subscription
+        FAIL: FAILED
+        UNKNOWN: UNRESOLVED
 ~~~
 
 以上 Procedure 只展示入口，`read-udm-subscription` 在 §30 的完整教学图中定义。
@@ -675,9 +675,9 @@ nodes:
           arguments:
             - observe-registration.observation.output
       routes:
-            PASS: read-subscription
-            FAIL: FAILED
-            UNKNOWN: UNRESOLVED
+        PASS: read-subscription
+        FAIL: FAILED
+        UNKNOWN: UNRESOLVED
   read-subscription:
     operation:
       target: ca::sbi.udm.sm_data.get
@@ -697,9 +697,9 @@ nodes:
             - read-subscription.operation.output.result
             - context.request.dnn
       routes:
-            PASS: SUCCEEDED
-            FAIL: FAILED
-            UNKNOWN: UNRESOLVED
+        PASS: SUCCEEDED
+        FAIL: FAILED
+        UNKNOWN: UNRESOLVED
 ~~~
 
 本例要求 Registration 查询输出与 §29 的 Registration 参数 Schema 匹配；UDM Get 的 output.result 与 Session Profile 参数 Schema 匹配。它使用虚构 Owner 契约来说明已冻结的语言语义，而非当前已可链接的真实 5GC Skill。
@@ -795,9 +795,9 @@ nodes:
             - create-subscription.operation.output.subscription
             - context.request.dnn
       routes:
-            PASS: SUCCEEDED
-            FAIL: SAFE_STOPPED
-            UNKNOWN: SAFE_STOPPED
+        PASS: SUCCEEDED
+        FAIL: SAFE_STOPPED
+        UNKNOWN: SAFE_STOPPED
   reconcile-subscription:
     operation:
       reconcile: create-subscription
@@ -820,9 +820,9 @@ nodes:
             - reconcile-subscription.observation.output.subscription
             - context.request.dnn
       routes:
-            PASS: SUCCEEDED
-            FAIL: SAFE_STOPPED
-            UNKNOWN: SAFE_STOPPED
+        PASS: SUCCEEDED
+        FAIL: SAFE_STOPPED
+        UNKNOWN: SAFE_STOPPED
 ~~~
 
 本例使用独立 Contract `goal: udm.subscription_verified`，并假设 Host 在派发前登记对创建尝试和迟到结果的责任。成功完成后该订阅由已登记的管理方接管。提交后的验证失败进入 SAFE_STOPPED。Tool Owner 须明确保证 Create 成功输出和独立 Observation 输出中的 subscription 均符合相同规范化 Subscription Schema，并发布相同权威的订阅状态保证（§17）；该假设须由正式 Owner Schema 确认，不能靠 Compiler 猜测。COMMITTED 只证明原 Mutation 已提交。
@@ -847,9 +847,9 @@ check-ue-registration:
         arguments:
           - observe-ue-registration.observation.output
     routes:
-          PASS: create-session
-          FAIL: FAILED
-          UNKNOWN: UNRESOLVED
+      PASS: create-session
+      FAIL: FAILED
+      UNKNOWN: UNRESOLVED
 ~~~
 
 本片段引用 §30 的 Registration Observation 输出和 §29 的 Registration Schema。FAIL 与 UNKNOWN 直接指向 Invocation 终态。这个 Node 只声明 Precondition，因此在同一张 `routes` 表中列出 PASS、FAIL 和 UNKNOWN。若在这个 Node 内还声明 Operation，PASS 自动进入 Operation，FAIL 和 UNKNOWN 仍可各自跳转。
@@ -878,9 +878,9 @@ create-policy:
         arguments:
           - create-policy.operation.output
     routes:
-          PASS: create-n4-session
-          FAIL: SAFE_STOPPED
-          UNKNOWN: SAFE_STOPPED
+      PASS: create-n4-session
+      FAIL: SAFE_STOPPED
+      UNKNOWN: SAFE_STOPPED
 ~~~
 
 本片段复用 §30 的 Create 输出和 §29 的 Predicate，假定该输出及其 Evidence 足以支持验收。Operation 的 SUCCEEDED 在同一 Node 内进入 Postcondition，只有 Postcondition 的 PASS 才继续到下一项业务步骤。
@@ -907,9 +907,9 @@ inspect-policy:
         arguments:
           - inspect-policy.observation.output
     routes:
-          PASS: create-n4-session
-          FAIL: FAILED
-          UNKNOWN: UNRESOLVED
+      PASS: create-n4-session
+      FAIL: FAILED
+      UNKNOWN: UNRESOLVED
 ~~~
 
 本片段假定查询输出与 §29 的 Association 参数 Schema 兼容，并满足 Predicate 所需的 Evidence。Observation 的 arguments 同样是具名映射，并按 Query Input Schema 校验。Observation Query 可以使用前序 Operation Result 作为查询依据，例如：
@@ -941,9 +941,9 @@ verify-n4-session:
           - inspect-n4-resources.observation.output
           - read-n4-baseline.observation.output.baselineRef
     routes:
-          PASS: next-step
-          FAIL: FAILED
-          UNKNOWN: UNRESOLVED
+      PASS: next-step
+      FAIL: FAILED
+      UNKNOWN: UNRESOLVED
 ~~~
 
 本片段假设前序 `read-n4-baseline` 在 PRE_CREATE 阶段成功产生已确认的 `baselineRef`，且该输出在所有到达路径上可用。POST_CREATE 查询与 Predicate 均绑定同一 Ref；`inspect-n4-resources.observation.output` 使用 §29 所示的权威输出类型。
@@ -1752,9 +1752,9 @@ nodes:
           arguments:
             - observe-ue-registration.observation.output
       routes:
-            PASS: read-udm-subscription
-            FAIL: FAILED
-            UNKNOWN: UNRESOLVED
+        PASS: read-udm-subscription
+        FAIL: FAILED
+        UNKNOWN: UNRESOLVED
 ~~~
 
 这两个文件的职责不能合并：由 Contract 声明 Goal、全局前置条件、公共 Schema、依赖与 Capability Grants；只有 Procedure 承载执行图和最终 Postcondition。此处的 urn:example 身份是教学样例，不宣称真实 Owner 已发布或可以通过当前 Compiler 链接。完整可链接的目标样例需要 Owner 正式快照和 §34 的身份校验。
@@ -1921,9 +1921,9 @@ nodes:
           arguments:
             - observe-ue-registration.observation.output
       routes:
-            PASS: read-udm-subscription
-            FAIL: FAILED
-            UNKNOWN: UNRESOLVED
+        PASS: read-udm-subscription
+        FAIL: FAILED
+        UNKNOWN: UNRESOLVED
   read-udm-subscription:
     operation:
       target: ca::sbi.udm.sm_data.get
@@ -1942,9 +1942,9 @@ nodes:
             - read-udm-subscription.operation.output.result
             - context.request.dnn
       routes:
-            PASS: create-udm-subscription
-            FAIL: FAILED
-            UNKNOWN: UNRESOLVED
+        PASS: create-udm-subscription
+        FAIL: FAILED
+        UNKNOWN: UNRESOLVED
   create-udm-subscription:
     operation:
       target: ca::sbi.udm.sdm_subscription.create
@@ -1983,9 +1983,9 @@ nodes:
           arguments:
             - create-pcf-association.operation.output
       routes:
-            PASS: create-n4-session
-            FAIL: SAFE_STOPPED
-            UNKNOWN: SAFE_STOPPED
+        PASS: create-n4-session
+        FAIL: SAFE_STOPPED
+        UNKNOWN: SAFE_STOPPED
   reconcile-pcf-association:
     operation:
       reconcile: create-pcf-association
@@ -2007,9 +2007,9 @@ nodes:
           arguments:
             - reconcile-pcf-association.observation.output
       routes:
-            PASS: create-n4-session
-            FAIL: SAFE_STOPPED
-            UNKNOWN: SAFE_STOPPED
+        PASS: create-n4-session
+        FAIL: SAFE_STOPPED
+        UNKNOWN: SAFE_STOPPED
   create-n4-session:
     operation:
       target: ca::UPN.CREATE_UP_SESSION
@@ -2091,9 +2091,9 @@ nodes:
             - read-n4-forwarding.observation.output
             - create-n4-session.operation.output.sessionInstanceRef
       routes:
-            PASS: transfer-resource-responsibility
-            FAIL: SAFE_STOPPED
-            UNKNOWN: SAFE_STOPPED
+        PASS: transfer-resource-responsibility
+        FAIL: SAFE_STOPPED
+        UNKNOWN: SAFE_STOPPED
   transfer-resource-responsibility:
     operation:
       target: ca-responsibility::ca.session.resource_responsibility.transfer
@@ -2135,9 +2135,9 @@ nodes:
             - read-resource-responsibility.observation.output
             - create-n4-session.operation.output.sessionInstanceRef
       routes:
-            PASS: SUCCEEDED
-            FAIL: SAFE_STOPPED
-            UNKNOWN: SAFE_STOPPED
+        PASS: SUCCEEDED
+        FAIL: SAFE_STOPPED
+        UNKNOWN: SAFE_STOPPED
 ~~~
 
 - 本图是完整的教学控制流。真实 Tool、Host journal 和 Capability 身份须由 Owner 发布。它简化了 Hold、Lifecycle Gate、N4 基线、资源句柄和部分 Reconcile，不可替代真实 5GC Skill 或改变既有流程。N4、RAN 与 Forwarding 的直达 `OUTCOME_UNKNOWN` 停止边以该教学调用没有安全 Reconcile 契约为前提。AMF 的 COMMITTED 路径只表示 Owner 已确认原调用提交；随后仍须验证 RAN 和转发。
@@ -2158,8 +2158,8 @@ create-policy:
         arguments:
           - context.ueRef
     routes:
-          FAIL: FAILED
-          UNKNOWN: UNRESOLVED
+      FAIL: FAILED
+      UNKNOWN: UNRESOLVED
   operation:
     target: ca::sbi.pcf.sm_policy.create
     arguments:
@@ -2185,9 +2185,9 @@ create-policy:
         arguments:
           - create-policy.observation.output
     routes:
-          PASS: continue-session
-          FAIL: SAFE_STOPPED
-          UNKNOWN: SAFE_STOPPED
+      PASS: continue-session
+      FAIL: SAFE_STOPPED
+      UNKNOWN: SAFE_STOPPED
 ~~~
 
 本例引用 E.8 的 `example.subject.present` 和 §29 的 `createdsession.pcf.association_owned`，假定 Create 输出包含 `policyAssociationRef`，且查询契约接受该引用。本片段只展示一个四阶段 Node，`continue-session` 和 `reconcile-policy` 由完整 Procedure 定义。如果 Operation Result 已足以支持同一验收，可以省略 Observation，并将 Postcondition 实参绑定到 `create-policy.operation.output`。
@@ -2815,7 +2815,7 @@ flowchart LR
 | Predicate Script 类型派生不明确 | Predicate.parameters 是唯一业务输入签名；Script 入口引用生成的 PredicateInput；Compiler / LSP 使用同一虚拟 stub | 语义已明确；生成 stub / overlay 的工具链方式待验证 |
 | Schema ID 与路径混淆 | 外部引用使用 dependency-alias::精确 Schema $id；Skill 自有 Schema 使用包内路径；路径不是公共身份 | 规则已明确；需要 Compiler 正负例验证 |
 | primitive 类型兼容、nullable 和 CEL 规则不完整 | 附录 F.5 保守赋值规则，未支持关键字必须拒绝 | 语言规则已冻结；实现待验收 |
-| 自动同名绑定保留键冲突 | 本版（v1alpha4）不支持隐式同名绑定；Studio 可生成显式 arguments | 本版源码语法已冻结 |
+| 自动同名绑定保留键冲突 | 本版（v1alpha4）不支持隐式同名绑定；Studio 可生成显式 arguments | 本稿对应旧版已冻结的规则（v1alpha4 尚在评审） |
 | 三个异步 Operation 的 Owner 契约尚未确认 | 责任目标映射到 UPN.CREATE_UP_SESSION、SSM.SIGNAL_UE_AN、UPN.MODIFY_UP_SESSION | 仅为目标责任；ToolCatalog / Output / Evidence 仍待 Owner 确认 |
 
 本附录仅记录历史评审事项，不独立产生规范性要求，也不构成 Owner 发布物或产品符合性证明。现行实现验收依 §45.2 的八项门槛执行。任何修订申请均应明确影响的术语、语法、静态语义、运行语义或 Owner 边界，并附相应正反例。
@@ -2865,9 +2865,9 @@ nodes:
           arguments:
             - inspect-registration.observation.output
       routes:
-            PASS: SUCCEEDED
-            FAIL: FAILED
-            UNKNOWN: UNRESOLVED
+        PASS: SUCCEEDED
+        FAIL: FAILED
+        UNKNOWN: UNRESOLVED
 ~~~
 
 ~~~yaml
@@ -3226,9 +3226,9 @@ nodes:
           arguments:
             - context.ueRef
       routes:
-            PASS: SUCCEEDED
-            FAIL: FAILED
-            UNKNOWN: UNRESOLVED
+        PASS: SUCCEEDED
+        FAIL: FAILED
+        UNKNOWN: UNRESOLVED
 ~~~
 
 ~~~yaml
@@ -3829,7 +3829,7 @@ E30/E40 的严格绑定规则有意保留：较新的已接纳权威记录即使
 
 ## G.9 新增验收 E105–E114
 
-本节每个用例均为 v1alpha4 正式符合性测试的**规范预期**，不是当前产品已经 PASS 的证明。所有 Owner 数据、Scope 和证明来源必须是可信 Fixture；不得在失败用例中把缺失的发布物臆造为有效输入。
+本节每个用例均为 v1alpha4 候选规范的**待冻结预期**，不是当前产品已经 PASS 的证明。所有 Owner 数据、Scope 和证明来源必须是可信 Fixture；不得在失败用例中把缺失的发布物臆造为有效输入。
 
 | 用例 | 输入变化 | 必须得到的结果 |
 |---|---|---|
