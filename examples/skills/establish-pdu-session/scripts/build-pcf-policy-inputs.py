@@ -26,7 +26,28 @@ OutputDefaultQos = TypedDict(
 )
 
 
+# Exact six-key structural projection of select-establishment-configuration.py.
+# The source contains all six required keys and is closed (additionalProperties:false).
+class SNssai(TypedDict):
+    sst: int
+    sd: NotRequired[int]
+
+
+class PduSessionTypes(TypedDict):
+    defaultSessionType: Literal["IPV4", "IPV6", "IPV4V6"]
+    allowedSessionTypes: NotRequired[list[Literal["IPV4", "IPV6", "IPV4V6"]]]
+
+
+class SscModes(TypedDict):
+    defaultSscMode: int
+    allowedSscModes: NotRequired[list[int]]
+
+
 class SubscriptionData(TypedDict):
+    sNssai: SNssai
+    dnn: str
+    pduSessionTypes: PduSessionTypes
+    sscModes: SscModes
     sessionAmbr: Ambr
     defaultQos: InputDefaultQos
 
