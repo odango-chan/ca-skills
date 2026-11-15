@@ -698,7 +698,7 @@ nodes:
         UNKNOWN: UNRESOLVED
 ~~~
 
-本例要求 Registration 查询输出与 §29 的 Registration 参数 Schema 匹配；UDM Get 的 output.result 与 Session Profile 参数 Schema 匹配。它使用虚构 Owner 契约来说明已冻结的语言语义，而非当前已可链接的真实 5GC Skill。
+本例要求 Registration 查询输出与 §29 的 Registration 参数 Schema 匹配；UDM Get 的 output.result 与 Session Profile 参数 Schema 匹配。**本例特有的受信 Owner/部署假设：** `ueRef` 由 Host 提供并完成主体关联；`dnn: context.request.dnn` 和 `sNssai: context.request.sNssai` **仅用于业务查询过滤**，而**不在该 callable 的 Owner 身份输入集合或部署 Scope 授权/资源句柄归属比较集合中**。这需要有受信 Owner 标注及部署策略确认为非身份参数，不能仅凭此教学文字默许空集合。若真实 UDM Owner 或部署策略将 DNN/S-NSSAI 纳入 Session/Scope 身份，就必须先改用 Host 已验证关联投影或权威 Producer 输出，并按 §13.3 验证来源；直接照抄 Request 绑定必须 `CALLABLE_ARGUMENT_PROVENANCE_INVALID` 且不可派发。它使用虚构 Owner 契约来说明已冻结的语言语义，而非当前已可链接的真实 5GC Skill。
 
 ### 11.3 Contract 字段
 
@@ -1406,7 +1406,7 @@ Runtime 只用可信且关联到本次原调用的证明记录提交状态。Own
 | SUCCEEDED，可信提交证明，恢复输出存在且完整满足原普通成功输出 Schema/Evidence | 原 Operation SUCCEEDED；保留恢复调用/实际 Producer lineage |
 | SUCCEEDED，可信提交证明，Owner 未承诺恢复成功输出 | 原 Operation COMMITTED；无 `operation.output`，允许作者显式观察或安全终止 |
 | SUCCEEDED，可信提交证明，承诺的恢复输出缺失或无效 | `COMMITTED_OUTPUT_UNAVAILABLE`，保留已提交与责任并强制按 §12.8 停止 |
-| SUCCEEDED，可信证明未提交 | 原 Operation NOT_COMMITTED；是否允许重试仍按 §20.2 第 3–5 项独立检查 |
+| SUCCEEDED，可信证明未提交且原 Mutation Owner **已发布可验证 NOT_COMMITTED Outcome/失败类别** | 原 Operation NOT_COMMITTED；是否允许重试仍按 §20.2 第 3–5 项独立检查；若 Owner 未发布类别，仅保全可信未提交事实并安全停止，不创造 Stage Outcome |
 | 已声明 FAILED、超时、证明不足或互相矛盾 | 原 Operation OUTCOME_UNKNOWN，保留独立验证过的事实及责任；不存在可授予重试的证明 |
 | Owner 回包是未声明或保留 Runtime 值（包括自行返回 COMMITTED/NOT_COMMITTED/UNRESOLVED） | `OWNER_OUTCOME_UNDECLARED`，隔离回包；若原 Mutation 提交状态仍不明，保持 OUTCOME_UNKNOWN 并安全停止 |
 
@@ -1462,6 +1462,17 @@ Predicate 的 PASS 表示命题得到充分支持。FAIL 表示命题被充分�
 ### 22.1 路由矩阵
 
 **规范权威性。** §22 的 Outcome 分类表说明产生者和允许集合；本节是路由键必填/禁止、正常阶段自动推进及可选 Runtime 结果省略行为的唯一规范性矩阵。§24.1/§24.2 决定具体诊断触发，附录 H 按 `(Code, Phase)` 规范化诊断身份及分类，附录 E 的明确预期具有规范性效力；它们不是彼此可互相替换的重复定义。若资料性镜像与这些对应主条款冲突，应修复镜像，不得自行选择更宽松的解释。
+
+**MUTATION 可选 Outcome 的唯一静态判定顺序（Normative；汇总 §20.1–§20.3、F.1 和本路由矩阵，不新增键）：** 先链接实际 `operation.tool` 的精确 callable、Effect、Owner `ownerOutcomes`、`mutation.failureClasses`、可信恢复 READ/证明与独立 Capability/Scope 约束；若这些受信发布物不合法，优先按其各自的 Owner/Capability/Schema/Effect 专用诊断阻断，不得继续从不完整契约“猜测”路由允许集合。链接有效后再检查当前操作的 `routes` **键是否合法**、必填是否缺失，最后检查各条目标边的安全性与成功判据。
+
+| 作者 MUTATION 路由键 | 唯一静态允许条件 | 缺失 / 超出集合的诊断 | Runtime 真实结果 |
+|---|---|---|---|
+| `NOT_COMMITTED` | **仅当原 Mutation Owner 的 `ownerOutcomes` 显式发布 NOT_COMMITTED，且已有可验证、同一 Outcome 的失败类别/提交证明契约**；它属于 Owner 声明的非正常结果，不是所有 MUTATION 通用键 | 已声明却漏写：`ROUTE_OUTCOME_MISSING`；Owner 没有发布却声明此键：`ROUTE_OUTCOME_UNKNOWN`；Owner 契约本身错误则按更早专用链接诊断 | Owner 直接可信结果或 Host 专用 READ 可信证明未提交且匹配**已发布的**该类别时才可产生；仅证明未提交但 Owner 未发布类别时保留事实并安全停止，不虚构 Stage Outcome |
+| `COMMITTED` | **仅当该 Mutation 已可信链接、独立授权受信 `mutation.reconcile` READ**；Owner 不得将 COMMITTED 写入 `ownerOutcomes`。不要求作者自己声明恢复 READ；即使 Owner 承诺 `recoverableOutputSchema/path`，这个可选键也允许保留为保守安全停止边，但在契约正常运行下不会被发出 | 有受信恢复能力时**可省略**并按 §12.8 安全停止；无受信恢复能力却写此键：`ROUTE_OUTCOME_UNKNOWN`；无恢复 READ 授权则先按 `CAPABILITY_NOT_GRANTED` 等专用链接诊断拒绝 | 只有 Host 受信证明已提交且 Owner **没有承诺**可恢复普通成功输出时产生；已承诺且完整恢复归并 SUCCEEDED，承诺但无效为 `COMMITTED_OUTPUT_UNAVAILABLE` 强制停止，不假冒 COMMITTED |
+| `OUTCOME_UNKNOWN` | 每个 MUTATION **都必须**声明，不依赖 Owner 是否发布 Reconcile；这是 Host/Runtime 保留结果 | 省略为 `ROUTE_OUTCOME_MISSING`；非法目标按 §20.2/`RECONCILE_CONTRACT_INVALID` | Host 不能安全确认或确认不充分时只能安全停止，不能重派发 |
+| `SUCCEEDED`、已发布的 `FAILED`、`DENIED` | 与下方 §22.1 主矩阵一致；`SUCCEEDED` 的非末自动推进、末阶段显式路由独立校验 | 依现有 `ROUTE_NORMAL_OUTCOME_NOT_ALLOWED` / `ROUTE_OUTCOME_MISSING` / `ROUTE_OUTCOME_UNKNOWN` | 只能按真实 Owner/Host 结果，不能跨阶段伪造成功 |
+
+**类别与重试是不同问题：** `NOT_COMMITTED` 的路由键静态合法，**不等于**该类别有 `retryable:true` 或 `noSideEffect:true`；若该边到普通安全停止节点可以合法，但要通向新的 `retryOf` Mutation，必须额外满足 §20.2 的静态与 Runtime 门禁、原调用家族唯一许可、当前 Scope/Correlation/Lifecycle 和预算。作为保留 Host Stage Outcome 的 `COMMITTED` 没有 Owner 自报类别，不得被用于重试。Studio Completion 及 Compiler 的 ROUTE_OUTCOME_UNKNOWN / ROUTE_OUTCOME_MISSING 判定必须使用上述同一已链接 Owner 能力条件，不能按全局枚举无条件补齐。
 
 | 阶段 | 正常结果：非末 / 末 | 必须显式配置的其余结果 | 可选结果 | 省略可选路由时 |
 |---|---|---|---|---|
@@ -1548,7 +1559,7 @@ Environment
 | SOURCE_NOT_AVAILABLE | Producer 非所有路径可用，例如原 Mutation NOT_COMMITTED/OUTCOME_UNKNOWN 分支访问成功输出；COMMITTED 且 Owner 未声明恢复输出时优先专用 RECONCILE_OUTPUT_UNAVAILABLE | 阻止构建 |
 | RECONCILE_OUTPUT_UNAVAILABLE | 只沿原 Mutation COMMITTED（已证实提交、Owner 未声明恢复成功输出）到达消费者，却绑定原 Mutation `operation.output`；优先于 SOURCE_NOT_AVAILABLE | 阻止构建 |
 | ROUTE_OUTCOME_MISSING | 阶段缺少必须显式声明的 Outcome 路由 | 阻止构建 |
-| ROUTE_OUTCOME_UNKNOWN | 路由键不属于该阶段的精确 Outcome 集 | 阻止构建 |
+| ROUTE_OUTCOME_UNKNOWN | 路由键不属于该阶段经受信 Owner 声明及 Host 结果归并后**有资格使用**的精确 Outcome 集；例如无 Owner NOT_COMMITTED 声明却写该键，或无可信可授权 mutation.reconcile 却写 COMMITTED | 阻止构建 |
 | ROUTE_NORMAL_OUTCOME_NOT_ALLOWED | 在非末阶段的 `routes` 中声明正常 Outcome，可能跳过同一 Node 的后续阶段 | 阻止构建 |
 | PREDICATE_GROUP_INVALID | Pre/Postcondition 的 `predicates` 列表为空或不合法；仍使用旧阶段根 `predicate/arguments`；或任一 Postcondition 含被删除的 `goal` 字段 | 阻止构建 |
 | PREDICATE_ARITY_MISMATCH | 参数数量不一致 | 阻止构建 |
