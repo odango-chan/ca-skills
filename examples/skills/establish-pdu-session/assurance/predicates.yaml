@@ -1,4 +1,6 @@
-# Owner-linked business proof descriptors below remain deliberately unqualified.
+# CA-SL v1alpha4 ordered Predicate signatures. All ca::urn:example Schema IDs
+# and ca:: guarantees below are UNPUBLISHED until their actual Owner releases them.
+# Linking must fail closed; matching old v0.2 names does not grant provenance.
 predicates:
   establishment.request.supported:
     parameters:
@@ -8,34 +10,108 @@ predicates:
     evaluator:
       type: cel
       expression: requestType == 1 && pduType == "IPV4" && sscMode == 1
-  establishment.subscription.usable:
+
+  establishment.udm.response_valid:
     parameters:
-      - subscription: ca::urn:example:5gc:udm-subscription:v1
-      - dnn: string
+      - receipt: ca::urn:example:5gc:udm-read-receipt:v1
     evidence:
       requires:
-        subscription: [ca::udm.subscription-state]
+        receipt: [ca::udm.subscription-state]
     evaluator:
       type: cel
-      expression: subscription.dnn == dnn && subscription.status == "ACTIVE"
+      expression: >-
+        receipt.result.selection == "MATCHED" &&
+        receipt.result.httpStatus == 200 &&
+        receipt.result.networkOutcome == "HTTP_RESPONSE" &&
+        receipt.result.responseOrigin == "TARGET_SERVICE_VIA_SCP" &&
+        receipt.result.captureComplete == true
+
+  establishment.udm.hold_bound:
+    parameters:
+      - hold: ca::urn:example:5gc:udm-hold-state:v1
+      - dnn: string
+      - sst: integer
+    evidence:
+      requires:
+        hold: [ca::udm.hold-bound]
+    evaluator:
+      type: cel
+      expression: >-
+        hold.operationKind == "UDM_SDM_SUBSCRIPTION_CREATE" &&
+        hold.holdRef != "" && hold.currentInstanceRef != "" &&
+        hold.heldRequestDigest != "" && hold.dnn == dnn && hold.sst == sst
+
+  establishment.pcf.create_governed:
+    parameters:
+      - readiness: ca::urn:example:5gc:pcf-create-governance:v1
+      - lifecycleRef: string
+    evidence:
+      requires:
+        readiness: [ca::pcf.create-governance, ca::n4.baseline-clear]
+    evaluator:
+      type: cel
+      expression: >-
+        readiness.lifecycleIsolationState == "CLEAN" &&
+        readiness.competingCreateState == "NOT_FORWARDED" &&
+        readiness.preN4PairState == "NO_N4_PAIR" &&
+        readiness.lifecycleRef == lifecycleRef
+
+  establishment.n4.initial_resources_ready:
+    parameters:
+      - resources: ca::urn:example:5gc:n4-initial-resources:v1
+    evidence:
+      requires:
+        resources: [ca::n4.initial-resources-ready]
+    evaluator:
+      type: cel
+      expression: >-
+        resources.bindingStatus == "CURRENT" &&
+        resources.defaultFlowInstalled == true &&
+        resources.uplinkEndpointBound == true
+
+  establishment.n1n2.hold_bound:
+    parameters:
+      - hold: ca::urn:example:5gc:n1n2-hold-state:v1
+      - lifecycleRef: string
+    evidence:
+      requires:
+        hold: [ca::amf.n1n2-hold-bound]
+    evaluator:
+      type: cel
+      expression: >-
+        hold.operationKind == "N1N2_MESSAGE_TRANSFER" &&
+        hold.holdRef != "" && hold.currentInstanceRef != "" &&
+        hold.heldRequestDigest != "" && hold.targetNfInstanceId != "" &&
+        hold.supi != "" && hold.lifecycleRef == lifecycleRef
+
   establishment.ran.adopted:
     parameters:
-      - network: ca::urn:example:5gc:network-convergence:v1
+      - network: ca::urn:example:5gc:ran-adoption:v1
     evidence:
       requires:
         network: [ca::ran.setup-adopted]
     evaluator:
       type: cel
-      expression: network.ranAdopted == true
+      expression: >-
+        network.result == "ACCEPTED" &&
+        network.requiredFlowMatched == true &&
+        network.currentInstanceBound == true &&
+        network.baselineRanEndpointPresent == false
+
   establishment.n4.forwarding_ready:
     parameters:
-      - network: ca::urn:example:5gc:network-convergence:v1
+      - network: ca::urn:example:5gc:n4-forwarding:v1
     evidence:
       requires:
         network: [ca::n4.forwarding-ready]
     evaluator:
       type: cel
-      expression: network.forwardingReady == true
+      expression: >-
+        network.bindingStatus == "CURRENT" &&
+        network.requiredFlowMatched == true &&
+        network.downlinkTunnelMatched == true &&
+        network.gatesAllowForwarding == true
+
   establishment.resources.managed:
     parameters:
       - responsibility: ca::urn:example:5gc:resource-responsibility:v1
@@ -44,4 +120,8 @@ predicates:
         responsibility: [ca::resources.durably-managed]
     evaluator:
       type: cel
-      expression: responsibility.disposition == "success" && responsibility.managementState == "ACCEPTED"
+      expression: >-
+        responsibility.disposition == "success" &&
+        responsibility.recipientRef != "" &&
+        responsibility.transferRef != "" &&
+        responsibility.evidenceRef != ""
