@@ -3,12 +3,12 @@
 **中文名称：** ConnectionAgent Skill 语言规范  
 **简称：** CA-SL  
 **目标版本：** `connectionagent.io/v1alpha4`（简称 v1alpha4；`vNext` 仅为资料性系列别名）  
-**状态：** FROZEN — LANGUAGE SPECIFICATION ONLY（v1alpha4 已完成 C 类重新开放、阻塞闭合与复审冻结；v1alpha3 独立保持 FROZEN；产品/Owner 仍 NOT QUALIFIED）  
+**状态：** FROZEN — LANGUAGE & EXPLICIT INTEROP PROFILE ONLY（v1alpha4 版本统一 C 类复审完成；ToolCatalog/CapabilityContracts 直接链接版本均 v1alpha4；产品/Owner NOT_QUALIFIED）  
 **规范所有者：** odango-chan/ca-skills  
 **适用对象：** Skill 作者、Skill Studio、Compiler、Agent Host / Runtime、Tool Owner、Schema Owner、语言服务及符合性评审机构  
 **更新日期：** 2026-11-15
 
-**文件效力。** 本文件是 CA-SL v1alpha4 的**完整、已冻结单文件语言规范**，不追溯改变 v1alpha3。标为 Normative 的内容依 §45.1.1 冻结；该语言裁决**不代表** Compiler、Studio、Host/Runtime 或 Owner 已通过任何 §45.2 产品验收。原 v1alpha3 的作者语法及外部 ToolCatalog/CapabilityContracts 的既有独立发布版本保持不变。
+**文件效力。** 本文件是 CA-SL v1alpha4 的完整单文件规范，本轮已经按 **v1alpha4 跨协议版本统一的 C 类变更**独立复审并重新冻结；此前的 v1alpha4 语言冻结历史与 v1alpha3 原版保持可追溯，当前改动不能当作静默勘误。此候选未形成真实产品符合性承诺。旧版 v1alpha3 作者语法、ToolCatalog 和 CapabilityContracts 的历史发布物保持原版本，不再属于本版直接可链接的输入。
 
 **规范性用语。** MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT、MAY、OPTIONAL 按 RFC 2119 和 RFC 8174 解释。相应中文规范性措辞包括“必须”“不得”“应当”“不建议”“可以”。
 
@@ -386,7 +386,7 @@ ToolCatalog 是 Tool Owner 发布的 callable 契约集合。v1alpha4 要求同�
 以下是冻结的互操作结构的教学实例，并非当前 Owner 的正式发布物：
 
 ~~~yaml
-apiVersion: connectionagent.io/toolcatalog/v1alpha3
+apiVersion: connectionagent.io/toolcatalog/v1alpha4
 kind: ToolCatalog
 metadata:
   name: smf-session-state
@@ -470,12 +470,12 @@ mutation:
 
 **效力：Normative（抽象规则及附录 F 的 v1alpha4 字段）；Informative（示例身份）。**
 
-**规范性说明。** CapabilityContracts v1alpha3 互操作字段及授权与 Effect 语义均为 Normative（附录 F.2）。
+**规范性说明。** CapabilityContracts v1alpha4 的授权与 Effect 语义为本版 Normative（附录 F.2）；不得静默接受旧版 v1alpha3 的 apiVersion。
 
 CapabilityContracts 是部署侧可信输入，独立于普通 DependencySnapshot。冻结的互操作字段示例：
 
 ~~~yaml
-apiVersion: connectionagent.io/capability-contracts/v1alpha3
+apiVersion: connectionagent.io/capability-contracts/v1alpha4
 kind: CapabilityContracts
 metadata:
   name: 5gc-createdsession
@@ -606,7 +606,7 @@ RouteTarget       = NodeId | TerminalStatus
 TerminalStatus    = SUCCEEDED | FAILED | UNRESOLVED | SAFE_STOPPED
 ~~~
 
-**v1alpha4 阶段语法（Normative）。** 一个 Node 仍仅能有一项 `precondition` 与一项 `postcondition` 阶段声明。两者内部使用相同的非空有序 `predicates` 列表，**即使只有一个 Predicate 也必须写成列表**。每项 `PredicateCall` 恰有 `predicate` 和位置参数 `arguments`；禁止在阶段根使用旧版直接 `predicate/arguments`，也不得在 Postcondition 阶段根或任一调用项中定义 `goal`，或在单个列表项中定义 `routes`。Precondition/Postcondition 只拥有**一组阶段级** `PASS/FAIL/UNKNOWN` 路由；Postcondition 阶段或其成员均不得声明 `goal`。Contract 的 `goal` 是唯一业务目标；`contract.precondition` 是至多一个全局门禁阶段引用。这不是对 v1alpha3 旧作者源码的隐式转换或语法别名。列表为空、类型不符、成员缺字段或含未知字段报 `PREDICATE_GROUP_INVALID`，重复 Mapping Key 与非法 YAML 先报 `YAML_PARSE_ERROR`。成员中 Predicate 引用、参数位置/Schema、Evidence 错误仍按既有专用诊断逐成员检查（§13、§17、§24/H）。
+**v1alpha4 阶段语法（Normative）。** 一个 Node 仍仅能有一项 `precondition` 与一项 `postcondition` 阶段声明。两者内部使用相同的非空有序 `predicates` 列表，**即使只有一个 Predicate 也必须写成列表**。每项 `PredicateCall` 恰有 `predicate` 和位置参数 `arguments`；禁止在阶段根使用旧版直接 `predicate/arguments`，也不得在 Postcondition 阶段根或任一调用项中定义 `goal`，或在单个列表项中定义 `routes`。Precondition/Postcondition 只拥有**一组阶段级** `PASS/FAIL/UNKNOWN` 路由；Postcondition 阶段或其成员均不得声明 `goal`。Contract 的 `goal` 是唯一业务目标；`contract.precondition` 是至多一个全局门禁阶段引用。这不是对 v1alpha3 旧作者源码的隐式转换或语法别名。列表为空、类型不符、成员缺字段或含未知字段报 `PREDICATE_GROUP_INVALID`，重复 Mapping Key 与非法 YAML 先报 `YAML_PARSE_ERROR`。**同一 Node 中重复写两次 `operation:`、`precondition:`、`observation:` 或 `postcondition:` 也是 YAML Mapping 重复键，必须先报 `YAML_PARSE_ERROR`，不得在解析器丢失其中一个值后假报 `PREDICATE_GROUP_INVALID`。**成员中 Predicate 引用、参数位置/Schema、Evidence 错误仍按既有专用诊断逐成员检查（§13、§17、§24/H）。
 
 Node ID 与 `Identifier` 使用同一字符规则。Compiler 在解析 `start` 和路由前拒绝使用 `context` 或任一 `TerminalStatus` 精确拼写的 Node ID。`start` 必须引用真实 Node。Node 至少有一个阶段，各阶段最多声明一次。各阶段在自己的 `routes` 中按 Outcome 指定目标，允许键和必填键由 §12.1、§22 决定。省略 `routes` 与空映射等价，两者仅在该阶段的没有必须显式路由的非正常 Outcome 且后面还有阶段时合法。其他情况须写全 §22 要求的路由，缺键阻断构建。**作者 Procedure 不接受 `operation.reconcile`、`operation.resolve` 或独立 Reconcile Node 调用形态；原 Mutation 的恢复能力只由受信 Owner `mutation.reconcile` 发布（§9.2.1、§12.7、§20），并由公共 Host 安全边界执行。**解析器拒绝未知字段和重复阶段，保留 YAML 标量的引号风格。
 
@@ -698,7 +698,7 @@ nodes:
         UNKNOWN: UNRESOLVED
 ~~~
 
-本例要求 Registration 查询输出与 §29 的 Registration 参数 Schema 匹配；UDM Get 的 output.result 与 Session Profile 参数 Schema 匹配。它使用虚构 Owner 契约来说明已冻结的语言语义，而非当前已可链接的真实 5GC Skill。
+本例要求 Registration 查询输出与 §29 的 Registration 参数 Schema 匹配；UDM Get 的 output.result 与 Session Profile 参数 Schema 匹配。**本例特有的受信 Owner/部署假设：** `ueRef` 由 Host 提供并完成主体关联；`dnn: context.request.dnn` 和 `sNssai: context.request.sNssai` **仅用于业务查询过滤**，而**不在该 callable 的 Owner 身份输入集合或部署 Scope 授权/资源句柄归属比较集合中**。这需要有受信 Owner 标注及部署策略确认为非身份参数，不能仅凭此教学文字默许空集合。若真实 UDM Owner 或部署策略将 DNN/S-NSSAI 纳入 Session/Scope 身份，就必须先改用 Host 已验证关联投影或权威 Producer 输出，并按 §13.3 验证来源；直接照抄 Request 绑定必须 `CALLABLE_ARGUMENT_PROVENANCE_INVALID` 且不可派发。它使用虚构 Owner 契约来说明已冻结的语言语义，而非当前已可链接的真实 5GC Skill。
 
 ### 11.3 Contract 字段
 
@@ -1390,9 +1390,9 @@ Runtime 只用可信且关联到本次原调用的证明记录提交状态。Own
 
 1. **确认准入：** 原业务 Mutation 必须真实已派发、状态未决，且原调用/请求/Scope/Correlation 已持久化。Host 从受信 Owner `mutation.reconcile.callable` 精确定位同 Owner 的 READ callable，独立验证 Capability Grant、Scope、Deadline、取消、Action Budget 和不可变原调用身份；任一条件不满足时不得发起恢复 READ 或重发业务 Mutation；全部条件满足时必须恰好派发一次受控 READ。无安全契约、独立授权缺失或预算不足时保留 `OUTCOME_UNKNOWN` 并安全终止，保存迟到结果责任。
 2. **状态归并：** 受信证明已提交且恢复业务输出完整满足**原 Mutation 的普通成功输出契约及 Evidence** → 原 Operation `SUCCEEDED`；已提交但 Owner 没有承诺恢复输出 → 原 Operation `COMMITTED`，不得伪造 `operation.output`；已提交且承诺恢复输出却损坏/缺失 → `COMMITTED_OUTPUT_UNAVAILABLE` 强制安全停止；受信证明未提交且原 Mutation 已发布相应 NOT_COMMITTED Outcome/失败类别 → 原 Operation `NOT_COMMITTED`；若仅有未提交证明但缺少相应 Owner 路由契约则保留事实并安全停止；无足够证明 → `OUTCOME_UNKNOWN`。这里的 COMMITTED 只证明提交，不能被当成最终业务 Goal PASS。已完成的原 Mutation 和本次恢复 READ 分别记账，恢复读取不得继承原 Mutation Capability。
-3. **显式业务重试：** 只有原 Operation `NOT_COMMITTED` 且 Owner 证明 `retryable:true`、`noSideEffect:true` 时，作者才可通过其 `NOT_COMMITTED` 路由进入一个**不同业务 Node**，在新的普通 MUTATION Operation 上声明 `retryOf: <original-mutation-node>`。Compiler 必须证明到达该重试 Node 的每一条可达路径均经过该原 Mutation 的已证实 `NOT_COMMITTED` 边；仅到达过原 Node 不够。Compiler 还须核对 Tool/Owner 业务身份可兼容，Scope、Schema 与允许重试的受信契约；否则 `RETRY_CONTRACT_INVALID`。不得从 `COMMITTED`、`SUCCEEDED`、`OUTCOME_UNKNOWN`、`FAILED` 或旁路直接授权同一业务身份重试。
+3. **显式业务重试：** 只有原 Operation `NOT_COMMITTED` 且 Owner 证明 `retryable:true`、`noSideEffect:true` 时，作者才可通过其 `NOT_COMMITTED` 路由进入一个**不同业务 Node**，在新的普通 MUTATION Operation 上声明 `retryOf: <original-mutation-node>`。Compiler 必须证明到达该重试 Node 的每一条可达路径均经过该原 Mutation 的已证实 `NOT_COMMITTED` 边；仅到达过原 Node 不够。Compiler 还须核对 Tool/Owner 业务身份可兼容，**原调用与重试调用的 Subject、Session/资源身份、Scope、Correlation、Lifecycle/Generation 不得跨越或重新绑定到另一对象**，并核对 Schema 与允许重试的受信契约；否则 `RETRY_CONTRACT_INVALID`。不得从 `COMMITTED`、`SUCCEEDED`、`OUTCOME_UNKNOWN`、`FAILED` 或旁路直接授权同一业务身份重试。
 4. **次数与预算：** 默认重试次数 **0**（没有显式 `retryOf` 不重发）。本版一个原逻辑 Mutation 家族最多允许**一次**新的业务派发，即原调用至多 1 次 + 显式受控 Retry 至多 1 次；`retryOf` 指向原始非重试 Node，禁止重试节点再声明 `retryOf` 形成第二代重试。Compiler 对违反此结构的可达图报 `RETRY_CONTRACT_INVALID`；多个分支候选引用同一原 Node 可同时存在，但 Runtime 对同一逻辑原调用家族建立唯一的**原子重试资格消费记录**，第一个实际获准派发的候选消耗许可，其余候选报 `RETRY_ADMISSION_DENIED` 并保全停止。Host/部署可再收紧至 0，不得放宽到 2；`limits.maxActions` 同时限制原调用、恢复 READ、新派发等实际 Action，不能以它替代独立 Retry 上限。每次新派发生成独立调用身份、责任记录和证明链。
-5. **失败关口：** Runtime/Host 派发前比较物化业务身份及有效原调用的受信未提交证明、当前 Scope/授权、Deadline、取消、Action Budget、无副作用和重试许可；任何一项不能验证，`RETRY_ADMISSION_DENIED` 并按 §12.8 安全停止，不能绕过这一判定。未声明 `retryOf` 的同业务身份第二次 Mutation 必须拒绝。恢复 READ 自己的重试、网络超时后的隐式业务重发、自动回跳先前 Node、通用 Retrier 包装均不属于 v1alpha4 许可的重试行为。
+5. **失败关口：** Runtime/Host 派发前比较物化业务身份及有效原调用的受信未提交证明、**不可变 Subject/Session/Scope/Correlation/Lifecycle/Generation 对应关系**、当前 Scope/授权、Deadline、取消、Action Budget、无副作用和重试许可；任何一项不能验证，`RETRY_ADMISSION_DENIED` 并按 §12.8 安全停止，不能绕过这一判定。未声明 `retryOf` 的同业务身份第二次 Mutation 必须拒绝。恢复 READ 自己的重试、网络超时后的隐式业务重发、自动回跳先前 Node、通用 Retrier 包装均不属于 v1alpha4 许可的重试行为。
 6. **终止与责任：** `OUTCOME_UNKNOWN` 只允许路由到 `UNRESOLVED` / `SAFE_STOPPED` 并由 §12.8 计算实际终态，不能继续调用新的业务 Mutation；任何已确认待处置变更按 SAFE_STOPPED 优先。确定已提交但没有可用输出的 `COMMITTED` 路径可进行独立权威 Observation 及随后最终 Postcondition 验证，也可安全停止；不得从该结果直接到 `SUCCEEDED`。后续独立 Invocation 可由 Owner 另行处置，但不继承本次消费过的 Retry 资格。
 
 **对应历史模型的约束：** 早期以 `NOT_COMMITTED: original-node` 构造的回边不再合法，因为本版单次 Invocation 必须是 DAG 且每个 Stage 至多执行一次。历史 Runtime 的 `controlledRetry` 不再是隐式重试授权，只有作者显式 `retryOf`、Owner 许可与 Host 安全准入同时成立才派发。LLM 的再次 Tool 请求也受同一 Retry 家族去重、证明、预算和责任约束，不能被当成新任务绕过原操作身份。**LLM_ONLY 不拥有 Procedure 的 `retryOf` 字段**，但其公共 Host Tool 调用接口必须提供等价的**显式、经认证原调用关联的 Retry 意图**，并被同一准入与一次性消费规则验证；该接口的物理字段由独立 Host/Tool 协议冻结，本语言不发明新的 YAML 字段。没有可验证原调用关联或独立授权时，LLM 的相同业务身份再次派发必须拒绝，而不能偷偷视为新首次调用。
@@ -1406,7 +1406,7 @@ Runtime 只用可信且关联到本次原调用的证明记录提交状态。Own
 | SUCCEEDED，可信提交证明，恢复输出存在且完整满足原普通成功输出 Schema/Evidence | 原 Operation SUCCEEDED；保留恢复调用/实际 Producer lineage |
 | SUCCEEDED，可信提交证明，Owner 未承诺恢复成功输出 | 原 Operation COMMITTED；无 `operation.output`，允许作者显式观察或安全终止 |
 | SUCCEEDED，可信提交证明，承诺的恢复输出缺失或无效 | `COMMITTED_OUTPUT_UNAVAILABLE`，保留已提交与责任并强制按 §12.8 停止 |
-| SUCCEEDED，可信证明未提交 | 原 Operation NOT_COMMITTED；是否允许重试仍按 §20.2 第 3–5 项独立检查 |
+| SUCCEEDED，可信证明未提交且原 Mutation Owner **已发布可验证 NOT_COMMITTED Outcome/失败类别** | 原 Operation NOT_COMMITTED；是否允许重试仍按 §20.2 第 3–5 项独立检查；若 Owner 未发布类别，仅保全可信未提交事实并安全停止，不创造 Stage Outcome |
 | 已声明 FAILED、超时、证明不足或互相矛盾 | 原 Operation OUTCOME_UNKNOWN，保留独立验证过的事实及责任；不存在可授予重试的证明 |
 | Owner 回包是未声明或保留 Runtime 值（包括自行返回 COMMITTED/NOT_COMMITTED/UNRESOLVED） | `OWNER_OUTCOME_UNDECLARED`，隔离回包；若原 Mutation 提交状态仍不明，保持 OUTCOME_UNKNOWN 并安全停止 |
 
@@ -1462,6 +1462,17 @@ Predicate 的 PASS 表示命题得到充分支持。FAIL 表示命题被充分�
 ### 22.1 路由矩阵
 
 **规范权威性。** §22 的 Outcome 分类表说明产生者和允许集合；本节是路由键必填/禁止、正常阶段自动推进及可选 Runtime 结果省略行为的唯一规范性矩阵。§24.1/§24.2 决定具体诊断触发，附录 H 按 `(Code, Phase)` 规范化诊断身份及分类，附录 E 的明确预期具有规范性效力；它们不是彼此可互相替换的重复定义。若资料性镜像与这些对应主条款冲突，应修复镜像，不得自行选择更宽松的解释。
+
+**MUTATION 可选 Outcome 的唯一静态判定顺序（Normative；汇总 §20.1–§20.3、F.1 和本路由矩阵，不新增键）：** 先链接实际 `operation.tool` 的精确 callable、Effect、Owner `ownerOutcomes`、`mutation.failureClasses`、可信恢复 READ/证明与独立 Capability/Scope 约束；若这些受信发布物不合法，优先按其各自的 Owner/Capability/Schema/Effect 专用诊断阻断，不得继续从不完整契约“猜测”路由允许集合。链接有效后再检查当前操作的 `routes` **键是否合法**、必填是否缺失，最后检查各条目标边的安全性与成功判据。
+
+| 作者 MUTATION 路由键 | 唯一静态允许条件 | 缺失 / 超出集合的诊断 | Runtime 真实结果 |
+|---|---|---|---|
+| `NOT_COMMITTED` | **仅当原 Mutation Owner 的 `ownerOutcomes` 显式发布 NOT_COMMITTED，且已有可验证、同一 Outcome 的失败类别/提交证明契约**；它属于 Owner 声明的非正常结果，不是所有 MUTATION 通用键 | 已声明却漏写：`ROUTE_OUTCOME_MISSING`；Owner 没有发布却声明此键：`ROUTE_OUTCOME_UNKNOWN`；Owner 契约本身错误则按更早专用链接诊断 | Owner 直接可信结果或 Host 专用 READ 可信证明未提交且匹配**已发布的**该类别时才可产生；仅证明未提交但 Owner 未发布类别时保留事实并安全停止，不虚构 Stage Outcome |
+| `COMMITTED` | **仅当该 Mutation 已可信链接、独立授权受信 `mutation.reconcile` READ**；Owner 不得将 COMMITTED 写入 `ownerOutcomes`。不要求作者自己声明恢复 READ；即使 Owner 承诺 `recoverableOutputSchema/path`，这个可选键也允许保留为保守安全停止边，但在契约正常运行下不会被发出 | 有受信恢复能力时**可省略**并按 §12.8 安全停止；无受信恢复能力却写此键：`ROUTE_OUTCOME_UNKNOWN`；无恢复 READ 授权则先按 `CAPABILITY_NOT_GRANTED` 等专用链接诊断拒绝 | 只有 Host 受信证明已提交且 Owner **没有承诺**可恢复普通成功输出时产生；已承诺且完整恢复归并 SUCCEEDED，承诺但无效为 `COMMITTED_OUTPUT_UNAVAILABLE` 强制停止，不假冒 COMMITTED |
+| `OUTCOME_UNKNOWN` | 每个 MUTATION **都必须**声明，不依赖 Owner 是否发布 Reconcile；这是 Host/Runtime 保留结果 | 省略为 `ROUTE_OUTCOME_MISSING`；非法目标按 §20.2/`RECONCILE_CONTRACT_INVALID` | Host 不能安全确认或确认不充分时只能安全停止，不能重派发 |
+| `SUCCEEDED`、已发布的 `FAILED`、`DENIED` | 与下方 §22.1 主矩阵一致；`SUCCEEDED` 的非末自动推进、末阶段显式路由独立校验 | 依现有 `ROUTE_NORMAL_OUTCOME_NOT_ALLOWED` / `ROUTE_OUTCOME_MISSING` / `ROUTE_OUTCOME_UNKNOWN` | 只能按真实 Owner/Host 结果，不能跨阶段伪造成功 |
+
+**类别与重试是不同问题：** `NOT_COMMITTED` 的路由键静态合法，**不等于**该类别有 `retryable:true` 或 `noSideEffect:true`；若该边到普通安全停止节点可以合法，但要通向新的 `retryOf` Mutation，必须额外满足 §20.2 的静态与 Runtime 门禁、原调用家族唯一许可、当前 Scope/Correlation/Lifecycle 和预算。作为保留 Host Stage Outcome 的 `COMMITTED` 没有 Owner 自报类别，不得被用于重试。Studio Completion 及 Compiler 的 ROUTE_OUTCOME_UNKNOWN / ROUTE_OUTCOME_MISSING 判定必须使用上述同一已链接 Owner 能力条件，不能按全局枚举无条件补齐。
 
 | 阶段 | 正常结果：非末 / 末 | 必须显式配置的其余结果 | 可选结果 | 省略可选路由时 |
 |---|---|---|---|---|
@@ -1548,7 +1559,7 @@ Environment
 | SOURCE_NOT_AVAILABLE | Producer 非所有路径可用，例如原 Mutation NOT_COMMITTED/OUTCOME_UNKNOWN 分支访问成功输出；COMMITTED 且 Owner 未声明恢复输出时优先专用 RECONCILE_OUTPUT_UNAVAILABLE | 阻止构建 |
 | RECONCILE_OUTPUT_UNAVAILABLE | 只沿原 Mutation COMMITTED（已证实提交、Owner 未声明恢复成功输出）到达消费者，却绑定原 Mutation `operation.output`；优先于 SOURCE_NOT_AVAILABLE | 阻止构建 |
 | ROUTE_OUTCOME_MISSING | 阶段缺少必须显式声明的 Outcome 路由 | 阻止构建 |
-| ROUTE_OUTCOME_UNKNOWN | 路由键不属于该阶段的精确 Outcome 集 | 阻止构建 |
+| ROUTE_OUTCOME_UNKNOWN | 路由键不属于该阶段经受信 Owner 声明及 Host 结果归并后**有资格使用**的精确 Outcome 集；例如无 Owner NOT_COMMITTED 声明却写该键，或无可信可授权 mutation.reconcile 却写 COMMITTED | 阻止构建 |
 | ROUTE_NORMAL_OUTCOME_NOT_ALLOWED | 在非末阶段的 `routes` 中声明正常 Outcome，可能跳过同一 Node 的后续阶段 | 阻止构建 |
 | PREDICATE_GROUP_INVALID | Pre/Postcondition 的 `predicates` 列表为空或不合法；仍使用旧阶段根 `predicate/arguments`；或任一 Postcondition 含被删除的 `goal` 字段 | 阻止构建 |
 | PREDICATE_ARITY_MISMATCH | 参数数量不一致 | 阻止构建 |
@@ -2466,6 +2477,14 @@ v1alpha4 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 Observatio
 
 **版本边界和复查门槛。** 这份记录仅允许 A/B 分类所列的既有规则修正、互相矛盾表述删除与未指定输入的诊断优先级澄清；没有增设 `resolve`、`postcondition.goal`、新诊断代码、Effect、Stage、重试上限或授权来源。**若后续的独立 Fixture 对比证实某修订确实改变了已冻结的合法输入集合、既定 E 预期或安全结果，则该差异不得以本勘误掩盖：应从此 v1alpha4 冻结基线另启 v1alpha5（或对应独立互操作协议版本）的 C 类评审。** 本次文档审查、Source Hygiene 及下面 K.3.2 的待运行候选不构成 §45.2 的 Native/WASM/Studio/Host/Owner/5GC 产品符合性证明。
 
+### 45.1.3 v1alpha4 ToolCatalog/CapabilityContracts 版本统一的 C 类裁决（2026-11-15）
+
+**正式复审范围：** 先前冻结的 v1alpha4 文本曾允许语言 `connectionagent.io/v1alpha4` 直接链接 ToolCatalog/CapabilityContracts `v1alpha3`。本次依据新的统一版本决定，**明确废止当前语言内的混合版本互操作组合**，将作者语言、ToolCatalog 和 CapabilityContracts 的显式版本分别固定为 `connectionagent.io/v1alpha4`、`connectionagent.io/toolcatalog/v1alpha4` 和 `connectionagent.io/capability-contracts/v1alpha4`（F.0–F.2）。该变化缩小本版直接认可的外部发布物集合，因此是**有意识的 C 类破坏性变更**，不是 §45.1.2 所述 A/B 勘误；先前冻结提交与历史版本文件不回写。
+
+**实施与证据边界：** 一切实际受信 ToolCatalog/CapabilityContracts 发布物必须以其**真实版本字段和真实身份**通过链接检查，不能通过给旧内容字符串替换为 v1alpha4 就声称 Owner、部署、Compiler、Studio、Host 已符合。本规范的 F.1/F.2 冻结**候选接口语义**，仍需独立发布者正式供给实际 v1alpha4 材料及 §45.2 测试证明；在此之前全部产品/Owner 为 `NOT_QUALIFIED`，缺失 v1alpha4 发布物时必须拒绝。未来独立 BuildRequest/Trace/Evidence Descriptor 物理协议没有在本语言中被虚构出 v1alpha4 的 `apiVersion`；它们仍按独立契约版本校验其受信材料。
+
+**C 类重新冻结的文本一致性检查：** 所有本文件的 ToolCatalog/CapabilityContracts 规范示例及 F.1/F.2 的 apiVersion 均与 F.0 一致；§20.2 的 retryOf、§22.1 的路由键条件、§17 Evidence、E01–E120 预期和附录 H 的诊断身份未因版本统一而放宽。产品/Owner 的机器验收与真实 5GC 执行不纳入本语言版本文字冻结声明。
+
 ### 45.2 未完成的实现符合性门槛
 
 以下是**声称某个实现可编译、可运行或可部署本规范**之前必须逐一验收的门槛。**v1alpha4 语言已 FROZEN，但不能据此跳过真实 §45.2 产品验收**：
@@ -2920,7 +2939,7 @@ properties:
 
 ~~~yaml
 # tool-catalog.yaml（由 ca 快照提供）
-apiVersion: connectionagent.io/toolcatalog/v1alpha3
+apiVersion: connectionagent.io/toolcatalog/v1alpha4
 kind: ToolCatalog
 metadata:
   name: example-ue-queries
@@ -2970,7 +2989,7 @@ ue.registration-state:
 
 ~~~yaml
 # capability-contracts.yaml（独立可信部署输入）
-apiVersion: connectionagent.io/capability-contracts/v1alpha3
+apiVersion: connectionagent.io/capability-contracts/v1alpha4
 kind: CapabilityContracts
 metadata:
   name: example-deployment
@@ -3157,7 +3176,7 @@ E39、E43 的 ca 快照基线：将可信 Owner 集合设为 `[example-ue-owner,
 
 | 用例 | 基线与最小改动 | 预期 |
 |---|---|---|
-| E17 | 对同一原 Mutation 输出消费者，测试（a）普通直接 SUCCEEDED，（b）已受信链接、具备可恢复 Schema/Evidence 的 Host 恢复 SUCCEEDED，（c）Owner 只承诺提交确认、**不发布**可恢复普通成功输出，（d）消费者不可达或路径不读取此输出；另在（b）中移除恢复 READ 的 Evidence 保证 | (a) 只校验原普通 Producer；(b) 两个可达来源分别满足最终 Postcondition，Trace 保留真实恢复 lineage，移除必需恢复保证则按 §17.2 拒绝；(c) 没有恢复 SUCCEEDED 候选，COMMITTED 无 output 并安全停，正常 SUCCEEDED 消费不需要第二来源；(d) 对不存在的消费路径不做双来源校验，仍须检查作者结构及可达性 |
+| E17 | 对同一原 Mutation 输出消费者，分别测试（a）普通直接 SUCCEEDED，（b）已受信链接、具备可恢复 Schema/Evidence 的 Host 恢复 SUCCEEDED，（c）Owner 只承诺提交确认、**不发布**可恢复普通成功输出，（d）消费者不可达或路径不读取此输出；（e）消费者沿 NOT_COMMITTED/其他非成功路径可达，却读取 **SUCCEEDED 才会提供**的 `original.operation.output`；另在（b）中取消恢复 READ Evidence 保证 | (a) 只校验原普通 Producer；(b) 两个可达来源分别满足最终 Postcondition，Trace 保留真实恢复 lineage，缺保证按 §17.2 拒绝；(c) 没有恢复 SUCCEEDED 候选，COMMITTED 无 output 并安全停，正常 SUCCEEDED 消费不需要第二来源；(d) 不对不存在的消费路径做双来源校验，仍检查作者结构和可达性；(e) `SOURCE_NOT_AVAILABLE` **优先于**无根据的双 Producer 检查 |
 | E18 | 保留 §12.1 正常 SUCCEEDED→Postcondition PASS→SUCCEEDED，另改 `create-subscription.operation.routes.COMMITTED: SUCCEEDED` | SUCCESS_BYPASSES_FINAL_POSTCONDITION；即使另一条合法最终 Postcondition 边存在，COMMITTED 也不得直接发布 Invocation SUCCEEDED |
 | E10a | §12.1 将 `create-subscription.operation.routes.NOT_COMMITTED` 指向新 Observation Node，该 Observation 输入绑定 `create-subscription.operation.output.subscriptionRef`（原普通成功 Schema 中必需） | SOURCE_NOT_AVAILABLE；NOT_COMMITTED 不产生正常成功输出；若字段未声明则先报 SOURCE_PATH_INVALID |
 | E10b | Owner `mutation.reconcile` 不声明 recoverableOutputSchema/path；将原 Mutation `routes.COMMITTED` 指向一个新的 Observation，它绑定 `create-subscription.operation.output.subscriptionRef` | RECONCILE_OUTPUT_UNAVAILABLE；COMMITTED 无恢复输出承诺，区别于 E10a 的 NOT_COMMITTED；需独立 Fixture/原始结果 |
@@ -3255,7 +3274,7 @@ predicates:
 | E82 | 分别核验 FAILED 类别、不可重试 NOT_COMMITTED 类别、可重试且无遗留副作用的 NOT_COMMITTED 类别 | 仅第三类可按 §20.2 走受控新尝试 |
 | E83 | 局部 Postcondition 聚合 PASS 后继续到下一局部判断，后者 FAIL/UNKNOWN 并请求停止终态 | 构建允许；该局部 PASS 不是 Goal 证明，Runtime 按 §12.8 发布相应停止终态 |
 
-| E84 | 分别省略 Predicate 的 FAIL、UNKNOWN 或 Procedure Script 的 FAILED 路由 | 各自报 ROUTE_OUTCOME_MISSING |
+| E84 | 独立变体：省略 Predicate 的 FAIL、UNKNOWN 或 Procedure Script 的 FAILED 路由；对已链接的合法 MUTATION Owner，在其未发布 NOT_COMMITTED 时写 `routes.NOT_COMMITTED`，或已发布该类别却漏写；在未链接受信 `mutation.reconcile` 的 MUTATION 上写 `routes.COMMITTED`；在已链接受信恢复 READ 的 MUTATION 上写可选 COMMITTED（即使 Owner 声明可恢复普通成功输出） | 必填路由缺失为 `ROUTE_OUTCOME_MISSING`；未发布 NOT_COMMITTED 或未链接 Reconcile 却写相应键为 `ROUTE_OUTCOME_UNKNOWN`；只有受信恢复能力时的可选 COMMITTED 静态合法（Host 仅在 Owner **无恢复输出承诺**时真正产生），不可因 Owner 结果名字猜测可路由值 |
 | E85 | 普通 Mutation 的 retryOf 路径先从原调用 NOT_COMMITTED 到唯一新 Retry Node，再增加绕过该边的入边；另尝试 retryOf 指向另一 Retry Node 构成第二代 | 首种静态可通过（Runtime 仍验证证明/身份/一次性消费）；绕过与第二代均 RETRY_CONTRACT_INVALID；不隐式重发 |
 | E86 | §20.3 的专用 READ Owner SUCCEEDED 分别绑定已提交、未提交、不充分和错误原调用的证明；另测未声明 Owner 结果与恢复输出违规 | 只在**原 Mutation** 上按 §20.3 归并 Stage Outcome 或安全停止，保留恢复 Producer/责任及原调用提交状态；不能创建作者 Reconcile Stage |
 | E87 | E81 分别让已 Grant 成员缺少 Scope、静态交集为空、未 Grant 成员缺少 Scope | 前两者分别报 CAPABILITY_SCOPE_UNRESOLVED、CAPABILITY_SCOPE_EMPTY_INTERSECTION，第三种允许链接 |
@@ -3324,11 +3343,27 @@ predicates:
 
 # 附录 F：继承自 v1alpha3 的互操作与类型剖面（v1alpha4 FROZEN）
 
-**Normative、FROZEN（v1alpha4；外部物理协议版本保持独立）。** §9、§17、§34 的逻辑互操作属性由 v1alpha3 已冻结契约继承。本版的作者级变化还包括单数 Contract 全局门禁、删除 Postcondition 根的 Goal、直接最终 PASS→SUCCEEDED 和 `operation/observation.tool`；这些变化均不新增外部 ToolCatalog/CapabilityContracts/BuildRequest/Trace 线字段。实际 ToolCatalog 与 CapabilityContracts 例子仍显示其各自发布的 v1alpha3 API 版本。
+**Normative、FROZEN（v1alpha4 C 类版本统一后；产品/Owner NOT_QUALIFIED）。** §9、§17、§34 的逻辑互操作安全下限仍可参考历史 v1alpha3，但本版**直接接受的版本标识统一为 v1alpha4**：CA-SL、ToolCatalog 和 CapabilityContracts 均使用其命名空间下的 v1alpha4，不再以旧版 ToolCatalog/CapabilityContracts v1alpha3 作为本版可直接链接输入。字段结构并未仅因修改 apiVersion 就获得真实 Owner 互操作保证。新的 v1alpha4 版本组合是**规范目标，不是已经存在的真实发布物清单**。版本组合和准入以 F.0 为权威；BuildRequest/Trace 的外部物理版本仍由各自契约声明，不得凭语言版本猜测。
+
+## F.0 v1alpha4 统一版本标识与外部发布物准入（C 类复审已闭合，Normative）
+
+本版直接使用的**三个显式 apiVersion 均为 v1alpha4**，不再维持“语言 v1alpha4 + ToolCatalog/CapabilityContracts v1alpha3”的混合组合。旧版历史文件与提交不予改写，但**本版当前链接契约不设 v1alpha3 fallback、隐式转换、自动探测或版本协商**。
+
+| 输入/契约 | 本版要求的显式版本或方言 | 唯一规则入口 |
+|---|---|---|
+| CA-SL 作者语言 | `connectionagent.io/v1alpha4` | §10.1、§12–§24、E/H |
+| ToolCatalog（普通 Tool、Mutation、专用 Reconcile READ） | `connectionagent.io/toolcatalog/v1alpha4` | F.1、G.2/G.2.2、§9/§20 |
+| CapabilityContracts（含恢复 READ 独立 Grant） | `connectionagent.io/capability-contracts/v1alpha4` | F.2、§9.3/§34 |
+| Request/Host/Owner Schema | JSON Schema Draft 2020-12 + G.4 白名单；`$schema` 精确匹配 | G.4、G.6、F.5 |
+| Evidence Descriptor、独立性域、BuildRequest/DependencySnapshot、Runtime Trace/Artifact | 本语言规范**未发明这些物理协议的 v1alpha4 apiVersion**；只接受其各自受信、明确版本化的发布材料与本文件的抽象语义约束 | F.3/F.4、G.3、§12.8、§34、§45.2 |
+
+**版本校验（Normative）：** 对已定义的三个 apiVersion，必须精确匹配上述值。旧 `/v1alpha3`、未知 `/vX`、缺版本或同名异版本发布物一律不得在本版**直接**链接；不能因为字段名、摘要格式或 LLM 文字相似就绕过。未来要消费其他版本，应另行明确升级该外部契约和本语言的显式受信互操作规则，不得默许兼容。这里改变的是受信发布物的**规范性版本匹配集合**，因此属 C 类破坏性调整，已经按 §45.1.3 重新冻结，不可伪装为 A/B 勘误。
+
+**产品现实边界：** 仅把示例与规范写成 v1alpha4 **不代表已有真实 ToolCatalog/CapabilityContracts v1alpha4 发布物**。Compiler、Studio、Host、Owner 和部署在取得受信的 v1alpha4 实际契约及 §45.2 机器符合性结果之前均为 `NOT_QUALIFIED`，缺发布物时 fail-closed。历史 v1alpha3 发布物继续归原版本管理，不自动升级或篡改身份。
 
 ## F.1 ToolCatalog / Mutation 发布
 
-ToolCatalog 须有 `apiVersion: connectionagent.io/toolcatalog/v1alpha3`、`kind: ToolCatalog`、非空 `metadata.owner` 与 `spec.contracts[]`。每个 callable 须有 `kind: operation | observation`、唯一的 `id`、`effect`、`ownerOutcomes`、`outputSchema.$ref`；Operation 使用 `inputSchema.$ref`，Observation 使用 `queryContextSchema.$ref`，两者互斥。
+ToolCatalog 须有 `apiVersion: connectionagent.io/toolcatalog/v1alpha4`、`kind: ToolCatalog`、非空 `metadata.owner` 与 `spec.contracts[]`。每个 callable 须有 `kind: operation | observation`、唯一的 `id`、`effect`、`ownerOutcomes`、`outputSchema.$ref`；Operation 使用 `inputSchema.$ref`，Observation 使用 `queryContextSchema.$ref`，两者互斥。
 
 Observation 的 Effect 必须为 READ。READ 只能发布 SUCCEEDED / FAILED；Mutation 可发布 NOT_COMMITTED；每个 callable 必须声明 SUCCEEDED。DENIED、UNKNOWN、OUTCOME_UNKNOWN 属 Runtime，不得由 Owner 发布。所有 Schema 引用须解析为该快照中精确、可验证的 `$id`。一个快照跨文件、跨 kind 共享 callable ID 唯一空间。可选 `adapter` 仅属于 Owner 内部实现，不参与 Skill 身份、授权和 Evidence。
 
@@ -3351,7 +3386,7 @@ FAILED 不得允许 retryable；NOT_COMMITTED 只有同时满足可验证的未�
 
 ## F.2 CapabilityContracts
 
-部署授权输入须有 `apiVersion: connectionagent.io/capability-contracts/v1alpha3`、`kind: CapabilityContracts`、`spec.capabilities[]`。每个 Capability 有唯一非空 `id`、`owner` 和 `callables[]`。成员有 `owner/id/kind/effect`，已 Grant 成员必须有受信、可解析的 `scopePolicyRef`；拒绝全部也必须是明确命名的受信策略，不能通过缺省字段表达。缺少 Scope 不得默许放行。Effect 冲突在未 Grant 成员上也会报错，同一 Capability 重复成员拒绝，跨 Capability 的一致成员合法。交集和派发前重验按 §9.3。Skill 不能自报受信部署授权。
+部署授权输入须有 `apiVersion: connectionagent.io/capability-contracts/v1alpha4`、`kind: CapabilityContracts`、`spec.capabilities[]`。每个 Capability 有唯一非空 `id`、`owner` 和 `callables[]`。成员有 `owner/id/kind/effect`，已 Grant 成员必须有受信、可解析的 `scopePolicyRef`；拒绝全部也必须是明确命名的受信策略，不能通过缺省字段表达。缺少 Scope 不得默许放行。Effect 冲突在未 Grant 成员上也会报错，同一 Capability 重复成员拒绝，跨 Capability 的一致成员合法。交集和派发前重验按 §9.3。Skill 不能自报受信部署授权。
 
 ## F.3 Evidence Descriptor
 
@@ -3749,7 +3784,7 @@ factIdentity:
 
 ## G.4 JSON Schema 白名单、静态兼容与 CEL 型别
 
-本版仅定义 JSON Schema Draft 2020-12 的有限、可互操作子集。所有参与链接、静态可赋值性和 Script 类型派生的 Schema 根必须显式声明 $schema: https://json-schema.org/draft/2020-12/schema。缺少或不同方言即 SCHEMA_INVALID，不允许从文件扩展名、外部发布者名称、Compiler 配置或声明顺序猜测。许可**验证关键字**仅为：$ref、type、properties、required、additionalProperties、items、minItems、maxItems、minLength、maxLength、minimum、maximum、exclusiveMinimum、exclusiveMaximum、enum、const。
+本版仅定义 JSON Schema Draft 2020-12 的有限、可互操作子集。**该方言与支持关键字在此处一次列尽（见下两段），适用于 §11.5 的 Host Context/Request 根及所有外部 Schema；不能从例子的 title/description 等注解或宿主 Schema 库追加任何关键词。**所有参与链接、静态可赋值性和 Script 类型派生的 Schema 根必须显式声明 $schema: https://json-schema.org/draft/2020-12/schema。缺少或不同方言即 SCHEMA_INVALID，不允许从文件扩展名、外部发布者名称、Compiler 配置或声明顺序猜测。许可**验证关键字**仅为：$ref、type、properties、required、additionalProperties、items、minItems、maxItems、minLength、maxLength、minimum、maximum、exclusiveMinimum、exclusiveMaximum、enum、const。
 
 许可的**非断言注解**仅为：$schema、$id、title、description、default、examples；default 不合成值。**`$defs`、`definitions` 均不属于许可关键字，因此 v1alpha4 不支持 Schema 内的具名子定义及其 JSON Pointer 片段引用（包括 `#/$defs/...`、`#/definitions/...`）。** 所有未知字段及其他断言一律 SCHEMA_INVALID；不得忽略未知关键字。特别不支持 allOf、anyOf、oneOf、not、if/then/else、pattern、patternProperties、unevaluatedProperties、contains、prefixItems、format、动态引用或扩展关键字。来自现实 Owner 的复杂 Schema 应由其 Owner 发布语义等价、正式版本化且受支持的投影，不得由 Skill 复制影子结构。
 
