@@ -766,7 +766,7 @@ Procedure 是确定性的有向执行图。一个业务 Node 可包含以下阶�
 
 同一 Node 的 Precondition 早于 Operation 和 Observation，不能读取它们的输出。需要先取证再作前置判断时，将查询放在前序 Node。若要验收本 Node 的操作或观察结果，使用其 Postcondition。跨业务步骤的数据与可恢复边仍通过图显式连接。外部调用、Script 和 Reconcile 仍按 §11.6 逐次计入 Action Budget。Runtime 在各阶段按其契约检查授权、Scope、Evidence 及取消状态。后续判断失败不会撤销已经提交的 Operation。
 
-下例假定 Create 的 Owner 契约声明 SUCCEEDED、NOT_COMMITTED、FAILED，另按 §22 使用 Runtime 的 OUTCOME_UNKNOWN 与 DENIED，且 Reconcile 的 COMMITTED 输出 Schema 保证提供原订阅的精确 `subscriptionRef`。Create 的 SUCCEEDED 自动进入同一 Node 的 Postcondition，Reconcile 的 COMMITTED 自动进入同一 Node 的 Observation。若该 Operation 是末阶段，则须显式配置其正常 Outcome 的路由（§22）。
+下例假定 Create 的 Owner 契约声明 SUCCEEDED、NOT_COMMITTED、FAILED，且发布受信的 `mutation.reconcile`：当原始提交结果不确定时，公共 Host 执行**一次受控 READ 状态确认**。只有确认 COMMITTED、且恢复结果完整满足**原 Create 输出契约和 Evidence 要求**，Host 才将本次原 Operation 归并为 SUCCEEDED，自动进入 Postcondition。若只确认 COMMITTED 而缺少可绑定的业务结果，则沿可选的 COMMITTED 出边安全停止，不能从已提交事实推断业务 Goal。没有可采信的结论仍是 OUTCOME_UNKNOWN，禁止盲目 Retry。
 
 ~~~yaml
 # assurance/procedure.yaml：独立教学 Skill，Contract Goal 为 udm.subscription_verified
@@ -779,8 +779,9 @@ nodes:
         ueRef: context.ueRef
         dnn: context.request.dnn
       routes:
+        COMMITTED: SAFE_STOPPED
         NOT_COMMITTED: FAILED
-        OUTCOME_UNKNOWN: reconcile-subscription
+        OUTCOME_UNKNOWN: UNRESOLVED
         DENIED: FAILED
         FAILED: FAILED
     postcondition:
@@ -793,35 +794,9 @@ nodes:
         PASS: SUCCEEDED
         FAIL: SAFE_STOPPED
         UNKNOWN: SAFE_STOPPED
-  reconcile-subscription:
-    operation:
-      reconcile: create-subscription
-      routes:
-        NOT_COMMITTED: FAILED
-        UNRESOLVED: UNRESOLVED
-    observation:
-      tool: ca::udm.subscription.current
-      arguments:
-        ueRef: context.ueRef
-        subscriptionRef: reconcile-subscription.operation.output.subscriptionRef
-      routes:
-        FAILED: SAFE_STOPPED
-        UNKNOWN: SAFE_STOPPED
-    postcondition:
-      predicates:
-        - predicate: createdsession.udm.subscription_usable
-          arguments:
-            - reconcile-subscription.observation.output.subscription
-            - context.request.dnn
-      routes:
-        PASS: SUCCEEDED
-        FAIL: SAFE_STOPPED
-        UNKNOWN: SAFE_STOPPED
 ~~~
 
-本例使用独立 Contract `goal: udm.subscription_verified`，并假设 Host 在派发前登记对创建尝试和迟到结果的责任。成功完成后该订阅由已登记的管理方接管。提交后的验证失败进入 SAFE_STOPPED。Tool Owner 须明确保证 Create 成功输出和独立 Observation 输出中的 subscription 均符合相同规范化 Subscription Schema，并发布相同权威的订阅状态保证（§17）；该假设须由正式 Owner Schema 确认，不能靠 Compiler 猜测。COMMITTED 只证明原 Mutation 已提交。
-
-Observation 从 Reconcile 自身输出读取 `subscriptionRef`。若 Owner 未声明 Reconcile 输出，原样引用该输出报 `RECONCILE_OUTPUT_UNAVAILABLE`。只有能通过其他已绑定的精确引用验证本次资源归属时，才可改用权威查询。查询可留在同一 Node 的 Observation 阶段。只按 UE 或 DNN 查询其他订阅不能证明本次创建。两条成功路径分别由最终 Postcondition 的聚合 PASS **直接**请求 `SUCCEEDED`，无需也不得在 Postcondition 内重复写 Contract Goal。
+**本例没有作者级 Reconcile/Resolve 节点。** Host 在原调用不确定时从 Owner 受信 `mutation.reconcile` 获得并验证提交证明，恢复读本身独立授权、消耗 Action Budget，不允许无证据重发 Mutation。完全恢复的成功输出仍归属于 `create-subscription.operation.output`，其实际 Producer、原调用、调和回包和 Evidence 原绑定必须一并留痕，不可伪造成原始回包；不完整时只能按 COMMITTED 安全终止或经后续独立、权威的业务 Observation 取证。COMMITTED 只证明变更已提交，最终 Goal 仍由 Postcondition 聚合 PASS 验收。
 
 ### 12.2 Precondition
 
@@ -989,27 +964,19 @@ nodes:
 - Operation 与 Observation 必须保留真实 Producer 身份；不得将 Operation Result 伪装成 Observation Result。
 - Observation 的 Freshness 和 Scope 必须满足当前 Predicate 要求；“曾经观察到”不等于“当前仍成立”。
 
-### 12.7 Reconcile
+### 12.7 Host/Owner Mutation Outcome Resolution（无作者级 Reconcile 语法）
 
-Reconcile 唯一跨 Node 入边是构建期硬约束。来源 Node 不可达时仍检查入边（§20.2、E60）。原 Mutation 的 `mutation.reconcile` 虽声明 proof/recovery 字段，但其调和证明必须从独立 Reconcile READ callable 的 receipt 提取；输出仅为已验证 COMMITTED 后的可恢复业务子对象。完整字段归属参见 G.2 的证明与恢复字段归属表。
+**Normative。** v1alpha4 作者源码不存在 `operation.reconcile` 或 `operation.resolve`。原 Mutation 的受信 Tool Owner 可在 `mutation.reconcile` 下发布独立的 READ 状态确认 callable、原调用身份绑定、proof/receipt 与可恢复输出 Schema（§9.2.1、G.2）；这不是要让 Skill 作者编写第三类 Operation。公共 Host 工具执行安全边界根据同一原调用的不可变 Invocation、Scope、Correlation 和授权状态，在原业务调用结果不确定时受控确认其提交结果。**LLM_ONLY、LLM_RUNTIME 和 RUNTIME_ONLY 必须使用同一受治理执行能力，不存在 LLM 特权或仅 Runtime 才有的安全规则。** LLM/Procedure 决定业务工具调用、是否进入显式重试分支以及最终业务取证；Host 决定提交证明是否可采信及派发能否准入。自动确认属于**同一次已请求 Mutation 的安全结算**，不是 Host 自主发起新的业务 Mutation。
 
-Reconcile 是 `operation` 阶段的一种形态，用于调和已经派发的 Mutation。它引用本次 Procedure 中包含该原始 Mutation 的 Node ID：
+**确认触发和上限：** 只有原业务 Mutation 已派发、提交状态仍不可判定、且存在已可信链接的 Owner `mutation.reconcile`、独立 READ Capability/Scope 授权、剩余 Action Budget/Deadline/取消允许时，Host 才能派发**至多一次**专用 Reconcile READ；不满足时保留 OUTCOME_UNKNOWN 和未决责任并安全停止。不得在 Host 层对 `NOT_COMMITTED` 或超时作隐式业务重发。完整原调用数据、恢复查询的独立调用身份、有效证明及保全责任必须被持久化，终态或取消不能清除已派发的未决责任。此规则适用于所有 Agent 执行模式，不能由 LLM 生成的文字或自由格式结果充当证明。
 
-~~~yaml
-reconcile-policy:
-  operation:
-    reconcile: create-policy
-    routes:
-      COMMITTED: next-step
-      NOT_COMMITTED: FAILED
-      UNRESOLVED: SAFE_STOPPED
-~~~
+**同一原 Mutation Operation 的结果归并：**
+- 原 Owner 直接成功且输出/证明有效：`SUCCEEDED`；若超时后通过受信恢复 READ 证明 `COMMITTED`，且已验证的恢复业务子对象**完整满足原普通 SUCCEEDED 输出 Schema、Producer/Evidence 保证及 Scope/Correlation**，也归并为该原 Operation 的 `SUCCEEDED`，原绑定 provenance 和恢复 lineage 必须保留；不得无证据复写原响应。若 Owner **承诺**了恢复输出却返回缺失或无效数据，`COMMITTED_OUTPUT_UNAVAILABLE`，按 §20.1/§12.8 强制停止。
+- 若可信恢复证明 `COMMITTED`，但 Owner **没有承诺可恢复的普通成功输出**：同一原 Operation 产生 Runtime `COMMITTED`（非 Owner Outcome）；其 `operation.output` **不可用**。作者可在本 Operator 的 `routes.COMMITTED` 走独立权威 Observation/后继 Postcondition，或直接安全停止；在能够独立取得业务充分证明之前不得发布 SUCCEEDED。
+- 若可信证明原调用 `NOT_COMMITTED`：同一原 Operation 的 `NOT_COMMITTED` 边；是否允许下一次独立 Mutation 按 §20.2 `retryOf` 严格准入。失败类别、无残留副作用及重试许可必须单独由 Owner 验证。
+- 没有可信结论或恢复能力不可派发：仍为该原 Operation 的 `OUTCOME_UNKNOWN`；该结果只允许沿安全停止终态，不得路由到新的业务 Mutation。Host 保留原调用及迟到结果责任。任何 Reconcile READ 自身的失败都不得伪装为 NOT_COMMITTED。
 
-Runtime 必须使用原始 Mutation 的不可变 Invocation、Operation 身份、输入、Scope 和 Correlation 执行对应 Owner 契约的 Reconcile。Reconcile 不得变成新的 Create / Update 请求，不得接受另一组业务参数来改变原操作目标。Compiler 必须验证目标存在、目标确为 MUTATION 且发布了安全 Reconcile 契约。有安全 Reconcile 契约时，原 Mutation 的 `operation.routes.OUTCOME_UNKNOWN` 直接指向执行该 Reconcile 的 Node。
-
-含 `operation.reconcile` 的 Node 不得声明 `precondition`，且不得用作 `start`。该 Node 从 Operation 阶段开始，可在 COMMITTED 后执行同一 Node 的 Observation 和 Postcondition。Compiler 按 §20.2 核对进入该 Node 的唯一跨 Node 路由，Runtime 只接纳该路由对应的未决、尚未调和的原调用。没有安全契约时按 §20.2 停止。Compiler 仅将 `reconcile-node.operation.output` 链接到原 Mutation 的 `mutation.reconcile.recoverableOutputSchema`；它由 `recoverableOutputPath` 指向调和 callable **完整 Owner 回包内的恢复子对象**。
-
-完整的 Reconcile Owner `outputSchema` 和认证 `receiptSchema` 不是 Procedure 可绑定的 SourcePath。只有该子对象在 Reconcile `COMMITTED` 且经证明与 Schema 校验后才对后续阶段和可达消费者可用，其形状可与原 Mutation 的成功输出不同。Owner 未声明恢复输出时，COMMITTED 后不提供 `operation.output`，后续可显式读取权威状态。承诺的输出未通过校验时按 §20.2 停止。本节示例的 UNRESOLVED 边请求 SAFE_STOPPED，因为假定已有部分资源待保全。§12.1 的独立示例请求 UNRESOLVED。两种写法都由 Runtime 按 §12.8 计算实际终态。
+**SourcePath 与作用域：** 作者只能读取原 Mutation 的 `<node>.operation.output`，并且**仅在该 Operation 的 SUCCEEDED 路径**上可用；COMMITTED/NOT_COMMITTED/OUTCOME_UNKNOWN 路径上即使原 Owner 有声明成功 Schema，也不能使用它。Reconcile READ 的完整 `outputSchema` 或 `receiptSchema` 绝不成为 Procedure Producer；它只用于 Host 验证、责任与 Trace。Compiler 按 §13.3 的每条可达路径检查输出与 Evidence，不能通过某一成功分支借用另一未到达分支的输出。
 
 ### 12.8 Invocation 终态与 Applicability
 
