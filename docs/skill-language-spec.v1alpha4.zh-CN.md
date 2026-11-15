@@ -764,7 +764,7 @@ Procedure 是确定性的有向执行图。一个业务 Node 可包含以下阶�
 
 `routes` 用精确的 Outcome 作为键。**只有 Postcondition 的聚合 `PASS` 可以直接路由到 `SUCCEEDED`**，其他所有阶段与 Outcome 不得以成功终态为目标。值精确匹配其他 `TerminalStatus` 时，按 §12.8 结束本次 Invocation。其他值按区分大小写的 Node ID 解析，进入目标 Node 的首个阶段。多个 Outcome 可以指向同一目标。声明顺序无关，无默认分支。Runtime Trace 记录来源 Node ID、阶段、原始 Outcome 和实际选择的路由。
 
-同一 Node 的 Precondition 早于 Operation 和 Observation，不能读取它们的输出。需要先取证再作前置判断时，将查询放在前序 Node。若要验收本 Node 的操作或观察结果，使用其 Postcondition。跨业务步骤的数据与可恢复边仍通过图显式连接。外部调用、Script 和 Reconcile 仍按 §11.6 逐次计入 Action Budget。Runtime 在各阶段按其契约检查授权、Scope、Evidence 及取消状态。后续判断失败不会撤销已经提交的 Operation。
+同一 Node 的 Precondition 早于 Operation 和 Observation，不能读取它们的输出。需要先取证再作前置判断时，将查询放在前序 Node。若要验收本 Node 的操作或观察结果，使用其 Postcondition。跨业务步骤的数据与可恢复边仍通过图显式连接。外部调用、Script 和 Host 实际派发的独立 Reconcile READ 按 §11.6 逐次计入 Action Budget。Runtime 在各阶段按其契约检查授权、Scope、Evidence 及取消状态。后续判断失败不会撤销已经提交的 Operation。
 
 下例假定 Create 的 Owner 契约声明 SUCCEEDED、NOT_COMMITTED、FAILED，且发布受信的 `mutation.reconcile`：当原始提交结果不确定时，公共 Host 执行**一次受控 READ 状态确认**。只有确认 COMMITTED、且恢复结果完整满足**原 Create 输出契约和 Evidence 要求**，Host 才将本次原 Operation 归并为 SUCCEEDED，自动进入 Postcondition。若只确认 COMMITTED 而缺少可绑定的业务结果，则沿可选的 COMMITTED 出边安全停止，不能从已提交事实推断业务 Goal。没有可采信的结论仍是 OUTCOME_UNKNOWN，禁止盲目 Retry。
 
@@ -838,7 +838,7 @@ create-policy:
       sNssai: context.request.sNssai
     routes:
       NOT_COMMITTED: FAILED
-      OUTCOME_UNKNOWN: reconcile-policy
+      OUTCOME_UNKNOWN: SAFE_STOPPED
       DENIED: FAILED
       FAILED: FAILED
   postcondition:
@@ -852,7 +852,7 @@ create-policy:
       UNKNOWN: SAFE_STOPPED
 ~~~
 
-本片段复用 §30 的 Create 输出和 §29 的 Predicate，假定该输出及其 Evidence 足以支持验收。Operation 的 SUCCEEDED 在同一 Node 内进入 Postcondition，只有 Postcondition 的 PASS 才继续到下一项业务步骤。
+本片段复用 §30 的 Create 输出和 §29 的 Predicate，假定该输出及其 Evidence 足以支持验收。Operation 的 SUCCEEDED 在同一 Node 内进入 Postcondition，只有 Postcondition 的 PASS 才继续到下一项业务步骤。Host 在派发后处理受信 Owner 调和，不新增作者节点；COMMITTED 无可用输出时应安全停止或独立观察。
 
 Operation 的 `tool` 是受信 ToolCatalog 的精确 `Alias::ExportId` callable 引用，不是 Capability ID；其 `arguments` 是具名映射，键必须是 Owner Input Schema 中的字段名；值是显式来源表达式或 YAML 标量字面量。Compiler 按 Schema 检查 Required、类型、Optional、Nullability 和额外字段。Operation 的 Effect 由 ToolCatalog 和 CapabilityContracts 决定，Skill 不得自行声明或覆盖。
 
@@ -2102,7 +2102,7 @@ create-policy:
       pduSessionId: context.request.pduSessionId
     routes:
       NOT_COMMITTED: FAILED
-      OUTCOME_UNKNOWN: reconcile-policy
+      OUTCOME_UNKNOWN: SAFE_STOPPED
       DENIED: FAILED
       FAILED: FAILED
   observation:
@@ -2125,7 +2125,7 @@ create-policy:
       UNKNOWN: SAFE_STOPPED
 ~~~
 
-本例引用 E.8 的 `example.subject.present` 和 §29 的 `createdsession.pcf.association_owned`，假定 Create 输出包含 `policyAssociationRef`，且查询契约接受该引用。本片段只展示一个四阶段 Node，`continue-session` 和 `reconcile-policy` 由完整 Procedure 定义。如果 Operation Result 已足以支持同一验收，可以省略 Observation，并将 Postcondition 实参绑定到 `create-policy.operation.output`。
+本例引用 E.8 的 `example.subject.present` 和 §29 的 `createdsession.pcf.association_owned`，假定 Create 输出包含 `policyAssociationRef`，且查询契约接受该引用。本片段只展示一个四阶段 Node，`continue-session` 由完整 Procedure 定义；OUTCOME_UNKNOWN 由公共 Host 尝试安全确认后仍不明时停止，绝不跳至特殊 Reconcile Node。如果 Operation Result 已足以支持同一验收，可以省略 Observation，并将 Postcondition 实参绑定到 `create-policy.operation.output`。只有 SUCCEEDED 分支能读取该输出；已确认 COMMITTED 但无承诺恢复输出时只能独立取证或安全停止。
 
 # 第八部分：Script 与开发工具链
 
@@ -2583,9 +2583,9 @@ Observation 是可选的事实获取机制。若 Operation Result 已包含目�
 
 Operation Result 可向后续 Observation Query 提供资源引用、Session Instance、SEID 或 Correlation。Observation Result 仍必须由 Observation Owner 的实际查询产生；不得将 Operation Result 重新标记为 Observation Result，且必须保留原始 Producer 身份。
 
-## 71. Reconcile 的 Operation 阶段形式
+## 71. 调和能力归 Tool Owner/Host、而非作者级 Stage
 
-Reconcile 是原始 Mutation Operation 的受约束调和模式。把它表达为 operation.reconcile: <original-node>，可以复用 Operation 的授权、Owner 契约和 Runtime Admission，同时明确只能调和原始 Mutation，不能发起新的业务 Mutation。
+作者只写普通 `operation.tool` 和必要的 `retryOf`。受信 Owner 的 `mutation.reconcile` 明确原业务调用的独立只读状态确认能力；Host 对所有 Agent 模式使用同一授权、原调用、预算、证明和责任规则。将 Reconcile 作为第三种作者 Operation 既重复暴露内部控制又使 LLM_ONLY 另造路径，因此 v1alpha4 不再提供该字段。
 
 ## 72. Contract 的 dependencies 字段
 
@@ -2597,7 +2597,7 @@ Reconcile 是原始 Mutation Operation 的受约束调和模式。把它表达�
 
 ## 74. COMMITTED 后的恢复输出检查
 
-COMMITTED 确认原调用的提交状态。Owner 明确承诺恢复输出且输出通过校验时，后续可以消费 Reconcile 自身的 Schema 所描述的输出，例如只恢复资源 Ref。承诺恢复但输出无效时按 §20.2 停止。契约未承诺输出时，可显式执行权威 Observation；原调用丢失的输出始终不可用。
+COMMITTED 只确认原调用的提交状态；该分支不暴露 `operation.output`。Owner 明确承诺恢复输出且完全满足原普通成功输出/Evidence 时，Host 把原 Mutation 归并为 SUCCEEDED 并保留恢复 Producer 关联；承诺恢复但输出无效时强制保全停止。Owner 没有承诺输出时，才可沿 COMMITTED 执行独立权威 Observation 或安全停止，不能消费只恢复的部分资源 Ref 来假冒普通成功输出。
 
 ## 75. Invocation Context 与入口 Observation 的职责
 
@@ -2605,7 +2605,7 @@ Invocation Context 提供 Host 在准入时已经确认的 UE 和入口、生命
 
 ## 76. COMMITTED 后的 Goal 验收
 
-COMMITTED 只确认原 Mutation 已提交，可按 Owner 契约恢复该调用的部分输出。此前局部 Postcondition 的 PASS 不能覆盖后续 Mutation 的影响。§30 的 UDM Reconcile 提交分支继续到 PCF，最终仍执行最终 Postcondition；直接从 COMMITTED 走到 SUCCEEDED 会被 Compiler 拒绝。`COMMITTED → READ SUCCEEDED → 最终 Postcondition 聚合 PASS: SUCCEEDED` 可以通过成功边检查。若该分支进入停止终态，则按 §12.8 判断，无需 Goal PASS。
+COMMITTED 只确认原 Mutation 已提交，不等于普通成功输出或最终 Goal。此前局部 Postcondition 的 PASS 不能覆盖后续 Mutation 的影响。§30 的 UDM 教学路径只有在可信恢复结果满足原普通输出契约时才沿 SUCCEEDED 继续 PCF；否则可沿 COMMITTED 的安全停止边退出。若 Owner 允许按原调用身份独立权威查询，`COMMITTED → Observation SUCCEEDED → 最终 Postcondition 聚合 PASS: SUCCEEDED` 可通过成功边检查；不得从 COMMITTED 直接请求 SUCCEEDED。
 
 ## 77. Evidence 更新与 Predicate 证明绑定
 
@@ -2704,7 +2704,7 @@ flowchart LR
 | D-20 | Predicate 是确定性计算 / 判断定义 | 由 Precondition / Postcondition 调用；CEL 或 Python 实现，不设 computation Node |
 | D-21 | Observation 遵循结果充分性原则 | Operation Result 足够时直接验证，不强制 Observation |
 | D-22 | 调用参数统一使用 arguments | Operation / Observation 具名映射；Predicate 有序位置参数；删除 with/from/value 包装 |
-| D-23 | Reconcile 是 Operation 的受约束模式 | 不设独立 Reconcile Node |
+| D-23 | Reconcile 是 Owner 受信只读恢复能力，由共享 Host 处理 | 不提供作者级 Reconcile/Resolve Stage；仅原 Mutation Outcome 可见 |
 | D-24 | 保留作者维护的 contract.yaml | 公共 Goal、全局前置条件、Request、Context、Dependencies 和 Capability Grants 不由 Compiler 猜测 |
 | D-25 | Contract 与 Procedure 分离 | Procedure 只声明执行图与最终 Postcondition，禁止重复根字段 |
 | D-26 | 快照身份与 Owner 校验 | 可信调用方将 Package ID / Owner 绑定到别名及实测摘要；Compiler 校验链接 |
