@@ -8,7 +8,9 @@ ConnectionAgent 官方 Skill 源码与语言契约仓库。
 
 **本仓库是官方 Skill 源码和语言语义的唯一输入权威。** `ca-agent-demo` 用于核对当前实际运行行为、刷新样例；Compiler 和 Studio 应消费本仓库的正式源码。
 
-## 当前 5GC 源码
+## 当前 5GC 源码（v0.2/v1alpha1 旧版源码，非 CA-SL v1alpha4）
+
+**版本边界：** CA-SL v1alpha4 是当前冻结语言。下列源码和 ToolCatalog 仍是旧业务基线，尚未迁移，不代表 v1alpha4 Owner 发布物或任何产品符合性已通过。
 
 | Skill | 业务范围 | 源码状态 |
 | --- | --- | --- |
@@ -21,7 +23,7 @@ ConnectionAgent 官方 Skill 源码与语言契约仓库。
 
 ## 语言与编写规范
 
-- [Skill Language Specification v0.2](docs/skill-language-spec.zh-CN.md)
+- [当前 CA-SL v1alpha4 语言规范](docs/skill-language-spec.v1alpha4.zh-CN.md)
 - [Script 契约 v0](docs/script-contract.md)
 - [Schema 所有权](docs/schema-ownership.md)
 - [Authoring Model](docs/authoring-model.md)
