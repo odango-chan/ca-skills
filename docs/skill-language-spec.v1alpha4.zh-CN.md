@@ -1042,12 +1042,28 @@ Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时必�
 - **多条成功分支：** 正常路径和 Reconcile 恢复路径可以各有不同的最终 Postcondition，无需强制汇合；各自必须聚合 PASS 且直达 SUCCEEDED。已有正常路径不能替异常路径借用一个旧 PASS。每条成功路径均满足相同的全局门禁、Evidence、提交状态和资源责任检查。没有任何可达 Postcondition PASS→SUCCEEDED 边时，报 `FINAL_POSTCONDITION_MISSING`；存在合法最终边但另一条可达成功边不是来自 Postcondition PASS 时，报 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`。这些优先级仅说明诊断条件，不使非法的成功边合法。
 - **安全终态：** Runtime 发布 SUCCEEDED 时复核最终 Postcondition **每一个已执行且必须 PASS 的成员**的原绑定、Producer、Scope、Correlation、Evidence 和 Freshness，复核可选全局门禁及资源责任。不能隐式重跑 Predicate、重新查询、换绑旧 Evidence，也不能用另一分支的旧 PASS 顶替当前最终阶段。若失败，按 §12.8 的 SAFE_STOPPED / UNRESOLVED / FAILED 顺序安全停止。STOP 分支无须最终 Goal 证明，仍须记录实际终态和责任。
 
+**Runtime 单路径执行与 DAG 汇合（Normative）。** 每个 Invocation 在任意时刻只有一个活动阶段；每个实际阶段 Outcome 只选择一条后继边，绝不并行展开所有 `routes`，也不等待其他可能的入边。同一个 `(NodeId, Stage)` 在同一次 Invocation 内**最多进入并执行一次**；回边、循环或重复到达在构建期报 `CONTROL_FLOW_CYCLE`，若 Runtime 检测到重复进入则禁止派发并按 §12.8 安全停止。多入边表示**不同可能执行路径的静态汇聚**，不是一次运行时的多路 Join。实际进入汇合阶段时，Producer Output、原调用身份、局部门禁和 Evidence 只能沿本次已选择的真实前驱链物化，不可从未走过的另一分支拼接、等待或取任意值；Compiler 要求每一条可达路径都满足来源可用性和全局门禁。§12.9 伪代码中 incoming 的 AND 仅是**所有可能路径均安全**的静态证明，不是 Runtime 合并若干执行的 Outcome。Action Budget 只计实际发生的派发/Script；未走过的其他分支不计，§20 的 Mutation 责任按每个真实派发的独立调用身份保存。最终 Postcondition 聚合 PASS 仅证明**当前实际执行路径**的 Goal，不能借用另一候选路径的证据。
+
 **路径敏感静态算法（Normative）。** Compiler 构造以 `(NodeId, Stage)` 为顶点的可达 DAG，包含显式 `routes` 和同 Node 正常 Outcome 自动推进边。多 Predicate Pre/Postcondition 在此图上都只是单一阶段；只有阶段汇总的 `PASS` 是可路由 Outcome，成员没有单独图边。先完成 §12.7、§22、§24 的引用和路由语法校验，再在 `start` 的首阶段建立入口，沿所有**可达**边传播一个布尔标志 `passedGlobal`。无全局门禁时，后述全局检查恒为满足。某顶点有多条可达入边时，取全部 `passedGlobal` 的逻辑 AND；不可达节点不参与汇合，另按 `UNREACHABLE_NODE` 报告。不可达 Node 的语法及 Reconcile 唯一入边约束仍须独立校验。
 
 ~~~text
 globalRef = contract.precondition if declared else NONE  # scalar `<node>.precondition`, not list
+if globalRef != NONE:
+    require scalar_ref_syntax_valid(globalRef) and stage_exists(globalRef)
+            and stage_kind(globalRef) == precondition,
+            else ENTRY_PRECONDITION_REF_INVALID
 entry = first stage of procedure.nodes[procedure.start]
 graph = reachable stage/outcome DAG from entry
+successEdges = graph.reachable_edges_to(terminal.SUCCEEDED)
+legalFinalEdges = [edge for edge in successEdges
+                   if edge.source.stage == postcondition and edge.outcome == PASS]
+# E11/E18 priority: first detect absence of any legal final edge.
+if successEdges and not legalFinalEdges:
+    report FINAL_POSTCONDITION_MISSING
+else:
+    for edge in successEdges:
+        require edge in legalFinalEdges,
+                else SUCCESS_BYPASSES_FINAL_POSTCONDITION
 
 for vertex in topological_order(graph.stages):
     if vertex == entry:
@@ -1068,13 +1084,8 @@ for vertex in topological_order(graph.stages):
 
         if edge.target == terminal.SUCCEEDED:
             require globalRef == NONE or edge.passedGlobal, else ENTRY_PRECONDITION_BYPASSED
-            require vertex.stage == postcondition and edge.outcome == PASS,
-                    else SUCCESS_BYPASSES_FINAL_POSTCONDITION
+            # Source/outcome classified above with fixed E11/E18 priority.
             # This exact final PASS edge is the Goal proof. No carried proof bit.
-
-if exists reachable edge to terminal.SUCCEEDED and
-   no reachable edge (postcondition, PASS) -> terminal.SUCCEEDED:
-    report FINAL_POSTCONDITION_MISSING
 ~~~
 
 **判定表（Informative；不扩张上述合法输入集合）：**
@@ -1086,7 +1097,7 @@ if exists reachable edge to terminal.SUCCEEDED and
 | 局部 Precondition / Postcondition 聚合 PASS，继续到其他 Node | 不设置全局门禁（除恰为 Contract 引用的 Precondition）；**不建立可携带 Goal 证明** | 对直接后继 MUTATION 的局部门禁按既有规则复核 |
 | READ、Observation、Script 或 Mutation 发生在某次 Postcondition PASS 之后 | 依原 Stage Outcome 正常继续，**没有 Goal proof 位可保留** | 若后续请求成功，仍必须经过**新的最终 Postcondition**聚合 PASS |
 | 最终 Postcondition `PASS: SUCCEEDED` | 检查可选全局门禁已必经；本条边直接证明 Goal | 核验全部成员、Evidence、Scope、提交与资源责任后发布 SUCCEEDED |
-| 非 Postcondition 阶段直达 SUCCEEDED，或 Postcondition FAIL/UNKNOWN 直达 SUCCEEDED | 违反成功边的来源/Outcome 约束 | 阻断构建，不进入 Runtime；失败诊断 `SUCCESS_BYPASSES_FINAL_POSTCONDITION` |
+| 非 Postcondition 阶段直达 SUCCEEDED，或 Postcondition FAIL/UNKNOWN 直达 SUCCEEDED | 违反成功边来源/Outcome 约束 | 无可达合法最终 PASS→SUCCEEDED 边时先报 FINAL_POSTCONDITION_MISSING；否则报 SUCCESS_BYPASSES_FINAL_POSTCONDITION；均阻断构建 |
 | Reconcile 恢复分支成功 | 必须有本分支自己的最终 Postcondition PASS→SUCCEEDED 边 | 既有 §20 提交证明和责任要求依旧生效 |
 
 **边界：** `contract.goal` 不等于 Compiler 可以从 PredicateId 的字面名称自动验证业务意图。业务作者负责让最终 Postcondition 的各条 Predicate 真正充分证明该 Goal；Compiler/Runtime 严格校验它们的显式参数、Evidence、可达性、终态路由和授权，不发明语义蕴含规则。Postcondition 的业务充分性按 §12.6 评审。此版以**直达成功边**取代旧版本的跨 Node Goal-proof 传播，不允许在规范或测试中同时保留两套成功判据。
@@ -1538,7 +1549,7 @@ Environment
 | FINAL_POSTCONDITION_MISSING | 存在可达 SUCCEEDED 终态请求，但不存在可达的 Postcondition 聚合 `PASS: SUCCEEDED` 终态边 | 阻止构建 |
 | ENTRY_PRECONDITION_REF_INVALID | Contract 的可选单数 `precondition` 不是精确标量 `<node>.precondition`、值为空/数组/对象、或引用不存在/不是 Precondition 阶段 | 阻止构建 |
 | ENTRY_PRECONDITION_BYPASSED | 某条路径可到达业务 Mutation 或 SUCCEEDED，但缺少任一全局前置条件的 PASS | 阻止构建 |
-| SUCCESS_BYPASSES_FINAL_POSTCONDITION | 存在任一可达 `SUCCEEDED` 请求不是最终 Postcondition 的聚合 `PASS` 直达边 | 阻止构建 |
+| SUCCESS_BYPASSES_FINAL_POSTCONDITION | 已存在可达合法最终 Postcondition PASS→SUCCEEDED 边，同时另有非法直接 SUCCEEDED 请求；若不存在任何合法最终边，优先 FINAL_POSTCONDITION_MISSING | 阻止构建 |
 | CONTROL_FLOW_CYCLE | vNext DAG 中出现循环或 back-edge | 阻止构建 |
 | SOURCE_PATH_INVALID | SourcePath 使用未支持的根、索引、动态表达式或未声明的 Schema 路径段 | 阻止构建 |
 | CONTROL_FLOW_DANGLING | 路由值既非终态也未解析到现有 Node | 阻止构建 |
