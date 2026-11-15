@@ -32,6 +32,8 @@ class DeliveryOutput(TypedDict):
 
 def main(input: DeliveryInput) -> DeliveryOutput:
     prepared = input["preparedResponse"]
+    if prepared["profileRef"] != "createdsession-n1n2-sm@0.1.0":
+        raise ValueError("prepared response profile is not admitted")
     if input["pduSessionType"] != "IPV4":
         raise ValueError("admitted N1/N2 profile only supports IPv4")
     if (not prepared["responseArtifactRef"] or not prepared["artifactDigest"]
