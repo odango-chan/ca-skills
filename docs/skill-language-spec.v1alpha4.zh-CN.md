@@ -12,7 +12,7 @@
 
 **规范性用语。** MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT、MAY、OPTIONAL 按 RFC 2119 和 RFC 8174 解释。相应中文规范性措辞包括“必须”“不得”“应当”“不建议”“可以”。
 
-**v1alpha4 单文件冻结摘要（2026-11-15）。** 基于已冻结 v1alpha3 完整规范，集中恢复 Precondition 与 Postcondition 阶段中多个 Predicate 的统一表达：**阶段名保持 `precondition` / `postcondition` 单数；阶段内部无论一条或多条均使用 `predicates` 非空列表。** Contract 改为可选的 `precondition: <node>.precondition` 单一引用，唯一 `goal` 保留在 Contract；Postcondition 不再声明 `goal`，最终证明通过阶段聚合 `PASS: SUCCEEDED` 建立。E01–E120 的**规范预期已冻结**但机器 Fixture/CI 尚未实施完成；本版语言 FROZEN，产品 NOT QUALIFIED。
+**v1alpha4 单文件冻结审查摘要（2026-11-15）。** 基于已冻结 v1alpha3 完整规范，集中恢复 Precondition 与 Postcondition 阶段中多个 Predicate 的统一表达：**阶段名保持 `precondition` / `postcondition` 单数；阶段内部无论一条或多条均使用 `predicates` 非空列表。** Contract 改为可选的 `precondition: <node>.precondition` 单一引用，唯一 `goal` 保留在 Contract；Postcondition 不再声明 `goal`，最终证明通过阶段聚合 `PASS: SUCCEEDED` 建立。E01–E120 的**规范预期已冻结**但机器 Fixture/CI 尚未实施完成；本版语言 FROZEN，产品 NOT QUALIFIED。
 
 **评审导航：** §0 确定效力与范围；§9–§14 检查 Owner 契约、DAG、SourcePath 和数据绑定；§17–§24 检查 Evidence、Reconcile、路由与诊断；§32–§45 检查 Script、可信依赖及产品门槛；**附录 E** 含全部 E01–E120 预期，**F/G** 为规范性互操作和 Schema/CEL 规则，**H** 为统一诊断索引；**I/J/K** 分别是作者指南、最终裁决与待实施验收材料（资料性）。所有内容均在当前文件中。
 
@@ -2653,7 +2653,7 @@ Compiler 已找到对应的导出和 Schema，接下来要验证该 Schema 内�
 
 ## 88. 不可达路由的链接检查
 
-Compiler 对所有声明检查路由目标和 Reconcile 唯一跨 Node 入边。§20.2 的唯一入边是构建期硬约束，因此 E60 的额外入边会阻止构建，即使来源 Node 不可达。E65 的普通路由通过了语法和链接校验，其来源 Node 不可达，因此只产生 `UNREACHABLE_NODE` 警告。全局门禁只沿 `start` 可达的显式路由及自动推进边传播；最终 Goal 证明只在 Postcondition `PASS: SUCCEEDED` 的同一条边建立。
+Compiler 对所有声明检查路由目标、`OUTCOME_UNKNOWN` 安全终止，以及 Owner `mutation.reconcile` 专用 READ 的证明与独立授权契约；E60 的 Owner 失败链接阻断构建。v1alpha4 **没有**作者级 Reconcile Node 或唯一跨 Node 入边限制。E65 的普通路由通过语法和链接校验，其来源 Node 不可达，因此只产生 `UNREACHABLE_NODE` 警告。全局门禁只沿 `start` 可达的显式路由及自动推进边传播；最终 Goal 证明只在 Postcondition `PASS: SUCCEEDED` 的同一条边建立。
 
 ## 89. 一致性用例的归档位置
 
@@ -3015,7 +3015,7 @@ expected:
 | E08：Predicate 参数增加一个必填位置参数但不改调用 | PREDICATE_ARITY_MISMATCH |
 | E09：把 Predicate 所需 Registration 结构替换成 context.ueRef 字符串 | PREDICATE_TYPE_MISMATCH |
 | E10a：在未生成 SUCCEEDED 输出的路径引用原 Mutation 成功输出 | SOURCE_NOT_AVAILABLE（Schema 必需字段已声明、但当前路径未生成） |
-| E10b：引用 Owner 未声明的 Reconcile 恢复输出 | RECONCILE_OUTPUT_UNAVAILABLE；E10a/E10b 是同一 E10 下两条独立预期 |
+| E10b：原 Mutation COMMITTED 分支使用 Owner 未承诺恢复的普通成功输出 | RECONCILE_OUTPUT_UNAVAILABLE；E10a/E10b 属同一个 E10 的两条独立预期 |
 | E11：省略所有最终 Postcondition，直接进入 SUCCEEDED | FINAL_POSTCONDITION_MISSING |
 | E12：引用 context.ueRef 却未声明 contextSchema | CONTEXT_SCHEMA_UNDECLARED |
 | E13：E.4 的 Host Context 缺少必需的 ueRef | ADMISSION_CONTEXT_INVALID，拒绝启动 |
@@ -3243,7 +3243,7 @@ predicates:
 | §17.1 来源与证据声明 | PREDICATE_EVIDENCE_REQUIRED / PREDICATE_EVIDENCE_UNSATISFIABLE | E19、E71、E74 |
 | §32 Script 类型 | SCRIPT_CONTRACT_INVALID | E67、E75 |
 | §22 路由覆盖 | ROUTE_OUTCOME_MISSING | E55、E76 |
-| §20.2 Reconcile 跨 Node 入边 | RECONCILE_CONTRACT_INVALID | E60 |
+| §20.2 Host/Owner 恢复契约身份与安全 UNKNOWN 终止 | RECONCILE_CONTRACT_INVALID | E59、E60 |
 | §9.3 Capability 成员 | EFFECT_MISMATCH / CAPABILITY_MEMBERSHIP_DUPLICATE | E72 |
 
 §22.1 路由覆盖见 E84，§20.2 重试契约见 E85，§20.3 调和结果见 E86，§9.3 和 §24.2 Scope 诊断见 E87–E88。
