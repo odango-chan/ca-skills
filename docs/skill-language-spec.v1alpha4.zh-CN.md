@@ -200,8 +200,8 @@ vNext 保留作者维护的 assurance/contract.yaml，但不再使用重复的 a
 
 ### 6.2 Goal、Request、Invocation 与编译契约
 
-- **Goal：** Skill 希望达成的业务目标，由 contract.yaml 声明。`GoalId` 是大小写敏感的标识，由一个或多个 §13.2 的 ASCII Identifier 以点号连接。每段以 ASCII 字母开头，后续可含 ASCII 字母、数字、下划线或连字符。Procedure 中的最终 Postcondition 以精确 GoalId 绑定该目标。
-- **全局 Precondition：** Contract 的 `preconditions` 引用 Procedure 中必须 PASS 的前置判断，约束业务 Mutation 和成功终态。
+- **Goal：** Skill 希望达成的业务目标，由 contract.yaml 声明。`GoalId` 是大小写敏感的标识，由一个或多个 §13.2 的 ASCII Identifier 以点号连接。每段以 ASCII 字母开头，后续可含 ASCII 字母、数字、下划线或连字符。最终目标由每条成功分支的 Postcondition 聚合 `PASS: SUCCEEDED` 直接证明；Procedure 不重复写 GoalId。
+- **全局 Precondition：** Contract 可选的单数 `precondition` 指向 Procedure 中唯一必须整体 PASS 的前置阶段，约束业务 Mutation 和成功终态；多个前置事实写在其 `predicates` 列表中。
 - **Request：** 调用方为本次执行提供的业务请求，由 contract.yaml 的 requestSchema 指向 Skill 自有 Schema；Request 本身不证明网络状态。
 - **Context Schema：** Skill 通过 `contextSchema` 选择 Host Owner 发布的 Invocation Context Schema。Compiler 以该 Schema 校验 Host 字段路径。
 - **Dependencies：** Skill 声明所需的公共 Owner 契约身份（例如 ToolCatalog、Host Context、Observation、共享 Schema）。声明依赖身份，不携带下载地址、版本锁或依赖内容。
@@ -222,7 +222,7 @@ Procedure 是有向、确定性的执行图，定义输入、入口节点、动�
 
 Node 是图中的一个业务步骤，可包含 `precondition`、`operation`、`observation`、`postcondition`。阶段按 §12.1 顺序执行，至少声明一个。路由可以指向另一 Node 或直接结束本次 Invocation。一个 Node 可以经历多个阶段，Runtime 保留每个阶段的结果。
 
-Precondition 和 Postcondition 只调用纯 Predicate，Operation 和 Observation 是同级阶段。前置判断若需先取证，可读取前序 Node 的输出。Contract 通过 `preconditions` 选择全局前置判断，各成功分支通过标记同一 Goal 的 Postcondition 完成全局验收。具体规则见 §12.9。
+Precondition 和 Postcondition 只调用纯 Predicate，Operation 和 Observation 是同级阶段。前置判断若需先取证，可读取前序 Node 的输出。Contract 通过单数 `precondition` 选择唯一全局前置阶段（可省略）；各成功分支的最终 Postcondition 以聚合 `PASS: SUCCEEDED` 直接证明 Contract Goal，Postcondition 自身不重复声明 Goal。具体规则见 §12.9。
 
 ### 6.5 Tool、Tool Operation 与 Operation 阶段
 
@@ -607,7 +607,7 @@ RouteTarget       = NodeId | TerminalStatus
 TerminalStatus    = SUCCEEDED | FAILED | UNRESOLVED | SAFE_STOPPED
 ~~~
 
-**v1alpha4 阶段语法（Normative）。** 一个 Node 仍仅能有一项 `precondition` 与一项 `postcondition` 阶段声明。两者内部使用相同的非空有序 `predicates` 列表，**即使只有一个 Predicate 也必须写成列表**。每项 `PredicateCall` 恰有 `predicate` 和位置参数 `arguments`；禁止在阶段根使用旧版直接 `predicate/arguments`，或在单个列表项中定义 `routes/goal`。Precondition/Postcondition 只拥有**一组阶段级** `PASS/FAIL/UNKNOWN` 路由；Postcondition 阶段或其成员均不得声明 `goal`。Contract 的 `goal` 是唯一业务目标；`contract.precondition` 是至多一个全局门禁阶段引用。这不是对 v1alpha3 旧作者源码的隐式转换或语法别名。列表为空、类型不符、成员缺字段或含未知字段报 `PREDICATE_GROUP_INVALID`，重复 Mapping Key 与非法 YAML 先报 `YAML_PARSE_ERROR`。成员中 Predicate 引用、参数位置/Schema、Evidence 错误仍按既有专用诊断逐成员检查（§13、§17、§24/H）。
+**v1alpha4 阶段语法（Normative）。** 一个 Node 仍仅能有一项 `precondition` 与一项 `postcondition` 阶段声明。两者内部使用相同的非空有序 `predicates` 列表，**即使只有一个 Predicate 也必须写成列表**。每项 `PredicateCall` 恰有 `predicate` 和位置参数 `arguments`；禁止在阶段根使用旧版直接 `predicate/arguments`，也不得在 Postcondition 阶段根或任一调用项中定义 `goal`，或在单个列表项中定义 `routes`。Precondition/Postcondition 只拥有**一组阶段级** `PASS/FAIL/UNKNOWN` 路由；Postcondition 阶段或其成员均不得声明 `goal`。Contract 的 `goal` 是唯一业务目标；`contract.precondition` 是至多一个全局门禁阶段引用。这不是对 v1alpha3 旧作者源码的隐式转换或语法别名。列表为空、类型不符、成员缺字段或含未知字段报 `PREDICATE_GROUP_INVALID`，重复 Mapping Key 与非法 YAML 先报 `YAML_PARSE_ERROR`。成员中 Predicate 引用、参数位置/Schema、Evidence 错误仍按既有专用诊断逐成员检查（§13、§17、§24/H）。
 
 Node ID 与 `Identifier` 使用同一字符规则。Compiler 在解析 `start` 和路由前拒绝使用 `context` 或任一 `TerminalStatus` 精确拼写的 Node ID。`start` 必须引用真实 Node。Node 至少有一个阶段，各阶段最多声明一次。各阶段在自己的 `routes` 中按 Outcome 指定目标，允许键和必填键由 §12.1、§22 决定。省略 `routes` 与空映射等价，两者仅在该阶段的没有必须显式路由的非正常 Outcome 且后面还有阶段时合法。其他情况须写全 §22 要求的路由，缺键阻断构建。Reconcile 不接收 `arguments`。解析器拒绝未知字段和重复阶段，保留 YAML 标量的引号风格。
 
@@ -763,7 +763,7 @@ Procedure 是确定性的有向执行图。一个业务 Node 可包含以下阶�
 - **当前是最后一个阶段，且返回正常 Outcome**：必须在该阶段的 `routes` 中配置该 Outcome 对应的目标。
 - **任一阶段返回其他合法 Outcome**：必须在该阶段的 `routes` 中配置目标，并跳过当前 Node 的剩余阶段。
 
-`routes` 用精确的 Outcome 作为键。值精确匹配 `TerminalStatus` 时，按 §12.8 结束本次 Invocation。其他值按区分大小写的 Node ID 解析，进入目标 Node 的首个阶段。多个 Outcome 可以指向同一目标。声明顺序无关，无默认分支。Runtime Trace 记录来源 Node ID、阶段、原始 Outcome 和实际选择的路由。
+`routes` 用精确的 Outcome 作为键。**只有 Postcondition 的聚合 `PASS` 可以直接路由到 `SUCCEEDED`**，其他所有阶段与 Outcome 不得以成功终态为目标。值精确匹配其他 `TerminalStatus` 时，按 §12.8 结束本次 Invocation。其他值按区分大小写的 Node ID 解析，进入目标 Node 的首个阶段。多个 Outcome 可以指向同一目标。声明顺序无关，无默认分支。Runtime Trace 记录来源 Node ID、阶段、原始 Outcome 和实际选择的路由。
 
 同一 Node 的 Precondition 早于 Operation 和 Observation，不能读取它们的输出。需要先取证再作前置判断时，将查询放在前序 Node。若要验收本 Node 的操作或观察结果，使用其 Postcondition。跨业务步骤的数据与可恢复边仍通过图显式连接。外部调用、Script 和 Reconcile 仍按 §11.6 逐次计入 Action Budget。Runtime 在各阶段按其契约检查授权、Scope、Evidence 及取消状态。后续判断失败不会撤销已经提交的 Operation。
 
@@ -822,7 +822,7 @@ nodes:
 
 本例使用独立 Contract `goal: udm.subscription_verified`，并假设 Host 在派发前登记对创建尝试和迟到结果的责任。成功完成后该订阅由已登记的管理方接管。提交后的验证失败进入 SAFE_STOPPED。Tool Owner 须明确保证 Create 成功输出和独立 Observation 输出中的 subscription 均符合相同规范化 Subscription Schema，并发布相同权威的订阅状态保证（§17）；该假设须由正式 Owner Schema 确认，不能靠 Compiler 猜测。COMMITTED 只证明原 Mutation 已提交。
 
-Observation 从 Reconcile 自身输出读取 `subscriptionRef`。若 Owner 未声明 Reconcile 输出，原样引用该输出报 `RECONCILE_OUTPUT_UNAVAILABLE`。只有能通过其他已绑定的精确引用验证本次资源归属时，才可改用权威查询。查询可留在同一 Node 的 Observation 阶段。只按 UE 或 DNN 查询其他订阅不能证明本次创建。两条成功路径分别通过标记同一 Goal 的 Postcondition PASS，各自沿 `PASS: SUCCEEDED` 结束。
+Observation 从 Reconcile 自身输出读取 `subscriptionRef`。若 Owner 未声明 Reconcile 输出，原样引用该输出报 `RECONCILE_OUTPUT_UNAVAILABLE`。只有能通过其他已绑定的精确引用验证本次资源归属时，才可改用权威查询。查询可留在同一 Node 的 Observation 阶段。只按 UE 或 DNN 查询其他订阅不能证明本次创建。两条成功路径分别由最终 Postcondition 的聚合 PASS **直接**请求 `SUCCEEDED`，无需也不得在 Postcondition 内重复写 Contract Goal。
 
 ### 12.2 Precondition
 
@@ -1018,7 +1018,7 @@ Runtime 必须使用原始 Mutation 的不可变 Invocation、Operation 身份�
 
 | 终态 | 发布条件 |
 |---|---|
-| `SUCCEEDED` | 路由请求成功，且通过 §12.9 的全局前置条件和 Goal 证明复核。所有 Mutation 的提交状态均已确定，资源及迟到结果均有明确责任 |
+| `SUCCEEDED` | 只接受最终 Postcondition 全部 Predicate PASS 产生的直接 `PASS: SUCCEEDED`，并通过 §12.9 可选全局前置阶段和最终 Predicate/Evidence 复核。所有 Mutation 的提交状态均已确定，资源及迟到结果均有明确责任 |
 | `SAFE_STOPPED` | 执行需要停止，且已有部分完成资源或已确认的外部变更需要保全、核实或处置 |
 | `UNRESOLVED` | 执行需要停止，无上述待处理的已知资源或外部变更，但关键事实或已派发调用的提交状态仍不确定 |
 | `FAILED` | 执行需要停止，无待处理的已知资源或外部变更，关键事实及提交状态均已确定 |
@@ -1361,7 +1361,7 @@ State 不自动等于 Evidence；Handle 不自动等于 State；Mutation 成功�
 7. Runtime 按 §12.1 执行各阶段。非末阶段正常完成时继续执行同一 Node，跨 Node 跳转使用当前阶段的 `routes`；
 8. 必要时显式执行 Observation Query，Predicate 只消费已物化输入和 Host 附加 Evidence；
 9. Mutation 结果不确定时，按阶段的退出路由和 §20 调和原调用或停止；
-10. 选中 `SUCCEEDED` 终态路由时，按 §12.9 检查实际路径的全局前置条件、Goal PASS 和责任状态；
+10. 选中最终 Postcondition 的 `PASS: SUCCEEDED` 时，按 §12.9 复核全局前置阶段、最终 Predicate 全部 PASS/Evidence 与责任状态；
 11. Host 记录结果、Evidence、Trace 和资源责任。
 
 必需步骤不得静默跳过。
@@ -1399,7 +1399,7 @@ Runtime 只用可信且关联到本次原调用的证明记录提交状态。Own
 
 1. 有安全 Owner 契约时，原 Mutation 阶段的 `operation.routes.OUTCOME_UNKNOWN` 必须直接指向对应的 Reconcile Node。反向校验也必须成立：每个 Reconcile Node 的唯一声明入边是进入该 Node 的跨 Node 路由，必须来自其 `reconcile` 所引用的 Mutation 的 Operation 阶段，且 Outcome 为 `OUTCOME_UNKNOWN`。Compiler 检查所有已声明路由，包括不可达 Node 的路由。Reconcile Node 不得用作 `start`。Runtime 校验实际进入的边、未决调用的身份和状态，以及本次授权、Scope、Correlation、预算、Deadline 和取消状态，对同一次原调用至多派发一次。Reconcile 不引入新的业务副作用。
 2. 没有安全契约时，OUTCOME_UNKNOWN 边必须直接指向 UNRESOLVED 或 SAFE_STOPPED。已有安全契约但当前不能派发时，Runtime 直接按 §12.8 停止。两种情况都保留原调用和责任。
-3. Reconcile 确认 COMMITTED 或 NOT_COMMITTED 时，更新原调用状态。若 COMMITTED 契约承诺恢复输出，只有有效的 Reconcile 自身输出才在 COMMITTED 后提供；提交已确认但承诺恢复的输出无效时，按 §20.1 的 COMMITTED_OUTPUT_UNAVAILABLE 停止。契约未承诺输出时，后续节点可以显式读取权威状态。原 Mutation 丢失的输出不可用。COMMITTED 只更新原调用的提交状态。要到达 SUCCEEDED，该路径仍须通过新的 Goal Postcondition PASS（§12.9）。
+3. Reconcile 确认 COMMITTED 或 NOT_COMMITTED 时，更新原调用状态。若 COMMITTED 契约承诺恢复输出，只有有效的 Reconcile 自身输出才在 COMMITTED 后提供；提交已确认但承诺恢复的输出无效时，按 §20.1 的 COMMITTED_OUTPUT_UNAVAILABLE 停止。契约未承诺输出时，后续节点可以显式读取权威状态。原 Mutation 丢失的输出不可用。COMMITTED 只更新原调用的提交状态。要到达 SUCCEEDED，该路径须由之后的最终 Postcondition 聚合 PASS **直接**路由到 `SUCCEEDED`（§12.9）。
 4. Reconcile 缺少有效结论时沿 UNRESOLVED 边。该边必须直接指向 `UNRESOLVED` 或 `SAFE_STOPPED`，Runtime 按 §12.8 选择实际终态。普通业务查询不能替代原调用调和。
 5. 显式重发同一业务 Mutation 时，在普通 MUTATION Operation 上写 `retryOf: <original-mutation-node>`。目标必须是同一 Procedure 中另一普通 Mutation。Compiler 检查每条到达该重试 Operation 的可达路径均须经过目标原调用的 NOT_COMMITTED 边，或其唯一 Reconcile 的 NOT_COMMITTED 边。经过原调用本身不能满足路径检查。Compiler 还要求两侧链接到兼容的 Owner 业务身份规则及允许重试的契约。引用非法、覆盖不足或契约不兼容报 `RETRY_CONTRACT_INVALID`。Runtime 在派发前比较物化后的业务身份，复核原调用绑定、可信未提交证明、重试许可及无遗留副作用保证。失败时记 `RETRY_ADMISSION_DENIED`，按 §12.8 直接停止。未声明 retryOf 的 Mutation 在 Runtime 检出与本 Invocation 既有调用的业务身份相同，也必须拒绝重复派发。每条未提交证明至多授权一次实际新派发，由 Runtime 原子消费。一次新尝试获得独立调用身份。Compiler 不靠节点名称推断业务身份。
 
@@ -1465,7 +1465,7 @@ Predicate 的 PASS 表示命题得到充分支持。FAIL 表示命题被充分�
 
 | 名称 | 产生者与适用位置 | Owner 可声明？ | 可作 `routes` 键？ | 省略路由/对终态的作用 |
 |---|---|---|---|---|
-| `PASS` / `FAIL` / `UNKNOWN`（Predicate） | Predicate 判断；Pre/Postcondition | 非 callable Owner Outcome | 是：三者各有规则 | FAIL/UNKNOWN 不能建立 Goal PASS；按 §22.1 必须路由 |
+| `PASS` / `FAIL` / `UNKNOWN`（Predicate） | Predicate 判断；Pre/Postcondition | 非 callable Owner Outcome | 是：三者各有规则 | FAIL/UNKNOWN 不能请求成功；即使 PASS，只有 Postcondition 阶段可直接路由 SUCCEEDED；按 §22.1 必须路由 |
 | `SUCCEEDED` / `FAILED`（Owner） | 普通 READ/MUTATION、Observation 的 Owner 调用 | 是，SUCCEEDED 必需 | 是 | 正常 SUCCEEDED 非末阶段自动推进、末阶段必填；Owner 已声明的 FAILED 必须路由 |
 | `SUCCEEDED` / `FAILED`（Script） | Procedure Script | 不属于 Tool Owner | 是 | 按 §22.1 正常推进或显式 FAILED 路由 |
 | `DENIED`、`UNKNOWN`（READ） | Runtime 对普通 READ/Observation 的保留结果 | 否 | 可选 | 省略时按 §12.8 直接停止，不等于成功 |
@@ -1532,11 +1532,10 @@ Environment
 | DUPLICATE_ID | Procedure / Node / Predicate 重名 | 阻止构建 |
 | PROCEDURE_START_MISSING | Procedure start 未解析到入口 Node，包括把终态写作 start | 阻止构建 |
 | NODE_ID_RESERVED | Node ID 使用 `context` 或任一终态的精确拼写 | 阻止构建 |
-| FINAL_POSTCONDITION_MISSING | 有可达 SUCCEEDED 路由，但没有可达的匹配 Contract Goal 的 Postcondition | 阻止构建 |
-| FINAL_POSTCONDITION_GOAL_MISMATCH | Postcondition 的 goal 不等于 Contract Goal | 阻止构建 |
-| ENTRY_PRECONDITION_REF_INVALID | Contract 全局前置条件引用格式错误、重复或无法解析到 Precondition 阶段 | 阻止构建 |
+| FINAL_POSTCONDITION_MISSING | 存在可达 SUCCEEDED 终态请求，但不存在可达的 Postcondition 聚合 `PASS: SUCCEEDED` 终态边 | 阻止构建 |
+| ENTRY_PRECONDITION_REF_INVALID | Contract 的可选单数 `precondition` 不是精确标量 `<node>.precondition`、值为空/数组/对象、或引用不存在/不是 Precondition 阶段 | 阻止构建 |
 | ENTRY_PRECONDITION_BYPASSED | 某条路径可到达业务 Mutation 或 SUCCEEDED，但缺少任一全局前置条件的 PASS | 阻止构建 |
-| SUCCESS_BYPASSES_FINAL_POSTCONDITION | SUCCEEDED 终态路由可绕过最终 Postcondition PASS | 阻止构建 |
+| SUCCESS_BYPASSES_FINAL_POSTCONDITION | 存在任一可达 `SUCCEEDED` 请求不是最终 Postcondition 的聚合 `PASS` 直达边 | 阻止构建 |
 | CONTROL_FLOW_CYCLE | vNext DAG 中出现循环或 back-edge | 阻止构建 |
 | SOURCE_PATH_INVALID | SourcePath 使用未支持的根、索引、动态表达式或未声明的 Schema 路径段 | 阻止构建 |
 | CONTROL_FLOW_DANGLING | 路由值既非终态也未解析到现有 Node | 阻止构建 |
@@ -1567,7 +1566,7 @@ Environment
 | ROUTE_OUTCOME_MISSING | 阶段缺少必须显式声明的 Outcome 路由 | 阻止构建 |
 | ROUTE_OUTCOME_UNKNOWN | 路由键不属于该阶段的精确 Outcome 集 | 阻止构建 |
 | ROUTE_NORMAL_OUTCOME_NOT_ALLOWED | 在非末阶段的 `routes` 中声明正常 Outcome，可能跳过同一 Node 的后续阶段 | 阻止构建 |
-| PREDICATE_GROUP_INVALID | v1alpha4 Pre/Postcondition 的 `predicates` 非空列表缺失、列表项不合法、或阶段根仍写旧的 `predicate/arguments` | 阻止构建 |
+| PREDICATE_GROUP_INVALID | Pre/Postcondition 的 `predicates` 列表为空或不合法；仍使用旧阶段根 `predicate/arguments`；或任一 Postcondition 含被删除的 `goal` 字段 | 阻止构建 |
 | PREDICATE_ARITY_MISMATCH | 参数数量不一致 | 阻止构建 |
 | PREDICATE_TYPE_MISMATCH | 参数类型不兼容 | 阻止构建 |
 | EVIDENCE_GUARANTEE_LINK_INVALID | 保证解析、Producer 绑定、身份提取或共同事实映射无效，见 §17.1–§17.1.1 | 阻止构建 |
@@ -2360,7 +2359,7 @@ Skill Studio 是 CA-SL 作者工作环境，不是第二个语言实现。应提
 11. Hover：Owner、Effect、Schema、Capability、Scope / Freshness / Evidence 保证；
 12. Completion：按上下文补全。导出引用只列出当前已选依赖快照中的真实身份。路由键列出当前阶段允许显式声明的 Outcome，非末阶段排除正常 Outcome。路由值列出现有 Node ID 与四个终态，并应用 §20.2 的调和目标约束；
 13. Diagnostics：区分语法、链接、类型、授权和业务警告；
-14. Procedure Designer：以业务 Node 为图节点，在卡片内显示阶段、由 Contract 引用的全局前置条件和 Goal 标记。连线标识来源阶段和 Outcome，终态由路由值直接绘制为终点。卡片内按固定顺序显示由正常 Outcome 推进的阶段。编辑最终 Postcondition 时从 Contract 提取 Goal 供选择；
+14. Procedure Designer：以业务 Node 为图节点，在卡片内显示阶段、由 Contract 单数 `precondition` 标记的全局门禁以及可达 `postcondition.routes.PASS: SUCCEEDED` 的最终验收标记。连线标识来源阶段和 Outcome，终态由路由值直接绘制为终点。卡片内按固定顺序显示由正常 Outcome 推进的阶段。最终 Goal 从 Contract 只读显示，不生成 Node 级 `goal` 字段；
 15. Data Flow：展示 Context / Operation / Observation 到 Predicate 的值流、所需 Evidence 保证及其 Producer；
 16. Package View：区分 Skill 自有文件、只读依赖和生成 Artifact；
 17. Case View：展示语义义务，不伪装成 Runtime 结果；
@@ -2471,7 +2470,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 
 ### 45.1 v1alpha4 C 类变更评审边界
 
-本稿继承 v1alpha3 已冻结的 Contract、SourcePath、Evidence、Capability、Reconcile、DAG、Goal 证明与终态规则。**v1alpha4 的 C 类改变仅限 Precondition/Postcondition 的作者调用形状与阶段级多 Predicate 聚合**；这不改写 v1alpha3 既有合法输入与结果。新版本需通过 §45.1 的正式冻结评审及 E115–E120 验收。
+本稿继承 v1alpha3 已冻结的 Contract、SourcePath、Evidence、Capability、Reconcile、DAG、Goal 证明与终态规则。**v1alpha4 的 C 类改变涵盖单数 `contract.precondition`、Pre/Postcondition 的 `predicates` 列表、移除 Node 级 `goal` 与成功直接由最终 Postcondition PASS 路由证明**；这不改写 v1alpha3 既有合法输入与结果。新版本需通过 §45.1 的正式冻结评审及 E115–E120 验收。
 
 本 v1alpha4 候选稿待冻结的验收依据：§10–14 的唯一源码结构与闭合语法；§12.9、§17、§20、§22 的路径敏感证明与 fail-closed 规则；§F.1–F.6 / §G.1–G.9 的精确字段、Receipt/Proof/SourceIdentity、Schema-CEL 和责任模型，附录 H 的诊断索引；E01–E120 的规范预期及负例。无法静态证明兼容的 Schema / Owner 导出必须拒绝链接，不能靠样例值、运行时回退或 Studio 自动猜测。v0.2 是既有可执行基线，编译器不得静默迁移到本版。
 
@@ -2666,7 +2665,7 @@ Invocation Context 提供 Host 在准入时已经确认的 UE 和入口、生命
 
 ## 76. COMMITTED 后的 Goal 验收
 
-COMMITTED 只确认原 Mutation 已提交，可按 Owner 契约恢复该调用的部分输出。此前的 Goal PASS 不能覆盖后续 Mutation 的影响。§30 的 UDM Reconcile 提交分支继续到 PCF，最终仍执行 Goal Postcondition；直接从 COMMITTED 走到 SUCCEEDED 会被 Compiler 拒绝。`COMMITTED → READ SUCCEEDED → 新的 Goal PASS → SUCCEEDED` 可以通过证明覆盖校验。若该分支进入停止终态，则按 §12.8 判断，无需 Goal PASS。
+COMMITTED 只确认原 Mutation 已提交，可按 Owner 契约恢复该调用的部分输出。此前局部 Postcondition 的 PASS 不能覆盖后续 Mutation 的影响。§30 的 UDM Reconcile 提交分支继续到 PCF，最终仍执行 Goal Postcondition；直接从 COMMITTED 走到 SUCCEEDED 会被 Compiler 拒绝。`COMMITTED → READ SUCCEEDED → 最终 Postcondition 聚合 PASS: SUCCEEDED` 可以通过成功边检查。若该分支进入停止终态，则按 §12.8 判断，无需 Goal PASS。
 
 ## 77. Evidence 更新与 Predicate 证明绑定
 
@@ -2688,9 +2687,9 @@ E.1–E.4 给出独立链接基线。E.6 从 E.1–E.4 的成功输入派生链�
 
 本规范的示例固定语言规则。Compiler、Studio、Runtime 一致性与真实 Owner 发布按 §45.2 独立验收，不能用实现尚未完成否定既定语义，也不得将规范冻结作为产品实现符合性通过的依据。
 
-## 82. 以 Goal Postcondition 作为入口
+## 82. 以最终 Postcondition 作为入口
 
-`start` 标识首个业务 Node。对于仅依据已准入 Context 作出判断的 Skill，可以声明只包含 Goal Postcondition 的 Node。进入时尚无证明，Postcondition PASS 才建立证明。若同一业务步骤还需前置判断，可在同一 Node 声明 Precondition，Runtime 按阶段顺序执行。
+`start` 标识首个业务 Node。对于只依据已准入 Context 作出判断的 Skill，可以直接以只含 Postcondition 的 Node 为入口；该阶段聚合 PASS 并 `PASS: SUCCEEDED` 时完成最终验收。若同一业务步骤还需前置判断，可在同一 Node 声明 Precondition，Runtime 按阶段顺序执行。不存在可被后续 Node 继承的早期 Goal 证明。
 
 ## 83. SOURCE_PATH_INVALID 与 SOURCE_NOT_AVAILABLE 的适用边界
 
@@ -2698,7 +2697,7 @@ Compiler 已找到对应的导出和 Schema，接下来要验证该 Schema 内�
 
 ## 84. 全局前置条件与逻辑组合
 
-`preconditions` 是全局前置判断的列表，每项都必须 PASS。执行顺序和取证位置由 Procedure 决定。全局验收只有一个 Contract Goal，正常路径和 Reconcile 路径分别用标记同一 Goal 的 Postcondition 证明。Compiler 检查每条成功路径，Runtime 复核实际路径上的判断和证据。Contract 无需再维护一份成功分支列表。
+`contract.precondition` 是一个可选的全局 Precondition **阶段引用**，其内部多 Predicate 以 AND 聚合，完整 PASS 才满足门禁。执行顺序与取证位置由 Procedure 决定。全局验收只有一个 Contract Goal，正常路径和 Reconcile 路径分别由自己的最终 Postcondition 聚合 `PASS: SUCCEEDED` 直达终态来证明。Compiler 检查每条成功路径，Runtime 复核真实路径及 Evidence；Contract 不再维护成功分支列表。
 
 ## 85. 阶段路由字段的选择
 
@@ -2710,11 +2709,11 @@ Compiler 已找到对应的导出和 Schema，接下来要验证该 Schema 内�
 
 ## 87. 自动推进对门禁与 Goal 证明的影响
 
-自动推进和显式路由都产生来源明确的 Outcome 边。门禁和 Goal 证明只依赖来源阶段与 Outcome。比如全局 Precondition 的 PASS 在同一 Node 内进入 Operation 前计入门禁集合，Mutation 的 SUCCEEDED 在同一 Node 内进入 Postcondition 前清除旧 Goal 证明。§12.1 的 Reconcile 查询使用 Owner 已恢复的精确资源引用，满足该条件时可以留在同一 Node。
+自动推进和显式路由都产生来源明确的 Outcome 边。全局门禁可沿可达路径传播，但**Goal 不再具有跨 Node 传播的证明位**。例如单数 Contract 引用的 Precondition 聚合 PASS，在同 Node 自动推进至 Mutation 前计入已通过门禁；Mutation SUCCEEDED 后仍须由最终 Postcondition 聚合 PASS **直接**请求成功。§12.1 的 Reconcile 查询可以保留在其既有 Node，但只有后续最终验收直达终态才允许成功。
 
 ## 88. 不可达路由的链接检查
 
-Compiler 对所有声明检查路由目标和 Reconcile 唯一跨 Node 入边。§20.2 的唯一入边是构建期硬约束，因此 E60 的额外入边会阻止构建，即使来源 Node 不可达。E65 的普通路由通过了语法和链接校验，其来源 Node 不可达，因此只产生 `UNREACHABLE_NODE` 警告。门禁和 Goal 证明只沿 `start` 可达的显式路由及自动推进边传播。
+Compiler 对所有声明检查路由目标和 Reconcile 唯一跨 Node 入边。§20.2 的唯一入边是构建期硬约束，因此 E60 的额外入边会阻止构建，即使来源 Node 不可达。E65 的普通路由通过了语法和链接校验，其来源 Node 不可达，因此只产生 `UNREACHABLE_NODE` 警告。全局门禁只沿 `start` 可达的显式路由及自动推进边传播；最终 Goal 证明只在 Postcondition `PASS: SUCCEEDED` 的同一条边建立。
 
 ## 89. 一致性用例的归档位置
 
@@ -3460,7 +3459,7 @@ NodeId 保留 context 与四个终态。所有普通标识符大小写敏感、�
 
 NonEmptyList 表示长度至少 1 的 YAML 序列，ExactlyOneName 表示恰有一个非保留 Name 键的映射；AbsoluteSchemaUri 与 AbsolutePackageUri 为 RFC 3986 绝对 URI并由可信契约验证。LocalSchemaPath 与 LocalScriptPath 只接受包内 POSIX 相对路径；禁止绝对路径、反斜线、空段、点段、双点段和符号链接越界。例如 `schemas/session.profile.schema.yaml` 与 `scripts/build.input.py` 合法；`schemas/../session.schema.yaml`、`schemas/.schema.yaml` 和 `scripts//step.py` 非法。固定后缀的优先剥离规则仅用于消除文法读取歧义，不放宽 FileSegment 或路径安全约束。PositiveInteger 为十进制且必须大于零、无前导零。无引号字符串只可能是合法 SourcePath；带引号的 YAML 字符串作为字面值，Boolean 只有 true/false、Null 只有 null；数字为有限十进制，不允许 NaN/Infinity、隐式八进制或任意字符串转数值。具体 SourcePath 规则继承 §13.2。
 
-v1alpha4 的 `Node.precondition` 与 `Node.postcondition` 共享 §10.1 的 `NonEmptyList<PredicateCall>`：每一项必须恰有 `predicate/arguments`，只有阶段根允许 `routes` 和可选的 Postcondition `goal`。成员级三态只归并为一次阶段 Outcome（§12.2/§12.5），绝不独立路由；旧阶段根直接 `predicate/arguments` 已不合法。
+v1alpha4 的 `Node.precondition` 与 `Node.postcondition` 共享 §10.1 的 `NonEmptyList<PredicateCall>`：每一项必须恰有 `predicate/arguments`，只有阶段根允许 `routes`，Postcondition 不再接受任何 `goal` 字段。成员级三态只归并为一次阶段 Outcome（§12.2/§12.5），绝不独立路由；旧阶段根直接 `predicate/arguments` 已不合法。
 
 PredicateSet 根必须只含 predicates 映射；每个 Predicate 的 parameters 按声明顺序传入，名称唯一；零参数允许空列表。每个 Parameter 恰好一个 Name → PrimitiveType 或精确 QualifiedSchemaId。Evidence requires 只可引用已声明参数，列表非空、各保证 ID 唯一；省略 requires 与空映射等价。Independence 每组至少两个不同的 (parameter, guarantee) 成员，且每个成员均在对应 requires 列表内。各组对底层来源的独立性必须经 Owner 发布的描述符验证，不可由两个不同 Ref 的字面值推断。Script evaluator 的字段固定为 evaluator.type=script、evaluator.script 为 LocalScriptPath；CEL evaluator 固定为 type=cel 与 expression；混用两种字段拒绝。
 
@@ -3827,9 +3826,9 @@ Skill 的规范化逻辑根是 skills/<skill-name>，skill-name 是 G.1 的 Iden
 
 ## G.8 阶段 Outcome、终态以及长流程证据刷新
 
-阶段 Outcome 的 SUCCEEDED 是一次普通 Owner Operation 或 Script 的正常结果；路由**键** SUCCEEDED 不意味着 Skill 终态已经成功。routes.PASS: SUCCEEDED 的右侧 SUCCEEDED 是**请求**发布 Invocation 成功，必须再通过 §12.8/§12.9 的门禁、Goal 与资源责任复核。Reconcile Owner SUCCEEDED 只是在 Runtime 校验证明后映射 COMMITTED / NOT_COMMITTED 或停止，从不直接发布 Skill 成功。§22.1 是 §12.1 的规范化路由矩阵摘要，必须作为检查必需/禁止路由键的统一来源。§20.1 表格中「沿 SUCCEEDED」仅指沿**当前 Mutation Operation 阶段的 SUCCEEDED 边**，不是直接发布 Invocation 的 SUCCEEDED 终态。
+阶段 Outcome 的 SUCCEEDED 是一次普通 Owner Operation 或 Script 的正常结果；路由**键** SUCCEEDED 不意味着 Skill 终态已经成功。仅 `postcondition.routes.PASS: SUCCEEDED` 可以请求发布 Invocation 成功，必须再通过 §12.8/§12.9 的门禁、该最终阶段全部 Predicate/Evidence 与资源责任复核。Reconcile Owner SUCCEEDED 只是在 Runtime 校验证明后映射 COMMITTED / NOT_COMMITTED 或停止，从不直接发布 Skill 成功。§22.1 是 §12.1 的规范化路由矩阵摘要，必须作为检查必需/禁止路由键的统一来源。§20.1 表格中「沿 SUCCEEDED」仅指沿**当前 Mutation Operation 阶段的 SUCCEEDED 边**，不是直接发布 Invocation 的 SUCCEEDED 终态。
 
-E30/E40 的严格绑定规则有意保留：较新的已接纳权威记录即使规范化值相同，也可能使旧 PASS 的 Producer/Evidence 绑定失效。建议的显式模式是在最终 Goal Postcondition 前重新执行授权的权威 Observation，将新 Producer output 作为参数来源，绑定新 Evidence，再取得新的 Goal PASS；Trace 保留此前的旧 PASS/旧 Evidence、新判断和所有派发事件。不得隐式换绑、自动刷新、悄悄重算旧 Predicate。未来若要支持受控重验策略，须显式升级契约版本。
+E30/E40 的严格绑定规则有意保留：较新的已接纳权威记录即使规范化值相同，也可能使旧 PASS 的 Producer/Evidence 绑定失效。建议的显式模式是在最终 Postcondition 前重新执行授权的权威 Observation，将新 Producer output 作为参数来源，绑定新 Evidence，再取得阶段聚合 PASS 并直接请求 SUCCEEDED；Trace 保留此前的旧 PASS/旧 Evidence、新判断和所有派发事件。不得隐式换绑、自动刷新、悄悄重算旧 Predicate。未来若要支持受控重验策略，须显式升级契约版本。
 
 ## G.9 新增验收 E105–E114
 
@@ -3874,7 +3873,6 @@ G.1–G.9 的继承用例与新增 E115–E120 共同组成 v1alpha4 候选预�
 | PROCEDURE_START_MISSING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E56 | 规范用例已定义 |
 | NODE_ID_RESERVED | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E34/E56 | 规范用例已定义 |
 | FINAL_POSTCONDITION_MISSING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E11 | 规范用例已定义 |
-| FINAL_POSTCONDITION_GOAL_MISMATCH | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | 待补独立 Fixture | 待 Fixture |
 | ENTRY_PRECONDITION_REF_INVALID | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E52 | 规范用例已定义 |
 | ENTRY_PRECONDITION_BYPASSED | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E24/E51 | 规范用例已定义 |
 | SUCCESS_BYPASSES_FINAL_POSTCONDITION | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E18/E64 | 规范用例已定义 |
