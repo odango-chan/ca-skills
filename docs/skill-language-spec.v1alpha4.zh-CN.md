@@ -1004,7 +1004,7 @@ Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时必�
 - **全局门禁必经性：** 对每条从 `start` 到业务 MUTATION 派发或 Invocation `SUCCEEDED` 的可达路径，若声明 Contract `precondition`，该路径必须经过这个唯一阶段的聚合 `PASS`。先前 PASS 的 Trace/原绑定保留，经过后续其他 Node 时不凭阶段名称重做判断；Runtime 每次派发业务 Mutation 以及发布成功前按 §17/§24 复核原已接受的全体成员及 Evidence。否则报 `ENTRY_PRECONDITION_BYPASSED`；无效标量、数组/对象、错误身份或不存在的阶段报 `ENTRY_PRECONDITION_REF_INVALID`。多个业务前置判断放进同一阶段的 `predicates` 列表，Procedure 其他 Precondition 仍为局部门禁。
 - **局部门禁：** 每次业务 Mutation 派发前，Runtime 还复核同 Node 的 Precondition，以及正常完成并直接进入该 Mutation 的局部判断；跨 Node 的局部判定仅在直接前驱判断沿正常结果边进入目标 Node、且 Mutation 为其首阶段时复核。全局门禁与局部门禁重合时同一执行结果只复核一次。Reconcile 仍按 §20 的独立条件准入。
 - **成功证明：** 唯一允许请求 Invocation `SUCCEEDED` 的源码边是一个**可达 Postcondition 阶段**的**聚合 `PASS` 边**，并且其路由**直接**指向 `SUCCEEDED`。该 Postcondition 的全部 Predicate 均 PASS 后，才视为本次 `contract.goal` 的最终证明；任何 Operation/Observation/Precondition、Postcondition 的 FAIL/UNKNOWN、或中间业务 Node 的路由都不能直接请求成功。没有 `postcondition.goal` 或 `contract.postconditions` 之类的重复声明。某个 Postcondition 的 PASS 若指向另一 Node，仅属于局部验收；**它的 PASS 不跨 Node 携带为 Goal 证明**。若后续又发生 READ/Script/Mutation/Reconcile，必须在其后再次走最终 Postcondition PASS 直接到成功终态。
-- **多条成功分支：** 正常路径和 Reconcile 恢复路径可以各有不同的最终 Postcondition，无需强制汇合；各自必须聚合 PASS 且直达 SUCCEEDED。已有正常路径不能替异常路径借用一个旧 PASS。每条成功路径均满足相同的全局门禁、Evidence、提交状态和资源责任检查。没有任何可达 Postcondition PASS→SUCCEEDED 边时，报 `FINAL_POSTCONDITION_MISSING`；存在合法最终边但另一条可达成功边不是来自 Postcondition PASS 时，报 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`。这些优先级仅说明诊断条件，不使非法的成功边合法。
+- **多条成功分支与恢复来源：** 不同业务路径可以各有最终 Postcondition，或原 Mutation 的普通成功与 Host 恢复完整成功输出后在**同一**原 Node 的后续阶段汇聚；均必须在实际所选路径上聚合 PASS 并直达 SUCCEEDED。Host 恢复输出仍须保留独立 Producer/Evidence 绑定，不能借用另一条路径的旧 PASS。每条成功路径均满足相同的全局门禁、Evidence、提交状态和资源责任检查。没有任何可达 Postcondition PASS→SUCCEEDED 边时，报 `FINAL_POSTCONDITION_MISSING`；存在合法最终边但另一条可达成功边不是来自 Postcondition PASS 时，报 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`。这些优先级仅说明诊断条件，不使非法的成功边合法。
 - **安全终态：** Runtime 发布 SUCCEEDED 时复核最终 Postcondition **每一个已执行且必须 PASS 的成员**的原绑定、Producer、Scope、Correlation、Evidence 和 Freshness，复核可选全局门禁及资源责任。不能隐式重跑 Predicate、重新查询、换绑旧 Evidence，也不能用另一分支的旧 PASS 顶替当前最终阶段。若失败，按 §12.8 的 SAFE_STOPPED / UNRESOLVED / FAILED 顺序安全停止。STOP 分支无须最终 Goal 证明，仍须记录实际终态和责任。
 
 **Runtime 单路径执行与 DAG 汇合（Normative）。** 每个 Invocation 在任意时刻只有一个活动阶段；每个实际阶段 Outcome 只选择一条后继边，绝不并行展开所有 `routes`，也不等待其他可能的入边。同一个 `(NodeId, Stage)` 在同一次 Invocation 内**最多进入并执行一次**；回边、循环或重复到达在构建期报 `CONTROL_FLOW_CYCLE`，若 Runtime 检测到重复进入则禁止派发并按 §12.8 安全停止。多入边表示**不同可能执行路径的静态汇聚**，不是一次运行时的多路 Join。实际进入汇合阶段时，Producer Output、原调用身份、局部门禁和 Evidence 只能沿本次已选择的真实前驱链物化，不可从未走过的另一分支拼接、等待或取任意值；Compiler 要求每一条可达路径都满足来源可用性和全局门禁。§12.9 伪代码中 incoming 的 AND 仅是**所有可能路径均安全**的静态证明，不是 Runtime 合并若干执行的 Outcome。Action Budget 只计实际发生的派发/Script；未走过的其他分支不计，§20 的 Mutation 责任按每个真实派发的独立调用身份保存。最终 Postcondition 聚合 PASS 仅证明**当前实际执行路径**的 Goal，不能借用另一候选路径的证据。
@@ -1458,7 +1458,7 @@ Predicate 的 PASS 表示命题得到充分支持。FAIL 表示命题被充分�
 | Mutation | SUCCEEDED：禁止 / 必填 | 已声明的 Owner FAILED、NOT_COMMITTED，以及 Runtime OUTCOME_UNKNOWN | Runtime DENIED、受信恢复已提交且无承诺普通输出时的 COMMITTED | 可选 COMMITTED 省略时直接按 §12.8 安全停止；OUTCOME_UNKNOWN 只能指向 UNRESOLVED 或 SAFE_STOPPED |
 | Host 内部 Reconcile READ（非作者阶段） | 不适用 | 不适用 | 不适用 | 专用 READ 的结果归并到原 Mutation，按 §12.7/§20 审计 |
 
-**成功终态目标限制（v1alpha4 Normative）：** 上表规范的是 `routes` 的允许/必填**键**，不是所有键可指向的**终态目标**。仅 `postcondition.routes.PASS: SUCCEEDED` 合法；其余任何 Stage / Outcome 的路由若指向 `SUCCEEDED`（包括 Operation 的 `SUCCEEDED: SUCCEEDED` 或 `COMMITTED: SUCCEEDED`、Precondition 的 `PASS: SUCCEEDED`、Postcondition 的 `FAIL/UNKNOWN: SUCCEEDED`），均按 `SUCCESS_BYPASSES_FINAL_POSTCONDITION` 阻止构建。Postcondition 的 `PASS` 指向另一个业务 Node 则属于局部验收，不产生可继承的 Goal 证明。**此目标约束不改变**其他合法 Outcome 的路由键集合与停止终态。
+**成功终态目标限制（v1alpha4 Normative）：** 上表规范的是 `routes` 的允许/必填**键**，不是所有键可指向的**终态目标**。仅 `postcondition.routes.PASS: SUCCEEDED` 合法；其余任何 Stage / Outcome 的路由若指向 `SUCCEEDED`（包括 Operation 的 `SUCCEEDED: SUCCEEDED` 或 `COMMITTED: SUCCEEDED`、Precondition 的 `PASS: SUCCEEDED`、Postcondition 的 `FAIL/UNKNOWN: SUCCEEDED`），在**已存在可达合法最终 PASS→SUCCEEDED** 时按 `SUCCESS_BYPASSES_FINAL_POSTCONDITION` 阻止构建；如果没有任何合法最终成功边则优先 `FINAL_POSTCONDITION_MISSING`。Postcondition 的 `PASS` 指向另一个业务 Node 则属于局部验收，不产生可继承的 Goal 证明。**此目标约束不改变**其他合法 Outcome 的路由键集合与停止终态。
 
 缺必填键报 ROUTE_OUTCOME_MISSING。可选 Runtime 边省略时直接进入 §12.8 的终态裁决，并保留诊断和责任。显式配置非末阶段的正常键报 ROUTE_NORMAL_OUTCOME_NOT_ALLOWED。正常构建缺少 Script FAILED 路由报 `ROUTE_OUTCOME_MISSING` 并阻断构建。§24.2 的缺边规则仅用于 Runtime 遇到异常执行图时的防御性停止。Studio 补全和 Compiler 校验应共用本矩阵。本节即为完整路由矩阵的唯一 Normative 判定入口；资料性测试视角见附录 K。任何外部机器镜像均不能取代本节或授权新 Outcome。
 
@@ -3047,7 +3047,7 @@ expected:
 | E39：多 Owner 快照缺少某个实际链接的导出归属 | DEPENDENCY_EXPORT_OWNER_UNVERIFIED |
 | E40：较新的可信记录与旧绑定同值，但版本已取代旧绑定 | Trace 保留先前 PASS，终态 UNRESOLVED |
 | E41：首节点只含 Postcondition，且其聚合 PASS 直接路由到 SUCCEEDED | 该 PASS 边即本次 Goal 的最终证明，不需要额外 goal 字段 |
-| E42：Postcondition 聚合 PASS 后经另一个 Node 直接成功；对照把最后一个 Node 改为新的 Postcondition PASS→SUCCEEDED | 前者 SUCCESS_BYPASSES_FINAL_POSTCONDITION；后者合法，最终证明必须来自最后一个 Postcondition 的直接成功边 |
+| E42：Postcondition 聚合 PASS 后经另一个 Node 直接成功且图中没有其他合法最终边；对照把最后一个 Node 改为新的 Postcondition PASS→SUCCEEDED | 前者 FINAL_POSTCONDITION_MISSING 优先；后者合法，最终证明必须来自最后一个 Postcondition 的直接成功边 |
 | E43：多 Owner 快照中已有唯一归属，但 Owner 越权 | DEPENDENCY_OWNER_MISMATCH |
 | E44：不可达 Precondition Node 的 PASS 指向 `verify-subject` 这一可达 Node，而不是非法直达 SUCCEEDED | UNREACHABLE_NODE 警告；不可达来源边不参与全局门禁传播，也不能凭此制造新成功证明 |
 | E45：先经过全局 Precondition 聚合 PASS，最后由 Postcondition PASS 直达 SUCCEEDED；对照把全局 Precondition 放到局部验收之后而在终态前直接成功 | 前者合法；对照仍须由最后 Postcondition 直达成功，不能由 Precondition PASS 路由 SUCCEEDED |
@@ -3069,7 +3069,7 @@ expected:
 | E61：同 Node 全局 Precondition 隐式 PASS 后，Mutation 返回 OUTCOME_UNKNOWN | 门禁覆盖通过；Host 只可作一次受控状态确认，仍不明则沿原 Operation 的 OUTCOME_UNKNOWN 安全停止；本 Node 后续 Postcondition 不执行 |
 | E62：Runtime 在派发前发出 DENIED，后续 Postcondition 绑定其成功输出 | 直接走 DENIED 路由。Postcondition 不执行，Operation 不提供成功输出 |
 | E63：Owner 未声明 `recoverableOutputSchema`，原 Mutation COMMITTED 路径的 Observation 却绑定其 `operation.output` | RECONCILE_OUTPUT_UNAVAILABLE；该路径没有可绑定的恢复业务输出 |
-| E64：前序局部 Postcondition PASS 后又发生 Mutation，随后尝试从 Operation 或 Precondition 直接请求成功 | SUCCESS_BYPASSES_FINAL_POSTCONDITION；任何旧局部 PASS 都不能跨节点证明最终 Goal |
+| E64：保留另一可达且合法的最终 Postcondition 成功边，前序局部 Postcondition PASS 后又发生 Mutation，随后从 Operation 直接请求成功 | SUCCESS_BYPASSES_FINAL_POSTCONDITION；旧局部 PASS 不可跨节点证明 Goal |
 | E65：不可达 Node 指向可达的最终 Postcondition 所在 Node（详见 E.7） | UNREACHABLE_NODE 警告；只考虑可达入边，全局门禁仍由可达入边的 AND 判定 |
 | E66：Procedure Script 读取外层对象中的可选字段（详见 E.7） | 合法返回产生 **Script Operation 的阶段 Outcome SUCCEEDED**，按既有阶段路由继续，不能由 Script 直接请求 Invocation SUCCEEDED；抛异常或无效返回都走阶段 FAILED，分别记录 SCRIPT_EXECUTION_FAILED 或 OUTPUT_SCHEMA_INVALID，且没有成功输出 |
 
@@ -3152,7 +3152,7 @@ E60 从 §12.1 的正例独立派生四个**Owner 发布物负例**。每个变�
 - E61 以 §12.1 为基线，把 E.8 的上下文 Predicate 加到 PredicateSet，并在 `create-subscription` 增加引用该 Predicate 的 Precondition，实参为 `context.ueRef`。FAIL 和 UNKNOWN 直接停止，PASS 自动进入 Operation。Contract 只增加 `precondition: create-subscription.precondition`。令 Precondition PASS、Create 超时后 Host 受控调和仍为 OUTCOME_UNKNOWN，原 Node 的 Postcondition 不执行，只沿其 OUTCOME_UNKNOWN 安全终止。
 - E62 以 §12.1 为基线，令 `create-subscription.operation` 在派发前由 Runtime 发出 DENIED。其路由为 FAILED。该 Node 的 Postcondition 不执行，原调用没有成功输出或已派发记录。
 - E63 以 §12.1 为基线，在 Owner `mutation.reconcile` 中删除恢复输出 Schema/path，令 `create-subscription.operation.routes.COMMITTED` 指向一个新 Observation，它的参数绑定 `create-subscription.operation.output.subscriptionRef`。因为 COMMITTED 没有普通成功输出，报 RECONCILE_OUTPUT_UNAVAILABLE；不是重试也不是原始回包伪造。
-- E64 以 §12.1 为基线，追加 `verify-subject` 作为入口局部 Postcondition，将其 PASS 指向 `create-subscription`（不得在阶段级写 Goal）。从 `create-subscription` 中移除 Postcondition，并让 Operation 的正常 SUCCEEDED 请求 Invocation `SUCCEEDED`；Reconcile 恢复路径的最终 Postcondition 仍保持聚合 PASS→SUCCEEDED。该变体必须拒绝正常 Create 路径，因为成功请求直接来自 Operation 而不是最终 Postcondition，报 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`。正向对照保留原 `create-subscription.postcondition`，使其聚合 PASS 直接路由 SUCCEEDED，即可在完成全部 Evidence/责任检查后合法结束。
+- E64 以 §12.1 为基线，新增入口分流 Precondition：一条可达分支直接进入仍有合法 Postcondition PASS→SUCCEEDED 的 `verify-subject`；另一条进入先做局部 Postcondition PASS 的 `verify-local`，再进入独立 Mutation Node，令其 SUCCEEDED 直接请求 Invocation SUCCEEDED。后者必须报 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`，因为同图**已经**有另一合法最终成功边，但不能借其 PASS 为本分支证明 Goal。对照让独立 Mutation 后重新执行最终 Postcondition 聚合 PASS→SUCCEEDED，即可在通过全部 Evidence/责任检查后合法结束。
 
 - E65 复用 E42 中由 `verify-local.postcondition` 聚合 PASS→SUCCEEDED 的正例，再加入 E44 的不可达 Precondition Node，并将其 PASS 路由改为 `verify-local`。该额外入边参与语法和链接校验，但不参与 `verify-local.postcondition` 的全局门禁可达入边汇合；不会产生可携带的旧 Goal 证明。
 
@@ -3273,7 +3273,7 @@ predicates:
 |---|---|
 | E98 | output 保证明示覆盖 output.result，记录可验证该子值，且子值 Schema 可赋给参数：通过。反向使用 output.result 保证绑定整个 output：PREDICATE_EVIDENCE_UNSATISFIABLE |
 | E99 | 向 Compiler 的分析图单测注入无可达入边的可达非入口阶段：REACHABLE_STAGE_NO_INCOMING_EDGE。此为内部不变量测试 |
-| E100 | 先有局部 Postcondition 聚合 PASS（PASS 指向下一 Node），之后分别经过 READ/Observation、Procedure Script SUCCEEDED 或 Mutation SUCCEEDED，再从该后继阶段直接请求 Invocation SUCCEEDED；对照在后继操作后重新执行最终 Postcondition 聚合 PASS→SUCCEEDED | 旧局部 PASS 无法携带成为 Goal 证明；后继非 Postcondition 阶段直接成功均报 SUCCESS_BYPASSES_FINAL_POSTCONDITION；重新取证并由最终 Postcondition PASS→SUCCEEDED 才合法，Runtime 复核原绑定 Evidence |
+| E100 | 图中保留另一条可达合法最终 Postcondition PASS→SUCCEEDED 边；在待验分支先有局部 Postcondition PASS，之后分别经过 READ/Observation、Script 或 Mutation，再从该后继阶段直接请求成功；对照在后继操作后重新执行最终 Postcondition PASS→SUCCEEDED | 待验分支均报 SUCCESS_BYPASSES_FINAL_POSTCONDITION；如果移除另一合法最终边则优先 FINAL_POSTCONDITION_MISSING。重新取证和最终 PASS 直接到成功才合法 |
 
 | E101 | §13.3：将已验证 Host Session 身份直接绑定至 callable，通过。分别用同值 Script 输出、请求字段、含无权威身份的复合对象替换，报 CALLABLE_ARGUMENT_PROVENANCE_INVALID。原绑定构建通过但派发前无法核验时，报 CALLABLE_ARGUMENT_PROVENANCE_UNVERIFIED，且无派发 |
 | E102 | **静态：** 合法同域来源投影或已由可信 IndependentDomains 批准的跨域关系，以及需要时受信的 factIdentity / Scope 映射可链接；删掉来源身份、部署域关系、共同事实映射，或提供未授权、重复、自反域对，报 EVIDENCE_GUARANTEE_LINK_INVALID；描述符和受信关系有效、但静态发布的 Producer 类型/允许集合使独立性组对**任何合法执行都不可能满足**时报 PREDICATE_EVIDENCE_UNSATISFIABLE。**Runtime：** 静态可满足但本次两成员来自相同底层记录、过期或不可核实，Predicate UNKNOWN；真实独立的有效记录按业务 Predicate 求值。静态与运行时分别是 E102 的独立 Fixture 变体，不新增 E 编号 |
