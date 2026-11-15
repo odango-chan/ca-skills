@@ -3059,7 +3059,7 @@ expected:
 | E33：Reconcile 已确认提交但其承诺恢复的资源 Ref 无效 | 保留已提交状态并 SAFE_STOPPED，后续节点不可读取该 Ref |
 | E34：Procedure 使用旧的根字段 inputs，或以 input.ueRef 绑定参数；另测节点 ID 为 context | 分别报 SOURCE_ROOT_INVALID、SOURCE_PATH_INVALID 和 NODE_ID_RESERVED |
 | E35：Contract 使用 `allowedResources` 包装，或用对象作为 `dependencies.ca` 的值 | 分别为 UNKNOWN_FIELD 和 DEPENDENCY_REQUIREMENT_INVALID |
-| E36：调用实参使用不匹配 SourcePath 的裸字符串 | SOURCE_PATH_INVALID |
+| E36：调用实参使用不匹配 SourcePath 的裸字符串，或裸写枚举常量 `POST_CREATE`；对照引用完整已声明的 SourcePath、或加引号的 `'POST_CREATE'` | 裸标量按 SourcePath 解析，非法则 SOURCE_PATH_INVALID；加引号为字符串字面量（仍受目标 Schema 类型约束）；诊断提示作者为枚举常量加引号 |
 | E37：SourcePath 直接读取 Producer Schema 中可缺失的字段 | SOURCE_NOT_AVAILABLE |
 | E38：`provides` 引用不存在的保证 ID | EVIDENCE_GUARANTEE_LINK_INVALID |
 | E39：多 Owner 快照缺少某个实际链接的导出归属 | DEPENDENCY_EXPORT_OWNER_UNVERIFIED |
@@ -3075,7 +3075,7 @@ expected:
 | E49：Operation 成功，但同 Node 的 Observation 返回 UNKNOWN | 走 Observation 的 UNKNOWN 退出路由，保留已完成 Operation 的结果和责任记录，不执行 Postcondition |
 | E50：Contract 单数全局 precondition 引用 check-ready.precondition，其中含两个 Predicate，分别按顺序 PASS | 静态必经门禁覆盖通过；两个 Predicate 均 PASS 才使这个唯一全局阶段 PASS |
 | E51：两条可达路径汇合，只有其中一条经过 Contract 单数全局 Precondition 聚合 PASS | ENTRY_PRECONDITION_BYPASSED，即使分支没有 Mutation；汇合的全局门禁按 AND 计算 |
-| E52：Contract 单数 precondition 错写成 Postcondition 引用、不存在的 Node、非 Precondition 阶段或列表/空标量 | ENTRY_PRECONDITION_REF_INVALID；不接受曾经的多引用列表语法 |
+| E52：Contract 单数 precondition 错写成 Postcondition 引用、不存在的 Node、非 Precondition 阶段、列表/空标量，或引用**存在但从 start 不可达**的 Precondition 阶段 | ENTRY_PRECONDITION_REF_INVALID；不可达引用先于 BYPASSED；不接受曾经的多引用列表语法 |
 | E53：单数全局 Precondition 曾聚合 PASS，发布成功前其任一成员 Evidence 过期 | ENTRY_PRECONDITION_INVALIDATED；按 §12.8 停止，保留历史 PASS 与成员来源 |
 | E54：在非末阶段为正常 Outcome 配置跨 Node 路由 | ROUTE_NORMAL_OUTCOME_NOT_ALLOWED |
 | E55：末阶段漏写正常 Outcome 的路由 | ROUTE_OUTCOME_MISSING |
@@ -3084,7 +3084,7 @@ expected:
 | E58：路由预期 FAILED，但已有部分完成资源待保全 | Runtime 发布 SAFE_STOPPED，记录原 Outcome 和 TERMINAL_STATE_MISMATCH |
 | E59：原 Mutation 的 OUTCOME_UNKNOWN 改成直接 FAILED 或继续进入新业务 Mutation Node | RECONCILE_CONTRACT_INVALID；未知提交状态只能请求安全停止 |
 | E60：Owner `mutation.reconcile` 缺 callable、bind 非 originalInvocationId、proofPath 无效、或恢复 Schema 无法赋给原普通输出 Schema | RECONCILE_CONTRACT_INVALID；不再构造作者级 Reconcile Node |
-| E61：同 Node 全局 Precondition 隐式 PASS 后，Mutation 返回 OUTCOME_UNKNOWN | 门禁覆盖通过；Host 只可作一次受控状态确认，仍不明则沿原 Operation 的 OUTCOME_UNKNOWN 安全停止；本 Node 后续 Postcondition 不执行 |
+| E61：同 Node 全局 Precondition 聚合 PASS 通过**带 PASS 标签的自动推进边**进入 Mutation，随后返回 OUTCOME_UNKNOWN；对照该全局阶段返回 FAIL/UNKNOWN | PASS 自动边不触发 ENTRY_PRECONDITION_BYPASSED；Host 受控确认仍不明则 OUTCOME_UNKNOWN 安全停止，后续 Postcondition 不执行；FAIL/UNKNOWN 只沿其停止边，Mutation 不派发 |
 | E62：Runtime 在派发前发出 DENIED，后续 Postcondition 绑定其成功输出 | 直接走 DENIED 路由。Postcondition 不执行，Operation 不提供成功输出 |
 | E63：Owner 未声明 `recoverableOutputSchema`，原 Mutation COMMITTED 路径的 Observation 却绑定其 `operation.output` | RECONCILE_OUTPUT_UNAVAILABLE；该路径没有可绑定的恢复业务输出 |
 | E64：保留另一可达且合法的最终 Postcondition 成功边，前序局部 Postcondition PASS 后又发生 Mutation，随后从 Operation 直接请求成功 | SUCCESS_BYPASSES_FINAL_POSTCONDITION；旧局部 PASS 不可跨节点证明 Goal |
@@ -3115,7 +3115,7 @@ E07 的 READ Operation 基线：将 `procedure.nodes.inspect-registration` 的 `
 | E25 | 在 Host Schema 的 `properties` 加入 `request: {type: object}` | CONTEXT_REQUEST_COLLISION |
 | E31 | 将 `checkedAt.terminal` 改为 11000 | Trace 保留 PASS，终态 UNRESOLVED |
 | E35 | 将 `contract.dependencies.ca` 替换为 `{id: urn:example:ca:tools}` | DEPENDENCY_REQUIREMENT_INVALID |
-| E36 | 将 `procedure.nodes.inspect-registration.observation.arguments.ueRef` 改为裸字符串 `ue-1` | SOURCE_PATH_INVALID |
+| E36 | 将 `procedure.nodes.inspect-registration.observation.arguments.ueRef` 改为裸字符串 `ue-1`；独立变体给一个接受字符串的 Owner 入参 `phase` 传入裸枚举 `POST_CREATE`，对照 `'POST_CREATE'` 与合法 `context.request.phase`（Schema 声明并且类型相容） | 两个裸字符串均 SOURCE_PATH_INVALID；加引号合法，显式 SourcePath 经链接/Schema 验证后合法；Diagnostic message 应提示字符串常量加引号，而不能修改源码 |
 | E37 | 在 Registration 输出 Schema 的 `properties` 加入 `reason: {type: string}`，保持其可选，并将 `procedure.nodes.inspect-registration.postcondition.predicates[0].arguments[0]` 改为 `inspect-registration.observation.output.reason` | SOURCE_NOT_AVAILABLE，先检查路径可用性再检查类型 |
 | E38 | 将 `catalog.spec.contracts[0].guarantees.evidence.provides[0].guarantee` 改为 `ue.missing` | EVIDENCE_GUARANTEE_LINK_INVALID |
 | E39 | 从表后的多 Owner 正例开始，删除 Registration 输出 Schema 的归属 | DEPENDENCY_EXPORT_OWNER_UNVERIFIED |
@@ -3145,7 +3145,7 @@ E39、E43 的 ca 快照基线：将可信 Owner 集合设为 `[example-ue-owner,
 | E45 | 以 E.8 为基线新增 `check-subject.precondition`（使用 E.8 的 context.ueRef Predicate），把 `start` 改为 `check-subject`，PASS 进入 `verify-subject`、FAIL/UNKNOWN 停止，Contract 声明 `precondition: check-subject.precondition`。**独立反例**将 `start` 改回 `verify-subject`，令其 Postcondition PASS→`check-subject`，而 `check-subject.precondition.routes.PASS: SUCCEEDED`，不形成回边，Contract 仍指向 check-subject.precondition | 正向有效：全局门禁先 PASS，再由最终 Postcondition PASS→SUCCEEDED；反例没有合法最终成功边，优先 FINAL_POSTCONDITION_MISSING；不得由 Precondition PASS 请求成功，且不与 CONTROL_FLOW_CYCLE 混淆 |
 | E50 | 在 E.8 新增 `check-ready`，其 `precondition.predicates` 列出两项 `example.subject.present`（均显式绑定 `context.ueRef`），PASS 指向 `verify-subject`，FAIL→FAILED、UNKNOWN→UNRESOLVED；改 `start: check-ready` 并在 Contract 写 `precondition: check-ready.precondition` | 静态覆盖通过；Runtime 只有两成员全部 PASS 才能通过唯一全局 Precondition。重复 PredicateId 是合法调用，不构成重复键 |
 | E51 | 复用 E50，在开头加入局部 `choose.precondition` 并设为 `start`，其 PASS→`check-ready`、FAIL→`verify-subject`、UNKNOWN→UNRESOLVED；`check-ready` 的 PASS 仍→`verify-subject`，后者最终 PASS→SUCCEEDED | ENTRY_PRECONDITION_BYPASSED；两条可达入边汇合时，全局 `check-ready.precondition` 只被一条路径通过 |
-| E52 | 复用 E50，将 Contract `precondition` 标量分别改为 `verify-subject.postcondition`、`no-such-node.precondition`、`verify-subject.precondition`、数组 `[check-ready.precondition]` 或空字符串 | 五种变体均报 ENTRY_PRECONDITION_REF_INVALID；只有一个正确的标量阶段引用合法 |
+| E52 | 复用 E50，将 Contract `precondition` 分别改为 `verify-subject.postcondition`、`no-such-node.precondition`、`verify-subject.precondition`、数组 `[check-ready.precondition]` 或空字符串；**第六独立变体**另建语法和路由都有效但从 start 不可达的 `unused.precondition`，将 Contract 引用指向它，保留原可达业务路径 | 六种变体均报 ENTRY_PRECONDITION_REF_INVALID；不可达全局引用由专用错误优先于入口路径 BYPASSED；其它无关诊断不能代替主诊断 |
 | E53 | 以 E.1–E.4 为基线，将 Observation 提取到前序 Node，以其输出供新增的 `check-registration` Precondition 使用。添加 `precondition: check-registration.precondition`，该阶段复用注册 Predicate。PASS 后进入 E.8 的 `verify-subject`，并将 E.8 的 Predicate 定义合入 PredicateSet，Contract 的 `goal` 改为 E.8 对应 Goal。复用 E.4 的 `checkedAt.predicate` 执行两个 Predicate，将 `checkedAt.terminal` 改为 11000 | 注册证据到期而 Goal 证明有效；ENTRY_PRECONDITION_INVALIDATED，终态 UNRESOLVED，保留两个 PASS |
 | E30、E40 | 在 E.4 的 Predicate PASS 之后、终态复核前，加入同一 Invocation 下另一条已由 Owner 校验的证据，`ref: record-2`、`producerInvocationId: read-2`、`observedAt: 1800`，其已物化查询实参仍为 `ue-1`。E30 使用 `{state: DEREGISTERED, accessState: IDLE}`；E40 使用与 record-1 相同的值。此处只向测试 Host 的证据视图注入 Owner 记录 | 原绑定的 PASS 保留在 Trace，终态 UNRESOLVED。两种情况下均不得换绑或重新调用 Predicate |
 
@@ -3167,7 +3167,7 @@ E60 从 §12.1 的正例独立派生四个**Owner 发布物负例**。每个变�
 
 阶段推进变体：
 
-- E61 以 §12.1 为基线，把 E.8 的上下文 Predicate 加到 PredicateSet，并在 `create-subscription` 增加引用该 Predicate 的 Precondition，实参为 `context.ueRef`。FAIL 和 UNKNOWN 直接停止，PASS 自动进入 Operation。Contract 只增加 `precondition: create-subscription.precondition`。令 Precondition PASS、Create 超时后 Host 受控调和仍为 OUTCOME_UNKNOWN，原 Node 的 Postcondition 不执行，只沿其 OUTCOME_UNKNOWN 安全终止。
+- E61 以 §12.1 为基线，把 E.8 的上下文 Predicate 加到 PredicateSet，并在 `create-subscription` 增加引用该 Predicate 的 Precondition，实参为 `context.ueRef`。FAIL 和 UNKNOWN 直接停止，**PASS 无显式 routes，自动进入同 Node 的 Operation，图边精确标记为 `PASS`**。Contract 写 `precondition: create-subscription.precondition`。正例令该组 PASS、Create 超时后 Host 受控调和仍 OUTCOME_UNKNOWN：静态必经性通过且不报 `ENTRY_PRECONDITION_BYPASSED`，只沿原 Operation 的 OUTCOME_UNKNOWN 安全终止，Postcondition 不执行。对照令全局 Precondition 为 FAIL / UNKNOWN，分别沿其停止边，不发生 Mutation 派发。
 - E62 以 §12.1 为基线，令 `create-subscription.operation` 在派发前由 Runtime 发出 DENIED。其路由为 FAILED。该 Node 的 Postcondition 不执行，原调用没有成功输出或已派发记录。
 - E63 以 §12.1 为基线，在 Owner `mutation.reconcile` 中删除恢复输出 Schema/path，令 `create-subscription.operation.routes.COMMITTED` 指向一个新 Observation，它的参数绑定 `create-subscription.operation.output.subscriptionRef`。因为 COMMITTED 没有普通成功输出，报 RECONCILE_OUTPUT_UNAVAILABLE；不是重试也不是原始回包伪造。
 - E64 以 §12.1 为基线，新增入口分流 Precondition：一条可达分支直接进入仍有合法 Postcondition PASS→SUCCEEDED 的 `verify-subject`；另一条进入先做局部 Postcondition PASS 的 `verify-local`，再进入独立 Mutation Node，令其 SUCCEEDED 直接请求 Invocation SUCCEEDED。后者必须报 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`，因为同图**已经**有另一合法最终成功边，但不能借其 PASS 为本分支证明 Goal。对照让独立 Mutation 后重新执行最终 Postcondition 聚合 PASS→SUCCEEDED，即可在通过全部 Evidence/责任检查后合法结束。
