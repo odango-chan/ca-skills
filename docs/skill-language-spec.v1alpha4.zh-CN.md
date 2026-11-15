@@ -1442,7 +1442,6 @@ Predicate 的 PASS 表示命题得到充分支持。FAIL 表示命题被充分�
 | `OUTCOME_UNKNOWN`（MUTATION） | Host 已尝试允许的安全结果确认但仍无法证明提交状态，或该 READ 无法准入 | 否 | 是，必须显式路由 | 只能直接请求 UNRESOLVED / SAFE_STOPPED 安全终止，禁止新的业务 Mutation |
 | `NOT_COMMITTED`（Mutation Owner） | Mutation Owner 直接或 Host 经可信调和读确认原 Mutation 未提交 | 是（仅 Mutation Owner 原始 Outcome） | 已声明时必填 | 仍需无副作用与重试授权证明，不等于 Invocation 终态；不允许隐式重发 |
 | `COMMITTED`（原 Mutation） | Host 受信恢复证明已提交，但 Owner 未承诺恢复普通 SUCCEEDED 输出 | 否 | 可选（未配置直接安全停止） | 不暴露原调用 output，不能直接请求 SUCCEEDED |
-| `NOT_COMMITTED`（原 Mutation） | Owner 可信已证明未提交，或 Host 从独立受信恢复读确认 | 是（仅 Owner 的原始类别）/ Host 可归并 | 已声明时必填 | 仍需无副作用、retryable 和原调用关联证明才可显式重试 |
 | `SUCCEEDED` / `FAILED` / `UNRESOLVED` / `SAFE_STOPPED`（Invocation） | Runtime 最终裁决；仅作 route 目标值 | 非 Owner callable Outcome | **否**，作为目标值 | `routes.PASS: SUCCEEDED` 仅请求终态，实际须经 Goal/责任/门禁复核 |
 | `EFFECT_MISMATCH` 等诊断 | Compiler 或 Runtime（按 H 的 Phase） | 非 Outcome | **否** | 诊断说明原因，终态仍由 §12.8、§20 决定 |
 
@@ -3126,7 +3125,7 @@ E39、E43 的 ca 快照基线：将可信 Owner 集合设为 `[example-ue-owner,
 | E41 | `start` 指向 E.8 的 `verify-subject`，它的 PASS 直接路由到 `SUCCEEDED` | Goal 覆盖通过。初始无证明，PASS 建立证明 |
 | E42 | 在 E.8 中把 `verify-subject.postcondition.routes.PASS` 改为 `verify-local`；新增 `verify-local` 为只含 Precondition 的 Node，其 PASS 直达 `SUCCEEDED`。对照将 `verify-local` 改为只含 Postcondition 的 Node，聚合 PASS 直达 SUCCEEDED | 前者 FINAL_POSTCONDITION_MISSING（没有任何可达合法最终边，优先于 BYPASSES）；后者有效。两个变体都不写 `goal` |
 | E44 | 在 E.8 增加一个从 `start` 不可达的 Node `unused`，声明 `precondition.predicates[0].predicate: example.subject.present`、对应 `arguments: [context.ueRef]`；其 `precondition.routes` 将 PASS 指向 `verify-subject`、FAIL 指向 `FAILED`、UNKNOWN 指向 `UNRESOLVED` | 报 UNREACHABLE_NODE；该来源节点不可达，其 PASS→verify-subject 不参与可达路径的全局门禁汇合；此处故意不使用非法的 Precondition PASS→SUCCEEDED |
-| E45 | 以 E.8 为基线新增 `check-subject.precondition`（使用 E.8 的 context.ueRef Predicate），把 `start` 改为 `check-subject`，PASS 进入 `verify-subject`、FAIL/UNKNOWN 停止，Contract 声明 `precondition: check-subject.precondition`。反向把 `verify-subject.postcondition.routes.PASS` 改为 `check-subject`、将其 `precondition.routes.PASS` 改为 `SUCCEEDED` | 正向有效：全局门禁先 PASS，再由最终 Postcondition PASS→SUCCEEDED；反向 FINAL_POSTCONDITION_MISSING（此变体没有合法最终边），不能从 Precondition PASS 请求成功 |
+| E45 | 以 E.8 为基线新增 `check-subject.precondition`（使用 E.8 的 context.ueRef Predicate），把 `start` 改为 `check-subject`，PASS 进入 `verify-subject`、FAIL/UNKNOWN 停止，Contract 声明 `precondition: check-subject.precondition`。**独立反例**将 `start` 改回 `verify-subject`，令其 Postcondition PASS→`check-subject`，而 `check-subject.precondition.routes.PASS: SUCCEEDED`，不形成回边，Contract 仍指向 check-subject.precondition | 正向有效：全局门禁先 PASS，再由最终 Postcondition PASS→SUCCEEDED；反例没有合法最终成功边，优先 FINAL_POSTCONDITION_MISSING；不得由 Precondition PASS 请求成功，且不与 CONTROL_FLOW_CYCLE 混淆 |
 | E50 | 在 E.8 新增 `check-ready`，其 `precondition.predicates` 列出两项 `example.subject.present`（均显式绑定 `context.ueRef`），PASS 指向 `verify-subject`，FAIL→FAILED、UNKNOWN→UNRESOLVED；改 `start: check-ready` 并在 Contract 写 `precondition: check-ready.precondition` | 静态覆盖通过；Runtime 只有两成员全部 PASS 才能通过唯一全局 Precondition。重复 PredicateId 是合法调用，不构成重复键 |
 | E51 | 复用 E50，在开头加入局部 `choose.precondition` 并设为 `start`，其 PASS→`check-ready`、FAIL→`verify-subject`、UNKNOWN→UNRESOLVED；`check-ready` 的 PASS 仍→`verify-subject`，后者最终 PASS→SUCCEEDED | ENTRY_PRECONDITION_BYPASSED；两条可达入边汇合时，全局 `check-ready.precondition` 只被一条路径通过 |
 | E52 | 复用 E50，将 Contract `precondition` 标量分别改为 `verify-subject.postcondition`、`no-such-node.precondition`、`verify-subject.precondition`、数组 `[check-ready.precondition]` 或空字符串 | 五种变体均报 ENTRY_PRECONDITION_REF_INVALID；只有一个正确的标量阶段引用合法 |
@@ -3806,7 +3805,7 @@ E30/E40 的严格绑定规则有意保留：较新的已接纳权威记录即使
 | E116 | Precondition 两个成员依次为 PASS/PASS、PASS/UNKNOWN、UNKNOWN/FAIL、FAIL/PASS，并提供阶段级三态 routes | 聚合结果依次 PASS、UNKNOWN、FAIL、FAIL；UNKNOWN 不能提前 PASS，FAIL 可短路；仅最终阶段结果选择 Route |
 | E117 | Postcondition 两成员依次产生 PASS/PASS、PASS/FAIL、UNKNOWN/PASS；分别让阶段 PASS 直达 SUCCEEDED 与先路由另一 Node；并在阶段根添加旧 `goal` 字段 | 只有全部成员 PASS 且 `postcondition.routes.PASS: SUCCEEDED` 的最终 Postcondition 能证明 Goal；继续到其他 Node 的 PASS 是局部判断，不可复用为成功证明；旧 `goal` 字段报 `PREDICATE_GROUP_INVALID` |
 | E118 | 在多成员判断的第二项分别注入 arity 错、类型错误、外部 Producer 无 Evidence；同一 PredicateId 复用两个不同来源调用点 | 每项必须独立报既有 `PREDICATE_ARITY_MISMATCH`、`PREDICATE_TYPE_MISMATCH`、`PREDICATE_EVIDENCE_REQUIRED`，不能借另一成员免证 |
-| E119 | Pre/Postcondition `predicates` 为空/非列表、成员缺 `arguments` 或带 `routes/goal`、Postcondition 根带 `goal`、阶段根旧 `predicate/arguments`；普通 Operation/Observation 仍写 `target`；重复 YAML Key 对照 | Predicate 组结构违反 §10.1 → `PREDICATE_GROUP_INVALID`；旧 `target` 单字段 → `UNKNOWN_FIELD`（不做兼容转换）；重复 YAML Mapping Key → `YAML_PARSE_ERROR` |
+| E119 | Pre/Postcondition `predicates` 为空/非列表、成员缺 `arguments` 或带 `routes/goal`、Postcondition 根带 `goal`、阶段根旧 `predicate/arguments`；普通 Operation/Observation 写 `target`，或作者 Operation 使用已废弃的 `reconcile`/`resolve` 字段；重复 YAML Key 对照 | Predicate 组结构违反 §10.1 → `PREDICATE_GROUP_INVALID`；旧 `target`、作者 `reconcile`、`resolve` 字段均 `UNKNOWN_FIELD`（不做兼容转换）；重复 YAML Mapping Key → `YAML_PARSE_ERROR` |
 | E120 | Contract 单数 `precondition: check-ready.precondition` 引用含两 Predicate 的阶段；对照一项 PASS 一项 UNKNOWN、全部 PASS、汇合路径仅一条通过全局门禁；最终 Postcondition PASS 后又经 Mutation，再从非 Postcondition 请求成功 | 只有整个阶段 PASS 才满足唯一全局门禁；汇合路径不允许借 PASS；最终成功必须来自新的 Postcondition 聚合 PASS→SUCCEEDED，旧局部 PASS 不可复用；Runtime 逐项复核原绑定 Evidence |
 
 G.1–G.9 的继承用例与新增 E115–E120 共同组成 v1alpha4 已冻结的规范预期集。E115–E120 尚无实际执行的机器 Fixture 或 CI 通过证明。文档审计不代表 Compiler、Native/WASM、Studio、Runtime 已实现上述语义；产品符合性依旧由 §45.2 控制。
@@ -4269,7 +4268,7 @@ flowchart TD
 | DFX-029 | `EVIDENCE_MISSING` / R_RUNTIME | Predicate.required Guarantee 没有任何匹配 Evidence Ref；结果必须 UNKNOWN 而非 FAIL/PASS | NOT_RUN |
 | DFX-030 | `DEADLINE_EXCEEDED` / R_RUNTIME | 在受控时钟中使 Invocation Deadline 于派发资格检查前到期；覆盖存在部分资源的终态选择 | NOT_RUN |
 | DFX-031 | `CANCELLED` / R_RUNTIME | 在外部调用派发前插入 Host 取消事件；验证不派发及资源责任裁决 | NOT_RUN |
-| DFX-032 | `RECONCILE_UNRESOLVED` / R_RUNTIME | 原 Mutation 已派发且结果未知，Reconcile READ 的独立证明不足，走 UNRESOLVED 并持久化原责任 | NOT_RUN |
+| DFX-032 | `RECONCILE_UNRESOLVED` / R_RUNTIME | 原 Mutation 已派发且结果未知，Host 的专用 Reconcile READ 未取得有效证明；内部记录该诊断，原 Mutation 走 OUTCOME_UNKNOWN 安全停止，持久化原责任 | NOT_RUN |
 | DFX-033 | `PRECONDITION_INVALIDATED` / R_RUNTIME | 局部 Precondition 原 PASS，但相关 Evidence 在受保护 Mutation 派发前失效；按 §12.9 复核拒绝 | NOT_RUN |
 | DFX-034 | `DUPLICATE_RESOURCE` / R_RUNTIME | 两个权威 Owner 记录为同一已确认资源身份给出冲突的实例或重复登记；运行时按 §24.2 拒绝 | NOT_RUN |
 | DFX-035 | `STALE_LIFECYCLE` / R_RUNTIME | Evidence 记录合法但 Lifecycle/Generation 已过期，且请求属于当前 Lifecycle | NOT_RUN |
@@ -4282,7 +4281,7 @@ flowchart TD
 
 ### K.2.0 两个诊断的可表达性复核（Informative，不修改 H 的规范性分类）
 
-**DFX-003 / `DUPLICATE_ID`：内部不变量码。** 当前 v1alpha4 的 `nodes` / `predicates` 采用 Mapping；在单一 Mapping 中重复同名键属于 §10.1 更早的 `YAML_PARSE_ERROR`。跨角色 `NodeId`、`PredicateId` 和 `GoalId` 并不自动共用一个全局身份空间；不能为让这个 Code 可触发而引入未声明的跨类别去重规则。本轮保留附录 H 的 `(DUPLICATE_ID,C_STATIC)` 作为**仅内部 IR 不变量诊断**，没有作者源码触发入口；需要注入异常 IR 的内部单测，不能以不存在的作者 Fixture 计算覆盖；当前也没有的独立合法解析输入。需要实际证明存在其他可构造路径，或以 §45.1 C 类审议该诊断在未来版本的定位。不能借此声称 H 全量机器诊断套件已通过。
+**DFX-003 / `DUPLICATE_ID`：内部不变量码。** 当前 v1alpha4 的 `nodes` / `predicates` 采用 Mapping；在单一 Mapping 中重复同名键属于 §10.1 更早的 `YAML_PARSE_ERROR`。跨角色 `NodeId`、`PredicateId` 和 `GoalId` 并不自动共用一个全局身份空间；不能为让这个 Code 可触发而引入未声明的跨类别去重规则。本轮保留附录 H 的 `(DUPLICATE_ID,C_STATIC)` 作为**仅内部 IR 不变量诊断**，没有作者源码触发入口；需要注入异常 IR 的内部单测，不能以不存在的作者 Fixture 计算覆盖；当前没有作者源码可构造的独立触发输入，也**不要求**制造这种输入；内部测试应通过注入重复 IR 身份来验证该防御性诊断。未来如果希望把此码扩张为作者错误，须经 §45.1 C 类版本化审议。不能借此声称 H 全量机器诊断套件已通过。
 
 **DFX-006 / `CONTROL_FLOW_AMBIGUOUS`：具有不重复 YAML Key 的最小违例形状。** 在原本有效的 Procedure/依赖快照中把某一个原本有效的 Operation Node 改成（其他字段和路由维持已合法版本）：
 
