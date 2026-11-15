@@ -2477,6 +2477,14 @@ v1alpha4 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 Observatio
 
 **版本边界和复查门槛。** 这份记录仅允许 A/B 分类所列的既有规则修正、互相矛盾表述删除与未指定输入的诊断优先级澄清；没有增设 `resolve`、`postcondition.goal`、新诊断代码、Effect、Stage、重试上限或授权来源。**若后续的独立 Fixture 对比证实某修订确实改变了已冻结的合法输入集合、既定 E 预期或安全结果，则该差异不得以本勘误掩盖：应从此 v1alpha4 冻结基线另启 v1alpha5（或对应独立互操作协议版本）的 C 类评审。** 本次文档审查、Source Hygiene 及下面 K.3.2 的待运行候选不构成 §45.2 的 Native/WASM/Studio/Host/Owner/5GC 产品符合性证明。
 
+### 45.1.3 v1alpha4 ToolCatalog/CapabilityContracts 版本统一的 C 类裁决（2026-11-15）
+
+**正式复审范围：** 先前冻结的 v1alpha4 文本曾允许语言 `connectionagent.io/v1alpha4` 直接链接 ToolCatalog/CapabilityContracts `v1alpha3`。本次依据新的统一版本决定，**明确废止当前语言内的混合版本互操作组合**，将作者语言、ToolCatalog 和 CapabilityContracts 的显式版本分别固定为 `connectionagent.io/v1alpha4`、`connectionagent.io/toolcatalog/v1alpha4` 和 `connectionagent.io/capability-contracts/v1alpha4`（F.0–F.2）。该变化缩小本版直接认可的外部发布物集合，因此是**有意识的 C 类破坏性变更**，不是 §45.1.2 所述 A/B 勘误；先前冻结提交与历史版本文件不回写。
+
+**实施与证据边界：** 一切实际受信 ToolCatalog/CapabilityContracts 发布物必须以其**真实版本字段和真实身份**通过链接检查，不能通过给旧内容字符串替换为 v1alpha4 就声称 Owner、部署、Compiler、Studio、Host 已符合。本规范的 F.1/F.2 冻结**候选接口语义**，仍需独立发布者正式供给实际 v1alpha4 材料及 §45.2 测试证明；在此之前全部产品/Owner 为 `NOT_QUALIFIED`，缺失 v1alpha4 发布物时必须拒绝。未来独立 BuildRequest/Trace/Evidence Descriptor 物理协议没有在本语言中被虚构出 v1alpha4 的 `apiVersion`；它们仍按独立契约版本校验其受信材料。
+
+**冻结前一致性检查：** 所有本文件的 ToolCatalog/CapabilityContracts 规范示例及 F.1/F.2 的 apiVersion 均与 F.0 一致；§20.2 的 retryOf、§22.1 的路由键条件、§17 Evidence、E01–E120 预期和附录 H 的诊断身份未因版本统一而放宽。产品/Owner 的机器验收与真实 5GC 执行不纳入本语言版本文字冻结声明。
+
 ### 45.2 未完成的实现符合性门槛
 
 以下是**声称某个实现可编译、可运行或可部署本规范**之前必须逐一验收的门槛。**v1alpha4 语言已 FROZEN，但不能据此跳过真实 §45.2 产品验收**：
