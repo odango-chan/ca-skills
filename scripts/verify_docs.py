@@ -43,6 +43,66 @@ def check_fences(lines: list[str], errors: list[str]) -> None:
     require(opened is None, "unclosed Markdown code fence at line " + str(opened[2]) if opened else "", errors)
 
 
+def table_cells(row: str) -> list[str]:
+    """Return Markdown pipe cells, ignoring pipes escaped by a backslash."""
+    stripped = row.strip()
+    if not (stripped.startswith("|") and stripped.endswith("|")):
+        return []
+    return [part.strip() for part in re.split(r"(?<!\\)\|", stripped)[1:-1]]
+
+
+def check_all_markdown_tables(text: str, errors: list[str]) -> None:
+    """Validate every uninterrupted Markdown pipe-table block outside fenced code."""
+    lines = text.splitlines()
+    opened: tuple[str, int] | None = None
+    block: list[tuple[int, str]] = []
+
+    def finish_block() -> None:
+        if not block:
+            return
+        first = block[0][0]
+        label = f"Markdown table at line {first}"
+        if len(block) < 2:
+            errors.append(label + ": orphan pipe row / missing separator")
+            block.clear()
+            return
+        header = table_cells(block[0][1])
+        divider = table_cells(block[1][1])
+        require(bool(header), label + ": missing header or trailing delimiter", errors)
+        require(
+            bool(header) and len(divider) == len(header)
+            and all(re.fullmatch(r":?-{3,}:?", cell) for cell in divider),
+            label + ": missing/invalid Markdown header separator (possible table split)",
+            errors,
+        )
+        for lineno, row in block:
+            cells = table_cells(row)
+            require(
+                bool(cells) and len(cells) == len(header),
+                f"{label}: inconsistent column count or delimiter at line {lineno}",
+                errors,
+            )
+        block.clear()
+
+    for lineno, line in enumerate(lines, 1):
+        fence = re.match(r"^ {0,3}((?:" + re.escape(chr(96)) + r"){3,}|~{3,})(.*)$", line)
+        if fence:
+            marker, after = fence.groups()
+            if opened is None:
+                finish_block()
+                opened = (marker[0], len(marker))
+            elif opened[0] == marker[0] and len(marker) >= opened[1] and not after.strip():
+                opened = None
+            continue
+        if opened is not None:
+            continue
+        if line.lstrip().startswith("|"):
+            block.append((lineno, line))
+        else:
+            finish_block()
+    finish_block()
+
+
 def check_sections(text: str, errors: list[str]) -> None:
     require(text.rstrip().endswith("**全文结束。**"), "complete-spec end marker is missing", errors)
     for letter in "EFGHIJK":
@@ -93,10 +153,8 @@ def check_table(text: str, head: str, tail: str, first_id: int, last_id: int, co
             head + ": table has wrong number of columns: " + row[:95],
             errors,
         )
-    for index in range(1, len(all_lines) - 1):
-        if not all_lines[index].strip() and all_lines[index - 1].startswith("|") and all_lines[index + 1].startswith("|"):
-            errors.append(head + ": blank line splits a Markdown table")
-            break
+    # Headerless fragments and splits are checked globally by
+    # check_all_markdown_tables(), including runs of 2+ blank lines.
 
 
 def check_counts(text: str, errors: list[str]) -> None:
@@ -116,6 +174,15 @@ def check_counts(text: str, errors: list[str]) -> None:
         require(len(rows) == 99, "Appendix H must have 99 diagnostic rows", errors)
         require(len(set(pairs)) == 99, "Appendix H (Code, Phase) identities must be unique", errors)
         require(len(set(code for code, _ in pairs)) == 98, "Appendix H must have 98 unique Codes", errors)
+        claim = re.search(r"下表包含\s*(\d+)\s*个唯一 Code、\s*(\d+)\s*条唯一", text)
+        require(claim is not None, "Appendix H textual diagnostic count claim is missing", errors)
+        if claim:
+            require(
+                (int(claim.group(1)), int(claim.group(2))) ==
+                (len(set(code for code, _ in pairs)), len(set(pairs))),
+                "Appendix H textual 98 Code / 99 (Code,Phase) claim contradicts actual table",
+                errors,
+            )
 
     try:
         k1 = slice_between(text, "## K.1 E01", "## K.2 诊断 Fixture")
@@ -142,10 +209,11 @@ def main() -> None:
     )
     check_fences(text.splitlines(), errors)
     check_sections(text, errors)
+    check_all_markdown_tables(text, errors)
     check_counts(text, errors)
     if errors:
         raise SystemExit("DOC_STRUCTURE_FAIL\n" + "\n".join(errors))
-    print("DOC_STRUCTURE_PASS (fences / headings / § references / E tables / H and K counts)")
+    print("DOC_STRUCTURE_PASS (fences / headings / § references / all Markdown tables / H and K counts)")
     print("Note: document structure checks are not Compiler, Studio, Host or Owner qualification.")
 
 
