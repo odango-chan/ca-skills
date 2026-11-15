@@ -34,6 +34,6 @@ Key rules:
 
 ## Validation
 
-`make verify` performs repository-local source hygiene only. It does not invoke an old Toolchain, Compiler, Runtime or Qualification gate. Compiler conformance is verified in `ca-skill-compiler`; Runtime and live 5GC evidence belong to their owners.
+`make verify` performs repository-local **legacy source hygiene plus v1alpha4 documentation structure lint and its negative regression tests**. It does not invoke an old Toolchain, Compiler, Runtime or Qualification gate. Compiler conformance is verified in `ca-skill-compiler`; Runtime and live 5GC evidence belong to their owners.
 
 Never claim Compiler/Runtime/Qualification/Live PASS from source hygiene.
