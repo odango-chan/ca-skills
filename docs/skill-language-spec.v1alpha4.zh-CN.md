@@ -3302,8 +3302,6 @@ predicates:
 | E87 | E81 分别让已 Grant 成员缺少 Scope、静态交集为空、未 Grant 成员缺少 Scope | 前两者分别报 CAPABILITY_SCOPE_UNRESOLVED、CAPABILITY_SCOPE_EMPTY_INTERSECTION，第三种允许链接 |
 | E88 | 静态 Scope 可链接，但 Runtime 策略不可读取或当前交集为空 | 分别产生 SCOPE_POLICY_UNAVAILABLE、SCOPE_INTERSECTION_EMPTY，按 §24.2 停止或沿 DENIED |
 | E89 | 成功输出的 policyAssociationRef 可缺失，局部 PASS 后直接绑定。对照成功输出将该字段声明为必需并保留同一绑定 | 反例 SOURCE_NOT_AVAILABLE，正例在其余契约有效时通过 |
-
-
 | E90 | 分别使用 `ue.registration_verified`、含空格的 GoalId 和含空段的 GoalId，正常参数与裸 `context` 分别绑定 | 合法 GoalId 可解析；两个非法 GoalId 构建失败；裸 context 报 SOURCE_PATH_INVALID |
 | E91 | 在同一快照的两个 ToolCatalog 文件中声明相同 callable ID，即使 kind 或 Owner 不同 | EXPORT_ID_AMBIGUOUS |
 
