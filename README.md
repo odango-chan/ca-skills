@@ -43,6 +43,6 @@ Current transition:
 - [ca-skill-compiler PR #3](https://github.com/odango-chan/ca-skill-compiler/pull/3): v0 closeout ready for review; full v0 implementation remains PARTIAL.
 - [ca-skill-compiler PR #4](https://github.com/odango-chan/ca-skill-compiler/pull/4): narrowed Compiler-only v0.1 design; design only.
 
-`make verify` runs source-repository hygiene only. It does not invoke the old Toolchain or claim Compiler/Runtime acceptance.
+`make verify` runs legacy source hygiene and the frozen v1alpha4 documentation structure lint with negative regression tests; it does **not** invoke the old Toolchain or claim Compiler/Runtime/Owner acceptance.
 
 Other historical packages under `skills/` remain untouched and are outside the current 5GC syntax baseline.

@@ -30,7 +30,7 @@ A business Node may declare `precondition`, `operation`, `observation`, and `pos
 
 Contract may declare **one** global gate using `precondition: <node-id>.precondition`. That stage may evaluate multiple ordered `predicates`, and its **aggregate PASS** must precede every business Mutation or SUCCEEDED request. Each final success path uses a Postcondition aggregate `PASS: SUCCEEDED` edge directly; there is no `postcondition.goal`, Contract `preconditions` list or Goal proof carried across Nodes (§12.9).
 
-The first vNext version has one entry Procedure graph per Skill and does not define nested ProcedureCall or graph cycles. Branches and recovery are explicit nodes and routes.
+CA-SL v1alpha4 has one entry Procedure graph per Skill and does not define nested ProcedureCall or graph cycles. Branches and recovery are explicit nodes and routes.
 
 ## Arguments and dataflow
 

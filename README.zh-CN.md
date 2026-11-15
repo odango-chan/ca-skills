@@ -43,6 +43,6 @@ Compiler **不**负责获取或管理依赖、不连接 Git/Upload/MCP、不维�
 - [ca-skill-compiler PR #3](https://github.com/odango-chan/ca-skill-compiler/pull/3)：v0 Closeout 已准备 Review；完整 v0 实现仍为 PARTIAL。
 - [ca-skill-compiler PR #4](https://github.com/odango-chan/ca-skill-compiler/pull/4)：已收敛为仅 Compiler 的 v0.1 设计，尚未实施。
 
-`make verify` 只执行源码仓库本地卫生检查，不调用旧 Toolchain，也不代表 Compiler/Runtime 验收通过。
+`make verify` 执行旧源码卫生检查和 v1alpha4 规范文档结构 lint/负例回归，不调用旧 Toolchain，也不代表 Compiler/Runtime/Owner 验收通过。
 
 `skills/` 下其他历史 Skill 保持原样，不属于当前 5GC 语法基线。
