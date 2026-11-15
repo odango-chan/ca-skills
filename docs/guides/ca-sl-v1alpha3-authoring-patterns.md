@@ -1,7 +1,7 @@
 # CA-SL v1alpha3 作者指南：SourcePath、Evidence 与 Owner Schema
 
 **性质：** 资料性作者指南（Informative）  
-**适用版本：** CA-SL vNext / API v1alpha3  
+**适用版本：** `connectionagent.io/v1alpha3`（vNext 为资料性别名）  
 **规范性依据：** [CA-SL 完整规范](../skill-language-spec.zh-CN.md)
 
 本指南说明符合现有规范的常见写法，不增加新的语法、缩窄规则或权限来源。任何示例中没有给出完整 Owner 发布物的引用，均表示模式说明，**不是已通过 Compiler 的独立 Fixture**。
