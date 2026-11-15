@@ -2473,7 +2473,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 
 ### 45.1 v1alpha4 C 类变更评审边界
 
-本稿继承 v1alpha3 已冻结的 Contract、SourcePath、Evidence、Capability、Reconcile、DAG、Goal 证明与终态规则。**v1alpha4 的 C 类改变涵盖单数 `contract.precondition`、Pre/Postcondition 的 `predicates` 列表、移除 Node 级 `goal` 与成功直接由最终 Postcondition PASS 路由证明**；这不改写 v1alpha3 既有合法输入与结果。本版的 §45.1 C 类语言设计评审与 E115–E120 规范预期审查已经纳入冻结裁决；机器执行属于 §45.2 的独立产品门槛。
+本版继承 v1alpha3 中仍适用的 SourcePath、Evidence、Capability、Reconcile 与 DAG 安全约束；**全局门禁、Goal 证明及最终成功路由则以 v1alpha4 本版规则为准**，不得错误地沿用 v1alpha3 的证明传播模型。**v1alpha4 的 C 类改变涵盖单数 `contract.precondition`、Pre/Postcondition 的 `predicates` 列表、移除 Node 级 `goal` 与成功直接由最终 Postcondition PASS 路由证明**；这不改写 v1alpha3 既有合法输入与结果。本版的 §45.1 C 类语言设计评审与 E115–E120 规范预期审查已经纳入冻结裁决；机器执行属于 §45.2 的独立产品门槛。
 
 本 v1alpha4 语言已冻结的判定依据：§10–14 的唯一源码结构与闭合语法；§12.9、§17、§20、§22 的路径敏感证明与 fail-closed 规则；§F.1–F.6 / §G.1–G.9 的精确字段、Receipt/Proof/SourceIdentity、Schema-CEL 和责任模型，附录 H 的诊断索引；E01–E120 的规范预期及负例。无法静态证明兼容的 Schema / Owner 导出必须拒绝链接，不能靠样例值、运行时回退或 Studio 自动猜测。v0.2 是既有可执行基线，编译器不得静默迁移到本版。
 
@@ -2493,7 +2493,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 
 **决定：CA-SL v1alpha4 = FROZEN（语言层）；Compiler、Studio/LSP、Host/Runtime、Tool/Schema Owner、Deployment 和真实 5GC 的实现符合性 = NOT QUALIFIED。** 本裁决仅冻结本文件标为 Normative 的作者语法、静态及运行语义、E01–E120 的明确预期、F/G 的抽象互操作规则、H 的诊断身份与分类。I/J/K 的实现跟踪仍为 Informative。v1alpha3 的冻结版本以及外部 ToolCatalog/CapabilityContracts/BuildRequest/Artifact/Trace 物理契约不受本裁决替代或自动升版。
 
-**评审来源与可追踪发布对象。** PR #42 完成 Pre/Postcondition 对称多 Predicate 设计；PR #43 统一单数 Contract 门禁、唯一 Contract Goal、最终 Postcondition 直达成功和 `operation/observation.tool`，其 main 基线为 `5236d563f3ec66c77c22e75a325884fdc860072e`。正式冻结对象是**包含本裁决且合并到 main 的 `docs/skill-language-spec.v1alpha4.zh-CN.md` 文件所在不可变提交**，对外报告必须明确引用该提交，不能仅指向浮动分支或此前的草案提交。
+**评审来源与可追踪发布对象。** PR #42 完成 Pre/Postcondition 对称多 Predicate 设计；PR #43 统一单数 Contract 门禁、唯一 Contract Goal、最终 Postcondition 直达成功和 `operation/observation.tool`，冻结修订之前的 main 基线为 `5236d563f3ec66c77c22e75a325884fdc860072e`。正式冻结对象是**包含本裁决且合并到 main 的 `docs/skill-language-spec.v1alpha4.zh-CN.md` 文件所在不可变提交**，对外报告必须明确引用该提交，不能仅指向浮动分支或此前的草案提交。
 
 **语言审查结论。** 已检查 Contract/Procedure/PredicateSet 单一入口、单数全局 Precondition、Pre/Postcondition `predicates` 非空有序列表及三态聚合、唯一的最终 Postcondition PASS→SUCCEEDED 边、§22.1 路由矩阵、Tool callable/Capability Grant/Effect 的分离、受信 Schema/SourcePath/Evidence/Scope、Mutation/Reconcile 与责任终态、附录 E/G.9 预期及 H 诊断索引。文本层面无保留的语言语义 P0/P1；后续发现新的语义差异应按本节 A/B/C 变更控制处理，不得在已冻结版本中静默修正。
 
@@ -3355,7 +3355,7 @@ predicates:
 
 # 附录 F：继承自 v1alpha3 的互操作与类型剖面（v1alpha4 FROZEN）
 
-**Normative、FROZEN（v1alpha4；外部物理协议版本保持独立）。** §9、§17、§34 的逻辑互操作属性由 v1alpha3 已冻结契约继承。本稿只修改作者级 Precondition/Postcondition 聚合，不新增外部 ToolCatalog/CapabilityContracts/BuildRequest/Trace 线字段。实际 ToolCatalog 与 CapabilityContracts 例子仍显示其各自发布的 v1alpha3 API 版本。
+**Normative、FROZEN（v1alpha4；外部物理协议版本保持独立）。** §9、§17、§34 的逻辑互操作属性由 v1alpha3 已冻结契约继承。本版的作者级变化还包括单数 Contract 全局门禁、删除 Postcondition 根的 Goal、直接最终 PASS→SUCCEEDED 和 `operation/observation.tool`；这些变化均不新增外部 ToolCatalog/CapabilityContracts/BuildRequest/Trace 线字段。实际 ToolCatalog 与 CapabilityContracts 例子仍显示其各自发布的 v1alpha3 API 版本。
 
 ## F.1 ToolCatalog / Mutation 发布
 
