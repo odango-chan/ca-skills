@@ -1,13 +1,12 @@
-# CA-SL v1alpha3 — Single-file specification / 单文件评审入口
+# CA-SL v1alpha4 — Current specification / 当前语言规范入口
 
-**Review this one file:** [CA-SL v1alpha3 完整中文规范（唯一 Normative 源）](skill-language-spec.zh-CN.md)
+**Current normative source / 当前唯一规范正文：** [CA-SL v1alpha4 完整中文单文件规范](skill-language-spec.v1alpha4.zh-CN.md).
 
-The linked Markdown contains the full language text, §§0–91, Appendices A–H, all E01–E114 expectations, and the consolidated informative appendices: **I** authoring/Schema projection guidance, **J** runtime decision index and errata dispositions, and **K** diagnostic fixtures, case execution planning, and conformance report template.
+- **Language:** `connectionagent.io/v1alpha4` — **FROZEN (language only)**.
+- **External profile:** `connectionagent.io/toolcatalog/v1alpha4` and `connectionagent.io/capability-contracts/v1alpha4`; no v1alpha3 fallback (§F.0).
+- **Compiler / Studio / Host / Owner / 5GC:** **NOT_QUALIFIED** until separately tested under §45.2.
+- **Normative coverage:** §0–§45 and Annexes E/F/G/H; E01–E104 in E, E105–E120 in G.9. Annexes I/J/K are informative.
 
-**只需要评审这一份文件。** 此前独立的勘误、冻结审计、作者指南、决定索引和测试候选文件保留作历史或机器处理用途，但**不再是理解当前规范所需的独立材料**。如有歧义，以同一提交中的中文规范正文及 Normative 附录 E/F/G/H 为准；历史文件不能修改其效力。
+**Historical frozen language:** [CA-SL v1alpha3](skill-language-spec.zh-CN.md) is retained for expressly historical v1alpha3-scoped references. It is **not** the current authoring target. Existing 5GC source files and semantic-token selectors remain legacy and are not v1alpha4-conforming: see [5GC source baseline](current-5gc-skill-baseline.md).
 
-**Language target:** `connectionagent.io/v1alpha3` (`vNext` is an informative alias)  
-**Language:** FROZEN  
-**Product / Owner conformance:** NOT QUALIFIED — all actual §45.2 gates require independent evidence.
-
-This index is intentionally non-normative and does not duplicate any language rule.
+To reproduce any freeze/conformance review, pin the exact complete v1alpha4 file by its **immutable Git commit SHA**. `main` is a moving discovery entry, not a frozen artifact identity. Freeze decisions and errata are recorded in §45.1. This index is non-normative.
