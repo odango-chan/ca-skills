@@ -1532,7 +1532,7 @@ Environment
 | REACHABLE_STAGE_NO_INCOMING_EDGE | 展开图的可达非入口阶段没有可达入边，属于图构造不变量失效 | 阻止构建 |
 | INPUT_TYPE_MISMATCH | Source 不可赋给 Target，包括 enum、const、范围和数组元素约束不兼容（空值冲突按专用诊断） | 阻止构建 |
 | INPUT_NULLABILITY_MISMATCH | nullable Source 绑定非 nullable Target | 阻止构建 |
-| SOURCE_NOT_AVAILABLE | Producer 非所有路径可用，例如 Reconcile COMMITTED 后引用丢失的原始成功输出 | 阻止构建 |
+| SOURCE_NOT_AVAILABLE | Producer 非所有路径可用，例如原 Mutation NOT_COMMITTED/OUTCOME_UNKNOWN 分支访问成功输出；COMMITTED 且 Owner 未声明恢复输出时优先专用 RECONCILE_OUTPUT_UNAVAILABLE | 阻止构建 |
 | RECONCILE_OUTPUT_UNAVAILABLE | Reconcile 后使用未由 Owner 声明可恢复的输出 | 阻止构建 |
 | ROUTE_OUTCOME_MISSING | 阶段缺少必须显式声明的 Outcome 路由 | 阻止构建 |
 | ROUTE_OUTCOME_UNKNOWN | 路由键不属于该阶段的精确 Outcome 集 | 阻止构建 |
@@ -1544,13 +1544,13 @@ Environment
 | CALLABLE_ARGUMENT_PROVENANCE_INVALID | 实参来源不可追溯，或 Scope 与身份实参缺少 §13.3 要求的可验证来源 | 阻止构建 |
 | PREDICATE_EVIDENCE_REQUIRED | 来源按 §17.1 要求保证，但对应参数未声明 | 阻止构建 |
 | PREDICATE_EVIDENCE_UNSATISFIABLE | 参数绑定无法提供所声明的 Evidence 保证或缺少可验证的关联约束 | 阻止构建 |
-| RETRY_CONTRACT_INVALID | retryOf 引用非法、路径覆盖不足或身份及重试契约不兼容 | 阻止构建 |
+| RETRY_CONTRACT_INVALID | retryOf 引用非法、路径覆盖不足、身份及重试契约不兼容、第二代重试链或一条路径可能超过一轮新的业务 Mutation 派发 | 阻止构建 |
 | CAPABILITY_INPUT_DIGEST_MISMATCH | 部署输入实测摘要与可信绑定不符 | 阻止构建 |
 | CAPABILITY_INPUT_UNTRUSTED | 部署绑定缺失或发布者无权 | 阻止构建 |
 | CAPABILITY_DEFINITION_CONFLICT | 工件集内同一 Capability ID 重复定义 | 阻止构建 |
 | CAPABILITY_SCOPE_UNRESOLVED | 已 Grant 成员的 Scope 丢失或无法链接 | 阻止构建 |
 | CAPABILITY_SCOPE_EMPTY_INTERSECTION | 已 Grant 成员的交集静态可证为空 | 阻止构建 |
-| RECONCILE_CONTRACT_INVALID | `OUTCOME_UNKNOWN` 的目标与安全调和契约不符，Reconcile Node 声明了 Precondition、被用作 `start` 或入边不符合 §20.2，原调用无法绑定，或 Reconcile 的 `UNRESOLVED` 未直接指向 `UNRESOLVED` / `SAFE_STOPPED` | 阻止构建 |
+| RECONCILE_CONTRACT_INVALID | 受信 Owner `mutation.reconcile` 缺少可链接的专用 READ、原调用 bind/proofPath/receipt 不合法、恢复输出不能赋给原普通成功输出，或 Mutation 的 `OUTCOME_UNKNOWN` 路由试图继续业务/请求不安全终态 | 阻止构建 |
 | CAPABILITY_NOT_GRANTED | 未授予 Capability | 阻止构建 |
 | CAPABILITY_MAPPING_MISSING | callable 没有任何 Capability 成员记录 | 阻止构建 |
 | CAPABILITY_MEMBERSHIP_DUPLICATE | 同一 Capability 内重复声明同一 callable 成员 | 阻止构建 |
@@ -1598,7 +1598,7 @@ Compiler 不得自动补造 Schema、以开放对象规避类型检查、推断�
 | EVIDENCE_MISSING / EVIDENCE_STALE / EVIDENCE_CONFLICT | Predicate 沿 UNKNOWN；入口全局门禁或最终 Postcondition PASS 复核失败按 §12.8 停止；调用结果的强制保证无效时按 §20.1 或本节失败规则处理 |
 | DEADLINE_EXCEEDED / CANCELLED | 不再派发任何 Procedure 动作。记录已派发调用的已知状态及迟到结果责任，按 §12.8 停止 |
 | OUTCOME_UNKNOWN | 按 §20 调和原 Mutation 或停止并保留责任 |
-| RECONCILE_UNRESOLVED | 沿 Reconcile 的 UNRESOLVED 边请求停止，实际终态按 §12.8 |
+| RECONCILE_UNRESOLVED | Host 内部恢复 READ 未形成可信结论；原 Mutation 保留 OUTCOME_UNKNOWN 并按 §12.8 安全停止 |
 | COMMITTED_OUTPUT_UNAVAILABLE | 保留已确认提交，隔离无效输出，按 §20.1 停止 |
 | ENTRY_PRECONDITION_INVALIDATED | 全局前置条件缺少 PASS 或复核失败，阻止业务 Mutation 或 SUCCEEDED，按 §12.8 停止 |
 | PRECONDITION_INVALIDATED | 局部门禁复核失败，阻止受保护的 Mutation，按 §12.8 停止 |
@@ -1777,7 +1777,7 @@ predicates:
       expression: profile.dnn == requestedDnn && profile.profileUsable
 
   # §30 中 create-pcf-association.operation.output 与
-  # reconcile-pcf-association.observation.output 必须满足相同的 Owner 输出 Schema
+  # Host 恢复原 Mutation 为 SUCCEEDED 时，其 output 同样必须满足本 Schema/Evidence
   createdsession.pcf.association_owned:
     parameters:
       - association: ca::urn:connectionagent:5gc:pcf:association-result:v1
@@ -1874,7 +1874,7 @@ predicates:
 
 若实际 Owner 或部署 Scope 策略将 PSI、DNN 或 S-NSSAI 字段列为身份/授权输入，则从 `context.request.*` 直接绑定这些输入的调用必须报 `CALLABLE_ARGUMENT_PROVENANCE_INVALID`；迁移时应使用由 Host 契约确认关联的 Session/PSI 引用（例如 Host **确已发布并验证**的 `context.session.psiRef` 或 `context.correlation.pduSessionRef`，若其字段及类型由 Host Context Schema 正式定义）或权威 Producer 的结果显式换绑。**这两个候选路径不是 v1alpha4 内置字段**；没有对应受信 Host Schema、Scope 关联和验收证据时，不得在真实 Skill 中引用。Host 或 Owner 仅校验数值相等而未证明身份归属，也不构成所需的可信绑定。教学假设不能用于绕过真实部署的授权策略。`ca-context` 发布 Host Context；`ca-responsibility` 独立发布责任 Schema、保证及 callable。责任摘要按预期 Session Instance 聚合并返回 currentSessionInstanceRef。PCF 调和只有经验证的恢复输出才能取出原关联标识。
 
-UDM Subscription 的**教学 Owner 契约特例**要求：普通 Create 的 `SUCCEEDED` 回包和 Reconcile `COMMITTED` 的受信证明/必要恢复结果，在 Runtime 校验成功后**已经**包含足以支持继续执行所需的业务值、订阅归属、生命周期、Scope、Correlation、Freshness 与 Evidence（§12.6、§17、G.2）；且 Host 已持久化对应已确认资源责任。这里的 `COMMITTED` 仅证明原调用提交，**并不自动等于业务验收通过**；流程之所以可以直接继续，是因为上述教学 Owner **已发布、已链接且已被 Runtime 验证的附加保证**共同成立。
+UDM Subscription 的**教学 Owner 契约特例**要求：普通 Create 的 SUCCEEDED 回包，以及 Host 对不确定结果完成受信 Reconcile 后**完整满足原普通成功输出 Schema、Scope、Correlation、Freshness 与 Evidence**的恢复值，才足以在同一原 Mutation Operation 上归并 SUCCEEDED 并继续 PCF；Host 同时登记已确认资源责任。只有 COMMITTED 证明而没有可恢复输出时不得继续 PCF，沿 COMMITTED 安全停止或经权威 Observation 取得独立的足够证据。这里的 COMMITTED 只证明原调用提交，**并不自动等于业务验收通过**。
 
 真实部署若缺少任何上述保证，就不得直接从 UDM `SUCCEEDED`/`COMMITTED` 推断业务成功，须在下一次业务 Mutation 前增加独立授权的 Observation / Postcondition 及对应 Evidence 复核，或按 §20/§24.2 安全停止；真实 Owner 发布物的能力不能从教学假设中推断。
 
@@ -2075,8 +2075,8 @@ nodes:
         UNKNOWN: SAFE_STOPPED
 ~~~
 
-- 本图是完整的教学控制流。真实 Tool、Host journal 和 Capability 身份须由 Owner 发布。它简化了 Hold、Lifecycle Gate、N4 基线、资源句柄和部分 Reconcile，不可替代真实 5GC Skill 或改变既有流程。N4、RAN 与 Forwarding 的直达 `OUTCOME_UNKNOWN` 停止边以该教学调用没有安全 Reconcile 契约为前提。AMF 的 COMMITTED 路径只表示 Owner 已确认原调用提交；随后仍须验证 RAN 和转发。
-- 本例假设 PCF Reconcile 在 COMMITTED 上明确保证恢复精确 `policyAssociationRef`，并假设 UDM 的 SUCCEEDED / COMMITTED 在继续执行前已证明并登记本次确切订阅的资源责任。Owner 无法提供这些保证时应增加独立的权威验证或安全停止。
+- 本图是教学控制流，真实 Tool、Host journal 和 Capability 身份须由 Owner 发布。它简化了 Hold、Lifecycle Gate、N4 基线和资源句柄，不是已完成的真实 5GC E2E。所有 Mutation 的 OUTCOME_UNKNOWN 是 Host 依 §12.7 受控状态确认之后仍然不明的结果；该边直接安全停止。AMF 恢复结果若满足原成功输出契约则走 SUCCEEDED 并继续 RAN/转发验证；只确认 COMMITTED 时停止。
+- 本例假设 PCF 和 UDM 的可信恢复输出符合各自原普通成功 Schema/Evidence 并获 Host 归并 SUCCEEDED，且恢复过程登记了确切资源责任；只有 COMMITTED 的事实不够继续下一 Mutation，缺保证时必须独立授权观察或安全停止。
 - 本例在 Host 已登记资源/迟到结果责任的前提下移交管理责任。派发移交前，Owner 必须验证所移交的确切资源及当前生命周期；图中省略了教学调用的内部句柄字段。网络状态先通过局部验收再移交。移交后从 Host journal 取得权威结果，最终 Postcondition 复用仍有效的 RAN 和 N4 值，并验证责任。教学移交只变更 Host 管理责任；若实际操作也会改变网络状态，必须提供移交后的权威证明。RAN、N4 和责任 Evidence 必须同时满足 §17。
 - 例如 RAN 已完成、`modify-n4-forwarding` 返回 FAILED 或 OUTCOME_UNKNOWN 时，进入 SAFE_STOPPED。Host 保留 UDM 订阅、PCF Association、N4 实例及 RAN 的已知资源句柄、未决调用和原责任方，记录停止原因。不能直接重发 Forwarding 或把资源从责任记录中移除。
 - 可复用满足同一保证、类型和有效期要求的既有 Operation Result，省去相应的 Observation。RAN、N4 和责任读取仍保持各自权威与准确业务关联。
@@ -3793,7 +3793,7 @@ E30/E40 的严格绑定规则有意保留：较新的已接纳权威记录即使
 | E105 | 分别令 PredicateId=foo..bar、Alias=ca:demo、ExportId=foo..bar、QualifiedSchemaId=ca::relative/path、LocalScriptPath=scripts/../x.py | 独立 PredicateId 与 Alias 字段报 IDENTIFIER_INVALID；位于完整 `Alias::ExportId` 中的非法 ExportId 以及 QualifiedSchemaId 均报 QUALIFIED_REFERENCE_INVALID；LocalScriptPath 报 PACKAGE_PATH_INVALID。此处 ExportId 为限定引用的组成部分而非独立源码字段（G.1）；诊断不依赖 YAML parser 的裸标量解析方式 |
 | E106 | G.3 requires + independence 两成员；删掉其中一个 requires；复制相同 member；运行时不同 Evidence Ref 其实来自同一底层记录 | 合法字段静态链接通过；成员非法报 EVIDENCE_GUARANTEE_LINK_INVALID；静态合法但同源执行得 UNKNOWN |
 | E107 | G.2 正确的 Reconcile READ；分别改 Effect 为 MUTATION、kind 为 observation、inputSchema 多加可写字段、删除 proofPath、只 Grant 原 Mutation | 合法例通过链接；变体分别 EFFECT_MISMATCH、RECONCILE_CONTRACT_INVALID、RECONCILE_CONTRACT_INVALID、RECONCILE_CONTRACT_INVALID、CAPABILITY_NOT_GRANTED |
-| E108 | Reconcile Owner SUCCEEDED 与有效 COMMITTED 证明+恢复输出；取消恢复声明；提供无效恢复输出；证明 NOT_COMMITTED；Owner 直接发 COMMITTED | 分别为 COMMITTED+输出可用、COMMITTED+无输出、安全停止并 COMMITTED_OUTPUT_UNAVAILABLE、NOT_COMMITTED、诊断 OWNER_OUTCOME_UNDECLARED 并隔离停止 |
+| E108 | 受信 Reconcile READ Owner SUCCEEDED 与原调用 COMMITTED 证明+完整恢复输出；取消恢复声明；提供损坏恢复输出；证明 NOT_COMMITTED；READ Owner 直接发 COMMITTED | 分别使原 Mutation 归并 SUCCEEDED+有效原节点 output、COMMITTED+无 output、安全停止并 COMMITTED_OUTPUT_UNAVAILABLE、NOT_COMMITTED、OWNER_OUTCOME_UNDECLARED 并隔离停止；保留恢复 Producer lineage |
 | E109 | Reconcile Evidence Producer 以 Owner SUCCEEDED 绑定恢复结果，再替换为 Runtime 的 COMMITTED | 前者链接通过；后者 EVIDENCE_GUARANTEE_LINK_INVALID |
 | E110 | 有效的 nullable / object / items Schema；替换任一为 anyOf、pattern 或动态引用 | 前者按 F.5 赋值；三个不受支持变体均 SCHEMA_INVALID |
 | E111 | CEL 使用 has(obj.optional) && obj.optional == "X"；删除 has；对 nullable 字段删除非 null 守卫；添加数组索引 | 守卫版缺字段可按业务表达式得 FAIL；其余三项静态拒绝 CEL_INVALID |
@@ -4013,7 +4013,7 @@ has(obj.optionalNullable) &&
 
 ### I.7 Reconcile UNRESOLVED 与资源责任边界
 
-一次外部 Mutation 已派发却无法确认是否提交，不能简单把“不知道”当作 `FAILED`。有安全 Owner Reconcile 契约时，Runtime 按原调用不变身份调和至多一次；其本次结果仍不确定时，沿 Reconcile 的 `UNRESOLVED` 结束当前 Invocation 并按 §12.8 发布 `UNRESOLVED` 或在已有确认待处置资源时发布 `SAFE_STOPPED`。两种情形都保留原始 Mutation 的状态、资源句柄、迟到结果责任和审计 Trace；**当前 Invocation 终止不等于外部操作已失败或资源责任已消失**。后续独立处置属于明确授权的 Owner / 责任流程，不是偷偷发起第二次 Reconcile。参见 §20.2、§20.3、G.2.2 与 E29/E86。
+一次外部 Mutation 已派发却无法确认是否提交，不能简单把“不知道”当作 `FAILED`。有安全 Owner Reconcile 契约时，共享 Host 按原调用不变身份只读调和至多一次；若仍不确定，则原 Mutation 沿 `OUTCOME_UNKNOWN` 直接请求安全停止，并按 §12.8 发布 `UNRESOLVED` 或在已有确认待处置资源时发布 `SAFE_STOPPED`。两种情形都保留原始 Mutation 的状态、资源句柄、迟到结果责任和审计 Trace；**当前 Invocation 终止不等于外部操作已失败或资源责任已消失**。后续独立处置属于明确授权的 Owner / 责任流程，不是偷偷发起第二次 Reconcile。参见 §20.2、§20.3、G.2.2 与 E29/E86。
 
 ### I.8 适用的验收记录
 
