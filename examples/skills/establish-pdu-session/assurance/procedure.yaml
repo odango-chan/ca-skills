@@ -11,26 +11,15 @@ nodes:
             - context.request.requestedPduSessionType
             - context.request.requestedSscMode
       routes:
-        PASS: prepare-selection
+        PASS: read-udm
         FAIL: FAILED
         UNKNOWN: UNRESOLVED
-  prepare-selection:
-    operation:
-      script: scripts/prepare-selection.py
-      arguments:
-        dnn: context.request.dnn
-        sst: context.request.sNssai.sst
-        pduType: context.request.requestedPduSessionType
-        sscMode: context.request.requestedSscMode
-      routes:
-        SUCCEEDED: read-udm
-        FAILED: FAILED
   read-udm:
     operation:
       tool: ca::sbi.udm.sm_data.get
       arguments:
         ueRef: context.ueRef
-        dnn: prepare-selection.operation.output.dnn
+        dnn: context.request.dnn
         sNssai: context.request.sNssai
         servingPlmn: context.request.servingPlmn
       routes:
@@ -51,7 +40,7 @@ nodes:
     operation:
       script: scripts/select-establishment-configuration.py
       arguments:
-        dnn: prepare-selection.operation.output.dnn
+        dnn: context.request.dnn
         sNssai: context.request.sNssai
         requestedPduSessionType: context.request.requestedPduSessionType
         requestedSscMode: context.request.requestedSscMode
