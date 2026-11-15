@@ -4,12 +4,12 @@ This pure CA-SL v1alpha4 Script cannot establish provenance by itself.
 The UDM Result/Schema/Evidence must be linked and verified independently by Owner.
 """
 from __future__ import annotations
-from typing import Literal, NotRequired, TypedDict
+from typing import Annotated, Literal, NotRequired, TypedDict
 
 
 class SNssai(TypedDict):
-    sst: int
-    sd: NotRequired[int]
+    sst: Annotated[int, {"minimum": 0, "maximum": 255}]
+    sd: NotRequired[Annotated[int, {"minimum": 0, "maximum": 16777214}]]
 
 
 class PduSessionTypes(TypedDict):
@@ -23,8 +23,8 @@ class SscModes(TypedDict):
 
 
 class SessionAmbr(TypedDict):
-    uplink: str
-    downlink: str
+    uplink: Annotated[str, {"minLength": 1}]
+    downlink: Annotated[str, {"minLength": 1}]
 
 
 class Arp(TypedDict):
@@ -41,7 +41,7 @@ class DefaultQos(TypedDict):
 
 class SubscriptionData(TypedDict):
     sNssai: SNssai
-    dnn: str
+    dnn: Annotated[str, {"minLength": 1}]
     pduSessionTypes: PduSessionTypes
     sscModes: SscModes
     sessionAmbr: SessionAmbr
@@ -49,10 +49,10 @@ class SubscriptionData(TypedDict):
 
 
 class SubscriptionSource(TypedDict):
-    transactionRef: str
-    requestRef: str
-    fabricRecordRef: str
-    fabricRecordDigest: str
+    transactionRef: Annotated[str, {"minLength": 1}]
+    requestRef: Annotated[str, {"minLength": 1}]
+    fabricRecordRef: Annotated[str, {"minLength": 1}]
+    fabricRecordDigest: Annotated[str, {"minLength": 1}]
 
 
 class UdmReadResult(TypedDict):
