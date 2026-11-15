@@ -1,11 +1,11 @@
 """Select policy inputs from a verified UDM subscription (no Owner authority)."""
 from __future__ import annotations
-from typing import Literal, NotRequired, TypedDict
+from typing import Annotated, Literal, NotRequired, TypedDict
 
 
 class Ambr(TypedDict):
-    uplink: str
-    downlink: str
+    uplink: Annotated[str, {"minLength": 1}]
+    downlink: Annotated[str, {"minLength": 1}]
 
 
 class Arp(TypedDict):
@@ -29,8 +29,8 @@ OutputDefaultQos = TypedDict(
 # Exact six-key structural projection of select-establishment-configuration.py.
 # The source contains all six required keys and is closed (additionalProperties:false).
 class SNssai(TypedDict):
-    sst: int
-    sd: NotRequired[int]
+    sst: Annotated[int, {"minimum": 0, "maximum": 255}]
+    sd: NotRequired[Annotated[int, {"minimum": 0, "maximum": 16777214}]]
 
 
 class PduSessionTypes(TypedDict):
@@ -45,7 +45,7 @@ class SscModes(TypedDict):
 
 class SubscriptionData(TypedDict):
     sNssai: SNssai
-    dnn: str
+    dnn: Annotated[str, {"minLength": 1}]
     pduSessionTypes: PduSessionTypes
     sscModes: SscModes
     sessionAmbr: Ambr
@@ -53,10 +53,10 @@ class SubscriptionData(TypedDict):
 
 
 class SubscriptionSource(TypedDict):
-    transactionRef: str
-    requestRef: str
-    fabricRecordRef: str
-    fabricRecordDigest: str
+    transactionRef: Annotated[str, {"minLength": 1}]
+    requestRef: Annotated[str, {"minLength": 1}]
+    fabricRecordRef: Annotated[str, {"minLength": 1}]
+    fabricRecordDigest: Annotated[str, {"minLength": 1}]
 
 
 class PolicyInput(TypedDict):
