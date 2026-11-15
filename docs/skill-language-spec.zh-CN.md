@@ -47,6 +47,20 @@ CA-SL vNext / v1alpha3 的作者源码语法、静态语义、运行语义、附
 | Skill Eligibility / Root Routing 的选中算法和完整 `Applicability` YAML 作者语法 | **未在 v1alpha3 作者源码语法中定义或冻结**；属于独立 Host/Root Routing 契约。§12.8 已冻结的“不能唯一匹配则拒绝准入”安全要求仍有效，但不得把此条件误认作完整选择协议已发布；不得默许旧 `applicability.when` |
 | Compiler Artifact、Runtime Trace、BuildRequest 的物理 framing/运输及真实 Tool Owner 的发布物 | **由各自版本契约拥有**；不得从 CA-SL FROZEN 推断其序列化格式或产品符合性已通过 |
 
+**符合性声明类型矩阵（Informative，细分 §45.2 已有验收义务，不是新的语言语法或产品协议）。** 对外报告不得只写“符合 CA-SL v1alpha3”而不列实现对象、测试能力、版本与受信证据。规范文本的 `FROZEN` 不是任一种产品的 PASS。
+
+| 可声明的范围 | 所需精确边界与已存在的验收门槛 | 不得推导的结论 |
+|---|---|---|
+| **规范语义冻结**（Language specification） | 精确 `connectionagent.io/v1alpha3` 和本规范受审提交；§45.1 的变更边界 | 不表示任何 Compiler、Host、Owner 已执行通过 |
+| **Compiler 静态符合性** | §45.2 第 2/3/4/8 项中适用于静态链接的受信输入、E 变体和 H 的 `C_STATIC/C_WARNING` 诊断；Native/WASM 使用同一冻结源与原始结果 | 不表示 Runtime/Owner、Root Routing 或完整部署已验收 |
+| **Studio/LSP 静态一致性** | 相同源码与依赖快照下与 Compiler 的诊断/语言行为一致；§45.2 第 4/8 项，注明该产品实现版本 | 不表示 Studio 实现了 Runtime 或取得真实 Owner 证据 |
+| **Host/Runtime 执行符合性** | §45.2 第 1/2/5/7/8 项及适用动态用例，要求经版本化的 Artifact/Trace、隔离、Scope、责任和真实回包/模拟证据 | 不包含未交付的 Owner 物理协议或完整 Root Routing 自动选中能力 |
+| **Owner/Deployment 互操作符合性** | 版本化的可信 Owner 发布物、身份输入标注、Capability、Evidence 域/共同事实、Reconcile 专用关联及真实原始字节/摘要/授权；§45.2 第 1/2/8 项 | 无发布物时不能凭 F/G 的逻辑模型宣称互操作通过 |
+| **Root Routing 产品符合性** | 独立版本化的 Eligibility / `Applicability` 选择协议及 Host 歧义拒绝验收，须写明对应版本和范围 | §12.8 仅冻结拒绝歧义原则，不提供完整选择算法 |
+| **集成/真实 5GC E2E 符合性** | 上述实际适用层已获可信证据，§45.2 第 6 项真实 5GC 36 Case 与相关 Owner 验证；记录失败和遗漏 | 单独编译通过、规范文本冻结、未执行的 E/DFX 不构成 E2E PASS |
+
+**声明规则：** 在报告中按实际执行层分别注明 `claimScope`、规范提交、所用外部协议版本、确切 Fixture/测试套件版本、已执行变体、失败/未覆盖、原始结果与发布者授权；未覆盖的层写 `NOT_TESTED` 或 `NOT_QUALIFIED`。其中 `claimScope` 等名称只描述附录 K 的**资料性报告视图**，不是本语言新增的线协议字段。E01–E114 只是冻结的规范预期编号，完整 E 列表和 H 的诊断集合均**不意味着已存在可执行套件**；套件的具体版本、覆盖率与执行证据须单独登记（§45.2、K.4）。
+
 **规范文件完整性。** 附录 E（测试预期）、F（互操作字段）、G（闭合性补充）、H（诊断索引），以及 §30–§45 均属于**本文件的组成部分**；第十一部分 §46–§91 为资料性技术问答/设计说明。附录 I/J/K 已收编原先另行维护的作者指南、决策追踪、勘误裁决及测试/报告辅助材料，全部为 Informative；它们不增加字段或放宽 Normative 条款。本版完整评审仅需当前 `docs/skill-language-spec.zh-CN.md` 的**同一受审提交**，无需跨文件拼合；仅摘取 §0–§29 或截断 CEL 片段不能替代全文符合性评审。
 
 BuildRequest 传输格式、Compiler Artifact、Runtime Trace 及 Tool Owner 发布物分别受其自身的版本契约管理。本文件的冻结状态不构成上述产品或发布物通过符合性验收的证明。历史 v1alpha2 冻结记录及 v1alpha3 修订记录不覆盖本文件；互操作字段以附录 F/G 为准。
@@ -1019,6 +1033,20 @@ for vertex in topological_order(graph.stages):
 
 例如，全局 Precondition 的 PASS 自动推进到同一 Node 的 Mutation 时，该边先将 `<node-id>.precondition` 加入已通过集合。全局 Precondition 的 PASS 保留已有 Goal 证明。Mutation、Reconcile 和非正常 Outcome 清除证明。业务 Mutation 派发前及成功终态边仍必须满足全部全局前置条件。Mutation 的 SUCCEEDED 即使自动推进也会清除证明，随后 Goal Postcondition 的 PASS 可以重新建立证明。
 
+**证明传播等价判断表（Informative；只是上面伪代码的判定展开，不新增可接受路径）。** `passed` 是本阶段入口沿全部可达入边交集取得的全局 Precondition PASS 集合；`proof` 是全部可达入边的 Goal 证明逻辑 AND。仅来自入口的初始状态为空集/false。所有边（包括同 Node 的自动推进）均先更新 `passed`，后独立更新 `proof`，绝不把局部 PASS 当作 Goal PASS。
+
+| 入边/出边位置及情形 | `passed` 与 `proof` 的精确更新 | 对成功路径的后果 |
+|---|---|---|
+| 两条及更多**可达**入边汇入同一阶段 | `passed=∩ incoming.passed`，`proof=AND(incoming.proof)`；不按最后到达边取值；不可达边不参与 | 任一可能路径缺少全局门禁或 Goal 证明，都不能让汇合点继承该证明 |
+| Contract 所列 Precondition 的 PASS | 当前边的 `passed` 增加本阶段精确 Ref；`proof` 保留入边值 | 不等于直接建立新的 Goal 证明 |
+| 非全局 Precondition 的 PASS 或无 `goal` 的**局部 Postcondition** PASS | `passed` 不凭局部判断增加全局集合；`proof` 保留 | 局部 PASS 只受 §12.9 的 Runtime 局部门禁规则约束，不建立全局 Goal 证明 |
+| `postcondition.goal == contract.goal` 的 PASS | `proof=true`；`passed` 不变 | 只有此边可重新建立 Goal 证明（前提是已通过静态 Goal 匹配校验） |
+| READ Operation、Observation、Procedure Script 正常 SUCCEEDED（含自动推进） | 保留已有 `proof` 与 `passed`；不能换绑原证明所引用的值 | 仍受发布前的最新 Evidence 和原始绑定复核 |
+| Mutation 的 SUCCEEDED、Reconcile COMMITTED、各类非正常结果 | `proof=false`；已有全局 `passed` 集合不自动伪造新的 PASS | Mutation 后若要成功，必须显式到新的 Goal Postcondition PASS 重建证明 |
+| 显式 `SUCCEEDED` 终态边 | 必须具备完整全局 `passed` 和 `proof=true` | 即使静态通过，Runtime 仍按 §12.8 核验资源责任和最新 Evidence |
+
+**现有规范的三个反例/正例组合（资料性，非新增 E 编号）：** （a）两条路径汇合，仅一条经过全局 Precondition PASS：交集缺项，后续业务 Mutation/成功终态拒绝；（b）一条边的 Goal PASS 与另一条没有 Goal PASS 的路径汇合：AND=false，不能靠前者借证明；（c）同 Node 自动推进经过 Mutation SUCCEEDED 后，先前的 Goal 证明清零，必须由**之后**的 Goal Postcondition PASS 显式重建；局部 Postcondition PASS 无 `goal` 时只能保留已有证明，不能重建。上述例子的精确机器 Fixture 仍需交付，参见 K.3 的复审候选说明。
+
 §12.9 的伪代码只验证构建期的全局门禁路径覆盖与 Goal 证明。局部门禁的派发前复核由 Runtime 执行。
 
 | 门禁/准入条件 | Compiler 构建期 | Runtime 派发或终态复核 |
@@ -1102,7 +1130,7 @@ Compiler 必须验证：
 
 将外层对象作为实参时，同样检查其所含身份字段的来源。请求字段、字面量及 Procedure Script 输出不能直接充当此类来源。**请求中的 pduSessionId、dnn 和 sNssai 不是天然可信的 Session/Scope 身份**：若 Owner 身份路径标注或部署 Scope 策略的授权路径包含其中任一字段，就必须为相应参数改用 Host 契约确认关联的身份/范围投影（例如已验证的 Session/PSI 绑定）或独立权威 Producer 的输出；不能因为请求已被接纳而豁免 provenance 检查。若这些字段仅用于选择/过滤查询或业务参数，且不用于授权身份归属与资源句柄比较，则原 Request SourcePath 可作为普通业务数据，Runtime 仍必须独立检查其业务范围和可信关系。
 
-Compiler 须追溯 Script 派生实参的全部来源类别。身份标注缺失到无法判定所需绑定、来源无法追溯或身份绑定不符合上述规则时，报 `CALLABLE_ARGUMENT_PROVENANCE_INVALID`。Owner 标注与 Host 关联的传输格式按相应契约评审。
+Compiler 须追溯 Script 派生实参的全部来源类别。身份标注缺失到无法判定所需绑定、来源无法追溯或身份绑定不符合上述规则时，报 `CALLABLE_ARGUMENT_PROVENANCE_INVALID`。Owner 标注与 Host 关联的传输格式按相应契约评审。**缺失与可信空集合不得混同（对现有规则的解释）：** 若 Owner 或部署 Scope 声明表明某个输入路径参与身份/授权，却拿不到该路径的可信身份标注、Schema 或来源关联，按既有 `CALLABLE_ARGUMENT_PROVENANCE_INVALID` 阻断链接。若一个 callable 的所有实参**确实只承载非身份业务数据**，也不能因 Owner 发布物“没写标注”就默认其身份路径集合为空；必须通过受信 Owner/部署契约判定本次实际需要检查的身份路径集合（可以经认证确认为空），并继续检查所有其他 Scope、输入和 Capability 义务。**无法认证究竟是空集合还是缺失资料时仍 fail-closed。** 该澄清不定义 `identityInputs` 的物理字段，也不放宽 §13.3 已有来源规则。
 
 Runtime 在 Operation / Observation 派发前，对已物化身份实参逐项核验原绑定、来源记录与当前 Invocation 的关联，再执行 Capability Scope 检查。等待派发资格后按实际派发时重新核验。无法核验时记录 `CALLABLE_ARGUMENT_PROVENANCE_UNVERIFIED`，按 §24.2 停止。Reconcile 的原调用绑定仍按 §20 校验。
 
@@ -1352,6 +1380,8 @@ Runtime 只用可信且关联到本次原调用的证明记录提交状态。Own
 | `create-session` 的 `NOT_COMMITTED` → `retry-session`（相同 `retryOf`） | 符合路径覆盖条件；仍须独立检查无残留副作用及重试许可 | 直接的原调用 `NOT_COMMITTED` 出边同样可构成证明 |
 | `create-session` 的 `SUCCEEDED` → `retry-session`，或旁路 Node → `retry-session` | `RETRY_CONTRACT_INVALID`，阻断构建 | 存在一条到达重试的路径没有经过目标原调用或其唯一 Reconcile 的 `NOT_COMMITTED` 出边 |
 | 汇合路径：一条经 `reconcile-session.NOT_COMMITTED`，另一条从未证实状态直接进入 `retry-session` | `RETRY_CONTRACT_INVALID`，阻断构建 | 合流时不得把一条路径取得的未提交资格授予其他路径 |
+
+**多个 `retryOf` 候选与同一未提交证明（Informative；不新增静态禁令或结果码）。** 本版未规定不同合法重试 Node 不得引用同一原 Mutation；但静态 `retryOf` 路径覆盖只证明**可达前提**，不会给每个 Node 各发一张重试资格。Runtime 对**同一个原 Mutation Invocation 的已验证未提交凭证**建立唯一消费记录：实际派发新的业务 Mutation 前，必须在原调用/证明/Scope/业务身份均验证后**原子抢占并消费一次**，成功者取得独立新 Invocation；其余候选（即使静态图上合法、另一个分支仍可达）不得复用同一证明，按现有 `RETRY_ADMISSION_DENIED` 保全停止。审计中保留原 Invocation ID、证明引用/验证结果、每个候选 Node/新调用身份、抢占/已消费状态和拒绝原因；不同执行调度不能使同一证明多次授权。**这里不新增并发调度顺序保证、不要求静态拒绝全部多候选图，也不改变 §20.2 第 5 项的受信前提。**
 
 本表不改变 `UNRESOLVED` 的终止责任、`NOT_COMMITTED` 的一次性消费规则，也不将普通 Observation 代替原调用 Reconcile；精确判断仍以本条第 5 项为准。
 
@@ -1835,6 +1865,8 @@ predicates:
 本节的 5GC 类型引用用于说明绑定形状。完整示例依赖 Owner 发布相应 Schema、精确 callable 输出绑定和保证；可脱离外部仓库复核的完整链接输入见附录 E。UDM Get 的 `output.result` 表示本次 SM 数据读取；订阅 Create 的 `output.subscription` 与 Reconcile 后查询的 `output.subscription` 表示订阅资源状态。两种命题分别使用 Session Profile 和 Subscription Predicate。Session Profile 的 `urn:example` 结构用于教学，真实迁移以 Host 规范化 Get 输出为准。
 
 ## 30. Procedure
+
+**[Informative 教学假设 — 本节全部 UDM/PCF/RAN/N4 片段共同适用]** 本节不是 Owner 已发布或真实 5GC 已符合的声明：每个教学 Operation/Observation 假定其精确 `owner/kind/id`、Input/Output/Receipt Schema、Effect、Capability/Scope、身份关联、Evidence 保证、资源责任和 Reconcile（如适用）已经由各相应 Owner/Deployment **正式发布且可信链接**。缺少任一必需发布物或关联时，真实 Skill 应按 §13.3、§17、§20、§24 和 §45.2 fail-closed；不能把以下节点中的 `context.request.*` 和教学返回值当作受信 Session/PSI 身份。后续片段沿用本假设，无需重复印刷同样的声明。
 
 **教学 Owner 的 Scope 与 PSI 约束。** 本图中的 `context.request.pduSessionId`、`context.request.dnn`、`context.request.sNssai` 仅为请求选择参数，**不得直接用于建立 Session/PSI 的可信身份或提升 Scope**；教学 ToolCatalog/Capability Scope Policy 不将这些 Request SourcePath 标注为身份或授权来源。教学场景仍须按 §23 对目标 `(UE, Lifecycle, PSI)` 分别隔离：在相关调用的派发准入中，Host 已验证的 `context.ueRef`、`context.correlation.lifecycleRef` 和受信入口关联、Owner 返回的 Session/资源关联证明必须共同约束并核对请求指定的 PSI。请求的 PSI 数值只参与与受信目标的比较，不构成该目标的权威证明。不同 PSI 不得因使用相同 UE Ref 而共用资源或通过 Scope 检查。若调用无法取得或核验目标 PSI 的受信绑定，则必须拒绝该调用；不得采用仅有 UE/Lifecycle 而无法区分 PSI 的宽泛授权。以上是教学 Owner 的前置契约假设，**不是对当前示例已具备真实 Host/Owner 发布物的符合性声明**。
 
@@ -3422,7 +3454,7 @@ Compiler 的绑定链：operation.reconcile 的原 Node → 原普通 MUTATION O
 
 Runtime 重做相同检查，对同一原调用最多派发一次受控 Reconcile。Reconcile 专用 callable 不得通过普通 `operation.target` 绕过原调用检验；一个 Capability 可以显式同时列 Mutation 与 Reconcile 两个成员。
 
-**同一受信快照内的可检查情形。** Compiler 必须检查该快照中所有已发布 Mutation 的 `mutation.reconcile.callable` 目标，而非仅当前 Skill 已直接引用的 Mutation；若普通 `operation.target` 指向其中一个已识别的专用 READ callable，报既有 `RECONCILE_CONTRACT_INVALID`。Runtime 派发前须根据同一受信 Owner 发布关系复核，不能因该成员为 READ 或具有单独 Capability Grant 而跳过原调用核验。此检查仅落实已明确禁止的同快照绕过；不允许根据 `originalInvocationId` 等同名字段臆测专用身份。跨快照/跨发布物的完整性仍须由 Owner 的版本化发布契约提供可验证关联，未经真实验收不得声称该范围的互操作符合性已通过。没有安全 Owner 调和能力时必须遵循 §20.2 的保全停止，不创建伪 Reconcile。
+**同一受信快照内的可检查情形。** Compiler 必须检查该快照中所有已发布 Mutation 的 `mutation.reconcile.callable` 目标，而非仅当前 Skill 已直接引用的 Mutation；若普通 `operation.target` 指向其中一个已识别的专用 READ callable，报既有 `RECONCILE_CONTRACT_INVALID`。Runtime 派发前须根据同一受信 Owner 发布关系复核，不能因该成员为 READ 或具有单独 Capability Grant 而跳过原调用核验。此检查仅落实已明确禁止的同快照绕过；不允许根据 `originalInvocationId` 等同名字段臆测专用身份。跨快照/跨发布物的完整性仍须由 Owner 的版本化发布契约提供可验证关联，未经真实验收不得声称该范围的互操作符合性已通过。**跨快照情形的解释性边界（不新增物理关联字段）：** 可以消费由**独立、受信、版本化** Owner/部署契约实际证明的 `(Owner, Mutation callable, 专用 Reconcile READ callable, 原调用绑定, Scope)` 关联，且仍须通过同一 Owner、精确 READ、独立 Capability、Proof/Receipt 与反绕过校验；**没有**该实际关联或不能解码验证时，既不能猜测存在专用 Reconcile 身份，也不能以普通 READ Grant 规避规则。不能证明安全链接的跨快照调和按已有 `RECONCILE_CONTRACT_INVALID` / 对应受信依赖链接错误拒绝，Runtime 保留原调用并安全停止。该逻辑属性清单只是已有 G.2 规则的检查视图，**不代表** v1alpha3 已冻结其跨发布物线格式或证明物；需要另行交付版本化契约并按 §45.2 验收。没有安全 Owner 调和能力时必须遵循 §20.2 的保全停止，不创建伪 Reconcile。
 
 **证明与恢复字段归属表（Normative 交叉索引）**
 
@@ -3635,7 +3667,9 @@ predicates:
 
 结构必须满足 G.1：members 至少两项，每项两个字段 parameter 和 guarantee 均为必需；每组的 (parameter,guarantee) 对唯一，且必须确实属于 requires[parameter]；没有隐式的组 ID、位置索引或默认同名绑定。Compiler 静态检查来源类别、Scope 映射、Owner 保证及可信来源身份。Runtime 在同一已接纳 Evidence 视图中逐项验证成员的精确记录与底层来源身份并证明两两不同；无法证明时 Predicate 得到 UNKNOWN，而不是 FAIL。
 
-同一个绑定点的诊断优先级：一、YAML/Predicate 结构不合法 → YAML_PARSE_ERROR / UNKNOWN_FIELD；二、成员对不在 requires、保证导出失效、Owner 身份提取规则失效或跨 Owner 共同事实映射无效 → EVIDENCE_GUARANTEE_LINK_INVALID；三、描述符与受信域关系都合法，但仅根据静态 Schema、Producer 集合和保证约束即可证明**在任何合法运行中**都不存在满足独立性组的证据组合 → PREDICATE_EVIDENCE_UNSATISFIABLE；四、静态组可满足且链接通过，但**本次** Producer 实际记录缺失、同源、过期、Scope 冲突或不可核实 → UNKNOWN。不可将第 2 类问题回退为第 3 类；同一文件的不同绑定点可同时有不同诊断。§17.1 中的独立性规则交叉引用统一指向 §17.1.1、§17.2 和本节。
+同一个绑定点的诊断优先级：一、YAML/Predicate 结构不合法 → YAML_PARSE_ERROR / UNKNOWN_FIELD；二、成员对不在 requires、保证导出失效、Owner 身份提取规则失效或跨 Owner 共同事实映射无效 → EVIDENCE_GUARANTEE_LINK_INVALID；三、描述符与受信域关系都合法，但仅根据静态 Schema、Producer 集合和保证约束即可证明**在任何合法运行中**都不存在满足独立性组的证据组合 → PREDICATE_EVIDENCE_UNSATISFIABLE；四、静态组可满足且链接通过，但**本次** Producer 实际记录缺失、同源、过期、Scope 冲突或不可核实 → UNKNOWN。**静态不可满足的可判定性边界（现有三阶段分类的保守实现说明）。** `PREDICATE_EVIDENCE_UNSATISFIABLE` 的证明前提是：Owner/部署身份、Schema、受信域与事实映射**全部合法且已验证**，且仅用这些已冻结的静态 Producer 候选、允许值、域对和保证组合就能**有限且确定地证明**无任何合法记录组合满足要求。例如同一 independence 组被合法但确定的静态约束限定为只有一个不可重复的底层来源，且无第二个合法独立候选。若受信映射本身不可比/未授权，优先为 `EVIDENCE_GUARANTEE_LINK_INVALID`；若静态关系合法但 Compiler **不能证明**对所有合法运行都不可满足，不能靠猜测或执行试探报静态 UNSAT，应保留可执行的链接结果，实际 Evidence 是否可满足交由 Runtime 依记录判为 PASS/FAIL/UNKNOWN（证据不足为 UNKNOWN）。这并不允许跳过其他已能静态判定的类型、强制保证与 Scope 检查。该说明不要求采用某个外部 SAT 求解器，也不削弱可证明 UNSAT 时的原有阻断义务。
+
+不可将第 2 类问题回退为第 3 类；同一文件的不同绑定点可同时有不同诊断。§17.1 中的独立性规则交叉引用统一指向 §17.1.1、§17.2 和本节。
 
 
 ### G.3.1 独立来源与共同事实的描述符形状
@@ -4192,16 +4226,16 @@ flowchart TD
 
 ## K.2 诊断 Fixture 负例候选（Informative，DFX-001–DFX-041）
 
-这些 DFX 编号**不是** E115 等正式 E 用例，不修改 H 的诊断码。以下 `fixtureModification` 是候选触发条件（可能需要独立受信 Owner 输入），不是已可运行的 Fixture。每项的 `ciResult` 均为 `NOT_RUN`；标记“需先核定可表达性”的条目，应先确定其在合法 YAML/Build 输入上的触发路径，再制作独立 Fixture，不能为了凑测试数虚构构造。
+这些 DFX 编号**不是** E115 等正式 E 用例，不修改 H 的诊断码。以下 `fixtureModification` 是候选触发条件（可能需要独立受信 Owner 输入），不是已可运行的 Fixture。每项的 `ciResult` 均为 `NOT_RUN`；标记“需先核定可表达性”的条目，应先确定其在合法 YAML/Build 输入上的触发路径，再制作独立 Fixture，不能为了凑测试数虚构构造。**K.2 中登记的 41 项是测试债务与候选数，不是 41 项可构造用例或 41 次执行成功；诊断是否在 v1alpha3 当前文法内可触发必须另行确认。**
 
 | 候选 | 现有 Code / Phase | 候选输入差异与检查重点 | 执行状态 |
 |---|---|---|---|
 | DFX-001 | `YAML_PARSE_ERROR` / C_STATIC | 重复 YAML Mapping Key 或非法基本标量；保持其他源码及构建目标有效 | NOT_RUN |
 | DFX-002 | `LANGUAGE_TARGET_UNSUPPORTED` / C_STATIC | 在其余文件有效的 BuildRequest 中指定当前 Compiler 不支持的 languageTarget | NOT_RUN |
-| DFX-003 | `DUPLICATE_ID` / C_STATIC | 尝试在 Procedure.nodes 中重复声明同一 Node ID；需先确定重复键是否必被 YAML_PARSE_ERROR 捕获，及是否存在跨文件有效的同名声明入口（需先核定可表达性） | NOT_RUN |
+| DFX-003 | `DUPLICATE_ID` / C_STATIC | **当前未找到**不使用重复 Mapping Key 的独立最小构造。重复 `nodes.foo` 或 `predicates.bar` 应由 YAML 解析器先报 `YAML_PARSE_ERROR`；跨角色同名是否构成同一身份尚无 v1alpha3 规范性规则，不得自造触发。标为**可表达性未闭合/防御性目录项**，不得标为已有 Fixture 或通过 | NOT_RUN |
 | DFX-004 | `FINAL_POSTCONDITION_GOAL_MISMATCH` / C_STATIC | 保持成功路径和 Postcondition 可达，令 Postcondition.goal 与 Contract.goal 不相等 | NOT_RUN |
 | DFX-005 | `CONTROL_FLOW_CYCLE` / C_STATIC | 在两个既有业务 Node 间增加一条返回前驱 Node 的路由，形成可达 back-edge；确保无其他更早的解析错误 | NOT_RUN |
-| DFX-006 | `CONTROL_FLOW_AMBIGUOUS` / C_STATIC | 尝试让同一 (Node, stage, Outcome) 同时指向两个目标；若唯一可行的表达是重复 YAML Mapping Key，必须先确定其与 YAML_PARSE_ERROR 的优先级及是否可表达（需先核定可表达性） | NOT_RUN |
+| DFX-006 | `CONTROL_FLOW_AMBIGUOUS` / C_STATIC | **可构造的不同字段互斥冲突**：同一 `operation` 映射同时声明有效 `target: ca::valid.read` 与 `script: scripts/valid.py`（均处于同一 YAML Mapping 且没有重复键）；依 §24.1 同阶段多种调用目标应触发本码。完整 Fixture 须提供受信 READ、合法 Script 与其余有效文件；重复 YAML Key 仍应先报 `YAML_PARSE_ERROR` | NOT_RUN |
 | DFX-007 | `DEPENDENCY_ALIAS_MISSING` / C_STATIC | 保留一个合法外部 callable 引用 ca::x，移除 Contract.dependencies 中的 ca alias；其余快照及 Scope 保持可信 | NOT_RUN |
 | DFX-008 | `DEPENDENCY_SNAPSHOT_MISSING` / C_STATIC | Contract.dependencies 声明 ca alias 对应 Package ID，但受信 BuildRequest 对该 alias 不提供快照；保留目标引用 | NOT_RUN |
 | DFX-009 | `DEPENDENCY_DUPLICATE` / C_STATIC | 同一 Alias 在可信构建绑定中指向两份不同的快照身份或字节集；不改变 Skill 源文件 | NOT_RUN |
@@ -4238,6 +4272,28 @@ flowchart TD
 | DFX-040 | `RECONCILE_CONTRACT_INVALID` / C_STATIC | 同一受信 ToolCatalog 快照的一个 Mutation 的 mutation.reconcile.callable 指向精确 READ operation；另一个 Skill 在普通 operation.target 中调用该 READ，且提供独立的 READ Capability Grant。Compiler 必须检查整份快照的 Mutation 关联并阻断普通调用，不得只检索本 Skill 已引用的 Mutation | NOT_RUN |
 | DFX-041 | `RECONCILE_CONTRACT_INVALID` / C_STATIC | 以 G.2.1 有效 Reconcile READ + receiptSchema 作为基线：先验证 proofPath receipt.commit 可在移除逻辑 receipt 锚点后从 schema 根解析。单独将路径改成 receipt.receipt.commit 或裸 commit；前者多出未声明 Schema 段，后者缺少必需通道锚点，二者都不得自动改写或链接通过 | NOT_RUN |
 
+### K.2.0 两个诊断的可表达性复核（Informative，不修改 H 的规范性分类）
+
+**DFX-003 / `DUPLICATE_ID`：尚未构造成功。** 当前 v1alpha3 的 `nodes` / `predicates` 采用 Mapping；在单一 Mapping 中重复同名键属于 §10.1 更早的 `YAML_PARSE_ERROR`。跨角色 `NodeId`、`PredicateId` 和 `GoalId` 并不自动共用一个全局身份空间；不能为让这个 Code 可触发而引入未声明的跨类别去重规则。本轮保留附录 H 的 `(DUPLICATE_ID,C_STATIC)` 冻结身份作为**防御性分类 / 可表达性审计缺口**，但**没有**足以要求某实现产出此码的独立合法解析输入。需要实际证明存在其他可构造路径，或以 §45.1 C 类审议该诊断在未来版本的定位。不能借此声称 H 全量机器诊断套件已通过。
+
+**DFX-006 / `CONTROL_FLOW_AMBIGUOUS`：具有不重复 YAML Key 的最小违例形状。** 在原本有效的 Procedure/依赖快照中把某一个原本有效的 Operation Node 改成（其他字段和路由维持已合法版本）：
+
+```yaml
+nodes:
+  choose:
+    operation:
+      target: ca::valid.read
+      script: scripts/valid.py
+      arguments: {}
+      routes:
+        SUCCEEDED: FAILED
+        FAILED: FAILED
+```
+
+此处 `target` 和 `script` 是两个**互斥目标**，而非重复的 YAML Key；在有效、可信的 `ca::valid.read` 导出和 Script 都存在、其他入口/路由/Goal 检查前提合法时，§24.1 已将同阶段互斥调用目标归入 `CONTROL_FLOW_AMBIGUOUS`。该片段只是输入差异，不是完整作者源码或通过验证的 Fixture。若改为重复写两个 `target` 键，仍应优先产生 `YAML_PARSE_ERROR`。**两者执行证据均为 NOT_RUN。**
+
+**诊断可达性验收原则：** 每个需要主张实现覆盖的 `(Code,Phase)` 必须有经过规范性前置检查、能单独触发该码的确切文件/Build 输入、预期和原始结果；不能用无法构造的负例获得 PASS，且不可改变 H 的诊断优先级来强行触发。当前无法证明可构造的项应记录为 `REPRESENTABILITY_UNRESOLVED`（仅本报告的资料性覆盖状态，**不是新诊断码**）；完整 H 验收门槛仍未满足。
+
 ### K.2.1 YAML 标量原始词法跨实现一致性候选（Informative，LEX-001）
 
 以下是**一组未执行的跨 Native/WASM/Studio 联合候选**，不是新增 E 编号或 DFX-042，也不改变现有 DFX-001–DFX-041 的状态。运行时必须保留 YAML 标量的原始词法与是否加引号的信息，按 §13.2/G.1 同一规则分类；测试须将同一结构化输入分别交给 Native Compiler、WASM Compiler 和 Studio/LSP，核对合法性、`(Code, Phase)`、SourcePath 解析与值类型一致。
@@ -4271,11 +4327,25 @@ flowchart TD
 
 所有 RFX 项的执行状态都是 **NOT_IMPLEMENTED**，不为它们分配新的规范性诊断代码。
 
+### K.3.1 §12.9 证明传播的三类最小候选（Informative）
+
+以下只是进一步拆分 §12.9 已有不变量的测试计划，**不是**新增正式 E 编号，也没有真实执行结果：
+
+| 候选 | 最小控制流对照 | 冻结预期 |
+|---|---|---|
+| `PFX-JOIN-PRE` | 两条可达边合流，一条具有全局 Precondition PASS，另一条绕过 | `passed` 取交集，合流后的 Mutation / SUCCEEDED 不得借一条边证明所有路径 |
+| `PFX-JOIN-GOAL` | 一条路径建立 Goal PASS，另一条没有 Goal PASS，随后在同一 Stage 合流 | `proof` 取 AND，合流后不可直达受承诺的 Invocation SUCCEEDED |
+| `PFX-AUTO-REBUILD` | 同 Node 自动推进经过 MUTATION SUCCEEDED；对照后续 Goal Postcondition PASS 与仅局部 Postcondition PASS | Mutation 清除旧 `proof`，只有精确 Goal PASS 可重建；局部 PASS 只能保留，不能创建证明 |
+
+所有候选 `fixtureExists=false`、`executed=false`、`passed=false`、`rawResultRef=null`；实现时须依据 §24.1/§12.9 选取确切既有诊断和优先级，不新增语言路由规则。
+
 ## K.4 符合性报告模板（Informative，未测试）
+
+报告的八项门槛由 §45.2 定义。**规范预期集与可执行符合性套件分开版本登记：** `specExpected` 只能取本规范的 **附录 E/G.9** 对该 E 变体的预期，或**附录 H** 对该 `(Code,Phase)` 诊断的现行规范预期；不得让实现根据实际运行结果自行重写预期。`expectationSet` 应关联本文件受审提交和 E01–E114 / H 复合键集合；`executableSuiteVersion`、`fixtureArtifactDigest`、`executed`、`rawResultRef` 属实际测试记录，不能从规范提交推导其存在。**E01–E114 是预期集合而不是已完成的机器测试套件**；附录 K 中登记为 `NOT_IMPLEMENTED`、`NOT_RUN` 或 `REPRESENTABILITY_UNRESOLVED` 的项目不会自动计入覆盖率。
 
 报告的八项门槛由 §45.2 定义。下述 YAML 只是填写结构的**资料性建议报告格式**；内部的 `same-document` 引用用于定位本文件附录，不是新的正式 URI 或 BuildRequest 字段。为了避免把附录 H 的“规范用例已定义”误报为“运行通过”，建议每一个精确 `(Code,Phase)` / E 用例**执行变体**分别填报 `specExpected`、`fixtureExists`、`executed`、`passed`、`rawResultRef`。只有真实 Fixture 存在、确实运行、符合预期且能查到不可变原始结果时，才有资格计入已通过的实现覆盖；不满足的列应保留 false / null，不能以规范预期替代实际执行。此类列名是附录 K 的报告模板建议，不是擅自冻结 Runtime Trace / BuildRequest 的传输字段。
 
-**不得**在缺少原始、不可变 CI / Owner/部署证据时把 `NOT_TESTED` 改成 `PASS`。跨快照 Reconcile、Owner 身份输入、Root Routing 和共同事实受信装配的实际覆盖范围应逐项注明；不覆盖的功能不得被写成完整产品符合性。
+**不得**在缺少原始、不可变 CI / Owner/部署证据时把 `NOT_TESTED` 改成 `PASS`。跨快照 Reconcile、Owner 身份输入、Root Routing 和共同事实受信装配的实际覆盖范围应逐项注明；不覆盖的功能不得被写成完整产品符合性。若所用 BuildRequest 版本没有整个请求的聚合摘要，§34.0.2 仍要求可信原始输入字节、各自 `snapshotDigest`、身份/授权关联进入**可验证的不可变输入闭包**；缺少顶层聚合摘要本身不授权绕过闭包验证，也不为 v1alpha3 擅自发明一个必须存在的 `buildRequestDigest` 字段。
 
 ```yaml
 # Informative reporting template; this is NOT an executable CA-SL fixture.
@@ -4286,6 +4356,30 @@ languageTarget: connectionagent.io/v1alpha3
 languageContract: FROZEN
 productConformance: NOT_QUALIFIED
 reportStatus: NOT_TESTED
+# 资料性符合性声明范围；单独声明具体类型、版本和原始证据
+conformanceClaims:
+  - claimType: language-specification
+    subject: "CA-SL v1alpha3 normative text (not a product pass)"
+    status: FROZEN
+    evidenceRef: null
+  - claimType: compiler-static
+    status: NOT_TESTED
+    evidenceRef: null
+  - claimType: studio-lsp-parity
+    status: NOT_TESTED
+    evidenceRef: null
+  - claimType: host-runtime
+    status: NOT_TESTED
+    evidenceRef: null
+  - claimType: owner-deployment-interop
+    status: NOT_TESTED
+    evidenceRef: null
+  - claimType: root-routing
+    status: NOT_TESTED
+    evidenceRef: null
+  - claimType: live-fivegc-e2e
+    status: NOT_TESTED
+    evidenceRef: null
 implementation:
   product: null
   repository: null
@@ -4362,6 +4456,17 @@ implementation:
       commitOrArtifactDigest: null
     hostRuntime:
       commitOrArtifactDigest: null
+# 以下套件信息与本版语言语义冻结相互独立；均需真实版本化证据
+suiteProvenance:
+  normativeSpecCommitSha: null
+  expectationSet: "E01-E114 and Appendix H (Code,Phase) at the normative spec commit"
+  executableSuiteVersion: null
+  fixtureArtifactDigest: null
+  ciToolchainVersionOrCommit: null
+  sourceOfTruth: "same-document:Appendix-E-G.9-H"
+  executedVariants: 0
+  claimedPassingVariants: 0
+  rawResultRef: null
 caseMatrix:
   normativeIndex: "same-document:Appendix-E"
   caseRange: E01-E114
@@ -4383,6 +4488,22 @@ diagnosticMatrix:
   executableSuiteRef: null
   rawResultRef: null
   coverageRows:
+    - code: DUPLICATE_ID
+      phase: C_STATIC
+      specExpected: "Appendix H: defensive code, independent valid-parse trigger unproven"
+      representability: REPRESENTABILITY_UNRESOLVED
+      fixtureExists: false
+      executed: false
+      passed: false
+      rawResultRef: null
+    - code: CONTROL_FLOW_AMBIGUOUS
+      phase: C_STATIC
+      specExpected: "§24.1/H: mutually exclusive Operation targets in one YAML mapping"
+      representability: CONSTRUCTIBLE_NOT_EXECUTED
+      fixtureExists: false
+      executed: false
+      passed: false
+      rawResultRef: null
     - code: EFFECT_MISMATCH
       phase: C_STATIC
       specExpected: "Appendix H: static Effect conflict blocks build"
