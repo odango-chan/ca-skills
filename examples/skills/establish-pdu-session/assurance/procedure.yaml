@@ -34,21 +34,31 @@ nodes:
         sNssai: context.request.sNssai
         servingPlmn: context.request.servingPlmn
       routes:
-        SUCCEEDED: check-subscription
         FAILED: SAFE_STOPPED
         UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
-  check-subscription:
-    precondition:
+    postcondition:
       predicates:
-        - predicate: establishment.subscription.usable
+        - predicate: establishment.udm.response_valid
           arguments:
-            - read-udm.operation.output.result
-            - context.request.dnn
+            - read-udm.operation.output
       routes:
-        PASS: bind-udm-hold
+        PASS: select-establishment-configuration
         FAIL: FAILED
         UNKNOWN: UNRESOLVED
+  select-establishment-configuration:
+    # Pure selection does not mint evidence or authorize Subscription data.
+    operation:
+      script: scripts/select-establishment-configuration.py
+      arguments:
+        dnn: prepare-selection.operation.output.dnn
+        sNssai: context.request.sNssai
+        requestedPduSessionType: context.request.requestedPduSessionType
+        requestedSscMode: context.request.requestedSscMode
+        udmResult: read-udm.operation.output.result
+      routes:
+        SUCCEEDED: bind-udm-hold
+        FAILED: FAILED
   bind-udm-hold:
     operation:
       tool: ca::ca.session.udm_hold.bind
@@ -80,7 +90,7 @@ nodes:
         ueRef: context.ueRef
         udmInvocationRef: read-udm.operation.output.invocationId
         udmTransactionRef: read-udm.operation.output.result.transactionRef
-        selection: read-udm.operation.output.result.selection
+        selection: select-establishment-configuration.operation.output
         ingressRef: context.correlation.ingressRef
         lifecycleRef: context.correlation.lifecycleRef
         waiterRef: bind-udm-hold.operation.output.holdRef
@@ -113,12 +123,21 @@ nodes:
         ingressRef: context.correlation.ingressRef
         lifecycleRef: context.correlation.lifecycleRef
         fabricHoldRef: bind-pcf-hold.operation.output.holdRef
-        selection: read-udm.operation.output.result.selection
+        selection: select-establishment-configuration.operation.output
       routes:
-        SUCCEEDED: create-pcf
+        SUCCEEDED: build-pcf-policy-inputs
         FAILED: SAFE_STOPPED
         UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
+  build-pcf-policy-inputs:
+    operation:
+      script: scripts/build-pcf-policy-inputs.py
+      arguments:
+        subscriptionData: select-establishment-configuration.operation.output.subscriptionData
+        subscriptionSource: select-establishment-configuration.operation.output.subscriptionSource
+      routes:
+        SUCCEEDED: create-pcf
+        FAILED: FAILED
   create-pcf:
     # The old 5GC baseline requires both PCF create governance and a proven
     # PRE-N4 no-pair baseline. Those Owner/Evidence guarantees are not published
@@ -137,8 +156,8 @@ nodes:
       arguments:
         ueRef: context.ueRef
         pcfCreateInputsRef: read-pcf-inputs.operation.output.pcfCreateInputsRef
-        selection: read-udm.operation.output.result.selection
-        policyInputs: read-udm.operation.output.result.policyInputs
+        selection: select-establishment-configuration.operation.output
+        policyInputs: build-pcf-policy-inputs.operation.output
         lifecycleRef: context.correlation.lifecycleRef
         sdmSubscriptionRef: subscribe-udm.operation.output.subscriptionRef
         waiterRef: bind-pcf-hold.operation.output.holdRef
@@ -184,7 +203,7 @@ nodes:
         requestType: context.request.requestType
         ingressRef: context.correlation.ingressRef
         lifecycleRef: context.correlation.lifecycleRef
-        selection: read-udm.operation.output.result.selection
+        selection: select-establishment-configuration.operation.output
         policyResultRef: create-pcf.operation.output.policyResultRef
         purpose: "nas-and-n2-delivery"
       routes:
@@ -202,13 +221,24 @@ nodes:
         pduSessionId: context.request.pduSessionId
         pti: context.request.pti
         lifecycleRef: context.correlation.lifecycleRef
-        selection: read-udm.operation.output.result.selection
+        selection: select-establishment-configuration.operation.output
         policyResultRef: create-pcf.operation.output.policyResultRef
       routes:
-        SUCCEEDED: bind-n1n2-hold
+        SUCCEEDED: build-n1n2-delivery
         FAILED: SAFE_STOPPED
         UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
+  build-n1n2-delivery:
+    operation:
+      script: scripts/build-n1n2-delivery.py
+      arguments:
+        preparedResponse: prepare-response.operation.output
+        operationContextRef: read-operation-context.operation.output.contextRef
+        policyResultRef: create-pcf.operation.output.policyResultRef
+        pduSessionType: select-establishment-configuration.operation.output.pduSessionType
+      routes:
+        SUCCEEDED: bind-n1n2-hold
+        FAILED: FAILED
   bind-n1n2-hold:
     operation:
       tool: ca::ca.session.n1n2_hold.bind
@@ -242,7 +272,7 @@ nodes:
         lifecycleRef: context.correlation.lifecycleRef
         responseArtifactRef: prepare-response.operation.output.responseArtifactRef
         waiterRef: bind-n1n2-hold.operation.output.holdRef
-        delivery: prepare-response.operation.output
+        delivery: build-n1n2-delivery.operation.output
       routes:
         SUCCEEDED: await-ran-acceptance
         FAILED: SAFE_STOPPED
