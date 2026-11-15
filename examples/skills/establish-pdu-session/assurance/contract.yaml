@@ -1,5 +1,7 @@
 # CA-SL v1alpha4 author syntax. The external aliases below are *illustrative*,
 # not evidence of published, qualified ToolCatalog/CapabilityContracts owners.
+# The upn/ssm aliases and Capability IDs are draft §21 Owner adoption targets,
+# not published exports and cannot be used to claim a successful link.
 goal: pdu_session.initial_request_fulfilled
 precondition: check-request.precondition
 requestSchema: schemas/establishment-request.schema.yaml
@@ -7,10 +9,15 @@ contextSchema: ca-context::urn:connectionagent:ca:context:invocation:v1
 dependencies:
   ca-context: urn:example:connectionagent:host-context
   ca: urn:example:connectionagent:5gc-tool-contracts
+  upn: urn:example:connectionagent:upn-session-owner
+  ssm: urn:example:connectionagent:ssm-ran-owner
 capabilities:
   - fivegc-session-read
   - fivegc-session-mutation
   - fivegc-session-assurance
   - fivegc-session-responsibility
+  - upn-session-create
+  - ssm-ran-signal
+  - upn-session-modify
 limits:
   maxActions: 32
