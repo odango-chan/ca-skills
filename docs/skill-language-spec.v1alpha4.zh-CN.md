@@ -170,7 +170,7 @@ Host / Runtime ── admission, execution, correlation, Evidence
 
 Skill 是具有明确业务目标、输入契约、授权范围和执行入口的可复用业务能力包。Skill 不是 Tool；一个 Skill 可以调用多个 Tool，也可以被 Agent Router 选择。
 
-vNext 作者维护的 Package：
+v1alpha4 作者维护的 Package：
 
 ~~~text
 skills/<skill-name>/
@@ -196,7 +196,7 @@ skills/<skill-name>/
 | scripts/ | Skill 自有确定性 Python；可作为 Procedure 的本地 Script Operation，也可实现 Predicate |
 | references/ | 可选知识资料，不是执行契约或 Evidence |
 
-vNext 保留作者维护的 assurance/contract.yaml，但不再使用重复的 apiVersion、kind、metadata 等机器对象包装。Contract 声明 Skill 的公共业务契约、依赖需求和 Capability Grants；Skill 身份从 Package 根目录确定。语言版本由 BuildRequest / Compiler Target 决定。外部依赖的具体内容由 Studio / 调用方通过 DependencySnapshot 提供，不复制到 Skill Package 的 lib/。
+v1alpha4 保留作者维护的 assurance/contract.yaml，但不再使用重复的 apiVersion、kind、metadata 等机器对象包装。Contract 声明 Skill 的公共业务契约、依赖需求和 Capability Grants；Skill 身份从 Package 根目录确定。语言版本由 BuildRequest / Compiler Target 决定。外部依赖的具体内容由 Studio / 调用方通过 DependencySnapshot 提供，不复制到 Skill Package 的 lib/。
 
 ### 6.2 Goal、Request、Invocation 与编译契约
 
@@ -206,7 +206,7 @@ vNext 保留作者维护的 assurance/contract.yaml，但不再使用重复的 a
 - **Context Schema：** Skill 通过 `contextSchema` 选择 Host Owner 发布的 Invocation Context Schema。Compiler 以该 Schema 校验 Host 字段路径。
 - **Dependencies：** Skill 声明所需的公共 Owner 契约身份（例如 ToolCatalog、Host Context、Observation、共享 Schema）。声明依赖身份，不携带下载地址、版本锁或依赖内容。
 - **Capability Grants：** Skill 在 contract.yaml 中显式声明所需 Capability 身份。Compiler 逐一验证每个外部 callable 都属于已 Grant 的 Capability；不得从“源码调用了某个 Tool”自动推导授权。
-- **Skill Identity：** 由规范化 Package 根路径 / Package 名确定，不再要求作者在 YAML 重复填写 metadata.name。
+- **Skill Identity：** 取 G.7 所规定的逻辑根 `skills/<skill-name>`，而非由宿主文件系统自行将绝对路径规范化后再计算；包名/路径的大小写、分隔符、Windows/Unix 差异、符号链接与尾随斜线均以 G.7 的规范化与安全检查为准。作者不在 YAML 重复填写 metadata.name。
 - **Compiled Skill Contract：** Compiler 将 contract.yaml、Procedure 和 Predicate 定义归一化为 Runtime 所需的契约投影。它是派生产物，不是第二份作者源码；若 Runtime 不需要独立 Contract 文件，也不必单独输出。
 - **Invocation：** 一次 Skill 独立执行实例。每次 Invocation MUST 有独立运行身份和隔离上下文。不得因为 UE 相同而共享未声明的可变状态。
 
@@ -375,7 +375,7 @@ type: schemas/establishment-request.schema.yaml
 
 ### 9.1 ToolCatalog
 
-ToolCatalog 是 Tool Owner 发布的 callable 契约集合。vNext 要求同一 ToolCatalog 和依赖快照能够容纳 Operation 与 Observation Query 两种 callable。两者是不同类型，但共享精确导出身份、Owner、Schema、Effect、依赖解析、Capability 授权和 Runtime Admission。
+ToolCatalog 是 Tool Owner 发布的 callable 契约集合。v1alpha4 要求同一 ToolCatalog 和依赖快照能够容纳 Operation 与 Observation Query 两种 callable。两者是不同类型，但共享精确导出身份、Owner、Schema、Effect、依赖解析、Capability 授权和 Runtime Admission。
 
 ### 9.2 Observation 在 ToolCatalog 中的规范表达
 
@@ -510,11 +510,11 @@ Runtime 在派发时对可信部署契约重新执行同一 Effect 与授权检�
 
 ## 10. 版本和文件
 
-vNext 作者源码保留 contract.yaml、procedure.yaml 和 predicates.yaml 三个语义明确的入口文件。文件路径与所在目录决定源文件类型；这些文件不需要重复声明 apiVersion、kind 或 metadata 包装。
+v1alpha4 作者源码保留 contract.yaml、procedure.yaml 和 predicates.yaml 三个语义明确的入口文件。文件路径与所在目录决定源文件类型；这些文件不需要重复声明 apiVersion、kind 或 metadata 包装。
 
 语言版本由 BuildRequest / Compiler Target 明确指定，而不是由每个 YAML 文件重复声明。Compiler 必须严格按指定版本解析；不支持的版本必须失败，不得猜测或兼容映射。编译产物记录实际采用的语言/API 版本、Skill Package 身份和生成器版本。
 
-vNext 是破坏性版本。Compiler MUST NOT 静默把 v0.2 字段、旧路径或旧隐式输入模型转换为 vNext 语义。
+v1alpha4 是破坏性语言版本。Compiler MUST NOT 静默把 v0.2 字段、旧路径或旧隐式输入模型转换为 v1alpha4 语义。
 
 当前仓库中的可执行 5GC Skill 仍有 v0.2 形态。本文示例说明目标语言，不代表旧文件已迁移或当前 Compiler 已支持。
 
@@ -522,7 +522,7 @@ vNext 是破坏性版本。Compiler MUST NOT 静默把 v0.2 字段、旧路径�
 
 CA-SL 使用 YAML 1.2 表达作者源码。YAML 是序列化格式，不是完整语言语义。Compiler MUST 使用安全解析器，并拒绝重复 Key、未知语义字段、非预期根类型、自定义 Tag、循环 Alias 和无法确定解释的标量。
 
-vNext 的作者 assurance 源码由三个独立角色组成：**Skill Contract**（`contract.yaml`）、**Procedure 图**（`procedure.yaml`）和 **PredicateSet**（`predicates.yaml`）；各自承担公共需求、执行控制流及纯判断定义，互不替代：
+v1alpha4 的作者 assurance 源码由三个独立角色组成：**Skill Contract**（`contract.yaml`）、**Procedure 图**（`procedure.yaml`）和 **PredicateSet**（`predicates.yaml`）；各自承担公共需求、执行控制流及纯判断定义，互不替代：
 
 ~~~yaml
 # assurance/contract.yaml
@@ -617,7 +617,7 @@ Compiler 必须设置文档字节数、嵌套深度、Alias 展开规模的有�
 
 ## 11. Skill Contract 与 Procedure 源码
 
-vNext 保留独立的 `assurance/contract.yaml`。它不是旧式带版本包装的 Kubernetes 风格资源对象，而是 Skill 的公共声明文件。它与 `procedure.yaml` 分工：
+v1alpha4 保留独立的 `assurance/contract.yaml`。它不是旧式带版本包装的 Kubernetes 风格资源对象，而是 Skill 的公共声明文件。它与 `procedure.yaml` 分工：
 
 - Contract 声明 Skill 对外的业务目标、全局前置条件、公共输入、Context 要求、公共依赖和 Capability Grants。
 - Procedure 声明如何确定性地完成目标：start、业务 Node 的四个阶段、路由和最终 Postcondition。
@@ -716,13 +716,13 @@ nodes:
 
 - `apiVersion`、`kind`：Skill 的 `contract.yaml`、`procedure.yaml`、`predicates.yaml` 省略这些包装。ToolCatalog 和 CapabilityContracts 是独立发布的资源，按各自契约声明版本。语言版本由 BuildRequest / Compiler Target 决定；文件路径和内容结构决定源文件类型。
 - `metadata.name`：由 Skill Package 根目录确定，不重复维护。
-- `skillType`：vNext Skill 都使用统一执行模型；除非未来出现有实质语义差异的 Skill 类型，否则不作为必填字段。
+- `skillType`：v1alpha4 Skill 都使用统一执行模型；除非未来出现有实质语义差异的 Skill 类型，否则不作为必填字段。
 - `entryProcedure`：每个 Skill 只有一张入口 Procedure 图，入口由唯一 `procedure.yaml` 确定。
 - `precondition`（**仅 Contract**）是可省略的**单一**全局门禁阶段引用，必须是精确 `<node-id>.precondition` 字符串；不存在“空列表”等价语义，省略表示没有全局前置阶段，空值、数组、对象与不存在的阶段均按 `ENTRY_PRECONDITION_REF_INVALID` 拒绝。此字段不能引用内部某个 Predicate，也不允许把多个独立前置阶段写成列表。若业务要组合多个全局前置事实，请放进该 Node 的 `precondition.predicates` 非空列表。Procedure 其他 Node 仍可拥有局部 Precondition。Contract 不声明 `postcondition` 或 `postconditions`，最终成功只由 Procedure 的最终 Postcondition 聚合 PASS 直达 `SUCCEEDED` 证明。
 - 最终目标由 Contract 的唯一 `goal` 指定；Procedure 的**最终** Postcondition 阶段以聚合 PASS 直接请求 SUCCEEDED 证明该目标，并记录每个 Predicate 的 arguments、执行位置、Evidence lineage 和三态结果；不允许在该阶段重复配置 `goal`。
 - `inputs`、`context.requiredFacts`、`context.schemas`：旧包装与拆分声明。公共请求和 Host 上下文分别通过顶层 `requestSchema`、`contextSchema` 声明，字段必需性由对应 Schema 和 Host 准入规则约束。
 - `evidenceSchema`：通用 Evidence Envelope 由 Host / Runtime 统一定义和校验，不由 Skill 重复声明。
-- `planning.allowDynamicProcedure`：不再需要。vNext Procedure 是静态 DAG，动态生成执行图不属于语言能力。
+- `planning.allowDynamicProcedure`：不再需要。v1alpha4 Procedure 是静态 DAG，动态生成执行图不属于语言能力。
 - `planning.maxActions`：旧名称删除。若 Skill 需要明确的业务动作上界，可在 Contract 中声明可选 `limits.maxActions`，与 Host / Deployment 的强制预算取较小值。
 - `failureSemantics.outcomeUnknown.requireReconcile`：Mutation UNKNOWN 的通用安全规则见 §20。只有具备可安全执行的 Owner 契约时才调和原操作；否则停止并保留不确定状态。
 
@@ -732,7 +732,7 @@ Skill Studio 创建 Skill 时应让作者从可用的公共依赖目录和可信
 
 ### 11.5 Contract 与 Invocation Context
 
-- `requestSchema` 指向 Skill 自有请求 Schema，约束 `context.request` 及其子路径。`contextSchema` 引用已声明依赖别名下 Host Owner 发布的精确对象 Schema ID，约束 `context` 下其余字段。`request` 为保留属性，Host Schema 经根引用解析后的有效根须为对象 Schema，显式设置 `additionalProperties: false`。允许通过可信 Schema 集内的根 `$ref` 复用对象定义。每级根引用只可含 `$ref` 和标识或文档注解，不得附带其他断言。Compiler 静态解析到最终对象，拒绝循环及未解析引用，并检查最终根闭合与保留字段。根字段只由 `properties` 声明。根组合和动态属性规则是 vNext 的暂时限制，待 Schema 子集能可靠判定保留字段及闭合语义后再评审放宽。根 `properties` 和 `required` 均不得出现 `request`。开放根或保留属性冲突报 `CONTEXT_REQUEST_COLLISION`，其他不支持的根结构报 `SCHEMA_INVALID`。嵌套字段仍按受支持的 Schema 子集校验。引用路径必须由对应 Schema 显式定义，缺少声明或字段时阻断构建。
+- `requestSchema` 指向 Skill 自有请求 Schema，约束 `context.request` 及其子路径。`contextSchema` 引用已声明依赖别名下 Host Owner 发布的精确对象 Schema ID，约束 `context` 下其余字段。`request` 为保留属性，Host Schema 经根引用解析后的有效根须为对象 Schema，显式设置 `additionalProperties: false`。允许通过可信 Schema 集内的根 `$ref` 复用对象定义。每级根引用只可含 `$ref` 和标识或文档注解，不得附带其他断言。Compiler 静态解析到最终对象，拒绝循环及未解析引用，并检查最终根闭合与保留字段。根字段只由 `properties` 声明。根组合和动态属性规则是 v1alpha4 的暂时限制，待 Schema 子集能可靠判定保留字段及闭合语义后再评审放宽。根 `properties` 和 `required` 均不得出现 `request`。开放根或保留属性冲突报 `CONTEXT_REQUEST_COLLISION`，其他不支持的根结构报 `SCHEMA_INVALID`。嵌套字段仍按受支持的 Schema 子集校验。引用路径必须由对应 Schema 显式定义，缺少声明或字段时阻断构建。
 - Host 在完成入口准入后物化当前 Invocation 的上下文，保留字段的 Schema 与来源关联。Runtime 分别以 `contextSchema` 校验 **Host 部分**、以 `requestSchema` 校验**请求部分**，在二者分别通过后物化本次 Invocation 的只读 `effectiveContext` 逻辑视图。该逻辑视图的根含保留属性 `request`，**不要求也不得当成 Host Schema 自身的整体对象再用 Host 根的 `additionalProperties: false` 重验**；此闭合性只约束未拼接的 Host 部分。对于引用的路径，Compiler 检查字段存在性、可选性、可空性和类型。调用点只能获得显式绑定的数据。
 - 传统 5GC 使用 `ca-context::urn:connectionagent:ca:context:invocation:v1`。Host Schema 要求 `ueRef` 和 `correlation`，后者要求 `ingressRef`、`lifecycleRef`。Host 在准入时验证这些值属于本次调用，包含精确的已接纳入口引用和独立解析的生命周期绑定。Schema 的字段校验和 Host 的关联校验都必须通过。实时网络状态来自显式 Observation 或具有充分 Evidence 的 Operation Result。
 - Compiler 独立检查依赖、Schema 与 Capability Grants。依赖用于链接 Owner 契约，外部调用还必须通过 §9.3 的 Capability 校验。
@@ -741,7 +741,7 @@ Skill Studio 创建 Skill 时应让作者从可用的公共依赖目录和可信
 
 `limits.maxActions` 可省略；省略时有效上限等于 Host 按部署策略提供的强制预算。若声明，必须是大于 0 的整数；每次外部 Operation、Observation 或由 Host 启动的 Reconcile READ 实际派发计一个 Action。每次本地 Procedure Script 执行开始计一个 Action。启动后的失败或不确定结果照计，启动前拒绝不计；受控再次尝试单独计数。Predicate 和终态发布不计 Action，仍受 Runtime 时间预算约束。Host 可另设内部节点预算，按进入业务 Node 计数。该预算由部署配置，不属于 Skill Contract。声明 Skill 上界时，有效上限为该值与 Host 上界的较小值。Admission 必须取得有效的 Host 上界。Host 上界缺失、不是正整数或为 0 时拒绝启动。不存在隐式 Runtime 默认值。该字段不影响 Capability Grant，不提供额外重试权限，也不能覆盖 Runtime 的 Deadline / Cancellation。
 
-vNext 不允许直接把 Operation ID 放入 Capability 授权列表，不允许 localTools，不允许把 Host 内部 dataclass 路径写入 Skill，不允许推断未发布的 Context 字段，也不允许使用物理 lib 路径充当公共依赖身份。
+v1alpha4 不允许直接把 Operation ID 放入 Capability 授权列表，不允许 localTools，不允许把 Host 内部 dataclass 路径写入 Skill，不允许推断未发布的 Context 字段，也不允许使用物理 lib 路径充当公共依赖身份。
 
 ## 12. Procedure
 
@@ -1009,7 +1009,7 @@ Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时必�
 
 **Runtime 单路径执行与 DAG 汇合（Normative）。** 每个 Invocation 在任意时刻只有一个活动阶段；每个实际阶段 Outcome 只选择一条后继边，绝不并行展开所有 `routes`，也不等待其他可能的入边。同一个 `(NodeId, Stage)` 在同一次 Invocation 内**最多进入并执行一次**；回边、循环或重复到达在构建期报 `CONTROL_FLOW_CYCLE`，若 Runtime 检测到重复进入则禁止派发并按 §12.8 安全停止。多入边表示**不同可能执行路径的静态汇聚**，不是一次运行时的多路 Join。实际进入汇合阶段时，Producer Output、原调用身份、局部门禁和 Evidence 只能沿本次已选择的真实前驱链物化，不可从未走过的另一分支拼接、等待或取任意值；Compiler 要求每一条可达路径都满足来源可用性和全局门禁。§12.9 伪代码中 incoming 的 AND 仅是**所有可能路径均安全**的静态证明，不是 Runtime 合并若干执行的 Outcome。Action Budget 只计实际发生的派发/Script；未走过的其他分支不计，§20 的 Mutation 责任按每个真实派发的独立调用身份保存。最终 Postcondition 聚合 PASS 仅证明**当前实际执行路径**的 Goal，不能借用另一候选路径的证据。
 
-**路径敏感静态算法（Normative）。** Compiler 构造以 `(NodeId, Stage)` 为顶点的可达 DAG，包含显式 `routes` 和同 Node 正常 Outcome 自动推进边。多 Predicate Pre/Postcondition 在此图上都只是单一阶段；只有阶段汇总的 `PASS` 是可路由 Outcome，成员没有单独图边。先完成 §12.7、§22、§24 的引用和路由语法校验，再在 `start` 的首阶段建立入口，沿所有**可达**边传播一个布尔标志 `passedGlobal`。无全局门禁时，后述全局检查恒为满足。某顶点有多条可达入边时，取全部 `passedGlobal` 的逻辑 AND；不可达节点不参与汇合，另按 `UNREACHABLE_NODE` 报告。不可达 Node 的语法及 Reconcile 唯一入边约束仍须独立校验。
+**路径敏感静态算法（Normative）。** Compiler 构造以 `(NodeId, Stage)` 为顶点的可达 DAG，包含显式 `routes` 和同 Node 正常 Outcome 自动推进边。多 Predicate Pre/Postcondition 在此图上都只是单一阶段；只有阶段汇总的 `PASS` 是可路由 Outcome，成员没有单独图边。先完成 §12.7、§22、§24 的引用和路由语法校验，再在 `start` 的首阶段建立入口，沿所有**可达**边传播一个布尔标志 `passedGlobal`。无全局门禁时，后述全局检查恒为满足。某顶点有多条可达入边时，取全部 `passedGlobal` 的逻辑 AND；不可达节点不参与汇合，另按 `UNREACHABLE_NODE` 报告。不可达 Node 仍须通过作者语法及可信依赖/Owner `mutation.reconcile` 链接的独立静态校验；**本版没有作者级 Reconcile 节点，也不存在其唯一入边规则**。
 
 ~~~text
 globalRef = contract.precondition if declared else NONE  # scalar `<node>.precondition`, not list
@@ -1071,11 +1071,11 @@ for vertex in topological_order(graph.stages):
 
 ### 13.1 统一表达
 
-vNext 删除 Procedure Node 上的 `with` / `from` / `value` 包装，统一使用直接表达式：
+v1alpha4 删除 Procedure Node 上的 `with` / `from` / `value` 包装，统一使用直接表达式：
 
 - Tool Operation.arguments：具名映射，键为 Owner Input Schema 字段；Procedure Script Operation.arguments：具名映射，作为该次 Script 调用的完整输入投影；
 - Observation.arguments：具名映射，键为 Query Input Schema 字段，值为来源表达式或标量字面量；
-- Precondition / Postcondition 的 `predicates[].arguments`：每个调用项各自提供有序参数列表，与其 `predicate` 引用的 `Predicate.parameters` 严格按位置对应；阶段根不再声明 `arguments`，仅在阶段根声明共同 `routes`（Postcondition 还可声明阶段级 `goal`）。
+- Precondition / Postcondition 的 `predicates[].arguments`：每个调用项各自提供有序参数列表，与其 `predicate` 引用的 `Predicate.parameters` 严格按位置对应；阶段根不再声明 `arguments`，仅在阶段根声明共同 `routes`；**Precondition 和 Postcondition 都不得在阶段根或 `predicates[]` 成员声明 `goal`**，唯一业务目标只在 `contract.goal`。
 
 ~~~yaml
 # assurance/procedure.yaml 的语法片段；Goal/授权属于 contract.yaml
@@ -1099,11 +1099,11 @@ nodes:
 `context` 单独使用时报 SOURCE_PATH_INVALID。只能绑定有 Schema 的子路径，例如 `context.request` 或 `context.correlation`；适用的 Evidence 豁免按 §17.1 判定。
 
 - `arguments` 映射的每个值和列表的每个元素都是 Expression。使用 YAML 1.2 Core 的**受支持标量子集**（G.1），并保留标量是否加引号及原始词法。解析器即使把 `Null`、`NULL` 或 `~` 识别为 Core Null，也不得当作本版合法的 null 字面量；本版只接受裸写 `null`，Boolean 只接受裸写 `true` / `false`，数字使用 G.1 限定的有限十进制。裸字符串仅在匹配 SourcePath 文法时合法；字符串常量须加引号。例如 context.ueRef、context.request.dnn、read-subscription.operation.output.result、read-subscription.operation.output.result.subscription.dnn。
-- YAML 原生 Boolean、Number、Null 和带引号的 String 表示字面量。例如 `phase: "POST_CREATE"` 是合法字符串常量，`phase: POST_CREATE` 报 `SOURCE_PATH_INVALID`。`baselineRef: read-n4-baseline.observation.output.baselineRef` 是来源引用。
+- YAML 原生 Boolean、Number、Null 和带引号的 String 表示字面量。例如 `phase: "POST_CREATE"` 是合法字符串常量，`phase: POST_CREATE` 报 `SOURCE_PATH_INVALID`。**作者提示与诊断建议：** 未加引号的枚举字样会按 SourcePath 解析，而非自动当作字符串；字符串/枚举常量请使用单引号或双引号，例如 `phase: 'POST_CREATE'`。`SOURCE_PATH_INVALID` 的人类可读说明应提示补充引号，不得隐式修复输入，也不得改变 `(Code, Phase)`。`baselineRef: read-n4-baseline.observation.output.baselineRef` 是来源引用。
 - 本版（v1alpha4）不允许在 arguments 中内联任意对象或数组字面量；复杂对象必须来自一个有 Schema 的 Request、Context 或 Producer Output。`context` 路径读取 §11.5 已校验的 Invocation 值。节点输出路径只能读取当前执行路径上已产生的有效输出。
 - 判断阶段每个 `predicates[]` 项的 `arguments` 必须是有序列表，位置与所引用 Predicate 的 `parameters` 严格对应。
 - Tool Operation、Procedure Script Operation 和 Observation.arguments 必须是具名映射。Tool / Observation 的键由 Owner Schema 定义；Procedure Script 的键构成该次 Script 调用的精确输入投影。
-- Reconcile 不接受 arguments；其唯一输入是被引用的原始 Mutation Invocation。
+- **内部 Reconcile READ 非作者调用形态：** 作者不得在 `operation` 中指定 `reconcile`/`resolve` 或为专用 READ 构造 `arguments`；Host 仅从已持久化的原始 Mutation Invocation 身份生成专用读取的唯一输入（§12.7、G.2）。
 
 无实参时，具名调用明确写 `arguments: {}`，零参数 Predicate 明确写 `arguments: []`。`Alias` 是已声明的依赖别名，`ExportId` 是该快照精确、非空、区分大小写的导出 ID。`ScalarLiteral` 为本节规定的 YAML 标量字面量。
 
@@ -1402,7 +1402,7 @@ Runtime 只用可信且关联到本次原调用的证明记录提交状态。Own
 
 ## 21. 异步 Operation：没有 Skill Wait
 
-vNext 不定义 Skill 层 wait、await、polling node，也不要求 ca.session.evidence.await 作为 Skill callable。
+v1alpha4 不定义 Skill 层 wait、await、polling node，也不要求 ca.session.evidence.await 作为 Skill callable。
 
 异步协议交互属于执行该协议动作的 Tool / Provider / SMF Operation。例如：
 - UPN.CREATE_UP_SESSION 负责内部 N4 Session 建立和完成确认；
@@ -1508,7 +1508,7 @@ Environment
 | ENTRY_PRECONDITION_REF_INVALID | Contract 的可选单数 `precondition` 不是精确标量 `<node>.precondition`、值为空/数组/对象、或引用不存在/不是 Precondition 阶段 | 阻止构建 |
 | ENTRY_PRECONDITION_BYPASSED | 某条路径可到达业务 Mutation 或 SUCCEEDED，但缺少任一全局前置条件的 PASS | 阻止构建 |
 | SUCCESS_BYPASSES_FINAL_POSTCONDITION | 已存在可达合法最终 Postcondition PASS→SUCCEEDED 边，同时另有非法直接 SUCCEEDED 请求；若不存在任何合法最终边，优先 FINAL_POSTCONDITION_MISSING | 阻止构建 |
-| CONTROL_FLOW_CYCLE | vNext DAG 中出现循环或 back-edge | 阻止构建 |
+| CONTROL_FLOW_CYCLE | v1alpha4 DAG 中出现循环或 back-edge | 阻止构建 |
 | SOURCE_PATH_INVALID | SourcePath 使用未支持的根、索引、动态表达式或未声明的 Schema 路径段 | 阻止构建 |
 | CONTROL_FLOW_DANGLING | 路由值既非终态也未解析到现有 Node | 阻止构建 |
 | CONTROL_FLOW_AMBIGUOUS | 同一 Operation 阶段同时声明多个互斥调用目标。重复 YAML 阶段键由解析器先拒绝 | 阻止构建 |
@@ -2386,11 +2386,11 @@ Skill 不得声明任意 HTTP Endpoint 或凭据；Script 不得自行调用网�
 
 语言版本、API Version、ToolCatalog Version、Schema $id/Version、CapabilityContracts Version 与 Skill Package Revision 是不同的版本标识，不得相互替代。
 
-vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSource Predicate 声明、直接 Operation Grant、Skill Wait 或 package-local lib 导入路径。
+v1alpha4 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSource Predicate 声明、直接 Operation Grant、Skill Wait 或 package-local lib 导入路径。
 
 迁移必须证明业务顺序、Scope、Correlation、Freshness、Evidence 和失败语义没有被削弱。
 
-### 44.1 v0.2 → vNext 迁移检查
+### 44.1 v0.2 → v1alpha4 迁移检查（历史系列别名 vNext）
 
 1. 分离 Contract、Procedure 与 Predicate 参数，改用阶段 `routes`，复查所有终态覆盖。
 2. 重新绑定权威 Producer 和 Evidence，核对 Capability 与 Effect。
@@ -3788,7 +3788,7 @@ Host Context 根和 requestSchema 根的引用展开均遵守 §11.5 和 G.4 的
 
 ## G.7 Skill Identity 和路径安全
 
-Skill 的规范化逻辑根是 skills/<skill-name>，skill-name 是 G.1 的 Identifier；Skill Identity 取这个大小写敏感的逻辑包身份，不取本地绝对路径、Git URL、分支、Workspace 位置或主机目录名。源文件路径是相对逻辑包根、UTF-8、POSIX 正斜线的路径；严格禁止空段、.、..、绝对路径、盘符、反斜线、控制字符、NUL、路径穿越与指向包外的符号链接。不得先 URL 解码或 Unicode 规范化而导致两个不同路径指向同一文件；不接受带编码分隔符的 %2f / %5c 路径。路径比较和引用大小写敏感，但跨平台可能碰撞的两个文件路径（ASCII 大小写折叠后相同）必须拒绝，不能依靠枚举顺序选择。规范化后的重复路径或同一逻辑身份的不同字节快照也须拒绝。路径违规诊断 PACKAGE_PATH_INVALID 并阻断构建。具体 Workspace 快照摘要 framing 和文件编码属于所选 BuildRequest 版本，但必须遵循这些安全下限。
+Skill 的规范化逻辑根是 `skills/<skill-name>`，`skill-name` 是 G.1 的 Identifier；Skill Identity 取这个大小写敏感的逻辑包身份，不取本地绝对路径、Git URL、分支、Workspace 位置或主机目录名。源文件路径是相对逻辑包根、UTF-8、POSIX 正斜线的路径；严格禁止空段、.、..、绝对路径、盘符、反斜线、控制字符、NUL、路径穿越与指向包外的符号链接。不得先 URL 解码或 Unicode 规范化而导致两个不同路径指向同一文件；不接受带编码分隔符的 %2f / %5c 路径。路径比较和引用大小写敏感，但跨平台可能碰撞的两个文件路径（ASCII 大小写折叠后相同）必须拒绝，不能依靠枚举顺序选择。规范化后的重复路径或同一逻辑身份的不同字节快照也须拒绝。**检查顺序（现有规则的确定性展开）：** 先将受信构建输入中的逻辑包根校验为精确的 `skills/<skill-name>`，拒绝尾随 `/`、空段及点段；再检查每个源文件的相对 POSIX 路径和 G.1 标识合法性；随后在实际文件映射中拒绝跨根符号链接、同一路径重复、ASCII 大小写折叠碰撞及不同字节快照的同一逻辑身份。**不采用** Windows 路径大小写不敏感规则、操作系统 `realpath` 结果、宿主绝对路径或 `%` 解码结果重新生成另一 Skill Identity；Windows 文件系统保留名或运行环境不支持的本地文件名属于工作空间物理材料化限制，不能静默改名并声称逻辑包身份未变，应保留逻辑身份并对不能安全提供的原始文件拒绝构建/材料化。路径违规诊断 PACKAGE_PATH_INVALID 并阻断构建。具体 Workspace 快照摘要 framing 和文件编码属于所选 BuildRequest 版本，但必须遵循这些安全下限。
 
 ## G.8 阶段 Outcome、终态以及长流程证据刷新
 
