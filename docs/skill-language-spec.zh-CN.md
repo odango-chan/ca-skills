@@ -1866,6 +1866,8 @@ predicates:
 
 ## 30. Procedure
 
+**[Informative 教学假设 — 本节全部 UDM/PCF/RAN/N4 片段共同适用]** 本节不是 Owner 已发布或真实 5GC 已符合的声明：每个教学 Operation/Observation 假定其精确 `owner/kind/id`、Input/Output/Receipt Schema、Effect、Capability/Scope、身份关联、Evidence 保证、资源责任和 Reconcile（如适用）已经由各相应 Owner/Deployment **正式发布且可信链接**。缺少任一必需发布物或关联时，真实 Skill 应按 §13.3、§17、§20、§24 和 §45.2 fail-closed；不能把以下节点中的 `context.request.*` 和教学返回值当作受信 Session/PSI 身份。后续片段沿用本假设，无需重复印刷同样的声明。
+
 **教学 Owner 的 Scope 与 PSI 约束。** 本图中的 `context.request.pduSessionId`、`context.request.dnn`、`context.request.sNssai` 仅为请求选择参数，**不得直接用于建立 Session/PSI 的可信身份或提升 Scope**；教学 ToolCatalog/Capability Scope Policy 不将这些 Request SourcePath 标注为身份或授权来源。教学场景仍须按 §23 对目标 `(UE, Lifecycle, PSI)` 分别隔离：在相关调用的派发准入中，Host 已验证的 `context.ueRef`、`context.correlation.lifecycleRef` 和受信入口关联、Owner 返回的 Session/资源关联证明必须共同约束并核对请求指定的 PSI。请求的 PSI 数值只参与与受信目标的比较，不构成该目标的权威证明。不同 PSI 不得因使用相同 UE Ref 而共用资源或通过 Scope 检查。若调用无法取得或核验目标 PSI 的受信绑定，则必须拒绝该调用；不得采用仅有 UE/Lifecycle 而无法区分 PSI 的宽泛授权。以上是教学 Owner 的前置契约假设，**不是对当前示例已具备真实 Host/Owner 发布物的符合性声明**。
 
 若实际 Owner 或部署 Scope 策略将 PSI、DNN 或 S-NSSAI 字段列为身份/授权输入，则从 `context.request.*` 直接绑定这些输入的调用必须报 `CALLABLE_ARGUMENT_PROVENANCE_INVALID`；迁移时应使用由 Host 契约确认关联的 Session/PSI 引用（例如 Host **确已发布并验证**的 `context.session.psiRef` 或 `context.correlation.pduSessionRef`，若其字段及类型由 Host Context Schema 正式定义）或权威 Producer 的结果显式换绑。**这两个候选路径不是 v1alpha3 内置字段**；没有对应受信 Host Schema、Scope 关联和验收证据时，不得在真实 Skill 中引用。Host 或 Owner 仅校验数值相等而未证明身份归属，也不构成所需的可信绑定。教学假设不能用于绕过真实部署的授权策略。`ca-context` 发布 Host Context；`ca-responsibility` 独立发布责任 Schema、保证及 callable。责任摘要按预期 Session Instance 聚合并返回 currentSessionInstanceRef。PCF 调和只有经验证的恢复输出才能取出原关联标识。
@@ -4224,16 +4226,16 @@ flowchart TD
 
 ## K.2 诊断 Fixture 负例候选（Informative，DFX-001–DFX-041）
 
-这些 DFX 编号**不是** E115 等正式 E 用例，不修改 H 的诊断码。以下 `fixtureModification` 是候选触发条件（可能需要独立受信 Owner 输入），不是已可运行的 Fixture。每项的 `ciResult` 均为 `NOT_RUN`；标记“需先核定可表达性”的条目，应先确定其在合法 YAML/Build 输入上的触发路径，再制作独立 Fixture，不能为了凑测试数虚构构造。
+这些 DFX 编号**不是** E115 等正式 E 用例，不修改 H 的诊断码。以下 `fixtureModification` 是候选触发条件（可能需要独立受信 Owner 输入），不是已可运行的 Fixture。每项的 `ciResult` 均为 `NOT_RUN`；标记“需先核定可表达性”的条目，应先确定其在合法 YAML/Build 输入上的触发路径，再制作独立 Fixture，不能为了凑测试数虚构构造。**K.2 中登记的 41 项是测试债务与候选数，不是 41 项可构造用例或 41 次执行成功；诊断是否在 v1alpha3 当前文法内可触发必须另行确认。**
 
 | 候选 | 现有 Code / Phase | 候选输入差异与检查重点 | 执行状态 |
 |---|---|---|---|
 | DFX-001 | `YAML_PARSE_ERROR` / C_STATIC | 重复 YAML Mapping Key 或非法基本标量；保持其他源码及构建目标有效 | NOT_RUN |
 | DFX-002 | `LANGUAGE_TARGET_UNSUPPORTED` / C_STATIC | 在其余文件有效的 BuildRequest 中指定当前 Compiler 不支持的 languageTarget | NOT_RUN |
-| DFX-003 | `DUPLICATE_ID` / C_STATIC | 尝试在 Procedure.nodes 中重复声明同一 Node ID；需先确定重复键是否必被 YAML_PARSE_ERROR 捕获，及是否存在跨文件有效的同名声明入口（需先核定可表达性） | NOT_RUN |
+| DFX-003 | `DUPLICATE_ID` / C_STATIC | **当前未找到**不使用重复 Mapping Key 的独立最小构造。重复 `nodes.foo` 或 `predicates.bar` 应由 YAML 解析器先报 `YAML_PARSE_ERROR`；跨角色同名是否构成同一身份尚无 v1alpha3 规范性规则，不得自造触发。标为**可表达性未闭合/防御性目录项**，不得标为已有 Fixture 或通过 | NOT_RUN |
 | DFX-004 | `FINAL_POSTCONDITION_GOAL_MISMATCH` / C_STATIC | 保持成功路径和 Postcondition 可达，令 Postcondition.goal 与 Contract.goal 不相等 | NOT_RUN |
 | DFX-005 | `CONTROL_FLOW_CYCLE` / C_STATIC | 在两个既有业务 Node 间增加一条返回前驱 Node 的路由，形成可达 back-edge；确保无其他更早的解析错误 | NOT_RUN |
-| DFX-006 | `CONTROL_FLOW_AMBIGUOUS` / C_STATIC | 尝试让同一 (Node, stage, Outcome) 同时指向两个目标；若唯一可行的表达是重复 YAML Mapping Key，必须先确定其与 YAML_PARSE_ERROR 的优先级及是否可表达（需先核定可表达性） | NOT_RUN |
+| DFX-006 | `CONTROL_FLOW_AMBIGUOUS` / C_STATIC | **可构造的不同字段互斥冲突**：同一 `operation` 映射同时声明有效 `target: ca::valid.read` 与 `script: scripts/valid.py`（均处于同一 YAML Mapping 且没有重复键）；依 §24.1 同阶段多种调用目标应触发本码。完整 Fixture 须提供受信 READ、合法 Script 与其余有效文件；重复 YAML Key 仍应先报 `YAML_PARSE_ERROR` | NOT_RUN |
 | DFX-007 | `DEPENDENCY_ALIAS_MISSING` / C_STATIC | 保留一个合法外部 callable 引用 ca::x，移除 Contract.dependencies 中的 ca alias；其余快照及 Scope 保持可信 | NOT_RUN |
 | DFX-008 | `DEPENDENCY_SNAPSHOT_MISSING` / C_STATIC | Contract.dependencies 声明 ca alias 对应 Package ID，但受信 BuildRequest 对该 alias 不提供快照；保留目标引用 | NOT_RUN |
 | DFX-009 | `DEPENDENCY_DUPLICATE` / C_STATIC | 同一 Alias 在可信构建绑定中指向两份不同的快照身份或字节集；不改变 Skill 源文件 | NOT_RUN |
@@ -4270,6 +4272,28 @@ flowchart TD
 | DFX-040 | `RECONCILE_CONTRACT_INVALID` / C_STATIC | 同一受信 ToolCatalog 快照的一个 Mutation 的 mutation.reconcile.callable 指向精确 READ operation；另一个 Skill 在普通 operation.target 中调用该 READ，且提供独立的 READ Capability Grant。Compiler 必须检查整份快照的 Mutation 关联并阻断普通调用，不得只检索本 Skill 已引用的 Mutation | NOT_RUN |
 | DFX-041 | `RECONCILE_CONTRACT_INVALID` / C_STATIC | 以 G.2.1 有效 Reconcile READ + receiptSchema 作为基线：先验证 proofPath receipt.commit 可在移除逻辑 receipt 锚点后从 schema 根解析。单独将路径改成 receipt.receipt.commit 或裸 commit；前者多出未声明 Schema 段，后者缺少必需通道锚点，二者都不得自动改写或链接通过 | NOT_RUN |
 
+### K.2.0 两个诊断的可表达性复核（Informative，不修改 H 的规范性分类）
+
+**DFX-003 / `DUPLICATE_ID`：尚未构造成功。** 当前 v1alpha3 的 `nodes` / `predicates` 采用 Mapping；在单一 Mapping 中重复同名键属于 §10.1 更早的 `YAML_PARSE_ERROR`。跨角色 `NodeId`、`PredicateId` 和 `GoalId` 并不自动共用一个全局身份空间；不能为让这个 Code 可触发而引入未声明的跨类别去重规则。本轮保留附录 H 的 `(DUPLICATE_ID,C_STATIC)` 冻结身份作为**防御性分类 / 可表达性审计缺口**，但**没有**足以要求某实现产出此码的独立合法解析输入。需要实际证明存在其他可构造路径，或以 §45.1 C 类审议该诊断在未来版本的定位。不能借此声称 H 全量机器诊断套件已通过。
+
+**DFX-006 / `CONTROL_FLOW_AMBIGUOUS`：具有不重复 YAML Key 的最小违例形状。** 在原本有效的 Procedure/依赖快照中把某一个原本有效的 Operation Node 改成（其他字段和路由维持已合法版本）：
+
+```yaml
+nodes:
+  choose:
+    operation:
+      target: ca::valid.read
+      script: scripts/valid.py
+      arguments: {}
+      routes:
+        SUCCEEDED: FAILED
+        FAILED: FAILED
+```
+
+此处 `target` 和 `script` 是两个**互斥目标**，而非重复的 YAML Key；在有效、可信的 `ca::valid.read` 导出和 Script 都存在、其他入口/路由/Goal 检查前提合法时，§24.1 已将同阶段互斥调用目标归入 `CONTROL_FLOW_AMBIGUOUS`。该片段只是输入差异，不是完整作者源码或通过验证的 Fixture。若改为重复写两个 `target` 键，仍应优先产生 `YAML_PARSE_ERROR`。**两者执行证据均为 NOT_RUN。**
+
+**诊断可达性验收原则：** 每个需要主张实现覆盖的 `(Code,Phase)` 必须有经过规范性前置检查、能单独触发该码的确切文件/Build 输入、预期和原始结果；不能用无法构造的负例获得 PASS，且不可改变 H 的诊断优先级来强行触发。当前无法证明可构造的项应记录为 `REPRESENTABILITY_UNRESOLVED`（仅本报告的资料性覆盖状态，**不是新诊断码**）；完整 H 验收门槛仍未满足。
+
 ### K.2.1 YAML 标量原始词法跨实现一致性候选（Informative，LEX-001）
 
 以下是**一组未执行的跨 Native/WASM/Studio 联合候选**，不是新增 E 编号或 DFX-042，也不改变现有 DFX-001–DFX-041 的状态。运行时必须保留 YAML 标量的原始词法与是否加引号的信息，按 §13.2/G.1 同一规则分类；测试须将同一结构化输入分别交给 Native Compiler、WASM Compiler 和 Studio/LSP，核对合法性、`(Code, Phase)`、SourcePath 解析与值类型一致。
@@ -4302,6 +4326,18 @@ flowchart TD
 | RFX-122 · §12.8/§20/G.5 | Goal PASS 且还有已认证 PENDING 责任；对照所有确认责任已验证转移/清理且其他门禁满足 | 前者发布 `SAFE_STOPPED` 并保留责任；后者也只有在所有门禁、提交和证据复核通过后才可发布 Invocation `SUCCEEDED` |
 
 所有 RFX 项的执行状态都是 **NOT_IMPLEMENTED**，不为它们分配新的规范性诊断代码。
+
+### K.3.1 §12.9 证明传播的三类最小候选（Informative）
+
+以下只是进一步拆分 §12.9 已有不变量的测试计划，**不是**新增正式 E 编号，也没有真实执行结果：
+
+| 候选 | 最小控制流对照 | 冻结预期 |
+|---|---|---|
+| `PFX-JOIN-PRE` | 两条可达边合流，一条具有全局 Precondition PASS，另一条绕过 | `passed` 取交集，合流后的 Mutation / SUCCEEDED 不得借一条边证明所有路径 |
+| `PFX-JOIN-GOAL` | 一条路径建立 Goal PASS，另一条没有 Goal PASS，随后在同一 Stage 合流 | `proof` 取 AND，合流后不可直达受承诺的 Invocation SUCCEEDED |
+| `PFX-AUTO-REBUILD` | 同 Node 自动推进经过 MUTATION SUCCEEDED；对照后续 Goal Postcondition PASS 与仅局部 Postcondition PASS | Mutation 清除旧 `proof`，只有精确 Goal PASS 可重建；局部 PASS 只能保留，不能创建证明 |
+
+所有候选 `fixtureExists=false`、`executed=false`、`passed=false`、`rawResultRef=null`；实现时须依据 §24.1/§12.9 选取确切既有诊断和优先级，不新增语言路由规则。
 
 ## K.4 符合性报告模板（Informative，未测试）
 
