@@ -8,18 +8,18 @@ ConnectionAgent 官方 Skill 源码与语言契约仓库。
 
 **本仓库是官方 Skill 源码和语言语义的唯一输入权威。** `ca-agent-demo` 用于核对当前实际运行行为、刷新样例；Compiler 和 Studio 应消费本仓库的正式源码。
 
-## 当前 5GC 源码（v0.2/v1alpha1 旧版源码，非 CA-SL v1alpha4）
+## v1alpha4 PDU Session 示例
 
-**版本边界：** CA-SL v1alpha4 是当前冻结语言。下列源码和 ToolCatalog 仍是旧业务基线，尚未迁移，不代表 v1alpha4 Owner 发布物或任何产品符合性已通过。
+两个使用 v1alpha4 作者语法的 Skill 位于 **[`examples/skills/`](examples/README.md)**：
 
-| Skill | 业务范围 | 源码状态 |
-| --- | --- | --- |
-| `establish-pdu-session` | 传统 UE 请求的初始 PDU Session Establishment | 五个 Script 已迁移到严格 Output TypedDict |
-| `establish-pdu-session-mas` | MAS policy-first 建立流程候选 | 保留；16 个 Operation 引用仍未解析 |
+| 示例 | 业务 | 验收状态 |
+|---|---|---|
+| `examples/skills/establish-pdu-session` | 传统 UE 请求初始会话 | 仅源码形状；Owner 链接 NOT_QUALIFIED |
+| `examples/skills/establish-pdu-session-mas` | MAS policy-first | 仅源码形状；MAS Owner 未发布，不可声称编译/运行通过 |
 
-传统 Skill 使用正式批准的 `lib/tools/createdsession.tool.yaml` 快照（12 个 Operation）。MAS 设计稿 ToolCatalog 尚未获批，不能作为正式导入契约。
+原有完整 v1alpha1/v0.2 源码、全部 Case 和五个 Script 已保存在 `examples/legacy/`，只用于业务对照，**不可作为 v1alpha4 编译输入**。`lib/tools/createdsession.tool.yaml` 是旧版 12 Operation 历史快照，不能通过改 apiVersion 冒充真实 v1alpha4 发布物。
 
-本次保留了当前 5GC 业务流程和标量 Operation `call` 身份。传统 Skill 的五个 Python Script 已采用[新 Script 契约](docs/script-contract.md)。旧的 Script 输入/输出重复 Schema 已移除；Script 输出 Schema 由目标 Compiler 自动生成。
+新的示例明确使用 `urn:example` 标记未发布的外部 Owner / Evidence 依赖。严格 Compiler 在缺少可信 v1alpha4 ToolCatalog、CapabilityContracts 和 Host/Schema 快照时必须拒绝链接，不能虚构通过。
 
 ## 语言与编写规范
 
