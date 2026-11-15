@@ -5,10 +5,12 @@ metadata:
   version: 0.1.0
   status: draft
 spec:
-  languageSpecification: docs/skill-language-spec.md
+  languageSpecification: docs/skill-language-spec.zh-CN.md  # historical v1alpha3 reference; NOT current v1alpha4
   purpose: >
     Stable semantic token identifiers and source-position selectors shared by
     Skill Studio, the target Compiler and future LSP implementations.
+    LEGACY v0alpha1 selectors only; current normative CA-SL v1alpha4
+    is in docs/skill-language-spec.v1alpha4.zh-CN.md and is not covered.
   selectorSyntax:
     sourceFile: Repository-relative glob identifying an authoring file.
     yamlPath: >
