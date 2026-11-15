@@ -101,7 +101,9 @@ def main(input: SelectionInput) -> SelectionOutput:
     ssc_modes = subscription["sscModes"]
     allowed_types = session_types.get("allowedSessionTypes", [session_types["defaultSessionType"]])
     allowed_modes = ssc_modes.get("allowedSscModes", [ssc_modes["defaultSscMode"]])
-    if "IPV4" not in allowed_types or 1 not in allowed_modes:
+    # The subscribed default SSC1 is sufficient even when the optional
+    # allowedSscModes list is present and does not repeat the default.
+    if "IPV4" not in allowed_types or (ssc_modes["defaultSscMode"] != 1 and 1 not in allowed_modes):
         raise ValueError("subscription does not authorize IPv4/SSC1")
     return {
         "dnn": input["dnn"],
