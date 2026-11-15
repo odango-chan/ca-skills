@@ -3,12 +3,12 @@
 **中文名称：** ConnectionAgent Skill 语言规范  
 **简称：** CA-SL  
 **目标版本：** `connectionagent.io/v1alpha4`（简称 v1alpha4；`vNext` 仅为资料性系列别名）  
-**状态：** FROZEN — LANGUAGE SPECIFICATION ONLY（v1alpha4 已完成 C 类重新开放、阻塞闭合与复审冻结；v1alpha3 独立保持 FROZEN；产品/Owner 仍 NOT QUALIFIED）  
+**状态：** C-CLASS REVIEW CANDIDATE — v1alpha4 UNIFIED VERSION PROFILE NOT YET RE-FROZEN（旧版 v1alpha4 冻结提交独立可追溯；产品/Owner NOT_QUALIFIED）  
 **规范所有者：** odango-chan/ca-skills  
 **适用对象：** Skill 作者、Skill Studio、Compiler、Agent Host / Runtime、Tool Owner、Schema Owner、语言服务及符合性评审机构  
 **更新日期：** 2026-11-15
 
-**文件效力。** 本文件是 CA-SL v1alpha4 的**完整、已冻结单文件语言规范**，不追溯改变 v1alpha3。标为 Normative 的内容依 §45.1.1 冻结；该语言裁决**不代表** Compiler、Studio、Host/Runtime 或 Owner 已通过任何 §45.2 产品验收。原 v1alpha3 的作者语法及外部 ToolCatalog/CapabilityContracts 的既有独立发布版本保持不变。
+**文件效力。** 本文件是 CA-SL v1alpha4 的完整单文件规范，本轮为 **v1alpha4 跨协议版本统一的 C 类变更候选**；此前的 v1alpha4 语言冻结历史与 v1alpha3 原版保持可追溯，当前改动不能当作静默勘误。此候选未形成真实产品符合性承诺。旧版 v1alpha3 作者语法、ToolCatalog 和 CapabilityContracts 的历史发布物保持原版本，不再属于本版直接可链接的输入。
 
 **规范性用语。** MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT、MAY、OPTIONAL 按 RFC 2119 和 RFC 8174 解释。相应中文规范性措辞包括“必须”“不得”“应当”“不建议”“可以”。
 
@@ -386,7 +386,7 @@ ToolCatalog 是 Tool Owner 发布的 callable 契约集合。v1alpha4 要求同�
 以下是冻结的互操作结构的教学实例，并非当前 Owner 的正式发布物：
 
 ~~~yaml
-apiVersion: connectionagent.io/toolcatalog/v1alpha3
+apiVersion: connectionagent.io/toolcatalog/v1alpha4
 kind: ToolCatalog
 metadata:
   name: smf-session-state
@@ -470,12 +470,12 @@ mutation:
 
 **效力：Normative（抽象规则及附录 F 的 v1alpha4 字段）；Informative（示例身份）。**
 
-**规范性说明。** CapabilityContracts v1alpha3 互操作字段及授权与 Effect 语义均为 Normative（附录 F.2）。
+**规范性说明。** CapabilityContracts v1alpha4 的授权与 Effect 语义为本版 Normative（附录 F.2）；不得静默接受旧版 v1alpha3 的 apiVersion。
 
 CapabilityContracts 是部署侧可信输入，独立于普通 DependencySnapshot。冻结的互操作字段示例：
 
 ~~~yaml
-apiVersion: connectionagent.io/capability-contracts/v1alpha3
+apiVersion: connectionagent.io/capability-contracts/v1alpha4
 kind: CapabilityContracts
 metadata:
   name: 5gc-createdsession
@@ -2931,7 +2931,7 @@ properties:
 
 ~~~yaml
 # tool-catalog.yaml（由 ca 快照提供）
-apiVersion: connectionagent.io/toolcatalog/v1alpha3
+apiVersion: connectionagent.io/toolcatalog/v1alpha4
 kind: ToolCatalog
 metadata:
   name: example-ue-queries
@@ -2981,7 +2981,7 @@ ue.registration-state:
 
 ~~~yaml
 # capability-contracts.yaml（独立可信部署输入）
-apiVersion: connectionagent.io/capability-contracts/v1alpha3
+apiVersion: connectionagent.io/capability-contracts/v1alpha4
 kind: CapabilityContracts
 metadata:
   name: example-deployment
@@ -3335,27 +3335,27 @@ predicates:
 
 # 附录 F：继承自 v1alpha3 的互操作与类型剖面（v1alpha4 FROZEN）
 
-**Normative、FROZEN（v1alpha4；外部物理协议版本保持独立）。** §9、§17、§34 的逻辑互操作属性由 v1alpha3 已冻结契约继承。本版的作者级变化还包括单数 Contract 全局门禁、删除 Postcondition 根的 Goal、直接最终 PASS→SUCCEEDED 和 `operation/observation.tool`；这些变化均不新增外部 ToolCatalog/CapabilityContracts/BuildRequest/Trace 线字段。**现行可直接链接版本组合与可扩展条件以 F.0 为权威入口**，F.1/F.2 分别保留精确 v1alpha3 外部 `apiVersion`，不等于作者语言目标 v1alpha3。
+**Normative、v1alpha4 C 类版本统一候选（产品/Owner NOT_QUALIFIED）。** §9、§17、§34 的逻辑互操作安全下限仍可参考历史 v1alpha3，但本版**直接接受的版本标识统一为 v1alpha4**：CA-SL、ToolCatalog 和 CapabilityContracts 均使用其命名空间下的 v1alpha4，不再以旧版 ToolCatalog/CapabilityContracts v1alpha3 作为本版可直接链接输入。字段结构并未仅因修改 apiVersion 就获得真实 Owner 互操作保证。版本组合和准入以 F.0 为权威；BuildRequest/Trace 的外部物理版本仍由各自契约声明，不得凭语言版本猜测。
 
-## F.0 本语言目标与外部发布物的版本组合（Normative）
+## F.0 v1alpha4 统一版本标识与外部发布物准入（C 类审议，Normative 候选）
 
-**版本不是同步加一的计数器。** 语言目标固定为 `connectionagent.io/v1alpha4`；这**不等于** ToolCatalog、CapabilityContracts、BuildRequest、Evidence Descriptor 或 Runtime Artifact/Trace 的物理版本也叫 `v1alpha4`。以下是本语言当前已冻结、可直接解释的**精确受信输入映射**；缺失版本的外部材料不能因为字段形状碰巧相同而被接受。
+本版直接使用的**三个显式 apiVersion 均为 v1alpha4**，不再维持“语言 v1alpha4 + ToolCatalog/CapabilityContracts v1alpha3”的混合组合。旧版历史文件与提交不予改写，但**本版当前链接契约不设 v1alpha3 fallback、隐式转换、自动探测或版本协商**。
 
-| 接口/契约 | v1alpha4 语言当前可直接链接的版本或剖面 | 唯一字段解释入口 | 与语言版本关系 |
-|---|---|---|---|
-| CA-SL 作者语言 | `connectionagent.io/v1alpha4` | §10.1、§12–§24、E/H | 本文件唯一语言目标，不能降级或从外部 apiVersion 反推 |
-| ToolCatalog（含 Mutation / Reconcile 专用 READ） | **精确 `connectionagent.io/toolcatalog/v1alpha3`** 的受信发布物 | F.1；逻辑证明与类型还受 G.2/G.2.2、§9/§20 约束 | v1alpha4 作者语言 **可以**链接 v1alpha3 Owner 契约；并不要求 Owner 自动升到 v1alpha4 |
-| CapabilityContracts（含恢复 READ 独立授权） | **精确 `connectionagent.io/capability-contracts/v1alpha3`** 的受信部署发布物 | F.2；§9.3、§34 的 Scope/Grant 检查 | 版本独立，不把 ToolCatalog Owner 信任当成部署授权 |
-| Evidence Guarantee Descriptor / IndependentDomains | F.3/G.3/G.3.1 的**抽象字段剖面**；本文件没有为其单独规定物理 `apiVersion` | F.3、G.3/G.3.1、§17 | 实际可信身份、发布协议/传输版本须由对应 Owner/部署接口独立承诺，未发布则拒绝 |
-| Request/Host/Owner Schema | JSON Schema **Draft 2020-12** 的 G.4 白名单投影，`$schema` 精确指定该方言 | G.4、G.6、F.5 | Schema 方言版本与 ToolCatalog/语言版本分开；不允许未知断言 |
-| BuildRequest / DependencySnapshot | **独立、被明确选定且受信的 BuildRequest 契约版本**；本语言不指定其物理版本号 | §34、F.4、§45.2 | 必须包含适用版本要求的 Snapshot/Owner/Scope/摘要信任属性；不存在默认 `v1alpha4` framing |
-| Runtime Artifact / Trace | **独立发布并经受信版本确认**；本文只冻结语义、来源与责任最低义务 | §12.8、§23/§24、§45.2 | 不从语言冻结推出 Trace 物理协议兼容或产品通过 |
+| 输入/契约 | 本版要求的显式版本或方言 | 唯一规则入口 |
+|---|---|---|
+| CA-SL 作者语言 | `connectionagent.io/v1alpha4` | §10.1、§12–§24、E/H |
+| ToolCatalog（普通 Tool、Mutation、专用 Reconcile READ） | `connectionagent.io/toolcatalog/v1alpha4` | F.1、G.2/G.2.2、§9/§20 |
+| CapabilityContracts（含恢复 READ 独立 Grant） | `connectionagent.io/capability-contracts/v1alpha4` | F.2、§9.3/§34 |
+| Request/Host/Owner Schema | JSON Schema Draft 2020-12 + G.4 白名单；`$schema` 精确匹配 | G.4、G.6、F.5 |
+| Evidence Descriptor、独立性域、BuildRequest/DependencySnapshot、Runtime Trace/Artifact | 本语言规范**未发明这些物理协议的 v1alpha4 apiVersion**；只接受其各自受信、明确版本化的发布材料与本文件的抽象语义约束 | F.3/F.4、G.3、§12.8、§34、§45.2 |
 
-**跨版兼容规则（Normative）。** 本版 F.1/F.2 的明确 `apiVersion` 是**当前直接链接的精确值**。未来 Owner/部署发行新物理版本时，不得让 Compiler 自动把任意未知版本当成 v1alpha3，也不得根据文件名、同名字段、所谓“向后兼容”声明或 LLM 文本接受。若要在不改变 CA-SL v1alpha4 语言语义的条件下支持新的外部版本，必须由**另行版本化且受信的解码/规范化适配契约**明确识别源版本、目标 F.1/F.2 剖面、所有字段及安全证明的无损映射，保留 Owner、Scope、Effect、来源与证据身份，并实际完成 §45.2 的同一预期集验收；不存在这份适配契约时只接受上表当前精确值。若某升级改变任何已冻结作者输入集合、Outcome、重试/证明授权或安全诊断，属于语言 C 类或对应协议升版问题，不能用“等价解码”掩盖。任何单独产品版本升级都**不自动**触发 CA-SL 语言版本升级。
+**版本校验（Normative 候选）：** 对已定义的三个 apiVersion，必须精确匹配上述值。旧 `/v1alpha3`、未知 `/vX`、缺版本或同名异版本发布物一律不得在本版**直接**链接；不能因为字段名、摘要格式或 LLM 文字相似就绕过。未来要消费其他版本，应另行明确升级该外部契约和本语言的显式受信互操作规则，不得默许兼容。这里改变的是受信发布物的**规范性版本匹配集合**，因此属 C 类破坏性调整，不可伪装为 A/B 勘误。
+
+**产品现实边界：** 仅把示例与规范写成 v1alpha4 **不代表已有真实 ToolCatalog/CapabilityContracts v1alpha4 发布物**。Compiler、Studio、Host、Owner 和部署在取得受信的 v1alpha4 实际契约及 §45.2 机器符合性结果之前均为 `NOT_QUALIFIED`，缺发布物时 fail-closed。历史 v1alpha3 发布物继续归原版本管理，不自动升级或篡改身份。
 
 ## F.1 ToolCatalog / Mutation 发布
 
-ToolCatalog 须有 `apiVersion: connectionagent.io/toolcatalog/v1alpha3`、`kind: ToolCatalog`、非空 `metadata.owner` 与 `spec.contracts[]`。每个 callable 须有 `kind: operation | observation`、唯一的 `id`、`effect`、`ownerOutcomes`、`outputSchema.$ref`；Operation 使用 `inputSchema.$ref`，Observation 使用 `queryContextSchema.$ref`，两者互斥。
+ToolCatalog 须有 `apiVersion: connectionagent.io/toolcatalog/v1alpha4`、`kind: ToolCatalog`、非空 `metadata.owner` 与 `spec.contracts[]`。每个 callable 须有 `kind: operation | observation`、唯一的 `id`、`effect`、`ownerOutcomes`、`outputSchema.$ref`；Operation 使用 `inputSchema.$ref`，Observation 使用 `queryContextSchema.$ref`，两者互斥。
 
 Observation 的 Effect 必须为 READ。READ 只能发布 SUCCEEDED / FAILED；Mutation 可发布 NOT_COMMITTED；每个 callable 必须声明 SUCCEEDED。DENIED、UNKNOWN、OUTCOME_UNKNOWN 属 Runtime，不得由 Owner 发布。所有 Schema 引用须解析为该快照中精确、可验证的 `$id`。一个快照跨文件、跨 kind 共享 callable ID 唯一空间。可选 `adapter` 仅属于 Owner 内部实现，不参与 Skill 身份、授权和 Evidence。
 
@@ -3378,7 +3378,7 @@ FAILED 不得允许 retryable；NOT_COMMITTED 只有同时满足可验证的未�
 
 ## F.2 CapabilityContracts
 
-部署授权输入须有 `apiVersion: connectionagent.io/capability-contracts/v1alpha3`、`kind: CapabilityContracts`、`spec.capabilities[]`。每个 Capability 有唯一非空 `id`、`owner` 和 `callables[]`。成员有 `owner/id/kind/effect`，已 Grant 成员必须有受信、可解析的 `scopePolicyRef`；拒绝全部也必须是明确命名的受信策略，不能通过缺省字段表达。缺少 Scope 不得默许放行。Effect 冲突在未 Grant 成员上也会报错，同一 Capability 重复成员拒绝，跨 Capability 的一致成员合法。交集和派发前重验按 §9.3。Skill 不能自报受信部署授权。
+部署授权输入须有 `apiVersion: connectionagent.io/capability-contracts/v1alpha4`、`kind: CapabilityContracts`、`spec.capabilities[]`。每个 Capability 有唯一非空 `id`、`owner` 和 `callables[]`。成员有 `owner/id/kind/effect`，已 Grant 成员必须有受信、可解析的 `scopePolicyRef`；拒绝全部也必须是明确命名的受信策略，不能通过缺省字段表达。缺少 Scope 不得默许放行。Effect 冲突在未 Grant 成员上也会报错，同一 Capability 重复成员拒绝，跨 Capability 的一致成员合法。交集和派发前重验按 §9.3。Skill 不能自报受信部署授权。
 
 ## F.3 Evidence Descriptor
 
