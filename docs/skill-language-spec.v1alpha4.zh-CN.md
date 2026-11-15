@@ -2450,6 +2450,22 @@ v1alpha4 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 Observatio
 
 **文本复核与产品边界。** 本轮仅进行规范文本/示例/诊断索引的结构、引用与预期一致性审查；E01–E120、DFX-001–041、LEX-001 的实际 Compiler Native/WASM、Studio/LSP、Host/Runtime、Owner/5GC 机器执行均不能仅据本次文档检查记为 PASS。附录 K 保留 `NOT_IMPLEMENTED` / `NOT_TESTED`，§45.2 八项产品门槛未因文本冻结而完成。
 
+### 45.1.2 v1alpha4 冻结后全文自洽性正式勘误（2026-11-15）
+
+**裁决类型：A/B 类正式勘误与既有规则消歧，不静默变更语言版本。** 本次评审引用的材料在 §20.1 末尾截断，故“未见 §20.2/§20.3/G.2.2/E/F/G/H”只反映**评审输入不完整**，不能据此判断主文档缺失。审查对象是 `main` 上**完整单文件**的 4,000 余行内容；本次勘误仅修改本文件并以合并后的不可变提交为新审阅基线，原 PR #45 合并提交 `466ed1fca6d458e094a342a4afea252ea43f8169` 保留其历史意义。外部 Owner/BuildRequest/Trace 物理契约不随此勘误改变；产品仍 `NOT_QUALIFIED`。
+
+| 可见评审问题 | 勘误分类与全文裁决 | 对应不变量及验收 |
+|---|---|---|
+| §13.1 残留 Postcondition 阶段级 goal；§12.9 残留作者级 Reconcile 唯一入边 | **A：矛盾文字删除。** Contract 保留唯一 goal；作者不支持 Reconcile/Resolve Stage，Owner `mutation.reconcile` 仍由 Host 独立安全处理 | §10.1、§12.7/§12.9、§13.1、E119 |
+| 同 Node 全局门禁 PASS 自动推进 | **B：把 §12.1/§22 已定义的同 Node 正常边显式标记 PASS**，共享与显式路由相同的通过状态；无新语法或 Outcome | §12.9、E61、K.3.2 |
+| Contract 全局 Precondition 已存在但从 start 不可达 | **B：引用合法性/诊断优先级消歧**。沿用 `ENTRY_PRECONDITION_REF_INVALID`，在逐路径 BYPASSED 之前检查；引用可达但路径绕过仍是 BYPASSED | §12.9、§24.1、H.0、E52 |
+| 双 Producer 要求是否覆盖不可达恢复来源 | **B：落实既有路径敏感检查**。仅对实际可达、可能 Host 恢复 SUCCEEDED 且消费原 Mutation 输出的路径校验两个真实 Producer；没有 Owner 可恢复普通输出承诺时仍须安全 COMMITTED/OUTCOME_UNKNOWN，绝不虚造恢复证据 | §12.9、§17.1、G.2、E17 |
+| retryOf 规则及诊断未见 | **已存在于全文，非缺陷**：默认零次、证明 NOT_COMMITTED 与 noSideEffect/retryable 后最多一次新派发；Host 统一执行，独立 Action Budget 与诊断 | §20.2/§20.3、G.2.2、H、E82/E85/E92 |
+| vNext、SourcePath 引号提示、Skill 身份路径 | **A/B：术语及作者说明消歧**；目标仍精确 `connectionagent.io/v1alpha4`，`vNext` 留作历史别名；路径按 G.7 逻辑根及安全规则，不由宿主 OS 再生成身份；裸枚举按 SourcePath 解析 | §6.2、§13.2、G.7、E36/E114 |
+| E11/E18 优先级及停止 Trace 缺少完整视图 | **B：附录 H.0 汇总 §12.9 既有诊断互斥规则**；§12.8 聚合已要求的停止与保全审计语义，物理 Trace 字段另由独立协议冻结 | §12.8–§12.9、H.0、E11/E18/E58/E112 |
+
+**版本边界和复查门槛。** 这份记录仅允许 A/B 分类所列的既有规则修正、互相矛盾表述删除与未指定输入的诊断优先级澄清；没有增设 `resolve`、`postcondition.goal`、新诊断代码、Effect、Stage、重试上限或授权来源。**若后续的独立 Fixture 对比证实某修订确实改变了已冻结的合法输入集合、既定 E 预期或安全结果，则该差异不得以本勘误掩盖：应从此 v1alpha4 冻结基线另启 v1alpha5（或对应独立互操作协议版本）的 C 类评审。** 本次文档审查、Source Hygiene 及下面 K.3.2 的待运行候选不构成 §45.2 的 Native/WASM/Studio/Host/Owner/5GC 产品符合性证明。
+
 ### 45.2 未完成的实现符合性门槛
 
 以下是**声称某个实现可编译、可运行或可部署本规范**之前必须逐一验收的门槛。**v1alpha4 语言已 FROZEN，但不能据此跳过真实 §45.2 产品验收**：
@@ -4381,6 +4397,23 @@ nodes:
 | `PFX-AUTO-REBUILD` | 同 Node Mutation SUCCEEDED 自动推进；对照最终 Postcondition PASS→SUCCEEDED、局部 Postcondition PASS→下一 Node 后直接终态 | 只有前者的**最终阶段聚合 PASS 直接终态**合法；局部 PASS 不构成 Goal 证明，即使前面发生过其他局部 PASS 也不能授权终态 |
 
 所有候选 `fixtureExists=false`、`executed=false`、`passed=false`、`rawResultRef=null`；实现时须依据 §24.1/§12.9 选取确切既有诊断和优先级，不新增语言路由规则。
+
+### K.3.2 冻结后全文复审的十项针对性候选（Informative，未执行）
+
+这些仅分解现有 §12.8/§12.9/§13/§17/§20/G.7/H 和 E 编号的规范预期，**不新增正式 E121 或独立诊断**。执行者须分别验证 Native/WASM/Studio 静态结果与 Host Runtime/可信 Owner 运行语义；以下均为 `NOT_IMPLEMENTED / NOT_RUN`，不能因文字定义而计入通过。
+
+| 候选 | 精确正/反变体及已有预期 | 实际状态 |
+|---|---|---|
+| RV-01 | 同 Node 的全局 Precondition 聚合 PASS 经自动 PASS 边进入 Mutation；E61；不得报 ENTRY_PRECONDITION_BYPASSED | NOT_RUN |
+| RV-02 | Contract 引用合法但 start 不可达的 global Precondition；E52；先 ENTRY_PRECONDITION_REF_INVALID | NOT_RUN |
+| RV-03 | Postcondition 根或成员带 goal；E117/E119；PREDICATE_GROUP_INVALID | NOT_RUN |
+| RV-04 | 合法最终 PASS→SUCCEEDED 边与另一非法成功边共存；E18/E64；SUCCESS_BYPASSES_FINAL_POSTCONDITION | NOT_RUN |
+| RV-05 | 只有非法成功边且无合法最终边；E11/E42；FINAL_POSTCONDITION_MISSING | NOT_RUN |
+| RV-06 | 两条路径合流仅一条经过全局 Precondition PASS；E51/E120；ENTRY_PRECONDITION_BYPASSED | NOT_RUN |
+| RV-07 | 普通成功输出消费、可信恢复 SUCCEEDED 的真实双 Producer、无恢复输出承诺、消费者不可达/不消费输出；E17；分别检查精确来源与安全停止 | NOT_RUN |
+| RV-08 | 一个原 Mutation 家族原派发一次、合法显式 retryOf 一次，第三次派发或第二代 retryOf 拒绝；E82/E85/E92，RETRY_CONTRACT_INVALID / RETRY_ADMISSION_DENIED 按静态/运行期区分 | NOT_RUN |
+| RV-09 | Owner 字符串枚举裸 `POST_CREATE` 与加引号 `'POST_CREATE'`；E36，裸值 SOURCE_PATH_INVALID 且提示加引号 | NOT_RUN |
+| RV-10 | 作者声明 `operation.reconcile` / `operation.resolve`；E119，UNKNOWN_FIELD；Owner 的 `mutation.reconcile` 独立正例仍按 G.2 | NOT_RUN |
 
 ## K.4 符合性报告模板（Informative，未测试）
 
