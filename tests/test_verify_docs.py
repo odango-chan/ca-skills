@@ -58,7 +58,7 @@ class SpecMarkdownTests(unittest.TestCase):
         start, end = self.e9_range()
         segment = self.spec[start:end]
         self.assertEqual(len(re.findall(pattern, segment)), 1)
-        broken = self.spec[:start] + re.sub(pattern, r"\1 |", segment, count=1) + self.spec[end:]
+        broken = self.spec[:start] + re.sub(pattern, r"\1 | extra |", segment, count=1) + self.spec[end:]
         errors = self.lint(broken)
         self.assertTrue(any("column count" in x for x in errors), errors)
 
