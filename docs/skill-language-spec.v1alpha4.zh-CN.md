@@ -3469,11 +3469,20 @@ IndependenceMember   = map(parameter: Name, guarantee: QualifiedGuaranteeId) ;
 Evaluator            = map(type: "cel", expression: NonEmptyString)
                      | map(type: "script", script: LocalScriptPath) ;
 ScalarLiteral        = QuotedYamlString | CoreBoolean | CoreNull | FiniteDecimalNumber ;
+QuotedYamlString     = Yaml12SingleQuoted | Yaml12DoubleQuoted ;
+CoreBoolean          = "true" | "false" ;
+CoreNull             = "null" ;
+Digit                = "0" | NonzeroDigit ;
+NonzeroDigit         = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+IntegerPart          = "0" | NonzeroDigit, { Digit } ;
+FractionPart         = ".", Digit, { Digit } ;
+ExponentPart         = ("e" | "E"), [ "+" | "-" ], Digit, { Digit } ;
+FiniteDecimalNumber  = [ "-" ], IntegerPart, [ FractionPart ], [ ExponentPart ] ;
 ~~~
 
 NodeId 保留 context 与四个终态。所有普通标识符大小写敏感、每段以 ASCII 字母开头；中间允许数字、下划线和连字符；空段、连续点、尾点、冒号或空白不得作为 DottedId/ExportId。解析 `LocalSchemaPath` 和 `LocalScriptPath` 时，必须先从字符串最右侧精确剥离固定后缀 `.schema.yaml` 或 `.py`，再按 `/` 分段验证剩余路径与 `FileSegment`；不得将中间的点号当作第二个扩展名或按文件扩展名猜测身份。Alias 不能含点号或冒号。ExportId 只用于 callable / Evidence 保证，允许分段点号，但**不允许冒号**。**诊断适用位置：** PredicateId、GoalId、Alias 等独立语法位置违反 Identifier/DottedId 词法时报 `IDENTIFIER_INVALID`。ExportId 作为 `QualifiedCallableId`、`QualifiedQueryId` 或 `QualifiedGuaranteeId` 的组成部分时，Compiler 先校验完整的 `Alias::ExportId` 引用，任一组成部分不满足该限定引用文法即报 `QUALIFIED_REFERENCE_INVALID`。因此 G.9 的 E105 中 `ExportId=foo..bar` 是指限定引用的 ExportId 部分非法，而不是存在一个可单独声明 ExportId 的作者源码字段。此规则不允许空段，也不改变 G.1 的 `ExportId = DottedId` 词法限制。外部 Schema 身份采用另一种解析：仅在 QualifiedSchemaId 的**首个双冒号**处分开 Alias 与后面的完整绝对 URI；URI 可以含冒号，必须与受信 Schema $id 精确匹配，不得用 ExportId 词法解析。StablePackageId 为遵守 RFC 3986 的绝对 URI；这些 URI 均不得含空白、控制字符或未解析的穿越成分。不能由文件中的自报身份建立信任。
 
-NonEmptyList 表示长度至少 1 的 YAML 序列，ExactlyOneName 表示恰有一个非保留 Name 键的映射；AbsoluteSchemaUri 与 AbsolutePackageUri 为 RFC 3986 绝对 URI并由可信契约验证。LocalSchemaPath 与 LocalScriptPath 只接受包内 POSIX 相对路径；禁止绝对路径、反斜线、空段、点段、双点段和符号链接越界。例如 `schemas/session.profile.schema.yaml` 与 `scripts/build.input.py` 合法；`schemas/../session.schema.yaml`、`schemas/.schema.yaml` 和 `scripts//step.py` 非法。固定后缀的优先剥离规则仅用于消除文法读取歧义，不放宽 FileSegment 或路径安全约束。PositiveInteger 为十进制且必须大于零、无前导零。无引号字符串只可能是合法 SourcePath；带引号的 YAML 字符串作为字面值，Boolean 只有 true/false、Null 只有 null；数字为有限十进制，不允许 NaN/Infinity、隐式八进制或任意字符串转数值。具体 SourcePath 规则继承 §13.2。
+NonEmptyList 表示长度至少 1 的 YAML 序列，ExactlyOneName 表示恰有一个非保留 Name 键的映射；AbsoluteSchemaUri 与 AbsolutePackageUri 为 RFC 3986 绝对 URI并由可信契约验证。LocalSchemaPath 与 LocalScriptPath 只接受包内 POSIX 相对路径；禁止绝对路径、反斜线、空段、点段、双点段和符号链接越界。例如 `schemas/session.profile.schema.yaml` 与 `scripts/build.input.py` 合法；`schemas/../session.schema.yaml`、`schemas/.schema.yaml` 和 `scripts//step.py` 非法。固定后缀的优先剥离规则仅用于消除文法读取歧义，不放宽 FileSegment 或路径安全约束。PositiveInteger 为十进制且必须大于零、无前导零。**ScalarLiteral 的完整词法（Normative）：** `Yaml12SingleQuoted` / `Yaml12DoubleQuoted` 精确采用 YAML 1.2 单引号/双引号标量的引号、双单引号转义及双引号转义规则；仅接受一行内的 quoted scalar，不接受 block scalar、多行折叠、tag 或任意应用层字符串插值。单引号内以两个连续单引号表示一个单引号；双引号只接受 YAML 1.2 明确允许的转义，未知转义不合法。quoted scalar 不得被隐式转换为 Boolean/Null/Number/SourcePath。裸写 `true` / `false` / `null` 仅接受精确小写，不接受 `True`、`FALSE`、`NULL` 或 `~`。裸数必须严格满足上面的 `FiniteDecimalNumber`：可有负号、可有小数及科学指数（指数可有正负号）、**禁止数字前导加号、前导零、末尾孤立小数点、开头省略整数部分、数字分隔符、非十进制前缀、NaN/Infinity**。整数形态（无小数点和指数）必须处于 int64 区间 [-9223372036854775808, 9223372036854775807]；带小数点或指数的形态按 IEEE-754 binary64 正确舍入，结果必须有限且不得使非零数下溢为零；保留原始词法以区分整数和浮点。符号为 `-0` 的整数值是 0。没有引号且不是上述合法布尔、null 或数字的内容，只有满足 §13.2 SourcePath 才合法；错误标量在 YAML 已安全解析的前提下按 SOURCE_PATH_INVALID 拒绝，不能由 YAML 库的自动类型推断扩张接受集合。**数值 Schema 目标与 CEL 类型还须按 §13.3、G.4 校验，词法正确不意味着可赋值。**
 
 v1alpha4 的 `Node.precondition` 与 `Node.postcondition` 共享 §10.1 的 `NonEmptyList<PredicateCall>`：每一项必须恰有 `predicate/arguments`，只有阶段根允许 `routes`，Postcondition 不再接受任何 `goal` 字段。成员级三态只归并为一次阶段 Outcome（§12.2/§12.5），绝不独立路由；旧阶段根直接 `predicate/arguments` 已不合法。
 
@@ -4371,8 +4380,10 @@ nodes:
 | `null`、`true`、`false`（均无引号） | 合法 Core Null/Boolean 字面量，仍受目标参数 Schema 类型约束 |
 | `Null`、`NULL`、`~` | **不能**作为合法 v1alpha4 null；即使 YAML 库能解码也应按既有语法/表达式规则拒绝 |
 | `TRUE`、`False` | **不能**作为合法 v1alpha4 Boolean；不可自动大小写规范化 |
-| `0x10` | 不属于 G.1 的有限十进制数字形态，不能因 YAML 库支持其他进制而当作合法数值 |
-| `01` | 保留原始词法，**先依据所在语法位置**判定：G.1 的 `PositiveInteger` 明确拒绝前导零；作为 `arguments` 的 `FiniteDecimalNumber` 时必须核对该类别的冻结定义，不得在本候选中擅自新增“所有前导零均非法”的规则。若文本尚不足以唯一裁决，记录待独立词法评审，不将其作为已通过或确定的负例 |
+| `0x10`、`0o10`、`.nan`、`.inf` | 不属于 G.1 数值文法，不能被 YAML 库的扩展解码接受；SOURCE_PATH_INVALID（前提为 YAML 已安全解析） |
+| `0`、`-0`、`-42`、`12.50`、`1e3`、`1E-2` | 符合有限十进制文法；整数须在 int64 范围，浮点须为有限 binary64，仍需目标 Schema 类型验证 |
+| `9223372036854775808`、`1e9999` | 分别越过 int64 范围和有限 binary64 范围：SOURCE_PATH_INVALID；不能截断、无穷化或隐式转字符串 |
+| `01`、`+1`、`1.`、`.5`、`1_000` | 作为 arguments 中的裸标量均不符合 G.1 有限十进制文法，也不是有效 SourcePath；SOURCE_PATH_INVALID（前提为 YAML 已安全解析） |
 | `"12"`、`"true"`、`"null"`（带引号） | 是 string 字面量，不得被词法归一化为数值、Boolean 或 null；与目标类型不匹配时使用既有类型诊断 |
 | `context.request.dnn`（无引号） | 符合 SourcePath 词法的字段引用，但还必须做已声明字段、路径可用性与类型检查 |
 | `"context.request.dnn"`（带引号） | 字符串字面量，**不是** SourcePath |
