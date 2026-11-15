@@ -3,7 +3,7 @@
 **中文名称：** ConnectionAgent Skill 语言规范  
 **简称：** CA-SL  
 **目标版本：** `connectionagent.io/v1alpha4`（简称 v1alpha4；`vNext` 仅为资料性系列别名）  
-**状态：** FROZEN — LANGUAGE SPECIFICATION ONLY（v1alpha4 已冻结；v1alpha3 独立保持 FROZEN；产品/Owner 符合性 NOT QUALIFIED）  
+**状态：** FROZEN CANDIDATE — PENDING BLOCKING CORRECTIONS（v1alpha4 语言语义复审；v1alpha3 独立保持 FROZEN；产品/Owner 仍 NOT QUALIFIED）  
 **规范所有者：** odango-chan/ca-skills  
 **适用对象：** Skill 作者、Skill Studio、Compiler、Agent Host / Runtime、Tool Owner、Schema Owner、语言服务及符合性评审机构  
 **更新日期：** 2026-11-15
