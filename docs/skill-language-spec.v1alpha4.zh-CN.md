@@ -2457,7 +2457,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 
 | 变体类型及代表用例 | Compiler Native/WASM | Host/Runtime | Studio/LSP | Owner/Deployment Fixture |
 |---|---|---|---|---|
-| 源码、链接、图/证明（如 E02–E06、E41、E51、E60、E105、E107 的静态变体） | 执行静态正反例与 Code/Phase 检查 | 不以构建成功冒充运行通过 | 与 Compiler 返回等价的静态问题 | 提供真实/受信 Schema、Owner、Scope 绑定 |
+| 源码、链接、图/证明（如 E02–E06、E41、E51、E60、E105、E107 的静态变体） | 执行静态正反例与 Code/Phase 检查，另审查无作者 Reconcile 字段、恢复 Producer 的独立 Guarantee 绑定及 Retry 上限 | 不以构建成功冒充运行通过 | 与 Compiler 返回等价的静态问题 | 提供真实/受信 Schema、Owner、Scope 绑定 |
 | 运行证据、Mutation、责任与终态（E23、E28、E31、E58、E96、E97、E108） | 校验对应源码/契约静态前提 | 执行动态结果、停止、故障注入与 Trace 验证 | 不执行运行期用例 | 提供可信回包、证据、关联及责任快照 |
 | 跨阶段（E101 来源与实际派发、E104 Host 上界与启动拒绝） | 执行可静态验证的绑定变体 | 核验实际身份原绑定、Host 配置和拒绝行为 | 镜像静态诊断 | 提供可认证身份来源与部署基线 |
 | 附录 H 的部分覆盖/待 Fixture `(Code, Phase)` | 补 C_STATIC/C_WARNING 的对应 Fixture | 补 R_RUNTIME 的对应 Fixture | 保持同一静态 Code/Phase | 提供必要受信模拟/Owner 证据 |
@@ -3208,7 +3208,7 @@ predicates:
 | E74 | 将外部结果先经 Procedure Script，再绑定无保证的 Predicate 参数；对照只消费请求字段的 Script | 外部来源报 PREDICATE_EVIDENCE_REQUIRED；对照可省略保证 |
 | E75 | Predicate Script 用生成的输入类型读取已声明键；再改为未知键 | 正例通过；反例 SCRIPT_CONTRACT_INVALID |
 | E76 | 非末 READ 阶段只声明 SUCCEEDED，对照末阶段和另声明 FAILED 的变体，三例均省略 routes | 首例合法，后两例报 ROUTE_OUTCOME_MISSING |
-| E77 | 分别执行本地 Script、外部调用和 Reconcile，再在任一动作启动前拒绝 | 每次启动计一，拒绝计零 |
+| E77 | 分别执行本地 Script、外部调用和 Host 在原 Mutation 未决时派发的 Reconcile READ；再测试在派发前拒绝 | 每次真实启动计一个 Action（包括专用 READ），启动前拒绝计零；不得把恢复 READ 免费藏入 Mutation 预算 |
 
 | E78 | §9.2.1 的 v1alpha4 Mutation 契约，将 Reconcile 的关联从原调用改为当前调和调用 | 正例可链接；反例 RECONCILE_CONTRACT_INVALID。按附录 F.1 验收 |
 | E79 | 在 E62 的 Owner 结果集中及调用路由中移除 FAILED、NOT_COMMITTED，保留 SUCCEEDED、Runtime DENIED 与 OUTCOME_UNKNOWN 的处理，令 Runtime 拒绝派发 | 走 DENIED 边；移除该可选边后直接停止 |
@@ -3218,8 +3218,8 @@ predicates:
 | E83 | 局部 Postcondition 聚合 PASS 后继续到下一局部判断，后者 FAIL/UNKNOWN 并请求停止终态 | 构建允许；该局部 PASS 不是 Goal 证明，Runtime 按 §12.8 发布相应停止终态 |
 
 | E84 | 分别省略 Predicate 的 FAIL、UNKNOWN 或 Procedure Script 的 FAILED 路由 | 各自报 ROUTE_OUTCOME_MISSING |
-| E85 | retryOf 的路径全部经过原调用 NOT_COMMITTED，再加入一条绕过该边的到达路径 | 正例通过路径检查，绕过者报 RETRY_CONTRACT_INVALID。Runtime 对证明和业务身份独立验收 |
-| E86 | §20.3 的 SUCCEEDED 分别绑定已提交、未提交、不充分和错误原调用的证明。另测未声明的 Owner 结果与恢复输出违规 | 按映射表产生阶段结果或停止，并保留责任及已验证的提交状态 |
+| E85 | 普通 Mutation 的 retryOf 路径先从原调用 NOT_COMMITTED 到唯一新 Retry Node，再增加绕过该边的入边；另尝试 retryOf 指向另一 Retry Node 构成第二代 | 首种静态可通过（Runtime 仍验证证明/身份/一次性消费）；绕过与第二代均 RETRY_CONTRACT_INVALID；不隐式重发 |
+| E86 | §20.3 的专用 READ Owner SUCCEEDED 分别绑定已提交、未提交、不充分和错误原调用的证明；另测未声明 Owner 结果与恢复输出违规 | 只在**原 Mutation** 上按 §20.3 归并 Stage Outcome 或安全停止，保留恢复 Producer/责任及原调用提交状态；不能创建作者 Reconcile Stage |
 | E87 | E81 分别让已 Grant 成员缺少 Scope、静态交集为空、未 Grant 成员缺少 Scope | 前两者分别报 CAPABILITY_SCOPE_UNRESOLVED、CAPABILITY_SCOPE_EMPTY_INTERSECTION，第三种允许链接 |
 | E88 | 静态 Scope 可链接，但 Runtime 策略不可读取或当前交集为空 | 分别产生 SCOPE_POLICY_UNAVAILABLE、SCOPE_INTERSECTION_EMPTY，按 §24.2 停止或沿 DENIED |
 | E89 | 成功输出的 policyAssociationRef 可缺失，局部 PASS 后直接绑定。对照成功输出将该字段声明为必需并保留同一绑定 | 反例 SOURCE_NOT_AVAILABLE，正例在其余契约有效时通过 |
@@ -3255,7 +3255,7 @@ predicates:
 
 | 验收 | 输入 | 预期 |
 |---|---|---|
-| E92（抽象） | E85 的 retryOf 增加原调用 SUCCEEDED 到重试的路径 | RETRY_CONTRACT_INVALID |
+| E92（抽象） | E85 的 retryOf 增加原调用 SUCCEEDED 到重试的路径，或在首次 Retry 上继续显式 Retry 一代 | 两种均 RETRY_CONTRACT_INVALID；本版一原逻辑 Mutation 家族最多一次新派发 |
 | E93（摘要及授权） | 合法部署输入，随后独立篡改文件字节、替换为未授权发布者 | 正例可链接；变体分别报 CAPABILITY_INPUT_DIGEST_MISMATCH、CAPABILITY_INPUT_UNTRUSTED |
 | E94（抽象） | 同一部署工件集重复 Capability ID | CAPABILITY_DEFINITION_CONFLICT |
 | E95（抽象） | Host 根静态引用闭合对象，再将引用目标改为开放根或声明 request | 正例链接；变体 CONTEXT_REQUEST_COLLISION |
@@ -3904,7 +3904,7 @@ G.1–G.9 的继承用例与新增 E115–E120 共同组成 v1alpha4 已冻结�
 | EVIDENCE_CONFLICT | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Predicate 保证冲突：UNKNOWN；入口/Goal PASS 复核失败按 §12.8 停止；已派发 Mutation 按 §20.1 | §17.2、§24.2 | E30 | 规范用例已定义 |
 | DEADLINE_EXCEEDED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 不再派发 Procedure Action；记录迟到结果及已派发调用的状态和责任，按 §12.8 停止 | §24.2 | E70 | 部分覆盖 |
 | CANCELLED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 停止后续 Procedure Action；记录迟到结果及已派发调用的状态和责任，按 §12.8 停止 | §24.2 | E70 | 部分覆盖 |
-| RECONCILE_UNRESOLVED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 沿 Reconcile UNRESOLVED 边请求终止（仅 UNRESOLVED/SAFE_STOPPED），按 §12.8 发布实际终态并保留原调用责任 | §20.1–§20.3、§24.2 | E86 | 部分覆盖 |
+| RECONCILE_UNRESOLVED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Host 专用 Reconcile READ 无法给出可信提交结论时记录本码；原 Mutation 的 Stage Outcome 保持 OUTCOME_UNKNOWN，沿其安全停止边发布 §12.8 实际终态并保留原调用责任 | §20.1–§20.3、§24.2 | E86 | 部分覆盖 |
 | COMMITTED_OUTPUT_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 提交已确认但承诺的输出不可用：隔离无效数据，直接停止；有已确认待处置变更时 SAFE_STOPPED，保留提交与责任 | §20.1–§20.3、§24.2 | E28/E108 | 规范用例已定义 |
 | ENTRY_PRECONDITION_INVALIDATED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 全局前置条件不再具备 PASS：阻止业务 Mutation 及 SUCCEEDED，按 §12.8 停止 | §12.9、§24.2 | E53 | 规范用例已定义 |
 | PRECONDITION_INVALIDATED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 局部 Precondition 复核失败：禁止受保护的 Mutation 派发，按 §12.8 停止 | §12.9、§24.2 | E70 | 部分覆盖 |
