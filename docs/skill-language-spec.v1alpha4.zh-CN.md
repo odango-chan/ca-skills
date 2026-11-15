@@ -1931,16 +1931,10 @@ nodes:
       routes:
         SUCCEEDED: create-pcf-association
         NOT_COMMITTED: FAILED
-        OUTCOME_UNKNOWN: reconcile-udm-subscription
+        COMMITTED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: UNRESOLVED
         DENIED: FAILED
         FAILED: FAILED
-  reconcile-udm-subscription:
-    operation:
-      reconcile: create-udm-subscription
-      routes:
-        COMMITTED: create-pcf-association
-        NOT_COMMITTED: FAILED
-        UNRESOLVED: UNRESOLVED
   create-pcf-association:
     operation:
       tool: ca::sbi.pcf.sm_policy.create
@@ -1951,7 +1945,8 @@ nodes:
         sNssai: context.request.sNssai
       routes:
         NOT_COMMITTED: SAFE_STOPPED
-        OUTCOME_UNKNOWN: reconcile-pcf-association
+        COMMITTED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
         FAILED: SAFE_STOPPED
     postcondition:
@@ -1959,30 +1954,6 @@ nodes:
         - predicate: createdsession.pcf.association_owned
           arguments:
             - create-pcf-association.operation.output
-      routes:
-        PASS: create-n4-session
-        FAIL: SAFE_STOPPED
-        UNKNOWN: SAFE_STOPPED
-  reconcile-pcf-association:
-    operation:
-      reconcile: create-pcf-association
-      routes:
-        NOT_COMMITTED: SAFE_STOPPED
-        UNRESOLVED: SAFE_STOPPED
-    observation:
-      tool: ca::pcf.policy_association.current
-      arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
-        policyAssociationRef: reconcile-pcf-association.operation.output.policyAssociationRef
-      routes:
-        FAILED: SAFE_STOPPED
-        UNKNOWN: SAFE_STOPPED
-    postcondition:
-      predicates:
-        - predicate: createdsession.pcf.association_owned
-          arguments:
-            - reconcile-pcf-association.observation.output
       routes:
         PASS: create-n4-session
         FAIL: SAFE_STOPPED
@@ -2006,17 +1977,11 @@ nodes:
         pduSessionId: context.request.pduSessionId
       routes:
         SUCCEEDED: signal-ran
-        OUTCOME_UNKNOWN: reconcile-n1n2-transfer
+        COMMITTED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
         NOT_COMMITTED: SAFE_STOPPED
         FAILED: SAFE_STOPPED
         DENIED: SAFE_STOPPED
-  reconcile-n1n2-transfer:
-    operation:
-      reconcile: transfer-n1n2
-      routes:
-        COMMITTED: signal-ran
-        NOT_COMMITTED: SAFE_STOPPED
-        UNRESOLVED: SAFE_STOPPED
   signal-ran:
     operation:
       tool: ca::SSM.SIGNAL_UE_AN
@@ -2081,17 +2046,11 @@ nodes:
         sessionInstanceRef: create-n4-session.operation.output.sessionInstanceRef
       routes:
         SUCCEEDED: read-resource-responsibility
-        OUTCOME_UNKNOWN: reconcile-resource-responsibility
+        COMMITTED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
         NOT_COMMITTED: SAFE_STOPPED
         DENIED: SAFE_STOPPED
         FAILED: SAFE_STOPPED
-  reconcile-resource-responsibility:
-    operation:
-      reconcile: transfer-resource-responsibility
-      routes:
-        COMMITTED: read-resource-responsibility
-        NOT_COMMITTED: SAFE_STOPPED
-        UNRESOLVED: SAFE_STOPPED
   read-resource-responsibility:
     observation:
       tool: ca-responsibility::ca.session.resource_responsibility.current
