@@ -23,15 +23,22 @@ class SpecMarkdownTests(unittest.TestCase):
         verify_docs.check_counts(text, errors)
         return errors
 
+    def e9_range(self) -> tuple[int, int]:
+        start = self.spec.index("## E.9 ")
+        return start, self.spec.index("## E.10 ", start)
+
     def test_checked_in_spec_is_valid(self) -> None:
         self.assertEqual(self.lint(self.spec), [])
 
     def test_one_two_three_blank_lines_split_e9(self) -> None:
         pattern = r"(?m)(^\| E89 \|[^\n]*\n)(\| E90 \|)"
-        self.assertEqual(len(re.findall(pattern, self.spec)), 1)
+        start, end = self.e9_range()
+        segment = self.spec[start:end]
+        self.assertEqual(len(re.findall(pattern, segment)), 1)
         for n in (1, 2, 3):
             with self.subTest(blank_lines=n):
-                altered = re.sub(pattern, lambda m: m.group(1) + "\n" * n + m.group(2), self.spec)
+                altered_segment = re.sub(pattern, lambda m: m.group(1) + "\n" * n + m.group(2), segment)
+                altered = self.spec[:start] + altered_segment + self.spec[end:]
                 errors = self.lint(altered)
                 self.assertTrue(errors, f"E.9 split by {n} blank lines escaped lint")
                 self.assertTrue(any("separator" in x for x in errors), errors)
@@ -48,8 +55,10 @@ class SpecMarkdownTests(unittest.TestCase):
 
     def test_column_mismatch_is_detected(self) -> None:
         pattern = r"(?m)^(\| E90 \|[^\n]*)(\|)$"
-        self.assertEqual(len(re.findall(pattern, self.spec)), 1)
-        broken = re.sub(pattern, r"\1 |", self.spec, count=1)
+        start, end = self.e9_range()
+        segment = self.spec[start:end]
+        self.assertEqual(len(re.findall(pattern, segment)), 1)
+        broken = self.spec[:start] + re.sub(pattern, r"\1 |", segment, count=1) + self.spec[end:]
         errors = self.lint(broken)
         self.assertTrue(any("column count" in x for x in errors), errors)
 
