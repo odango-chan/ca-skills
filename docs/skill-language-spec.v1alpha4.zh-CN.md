@@ -610,7 +610,7 @@ TerminalStatus    = SUCCEEDED | FAILED | UNRESOLVED | SAFE_STOPPED
 
 **v1alpha4 阶段语法（Normative）。** 一个 Node 仍仅能有一项 `precondition` 与一项 `postcondition` 阶段声明。两者内部使用相同的非空有序 `predicates` 列表，**即使只有一个 Predicate 也必须写成列表**。每项 `PredicateCall` 恰有 `predicate` 和位置参数 `arguments`；禁止在阶段根使用旧版直接 `predicate/arguments`，也不得在 Postcondition 阶段根或任一调用项中定义 `goal`，或在单个列表项中定义 `routes`。Precondition/Postcondition 只拥有**一组阶段级** `PASS/FAIL/UNKNOWN` 路由；Postcondition 阶段或其成员均不得声明 `goal`。Contract 的 `goal` 是唯一业务目标；`contract.precondition` 是至多一个全局门禁阶段引用。这不是对 v1alpha3 旧作者源码的隐式转换或语法别名。列表为空、类型不符、成员缺字段或含未知字段报 `PREDICATE_GROUP_INVALID`，重复 Mapping Key 与非法 YAML 先报 `YAML_PARSE_ERROR`。**同一 Node 中重复写两次 `operation:`、`precondition:`、`observation:` 或 `postcondition:` 也是 YAML Mapping 重复键，必须先报 `YAML_PARSE_ERROR`，不得在解析器丢失其中一个值后假报 `PREDICATE_GROUP_INVALID`。**成员中 Predicate 引用、参数位置/Schema、Evidence 错误仍按既有专用诊断逐成员检查（§13、§17、§24/H）。
 
-Node ID 与 `Identifier` 使用同一字符规则。Compiler 在解析 `start` 和路由前拒绝使用 `context` 或任一 `TerminalStatus` 精确拼写的 Node ID。`start` 必须引用真实 Node。Node 至少有一个阶段，各阶段最多声明一次。各阶段在自己的 `routes` 中按 Outcome 指定目标，允许键和必填键由 §12.1、§22 决定。省略 `routes` 与空映射等价，两者仅在该阶段的没有必须显式路由的非正常 Outcome 且后面还有阶段时合法。其他情况须写全 §22 要求的路由，缺键阻断构建。**作者 Procedure 不接受 `operation.reconcile`、`operation.resolve` 或独立 Reconcile Node 调用形态；原 Mutation 的恢复能力只由受信 Owner `mutation.reconcile` 发布（§9.2.1、§12.7、§20），并由Host 公共执行安全边界执行。**解析器拒绝未知字段和重复阶段，保留 YAML 标量的引号风格。
+Node ID 与 `Identifier` 使用同一字符规则。Compiler 在解析 `start` 和路由前拒绝使用 `context` 或任一 `TerminalStatus` 精确拼写的 Node ID。`start` 必须引用真实 Node。Node 至少有一个阶段，各阶段最多声明一次。各阶段在自己的 `routes` 中按 Outcome 指定目标，允许键和必填键由 §12.1、§22 决定。省略 `routes` 与空映射等价，两者仅在该阶段的没有必须显式路由的非正常 Outcome 且后面还有阶段时合法。其他情况须写全 §22 要求的路由，缺键阻断构建。**作者 Procedure 不接受 `operation.reconcile`、`operation.resolve` 或独立 Reconcile Node 调用形态；原 Mutation 的恢复能力只由受信 Owner `mutation.reconcile` 发布（§9.2.1、§12.7、§20），并由 Host 公共执行安全边界执行。**解析器拒绝未知字段和重复阶段，保留 YAML 标量的引号风格。
 
 本版仅有单一 Procedure 图，不定义 entryProcedure、嵌套 ProcedureCall、通用 call、隐式 Step 或同名自动绑定。完整 PredicateSet 文法、标识符、绝对 Schema URI 以及 ScalarLiteral 字符集见 G.1；合法 YAML 但违反 CA-SL 标识符文法的源码必须以 IDENTIFIER_INVALID 或 QUALIFIED_REFERENCE_INVALID 拒绝。
 Compiler 必须设置文档字节数、嵌套深度、Alias 展开规模的有限上限，并在超限时拒绝输入。
@@ -1005,7 +1005,7 @@ Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时必�
 
 **v1alpha4 Normative、FROZEN：唯一全局门禁与最终 Postcondition 直达成功。** Contract 的 `goal` 是业务目标声明；`precondition` 可省略，若存在必须是**一个**精确的 `<node-id>.precondition` 阶段引用，而不是列表。它引用的阶段可以包含多个纯 Predicate，只有**整个阶段聚合 PASS** 才表示全局门禁通过。未声明此字段表示没有 Contract 级全局门禁，但 Procedure 仍可有局部 Precondition 与 Postcondition。
 
-- **全局门禁必经性：** 对每条从 `start` 到业务 MUTATION 派发或 Invocation `SUCCEEDED` 的可达路径，若声明 Contract `precondition`，该路径必须经过这个唯一阶段的聚合 `PASS`。先前 PASS 的 Trace/原绑定保留，经过后续其他 Node 时不凭阶段名称重做判断；Runtime 每次派发业务 Mutation 以及发布成功前按 §17/§24 复核原已接受的全体成员及 Evidence。否则报 `ENTRY_PRECONDITION_BYPASSED`；无效标量、数组/对象、错误身份、不存在的阶段或**声明引用的阶段从 `start` 根本不可达**报 `ENTRY_PRECONDITION_REF_INVALID`。不可达全局引用的诊断先于逐路径 BYPASSED，避免把无效 Contract 引用误称为正常分支绕过；合法但仅部分路径经过它仍报 BYPASSED。多个业务前置判断放进同一阶段的 `predicates` 列表，Procedure 其他 Precondition 仍为局部门禁。
+- **全局门禁必经性：** 对每条从 `start` 到业务 MUTATION 派发或 Invocation `SUCCEEDED` 的可达路径，若声明 Contract `precondition`，该路径必须经过这个唯一阶段的聚合 `PASS`。先前 PASS 的 Trace/原绑定保留，经过后续其他 Node 时不凭阶段名称重做判断；Runtime 每次派发业务 Mutation 以及发布成功前按 §17/§24 复核原已接受的全体成员及 Evidence。**构建期**发现任一可达路径未经过全局阶段聚合 PASS，报 `ENTRY_PRECONDITION_BYPASSED / C_STATIC`；**运行期**发现曾接受的 PASS 成员或其 Evidence 在派发/成功发布前复核失败，报 `ENTRY_PRECONDITION_INVALIDATED / R_RUNTIME` 并按 §12.8 安全停止（E53/H），不得混用两个代码。无效标量、数组/对象、错误身份、不存在的阶段或**声明引用的阶段从 `start` 根本不可达**报 `ENTRY_PRECONDITION_REF_INVALID`。不可达全局引用的诊断先于逐路径 BYPASSED，避免把无效 Contract 引用误称为正常分支绕过；合法但仅部分路径经过它仍报 BYPASSED。多个业务前置判断放进同一阶段的 `predicates` 列表，Procedure 其他 Precondition 仍为局部门禁。
 - **局部门禁：** 每次业务 Mutation 派发前，Runtime 还复核同 Node 的 Precondition，以及正常完成并直接进入该 Mutation 的局部判断；跨 Node 的局部判定仅在直接前驱判断沿正常结果边进入目标 Node、且 Mutation 为其首阶段时复核。全局门禁与局部门禁重合时同一执行结果只复核一次。Reconcile 仍按 §20 的独立条件准入。
 - **成功证明：** 唯一允许请求 Invocation `SUCCEEDED` 的源码边是一个**可达 Postcondition 阶段**的**聚合 `PASS` 边**，并且其路由**直接**指向 `SUCCEEDED`。该 Postcondition 的全部 Predicate 均 PASS 后，才视为本次 `contract.goal` 的最终证明；任何 Operation/Observation/Precondition、Postcondition 的 FAIL/UNKNOWN、或中间业务 Node 的路由都不能直接请求成功。没有 `postcondition.goal` 或 `contract.postconditions` 之类的重复声明。某个 Postcondition 的 PASS 若指向另一 Node，仅属于局部验收；**它的 PASS 不跨 Node 携带为 Goal 证明**。若后续又发生 READ/Script/Mutation，必须在其后再次走最终 Postcondition PASS 直接到成功终态；Host 内部结果确认不创建新的作者级阶段。
 - **多条成功分支与恢复来源：** 不同业务路径可以各有最终 Postcondition，或原 Mutation 的普通成功与 Host 恢复完整成功输出后在**同一**原 Node 的后续阶段汇聚；均必须在实际所选路径上聚合 PASS 并直达 SUCCEEDED。Host 恢复输出仍须保留独立 Producer/Evidence 绑定，不能借用另一条路径的旧 PASS。每条成功路径均满足相同的全局门禁、Evidence、提交状态和资源责任检查。**存在至少一条可达 `SUCCEEDED` 请求边**，但没有任何可达 Postcondition PASS→SUCCEEDED 边时，报 `FINAL_POSTCONDITION_MISSING`；存在合法最终边但另一条可达成功边不是来自 Postcondition PASS 时，报 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`。**若没有任何可达 `SUCCEEDED` 请求边，且所有可达阶段满足 §22.1 的路由覆盖及目标限制，并且每条可达路径最终依 §12.8 到达合法停止终态，则是允许的纯停止 Procedure，不因缺少最终成功边而触发 `FINAL_POSTCONDITION_MISSING`**；此类 Invocation 不证明 Goal 已达成。这些优先级仅说明诊断条件，不使非法的成功边合法。
@@ -2502,13 +2502,23 @@ v1alpha4 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 Observatio
 | #44 初次冻结 | `69c840884c7ca94a8d669710f215f6e424bcdca9` | 早期裁决，已由 #45 重新复审替代 |
 | #45 C 类重新冻结 | `466ed1fca6d458e094a342a4afea252ea43f8169` | 语言语义重新冻结，但当时允许旧外部版本组合；**不得用于本版 F.0 统一剖面** |
 | #46 A/B 勘误 | `b68a780912b9a2c150cca15e471d2a370142874b` | C 类版本统一前的历史文本 |
-| #47 C 类版本统一 | `2f13ebb598b6015a93201cab890215ee81e9de55` | 首次精确要求三类 apiVersion 都是 v1alpha4；无旧版 fallback |
+| #47 C 类版本统一 | `2f13ebb598b6015a93201cab890215ee81e9de55` | 首次精确要求语言 `languageTarget` 与 ToolCatalog/CapabilityContracts 两个 `apiVersion` 均为 v1alpha4；无旧版 fallback |
 | #48 A/B 结果与术语勘误 | `476d6f25fcca4e19832ea6bf30e60d9ce7dda89a` | 本次勘误前的完整 v1alpha4 规范性单文件基线 |
 | #51 仓库入口修复 | `2be3907b4a8830cdf9e45b80c789759fe79de4cd` | 仅入口/作者指南/旧 Token 声明，不修改规范单文件 |
+| #52 A/B 文本勘误 | `1462d1f74618460e5b75e481b26716af668a20e0` | §45.1.5、表格及术语等第一轮修订；该提交 E.9 尾部仍有表格断裂，见 #55 |
+| #53 文档 lint 首版 | `6427936461aac6916fa25590ed058b25b585e0e1` | Source Hygiene 加入文档 lint，但连续多空行漏检；见 #55 |
+| #56 语言入口残留修复 | `f5e79f56e0701940986232c66b489eb252b36bc3` | Script/Schema/AGENTS/README 权威及 gate 说明调整，不修改规范正文 |
+| #55 E.9 与全表 lint 修复 | `df210c5ec9c3973065f2c05a8264e68e2536f6d0` | E90/E91 恢复在同一 Markdown 表内，新增全规范表格 lint 和回归负例 |
 
 **后续修订的精确身份：** 本次 A/B 勘误的最终提交在 GitHub 合并后才存在，不能在提交自身的内容中填造其 SHA（自引用会改变 SHA）。合并后从确切 PR 的 merge commit 或明确检出的 commit 获取它，用作本版审阅的 `normativeSpecCommitSha`；任何文档读者不得将表中旧 SHA 或浮动 `main` 当作这个新提交。K.4 的 `normativeSpecCommitSha: null` 是**待消费者填写的示例报告字段**，不是“语言尚未冻结”或已完成产品测试的证据。真实 Compiler、Studio、Host、Owner 仍按 §45.2 为 `NOT_QUALIFIED`，除非另有独立实际验收。
 
 **A/B 勘误范围和不变性：** 补齐 E.9/E.14 Markdown 表格结构；修正 98 Code/99 复合身份计数；删去作者级 Reconcile 旧术语；统一纯停止路径的 §22.1/§12.8 判据；补齐 §13.1 Mutation 教学片段强制路由；将 v1alpha3-only 移除字段的诊断明确为 E119 已冻结的 `UNKNOWN_FIELD`；修正导航、标题、RFX 和报告模板。没有新 Field/Stage/Effect/Route、没有更改 F.0 版本组合、没有改变 E01–E120 原有预期。若真实 Fixture 证明实际改变合法输入或安全结果，须按 §45.1 C 类另启版本，不可静默归类为勘误。
+
+### 45.1.6 #50 后续 A/B 一致性勘误（2026-11-15）
+
+**分类：A 类编辑修复 + B 类已冻结语义消歧；不改变 v1alpha4 可接受的作者语法、诊断代码集合、E01–E120 原有判定或 F.0 版本剖面。** 本轮以 §12.7/§20.3/§22.1 为 G.2 提交结果归并的先决规则：原调用未提交事实**不自动产生**未发布的 `NOT_COMMITTED` 阶段 Outcome；Owner 无相应可信类别时保留事实、安全停止，未决提交状态沿 `OUTCOME_UNKNOWN` 保全。§12.9 静态入口门禁路径漏过报 `ENTRY_PRECONDITION_BYPASSED / C_STATIC`，已接受 PASS 的运行时证据失效报 `ENTRY_PRECONDITION_INVALIDATED / R_RUNTIME`，与 E53/H 既有诊断身份一致。G.9 E120 只是明确现有 E11/E18/§12.9 诊断优先级，不创建新诊断或转换旧源码。
+
+其余为 F.0 的 `languageTarget` 与两个外部 `apiVersion` 术语区分、G.2.2 的示例 Owner Outcome/receipt 类型范围、G.8 引用、E.5 效力表、H 覆盖状态文字与 E119/E84 追溯、K.1/K.2 说明和低级格式修复。**这一版的不可变文本提交 SHA 以本 PR 实际合并提交为准**，不得用规范文件中的未来自引用哈希代替。任何 Compiler/Studio/Host/Owner/真实 5GC 产品符合性均仍须按 §45.2 独立证明，本文没有执行机器 E Fixture。
 
 ### 45.2 未完成的实现符合性门槛
 
@@ -2863,6 +2873,8 @@ flowchart LR
 | E.3、E.4 | v1alpha4 normative 互操作字段，informative 测试装配与数据 | 解码后的链接、Evidence 与授权规则为 normative |
 | E.5–E.7、E.9 | informative 测试输入 / normative 预期结果 | 诊断或行为由 normative 规则决定；BuildRequest 装配属独立版本 |
 | E.10、E.11 | informative 验收矩阵和索引 | 不代表实现已经通过 |
+| E.12、E.14 | informative 测试输入 / normative 预期结果 | E92–E104 的期望以冻结规则为准；机器 Fixture 尚未执行 |
+| E.13 | informative 规则与测试说明 | 只澄清既有规范性条款，不新增 E 预期 |
 
 ## E.1 Skill 作者源码
 
@@ -3141,7 +3153,7 @@ expected:
 | E49：Operation 成功，但同 Node 的 Observation 返回 UNKNOWN | 走 Observation 的 UNKNOWN 退出路由，保留已完成 Operation 的结果和责任记录，不执行 Postcondition |
 | E50：Contract 单数全局 precondition 引用 check-ready.precondition，其中含两个 Predicate，分别按顺序 PASS | 静态必经门禁覆盖通过；两个 Predicate 均 PASS 才使这个唯一全局阶段 PASS |
 | E51：两条可达路径汇合，只有其中一条经过 Contract 单数全局 Precondition 聚合 PASS | ENTRY_PRECONDITION_BYPASSED，即使分支没有 Mutation；汇合的全局门禁按 AND 计算 |
-| E52：Contract 单数 precondition 错写成 Postcondition 引用、不存在的 Node、非 Precondition 阶段、列表/空标量，或引用**存在但从 start 不可达**的 Precondition 阶段 | ENTRY_PRECONDITION_REF_INVALID；不可达引用先于 BYPASSED；不接受曾经的多引用列表语法 |
+| E52：Contract 单数 precondition 分别错写成 Postcondition 引用、不存在的 Node、**存在 Node 上不存在的 Precondition 阶段**、列表/空标量，或引用**存在但从 start 不可达**的 Precondition 阶段 | ENTRY_PRECONDITION_REF_INVALID；不可达引用先于 BYPASSED；不接受曾经的多引用列表语法 |
 | E53：单数全局 Precondition 曾聚合 PASS，发布成功前其任一成员 Evidence 过期 | ENTRY_PRECONDITION_INVALIDATED；按 §12.8 停止，保留历史 PASS 与成员来源 |
 | E54：在非末阶段为正常 Outcome 配置跨 Node 路由 | ROUTE_NORMAL_OUTCOME_NOT_ALLOWED |
 | E55：末阶段漏写正常 Outcome 的路由 | ROUTE_OUTCOME_MISSING |
@@ -3366,17 +3378,17 @@ predicates:
 
 ## F.0 v1alpha4 统一版本标识与外部发布物准入（C 类复审已闭合，Normative）
 
-本版直接使用的**三个显式 apiVersion 均为 v1alpha4**，不再维持“语言 v1alpha4 + ToolCatalog/CapabilityContracts v1alpha3”的混合组合。旧版历史文件与提交不予改写，但**本版当前链接契约不设 v1alpha3 fallback、隐式转换、自动探测或版本协商**。
+本版直接使用的**三个显式版本标识**分别为 CA-SL **BuildRequest/Compiler Target 的 `languageTarget`** 与 ToolCatalog、CapabilityContracts 的两个 **`apiVersion`**，三者均采用各自命名空间下的 `v1alpha4`；不再维持“语言 v1alpha4 + ToolCatalog/CapabilityContracts v1alpha3”的混合组合。旧版历史文件与提交不予改写，但**本版当前链接契约不设 v1alpha3 fallback、隐式转换、自动探测或版本协商**。
 
 | 输入/契约 | 本版要求的显式版本或方言 | 唯一规则入口 |
 |---|---|---|
-| CA-SL 作者语言 | `connectionagent.io/v1alpha4` | §10.1、§12–§24、E/H |
+| CA-SL 作者语言（BuildRequest/Compiler Target 的 `languageTarget`，不写入作者文件 `apiVersion`） | `connectionagent.io/v1alpha4` | §10/§10.1、§11.4、§12–§24、E/H |
 | ToolCatalog（普通 Tool、Mutation、专用 Reconcile READ） | `connectionagent.io/toolcatalog/v1alpha4` | F.1、G.2/G.2.2、§9/§20 |
 | CapabilityContracts（含恢复 READ 独立 Grant） | `connectionagent.io/capability-contracts/v1alpha4` | F.2、§9.3/§34 |
 | Request/Host/Owner Schema | JSON Schema Draft 2020-12 + G.4 白名单；`$schema` 精确匹配 | G.4、G.6、F.5 |
 | Evidence Descriptor、独立性域、BuildRequest/DependencySnapshot、Runtime Trace/Artifact | 本语言规范**未发明这些物理协议的 v1alpha4 apiVersion**；只接受其各自受信、明确版本化的发布材料与本文件的抽象语义约束 | F.3/F.4、G.3、§12.8、§34、§45.2 |
 
-**版本校验（Normative）：** 对已定义的三个 apiVersion，必须精确匹配上述值。旧 `/v1alpha3`、未知 `/vX`、缺版本或同名异版本发布物一律不得在本版**直接**链接；不能因为字段名、摘要格式或 LLM 文字相似就绕过。未来要消费其他版本，应另行明确升级该外部契约和本语言的显式受信互操作规则，不得默许兼容。这里改变的是受信发布物的**规范性版本匹配集合**，因此属 C 类破坏性调整，已经按 §45.1.3 重新冻结，不可伪装为 A/B 勘误。
+**版本校验（Normative）：** 对 `languageTarget` 与两个外部 `apiVersion`，必须分别精确匹配上述值。旧 `/v1alpha3`、未知 `/vX`、缺版本或同名异版本发布物一律不得在本版**直接**链接；不能因为字段名、摘要格式或 LLM 文字相似就绕过。未来要消费其他版本，应另行明确升级该外部契约和本语言的显式受信互操作规则，不得默许兼容。这里改变的是受信发布物的**规范性版本匹配集合**，因此属 C 类破坏性调整，已经按 §45.1.3 重新冻结，不可伪装为 A/B 勘误。
 
 **产品现实边界：** 仅把示例与规范写成 v1alpha4 **不代表已有真实 ToolCatalog/CapabilityContracts v1alpha4 发布物**。Compiler、Studio、Host、Owner 和部署在取得受信的 v1alpha4 实际契约及 §45.2 机器符合性结果之前均为 `NOT_QUALIFIED`，缺发布物时 fail-closed。历史 v1alpha3 发布物继续归原版本管理，不自动升级或篡改身份。
 
@@ -3533,10 +3545,10 @@ Compiler/Host 只有在实际恢复完整、足以满足原普通成功输出契
 |---|---|---|
 | SUCCEEDED 且证明原调用已提交，已声明恢复结果完整、满足原普通 outputSchema 与 Evidence | SUCCEEDED（恢复成功，不伪造 Owner 原响应） | 有，保留恢复 Producer |
 | SUCCEEDED 且证明原调用已提交，没有声明恢复输出 | COMMITTED | 无 |
-| SUCCEEDED 且证明原调用未提交 | NOT_COMMITTED | 无 |
+| SUCCEEDED 且证明原调用未提交 | **仅当原 Mutation Owner 已发布可验证 `NOT_COMMITTED` Outcome/失败类别，并且本次原调用证明满足该类别时**才归并 `NOT_COMMITTED`；否则只保全已验证的未提交事实，按 §12.8 安全停止，**不创建**原 Operation 的 NOT_COMMITTED Stage Outcome | 无 |
 | SUCCEEDED 且证明已提交但承诺恢复结果缺失/无效 | COMMITTED_OUTPUT_UNAVAILABLE，强制安全停止 | 无 |
 | FAILED / 超时 / 冲突或不能验证证明 | OUTCOME_UNKNOWN，按 §12.8 保全停止 | 无 |
-| Owner 返回 COMMITTED/NOT_COMMITTED/UNRESOLVED 等未声明结果 | OWNER_OUTCOME_UNDECLARED，隔离并停止 | 无 |
+| Owner 返回 COMMITTED/NOT_COMMITTED/UNRESOLVED 等未声明结果 | `OWNER_OUTCOME_UNDECLARED`，隔离并停止；若原 Mutation 的提交状态仍不可判定，保留 `OUTCOME_UNKNOWN` 和原调用责任，按 §20.3/§12.8 安全停止，不创建确定性提交/未提交结果 | 无 |
 
 Compiler 的绑定链：作者 operation.tool 引用的普通 MUTATION Operation → 受信 Owner `mutation.reconcile.callable` → 唯一专用 READ operation 导出 → 对该调和 callable 自身按 §9.3 检查 Owner/ID/kind/READ Effect、Scope 和**至少一个已 Grant Capability**。不能继承原 Mutation 的授权。Grant 缺失报 CAPABILITY_NOT_GRANTED，Effect 冲突报 EFFECT_MISMATCH，原调用绑定、Schema 或 proofPath 错误报 RECONCILE_CONTRACT_INVALID。
 
@@ -3689,7 +3701,7 @@ properties:
 
 **Receipt 与 Output 的双通道锚点（Normative，明确本版已有路径的解析位置）。** Owner 返回被规范化为两个彼此独立的逻辑通道：`output` 由该 callable 自己的 `outputSchema.$ref` 校验，`receipt` 由同一次 callable 的 `receiptSchema.$ref` 校验。两份 Schema 均描述各自**通道对象根**，均**不**声明同名 `output` / `receipt` 包装字段。即使 Provider 的物理传输格式另有 Envelope，Host/Runtime 在验证前也必须按所选 Owner 互操作契约将其认证地解码为这两个逻辑通道，不得由 Skill 猜测结构或串用另一调用的通道。
 
-`mutation.commitProof.path`、`mutation.reconcile.proofPath`、声明失败类别时的 `mutation.failureClassPath` 及 `failureClasses[].proofPath` 必须符合 `receipt.<Identifier>(.<Identifier>)*`；字面首段 `receipt` 仅选取通道，**不是** `receiptSchema` 中的 Schema 属性。Compiler 剥离且只剥离此首段，再从对应 callable 的 `receiptSchema.$ref` **根对象**逐段解析剩余字段并核验提取值可赋给 `proofSchema` 或 failureClass 字符串类型。`receipt` 单独成路径、错误首段或未声明 Schema 属性不得被自动修复为合法证明；不接受相对于子对象的裸 `commit`。例如当前 G.2.1 的 `receiptSchema` 根**只有** `commit`，其正确路径是 `receipt.commit`；`receipt.receipt.commit` 在该示例中无对应属性，必须拒绝，不能自动插入或忽略第二个 `receipt`。若别的 Owner 确实在 receipt 对象内正式声明了一个名为 `receipt` 的属性，则仍按精确 Schema 逐段校验，不凭字段名字推断重复或自动修复。`recoverableOutputPath` 同理要求 `output.<Identifier>(.<Identifier>)*`，剥离 `output` 后从 Reconcile callable 的 `outputSchema.$ref` 根解析；不能从 `receiptSchema` 跟随该路径。前述四种 proof / failureClass 路径均不能指向 Skill 自填数据、当前 Context、另一调用输出或普通未认证业务 Payload。failureClassPath 指向该次 Owner receipt 的非空字符串 ID，必须与对应 Owner Outcome 的唯一已发布 failureClasses[].id 匹配；没有 ID、重复 ID、类别与结果不相容均不得产生确定的 FAILED / NOT_COMMITTED 路由。
+`mutation.commitProof.path`、`mutation.reconcile.proofPath`、声明失败类别时的 `mutation.failureClassPath` 及 `failureClasses[].proofPath` 必须符合 `receipt.<Identifier>(.<Identifier>)*`；字面首段 `receipt` 仅选取通道，**不是** `receiptSchema` 中的 Schema 属性。Compiler 剥离且只剥离此首段，再从对应 callable 的 `receiptSchema.$ref` **根对象**逐段解析剩余字段并核验提取值可赋给 `proofSchema` 或 failureClass 字符串类型。`receipt` 单独成路径、错误首段或未声明 Schema 属性不得被自动修复为合法证明；不接受相对于子对象的裸 `commit`。例如 G.2.1 的 **`reconcile-receipt:v1`** 的 `receiptSchema` 根只有 `commit`，其正确路径是 `receipt.commit`；原 Mutation **`create-receipt:v1`** 的根还包含 `failureClass`，必须按该次 callable 的独立 receiptSchema 分别验证；`receipt.receipt.commit` 在该示例中无对应属性，必须拒绝，不能自动插入或忽略第二个 `receipt`。若别的 Owner 确实在 receipt 对象内正式声明了一个名为 `receipt` 的属性，则仍按精确 Schema 逐段校验，不凭字段名字推断重复或自动修复。`recoverableOutputPath` 同理要求 `output.<Identifier>(.<Identifier>)*`，剥离 `output` 后从 Reconcile callable 的 `outputSchema.$ref` 根解析；不能从 `receiptSchema` 跟随该路径。前述四种 proof / failureClass 路径均不能指向 Skill 自填数据、当前 Context、另一调用输出或普通未认证业务 Payload。failureClassPath 指向该次 Owner receipt 的非空字符串 ID，必须与对应 Owner Outcome 的唯一已发布 failureClasses[].id 匹配；没有 ID、重复 ID、类别与结果不相容均不得产生确定的 FAILED / NOT_COMMITTED 路由。
 
 证明对象在 proofSchema 通过后仍必须验证其 originalInvocationId 精确等于 Host 持久化原 Mutation 调用 ID，并校验同一真实请求的业务身份、Scope、Correlation 与 Producer 签名。commitState 仅提供状态候选；缺少来源真实性或关联时一律不得当作已提交/未提交证明。NOT_COMMITTED 只能说明原调用未提交，额外重试仍要求无遗留副作用及独立授权。 FAILED / NOT_COMMITTED 的 failureClasses[].proofSchema 同样必须能证明 originalInvocationId 与 commitState=NOT_COMMITTED，且 proofPath 指向已验证的该次 receipt；noSideEffect 与 retryable 是 Owner 契约的受信承诺，不能由 Runtime 见到错误码自行推断。确定结果类别缺失、关联不符或失败证明无法校验时，按 §20.1 将本次结果保留为未知或依独立证明记录状态并安全停止。
 
@@ -3728,7 +3740,7 @@ receipt:
 
 **同一字段级负例。** `receiptSchema.$ref` 仍为 `reconcile-receipt:v1` 时，若将契约 `proofPath` 错配为 `receipt.receipt.commit`，剥离首个锚点后不存在 `receipt.commit` 属性链，静态拒绝为既有 `RECONCILE_CONTRACT_INVALID`。如 Schema 与路径都合法但真实 Reconcile 回包缺少 `receipt.commit`、其 `originalInvocationId` 不等于 `mutation-7`、或实际未能核验来源签名，则 Runtime 不得建立 COMMITTED，并依 §20.3、§24.2 保留不确定性和责任，不可把 `output.recovered` 单独当作提交证明。该示例不假设真实 Owner 发布物已经通过验收。
 
-output.recovered 缺失在 NOT_COMMITTED 是正常的；COMMITTED 且声明了恢复输出时才要求存在并校验。proofPath 指向 receipt.commit，而不是 output.recovered。Reconcile READ Owner outcome 始终是 SUCCEEDED，Host 验证 commitState 后将原 Mutation 阶段归并为 NOT_COMMITTED。E108 应核对这两个通道，并在恢复成功路径保留真实 Producer lineage，不能伪造原 Mutation Owner 回包。
+output.recovered 缺失在 NOT_COMMITTED 是正常的；COMMITTED 且声明了恢复输出时才要求存在并校验。proofPath 指向 receipt.commit，而不是 output.recovered。**本例**的 Reconcile READ Owner Outcome 为 `SUCCEEDED`；Host 核验 `commitState=NOT_COMMITTED` 后，仍**仅在原 Mutation Owner 发布了相应可验证 NOT_COMMITTED Outcome/失败类别**时才归并原 Operation 的 `NOT_COMMITTED`，否则只保全未提交事实并安全停止。其他 Owner 可显式声明 `FAILED`；其回包按 §20.3 保留原 Mutation `OUTCOME_UNKNOWN` 与责任，不得将失败伪装成确定未提交。E108 应核对这两个通道，并在恢复成功路径保留真实 Producer lineage，不能伪造原 Mutation Owner 回包。
 
 ## G.3 Evidence 独立性：精确 YAML 与优先级
 
@@ -3874,7 +3886,7 @@ Skill 的规范化逻辑根是 `skills/<skill-name>`，`skill-name` 是 G.1 的 
 
 ## G.8 阶段 Outcome、终态以及长流程证据刷新
 
-阶段 Outcome 的 SUCCEEDED 是一次普通 Owner Operation 或 Script 的正常结果；路由**键** SUCCEEDED 不意味着 Skill 终态已经成功。仅 `postcondition.routes.PASS: SUCCEEDED` 可以请求发布 Invocation 成功，必须再通过 §12.8/§12.9 的门禁、该最终阶段全部 Predicate/Evidence 与资源责任复核。Reconcile READ Owner SUCCEEDED 只是 Host 判断原 Mutation 可否归并为 SUCCEEDED/COMMITTED/NOT_COMMITTED 的输入，不会直接发布 Skill 成功；最终仍须 Postcondition 聚合 PASS。§22.1 是 §12.1 的规范化路由矩阵摘要，必须作为检查必需/禁止路由键的统一来源。§20.1 表格中「沿 SUCCEEDED」仅指沿**当前 Mutation Operation 阶段的 SUCCEEDED 边**，不是直接发布 Invocation 的 SUCCEEDED 终态。
+阶段 Outcome 的 SUCCEEDED 是一次普通 Owner Operation 或 Script 的正常结果；路由**键** SUCCEEDED 不意味着 Skill 终态已经成功。仅 `postcondition.routes.PASS: SUCCEEDED` 可以请求发布 Invocation 成功，必须再通过 §12.8/§12.9 的门禁、该最终阶段全部 Predicate/Evidence 与资源责任复核。Reconcile READ Owner SUCCEEDED 只是 Host 判断原 Mutation 可否归并为 SUCCEEDED/COMMITTED/NOT_COMMITTED 的输入，不会直接发布 Skill 成功；最终仍须 Postcondition 聚合 PASS。§22.1 是 §22 的**唯一规范性路由键矩阵**，必须作为检查必需/禁止路由键的统一来源。§20.1 表格中「沿 SUCCEEDED」仅指沿**当前 Mutation Operation 阶段的 SUCCEEDED 边**，不是直接发布 Invocation 的 SUCCEEDED 终态。
 
 E30/E40 的严格绑定规则有意保留：较新的已接纳权威记录即使规范化值相同，也可能使旧 PASS 的 Producer/Evidence 绑定失效。建议的显式模式是在最终 Postcondition 前重新执行授权的权威 Observation，将新 Producer output 作为参数来源，绑定新 Evidence，再取得阶段聚合 PASS 并直接请求 SUCCEEDED；Trace 保留此前的旧 PASS/旧 Evidence、新判断和所有派发事件。不得隐式换绑、自动刷新、悄悄重算旧 Predicate。未来若要支持受控重验策略，须显式升级契约版本。
 
@@ -3887,7 +3899,7 @@ E30/E40 的严格绑定规则有意保留：较新的已接纳权威记录即使
 | E105 | 分别令 PredicateId=foo..bar、Alias=ca:demo、ExportId=foo..bar、QualifiedSchemaId=ca::relative/path、LocalScriptPath=scripts/../x.py | 独立 PredicateId 与 Alias 字段报 IDENTIFIER_INVALID；位于完整 `Alias::ExportId` 中的非法 ExportId 以及 QualifiedSchemaId 均报 QUALIFIED_REFERENCE_INVALID；LocalScriptPath 报 PACKAGE_PATH_INVALID。此处 ExportId 为限定引用的组成部分而非独立源码字段（G.1）；诊断不依赖 YAML parser 的裸标量解析方式 |
 | E106 | G.3 requires + independence 两成员；删掉其中一个 requires；复制相同 member；运行时不同 Evidence Ref 其实来自同一底层记录 | 合法字段静态链接通过；成员非法报 EVIDENCE_GUARANTEE_LINK_INVALID；静态合法但同源执行得 UNKNOWN |
 | E107 | G.2 正确的 Reconcile READ；分别改 Effect 为 MUTATION、kind 为 observation、inputSchema 多加可写字段、删除 proofPath、只 Grant 原 Mutation | 合法例通过链接；变体分别 EFFECT_MISMATCH、RECONCILE_CONTRACT_INVALID、RECONCILE_CONTRACT_INVALID、RECONCILE_CONTRACT_INVALID、CAPABILITY_NOT_GRANTED |
-| E108 | 受信 Reconcile READ Owner SUCCEEDED 与原调用 COMMITTED 证明+完整恢复输出；取消恢复声明；提供损坏恢复输出；证明 NOT_COMMITTED；READ Owner 直接发 COMMITTED | 分别使原 Mutation 归并 SUCCEEDED+有效原节点 output、COMMITTED+无 output、安全停止并 COMMITTED_OUTPUT_UNAVAILABLE、NOT_COMMITTED、OWNER_OUTCOME_UNDECLARED 并隔离停止；保留恢复 Producer lineage |
+| E108 | 受信 Reconcile READ Owner SUCCEEDED 与原调用 COMMITTED 证明+完整恢复输出；取消恢复声明；提供损坏恢复输出；在原 Mutation Owner 已发布可验证 NOT_COMMITTED 类别的前提下证明未提交；READ Owner 直接发 COMMITTED | 分别使原 Mutation 归并 SUCCEEDED+有效原节点 output、COMMITTED+无 output、安全停止并 COMMITTED_OUTPUT_UNAVAILABLE、NOT_COMMITTED、OWNER_OUTCOME_UNDECLARED 并隔离停止；保留恢复 Producer lineage |
 | E109 | Reconcile Evidence Producer 以 Owner SUCCEEDED 绑定恢复结果，再替换为 Runtime 的 COMMITTED | 前者链接通过；后者 EVIDENCE_GUARANTEE_LINK_INVALID |
 | E110 | 有效的 nullable / object / items Schema；替换任一为 anyOf、pattern 或动态引用 | 前者按 F.5 赋值；三个不受支持变体均 SCHEMA_INVALID |
 | E111 | CEL 使用 has(obj.optional) && obj.optional == "X"；删除 has；对 nullable 字段删除非 null 守卫；添加数组索引 | 守卫版缺字段可按业务表达式得 FAIL；其余三项静态拒绝 CEL_INVALID |
@@ -3899,7 +3911,7 @@ E30/E40 的严格绑定规则有意保留：较新的已接纳权威记录即使
 | E117 | Postcondition 两成员依次产生 PASS/PASS、PASS/FAIL、UNKNOWN/PASS；分别让阶段 PASS 直达 SUCCEEDED 与先路由另一 Node；并在阶段根添加旧 `goal` 字段 | 只有全部成员 PASS 且 `postcondition.routes.PASS: SUCCEEDED` 的最终 Postcondition 能证明 Goal；继续到其他 Node 的 PASS 是局部判断，不可复用为成功证明；旧 `goal` 字段报 `PREDICATE_GROUP_INVALID` |
 | E118 | 在多成员判断的第二项分别注入 arity 错、类型错误、外部 Producer 无 Evidence；同一 PredicateId 复用两个不同来源调用点 | 每项必须独立报既有 `PREDICATE_ARITY_MISMATCH`、`PREDICATE_TYPE_MISMATCH`、`PREDICATE_EVIDENCE_REQUIRED`，不能借另一成员免证 |
 | E119 | Pre/Postcondition `predicates` 为空/非列表、成员缺 `arguments` 或带 `routes/goal`、Postcondition 根带 `goal`、阶段根旧 `predicate/arguments`；普通 Operation/Observation 写 `target`，或作者 Operation 使用已废弃的 `reconcile`/`resolve` 字段；重复 YAML Key 对照 | Predicate 组结构违反 §10.1 → `PREDICATE_GROUP_INVALID`；旧 `target`、作者 `reconcile`、`resolve` 字段均 `UNKNOWN_FIELD`（不做兼容转换）；重复 YAML Mapping Key → `YAML_PARSE_ERROR` |
-| E120 | Contract 单数 `precondition: check-ready.precondition` 引用含两 Predicate 的阶段；对照一项 PASS 一项 UNKNOWN、全部 PASS、汇合路径仅一条通过全局门禁；最终 Postcondition PASS 后又经 Mutation，再从非 Postcondition 请求成功 | 只有整个阶段 PASS 才满足唯一全局门禁；汇合路径不允许借 PASS；最终成功必须来自新的 Postcondition 聚合 PASS→SUCCEEDED，旧局部 PASS 不可复用；Runtime 逐项复核原绑定 Evidence |
+| E120 | Contract 单数 `precondition: check-ready.precondition` 引用含两 Predicate 的阶段；对照一项 PASS 一项 UNKNOWN、全部 PASS、汇合路径仅一条通过全局门禁；最终 Postcondition PASS 后又经 Mutation，再从非 Postcondition 请求成功 | 只有整个阶段 PASS 才满足唯一全局门禁；一项 UNKNOWN 时聚合不 PASS。**静态汇合绕过全局 PASS** 报 `ENTRY_PRECONDITION_BYPASSED`；最终局部 PASS 后再经 Mutation 从非 Postcondition 直达成功：**无其他合法最终边**报 `FINAL_POSTCONDITION_MISSING`，**有另一合法最终边**报 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`（§12.9/H.0）；旧局部 PASS 不可复用。Runtime 逐项复核原绑定 Evidence，失败报 `ENTRY_PRECONDITION_INVALIDATED`（E53） |
 
 G.1–G.9 的继承用例与新增 E115–E120 共同组成 v1alpha4 已冻结的规范预期集。E115–E120 尚无实际执行的机器 Fixture 或 CI 通过证明。文档审计不代表 Compiler、Native/WASM、Studio、Runtime 已实现上述语义；产品符合性依旧由 §45.2 控制。
 
@@ -3910,7 +3922,7 @@ G.1–G.9 的继承用例与新增 E115–E120 共同组成 v1alpha4 已冻结�
 **Normative：诊断身份、分类和控制流含义；Informative：关联 E 用例及待补 Fixture。** §24.1、§24.2 是具体触发规则，本索引是诊断**代码、阶段与分类**的唯一规范性入口，不是已执行 Fixture 的完整清单；E 用例列只引用能够证明该 `(Code, Phase)` 的已定义变体，尚未具备精确变体的项标记为 `待补独立 Fixture`。覆盖状态是资料性的测试追踪信息，**不构成 CI PASS 或实现符合性证明**。诊断记录的唯一分类键为 `(Code, Phase)`，`Phase=C_STATIC | C_WARNING | R_RUNTIME`，三者分别表示 Compiler 静态错误、Compiler 警告、Runtime 诊断。原始 Code 字符串不被改名，但相同 Code 在不同 Phase（例如 EFFECT_MISMATCH）是不同的诊断事件。Compiler/Runtime 的诊断记录、Trace、Studio 诊断与 CI 报告均须保留 `code`、`phase` 及对应的 `类别`；只传递 `code` 而无法确定阶段时，不能完整表达本附录定义的诊断身份。不得将两行 `EFFECT_MISMATCH` 合并为一个不区分阶段的处置规则。Compiler ERROR 必定阻断构建，Compiler WARNING 不自行阻断构建。Runtime DIAGNOSTIC 是事件原因，不是业务阶段 Outcome，不能直接把任一诊断名当作路由键。Runtime 按实际执行阶段与 §12.8 的资源/未决事实状态判定终态。
 
 ## H.0 最终成功边诊断优先级（Normative；映射 §12.9 与 E11/E18）
- 本表仅在源码/路由已满足更早的 YAML/结构合法性、且已构造 `start` 可达图之后判断 `SUCCEEDED` 请求；`FINAL_POSTCONDITION_MISSING` 与 `SUCCESS_BYPASSES_FINAL_POSTCONDITION` 对同一图的主诊断互斥。表内的“合法最终边”仅指可达 Postcondition 阶段的聚合 `PASS: SUCCEEDED`，不是任何此前局部 PASS。
+本表仅在源码/路由已满足更早的 YAML/结构合法性、且已构造 `start` 可达图之后判断 `SUCCEEDED` 请求；`FINAL_POSTCONDITION_MISSING` 与 `SUCCESS_BYPASSES_FINAL_POSTCONDITION` 对同一图的主诊断互斥。表内的“合法最终边”仅指可达 Postcondition 阶段的聚合 `PASS: SUCCEEDED`，不是任何此前局部 PASS。
 
 | 可达 SUCCEEDED 请求 | 可达合法最终 PASS 边 | 其他非法 SUCCEEDED 边 | 唯一主判定 / 代表用例 |
 |---|---|---|---|
@@ -3923,13 +3935,13 @@ G.1–G.9 的继承用例与新增 E115–E120 共同组成 v1alpha4 已冻结�
 
 | Code | Phase | 类别 | 阻断构建 | 触发位置 | Runtime 终态/路由影响 | 规范条款 | 代表用例 | 覆盖状态 |
 |---|---|---|---|---|---|---|---|---|
-| YAML_PARSE_ERROR | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | 待补独立 Fixture | 待 Fixture |
+| YAML_PARSE_ERROR | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | E119（重复 YAML Key） | 规范用例已定义 |
 | IDENTIFIER_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source (G.1) | 不启动 Invocation | §10.1、§24.1 | E105 | 规范用例已定义 |
 | QUALIFIED_REFERENCE_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source (G.1) | 不启动 Invocation | §10.1、§24.1 | E105 | 规范用例已定义 |
 | SOURCE_ROOT_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | E02 | 规范用例已定义 |
 | LANGUAGE_TARGET_UNSUPPORTED | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | 待补独立 Fixture | 待 Fixture |
 | UNKNOWN_FIELD | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | E35 | 规范用例已定义 |
-| DUPLICATE_ID | C_STATIC | Compiler ERROR（内部不变量） | 是 | Compiler IR / invariant | 不启动 Invocation | §10.1、§24.1 | 需注入异常 IR 的内部单测，不是作者源码负例 | INTERNAL_INVARIANT_ONLY |
+| DUPLICATE_ID | C_STATIC | Compiler ERROR（内部不变量） | 是 | Compiler IR / invariant | 不启动 Invocation | §10.1、§24.1 | 需注入异常 IR 的内部单测，不是作者源码负例 | 待 Fixture |
 | PROCEDURE_START_MISSING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E56 | 规范用例已定义 |
 | NODE_ID_RESERVED | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E34/E56 | 规范用例已定义 |
 | FINAL_POSTCONDITION_MISSING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E11 | 规范用例已定义 |
@@ -3964,9 +3976,9 @@ G.1–G.9 的继承用例与新增 E115–E120 共同组成 v1alpha4 已冻结�
 | SOURCE_NOT_AVAILABLE | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E10/E89 | 规范用例已定义 |
 | RECONCILE_OUTPUT_UNAVAILABLE | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§20.2–§20.3、§24.1 | E63 | 规范用例已定义 |
 | ROUTE_OUTCOME_MISSING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E55/E84 | 规范用例已定义 |
-| ROUTE_OUTCOME_UNKNOWN | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | 待补独立 Fixture | 待 Fixture |
+| ROUTE_OUTCOME_UNKNOWN | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E84（非法 NOT_COMMITTED/COMMITTED 路由键） | 规范用例已定义 |
 | ROUTE_NORMAL_OUTCOME_NOT_ALLOWED | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E54 | 规范用例已定义 |
-| PREDICATE_GROUP_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§12.2、§12.5、§24.1 | E119 | 规范预期已冻结，机器用例未执行 |
+| PREDICATE_GROUP_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§12.2、§12.5、§24.1 | E119 | 规范用例已定义 |
 | PREDICATE_ARITY_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E08 | 规范用例已定义 |
 | PREDICATE_TYPE_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E09 | 规范用例已定义 |
 | EVIDENCE_GUARANTEE_LINK_INVALID | C_STATIC | Compiler ERROR | 是 | Link / evidence | 不启动 Invocation | §17.1–§17.2、§G.3.1、§24.1 | E38/E46/E68/E102/E106/E109 | 规范用例已定义 |
@@ -4237,7 +4249,7 @@ flowchart TD
 | E20 | 运行模拟 | NOT_IMPLEMENTED |
 | E21 | 运行模拟 | NOT_IMPLEMENTED |
 | E22 | 静态+运行 | NOT_IMPLEMENTED |
-| E23 | Owner 集成评审 | NOT_IMPLEMENTED |
+| E23 | Host/Runtime 运行模拟（Owner 资源责任 Fixture） | NOT_IMPLEMENTED |
 | E24 | 静态链接 | NOT_IMPLEMENTED |
 | E25 | 静态链接 | NOT_IMPLEMENTED |
 | E26 | Owner 集成评审 | NOT_IMPLEMENTED |
@@ -4311,7 +4323,7 @@ flowchart TD
 | E94 | Compiler 内部单测 | NOT_IMPLEMENTED |
 | E95 | Compiler 内部单测 | NOT_IMPLEMENTED |
 | E96 | 运行模拟 | NOT_IMPLEMENTED |
-| E97 | Owner 集成评审 | NOT_IMPLEMENTED |
+| E97 | Host/Runtime 运行模拟（Owner 责任摘要 Fixture） | NOT_IMPLEMENTED |
 | E98 | 静态链接 | NOT_IMPLEMENTED |
 | E99 | Compiler 内部单测 | NOT_IMPLEMENTED |
 | E100 | 运行模拟 | NOT_IMPLEMENTED |
@@ -4408,7 +4420,7 @@ nodes:
 
 ### K.2.1 YAML 标量原始词法跨实现一致性候选（Informative，LEX-001）
 
-以下是**一组未执行的跨 Native/WASM/Studio 联合候选**，不是新增 E 编号或 DFX-042，也不改变现有 DFX-001–DFX-041 的状态。运行时必须保留 YAML 标量的原始词法与是否加引号的信息，按 §13.2/G.1 同一规则分类；测试须将同一结构化输入分别交给 Native Compiler、WASM Compiler 和 Studio/LSP，核对合法性、`(Code, Phase)`、SourcePath 解析与值类型一致。
+以下是**一组未执行的跨 Native/WASM/Studio 联合候选**，不是新增 E 编号或 DFX-042，也不改变现有 DFX-001–DFX-041 的状态。Compiler/Studio 的 YAML 解析器必须保留标量的原始词法与是否加引号的信息，按 §13.2/G.1 同一规则分类；测试须将同一结构化输入分别交给 Native Compiler、WASM Compiler 和 Studio/LSP，核对合法性、`(Code, Phase)`、SourcePath 解析与值类型一致。
 
 | `arguments` 中的输入值（其余构建输入有效） | 已有 v1alpha4 判定 |
 |---|---|
