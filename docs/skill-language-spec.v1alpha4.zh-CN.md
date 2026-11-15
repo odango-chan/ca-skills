@@ -1559,6 +1559,7 @@ Environment
 | ROUTE_OUTCOME_MISSING | 阶段缺少必须显式声明的 Outcome 路由 | 阻止构建 |
 | ROUTE_OUTCOME_UNKNOWN | 路由键不属于该阶段的精确 Outcome 集 | 阻止构建 |
 | ROUTE_NORMAL_OUTCOME_NOT_ALLOWED | 在非末阶段的 `routes` 中声明正常 Outcome，可能跳过同一 Node 的后续阶段 | 阻止构建 |
+| PREDICATE_GROUP_INVALID | v1alpha4 Pre/Postcondition 的 `predicates` 非空列表缺失、列表项不合法、或阶段根仍写旧的 `predicate/arguments` | 阻止构建 |
 | PREDICATE_ARITY_MISMATCH | 参数数量不一致 | 阻止构建 |
 | PREDICATE_TYPE_MISMATCH | 参数类型不兼容 | 阻止构建 |
 | EVIDENCE_GUARANTEE_LINK_INVALID | 保证解析、Producer 绑定、身份提取或共同事实映射无效，见 §17.1–§17.1.1 | 阻止构建 |
@@ -2466,7 +2467,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 
 本稿继承 v1alpha3 已冻结的 Contract、SourcePath、Evidence、Capability、Reconcile、DAG、Goal 证明与终态规则。**v1alpha4 的 C 类改变仅限 Precondition/Postcondition 的作者调用形状与阶段级多 Predicate 聚合**；这不改写 v1alpha3 既有合法输入与结果。新版本需通过 §45.1 的正式冻结评审及 E115–E120 验收。
 
-冻结依据：§10–14 的唯一源码结构与闭合语法；§12.9、§17、§20、§22 的路径敏感证明与 fail-closed 规则；§F.1–F.6 / §G.1–G.9 的精确字段、Receipt/Proof/SourceIdentity、Schema-CEL 和责任模型，附录 H 的诊断索引；E01–E120 的规范预期及负例。无法静态证明兼容的 Schema / Owner 导出必须拒绝链接，不能靠样例值、运行时回退或 Studio 自动猜测。v0.2 是既有可执行基线，编译器不得静默迁移到本版。
+本 v1alpha4 候选稿待冻结的验收依据：§10–14 的唯一源码结构与闭合语法；§12.9、§17、§20、§22 的路径敏感证明与 fail-closed 规则；§F.1–F.6 / §G.1–G.9 的精确字段、Receipt/Proof/SourceIdentity、Schema-CEL 和责任模型，附录 H 的诊断索引；E01–E120 的规范预期及负例。无法静态证明兼容的 Schema / Owner 导出必须拒绝链接，不能靠样例值、运行时回退或 Studio 自动猜测。v0.2 是既有可执行基线，编译器不得静默迁移到本版。
 
 冻结后对任何字段、路由、默认值、证据/身份解释、允许的 Schema 关键字、Script 注解或诊断结果作语义性改变，必须明确升级语言或相应互操作契约版本。纯笔误勘正不得改变 Appendix E 的预期。语言规范 Owner 与外部 Tool/Host/Deployment Owner 各自拥有其版本，不能代替对方批准发布物。
 
@@ -2482,7 +2483,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 
 ### 45.2 未完成的实现符合性门槛
 
-以下是**声称某个实现可编译、可运行或可部署本规范**之前必须逐一验收的门槛，不能因为语言规范 FROZEN 而跳过：
+以下是**声称某个实现可编译、可运行或可部署本规范**之前必须逐一验收的门槛。**v1alpha4 当前 NOT FROZEN；将来即使冻结也不能跳过真实 §45.2 产品验收**：
 
 1. Tool / Observation / Evidence Owner 发布精确 Input/Output/Proof/Reconcile、资源责任、Scope、Correlation、Freshness 和结果分类的正式导出。
 2. Deployment 提供受信 CapabilityContracts、Scope 策略和对每份快照摘要/Package ID/Owner 归属的可信绑定。
@@ -3142,7 +3143,7 @@ E07 的 READ Operation 基线：将 `procedure.nodes.inspect-registration` 的 `
 | E06 | 将 `contract.capabilities` 改为空列表 | CAPABILITY_NOT_GRANTED |
 | E07 | 从表前的 READ Operation 正例开始，将 `deployment.spec.capabilities[0].callables[0].effect` 改为 MUTATION | EFFECT_MISMATCH |
 | E08 | 在 `predicates.predicates["example.ue.registered"].parameters` 追加 `{second: string}` | PREDICATE_ARITY_MISMATCH |
-| E09 | 将 `procedure.nodes.inspect-registration.postcondition.arguments[0]` 改为 `context.ueRef` | PREDICATE_TYPE_MISMATCH |
+| E09 | 将 `procedure.nodes.inspect-registration.postcondition.predicates[0].arguments[0]` 改为 `context.ueRef` | PREDICATE_TYPE_MISMATCH |
 | E12 | 删除 `contract.contextSchema` | CONTEXT_SCHEMA_UNDECLARED |
 | E13 | 删除执行输入的 `invocation.context.ueRef` | ADMISSION_CONTEXT_INVALID |
 | E19 | 删除 `catalog.spec.contracts[0].guarantees.evidence.provides` | PREDICATE_EVIDENCE_UNSATISFIABLE |
@@ -3150,7 +3151,7 @@ E07 的 READ Operation 基线：将 `procedure.nodes.inspect-registration` 的 `
 | E31 | 将 `checkedAt.terminal` 改为 11000 | Trace 保留 PASS，终态 UNRESOLVED |
 | E35 | 将 `contract.dependencies.ca` 替换为 `{id: urn:example:ca:tools}` | DEPENDENCY_REQUIREMENT_INVALID |
 | E36 | 将 `procedure.nodes.inspect-registration.observation.arguments.ueRef` 改为裸字符串 `ue-1` | SOURCE_PATH_INVALID |
-| E37 | 在 Registration 输出 Schema 的 `properties` 加入 `reason: {type: string}`，保持其可选，并将 `procedure.nodes.inspect-registration.postcondition.arguments[0]` 改为 `inspect-registration.observation.output.reason` | SOURCE_NOT_AVAILABLE，先检查路径可用性再检查类型 |
+| E37 | 在 Registration 输出 Schema 的 `properties` 加入 `reason: {type: string}`，保持其可选，并将 `procedure.nodes.inspect-registration.postcondition.predicates[0].arguments[0]` 改为 `inspect-registration.observation.output.reason` | SOURCE_NOT_AVAILABLE，先检查路径可用性再检查类型 |
 | E38 | 将 `catalog.spec.contracts[0].guarantees.evidence.provides[0].guarantee` 改为 `ue.missing` | EVIDENCE_GUARANTEE_LINK_INVALID |
 | E39 | 从表后的多 Owner 正例开始，删除 Registration 输出 Schema 的归属 | DEPENDENCY_EXPORT_OWNER_UNVERIFIED |
 | E43 | 从同一个多 Owner 正例开始，将 Registration 输出 Schema 的唯一归属改为 `example-untrusted-owner` | DEPENDENCY_OWNER_MISMATCH |
@@ -3174,7 +3175,7 @@ E39、E43 的 ca 快照基线：将可信 Owner 集合设为 `[example-ue-owner,
 | E10 | 将 §12.1 的 `reconcile-subscription.observation.arguments.subscriptionRef` 改为 `create-subscription.operation.output.subscriptionRef`，并让原 Mutation 的 SUCCEEDED 输出 Schema 声明必需的 `subscriptionRef` | SOURCE_NOT_AVAILABLE，当前分支没有该 SUCCEEDED 输出。若该 Schema 未声明此字段，则按 §13.3 报 SOURCE_PATH_INVALID |
 | E41 | `start` 指向 E.8 的 `verify-subject`，它的 PASS 直接路由到 `SUCCEEDED` | Goal 覆盖通过。初始无证明，PASS 建立证明 |
 | E42 | 在 E.8 的 `verify-subject.postcondition.routes.PASS` 边上插入 `verify-local`，使用同一 Predicate 和实参，省略 `goal`，正常完成后路由到 `SUCCEEDED`。再单独移除 `verify-subject` 的 `goal` | 有 Goal 标记时通过。两个判断都无 Goal 标记时报告 FINAL_POSTCONDITION_MISSING |
-| E44 | 在 E.8 增加一个从 `start` 不可达的节点 `unused`，声明 `precondition.predicate: example.subject.present`、实参 `context.ueRef`，其 `precondition.routes` 将 PASS 指向 `SUCCEEDED`、FAIL 指向 `FAILED`、UNKNOWN 指向 `UNRESOLVED` | 报 UNREACHABLE_NODE；不可达节点的成功边不参与证明覆盖 |
+| E44 | 在 E.8 增加一个从 `start` 不可达的节点 `unused`，声明 `precondition.predicates[0].predicate: example.subject.present`、对应 `arguments: [context.ueRef]`，其 `precondition.routes` 将 PASS 指向 `SUCCEEDED`、FAIL 指向 `FAILED`、UNKNOWN 指向 `UNRESOLVED` | 报 UNREACHABLE_NODE；不可达节点的成功边不参与证明覆盖 |
 | E45 | 在 E.8 的 Goal PASS 与成功终态之间插入 check-subject 并将其列为全局前置条件；PASS 指向 SUCCEEDED，其他结果指向停止终态 | 构建通过；PASS 保留 Goal 证明，成功发布仍需 Runtime 复核 |
 | E50 | 在 E.8 增加 `check-a`、`check-b`，并改 `start: check-a`。两节点用同一 Predicate 和实参，`precondition.routes` 中 FAIL 到 `FAILED`、UNKNOWN 到 `UNRESOLVED`，PASS 分别到 `check-b` 和 `verify-subject`。Contract 声明 `preconditions: [check-b.precondition, check-a.precondition]` | 静态覆盖通过。两项 PASS 都出现在 Goal PASS 之前 |
 | E51 | 复用 E50，在开头追加一个使用同一 Predicate 的 `choose` Precondition，并设为 `start`。在 `choose.precondition.routes` 中将 PASS 指向 `check-a`、FAIL 指向 `check-b`、UNKNOWN 指向 `UNRESOLVED`。令 `check-a` 和 `check-b` 的 `precondition.routes.PASS` 均指向 `verify-subject` | ENTRY_PRECONDITION_BYPASSED；两条入边分别通过不同的条件，交集为空 |
@@ -3454,6 +3455,8 @@ ScalarLiteral        = QuotedYamlString | CoreBoolean | CoreNull | FiniteDecimal
 NodeId 保留 context 与四个终态。所有普通标识符大小写敏感、每段以 ASCII 字母开头；中间允许数字、下划线和连字符；空段、连续点、尾点、冒号或空白不得作为 DottedId/ExportId。解析 `LocalSchemaPath` 和 `LocalScriptPath` 时，必须先从字符串最右侧精确剥离固定后缀 `.schema.yaml` 或 `.py`，再按 `/` 分段验证剩余路径与 `FileSegment`；不得将中间的点号当作第二个扩展名或按文件扩展名猜测身份。Alias 不能含点号或冒号。ExportId 只用于 callable / Evidence 保证，允许分段点号，但**不允许冒号**。**诊断适用位置：** PredicateId、GoalId、Alias 等独立语法位置违反 Identifier/DottedId 词法时报 `IDENTIFIER_INVALID`。ExportId 作为 `QualifiedCallableId`、`QualifiedQueryId` 或 `QualifiedGuaranteeId` 的组成部分时，Compiler 先校验完整的 `Alias::ExportId` 引用，任一组成部分不满足该限定引用文法即报 `QUALIFIED_REFERENCE_INVALID`。因此 G.9 的 E105 中 `ExportId=foo..bar` 是指限定引用的 ExportId 部分非法，而不是存在一个可单独声明 ExportId 的作者源码字段。此规则不允许空段，也不改变 G.1 的 `ExportId = DottedId` 词法限制。外部 Schema 身份采用另一种解析：仅在 QualifiedSchemaId 的**首个双冒号**处分开 Alias 与后面的完整绝对 URI；URI 可以含冒号，必须与受信 Schema $id 精确匹配，不得用 ExportId 词法解析。StablePackageId 为遵守 RFC 3986 的绝对 URI；这些 URI 均不得含空白、控制字符或未解析的穿越成分。不能由文件中的自报身份建立信任。
 
 NonEmptyList 表示长度至少 1 的 YAML 序列，ExactlyOneName 表示恰有一个非保留 Name 键的映射；AbsoluteSchemaUri 与 AbsolutePackageUri 为 RFC 3986 绝对 URI并由可信契约验证。LocalSchemaPath 与 LocalScriptPath 只接受包内 POSIX 相对路径；禁止绝对路径、反斜线、空段、点段、双点段和符号链接越界。例如 `schemas/session.profile.schema.yaml` 与 `scripts/build.input.py` 合法；`schemas/../session.schema.yaml`、`schemas/.schema.yaml` 和 `scripts//step.py` 非法。固定后缀的优先剥离规则仅用于消除文法读取歧义，不放宽 FileSegment 或路径安全约束。PositiveInteger 为十进制且必须大于零、无前导零。无引号字符串只可能是合法 SourcePath；带引号的 YAML 字符串作为字面值，Boolean 只有 true/false、Null 只有 null；数字为有限十进制，不允许 NaN/Infinity、隐式八进制或任意字符串转数值。具体 SourcePath 规则继承 §13.2。
+
+v1alpha4 的 `Node.precondition` 与 `Node.postcondition` 共享 §10.1 的 `NonEmptyList<PredicateCall>`：每一项必须恰有 `predicate/arguments`，只有阶段根允许 `routes` 和可选的 Postcondition `goal`。成员级三态只归并为一次阶段 Outcome（§12.2/§12.5），绝不独立路由；旧阶段根直接 `predicate/arguments` 已不合法。
 
 PredicateSet 根必须只含 predicates 映射；每个 Predicate 的 parameters 按声明顺序传入，名称唯一；零参数允许空列表。每个 Parameter 恰好一个 Name → PrimitiveType 或精确 QualifiedSchemaId。Evidence requires 只可引用已声明参数，列表非空、各保证 ID 唯一；省略 requires 与空映射等价。Independence 每组至少两个不同的 (parameter, guarantee) 成员，且每个成员均在对应 requires 列表内。各组对底层来源的独立性必须经 Owner 发布的描述符验证，不可由两个不同 Ref 的字面值推断。Script evaluator 的字段固定为 evaluator.type=script、evaluator.script 为 LocalScriptPath；CEL evaluator 固定为 type=cel 与 expression；混用两种字段拒绝。
 
@@ -3840,8 +3843,14 @@ E30/E40 的严格绑定规则有意保留：较新的已接纳权威记录即使
 | E112 | 已确认 PENDING 资源后请求 FAILED；有可信 TRANSFERRED 记录且无其他待处理事实；仅有未决原调用且无已确认 PENDING | 实际终态分别 SAFE_STOPPED、FAILED、UNRESOLVED，并保留请求终态及理由 |
 | E113 | Host Root 与 Request 根各自闭合，绑定整个 context.request；删除 requestSchema；Host Root 添加 request | 正例通过；反例 REQUEST_SCHEMA_MISSING、CONTEXT_REQUEST_COLLISION |
 | E114 | 合法 skills/establish-pdu-session；加入 ../、绝对路径、反斜线、同目录大小写折叠碰撞的文件 | 合法包通过；变体 PACKAGE_PATH_INVALID |
+| E115 | Pre/Postcondition 均采用单成员 `predicates` 非空列表，再改为两个合法成员 | 两阶段共享相同作者形状并可链接；单成员也只产生一次阶段三态 |
+| E116 | Precondition 两个成员依次为 PASS/PASS、PASS/UNKNOWN、UNKNOWN/FAIL、FAIL/PASS，并提供阶段级三态 routes | 聚合结果依次 PASS、UNKNOWN、FAIL、FAIL；UNKNOWN 不能提前 PASS，FAIL 可短路；仅最终阶段结果选择 Route |
+| E117 | Postcondition 两成员依次产生 PASS/PASS、PASS/FAIL、UNKNOWN/PASS，且阶段级 `goal` 匹配 Contract；另去掉 `goal` | 只有带精确 `goal` 且全部成员 PASS 的阶段可以建立 Goal 证明；局部 Postcondition 即使整体 PASS 也不能新建证明 |
+| E118 | 在多成员判断的第二项分别注入 arity 错、类型错误、外部 Producer 无 Evidence；同一 PredicateId 复用两个不同来源调用点 | 每项必须独立报既有 `PREDICATE_ARITY_MISMATCH`、`PREDICATE_TYPE_MISMATCH`、`PREDICATE_EVIDENCE_REQUIRED`，不能借另一成员免证 |
+| E119 | Pre/Postcondition 的 `predicates` 为空/非列表、成员缺 `arguments`、在成员中写 `routes/goal`、或在阶段根写旧 `predicate/arguments`；另用重复 YAML Key 对照 | 结构有效的 YAML 违例归入新 `PREDICATE_GROUP_INVALID`；重复 Mapping Key 优先 `YAML_PARSE_ERROR`；不得隐式兼容旧作者形状 |
+| E120 | Contract `preconditions` 引用多 Predicate Precondition；一个成员 PASS 但另一个 UNKNOWN，然后两者都 PASS；Goal Postcondition 全 PASS 后再经过 Mutation | 只有聚合阶段 PASS 建立全局门禁或 Goal 证明；Mutation 清除既有 Goal 证明；Runtime 发布成功前逐成员复核原绑定及 Evidence |
 
-G.1–G.9 的补充用例须与原 E01–E104 组合执行。文档审计不代表 Compiler、Native/WASM、Studio、Runtime 已实现上述语义；产品符合性依旧由 §45.2 控制。
+G.1–G.9 的继承用例与新增 E115–E120 共同组成 v1alpha4 候选预期集。E115–E120 尚无实际执行的机器 Fixture 或 CI 通过证明。文档审计不代表 Compiler、Native/WASM、Studio、Runtime 已实现上述语义；产品符合性依旧由 §45.2 控制。
 
 
 
@@ -3895,6 +3904,7 @@ G.1–G.9 的补充用例须与原 E01–E104 组合执行。文档审计不代�
 | ROUTE_OUTCOME_MISSING | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E55/E84 | 规范用例已定义 |
 | ROUTE_OUTCOME_UNKNOWN | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | 待补独立 Fixture | 待 Fixture |
 | ROUTE_NORMAL_OUTCOME_NOT_ALLOWED | C_STATIC | Compiler ERROR | 是 | Graph / safety | 不启动 Invocation | §12.7–§12.9、§22.1、§24.1 | E54 | 规范用例已定义 |
+| PREDICATE_GROUP_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§12.2、§12.5、§24.1 | E119 | v1alpha4 候选规范预期，未运行 |
 | PREDICATE_ARITY_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E08 | 规范用例已定义 |
 | PREDICATE_TYPE_MISMATCH | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §13.2–§14、§24.1 | E09 | 规范用例已定义 |
 | EVIDENCE_GUARANTEE_LINK_INVALID | C_STATIC | Compiler ERROR | 是 | Link / evidence | 不启动 Invocation | §17.1–§17.2、§G.3.1、§24.1 | E38/E46/E68/E102/E106/E109 | 规范用例已定义 |
@@ -4124,7 +4134,7 @@ flowchart TD
 | Schema、CEL、TypedDict 与注解 | F.5/F.6/G.4：有限白名单；不支持 `anyOf/oneOf/pattern/format`、任意 Python typing 或隐式强制转换 | Owner 版本化投影、实现分析器版本、E110/E111 Fixture |
 | 匿名请求字段和身份实参标注 | §13.3、F.1 定义最低逻辑属性；v1alpha4 未增 `identityInputs` 或 `reconcileOnly` 物理字段 | 单独版本化 Owner 互操作发布格式，否则无法声称 §45.2 通过 |
 | `Applicability` / Root Routing | §0、§12.8：完整作者语法和匹配优先级不属于 v1alpha4；无法唯一选定 Skill 时 fail-closed | 独立 Root Routing 协议 |
-| 同名诊断与 E 用例错配 | §24、附录 H：`(Code,Phase)` 唯一；`EFFECT_MISMATCH` 可有 C_STATIC 和 R_RUNTIME 两个事件；E01 是正常正例，E115/E116 非本版编号 | 附录 K 的待运行诊断 Fixture 与全量 CI |
+| 同名诊断与 E 用例错配 | §24、附录 H：`(Code,Phase)` 唯一；`EFFECT_MISMATCH` 可有 C_STATIC 和 R_RUNTIME 两个事件；原 v1alpha3 不包含 E115/E116，本 v1alpha4 新提 E115–E120 则用于多 Predicate 聚合 | 附录 K 的待运行诊断 Fixture 与全量 CI |
 | 正常结果与最终终态 | §12.8、§20、G.8：SUCCEEDED 阶段成功不自动等于 Invocation SUCCEEDED；已有 PENDING 责任时 SAFE_STOPPED 优先 | 资源责任 Owner 证明和真实 5GC 36 Cases |
 | 产品符合性状态 | §45.2：语言 FROZEN 不代表任一 Compiler、Studio、Host、Runtime、Owner 已 READY | 8 项门槛与原始不可变 CI 记录，全项未获统一完成证明 |
 
@@ -4257,10 +4267,16 @@ flowchart TD
 | E112 | 运行模拟 | NOT_IMPLEMENTED |
 | E113 | 静态链接 | NOT_IMPLEMENTED |
 | E114 | 静态链接 | NOT_IMPLEMENTED |
+| E115 | 静态链接 + Runtime 三态 | NOT_IMPLEMENTED |
+| E116 | Runtime 三态聚合 | NOT_IMPLEMENTED |
+| E117 | 静态链接 + Goal 运行复核 | NOT_IMPLEMENTED |
+| E118 | 静态参数/类型/Evidence | NOT_IMPLEMENTED |
+| E119 | 静态结构负例与诊断优先级 | NOT_IMPLEMENTED |
+| E120 | 全局门禁与 Goal 证明传播 | NOT_IMPLEMENTED |
 
 ## K.2 诊断 Fixture 负例候选（Informative，DFX-001–DFX-041）
 
-这些 DFX 编号**不是** E115 等正式 E 用例，不修改 H 的诊断码。以下 `fixtureModification` 是候选触发条件（可能需要独立受信 Owner 输入），不是已可运行的 Fixture。每项的 `ciResult` 均为 `NOT_RUN`；标记“需先核定可表达性”的条目，应先确定其在合法 YAML/Build 输入上的触发路径，再制作独立 Fixture，不能为了凑测试数虚构构造。**K.2 中登记的 41 项是测试债务与候选数，不是 41 项可构造用例或 41 次执行成功；诊断是否在 v1alpha4 当前文法内可触发必须另行确认。**
+这些 DFX 编号**不是** E 系列用例；v1alpha4 正式候选 E115–E120 另有独立的多 Predicate 正反例，不得与 DFX 混用。现有 DFX 不改变 H 中既有诊断码。以下 `fixtureModification` 是候选触发条件（可能需要独立受信 Owner 输入），不是已可运行的 Fixture。每项的 `ciResult` 均为 `NOT_RUN`；标记“需先核定可表达性”的条目，应先确定其在合法 YAML/Build 输入上的触发路径，再制作独立 Fixture，不能为了凑测试数虚构构造。**K.2 中登记的 41 项是测试债务与候选数，不是 41 项可构造用例或 41 次执行成功；诊断是否在 v1alpha4 当前文法内可触发必须另行确认。**
 
 | 候选 | 现有 Code / Phase | 候选输入差异与检查重点 | 执行状态 |
 |---|---|---|---|
@@ -4348,7 +4364,7 @@ nodes:
 
 ## K.3 冻结后复审的六项回归候选（Informative）
 
-编号 RFX-117–RFX-122 只是审查工作的资料性追踪标识，**不**属于 E01–E120，不是 E115–E122 的别名，也不承诺将来会以相同编号进入正式符合性范围。以下均 **NOT_IMPLEMENTED**；缺少可信 Owner/Host Fixture、实际执行结果及原始证据时不能写 PASS。
+编号 RFX-117–RFX-122 是原 v1alpha3 的资料性回归候选，和 v1alpha4 新增的 E115–E120 虽有相同数字却**不是同一批用例或别名**；RFX 只作独立追踪标签，不能自动转换为 E 编号。v1alpha4 的新增用例以 E115–E120 为准，均 NOT_IMPLEMENTED。以下均 **NOT_IMPLEMENTED**；缺少可信 Owner/Host Fixture、实际执行结果及原始证据时不能写 PASS。
 
 | 资料性候选 | 正反例输入差异 | 必须保持的既有预期 |
 |---|---|---|
@@ -4497,7 +4513,7 @@ suiteProvenance:
   executableSuiteVersion: null
   fixtureArtifactDigest: null
   ciToolchainVersionOrCommit: null
-  sourceOfTruth: "same-document:Appendix-E-G.9-H"
+  sourceOfTruth: "same-document:Appendix-E-G.9-H (v1alpha4 design candidate)"
   executedVariants: 0
   claimedPassingVariants: 0
   rawResultRef: null
