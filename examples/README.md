@@ -1,11 +1,13 @@
 # CA-SL example packages
 
-The two authoring examples use the *frozen CA-SL v1alpha4 syntax* and live at `examples/skills/<name>`. At build time the logical Skill package root is still **`skills/<name>`** as required by CA-SL G.7; `examples/` is a repository packaging folder, not a change to the Compiler's logical package identity.
+The two authoring examples use the *frozen CA-SL v1alpha4 authoring shape* and live at `examples/skills/<name>`. At build time the logical Skill package root is still **`skills/<name>`** as required by CA-SL G.7; `examples/` is a repository packaging folder, not a change to the Compiler's logical package identity.
 
 - `examples/skills/establish-pdu-session` — conventional Open5GS / UE-requested PDU establishment.
 - `examples/skills/establish-pdu-session-mas` — SMF MAS policy-first design.
 
-**Async completion boundary:** v1alpha4 author examples contain no `wait`/`await`/polling Nodes and do not invoke `ca.session.evidence.await`. Initial N4 setup, RAN acceptance and N4 forwarding convergence are completed **inside the corresponding asynchronous Tool/Provider/SMF Operation** before it may claim SUCCEEDED with authoritative, same-lifecycle Result/Evidence. The current legacy PCF/AMF callables do **not** yet publish these v1alpha4 completion guarantees, so those routes must fail link/qualification until the real Owner contract exists. Host/Runtime retains Deadline, Cancellation, Correlation and at-most-one authorized Mutation Reconcile; no author busy wait or synthetic evidence.
+**Proposed, unapproved async completion boundary:** v1alpha4 author examples contain no `wait`/`await`/polling Nodes and do not invoke `ca.session.evidence.await`. Initial N4 setup, RAN acceptance and N4 forwarding convergence are completed **inside the corresponding asynchronous Tool/Provider/SMF Operation** before it may claim SUCCEEDED with authoritative, same-lifecycle Result/Evidence. The current legacy PCF/AMF callables do **not** yet publish these v1alpha4 completion guarantees, so those routes must fail link/qualification until the real Owner contract exists. Host/Runtime retains Deadline, Cancellation, Correlation and at-most-one authorized Mutation Reconcile; no author busy wait or synthetic evidence.
+
+The business Owner decision register and per-Case traceability inventory (36 conventional + 6 MAS, all **NOT_RUN**) are in [MIGRATION-REVIEW-v1alpha4.md](MIGRATION-REVIEW-v1alpha4.md). The Owner completion/cleanup mappings are **proposed**, not approved.
 
 `examples/legacy/` preserves the full pre-migration source, scripts, and 36+6 Case files as **historical behavioral baselines only**. Do not feed those v1alpha1/v0.2 files into a v1alpha4 Compiler or claim legacy Case tests pass.
 
