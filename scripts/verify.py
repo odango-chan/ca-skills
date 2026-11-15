@@ -15,7 +15,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS_ROOT = ROOT / "skills"
-CURRENT_SKILLS = ("establish-pdu-session", "establish-pdu-session-mas")
+EXAMPLE_SKILLS = ("establish-pdu-session", "establish-pdu-session-mas")
+EXAMPLE_SKILLS_ROOT = ROOT / "examples" / "skills"
 ASSURANCE_FILES = ("contract.yaml", "procedure.yaml", "predicates.yaml")
 SCRIPT_REF_RE = re.compile(r"(?m)^\s*(?:script|ref):\s*(scripts/[^\s#]+)\s*(?:#.*)?$")
 RUN_PRODUCED_FACT_IDS = ("virtual_group.id",)
@@ -114,63 +115,58 @@ def validate_script(path: Path, errors: list[str]) -> None:
         errors.append(f"{path.relative_to(ROOT)}: main return annotation must name a TypedDict declared in the same file")
 
 
-def validate_current_skill(skill_name: str, errors: list[str]) -> None:
-    skill = SKILLS_ROOT / skill_name
+def validate_v1alpha4_example(skill_name: str, errors: list[str]) -> None:
+    """Author-source *shape* gate only; no external Owner/Schema linking."""
+    skill = EXAMPLE_SKILLS_ROOT / skill_name
     if not skill.is_dir():
-        errors.append(f"current official Skill package missing: {skill_name}")
+        errors.append(f"v1alpha4 example missing: {skill.relative_to(ROOT)}")
         return
 
-    assurance = skill / "assurance"
-    for required in ASSURANCE_FILES:
-        if not (assurance / required).is_file():
-            errors.append(f"{skill_name}: missing assurance/{required}")
+    if not (skill / "SKILL.md").is_file():
+        errors.append(f"{skill_name}: missing example SKILL.md")
 
-    contract = (assurance / "contract.yaml").read_text(encoding="utf-8")
-    if "localTools:" in contract or "allowedResources:\n    localTools:" in contract:
-        errors.append(f"{skill_name}: allowedResources.localTools is not part of the current language")
-    request_match = re.search(r"(?m)^\s*requestSchema:\s*(\S+)\s*$", contract)
-    if not request_match or not (skill / request_match.group(1)).is_file():
-        errors.append(f"{skill_name}: requestSchema must reference an existing Skill-owned schema")
+    for name in ASSURANCE_FILES:
+        if not (skill / "assurance" / name).is_file():
+            errors.append(f"{skill_name}: missing assurance/{name}")
+            return
 
-    procedure_path = assurance / "procedure.yaml"
-    procedure = procedure_path.read_text(encoding="utf-8")
-    if re.search(r"(?m)^\s*tool\s*:", procedure):
-        errors.append(f"{skill_name}: tool is not a supported Procedure action")
-    for match in SCRIPT_REF_RE.finditer(procedure):
-        relative = match.group(1)
-        candidate = (skill / relative).resolve()
-        try:
-            candidate.relative_to(skill.resolve())
-        except ValueError:
-            errors.append(f"{skill_name}: Script path escapes Skill package: {relative}")
-            continue
-        if not candidate.is_file():
-            errors.append(f"{skill_name}: referenced Script does not exist: {relative}")
+    contract = (skill / "assurance" / "contract.yaml").read_text(encoding="utf-8")
+    procedure = (skill / "assurance" / "procedure.yaml").read_text(encoding="utf-8")
+    predicates = (skill / "assurance" / "predicates.yaml").read_text(encoding="utf-8")
 
-    predicates_path = assurance / "predicates.yaml"
-    predicates = predicates_path.read_text(encoding="utf-8")
-    for match in SCRIPT_REF_RE.finditer(predicates):
-        relative = match.group(1)
-        candidate = (skill / relative).resolve()
-        try:
-            candidate.relative_to(skill.resolve())
-        except ValueError:
-            errors.append(f"{skill_name}: Predicate Script path escapes Skill package: {relative}")
-            continue
-        if not candidate.is_file():
-            errors.append(f"{skill_name}: referenced Predicate Script does not exist: {relative}")
+    for field in ("goal", "precondition", "requestSchema", "contextSchema", "dependencies", "capabilities"):
+        if not re.search(r"(?m)^" + field + r":\\s*", contract):
+            errors.append(f"{skill_name}: v1alpha4 Contract missing {field}")
+    if not re.search(r"(?m)^start: [a-z][a-z0-9-]+$", procedure) or not re.search(r"(?m)^nodes:\\s*$", procedure):
+        errors.append(f"{skill_name}: v1alpha4 Procedure must have start and nodes")
+    if not re.search(r"(?m)^predicates:\\s*$", predicates):
+        errors.append(f"{skill_name}: v1alpha4 PredicateSet must have predicates root")
 
-    scripts = skill / "scripts"
-    if scripts.is_dir():
-        for path in sorted(scripts.rglob("*.py")):
-            validate_script(path, errors)
+    for path, body in (("contract", contract), ("procedure", procedure), ("predicates", predicates)):
+        for field in ("apiVersion", "kind", "metadata", "entryProcedure", "preconditions", "postconditions"):
+            if re.search(r"(?m)^\\s*" + field + r":", body):
+                errors.append(f"{skill_name}/{path}: legacy v0.x field {field}")
+    for field in ("call", "with", "reconcile", "resolve", "verify", "on"):
+        if re.search(r"(?m)^\\s*" + field + r":", procedure):
+            errors.append(f"{skill_name}: v1alpha4 Procedure cannot contain legacy {field}")
+    if not re.search(r"(?m)^\\s+PASS: SUCCEEDED\\s*$", procedure):
+        errors.append(f"{skill_name}: no final PASS: SUCCEEDED candidate")
+    if not re.search(r"(?m)^\\s+OUTCOME_UNKNOWN: (UNRESOLVED|SAFE_STOPPED)\\s*$", procedure):
+        errors.append(f"{skill_name}: no conservative Mutation uncertainty branch")
 
-    schemas = skill / "schemas"
-    if schemas.is_dir():
-        for path in schemas.rglob("*-input.schema.*"):
-            errors.append(f"{path.relative_to(ROOT)}: Script input schemas are derived, not authored")
-        for path in schemas.rglob("*-evaluation-input.schema.*"):
-            errors.append(f"{path.relative_to(ROOT)}: Predicate Script input schemas are derived, not authored")
+    request_path = skill / "schemas" / "establishment-request.schema.yaml"
+    if not request_path.is_file():
+        errors.append(f"{skill_name}: missing Skill-owned request Schema")
+    else:
+        request = request_path.read_text(encoding="utf-8")
+        if re.search(r"(?m)^\\s*(pattern|format|allOf|anyOf|oneOf|\\$defs):", request):
+            errors.append(f"{skill_name}: unsupported G.4 Schema keyword in request Schema")
+        if "https://json-schema.org/draft/2020-12/schema" not in request:
+            errors.append(f"{skill_name}: request Schema missing frozen Draft 2020-12 dialect")
+
+    # This gate intentionally does not validate Owner exports/capabilities.
+    # Their illustration-only urn:example identities MUST NOT be treated as
+    # a real compiler link pass or an approved 5GC implementation.
 
 
 def validate_semantic_tokens(errors: list[str]) -> None:
@@ -227,8 +223,8 @@ def main() -> None:
     for skill in packages:
         validate_package_layout(skill, errors)
 
-    for name in CURRENT_SKILLS:
-        validate_current_skill(name, errors)
+    for name in EXAMPLE_SKILLS:
+        validate_v1alpha4_example(name, errors)
 
     catalog = ROOT / "lib" / "tools" / "createdsession.tool.yaml"
     if not catalog.is_file():
@@ -241,13 +237,13 @@ def main() -> None:
     validate_semantic_tokens(errors)
     fail(errors)
 
-    print(f"PACKAGE_LAYOUT_OK ({len(packages)} Skill directories)")
-    print("CURRENT_5GC_SOURCE_OK (2 official packages)")
-    print("SCRIPT_CONTRACT_SHAPE_OK")
-    print("IMPORTED_TOOL_CATALOG_OK (12 Operations)")
+    print(f"PACKAGE_LAYOUT_OK ({len(packages)} historical Skill directories)")
+    print("V1ALPHA4_EXAMPLE_SHAPE_OK (2 source examples; Owner links NOT_QUALIFIED)")
+    print("NOTE: historical Script behavior is preserved under examples/legacy/ and not typechecked here")
+    print("LEGACY_TOOL_CATALOG_SNAPSHOT_OK (12 Operations; not a v1alpha4 Owner publication)")
     print("SEMANTIC_TOKEN_REGISTRY_OK (v0.2.0)")
     print("SOURCE_HYGIENE_PASS")
-    print("Note: this gate does not run Compiler, Runtime, Qualification or live 5GC.")
+    print("Note: source shape is NOT YAML/Owner linking, Compiler, Runtime, Qualification or live 5GC.")
 
 
 if __name__ == "__main__":
