@@ -4341,9 +4341,11 @@ nodes:
 
 ## K.4 符合性报告模板（Informative，未测试）
 
+报告的八项门槛由 §45.2 定义。**规范预期集与可执行符合性套件分开版本登记：** `specExpected` 只能取本规范的 **附录 E/G.9** 对该 E 变体的预期，或**附录 H** 对该 `(Code,Phase)` 诊断的现行规范预期；不得让实现根据实际运行结果自行重写预期。`expectationSet` 应关联本文件受审提交和 E01–E114 / H 复合键集合；`executableSuiteVersion`、`fixtureArtifactDigest`、`executed`、`rawResultRef` 属实际测试记录，不能从规范提交推导其存在。**E01–E114 是预期集合而不是已完成的机器测试套件**；附录 K 中登记为 `NOT_IMPLEMENTED`、`NOT_RUN` 或 `REPRESENTABILITY_UNRESOLVED` 的项目不会自动计入覆盖率。
+
 报告的八项门槛由 §45.2 定义。下述 YAML 只是填写结构的**资料性建议报告格式**；内部的 `same-document` 引用用于定位本文件附录，不是新的正式 URI 或 BuildRequest 字段。为了避免把附录 H 的“规范用例已定义”误报为“运行通过”，建议每一个精确 `(Code,Phase)` / E 用例**执行变体**分别填报 `specExpected`、`fixtureExists`、`executed`、`passed`、`rawResultRef`。只有真实 Fixture 存在、确实运行、符合预期且能查到不可变原始结果时，才有资格计入已通过的实现覆盖；不满足的列应保留 false / null，不能以规范预期替代实际执行。此类列名是附录 K 的报告模板建议，不是擅自冻结 Runtime Trace / BuildRequest 的传输字段。
 
-**不得**在缺少原始、不可变 CI / Owner/部署证据时把 `NOT_TESTED` 改成 `PASS`。跨快照 Reconcile、Owner 身份输入、Root Routing 和共同事实受信装配的实际覆盖范围应逐项注明；不覆盖的功能不得被写成完整产品符合性。
+**不得**在缺少原始、不可变 CI / Owner/部署证据时把 `NOT_TESTED` 改成 `PASS`。跨快照 Reconcile、Owner 身份输入、Root Routing 和共同事实受信装配的实际覆盖范围应逐项注明；不覆盖的功能不得被写成完整产品符合性。若所用 BuildRequest 版本没有整个请求的聚合摘要，§34.0.2 仍要求可信原始输入字节、各自 `snapshotDigest`、身份/授权关联进入**可验证的不可变输入闭包**；缺少顶层聚合摘要本身不授权绕过闭包验证，也不为 v1alpha3 擅自发明一个必须存在的 `buildRequestDigest` 字段。
 
 ```yaml
 # Informative reporting template; this is NOT an executable CA-SL fixture.
@@ -4354,6 +4356,30 @@ languageTarget: connectionagent.io/v1alpha3
 languageContract: FROZEN
 productConformance: NOT_QUALIFIED
 reportStatus: NOT_TESTED
+# 资料性符合性声明范围；单独声明具体类型、版本和原始证据
+conformanceClaims:
+  - claimType: language-specification
+    subject: "CA-SL v1alpha3 normative text (not a product pass)"
+    status: FROZEN
+    evidenceRef: null
+  - claimType: compiler-static
+    status: NOT_TESTED
+    evidenceRef: null
+  - claimType: studio-lsp-parity
+    status: NOT_TESTED
+    evidenceRef: null
+  - claimType: host-runtime
+    status: NOT_TESTED
+    evidenceRef: null
+  - claimType: owner-deployment-interop
+    status: NOT_TESTED
+    evidenceRef: null
+  - claimType: root-routing
+    status: NOT_TESTED
+    evidenceRef: null
+  - claimType: live-fivegc-e2e
+    status: NOT_TESTED
+    evidenceRef: null
 implementation:
   product: null
   repository: null
@@ -4430,6 +4456,17 @@ implementation:
       commitOrArtifactDigest: null
     hostRuntime:
       commitOrArtifactDigest: null
+# 以下套件信息与本版语言语义冻结相互独立；均需真实版本化证据
+suiteProvenance:
+  normativeSpecCommitSha: null
+  expectationSet: "E01-E114 and Appendix H (Code,Phase) at the normative spec commit"
+  executableSuiteVersion: null
+  fixtureArtifactDigest: null
+  ciToolchainVersionOrCommit: null
+  sourceOfTruth: "same-document:Appendix-E-G.9-H"
+  executedVariants: 0
+  claimedPassingVariants: 0
+  rawResultRef: null
 caseMatrix:
   normativeIndex: "same-document:Appendix-E"
   caseRange: E01-E114
@@ -4451,6 +4488,22 @@ diagnosticMatrix:
   executableSuiteRef: null
   rawResultRef: null
   coverageRows:
+    - code: DUPLICATE_ID
+      phase: C_STATIC
+      specExpected: "Appendix H: defensive code, independent valid-parse trigger unproven"
+      representability: REPRESENTABILITY_UNRESOLVED
+      fixtureExists: false
+      executed: false
+      passed: false
+      rawResultRef: null
+    - code: CONTROL_FLOW_AMBIGUOUS
+      phase: C_STATIC
+      specExpected: "§24.1/H: mutually exclusive Operation targets in one YAML mapping"
+      representability: CONSTRUCTIBLE_NOT_EXECUTED
+      fixtureExists: false
+      executed: false
+      passed: false
+      rawResultRef: null
     - code: EFFECT_MISMATCH
       phase: C_STATIC
       specExpected: "Appendix H: static Effect conflict blocks build"
