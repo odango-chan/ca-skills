@@ -826,7 +826,7 @@ Observation 从 Reconcile 自身输出读取 `subscriptionRef`。若 Owner 未�
 
 ### 12.2 Precondition
 
-Precondition 在 Node 内的其他阶段之前**按 `predicates` 列表顺序执行一条或多条纯 Predicate**。每一项都有自己的 `predicate` 与显式有序 `arguments`。它们可以检查 Host Context、Request、此前 Operation Result 或 Observation Result。Precondition 不得隐式查询外部系统；若缺少事实，应先通过前序 Node 的显式 Observation 获取，再逐项绑定。Contract 的 `preconditions` 仍引用整个 `<node>.precondition` 阶段作为全局门禁，而不是内部列表成员。
+Precondition 在 Node 内的其他阶段之前**按 `predicates` 列表顺序执行一条或多条纯 Predicate**。每一项都有自己的 `predicate` 与显式有序 `arguments`。它们可以检查 Host Context、Request、此前 Operation Result 或 Observation Result。Precondition 不得隐式查询外部系统；若缺少事实，应先通过前序 Node 的显式 Observation 获取，再逐项绑定。Contract 的可选单数 `precondition` 仍引用整个 `<node>.precondition` 阶段作为唯一全局门禁，而不是内部列表成员。
 
 **阶段级三态合取（Normative，Pre/Post 共享）：** 所有成员都 PASS → 阶段 `PASS`；**任一成员明确 FAIL → 阶段 `FAIL`**；没有 FAIL，但至少一个 UNKNOWN → 阶段 `UNKNOWN`。有序、确定性地从头执行；首个 FAIL 后可短路，不得把其余未执行项记录为 PASS。遇 UNKNOWN 后必须继续检查后续成员是否有 FAIL，不能提前把 UNKNOWN 当作 PASS 或 FAIL。Host 级取消、Deadline、预算上界导致的安全停止，仍属于 Runtime 全局停止而非虚构一个 Predicate UNKNOWN。列表不能为空；即使只调用一个 Predicate 也写成 `predicates:` 列表。
 
@@ -1451,7 +1451,7 @@ Host / Runtime 仍负责 Deadline、Cancellation、Correlation、预算、UNKNOW
 
 | 阶段 | 正常 Outcome | 其他允许的 Outcome |
 |---|---|---|
-| Precondition / Postcondition | `PASS`（全部 `predicates[]` PASS 后的唯一阶段结果） | `FAIL`（任一 FAIL）、`UNKNOWN`（无 FAIL 且至少一项 UNKNOWN），见 §12.2/§12.5 |
+| Precondition / Postcondition | `PASS`（全部 `predicates[]` PASS 后的唯一阶段结果） | `FAIL`（任一 FAIL）、`UNKNOWN`（无 FAIL 且至少一项 UNKNOWN），见 §12.2/§12.5；**只有 Postcondition 聚合 PASS 可以请求终态 SUCCEEDED** |
 | READ Operation / Observation | `SUCCEEDED` | `FAILED`、`DENIED`、`UNKNOWN` |
 | MUTATION Operation | `SUCCEEDED` | `FAILED`、`DENIED`、`NOT_COMMITTED`、`OUTCOME_UNKNOWN` |
 | Procedure Script | `SUCCEEDED` | `FAILED` |
@@ -1891,7 +1891,7 @@ predicates:
         responsibility.pendingResponsibilitiesRetained
 ~~~
 
-**责任摘要字段说明。** `responsibility.pendingResponsibilitiesRetained` 在本教学谓词中仅表示已知待处置责任及其审计记录已被保全，**不表示当前没有 `PENDING` 责任**，也不替代 `responsibility.allResourcesCovered`。若 Owner 仍有任何已确认的 `PENDING` 责任，即使本地 Goal Postcondition 对其他业务条件返回 `PASS`，Runtime 也必须按 §12.8、§20.1.1 与 G.5 拒绝发布 Invocation `SUCCEEDED`，实际停止终态为 `SAFE_STOPPED`；请求成功与实际终态不一致时记录 `TERMINAL_STATE_MISMATCH`。要在真实发布物中声明“已无待处置责任”，须由责任 Owner 发布可验证的独立字段或保证，并使 Host/Runtime 在终态检查时核实；不得从字段名或布尔值自行推断。
+**责任摘要字段说明。** `responsibility.pendingResponsibilitiesRetained` 在本教学谓词中仅表示已知待处置责任及其审计记录已被保全，**不表示当前没有 `PENDING` 责任**，也不替代 `responsibility.allResourcesCovered`。若 Owner 仍有任何已确认的 `PENDING` 责任，即使最终 Postcondition 对其他业务条件聚合 `PASS`，Runtime 也必须按 §12.8、§20.1.1 与 G.5 拒绝发布 Invocation `SUCCEEDED`，实际停止终态为 `SAFE_STOPPED`；请求成功与实际终态不一致时记录 `TERMINAL_STATE_MISMATCH`。要在真实发布物中声明“已无待处置责任”，须由责任 Owner 发布可验证的独立字段或保证，并使 Host/Runtime 在终态检查时核实；不得从字段名或布尔值自行推断。
 
 本节的 5GC 类型引用用于说明绑定形状。完整示例依赖 Owner 发布相应 Schema、精确 callable 输出绑定和保证；可脱离外部仓库复核的完整链接输入见附录 E。UDM Get 的 `output.result` 表示本次 SM 数据读取；订阅 Create 的 `output.subscription` 与 Reconcile 后查询的 `output.subscription` 表示订阅资源状态。两种命题分别使用 Session Profile 和 Subscription Predicate。Session Profile 的 `urn:example` 结构用于教学，真实迁移以 Host 规范化 Get 输出为准。
 
@@ -3079,8 +3079,8 @@ expected:
 | E14：Host Action Budget 为 0 或非法 | Admission fail-closed，不允许 Skill limits 放宽 |
 | E15（informative，业务评审）：Observation 已可从充分 Operation Result 中获得且满足 Evidence 要求 | 不应为了形式强制增加 Observation 阶段 |
 | E16：未引用的额外 Snapshot 被传入 BuildRequest | 按声明边界链接，额外导出不可访问 |
-| E17：正常与 Reconcile 分支的匹配 Goal PASS 汇入同一个 SUCCEEDED | 成功路径覆盖通过 |
-| E18：其中一支绕过 Goal PASS 并直接路由到 SUCCEEDED | SUCCESS_BYPASSES_FINAL_POSTCONDITION |
+| E17：正常与 Reconcile 路径各有自己的最终 Postcondition 聚合 PASS，直接请求 SUCCEEDED | 每条路径独立符合最终验收直接成功要求，不要求合流，也不得借用其他路径 PASS |
+| E18：其中一支由 Reconcile Operation 直接请求 SUCCEEDED，跳过该路径的最终 Postcondition PASS | SUCCESS_BYPASSES_FINAL_POSTCONDITION |
 | E19：相同 Payload Schema 的 Producer 缺少参数要求的保证 | PREDICATE_EVIDENCE_UNSATISFIABLE |
 | E20：多保证参数缺一条有效记录；另测错误 Owner、错 PSI / Lifecycle、过期、同 Scope 冲突 | UNKNOWN，即使业务值使 evaluator 返回 PASS |
 | E21：所有保证有效，Script 返回 PASS 且 evidenceUsed 为空；另测其引用未附加 Ref | 前者 PASS 并由 Runtime 记录支撑证据；后者 UNKNOWN |
@@ -3128,7 +3128,7 @@ expected:
 | E63：移除 §12.1 Reconcile 的 COMMITTED 输出声明，保留 Observation 绑定 | RECONCILE_OUTPUT_UNAVAILABLE |
 | E64：前序局部 Postcondition PASS 后又发生 Mutation，随后尝试从 Operation 或 Precondition 直接请求成功 | SUCCESS_BYPASSES_FINAL_POSTCONDITION；任何旧局部 PASS 都不能跨节点证明最终 Goal |
 | E65：不可达 Node 指向可达的最终 Postcondition 所在 Node（详见 E.7） | UNREACHABLE_NODE 警告；只考虑可达入边，全局门禁仍由可达入边的 AND 判定 |
-| E66：Procedure Script 读取外层对象中的可选字段（详见 E.7） | 合法返回走 SUCCEEDED。抛异常或无效返回都走 FAILED，分别记录 SCRIPT_EXECUTION_FAILED 或 OUTPUT_SCHEMA_INVALID，且没有成功输出 |
+| E66：Procedure Script 读取外层对象中的可选字段（详见 E.7） | 合法返回产生 **Script Operation 的阶段 Outcome SUCCEEDED**，按既有阶段路由继续，不能由 Script 直接请求 Invocation SUCCEEDED；抛异常或无效返回都走阶段 FAILED，分别记录 SCRIPT_EXECUTION_FAILED 或 OUTPUT_SCHEMA_INVALID，且没有成功输出 |
 
 此表给出 v1alpha4 待冻结的规范预期，不代表现有 CI 已通过。正式发布实现符合性仍须由 Owner 提供真实导出身份，并使 Native、WASM、Studio 与 Runtime 通过相同正反例（§45.2）。E01–E120 的**资料性逐用例执行方式分类现已合并进本文件附录 K**，用于区分静态 Fixture、Runtime 模拟、内部单测、业务评审与 Owner 集成评审；`proposedExecutionClass` 不改变本表预期，`executionPlanStatus: NOT_IMPLEMENTED` 不构成验收通过。
 
@@ -3175,7 +3175,7 @@ E39、E43 的 ca 快照基线：将可信 Owner 集合设为 `[example-ue-owner,
 | 用例 | 基线与最小改动 | 预期 |
 |---|---|---|
 | E17 | §12.1 的正常与 Reconcile 路径，各自通过 Goal Postcondition 后各自沿 PASS 路由到 SUCCEEDED | 静态证明覆盖检查通过 |
-| E18 | 在 §12.1 中删除 `reconcile-subscription` 的 Observation 与 Postcondition，并设置 `operation.routes.COMMITTED: SUCCEEDED` | SUCCESS_BYPASSES_FINAL_POSTCONDITION，即使另一条入边已持有 Goal PASS |
+| E18 | 在 §12.1 中删除 `reconcile-subscription` 的 Observation 与 Postcondition，并设置 `operation.routes.COMMITTED: SUCCEEDED` | SUCCESS_BYPASSES_FINAL_POSTCONDITION。即使正常分支另有合法最终 Postcondition，该 Reconcile 分支也不得直接请求 Invocation SUCCEEDED |
 | E10 | 将 §12.1 的 `reconcile-subscription.observation.arguments.subscriptionRef` 改为 `create-subscription.operation.output.subscriptionRef`，并让原 Mutation 的 SUCCEEDED 输出 Schema 声明必需的 `subscriptionRef` | SOURCE_NOT_AVAILABLE，当前分支没有该 SUCCEEDED 输出。若该 Schema 未声明此字段，则按 §13.3 报 SOURCE_PATH_INVALID |
 | E41 | `start` 指向 E.8 的 `verify-subject`，它的 PASS 直接路由到 `SUCCEEDED` | Goal 覆盖通过。初始无证明，PASS 建立证明 |
 | E42 | 在 E.8 中把 `verify-subject.postcondition.routes.PASS` 改为 `verify-local`；新增 `verify-local` 为只含 Precondition 的 Node，其 PASS 直达 `SUCCEEDED`。对照将 `verify-local` 改为只含 Postcondition 的 Node，聚合 PASS 直达 SUCCEEDED | 前者 SUCCESS_BYPASSES_FINAL_POSTCONDITION；后者有效，最终证明由最后一个 Postcondition PASS 完成。两个变体都不写 `goal` |
@@ -3269,7 +3269,7 @@ predicates:
 | E80 | E32 的独立组分别绑定底层来源相同及各异的有效记录 | 同来源 UNKNOWN；独立记录组合满足保证后按 Predicate 求值 |
 | E81 | E72 的两个已 Grant 成员分别允许 {A,B} 和 {B,C} | 仅 B 可派发，A 与 C 均被拒绝 |
 | E82 | 分别核验 FAILED 类别、不可重试 NOT_COMMITTED 类别、可重试且无遗留副作用的 NOT_COMMITTED 类别 | 仅第三类可按 §20.2 走受控新尝试 |
-| E83 | Goal PASS 后经局部 Predicate 的 FAIL 或 UNKNOWN，分支直接指向停止终态 | 构建允许，Runtime 按 §12.8 发布停止终态 |
+| E83 | 局部 Postcondition 聚合 PASS 后继续到下一局部判断，后者 FAIL/UNKNOWN 并请求停止终态 | 构建允许；该局部 PASS 不是 Goal 证明，Runtime 按 §12.8 发布相应停止终态 |
 
 | E84 | 分别省略 Predicate 的 FAIL、UNKNOWN 或 Procedure Script 的 FAILED 路由 | 各自报 ROUTE_OUTCOME_MISSING |
 | E85 | retryOf 的路径全部经过原调用 NOT_COMMITTED，再加入一条绕过该边的到达路径 | 正例通过路径检查，绕过者报 RETRY_CONTRACT_INVALID。Runtime 对证明和业务身份独立验收 |
@@ -3317,7 +3317,7 @@ predicates:
 
 ### E.13 符合性用例说明
 
-- E40 保留严格的绑定替换规则。即使值相同，新记录也可能改变可审计的版本、时点及证据组合，因此旧判断不自动继承新记录。长流程可在接近成功发布时重新读取并求值。在本版语义下，采用新记录必须经显式 Producer 绑定和新的 Goal Postcondition PASS。Owner 可另行提案评审不同的重绑定策略。
+- E40 保留严格的绑定替换规则。即使值相同，新记录也可能改变可审计的版本、时点及证据组合，因此旧判断不自动继承新记录。长流程可在接近成功发布时重新读取并求值。在本版语义下，采用新记录必须经显式 Producer 绑定，并由最终 Postcondition 聚合 PASS 直接请求 SUCCEEDED。Owner 可另行提案评审不同的重绑定策略。
 - §17.1 的身份和关联值豁免只覆盖其作为比对基准的用途。若 Predicate 以这类输入单独主张外部事实，Owner 须补充权威取证，不能依赖该豁免通过语义评审。
 - §44 最小兼容规则：源码使用目标语言版本明确支持的 Schema 子集。Owner 工件版本须有该版本的解码器并能映射到同一抽象规则。Schema 依赖按精确 ID 链接。Skill Package Revision 不隐式提升任何契约版本。
 - Studio 与 Compiler 共用路由、诊断和 Evidence 规则。不可达节点仍检查语法、链接和 Reconcile 入边，门禁与证明只传播可达边。
@@ -3328,7 +3328,7 @@ predicates:
 |---|---|
 | E98 | output 保证明示覆盖 output.result，记录可验证该子值，且子值 Schema 可赋给参数：通过。反向使用 output.result 保证绑定整个 output：PREDICATE_EVIDENCE_UNSATISFIABLE |
 | E99 | 向 Compiler 的分析图单测注入无可达入边的可达非入口阶段：REACHABLE_STAGE_NO_INCOMING_EDGE。此为内部不变量测试 |
-| E100 | 同一 Goal PASS 后分别经过 Procedure Script SUCCEEDED 和 Mutation SUCCEEDED：前者保留证明，后者清除。READ / Observation SUCCEEDED 同样保留原证明。若后续 READ 使原绑定失效，发布成功前按 §12.8 停止，禁止用新值顶替。显式绑定新 Producer 并取得 Goal PASS 后可重新建立证明 |
+| E100 | 先有局部 Postcondition 聚合 PASS（PASS 指向下一 Node），之后分别经过 READ/Observation、Procedure Script SUCCEEDED 或 Mutation SUCCEEDED，再从该后继阶段直接请求 Invocation SUCCEEDED；对照在后继操作后重新执行最终 Postcondition 聚合 PASS→SUCCEEDED | 旧局部 PASS 无法携带成为 Goal 证明；后继非 Postcondition 阶段直接成功均报 SUCCESS_BYPASSES_FINAL_POSTCONDITION；重新取证并由最终 Postcondition PASS→SUCCEEDED 才合法，Runtime 复核原绑定 Evidence |
 
 | E101 | §13.3：将已验证 Host Session 身份直接绑定至 callable，通过。分别用同值 Script 输出、请求字段、含无权威身份的复合对象替换，报 CALLABLE_ARGUMENT_PROVENANCE_INVALID。原绑定构建通过但派发前无法核验时，报 CALLABLE_ARGUMENT_PROVENANCE_UNVERIFIED，且无派发 |
 | E102 | **静态：** 合法同域来源投影或已由可信 IndependentDomains 批准的跨域关系，以及需要时受信的 factIdentity / Scope 映射可链接；删掉来源身份、部署域关系、共同事实映射，或提供未授权、重复、自反域对，报 EVIDENCE_GUARANTEE_LINK_INVALID；描述符和受信关系有效、但静态发布的 Producer 类型/允许集合使独立性组对**任何合法执行都不可能满足**时报 PREDICATE_EVIDENCE_UNSATISFIABLE。**Runtime：** 静态可满足但本次两成员来自相同底层记录、过期或不可核实，Predicate UNKNOWN；真实独立的有效记录按业务 Predicate 求值。静态与运行时分别是 E102 的独立 Fixture 变体，不新增 E 编号 |
@@ -3848,10 +3848,10 @@ E30/E40 的严格绑定规则有意保留：较新的已接纳权威记录即使
 | E114 | 合法 skills/establish-pdu-session；加入 ../、绝对路径、反斜线、同目录大小写折叠碰撞的文件 | 合法包通过；变体 PACKAGE_PATH_INVALID |
 | E115 | Pre/Postcondition 均采用单成员 `predicates` 非空列表，再改为两个合法成员 | 两阶段共享相同作者形状并可链接；单成员也只产生一次阶段三态 |
 | E116 | Precondition 两个成员依次为 PASS/PASS、PASS/UNKNOWN、UNKNOWN/FAIL、FAIL/PASS，并提供阶段级三态 routes | 聚合结果依次 PASS、UNKNOWN、FAIL、FAIL；UNKNOWN 不能提前 PASS，FAIL 可短路；仅最终阶段结果选择 Route |
-| E117 | Postcondition 两成员依次产生 PASS/PASS、PASS/FAIL、UNKNOWN/PASS，且阶段级 `goal` 匹配 Contract；另去掉 `goal` | 只有带精确 `goal` 且全部成员 PASS 的阶段可以建立 Goal 证明；局部 Postcondition 即使整体 PASS 也不能新建证明 |
+| E117 | Postcondition 两成员依次产生 PASS/PASS、PASS/FAIL、UNKNOWN/PASS；分别让阶段 PASS 直达 SUCCEEDED 与先路由另一 Node；并在阶段根添加旧 `goal` 字段 | 只有全部成员 PASS 且 `postcondition.routes.PASS: SUCCEEDED` 的最终 Postcondition 能证明 Goal；继续到其他 Node 的 PASS 是局部判断，不可复用为成功证明；旧 `goal` 字段报 `PREDICATE_GROUP_INVALID` |
 | E118 | 在多成员判断的第二项分别注入 arity 错、类型错误、外部 Producer 无 Evidence；同一 PredicateId 复用两个不同来源调用点 | 每项必须独立报既有 `PREDICATE_ARITY_MISMATCH`、`PREDICATE_TYPE_MISMATCH`、`PREDICATE_EVIDENCE_REQUIRED`，不能借另一成员免证 |
-| E119 | Pre/Postcondition 的 `predicates` 为空/非列表、成员缺 `arguments`、在成员中写 `routes/goal`、或在阶段根写旧 `predicate/arguments`；另用重复 YAML Key 对照 | 结构有效的 YAML 违例归入新 `PREDICATE_GROUP_INVALID`；重复 Mapping Key 优先 `YAML_PARSE_ERROR`；不得隐式兼容旧作者形状 |
-| E120 | Contract `preconditions` 引用多 Predicate Precondition；一个成员 PASS 但另一个 UNKNOWN，然后两者都 PASS；Goal Postcondition 全 PASS 后再经过 Mutation | 只有聚合阶段 PASS 建立全局门禁或 Goal 证明；Mutation 清除既有 Goal 证明；Runtime 发布成功前逐成员复核原绑定及 Evidence |
+| E119 | Pre/Postcondition `predicates` 为空/非列表、成员缺 `arguments` 或带 `routes/goal`、Postcondition 根带 `goal`、阶段根旧 `predicate/arguments`；普通 Operation/Observation 仍写 `target`；重复 YAML Key 对照 | Predicate 组结构违反 §10.1 → `PREDICATE_GROUP_INVALID`；旧 `target` 单字段 → `UNKNOWN_FIELD`（不做兼容转换）；重复 YAML Mapping Key → `YAML_PARSE_ERROR` |
+| E120 | Contract 单数 `precondition: check-ready.precondition` 引用含两 Predicate 的阶段；对照一项 PASS 一项 UNKNOWN、全部 PASS、汇合路径仅一条通过全局门禁；最终 Postcondition PASS 后又经 Mutation，再从非 Postcondition 请求成功 | 只有整个阶段 PASS 才满足唯一全局门禁；汇合路径不允许借 PASS；最终成功必须来自新的 Postcondition 聚合 PASS→SUCCEEDED，旧局部 PASS 不可复用；Runtime 逐项复核原绑定 Evidence |
 
 G.1–G.9 的继承用例与新增 E115–E120 共同组成 v1alpha4 候选预期集。E115–E120 尚无实际执行的机器 Fixture 或 CI 通过证明。文档审计不代表 Compiler、Native/WASM、Studio、Runtime 已实现上述语义；产品符合性依旧由 §45.2 控制。
 
@@ -4003,7 +4003,7 @@ SourcePath 的直接绑定只允许引用在该路径所有可达分支中**保�
 
 已接受的 Evidence 有明确 Producer、Scope、Correlation、时间和事实来源。新 Evidence 即使包含相同业务值，也可能使旧的 PASS 不再适用于当前执行状态。
 
-推荐的受控流程为：在受保护的 Mutation 派发前或最终成功发布前，按业务要求显式调用获授权的 Observation；将**本次新产生的 Producer output**及其 Evidence 绑定至新的 Predicate；取得新的 Goal Postcondition PASS 后，继续通过 Runtime 的准入和成功发布复核。
+推荐的受控流程为：在受保护的 Mutation 派发前或最终成功发布前，按业务要求显式调用获授权的 Observation；将**本次新产生的 Producer output**及其 Evidence 绑定至新的 Predicate；取得新的最终 Postcondition 聚合 PASS、直接沿 `PASS: SUCCEEDED` 请求成功后，继续通过 Runtime 的准入与成功发布复核。
 
 不得将旧 Predicate 的参数隐式替换为更新值，不得把普通 Operation Result 冒充 Observation Result，也不得以“有 Evidence Ref”代替保证验证。当前规范的示例与预期参见 E30、E40、§17.2 与 G.8。
 
@@ -4084,7 +4084,7 @@ has(obj.optionalNullable) &&
 | Reconcile | Owner SUCCEEDED 且可信证明原调用未提交 | Reconcile Stage NOT_COMMITTED；重试仍需独立证明与一次性授权 | §20.3、§20.2 |
 | Reconcile | 未取得有效且不冲突的提交结论 | Reconcile Stage UNRESOLVED，按 §12.8 判定终态并保留原调用责任 | §20.3、§20.1.1 |
 | 任一停止路径 | 存在已确认 PENDING 责任 | SAFE_STOPPED 优先；否则有未决提交/关键事实时为 UNRESOLVED；其他情形按 §12.8 | §12.8、§20.1.1、G.5 |
-| 任一成功请求 | 到达 SUCCEEDED 路由 | 只有全局门禁、最新 Goal PASS、Scope/Evidence 与责任全部通过复核，才可发布 Invocation SUCCEEDED | §12.8–§12.9、G.8 |
+| 任一成功请求 | 最终 Postcondition 聚合 `PASS: SUCCEEDED` 直接请求成功 | 只有单数全局门禁（若声明）、最终全部 Predicate 的原绑定 Scope/Evidence 与提交、责任均通过复核，才能发布 Invocation SUCCEEDED | §12.8–§12.9、G.8 |
 
 **分类说明：** `COMMITTED`、`NOT_COMMITTED`、`UNRESOLVED` 在 Reconcile 表示 Stage Outcome；`OUTCOME_UNKNOWN` 是 Mutation Stage Outcome；`SUCCEEDED` 作为右侧路由目标才可能表示请求发布 Invocation 终态。Owner callable 的 `ownerOutcomes` 不得包含 Runtime 自行产生的分类。以上索引不替代 §20.1、§20.3、G.2.2 的证明结构和路径校验。
 
@@ -4285,7 +4285,7 @@ flowchart TD
 | DFX-001 | `YAML_PARSE_ERROR` / C_STATIC | 重复 YAML Mapping Key 或非法基本标量；保持其他源码及构建目标有效 | NOT_RUN |
 | DFX-002 | `LANGUAGE_TARGET_UNSUPPORTED` / C_STATIC | 在其余文件有效的 BuildRequest 中指定当前 Compiler 不支持的 languageTarget | NOT_RUN |
 | DFX-003 | `DUPLICATE_ID` / C_STATIC | **当前未找到**不使用重复 Mapping Key 的独立最小构造。重复 `nodes.foo` 或 `predicates.bar` 应由 YAML 解析器先报 `YAML_PARSE_ERROR`；跨角色同名是否构成同一身份尚无 v1alpha4 规范性规则，不得自造触发。标为**可表达性未闭合/防御性目录项**，不得标为已有 Fixture 或通过 | NOT_RUN |
-| DFX-004 | `FINAL_POSTCONDITION_GOAL_MISMATCH` / C_STATIC | 保持成功路径和 Postcondition 可达，令 Postcondition.goal 与 Contract.goal 不相等 | NOT_RUN |
+| DFX-004 | `PREDICATE_GROUP_INVALID` / C_STATIC | 在原本可达的有效最终 Postcondition 阶段根非法增加 `goal: other.goal`，其余谓词、路由、Contract 保持不变；验证删除字段后构建可以继续 | NOT_RUN |
 | DFX-005 | `CONTROL_FLOW_CYCLE` / C_STATIC | 在两个既有业务 Node 间增加一条返回前驱 Node 的路由，形成可达 back-edge；确保无其他更早的解析错误 | NOT_RUN |
 | DFX-006 | `CONTROL_FLOW_AMBIGUOUS` / C_STATIC | **可构造的不同字段互斥冲突**：同一 `operation` 映射同时声明有效 `tool: ca::valid.read` 与 `script: scripts/valid.py`（均处于同一 YAML Mapping 且没有重复键）；依 §24.1 同阶段多种调用目标应触发本码。完整 Fixture 须提供受信 READ、合法 Script 与其余有效文件；重复 YAML Key 仍应先报 `YAML_PARSE_ERROR` | NOT_RUN |
 | DFX-007 | `DEPENDENCY_ALIAS_MISSING` / C_STATIC | 保留一个合法外部 callable 引用 ca::x，移除 Contract.dependencies 中的 ca alias；其余快照及 Scope 保持可信 | NOT_RUN |
