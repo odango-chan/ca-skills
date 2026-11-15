@@ -585,9 +585,10 @@ PreconditionRef   = NodeId "." "precondition"
 Procedure         = map(start: NodeId, nodes: map<NodeId, Node>)
 Node              = map(precondition?: Precondition, operation?: Operation,
                         observation?: Observation, postcondition?: Postcondition)
-Precondition      = map(predicate: PredicateId, arguments: list<Expression>,
+PredicateCall     = map(predicate: PredicateId, arguments: list<Expression>)
+Precondition      = map(predicates: NonEmptyList<PredicateCall>,
                         routes?: OutcomeRoutes)
-Postcondition     = map(predicate: PredicateId, arguments: list<Expression>,
+Postcondition     = map(predicates: NonEmptyList<PredicateCall>,
                         goal?: GoalId, routes?: OutcomeRoutes)
 Operation         = ToolOperation | ScriptOperation | ReconcileOperation
 ToolOperation     = map(target: QualifiedCallableId, arguments: map<Name, Expression>,
@@ -606,6 +607,8 @@ OutcomeRoutes     = map<Outcome, RouteTarget>
 RouteTarget       = NodeId | TerminalStatus
 TerminalStatus    = SUCCEEDED | FAILED | UNRESOLVED | SAFE_STOPPED
 ~~~
+
+**v1alpha4 阶段语法（Normative）。** 一个 Node 仍仅能有一项 `precondition` 与一项 `postcondition` 阶段声明。两者内部使用相同的非空有序 `predicates` 列表，**即使只有一个 Predicate 也必须写成列表**。每项 `PredicateCall` 恰有 `predicate` 和位置参数 `arguments`；禁止在阶段根使用旧版直接 `predicate/arguments`，或在单个列表项中定义 `routes/goal`。Precondition/Postcondition 只拥有**一组阶段级** `PASS/FAIL/UNKNOWN` 路由；仅 Postcondition 可在阶段级声明 `goal`。这不是对 v1alpha3 旧作者源码的隐式转换或语法别名。列表为空、类型不符、成员缺字段或含未知字段报 `PREDICATE_GROUP_INVALID`，重复 Mapping Key 与非法 YAML 先报 `YAML_PARSE_ERROR`。成员中 Predicate 引用、参数位置/Schema、Evidence 错误仍按既有专用诊断逐成员检查（§13、§17、§24/H）。
 
 Node ID 与 `Identifier` 使用同一字符规则。Compiler 在解析 `start` 和路由前拒绝使用 `context` 或任一 `TerminalStatus` 精确拼写的 Node ID。`start` 必须引用真实 Node。Node 至少有一个阶段，各阶段最多声明一次。各阶段在自己的 `routes` 中按 Outcome 指定目标，允许键和必填键由 §12.1、§22 决定。省略 `routes` 与空映射等价，两者仅在该阶段的没有必须显式路由的非正常 Outcome 且后面还有阶段时合法。其他情况须写全 §22 要求的路由，缺键阻断构建。Reconcile 不接收 `arguments`。解析器拒绝未知字段和重复阶段，保留 YAML 标量的引号风格。
 
@@ -706,7 +709,7 @@ nodes:
 | 字段 | 语义 | 约束 |
 |---|---|---|
 | goal | Skill 的业务目标及全局成功验收目标 | 必须声明。每条成功路径均须证明该 Goal |
-| preconditions | 本次 Invocation 必须通过的全局前置判断 | 可省略。写唯一的 `<node-id>.precondition` 引用列表，全部必须 PASS。执行顺序由 Procedure 决定 |
+| preconditions | 本次 Invocation 必须通过的**全局前置阶段** | 可省略；列表每项引用一个不同的 `<node-id>.precondition` 阶段，全部阶段必须 PASS。每个阶段的内部 `predicates` 全部 PASS 才建立该阶段 PASS；执行顺序由 Procedure 图决定 |
 | requestSchema | 公共 Request Schema | 有调用方 Request 时声明；指向 Skill 自有 `schemas/` 文件 |
 | contextSchema | Host 提供的 Invocation Context | 引用已声明依赖别名的精确 Owner Schema ID；使用 Host Context 字段时必须声明 |
 | dependencies | 公共依赖声明 | Alias → 精确稳定 Package ID，必须与可信调用方提供的快照身份绑定核对；不声明 URL、digest 或获取方式 |
@@ -719,7 +722,7 @@ nodes:
 - `metadata.name`：由 Skill Package 根目录确定，不重复维护。
 - `skillType`：vNext Skill 都使用统一执行模型；除非未来出现有实质语义差异的 Skill 类型，否则不作为必填字段。
 - `entryProcedure`：每个 Skill 只有一张入口 Procedure 图，入口由唯一 `procedure.yaml` 确定。
-- `preconditions` 引用本 Skill 唯一 Procedure 中的 Precondition 阶段。省略和空列表语义相同。每项引用须能解析到存在的 Precondition，且不得重复。
+- `preconditions`（**仅 Contract**）引用本 Skill 唯一 Procedure 中的 Precondition **阶段**。省略和空列表语义相同；每项引用须解析到存在的 `<node>.precondition` 且不得重复。这里的复数表示多个全局阶段引用，**不是**在一个 Node 内声明多个 `precondition` 阶段。`postconditions` 不属于当前 Contract 语法，最终目标仍由唯一 `goal` 和可达 Postcondition 阶段证明。
 - 全局 Postcondition 的验收目标由 `goal` 指定。Procedure 的显式 Postcondition 阶段提供该 Goal 的证明，记录 arguments、执行位置、Evidence lineage 和三态结果。
 - `inputs`、`context.requiredFacts`、`context.schemas`：旧包装与拆分声明。公共请求和 Host 上下文分别通过顶层 `requestSchema`、`contextSchema` 声明，字段必需性由对应 Schema 和 Host 准入规则约束。
 - `evidenceSchema`：通用 Evidence Envelope 由 Host / Runtime 统一定义和校验，不由 Skill 重复声明。
@@ -750,10 +753,12 @@ vNext 不允许直接把 Operation ID 放入 Capability 授权列表，不允许
 
 Procedure 是确定性的有向执行图。一个业务 Node 可包含以下阶段，按此顺序执行，省略未声明的阶段：
 
-1. `precondition` 调用 Predicate，正常 Outcome 为 PASS。
+1. `precondition` 按有序 `predicates` 列表逐条调用纯 Predicate，**全部 PASS** 时产生阶段正常 Outcome PASS。
 2. `operation` 调用 Tool、运行纯 Script 或调和原 Mutation。普通操作的正常 Outcome 为 SUCCEEDED，Reconcile 为 COMMITTED。
 3. `observation` 调用只读查询，正常 Outcome 为 SUCCEEDED。
-4. `postcondition` 调用 Predicate，正常 Outcome 为 PASS。
+4. `postcondition` 同样按有序 `predicates` 列表调用纯 Predicate，全部 PASS 时产生阶段正常 Outcome PASS；若关联 `goal`，只由此聚合 PASS 建立 Goal 证明。
+
+**两个判断阶段的列表汇总（v1alpha4 Normative）：** `precondition`、`postcondition` 均先在各自阶段内按 §12.2/§12.5 将成员三态归并为唯一阶段 Outcome，之后才按 §22.1 选择路线。成员 Predicate 没有独立的路由键、Node ID、阶段 ID 或 Action Budget 计数；任一成员的 PASS 都不等于该阶段 PASS。
 
 每个阶段以自身的 Outcome 决定如何推进：
 
@@ -826,7 +831,13 @@ Observation 从 Reconcile 自身输出读取 `subscriptionRef`。若 Owner 未�
 
 ### 12.2 Precondition
 
-Precondition 在 Node 内的其他阶段之前执行 Predicate。它可以检查 Host Context、Request、此前 Operation Result 或 Observation Result。Precondition 不得隐式查询外部系统；若缺少事实，应先通过显式 Observation 获取，再调用 Predicate。Contract 的 `preconditions` 可引用这个阶段，将它作为 Invocation 的全局门禁。
+Precondition 在 Node 内的其他阶段之前**按 `predicates` 列表顺序执行一条或多条纯 Predicate**。每一项都有自己的 `predicate` 与显式有序 `arguments`。它们可以检查 Host Context、Request、此前 Operation Result 或 Observation Result。Precondition 不得隐式查询外部系统；若缺少事实，应先通过前序 Node 的显式 Observation 获取，再逐项绑定。Contract 的 `preconditions` 仍引用整个 `<node>.precondition` 阶段作为全局门禁，而不是内部列表成员。
+
+**阶段级三态合取（Normative，Pre/Post 共享）：** 所有成员都 PASS → 阶段 `PASS`；**任一成员明确 FAIL → 阶段 `FAIL`**；没有 FAIL，但至少一个 UNKNOWN → 阶段 `UNKNOWN`。有序、确定性地从头执行；首个 FAIL 后可短路，不得把其余未执行项记录为 PASS。遇 UNKNOWN 后必须继续检查后续成员是否有 FAIL，不能提前把 UNKNOWN 当作 PASS 或 FAIL。Host 级取消、Deadline、预算上界导致的安全停止，仍属于 Runtime 全局停止而非虚构一个 Predicate UNKNOWN。列表不能为空；即使只调用一个 Predicate 也写成 `predicates:` 列表。
+
+**绑定与执行（Normative）：** Compiler 对每个条目单独校验 PredicateId、arity、SourcePath、静态类型、Evidence.requires/独立性、来源与 Scope；同一 PredicateId 多次出现可携带不同参数，不能被当作重复 YAML Key，也不能把某一次免证来源套用到其他调用点。Predicate 仍无外部副作用、不计 Action Budget；多成员阶段只有一份 `routes`，仅聚合后的阶段 Outcome 决定控制流。Runtime Trace 需要区分实际执行的成员结果、绑定与 Evidence lineage、短路未执行成员、最终阶段结果；物理 Trace 由独立 Runtime Artifact Contract 版本化。
+
+**门禁传播（Normative）：** 只有**该阶段整体 PASS** 才使 Contract 中的 `<node>.precondition` 通过，或使局部 Precondition 门禁通过。§12.9 的控制流依然以 `(NodeId, stage)` 为顶点，不新增阶段内部边；派发前/成功终态复核须验证先前接受的**全部成员 PASS 及其原始来源/Evidence**，不能重跑或替换单个参数。
 
 ~~~yaml
 check-ue-registration:
@@ -917,7 +928,9 @@ inspect-n4-resources:
 
 ### 12.5 Postcondition
 
-Postcondition 调用 Predicate 判断业务结果是否成立。其参数可以来自 Operation Result、Observation Result、Invocation Context 或多个来源的组合。
+Postcondition 与 Precondition **采用同一套阶段名/列表结构**：阶段键是单数 `postcondition`，内部必需非空有序 `predicates` 列表，单成员也写列表形式。每个成员分别按自身声明的 `arguments` 调用纯 Predicate，结果按 §12.2 的同一三态合取归并为一次阶段级 `PASS/FAIL/UNKNOWN`，共用一份 `routes`。参数可以来自 Operation Result、Observation Result、Invocation Context 或多个来源的组合。Evidence、SourcePath、Scope 与已确认的 Producer 归属必须逐成员验证，不因其中一个成员有证据或 PASS 而为其他成员背书。
+
+**Goal 与局部验收（Normative）：** `postcondition.goal` 是**整个 Postcondition 阶段**的可选属性，必须精确等于 `contract.goal`；列表项不得各自声明 Goal。若声明 `goal`，**只有完整列表全部 PASS 得到的阶段 PASS** 才建立单一 Contract Goal 证明，任一 FAIL 或 UNKNOWN 都不能建立；只有某一个 Predicate PASS 不够。省略 `goal` 的局部 Postcondition 即使全部 PASS，也只能保留之前已有的 Goal 证明，绝不自动新建证明。§12.9 的证明清除/重建与汇合点规则维持原样。单成员与多成员 Postcondition 都依赖 Runtime 发布成功前对全部原绑定和 Evidence 进行复核。
 
 ~~~yaml
 verify-n4-session:
@@ -992,10 +1005,10 @@ Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时必�
 
 - Contract 的 `preconditions` 列出本次 Invocation 必须通过的前置判断。每条从 `start` 到业务 Mutation 派发或 `SUCCEEDED` 终态路由的可达路径，都必须经过列表中每项 Precondition 的 PASS。未执行、FAIL 或 UNKNOWN 均不能满足该项。列表顺序不影响执行。Procedure 可以先用 READ 或 Observation 获取事实，也可以在同一个 Node 中先执行 Precondition 再派发 Mutation。
 - 每次业务 Mutation 派发前，Runtime 复核所有全局前置条件以及适用于该派发的局部门禁。局部门禁包括同一 Node 的 Precondition，以及直接前驱 Node 正常完成时最后执行的局部判断（未被 Contract 引用的 Precondition 或无 `goal` 的 Postcondition）。跨 Node 的局部判定仅在其正常完成边直接进入目标 Mutation，且该 Mutation 是下一 Node 的首个阶段时复核。同一次 PASS 同时适用时只复核一次。Reconcile 按 §20 独立准入。
-- 全局 Postcondition 要求证明 Contract 的单一 `goal`。`postcondition.goal` 必须精确匹配该 Goal，其 PASS 建立证明。各成功分支可以由不同 Node 的 Postcondition 建立证明。`start` 可指向带有 Goal Postcondition 的 Node。若同一验收需要同时检查多项事实，可在一个 Predicate 中明确组合判断。
+- 全局 Postcondition 要求证明 Contract 的单一 `goal`。`postcondition.goal` 必须精确匹配该 Goal；**阶段中全部 `predicates` 成员 PASS 的聚合 PASS** 才建立证明。各成功分支可以由不同 Node 的 Postcondition 建立证明。`start` 可指向带有 Goal Postcondition 的 Node。同一验收需要多项事实时，可以在同一 Postcondition 使用多个 Predicate，或在一个 Predicate 内组合判断；两者都不能减少 §17 的 Evidence 义务。
 - Runtime 发布 SUCCEEDED 前复核全部全局前置条件、当前 Goal 证明的来源与 Evidence，以及资源责任。所有门禁复核都使用原绑定和最新校验时间。若缺少要求的 PASS 或复核失败，按 §12.8 停止，保留原 Trace。Runtime 不隐式重新求值、查询、换绑证据或回退到更早的 Goal 证明。失败或停止终态按 §12.8 发布，无需全局 PASS 或 Goal 证明。
 
-Compiler 构建以 `(Node ID, 阶段名)` 为顶点的分析图。每个合法 Outcome 对应一条边，边记录来源顶点、Outcome 与目标。若还有后续阶段，正常 Outcome 生成一条自动推进边，目标为同一 Node 的下一已声明阶段。其他边来自 `routes`，目标为另一 Node 的首个阶段或终态。两种边都按来源阶段和 Outcome 应用相同的门禁及证明更新规则。伪代码中的 `vertex.effect` 是普通 Tool Operation 经过链接校验的 Effect，只在普通 Tool Operation 的阶段顶点上有值。Reconcile 和 Procedure Script 的该值为空。
+Compiler 构建以 `(Node ID, 阶段名)` 为顶点的分析图。**多 Predicate Pre/Postcondition 仍是单个阶段顶点；只有列表聚合的阶段 PASS 边才可传播全局门禁或 Goal 证明。** 任一成员的 PASS 不是独立控制流边，也不是分支可借用的证明。每个合法 Outcome 对应一条边，边记录来源顶点、Outcome 与目标。若还有后续阶段，正常 Outcome 生成一条自动推进边，目标为同一 Node 的下一已声明阶段。其他边来自 `routes`，目标为另一 Node 的首个阶段或终态。两种边都按来源阶段和 Outcome 应用相同的门禁及证明更新规则。伪代码中的 `vertex.effect` 是普通 Tool Operation 经过链接校验的 Effect，只在普通 Tool Operation 的阶段顶点上有值。Reconcile 和 Procedure Script 的该值为空。
 
 分析图的 vertex.kind 由已解析阶段及 Operation 目标决定，包括 observation、tool_operation、script_operation 和 reconcile；script_operation 仅对应 operation 的 script 目标。下文的 READ Operation 指链接后的 Effect 为 READ 的普通 Tool Operation。此处不增加作者源码字段。Compiler 先更新边上的状态，再检查每条可达的 `SUCCEEDED` 终态边。最后阶段的 Goal PASS 因此可以直接证明同一条成功边。入口顶点是 `start` Node 的第一个已声明阶段，进入时没有已通过的全局前置条件，也没有 Goal 证明。
 
@@ -1077,7 +1090,7 @@ vNext 删除 Procedure Node 上的 `with` / `from` / `value` 包装，统一使�
 
 - Tool Operation.arguments：具名映射，键为 Owner Input Schema 字段；Procedure Script Operation.arguments：具名映射，作为该次 Script 调用的完整输入投影；
 - Observation.arguments：具名映射，键为 Query Input Schema 字段，值为来源表达式或标量字面量；
-- Precondition / Postcondition.arguments：有序列表，位置与 Predicate.parameters 严格对应。各阶段的实参及跨 Node 路由写在该阶段内部。
+- Precondition / Postcondition 的 `predicates[].arguments`：每个调用项各自提供有序参数列表，与其 `predicate` 引用的 `Predicate.parameters` 严格按位置对应；阶段根不再声明 `arguments`，仅在阶段根声明共同 `routes`（Postcondition 还可声明阶段级 `goal`）。
 
 ~~~yaml
 # assurance/procedure.yaml 的语法片段；Goal/授权属于 contract.yaml
@@ -1103,7 +1116,7 @@ nodes:
 - `arguments` 映射的每个值和列表的每个元素都是 Expression。使用 YAML 1.2 Core 的**受支持标量子集**（G.1），并保留标量是否加引号及原始词法。解析器即使把 `Null`、`NULL` 或 `~` 识别为 Core Null，也不得当作本版合法的 null 字面量；本版只接受裸写 `null`，Boolean 只接受裸写 `true` / `false`，数字使用 G.1 限定的有限十进制。裸字符串仅在匹配 SourcePath 文法时合法；字符串常量须加引号。例如 context.ueRef、context.request.dnn、read-subscription.operation.output.result、read-subscription.operation.output.result.subscription.dnn。
 - YAML 原生 Boolean、Number、Null 和带引号的 String 表示字面量。例如 `phase: "POST_CREATE"` 是合法字符串常量，`phase: POST_CREATE` 报 `SOURCE_PATH_INVALID`。`baselineRef: read-n4-baseline.observation.output.baselineRef` 是来源引用。
 - 本版（v1alpha4）不允许在 arguments 中内联任意对象或数组字面量；复杂对象必须来自一个有 Schema 的 Request、Context 或 Producer Output。`context` 路径读取 §11.5 已校验的 Invocation 值。节点输出路径只能读取当前执行路径上已产生的有效输出。
-- Predicate.arguments 必须是有序列表，位置与 Predicate.parameters 严格对应。
+- 判断阶段每个 `predicates[]` 项的 `arguments` 必须是有序列表，位置与所引用 Predicate 的 `parameters` 严格对应。
 - Tool Operation、Procedure Script Operation 和 Observation.arguments 必须是具名映射。Tool / Observation 的键由 Owner Schema 定义；Procedure Script 的键构成该次 Script 调用的精确输入投影。
 - Reconcile 不接受 arguments；其唯一输入是被引用的原始 Mutation Invocation。
 
@@ -1258,7 +1271,7 @@ Predicate 的 `parameters` 声明业务值类型。`evidence.requires` 可选，
 
 **省略 `requires` 的两种教学对照（Informative，不新增豁免）：** 若 Predicate 声明 `parameters: [{expectedPsi: integer}]`、省略该参数的 `evidence.requires`，且每个调用点都仅绑定 `context.request.pduSessionId` 等 §17.1 允许豁免的来源，**仅就 Evidence 声明**可通过（业务类型和 Scope/身份来源另按 §13.3 校验）。反例是同一个 Predicate 的任何调用点改绑 `observe-session.observation.output.psi`：即使其他调用点仍绑定请求字段，该输出属于权威外部 Producer，缺少覆盖其值路径的显式保证必须报 `PREDICATE_EVIDENCE_REQUIRED`；不能因为其他调用点豁免而忽略它。若已声明 `requires`，两种来源在每个调用点都必须实际满足该保证。
 
-Compiler 按来源判定每个调用点的实参，覆盖所有可达路径。直接引用普通 Tool Operation、Observation 或 Reconcile 输出的实参必须为对应参数声明至少一个覆盖精确值路径的保证，即使该值仅用于比较。Host Context 字段同样要求保证，但请求字段 `context.request.*`、Host 已校验的身份 `context.ueRef`、关联信息 `context.correlation.*` 及其根对象 `context.correlation` **在未为相应参数显式声明保证时**可作为比对输入豁免。字面量和整个已校验的 `context.request` 也可豁免。此检查只约束参数来源。若 Goal 声明外部事实，Owner 须审定 Predicate 的命题与取证路径确实支持该 Goal。
+Compiler 按来源判定每个调用点的实参，覆盖所有可达路径。**v1alpha4：Pre/Postcondition 中每个 `predicates[]` 条目是一个独立的 Predicate 调用点；同一 Predicate 被多条目复用，也必须对所有调用点逐一检查已声明保证，不得通过其中一项来源豁免绕过另一项。**直接引用普通 Tool Operation、Observation 或 Reconcile 输出的实参必须为对应参数声明至少一个覆盖精确值路径的保证，即使该值仅用于比较。Host Context 字段同样要求保证，但请求字段 `context.request.*`、Host 已校验的身份 `context.ueRef`、关联信息 `context.correlation.*` 及其根对象 `context.correlation` **在未为相应参数显式声明保证时**可作为比对输入豁免。字面量和整个已校验的 `context.request` 也可豁免。此检查只约束参数来源。若 Goal 声明外部事实，Owner 须审定 Predicate 的命题与取证路径确实支持该 Goal。
 
 Procedure Script 输出保守继承其全部绑定实参的来源类别，包括上游 Script 的传递来源。仅当全部来源均可豁免时，其输出可无保证。涉及外部事实的 Procedure Script 输出可用于 Operation 或 Observation 的非身份实参，须满足 §13.3 的来源追溯、类型与授权校验。需要 Evidence 的 Predicate 参数必须改绑到权威 Producer 输出或绑定到由 Host 契约提供可验证关联的 Context 子路径。直接绑定该 Script 输出不能满足所需保证。Script 不能继承输入 Evidence。缺少强制声明报 `PREDICATE_EVIDENCE_REQUIRED`；已声明却无法满足者按 §17.2 校验。
 
@@ -1430,7 +1443,7 @@ Host / Runtime 仍负责 Deadline、Cancellation、Correlation、预算、UNKNOW
 
 | 阶段 | 正常 Outcome | 其他允许的 Outcome |
 |---|---|---|
-| Precondition / Postcondition | `PASS` | `FAIL`、`UNKNOWN` |
+| Precondition / Postcondition | `PASS`（全部 `predicates[]` PASS 后的唯一阶段结果） | `FAIL`（任一 FAIL）、`UNKNOWN`（无 FAIL 且至少一项 UNKNOWN），见 §12.2/§12.5 |
 | READ Operation / Observation | `SUCCEEDED` | `FAILED`、`DENIED`、`UNKNOWN` |
 | MUTATION Operation | `SUCCEEDED` | `FAILED`、`DENIED`、`NOT_COMMITTED`、`OUTCOME_UNKNOWN` |
 | Procedure Script | `SUCCEEDED` | `FAILED` |
