@@ -149,6 +149,12 @@ def validate_v1alpha4_example(skill_name: str, errors: list[str]) -> None:
     for field in ("call", "with", "reconcile", "resolve", "verify", "on"):
         if re.search(r"(?m)^\s*" + field + r":", procedure):
             errors.append(f"{skill_name}: v1alpha4 Procedure cannot contain legacy {field}")
+    # Example-level design decision: asynchronous completion belongs to
+    # the Owner/Provider/SMF Operation, not an author-facing wait or poll Node.
+    if re.search(r"(?m)^  (?:wait|await|poll)[-_a-z0-9]*:", procedure) or re.search(
+        r"(?m)^\s*tool:\s*\S*(?:evidence\.await|\.wait|\.poll)(?:\b|$)", procedure
+    ):
+        errors.append(f"{skill_name}: Skill author must not declare wait/await/poll Nodes or Tool calls")
     if not re.search(r"(?m)^\s+PASS: SUCCEEDED\s*$", procedure):
         errors.append(f"{skill_name}: no final PASS: SUCCEEDED candidate")
     if not re.search(r"(?m)^\s+OUTCOME_UNKNOWN: (UNRESOLVED|SAFE_STOPPED)\s*$", procedure):
