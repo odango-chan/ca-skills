@@ -1256,13 +1256,15 @@ Predicate 的 `parameters` 声明业务值类型。`evidence.requires` 可选，
 
 **省略 `requires` 的两种教学对照（Informative，不新增豁免）：** 若 Predicate 声明 `parameters: [{expectedPsi: integer}]`、省略该参数的 `evidence.requires`，且每个调用点都仅绑定 `context.request.pduSessionId` 等 §17.1 允许豁免的来源，**仅就 Evidence 声明**可通过（业务类型和 Scope/身份来源另按 §13.3 校验）。反例是同一个 Predicate 的任何调用点改绑 `observe-session.observation.output.psi`：即使其他调用点仍绑定请求字段，该输出属于权威外部 Producer，缺少覆盖其值路径的显式保证必须报 `PREDICATE_EVIDENCE_REQUIRED`；不能因为其他调用点豁免而忽略它。若已声明 `requires`，两种来源在每个调用点都必须实际满足该保证。
 
-Compiler 按来源判定每个调用点的实参，覆盖所有可达路径。**v1alpha4：Pre/Postcondition 中每个 `predicates[]` 条目是一个独立的 Predicate 调用点；同一 Predicate 被多条目复用，也必须对所有调用点逐一检查已声明保证，不得通过其中一项来源豁免绕过另一项。**直接引用普通 Tool Operation、Observation 或 Reconcile 输出的实参必须为对应参数声明至少一个覆盖精确值路径的保证，即使该值仅用于比较。Host Context 字段同样要求保证，但请求字段 `context.request.*`、Host 已校验的身份 `context.ueRef`、关联信息 `context.correlation.*` 及其根对象 `context.correlation` **在未为相应参数显式声明保证时**可作为比对输入豁免。字面量和整个已校验的 `context.request` 也可豁免。此检查只约束参数来源。若 Goal 声明外部事实，Owner 须审定 Predicate 的命题与取证路径确实支持该 Goal。
+Compiler 按来源判定每个调用点的实参，覆盖所有可达路径。**v1alpha4：Pre/Postcondition 中每个 `predicates[]` 条目是一个独立的 Predicate 调用点；同一 Predicate 被多条目复用，也必须对所有调用点逐一检查已声明保证，不得通过其中一项来源豁免绕过另一项。**直接引用普通 Tool Operation、Observation 输出（包括 Host 经专用 Reconcile READ 验证并映射至原 Mutation `operation.output` 的结果）的实参必须为对应参数声明至少一个覆盖精确值路径的保证，即使该值仅用于比较。Host Context 字段同样要求保证，但请求字段 `context.request.*`、Host 已校验的身份 `context.ueRef`、关联信息 `context.correlation.*` 及其根对象 `context.correlation` **在未为相应参数显式声明保证时**可作为比对输入豁免。字面量和整个已校验的 `context.request` 也可豁免。此检查只约束参数来源。若 Goal 声明外部事实，Owner 须审定 Predicate 的命题与取证路径确实支持该 Goal。
 
 Procedure Script 输出保守继承其全部绑定实参的来源类别，包括上游 Script 的传递来源。仅当全部来源均可豁免时，其输出可无保证。涉及外部事实的 Procedure Script 输出可用于 Operation 或 Observation 的非身份实参，须满足 §13.3 的来源追溯、类型与授权校验。需要 Evidence 的 Predicate 参数必须改绑到权威 Producer 输出或绑定到由 Host 契约提供可验证关联的 Context 子路径。直接绑定该 Script 输出不能满足所需保证。Script 不能继承输入 Evidence。缺少强制声明报 `PREDICATE_EVIDENCE_REQUIRED`；已声明却无法满足者按 §17.2 校验。
 
 保证引用解析到可信 Owner 契约中的唯一精确身份。该描述符是对应 Evidence 保证的唯一权威。ToolCatalog 中 `provides` 只发布保证引用和输出路径。同一保证在 ToolCatalog 重复声明权威、Scope、Correlation、时间或 Freshness 等规则时，Compiler 报 `EVIDENCE_GUARANTEE_LINK_INVALID`。Runtime 只按链接后的描述符判定这些维度。可执行描述符至少给出权威 Owner、允许的 Producer 身份及值路径、适用的 Scope / Correlation 维度及其与当前 Invocation 或已校验调用参数的取值绑定、同一事实的记录选择规则，以及 Freshness 的时间基准和判定规则。
 
 Predicate 参数 Schema 由 `parameters` 声明。Producer 值的 Schema 从已发布的输出或 Host Context Schema 按值路径解析，并对参数 Schema 检查可赋值性。`provides[].guarantee` 是该发布方快照中精确的描述符导出键，可以指向同一快照内的独立契约。Compiler 必须解析到唯一导出，并核对描述符允许的 Producer 身份、Outcome 与 `provides[].path`；`output` 指整个已声明的输出。缺失、歧义或路径不匹配均拒绝链接。声明的 `provides` 引用解析失败时报告 `EVIDENCE_GUARANTEE_LINK_INVALID`。
+
+**Host 恢复成功的双 Producer 检查（Normative）：** 同一作者 SourcePath `<original-node>.operation.output` 的正常 SUCCEEDED 与 Host 经恢复 READ 后归并的 SUCCEEDED 属于**两种实际 Producer 来源**。编译器对所有会消费该 SourcePath 的 Predicate/Evidence 绑定，必须分别证明普通原 Mutation 成功回包和专用恢复 READ 的真实输出路径、Owner/outcome、保证 ID、Schema、Scope、Correlation 与 Freshness 均满足要求；任一来源缺少可信保证或不可静态证明时，按 §17.2 现有 `PREDICATE_EVIDENCE_UNSATISFIABLE` / `EVIDENCE_GUARANTEE_LINK_INVALID` fail-closed，不能靠运行时冒充另一个 Producer 来绕过。Host 终态复核必须核对本次真实 Producer 和绑定原调用的恢复 lineage；没有读到恢复分支时不凭名字重跑或换绑。恢复 READ 不能伪装成普通原 Mutation Owner 回包。**若 Owner 不提供可以授权的同一 Goal Evidence 保证，作者须让未决操作安全停止，而不是假定恢复业务结果等价。**
 
 E.3 示范分文件声明。Operation Result 和 Observation Result 可提供同一个保证，前提是该权威 Owner 明确授权两条 Producer 路径。Skill 只引用保证 ID；Schema、Owner、相关性和有效期由 Owner 契约提供。描述符中，Observation Producer 的实参引用根为 `query`，Operation Producer 的实参引用根为 `arguments`。两者是保留根，指向相应 Producer 派发时物化并通过校验的实参。Compiler 按描述符中的 Producer kind 校验引用根与字段路径，未知根、根与 kind 不符或实参路径无法解析时报 `EVIDENCE_GUARANTEE_LINK_INVALID`。描述符字段的互操作要求按附录 F.3；真实 Owner 发布和 Transport 联调按 §45.2。
 
@@ -3117,7 +3119,7 @@ E39、E43 的 ca 快照基线：将可信 Owner 集合设为 `[example-ue-owner,
 
 | 用例 | 基线与最小改动 | 预期 |
 |---|---|---|
-| E17 | §12.1 原 Mutation 直接 SUCCEEDED，以及超时后经 Host 受信 Reconcile READ 证明提交且恢复完整普通输出后归并 SUCCEEDED；均到达同一 Postcondition | 同一最终 Postcondition 聚合 PASS→SUCCEEDED；保留两种不同的真实 Producer lineage，无伪造原 Owner 成功回包 |
+| E17 | §12.1 原 Mutation 直接 SUCCEEDED，以及超时后经 Host 受信 Reconcile READ 证明提交、恢复完整普通输出并提供覆盖同一 Predicate 参数的权威 Evidence 后归并 SUCCEEDED；均到达同一 Postcondition。反例取消恢复 Producer 的 Evidence 保证 | 两条正常/恢复路径都要满足最终 Postcondition 聚合 PASS→SUCCEEDED，Trace 保留不同真实 Producer lineage；反例按 §17.2 拒绝链接，不能伪造原 Owner 成功回包 |
 | E18 | 保留 §12.1 正常 SUCCEEDED→Postcondition PASS→SUCCEEDED，另改 `create-subscription.operation.routes.COMMITTED: SUCCEEDED` | SUCCESS_BYPASSES_FINAL_POSTCONDITION；即使另一条合法最终 Postcondition 边存在，COMMITTED 也不得直接发布 Invocation SUCCEEDED |
 | E10a | §12.1 将 `create-subscription.operation.routes.NOT_COMMITTED` 指向新 Observation Node，该 Observation 输入绑定 `create-subscription.operation.output.subscriptionRef`（原普通成功 Schema 中必需） | SOURCE_NOT_AVAILABLE；NOT_COMMITTED 不产生正常成功输出；若字段未声明则先报 SOURCE_PATH_INVALID |
 | E10b | Owner `mutation.reconcile` 不声明 recoverableOutputSchema/path；将原 Mutation `routes.COMMITTED` 指向一个新的 Observation，它绑定 `create-subscription.operation.output.subscriptionRef` | RECONCILE_OUTPUT_UNAVAILABLE；COMMITTED 无恢复输出承诺，区别于 E10a 的 NOT_COMMITTED；需独立 Fixture/原始结果 |
