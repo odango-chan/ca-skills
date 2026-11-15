@@ -14,6 +14,8 @@
 
 **单文件评审版（2026-11-15）。** 此文件已经整合各轮 v1alpha3 勘误、术语澄清、字段权威表、作者指南、执行决策、符合性分工和资料性测试候选。**只需评审这一份 Markdown**：§0–§45 及附录 A–H 包含现行规范正文、完整 E01–E114 预期、F/G 互操作规则和 H 诊断索引；附录 I 是合并后的作者指南，附录 J 是决策与历轮裁决摘要，附录 K 是测试候选及验收报告（后三者均 Informative）。历史 PR/勘误文件仅保留审计记录，不是解释本规范的必读文件，也不能覆盖本文件。语言语义继续 FROZEN，产品符合性继续 NOT QUALIFIED。
 
+**评审导航：** §0 确定效力与范围；§9–§14 检查 Owner 契约、DAG、SourcePath 和数据绑定；§17–§24 检查 Evidence、Reconcile、路由与诊断；§32–§45 检查 Script、可信依赖及产品门槛；**附录 E** 含全部 E01–E114 预期，**F/G** 为规范性互操作和 Schema/CEL 规则，**H** 为统一诊断索引；**I/J/K** 分别是作者指南、最终裁决与待实施验收材料（资料性）。所有内容均在当前文件中。
+
 ---
 
 # 第一部分：背景与目标
@@ -4185,44 +4187,18 @@ flowchart TD
 
 ## K.3 冻结后复审的六项回归候选（Informative）
 
-编号 RFX-117–RFX-122 是审查工作的资料性追踪标识，**不**属于 E01–E114，也不承诺将来一定命名为 E117–E122。全部 `NOT_IMPLEMENTED`，对应原始可信 Host、Owner、Compiler 和 Runtime Fixture 尚未交付。
+编号 RFX-117–RFX-122 只是审查工作的资料性追踪标识，**不**属于 E01–E114，不是 E115–E122 的别名，也不承诺将来会以相同编号进入正式符合性范围。以下均 **NOT_IMPLEMENTED**；缺少可信 Owner/Host Fixture、实际执行结果及原始证据时不能写 PASS。
 
-**RFX-117 — "§13.3", "§23", "§30"（资料性，非 E 编号）**
+| 资料性候选 | 正反例输入差异 | 必须保持的既有预期 |
+|---|---|---|
+| RFX-117 · §13.3、§23、§30 | Owner/Scope 将 PSI 标为身份参数时，分别从 `context.request.pduSessionId` 直接绑定与从正式发布、已验证的 Host 身份投影绑定 | 前者 `CALLABLE_ARGUMENT_PROVENANCE_INVALID` 且不派发；后者只有可信来源、关联和授权全部可核验时才可能通过来源检查 |
+| RFX-118 · §17.1–§17.2 | 同一 Predicate 参数的所有调用点都属豁免来源；混合外部 Producer 输出；显式 requires 却无对应保证；本次证据缺失 | 依次核查省略 requires 允许、`PREDICATE_EVIDENCE_REQUIRED`、`PREDICATE_EVIDENCE_UNSATISFIABLE`、Runtime Predicate UNKNOWN |
+| RFX-119 · §24/H | 校验 H 的 `(Code,Phase)` 唯一性，并注入已派发 READ/Observation 的 Scope/Correlation 回包失配 | 不得合并跨阶段诊断；回包失配只能隔离并按已声明 UNKNOWN 或安全停止，不得改走派发前 DENIED |
+| RFX-120 · F.5/G.4 | 各自注入不支持的 `allOf/anyOf/oneOf/not/if-then-else`；再测试有效 Schema 之间的静态不可赋值 | 前一组 `SCHEMA_INVALID`，后一组（非可空性专用错误时）`INPUT_TYPE_MISMATCH` |
+| RFX-121 · §34.0.2/F.4/G.3.1 | 独立域关系缺失、重复、自反、越权；关系合法但本次两个 Ref 同源；关系与本次来源都确实独立 | 受信关系无效则静态 `EVIDENCE_GUARANTEE_LINK_INVALID`；本次不独立时 Predicate UNKNOWN；全部通过才业务求值 |
+| RFX-122 · §12.8/§20/G.5 | Goal PASS 且还有已认证 PENDING 责任；对照所有确认责任已验证转移/清理且其他门禁满足 | 前者发布 `SAFE_STOPPED` 并保留责任；后者也只有在所有门禁、提交和证据复核通过后才可发布 Invocation `SUCCEEDED` |
 
-输入变体：Owner or deployment Scope labels pduSessionId as identity. Call binds context.request.pduSessionId directly.；Host publishes and validates an authoritative PSI/Session Context path; call explicitly binds that trusted path with correct Scope/Owner contract.。
-
-预期行为：C_STATIC CALLABLE_ARGUMENT_PROVENANCE_INVALID; no dispatch；May pass provenance ONLY when the authoritative Host identity and all other contracts are verifiably present; not automatically PASS or Runtime READY。**状态：NOT_IMPLEMENTED**。
-
-**RFX-118 — "§17.1", "§17.2"（资料性，非 E 编号）**
-
-输入变体：Predicate param omits requires and ALL call sites bind exempt Host/request/literal sources；Same param omits requires but a call site binds external Operation/Observation；Param explicitly declares requires; a call site binds exempt context.ueRef but has no matching Producer guarantee；Explicitly declared requires is statically satisfiable, but this invocation has no valid matching evidence record。
-
-预期行为：No PREDICATE_EVIDENCE_REQUIRED solely due to exempt origins；C_STATIC PREDICATE_EVIDENCE_REQUIRED；C_STATIC PREDICATE_EVIDENCE_UNSATISFIABLE; exemption does not cancel declared guarantees；R_RUNTIME Predicate UNKNOWN; no automatic PASS。**状态：NOT_IMPLEMENTED**。
-
-**RFX-119 — "§24.1", "§24.2", "Appendix H"（资料性，非 E 编号）**
-
-输入变体：Extract H unique (Code, Phase) keys and link to §24.1/§24.2 trigger and handler rules；Check that already dispatched READ/Observation SCOPE_MISMATCH or CORRELATION_MISMATCH uses UNKNOWN-or-stop, never DENIED。
-
-预期行为：No duplicate (Code, Phase), undefined diagnostics or contradictory routing classification；Exactly matching Runtime dispatch rules。**状态：NOT_IMPLEMENTED**。
-
-**RFX-120 — "§F.5", "§G.4", "§34.1"（资料性，非 E 编号）**
-
-输入变体：Each of allOf, anyOf, oneOf, not, if/then/else independently appears in an otherwise valid Schema；Schema uses only supported G.4 keywords but Source is not assignable to Target。
-
-预期行为：C_STATIC SCHEMA_INVALID for each unsupported composition, regardless of hypothetical inclusion proof；C_STATIC INPUT_TYPE_MISMATCH for valid schemas with incompatibility unrelated to nullability。**状态：NOT_IMPLEMENTED**。
-
-**RFX-121 — "§34.0.2", "§F.4", "§G.3.1"（资料性，非 E 编号）**
-
-输入变体：IndependentDomains trusted relationship missing, self-paired, duplicated or unauthorized；Trusted domains and independentPairs valid, actual two Producer records are same underlying source；Trusted domains and independentPairs valid, actual Producer records demonstrably independent。
-
-预期行为：C_STATIC EVIDENCE_GUARANTEE_LINK_INVALID for invalid trust relationship；R_RUNTIME Predicate UNKNOWN when actual independence is not established；Business evaluator PASS/FAIL only after guarantees and independent evidence are verified。**状态：NOT_IMPLEMENTED**。
-
-**RFX-122 — "§12.8", "§20.1.1", "§29", "§G.5"（资料性，非 E 编号）**
-
-输入变体：Business Goal Predicate PASS with pendingResponsibilitiesRetained=true and an authenticated PENDING disposition record；Same local Goal PASS but all known confirmed responsibilities verified TRANSFERRED or CLEANED, no unresolved calls, all other Goal/Scope/Evidence gates valid。
-
-预期行为：Invocation SAFE_STOPPED, retaining the PENDING record; TERMINAL_STATE_MISMATCH when a SUCCEEDED request is superseded；Eligible for Invocation SUCCEEDED only after all §12.8/§12.9 checks, not by the boolean alone。**状态：NOT_IMPLEMENTED**。
-
+所有 RFX 项的执行状态都是 **NOT_IMPLEMENTED**，不为它们分配新的规范性诊断代码。
 
 ## K.4 符合性报告模板（Informative，未测试）
 
