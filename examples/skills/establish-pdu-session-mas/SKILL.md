@@ -13,7 +13,7 @@ description: CA-SL v1alpha4 illustrative SMF MAS policy-first initial PDU Sessio
 
 One admitted, initial IPv4 / SSC1, local non-roaming PDU Session request. Never substitute an arbitrary UE, PSI, lifecycle, resource or late callback; identity and Scope require independent Host/Owner proof.
 
-MAS is **policy-first**: validate subscription and required authentication disposition, establish context and UECM, create policy, choose UP anchor, allocate address, update policy with actual allocation, create charging and N4, signal RAN, activate forwarding, account for events and transfer durable ownership.
+MAS is a **proposed, not Owner-approved policy-first** graph, with per-step Postcondition and confirmed-failure-only cleanup; on OUTCOME_UNKNOWN it stops and retains responsibility. See [migration decision register](../../MIGRATION-REVIEW-v1alpha4.md). The intended sequence is: validate subscription and required authentication disposition, establish context and UECM, create policy, choose UP anchor, allocate address, update policy with actual allocation, create charging and N4, signal RAN, activate forwarding, account for events and transfer durable ownership.
 
 ## Runtime and evidence boundary
 
