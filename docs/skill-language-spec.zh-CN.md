@@ -12,7 +12,7 @@
 
 **规范性用语。** MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT、MAY、OPTIONAL 按 RFC 2119 和 RFC 8174 解释。相应中文规范性措辞包括“必须”“不得”“应当”“不建议”“可以”。
 
-**变更记录。** [勘误记录（一）](design/ca-sl-v1alpha3-errata-2026-11-14.md)、[勘误记录（二）](design/ca-sl-v1alpha3-errata-2026-11-14-r2.md)、[诊断追溯与 PSI 身份来源勘误](design/ca-sl-v1alpha3-diagnostic-trace-errata.md)、[互操作与实现基准澄清](design/ca-sl-v1alpha3-interop-clarifications-2026-11-14.md)、[Reconcile 与 Runtime 诊断归属勘误](design/ca-sl-v1alpha3-reconcile-runtime-errata-2026-11-14.md)、[Evidence 来源与 Scope/Schema 闭合性勘误](design/ca-sl-v1alpha3-evidence-source-and-routing-errata.md)、[编辑性澄清第三轮](design/ca-sl-v1alpha3-editorial-closure-2026-11-14.md)、[互操作审计与符合性分流澄清](design/ca-sl-v1alpha3-interop-audit-2026-11-14.md)、[Receipt 通道锚点与规范权威性审计](design/ca-sl-v1alpha3-receipt-anchor-audit-2026-11-15.md)、[摘录评审与冻结范围澄清](design/ca-sl-v1alpha3-excerpt-review-scope-2026-11-15.md)、[冻结后诊断/术语/互操作一致性审计](design/ca-sl-v1alpha3-postfreeze-consistency-review-2026-11-15.md)。勘误不改变 v1alpha3 的规范性语义；产品符合性状态见 §45.2。
+**单文件评审版（2026-11-15）。** 此文件已经整合各轮 v1alpha3 勘误、术语澄清、字段权威表、作者指南、执行决策、符合性分工和资料性测试候选。**只需评审这一份 Markdown**：§0–§45 及附录 A–H 包含现行规范正文、完整 E01–E114 预期、F/G 互操作规则和 H 诊断索引；附录 I 是合并后的作者指南，附录 J 是决策与历轮裁决摘要，附录 K 是测试候选及验收报告（后三者均 Informative）。历史 PR/勘误文件仅保留审计记录，不是解释本规范的必读文件，也不能覆盖本文件。语言语义继续 FROZEN，产品符合性继续 NOT QUALIFIED。
 
 ---
 
@@ -45,7 +45,7 @@ CA-SL vNext / v1alpha3 的作者源码语法、静态语义、运行语义、附
 | Skill Eligibility / Root Routing 的选中算法和完整 `Applicability` YAML 作者语法 | **未在 v1alpha3 作者源码语法中定义或冻结**；属于独立 Host/Root Routing 契约。§12.8 已冻结的“不能唯一匹配则拒绝准入”安全要求仍有效，但不得把此条件误认作完整选择协议已发布；不得默许旧 `applicability.when` |
 | Compiler Artifact、Runtime Trace、BuildRequest 的物理 framing/运输及真实 Tool Owner 的发布物 | **由各自版本契约拥有**；不得从 CA-SL FROZEN 推断其序列化格式或产品符合性已通过 |
 
-**规范文件完整性。** 附录 E（测试预期）、F（互操作字段）、G（闭合性补充）、H（诊断索引），以及 §30–§45 均属于**本文件的组成部分**；第十一部分 §46–§91 为资料性技术问答/设计说明，不存在必须另行读取的独立规范性 FAQ。它们并非缺失的外部规范性附件。仅摘取 §0–§29 或截断 CEL 片段不能用于替代完整文本的符合性评审；权威的精确文件为 `docs/skill-language-spec.zh-CN.md` 的受审提交版本。
+**规范文件完整性。** 附录 E（测试预期）、F（互操作字段）、G（闭合性补充）、H（诊断索引），以及 §30–§45 均属于**本文件的组成部分**；第十一部分 §46–§91 为资料性技术问答/设计说明。附录 I/J/K 已收编原先另行维护的作者指南、决策追踪、勘误裁决及测试/报告辅助材料，全部为 Informative；它们不增加字段或放宽 Normative 条款。本版完整评审仅需当前 `docs/skill-language-spec.zh-CN.md` 的**同一受审提交**，无需跨文件拼合；仅摘取 §0–§29 或截断 CEL 片段不能替代全文符合性评审。
 
 BuildRequest 传输格式、Compiler Artifact、Runtime Trace 及 Tool Owner 发布物分别受其自身的版本契约管理。本文件的冻结状态不构成上述产品或发布物通过符合性验收的证明。历史 v1alpha2 冻结记录及 v1alpha3 修订记录不覆盖本文件；互操作字段以附录 F/G 为准。
 
@@ -1189,7 +1189,7 @@ Freshness 由 Owner Contract 声明可执行的有效性规则（例如从 obser
 
 ## 17. Evidence 与 Predicate 参数
 
-SourcePath 可选字段、Evidence 重验及 Owner Schema 投影的作者模式参见[资料性指南](guides/ca-sl-v1alpha3-authoring-patterns.md)。指南不新增保证、不改变本章的静态与运行时判定。
+SourcePath 可选字段、Evidence 重验及 Owner Schema 投影的作者模式已收编在**本文件附录 I（Informative）**，不新增保证、不改变本章的静态与运行时判定。
 
 ### 17.1 业务签名与来源要求
 
@@ -1292,7 +1292,7 @@ State 不自动等于 Evidence；Handle 不自动等于 State；Mutation 成功�
 
 ## 20. READ、MUTATION 与 Reconcile
 
-READ 必须校验 Capability、Effect、Input / Output Schema、Scope、Producer Invocation 和 Evidence。MUTATION 派发前还须校验入口门禁、Deadline、取消状态，并持久化原始调用身份、输入、Scope、Correlation 和结果责任。按 §12.8 处理准入失败或强制停止。下列 §20.1、§20.3 和 G.2.2 分别规定 Mutation、Reconcile 及证明结构的规范性判断；[统一执行决策索引](design/ca-sl-v1alpha3-decision-and-trace-index.md)仅用于资料性导航，不替代这些条款。
+READ 必须校验 Capability、Effect、Input / Output Schema、Scope、Producer Invocation 和 Evidence。MUTATION 派发前还须校验入口门禁、Deadline、取消状态，并持久化原始调用身份、输入、Scope、Correlation 和结果责任。按 §12.8 处理准入失败或强制停止。下列 §20.1、§20.3 和 G.2.2 分别规定 Mutation、Reconcile 及证明结构的规范性判断；**本文件附录 J 的执行决策索引**仅用于资料性导航，不替代这些条款。
 
 ### 20.1 提交状态与输出
 
@@ -1411,7 +1411,7 @@ Predicate 的 PASS 表示命题得到充分支持。FAIL 表示命题被充分�
 | Mutation | SUCCEEDED：禁止 / 必填 | 已声明的 Owner FAILED、NOT_COMMITTED，以及 Runtime OUTCOME_UNKNOWN | Runtime DENIED | 按 §12.8 直接停止 |
 | Reconcile | COMMITTED：禁止 / 必填 | NOT_COMMITTED、UNRESOLVED | 无 | 不适用 |
 
-缺必填键报 ROUTE_OUTCOME_MISSING。可选 Runtime 边省略时直接进入 §12.8 的终态裁决，并保留诊断和责任。显式配置非末阶段的正常键报 ROUTE_NORMAL_OUTCOME_NOT_ALLOWED。正常构建缺少 Script FAILED 路由报 `ROUTE_OUTCOME_MISSING` 并阻断构建。§24.2 的缺边规则仅用于 Runtime 遇到异常执行图时的防御性停止。Studio 补全和 Compiler 校验应共用本矩阵。机器可读的非规范性镜像见 [`docs/fixtures/ca-sl-v1alpha3-route-matrix.yaml`](fixtures/ca-sl-v1alpha3-route-matrix.yaml)；若其与本节冲突，以本节为准，镜像本身不授权新 Outcome。
+缺必填键报 ROUTE_OUTCOME_MISSING。可选 Runtime 边省略时直接进入 §12.8 的终态裁决，并保留诊断和责任。显式配置非末阶段的正常键报 ROUTE_NORMAL_OUTCOME_NOT_ALLOWED。正常构建缺少 Script FAILED 路由报 `ROUTE_OUTCOME_MISSING` 并阻断构建。§24.2 的缺边规则仅用于 Runtime 遇到异常执行图时的防御性停止。Studio 补全和 Compiler 校验应共用本矩阵。本节即为完整路由矩阵的唯一 Normative 判定入口；资料性测试视角见附录 K。任何外部机器镜像均不能取代本节或授权新 Outcome。
 
 ## 23. 并发、UE 与 Session 隔离
 
@@ -2211,7 +2211,7 @@ dependencies:
 
 `dependency.yaml` 不作为必需输入。此规则复用快照线协议及锁定信息；CA-SL 只要求可验证的身份关联。Studio / Compiler 必须经受信输入提供身份绑定和多 Owner 导出级归属，否则链接拒绝。摘要算法和字节 framing 由所选版本的 BuildRequest 契约定义，不属于 CA-SL 语言语义。文件集规范化仅处理路径校验和规范化、文件枚举、排序及非法或冲突路径拒绝，具体规则以 BuildRequest 为准。摘要 framing 消费快照中的原始内容字节。CA-SL 不改写这些字节，YAML 重排、换行转换和 JSON 重编码均不得用于摘要前的内容规范化。若调用方无法提供可信身份，保留链接错误。Compiler 只消费调用方提供的字节和可信元数据，语言版本与传输字段由 Compiler BuildRequest 版本管理。
 
-摘要细节见 [Compiler v0.1 快照摘要](https://github.com/odango-chan/ca-skill-compiler/blob/b60024497b4865f705fa40e1b04bcc84032778d8/docs/design/dependency-snapshot-digest-v0.1.md)。参见 [Compiler PR #4 的 BuildRequest v0.1 契约](https://github.com/odango-chan/ca-skill-compiler/pull/4) 和 [Studio PR #150 的配置与快照设计](https://github.com/odango-chan/ca-skill-studio-demo/pull/150)。
+**互操作版本边界。** `dependencyId/digest/files` 仅定义 CA-SL 需要的逻辑快照形状；物理 framing、原始文件字节编码、路径排序与摘要算法由明确选定的 **BuildRequest 版本契约**拥有。CA-SL 只要求采用该版本对完整文件集的原始字节重算并验证摘要、别名、可信 Package ID/Owner 归属，不能自行发明 framing 或从摘要推断身份。构建和 Studio 的真实适配仍须按 §45.2 独立验收，不依赖历史 PR 的文档说明。
 
 **Informative。** CI 可由受控目录或经验证签名的清单提供可信绑定。Studio 本地与第三方导入复用可信目录及发布者授权，Skill 仓内自述的身份仅可作为请求，无法建立信任。无需引入跳过身份校验的构建模式。
 
@@ -2405,7 +2405,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 
 1. Tool / Observation / Evidence Owner 发布精确 Input/Output/Proof/Reconcile、资源责任、Scope、Correlation、Freshness 和结果分类的正式导出。
 2. Deployment 提供受信 CapabilityContracts、Scope 策略和对每份快照摘要/Package ID/Owner 归属的可信绑定。
-3. Compiler 在 CI 中执行附录 E01–E114 的适用正反例（包含 G.9），覆盖错误码、类型、SourcePath、Evidence、图可达性及 Goal/Precondition 证明传播。附录 H 中标记为“部分覆盖”或“待 Fixture”的诊断仍需通过独立的、与 `(Code, Phase)` 精确对应的可执行用例验收。资料性的 [诊断 Fixture 缺口登记](fixtures/ca-sl-v1alpha3-diagnostic-fixture-gaps.yaml) 用于跟踪候选输入，**不增加 E01–E114 的规范性编号范围，也不构成 CI 通过证据**。声称符合本版的实现不得以 E 编号完整代替对未覆盖诊断的校验。
+3. Compiler 在 CI 中执行附录 E01–E114 的适用正反例（包含 G.9），覆盖错误码、类型、SourcePath、Evidence、图可达性及 Goal/Precondition 证明传播。附录 H 中标记为“部分覆盖”或“待 Fixture”的诊断仍需通过独立的、与 `(Code, Phase)` 精确对应的可执行用例验收。本文件**附录 K 的资料性诊断 Fixture 缺口表**用于跟踪候选输入，**不增加 E01–E114 的规范性编号范围，也不构成 CI 通过证据**。声称符合本版的实现不得以 E 编号完整代替对未覆盖诊断的校验。
 4. Native / WASM / Studio 同一输入返回相同的链接和诊断结果；LSP 补全与检查共用规范源，不能发明不同解释。
 5. Runtime / Host 验证安全派发、预算、Deadline、取消、Reconcile、并发隔离、证据复核、Trace 和资源责任终态。
 6. 三个 5GC 异步完成 Operation 由其 Owner 确认；将真实 5GC Skill 迁移后执行 36 个 Case 的 vNext 回归；MAS 不列入已完成的运行验收基线。
@@ -2434,7 +2434,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 | `Literal` / `Annotated` / 不支持类型 | 仅接受 F.6 与 G.4 的有限注解和 Metadata；未知元数据/Any/动态泛型拒绝；不能因 Python 实现宽容而放行 |
 | 派生结果与跨平台一致性 | Native/WASM/Studio 使用相同 SourcePath、Schema、AST/类型结果与 `(Code, Phase)`；留下原始 Fixture、工具版本和差异记录；§45.2 第 3/4/8 项 |
 
-**当前裁决：CA-SL v1alpha3 语言及互操作规范 FROZEN；产品符合性 NOT QUALIFIED。** 实现使用的 CEL/Python/JSON Schema 解析器版本及其跨入口一致性，应在 §45.2 的实际符合性记录中明确；[实现基准澄清记录](design/ca-sl-v1alpha3-interop-clarifications-2026-11-14.md)及[资料性符合性报告模板](fixtures/ca-sl-v1alpha3-conformance-report.template.yaml)不取代原始 CI 与 Owner 证据。 规范源审查、YAML 解析或 PR 审批不等于第 1–8 项的实际测试通过。缺少必需的 Owner 契约或工具链符合性证据时，应阻止相应产品发布；语言语义的修订遵循 §45.1 的版本变更流程。审查范围、图检查结果及跨仓库事实见 [非规范性的冻结决策记录](design/ca-sl-v1alpha3-freeze-record.md)。
+**当前裁决：CA-SL v1alpha3 语言及互操作规范 FROZEN；产品符合性 NOT QUALIFIED。** 实现使用的 CEL/Python/JSON Schema 解析器版本及其跨入口一致性，应在 §45.2 的实际符合性记录中明确；实际产品的准确环境、Owner 导出与 CI 证据应使用**本文件附录 K 的资料性报告模板**记录；模板不能代替原始结果或 Owner 认证。规范源审查、YAML 解析或 PR 审批不等于第 1–8 项的实际测试通过。缺少必需的 Owner 契约或工具链符合性证据时，应阻止相应产品发布；语言语义的修订遵循 §45.1 的版本变更流程。历史冻结决策与外部仓库工作不构成本版新增规范规则，现行权威判定全部在当前文件内。
 
 ---
 
@@ -3031,7 +3031,7 @@ expected:
 | E65：不可达 Node 指向可达的局部 Postcondition 阶段所在 Node（详见 E.7） | UNREACHABLE_NODE 警告。汇合时仍保留可达路径的 Goal 证明 |
 | E66：Procedure Script 读取外层对象中的可选字段（详见 E.7） | 合法返回走 SUCCEEDED。抛异常或无效返回都走 FAILED，分别记录 SCRIPT_EXECUTION_FAILED 或 OUTPUT_SCHEMA_INVALID，且没有成功输出 |
 
-此表定义已冻结的规范预期，不代表现有 CI 已通过。正式发布实现符合性仍须由 Owner 提供真实导出身份，并使 Native、WASM、Studio 与 Runtime 通过相同正反例（§45.2）。E01–E114 的资料性[逐用例执行方式分类](fixtures/ca-sl-v1alpha3-case-traceability.yaml)用于区分静态 Fixture、Runtime 模拟、内部单测、业务评审与 Owner 集成评审；`proposedExecutionClass` 不改变本表预期，`executionPlanStatus: NOT_IMPLEMENTED` 不构成验收通过。
+此表定义已冻结的规范预期，不代表现有 CI 已通过。正式发布实现符合性仍须由 Owner 提供真实导出身份，并使 Native、WASM、Studio 与 Runtime 通过相同正反例（§45.2）。E01–E114 的**资料性逐用例执行方式分类现已合并进本文件附录 K**，用于区分静态 Fixture、Runtime 模拟、内部单测、业务评审与 Owner 集成评审；`proposedExecutionClass` 不改变本表预期，`executionPlanStatus: NOT_IMPLEMENTED` 不构成验收通过。
 
 ## E.6 基于独立样例的最小变更
 
@@ -3236,7 +3236,7 @@ predicates:
 | E103 | §34.0：按所选 BuildRequest 版本提交同一文件集的不同枚举顺序，重算摘要一致。保留原摘要并变更原始文件的换行或 YAML/JSON 编码，构建按 §34.0 拒绝摘要不匹配 |
 | E104 | §11.6：有有效 Host 上界时分别省略 Skill 上界、声明更低和更高的上界，验证分别使用 Host、更低的 Skill、Host 上界。Host 上界缺失、为 0 或非法时拒绝启动 |
 
-§45.2 第 3 项要求将对应验收条目落为机器可执行 Fixture；新增 v1alpha3 用例见 G.9。非规范性逐用例追溯镜像见 [`docs/fixtures/ca-sl-v1alpha3-case-traceability.yaml`](fixtures/ca-sl-v1alpha3-case-traceability.yaml)，其中 `ciFixture: null` 不表示测试通过。此表只记录预期行为。
+§45.2 第 3 项要求将对应验收条目落为机器可执行 Fixture；新增 v1alpha3 用例见 G.9。本文件附录 K 的非规范性逐用例追溯只记录测试执行计划；`ciFixture: null` 不表示测试通过。附录 E/G.9 保持唯一规范性预期来源。
 
 # 附录 F：v1alpha3 已冻结的互操作与类型剖面
 
@@ -3858,10 +3858,154 @@ G.1–G.9 的补充用例须与原 E01–E104 组合执行。文档审计不代�
 
 **冻结与测试覆盖。** `FROZEN` 只限定规范性语言与互操作行为，不意味着当前机器用例均已生成或执行。既往提议但未正式定义的扩展用例编号不属于 v1alpha3 的 E01–E114 集合；`UNSUPPORTED_WAIT` 与 `UNSUPPORTED_V02_SYNTAX` 本身已由 §24.1 定义，仍是阻断构建的既有诊断，其可执行测试按缺口登记补齐，不影响语言效力。
 
-**覆盖状态定义（资料性）。** `规范用例已定义` 表示所列 E 变体在规范文本中有对应预期，尚未提供或核实执行证据；`部分覆盖` 表示所引 E 用例仅覆盖一般规则、部分分支或间接判定，不足以单独证明当前 `(Code, Phase)`；`待 Fixture` 表示尚无可精确引用的变体，必须另行提供输入与预期。所有状态均不表示测试已经执行或通过。相关候选测试清单参见 [诊断 Fixture 缺口登记](fixtures/ca-sl-v1alpha3-diagnostic-fixture-gaps.yaml)，该清单不增加 E 编号、规范性语义或 CI 验收结论。
+**覆盖状态定义（资料性）。** `规范用例已定义` 表示所列 E 变体在规范文本中有对应预期，尚未提供或核实执行证据；`部分覆盖` 表示所引 E 用例仅覆盖一般规则、部分分支或间接判定，不足以单独证明当前 `(Code, Phase)`；`待 Fixture` 表示尚无可精确引用的变体，必须另行提供输入与预期。所有状态均不表示测试已经执行或通过。相关候选测试清单已汇入**本文件附录 K**，不增加 E 编号、规范性语义或 CI 验收结论。
 
 **诊断优先级。** 以下先后关系仅适用于同一绑定点。旧式 Wait / v0.2 语法与普通未知字段的分派按 §24.1 的专用诊断优先规则；其他错误按以下顺序检查：YAML/结构 → Package/依赖与 Owner 身份 → Schema/路径与支配可用性 → 类型 → 授权/Effect/Scope → Evidence 描述符链接 → Evidence 组合可满足性 → 运行时证据判定；与规范性更具体的 §13.3、§17.1.1 和 §24.1 的顺序相同。遇到较早的致命错误时，不基于未经解析的下游值推断新的错误。彼此独立的错误可以共同报告，诊断展示排序不是执行语义。
 
 ---
 
-**规范结束。**
+**Normative 规范正文至此结束。** 后续附录 I/J/K 均为 Informative，便于在同一文件审阅、编写作者指南和规划符合性验收；不改变上述规则。
+
+# 附录 I：作者写法与迁移指南（Informative；已收编）
+
+以下内容是可独立阅读的作者/Studio 实践说明，源自既有资料性指南，并未新增 CA-SL 字段、豁免、身份权威或执行权限。**如与规范正文冲突，一律以 §0–§45、附录 F/G/H 的 Normative 规则为准。** 示例无法单独证明真实 Owner 发布物、Compiler 或 Runtime 已通过。
+
+### I.1 SourcePath 与可选字段
+
+SourcePath 的直接绑定只允许引用在该路径所有可达分支中**保证存在**的字段。即使此前某个局部 Predicate 返回 PASS，也不将 Owner Schema 的 `NotRequired` 字段自动收窄为必需。
+
+建议按以下顺序处理：
+
+1. 若字段在 Owner 成功结果中始终存在，由 **Owner** 将其发布为 required，并经对应精确 Schema ID 重新链接；Skill 不应复制或修改 Owner Schema。
+2. 若属性合法但可缺失，将其必定存在的**外层对象**绑定给类型可检查的 Procedure Script，由 Script 显式处理缺失，并返回符合其严格 TypedDict 返回契约的结果。
+3. 若字段涉及 Subject、Session/PSI、Lifecycle、Correlation 或资源句柄的身份，Procedure Script 的派生值**不得**作为授权身份来源；应使用受信 Host 关联投影或权威 Producer 的直接输出（§13.3）。
+
+**禁止的推论：** Predicate PASS 不能单独证明后续 SourcePath 一定存在，也不赋予 Script 创建的标识符以身份权威。§13.3 的静态 SourcePath 检查与 E89 的可选字段正反例是权威验收入口；Studio 可以在触发 `SOURCE_NOT_AVAILABLE` 时提示“绑定保证存在的外层对象 / 改用 Owner 正式发布的 required 字段”，但不能自动放宽 Schema。
+
+### I.2 Predicate 的纯比较参数与 Evidence 要求
+
+§17.1 中“省略 `requires`”是指省略某个已声明参数的 **`evidence.requires[parameter]`**，不是删除 `parameters` 定义或调用实参。示例中仅作为预期值的 `context.request.pduSessionId` 或已受信 Host 校验的 `context.ueRef` 可以在没有显式 `requires` 时按现有豁免规则使用；这不允许它们成为任意 Session/Scope 身份的权威证明（§13.3）。
+
+如果同一个 Predicate 的任何调用点改用外部 Operation/Observation 或 Reconcile 输出，必须为相应参数声明覆盖精确值路径的 Evidence 保证，不能以“只是比较字符串或数字”为由豁免。**已经显式声明的保证不能因参数来自 Request 而跳过。** 见 §17.1、E19、E98 和 §0 的效力边界。
+
+### I.3 Evidence 更新与长流程验收
+
+已接受的 Evidence 有明确 Producer、Scope、Correlation、时间和事实来源。新 Evidence 即使包含相同业务值，也可能使旧的 PASS 不再适用于当前执行状态。
+
+推荐的受控流程为：在受保护的 Mutation 派发前或最终成功发布前，按业务要求显式调用获授权的 Observation；将**本次新产生的 Producer output**及其 Evidence 绑定至新的 Predicate；取得新的 Goal Postcondition PASS 后，继续通过 Runtime 的准入和成功发布复核。
+
+不得将旧 Predicate 的参数隐式替换为更新值，不得把普通 Operation Result 冒充 Observation Result，也不得以“有 Evidence Ref”代替保证验证。当前规范的示例与预期参见 E30、E40、§17.2 与 G.8。
+
+### I.4 独立性保证的错误分类
+
+静态无法解析受信身份域、共同事实绑定、Scope 映射或授权时，构建被 `EVIDENCE_GUARANTEE_LINK_INVALID` 阻断。绑定全部合法但能从静态声明证明无论何种合法记录均不能组成独立证据时，报 `PREDICATE_EVIDENCE_UNSATISFIABLE`。当静态可满足而本次记录缺失、过期、同源或无法核验时，Predicate 返回 UNKNOWN。
+
+见 附录 J 的执行决策索引和 §G.3.1。
+
+### I.5 Owner Schema 投影的发布与版本治理
+
+v1alpha3 允许 Owner 为不能直接落入受支持 JSON Schema 子集的业务对象另行发布**符合该子集的受信投影**，但这不授予 Skill 自行修改外部数据结构的权限。
+
+投影的可信性依据来自既有规则：发布方必须是对应数据/接口的权威 Owner；投影须有独立、精确且可链接的 Schema `$id`，并作为可信快照的文件字节纳入 Package ID、Owner 归属、摘要及构建依赖身份校验（§7、§34.0、F.4、G.4）。原结构的版本变化、字段删除或语义改变需要由 Owner 重新审查相应投影是否仍然正确。Compiler 只能验证已发布投影的 Schema、链接和类型；**不能仅凭形式上的 Schema 兼容推断它在业务上等价于原结构**。
+
+**迁移核对顺序（Informative）：** 先由真实 Owner 盘点原始 Input/Output/Receipt 和 Evidence Descriptor，识别 G.4 不支持的 `anyOf/oneOf/pattern/format/$defs` 等关键字；再由 Owner 发布正式版本化、属于受信快照且带独立 `$id` 的闭合投影，显式确认其字段意义、Scope、Correlation、Producer 与 Evidence 保证仍一致；随后 Studio 以精确快照字节和可信 Package/Owner 绑定交给 Compiler 检查，Runtime 验证 Owner 返回值与证明。任何环节不得让 Skill 复制影子 Schema、让 Compiler 静默丢弃不支持的约束、或让 `default` 补造值。
+
+如果部署需要显式的“原结构 ↔ 投影等价性”签署、源版本字段或新证据证明，这属于 Owner/互操作契约的新增发布要求；其线格式与授权方式应单独版本化，不得通过 Skill 注释、README 或无来源的转换结果代替。当前规范没有为此定义额外的强制签署字段。
+
+### I.6 CEL、Python 与 Schema 的实现版本
+
+G.4 与 F.6 已限定允许的表达式、类型和注解集合。不得因为某个 CEL 引擎或 Python 解释器支持更多语法，就自动在 v1alpha3 中接受这些语法。
+
+参考实现可以选择 Python 3.11 及其标准库 `typing.Required`/`typing.NotRequired` 支持；这不是冻结语言对运行环境新设的最低版本。实际产品须在 §45.2 的验收记录中注明 CEL parser/evaluator、Python AST/typing 分析器、Python 执行环境及 JSON Schema 解析器的确切版本或源码提交，针对相同输入提交原始结果与诊断，证明 Native/WASM/Studio 的一致性。
+
+`$defs`、`definitions`、本地 JSON Pointer 引用及循环引用在 v1alpha3 的 G.4 闭合白名单之外，不得作为实现扩展。有关是否在后续版本允许这些写法，应提交独立的语言契约修订。
+
+**CEL 子集与计算归一化：** 本版故意只允许 G.4 的确定性表达式。若业务必须做数组遍历、字符串排序或复杂值归一化，应把**纯本地计算**放在符合 §32 的 Procedure Script 中，再让 Runtime 按严格 TypedDict Schema 校验其输出；如需 Predicate 判断，可将经证明可绑定的值作为显式参数传入 Predicate。Script 不得执行查询、创造 Evidence 或从请求数据制造可信 UE/Session/Scope 身份，且不自动使 Producer 输出免于 Evidence 要求。这是作者实践模式，不是对 CEL 扩展语法的授权。
+
+### I.7 Reconcile UNRESOLVED 与资源责任边界
+
+一次外部 Mutation 已派发却无法确认是否提交，不能简单把“不知道”当作 `FAILED`。有安全 Owner Reconcile 契约时，Runtime 按原调用不变身份调和至多一次；其本次结果仍不确定时，沿 Reconcile 的 `UNRESOLVED` 结束当前 Invocation 并按 §12.8 发布 `UNRESOLVED` 或在已有确认待处置资源时发布 `SAFE_STOPPED`。两种情形都保留原始 Mutation 的状态、资源句柄、迟到结果责任和审计 Trace；**当前 Invocation 终止不等于外部操作已失败或资源责任已消失**。后续独立处置属于明确授权的 Owner / 责任流程，不是偷偷发起第二次 Reconcile。参见 §20.2、§20.3、G.2.2 与 E29/E86。
+
+### I.8 适用的验收记录
+
+本指南本身未通过 Compiler、Runtime 或真实 5GC 测试。正式验证仍遵守 §45.2 的八项门槛以及 附录 E 的 E01–E114 规范预期。作者不得将资料性写法作为现行产品已支持的声明。
+
+
+# 附录 J：执行决策、条款追溯与勘误总裁决（Informative；已收编）
+
+本附录合并原执行决策索引与历轮已生效的审查结论，不复印历史草案。其信息用于帮助审阅同一份规范，**不是第二套规则**；诊断和处置的权威仍为 §20、§22.1、§24、F/G/H。
+
+### J.1 Mutation/Reconcile 决策索引
+
+| 处理阶段 | 已验证事实或条件 | 阶段路由 / 执行后果 | 规范性来源 |
+|---|---|---|---|
+| Mutation | 原调用提交证明有效，SUCCEEDED 所承诺输出和保证均有效 | 记录已提交；沿 **Mutation Stage** 的 SUCCEEDED 边，非 Invocation 成功终态 | §20.1、§12.8–§12.9 |
+| Mutation | 已提交，但承诺输出缺失、不合法或无法关联 | 保留提交状态与责任；`COMMITTED_OUTPUT_UNAVAILABLE`；按 §12.8 停止，存在待处置的确认变更则 SAFE_STOPPED | §20.1、§20.1.1 |
+| Mutation | 已证明未提交，Owner 结果属于已声明、已验证的确定失败类别且无残留副作用 | 根据 Owner 已声明映射沿 FAILED 或 NOT_COMMITTED；FAILED 不自动准许重试 | §20.1、§20.2 |
+| Mutation | 无可信提交结论，或可信证明相互矛盾 | OUTCOME_UNKNOWN；根据已链接的调和契约进入唯一 Reconcile 或安全停止，保留原调用责任 | §20.1、§20.2 |
+| Reconcile 准入 | 与原 Mutation 绑定的独立 READ callable、Capability、Scope、Deadline、预算及原 Invocation 证明有效 | 对同一原调用至多执行一次 READ 调和；不得新增业务 Mutation | §12.7、§20.2、G.2 |
+| Reconcile | Owner SUCCEEDED 且证明原调用已提交；恢复子对象有效或契约不承诺恢复数据 | Reconcile Stage COMMITTED；只有已验证的 `recoverableOutputPath` 子对象可绑定为 `operation.output` | §20.3、G.2 |
+| Reconcile | 已提交，但承诺的恢复子对象缺失或校验失败 | `COMMITTED_OUTPUT_UNAVAILABLE`；保留已确认提交及责任，按 §12.8 停止 | §20.3、G.2 |
+| Reconcile | Owner SUCCEEDED 且可信证明原调用未提交 | Reconcile Stage NOT_COMMITTED；重试仍需独立证明与一次性授权 | §20.3、§20.2 |
+| Reconcile | 未取得有效且不冲突的提交结论 | Reconcile Stage UNRESOLVED，按 §12.8 判定终态并保留原调用责任 | §20.3、§20.1.1 |
+| 任一停止路径 | 存在已确认 PENDING 责任 | SAFE_STOPPED 优先；否则有未决提交/关键事实时为 UNRESOLVED；其他情形按 §12.8 | §12.8、§20.1.1、G.5 |
+| 任一成功请求 | 到达 SUCCEEDED 路由 | 只有全局门禁、最新 Goal PASS、Scope/Evidence 与责任全部通过复核，才可发布 Invocation SUCCEEDED | §12.8–§12.9、G.8 |
+
+**分类说明：** `COMMITTED`、`NOT_COMMITTED`、`UNRESOLVED` 在 Reconcile 表示 Stage Outcome；`OUTCOME_UNKNOWN` 是 Mutation Stage Outcome；`SUCCEEDED` 作为右侧路由目标才可能表示请求发布 Invocation 终态。Owner callable 的 `ownerOutcomes` 不得包含 Runtime 自行产生的分类。以上索引不替代 §20.1、§20.3、G.2.2 的证明结构和路径校验。
+
+### J.2 Evidence 独立性判定流程（资料性）
+
+```mermaid
+flowchart TD
+    A["静态：解析保证、Producer 与可信身份映射"] --> B{"映射或授权是否缺失、无效、歧义？"}
+    B -->|是| C["EVIDENCE_GUARANTEE_LINK_INVALID"]
+    B -->|否| D{"静态上是否不可能满足任意合法证据组合？"}
+    D -->|是| E["PREDICATE_EVIDENCE_UNSATISFIABLE"]
+    D -->|否| F["Runtime：读取本次实际证据"]
+    F --> G{"证据是否有效、当前且相互独立？"}
+    G -->|否| H["Predicate UNKNOWN"]
+    G -->|是| I["按业务 Predicate 求值：PASS 或 FAIL"]
+```
+
+该流程不为不同 Owner 名称自动推导独立性，也不为 Runtime 添加新的证据来源。可信跨域关系和共同事实映射来源见 §34.0.2、F.4、G.3.1。
+
+### J.3 条款与诊断/用例导航
+
+| 规范条款 | 判定边界 | 典型诊断或 Outcome | 现有用例与未验收项 |
+|---|---|---|---|
+| §10、G.1 | 作者语法、标识符、路径与版本目标 | IDENTIFIER_INVALID / QUALIFIED_REFERENCE_INVALID / PACKAGE_PATH_INVALID | E105、E114；未覆盖项见 DFX |
+| §11.5、G.6 | Host Context 与 Request 双 Schema | REQUEST_SCHEMA_MISSING / CONTEXT_REQUEST_COLLISION | E113 |
+| §12.7–§12.9、§22.1 | DAG、路由、全局门禁及 Goal | ROUTE_OUTCOME_MISSING / ENTRY_PRECONDITION_BYPASSED | E24、E51、E55、E84；部分路由诊断仍待 Fixture |
+| §13.3、§23、§30 | 身份实参来源、UE/Lifecycle/PSI Scope | CALLABLE_ARGUMENT_PROVENANCE_INVALID | E101；真实 5GC Owner 发布/运行未验收 |
+| §17.1–§17.2、G.3.1 | 保证链接、独立性与证据时效 | EVIDENCE_GUARANTEE_LINK_INVALID / PREDICATE_EVIDENCE_UNSATISFIABLE / Predicate UNKNOWN | E102、E106；Runtime 具体分支待执行 |
+| §20、G.2.2、G.5 | Mutation/调和、证明与责任 | OUTCOME_UNKNOWN / COMMITTED / NOT_COMMITTED / SAFE_STOPPED | E107–E109、E112；不得将预期视为实测 |
+| §32、F.6、G.4 | Script/CEL 输入和类型检查 | SCRIPT_CONTRACT_INVALID / CEL_INVALID / SCHEMA_INVALID | E67、E110、E111；版本互操作待 §45.2 验收 |
+| §34.0–§34.0.2、F.4 | 快照、Owner 归属与可信部署绑定 | DEPENDENCY_IDENTITY_UNVERIFIED / EVIDENCE_GUARANTEE_LINK_INVALID | E04、E102、E103 |
+| §45.2 | 实现符合性与发布 | 八项独立验收门槛 | 目前 NOT QUALIFIED |
+
+**机器可读追溯：** 附录 E 的 E01–E114 规范预期；附录 K 的诊断候选清单。现有记录包含 `ciFixture: null` 或 `ciResult: NOT_RUN`，不表示任何实际产品通过测试。
+
+
+### J.4 各轮冻结后审查的有效结论（整合状态）
+
+下表只列出**当前仍有效的最终判定**。历史评审原文、旧的错误映射和修订路径不是本版规则；发生表述冲突时，以 §0–§45 和附录 E/F/G/H 的精确 Normative 条款为准。
+
+| 曾发现的争议 | 本版唯一有效的约束与位置 | 仍未验收的外部条件 |
+|---|---|---|
+| PSI/DNN/S-NSSAI 与身份来源 | §13.3、§23、§30：请求值仅能作为业务选择/比较；若 Owner/Scope 标注身份，必须绑定可信 Host 投影或权威 Producer，禁止隐式豁免 | 真实 Host 与 Owner 的受信 PSI 关联及 E101 静态/运行 Fixture |
+| Contract Alias、Workspace `dependencyId` 与 Package ID | §34.0、F.4：`snapshot.dependencyId == alias` 严格区分并精确相等；`(alias,digest)` 受信映射到 Package ID | 真实 BuildRequest 版本、摘要/Owner 认证 |
+| YAML Core 标量、路径后缀和目录安全 | §13.2、G.1、G.7：只接受显式支持的 Core 子集及安全路径，不能信任解析器默认宽容 | Native/WASM/Studio 精确词法和路径 Fixture |
+| Evidence `requires` 与可豁免来源 | §17.1、G.3：已声明的保证不能因来源豁免而跳过；跨 Owner 同事实需要可信 `factIdentity`，独立域需要批准的 `IndependentDomains` | Owner/Deployment 发布和 E102、E106、E98 可执行 Fixture |
+| Mutation UNKNOWN、Reconcile 限制与恢复路径 | §20、G.2–G.2.2：原调用不变、最多一次受控 READ 调和，`receipt.` / `output.` 通道锚点与各自 Schema 根分离；只有合法 COMMITTED 才暴露恢复子对象 | Reconcile Owner 发布、跨快照专用身份的可信绑定、E107/E108 运行 Fixture |
+| Runtime Scope/Correlation 错误分类 | §24.2、H：派发前授权交集为空才可能按 DENIED；已派发回包 Scope/Correlation 失配必须隔离并走 UNKNOWN/安全停止，Mutation 依证明与责任裁决 | Runtime 回包故障模拟与 Trace |
+| Schema、CEL、TypedDict 与注解 | F.5/F.6/G.4：有限白名单；不支持 `anyOf/oneOf/pattern/format`、任意 Python typing 或隐式强制转换 | Owner 版本化投影、实现分析器版本、E110/E111 Fixture |
+| 匿名请求字段和身份实参标注 | §13.3、F.1 定义最低逻辑属性；v1alpha3 未增 `identityInputs` 或 `reconcileOnly` 物理字段 | 单独版本化 Owner 互操作发布格式，否则无法声称 §45.2 通过 |
+| `Applicability` / Root Routing | §0、§12.8：完整作者语法和匹配优先级不属于 v1alpha3；无法唯一选定 Skill 时 fail-closed | 独立 Root Routing 协议 |
+| 同名诊断与 E 用例错配 | §24、附录 H：`(Code,Phase)` 唯一；`EFFECT_MISMATCH` 可有 C_STATIC 和 R_RUNTIME 两个事件；E01 是正常正例，E115/E116 非本版编号 | 附录 K 的待运行诊断 Fixture 与全量 CI |
+| 正常结果与最终终态 | §12.8、§20、G.8：SUCCEEDED 阶段成功不自动等于 Invocation SUCCEEDED；已有 PENDING 责任时 SAFE_STOPPED 优先 | 资源责任 Owner 证明和真实 5GC 36 Cases |
+| 产品符合性状态 | §45.2：语言 FROZEN 不代表任一 Compiler、Studio、Host、Runtime、Owner 已 READY | 8 项门槛与原始不可变 CI 记录，全项未获统一完成证明 |
+
+**版本边界。** 任何改动若实质改变合法语法、授权来源、Evidence 结果、Reconcile 提交分类、诊断或终态，应按 §45.1 C 类升级语言或对应互操作协议，而不能以勘误名义静默改变 v1alpha3。
+
+
+
