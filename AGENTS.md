@@ -9,7 +9,7 @@
 
 ## Source scope
 
-- The present 5GC packages `skills/establish-pdu-session/` and `skills/establish-pdu-session-mas/` are legacy v0.2/v1alpha1 behavioral/source examples, NOT v1alpha4 author syntax authority.
+- The v1alpha4-shaped PDU Session authoring examples are at `examples/skills/establish-pdu-session/` and `examples/skills/establish-pdu-session-mas/`; the original v0.2/v1alpha1 business sources and Cases are archived under `examples/legacy/`, NOT imported into current v1alpha4 builds.
 - Other historical Skill directories remain outside this refresh and must not be treated as current syntax authority.
 - Preserve current business Procedure and Operation identities unless an explicit business-owner decision changes them.
 - The MAS Skill's 16 `ca.pdu_session.*` Operation references remain unresolved. Do not invent or approve a ToolCatalog.
@@ -34,6 +34,6 @@ Key rules:
 
 ## Validation
 
-`make verify` performs repository-local **legacy source hygiene plus v1alpha4 documentation structure lint and its negative regression tests**. It does not invoke an old Toolchain, Compiler, Runtime or Qualification gate. Compiler conformance is verified in `ca-skill-compiler`; Runtime and live 5GC evidence belong to their owners.
+`make verify` performs repository-local **example-source shape hygiene, legacy snapshot hygiene, and v1alpha4 documentation structure lint with negative tests**. It does not resolve trusted v1alpha4 Owner exports. It does not invoke an old Toolchain, Compiler, Runtime or Qualification gate. Compiler conformance is verified in `ca-skill-compiler`; Runtime and live 5GC evidence belong to their owners.
 
 Never claim Compiler/Runtime/Qualification/Live PASS from source hygiene.
