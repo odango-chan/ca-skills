@@ -4009,3 +4009,323 @@ flowchart TD
 
 
 
+
+# 附录 K：单文件符合性追踪、待补 Fixture 与报告格式（Informative；已收编）
+
+**地位。** 本附录把原先另存的 E 用例追踪表、诊断候选、六项复审回归候选及符合性报告模板归档为**本文件中的评审视图**。它不新增规范 E 编号，也不是可执行源码或 CI 原始记录；不能据此判断 Compiler/Studio/Runtime/Owner 通过。规范性预期仍以附录 E/G.9 为准，规范性诊断分类仍以 H 的 `(Code, Phase)` 为准。
+
+## K.1 E01–E114 的执行责任计划（Informative）
+
+以下分类取自冻结后的逐用例追踪计划。每一行的 **NOT_IMPLEMENTED** 仅表示本单文件整理没有可复核的 v1alpha3 机器执行证明，不否定其他产品可能拥有独立测试，但**不能据此宣称通过**。具体输入、正反例和预期结论请直接阅读附录 E/G.9；§45.2 是工具链/Owner 的分工门槛。
+
+| 用例 | 建议执行类别 | 本登记状态 |
+|---|---|---|
+| E01 | 静态链接 | NOT_IMPLEMENTED |
+| E02 | 静态链接 | NOT_IMPLEMENTED |
+| E03 | 静态链接 | NOT_IMPLEMENTED |
+| E04 | 静态链接 | NOT_IMPLEMENTED |
+| E05 | 静态链接 | NOT_IMPLEMENTED |
+| E06 | 静态链接 | NOT_IMPLEMENTED |
+| E07 | 静态链接 | NOT_IMPLEMENTED |
+| E08 | 静态链接 | NOT_IMPLEMENTED |
+| E09 | 静态链接 | NOT_IMPLEMENTED |
+| E10 | 静态链接 | NOT_IMPLEMENTED |
+| E11 | 静态链接 | NOT_IMPLEMENTED |
+| E12 | 静态链接 | NOT_IMPLEMENTED |
+| E13 | 运行模拟 | NOT_IMPLEMENTED |
+| E14 | 运行模拟 | NOT_IMPLEMENTED |
+| E15 | 业务评审 | NOT_IMPLEMENTED |
+| E16 | 静态链接 | NOT_IMPLEMENTED |
+| E17 | 静态链接 | NOT_IMPLEMENTED |
+| E18 | 静态链接 | NOT_IMPLEMENTED |
+| E19 | 静态链接 | NOT_IMPLEMENTED |
+| E20 | 运行模拟 | NOT_IMPLEMENTED |
+| E21 | 运行模拟 | NOT_IMPLEMENTED |
+| E22 | 静态+运行 | NOT_IMPLEMENTED |
+| E23 | Owner 集成评审 | NOT_IMPLEMENTED |
+| E24 | 静态链接 | NOT_IMPLEMENTED |
+| E25 | 静态链接 | NOT_IMPLEMENTED |
+| E26 | Owner 集成评审 | NOT_IMPLEMENTED |
+| E27 | 运行模拟 | NOT_IMPLEMENTED |
+| E28 | 运行模拟 | NOT_IMPLEMENTED |
+| E29 | 运行模拟 | NOT_IMPLEMENTED |
+| E30 | 运行模拟 | NOT_IMPLEMENTED |
+| E31 | 运行模拟 | NOT_IMPLEMENTED |
+| E32 | 运行模拟 | NOT_IMPLEMENTED |
+| E33 | 运行模拟 | NOT_IMPLEMENTED |
+| E34 | 静态链接 | NOT_IMPLEMENTED |
+| E35 | 静态链接 | NOT_IMPLEMENTED |
+| E36 | 静态链接 | NOT_IMPLEMENTED |
+| E37 | 静态链接 | NOT_IMPLEMENTED |
+| E38 | 静态链接 | NOT_IMPLEMENTED |
+| E39 | 静态链接 | NOT_IMPLEMENTED |
+| E40 | 运行模拟 | NOT_IMPLEMENTED |
+| E41 | 静态链接 | NOT_IMPLEMENTED |
+| E42 | 静态+运行 | NOT_IMPLEMENTED |
+| E43 | 静态链接 | NOT_IMPLEMENTED |
+| E44 | 静态链接 | NOT_IMPLEMENTED |
+| E45 | 运行模拟 | NOT_IMPLEMENTED |
+| E46 | 静态链接 | NOT_IMPLEMENTED |
+| E47 | 静态链接 | NOT_IMPLEMENTED |
+| E48 | 运行模拟 | NOT_IMPLEMENTED |
+| E49 | 运行模拟 | NOT_IMPLEMENTED |
+| E50 | 静态链接 | NOT_IMPLEMENTED |
+| E51 | 静态链接 | NOT_IMPLEMENTED |
+| E52 | 静态链接 | NOT_IMPLEMENTED |
+| E53 | 运行模拟 | NOT_IMPLEMENTED |
+| E54 | 静态链接 | NOT_IMPLEMENTED |
+| E55 | 静态链接 | NOT_IMPLEMENTED |
+| E56 | 静态链接 | NOT_IMPLEMENTED |
+| E57 | 静态链接 | NOT_IMPLEMENTED |
+| E58 | 运行模拟 | NOT_IMPLEMENTED |
+| E59 | 静态链接 | NOT_IMPLEMENTED |
+| E60 | 静态链接 | NOT_IMPLEMENTED |
+| E61 | 运行模拟 | NOT_IMPLEMENTED |
+| E62 | 运行模拟 | NOT_IMPLEMENTED |
+| E63 | 静态链接 | NOT_IMPLEMENTED |
+| E64 | 静态链接 | NOT_IMPLEMENTED |
+| E65 | 静态链接 | NOT_IMPLEMENTED |
+| E66 | 运行模拟 | NOT_IMPLEMENTED |
+| E67 | 静态链接 | NOT_IMPLEMENTED |
+| E68 | 静态链接 | NOT_IMPLEMENTED |
+| E69 | 静态+运行 | NOT_IMPLEMENTED |
+| E70 | 运行模拟 | NOT_IMPLEMENTED |
+| E71 | 静态链接 | NOT_IMPLEMENTED |
+| E72 | 静态+运行 | NOT_IMPLEMENTED |
+| E73 | Compiler 内部单测 | NOT_IMPLEMENTED |
+| E74 | 静态链接 | NOT_IMPLEMENTED |
+| E75 | 静态链接 | NOT_IMPLEMENTED |
+| E76 | 静态链接 | NOT_IMPLEMENTED |
+| E77 | 运行模拟 | NOT_IMPLEMENTED |
+| E78 | 静态链接 | NOT_IMPLEMENTED |
+| E79 | 运行模拟 | NOT_IMPLEMENTED |
+| E80 | 运行模拟 | NOT_IMPLEMENTED |
+| E81 | 运行模拟 | NOT_IMPLEMENTED |
+| E82 | 运行模拟 | NOT_IMPLEMENTED |
+| E83 | 运行模拟 | NOT_IMPLEMENTED |
+| E84 | 静态链接 | NOT_IMPLEMENTED |
+| E85 | 静态+运行 | NOT_IMPLEMENTED |
+| E86 | 运行模拟 | NOT_IMPLEMENTED |
+| E87 | 静态链接 | NOT_IMPLEMENTED |
+| E88 | 运行模拟 | NOT_IMPLEMENTED |
+| E89 | 静态链接 | NOT_IMPLEMENTED |
+| E90 | 静态链接 | NOT_IMPLEMENTED |
+| E91 | 静态链接 | NOT_IMPLEMENTED |
+| E92 | Compiler 内部单测 | NOT_IMPLEMENTED |
+| E93 | 静态链接 | NOT_IMPLEMENTED |
+| E94 | Compiler 内部单测 | NOT_IMPLEMENTED |
+| E95 | Compiler 内部单测 | NOT_IMPLEMENTED |
+| E96 | 运行模拟 | NOT_IMPLEMENTED |
+| E97 | Owner 集成评审 | NOT_IMPLEMENTED |
+| E98 | 静态链接 | NOT_IMPLEMENTED |
+| E99 | Compiler 内部单测 | NOT_IMPLEMENTED |
+| E100 | 运行模拟 | NOT_IMPLEMENTED |
+| E101 | 静态+运行 | NOT_IMPLEMENTED |
+| E102 | 静态+运行 | NOT_IMPLEMENTED |
+| E103 | 静态链接 | NOT_IMPLEMENTED |
+| E104 | 运行模拟 | NOT_IMPLEMENTED |
+| E105 | 静态链接 | NOT_IMPLEMENTED |
+| E106 | 静态+运行 | NOT_IMPLEMENTED |
+| E107 | 静态链接 | NOT_IMPLEMENTED |
+| E108 | 运行模拟 | NOT_IMPLEMENTED |
+| E109 | 静态链接 | NOT_IMPLEMENTED |
+| E110 | 静态链接 | NOT_IMPLEMENTED |
+| E111 | 静态链接 | NOT_IMPLEMENTED |
+| E112 | 运行模拟 | NOT_IMPLEMENTED |
+| E113 | 静态链接 | NOT_IMPLEMENTED |
+| E114 | 静态链接 | NOT_IMPLEMENTED |
+
+## K.2 诊断 Fixture 负例候选（Informative，DFX-001–DFX-041）
+
+这些 DFX 编号**不是** E115 等正式 E 用例，不修改 H 的诊断码。以下 `fixtureModification` 是候选触发条件（可能需要独立受信 Owner 输入），不是已可运行的 Fixture。每项的 `ciResult` 均为 `NOT_RUN`；标记“需先核定可表达性”的条目，应先确定其在合法 YAML/Build 输入上的触发路径，再制作独立 Fixture，不能为了凑测试数虚构构造。
+
+| 候选 | 现有 Code / Phase | 候选输入差异与检查重点 | 执行状态 |
+|---|---|---|---|
+| DFX-001 | `YAML_PARSE_ERROR` / C_STATIC | 重复 YAML Mapping Key 或非法基本标量；保持其他源码及构建目标有效 | NOT_RUN |
+| DFX-002 | `LANGUAGE_TARGET_UNSUPPORTED` / C_STATIC | 在其余文件有效的 BuildRequest 中指定当前 Compiler 不支持的 languageTarget | NOT_RUN |
+| DFX-003 | `DUPLICATE_ID` / C_STATIC | 尝试在 Procedure.nodes 中重复声明同一 Node ID；需先确定重复键是否必被 YAML_PARSE_ERROR 捕获，及是否存在跨文件有效的同名声明入口（需先核定可表达性） | NOT_RUN |
+| DFX-004 | `FINAL_POSTCONDITION_GOAL_MISMATCH` / C_STATIC | 保持成功路径和 Postcondition 可达，令 Postcondition.goal 与 Contract.goal 不相等 | NOT_RUN |
+| DFX-005 | `CONTROL_FLOW_CYCLE` / C_STATIC | 在两个既有业务 Node 间增加一条返回前驱 Node 的路由，形成可达 back-edge；确保无其他更早的解析错误 | NOT_RUN |
+| DFX-006 | `CONTROL_FLOW_AMBIGUOUS` / C_STATIC | 尝试让同一 (Node, stage, Outcome) 同时指向两个目标；若唯一可行的表达是重复 YAML Mapping Key，必须先确定其与 YAML_PARSE_ERROR 的优先级及是否可表达（需先核定可表达性） | NOT_RUN |
+| DFX-007 | `DEPENDENCY_ALIAS_MISSING` / C_STATIC | 保留一个合法外部 callable 引用 ca::x，移除 Contract.dependencies 中的 ca alias；其余快照及 Scope 保持可信 | NOT_RUN |
+| DFX-008 | `DEPENDENCY_SNAPSHOT_MISSING` / C_STATIC | Contract.dependencies 声明 ca alias 对应 Package ID，但受信 BuildRequest 对该 alias 不提供快照；保留目标引用 | NOT_RUN |
+| DFX-009 | `DEPENDENCY_DUPLICATE` / C_STATIC | 同一 Alias 在可信构建绑定中指向两份不同的快照身份或字节集；不改变 Skill 源文件 | NOT_RUN |
+| DFX-010 | `CONTEXT_SCHEMA_MISMATCH` / C_STATIC | Contract.contextSchema 引用有效发布的 Schema ID，但可信 Host 绑定到另一不兼容的 Context 根；排除缺失 Schema 先决错误 | NOT_RUN |
+| DFX-011 | `ACTION_LIMIT_INVALID` / C_STATIC | 将 Contract.limits.maxActions 改为零、负数或非整数 | NOT_RUN |
+| DFX-012 | `EXPORT_ID_MISSING` / C_STATIC | 保持 Alias 和受信快照存在，改为引用快照中不存在的 callable ExportId | NOT_RUN |
+| DFX-013 | `SCHEMA_MISSING` / C_STATIC | Owner ToolCatalog 仍引用精确 Schema $id，但可信快照不包含其定义；避免误改为无效 Schema | NOT_RUN |
+| DFX-014 | `INPUT_NULLABILITY_MISMATCH` / C_STATIC | 将 required 且 nullable 的 Source Schema [string, null] 绑定到 required 且 non-null string 的目标参数，保持 SourcePath 一定存在 | NOT_RUN |
+| DFX-015 | `ROUTE_OUTCOME_UNKNOWN` / C_STATIC | 在普通 Operation.routes 中添加不属于该阶段合法 Outcome 枚举的路由键，例如 PASS；保持其余必须边完整 | NOT_RUN |
+| DFX-016 | `CAPABILITY_MAPPING_MISSING` / C_STATIC | ToolCatalog callable 精确存在且 Effect 有效，但受信部署 CapabilityContracts 没有任何该 callable 的成员记录；区别于 Skill 未 Grant 已存在 Capability 的情形 | NOT_RUN |
+| DFX-017 | `UNSUPPORTED_WAIT` / C_STATIC | 在 Node 中增加已识别旧版 Wait/Await 阶段，独立核验专用诊断优先于 UNKNOWN_FIELD | NOT_RUN |
+| DFX-018 | `UNSUPPORTED_V02_SYNTAX` / C_STATIC | 在 v1alpha3 Node 中使用已识别的旧式 verify 字段，独立核验专用诊断优先于 UNKNOWN_FIELD | NOT_RUN |
+| DFX-019 | `UNUSED_DEPENDENCY` / C_WARNING | Contract 声明一个可解析、可信、但未被任何 Schema/Tool/Evidence 引用的额外 alias；不得以 BuildRequest 中多余 Snapshot 代替 | NOT_RUN |
+| DFX-020 | `TOOL_UNAVAILABLE` / R_RUNTIME | 静态链接与 Host 准入均成功，但派发前真实 Tool Adapter 无法访问；覆盖有无可选 Runtime 路由 | NOT_RUN |
+| DFX-021 | `INPUT_VALIDATION_FAILED` / R_RUNTIME | 静态 Schema 赋值通过，但 Runtime 物化输入来自错误或不满足目标 Schema 的真实数据；应在外部派发前拒绝 | NOT_RUN |
+| DFX-022 | `OWNER_OUTCOME_UNDECLARED` / R_RUNTIME | Owner 返回未在 ownerOutcomes 声明的结果值，例如 Reconcile Owner 直接返回 COMMITTED；校验隔离与责任 | NOT_RUN |
+| DFX-023 | `OWNER_CONTRACT_UNAVAILABLE` / R_RUNTIME | 静态 Owner 契约已受信链接，但 Runtime 调度时该精确版本未部署或不可解析 | NOT_RUN |
+| DFX-024 | `AUTHORIZATION_DENIED` / R_RUNTIME | 静态 Capability Grant 正确，Runtime 动态 Scope 或授权条件拒绝；分别覆盖 DENIED 边存在及缺失 | NOT_RUN |
+| DFX-025 | `EFFECT_MISMATCH` / R_RUNTIME | 静态验证的 callable Effect 与 Runtime 实际注册/发布 Effect 不相符；必须在派发前拒绝并记录 R_RUNTIME 专属事件 | NOT_RUN |
+| DFX-026 | `RESPONSE_DECODE_FAILED` / R_RUNTIME | 外部 Tool 返回不可解码的响应字节或错误响应结构；保留原 Mutation 提交状态的不确定性 | NOT_RUN |
+| DFX-027 | `SCOPE_MISMATCH` / R_RUNTIME | 观察的 Evidence 通过 Schema 但属于另一 UE 或 PSI；检查运行时 UNKNOWN 与记录诊断 | NOT_RUN |
+| DFX-028 | `CORRELATION_MISMATCH` / R_RUNTIME | Observation Evidence 关联另一原调用或 Lifecycle；即使业务值相同也不视为合法绑定 | NOT_RUN |
+| DFX-029 | `EVIDENCE_MISSING` / R_RUNTIME | Predicate.required Guarantee 没有任何匹配 Evidence Ref；结果必须 UNKNOWN 而非 FAIL/PASS | NOT_RUN |
+| DFX-030 | `DEADLINE_EXCEEDED` / R_RUNTIME | 在受控时钟中使 Invocation Deadline 于派发资格检查前到期；覆盖存在部分资源的终态选择 | NOT_RUN |
+| DFX-031 | `CANCELLED` / R_RUNTIME | 在外部调用派发前插入 Host 取消事件；验证不派发及资源责任裁决 | NOT_RUN |
+| DFX-032 | `RECONCILE_UNRESOLVED` / R_RUNTIME | 原 Mutation 已派发且结果未知，Reconcile READ 的独立证明不足，走 UNRESOLVED 并持久化原责任 | NOT_RUN |
+| DFX-033 | `PRECONDITION_INVALIDATED` / R_RUNTIME | 局部 Precondition 原 PASS，但相关 Evidence 在受保护 Mutation 派发前失效；按 §12.9 复核拒绝 | NOT_RUN |
+| DFX-034 | `DUPLICATE_RESOURCE` / R_RUNTIME | 两个权威 Owner 记录为同一已确认资源身份给出冲突的实例或重复登记；运行时按 §24.2 拒绝 | NOT_RUN |
+| DFX-035 | `STALE_LIFECYCLE` / R_RUNTIME | Evidence 记录合法但 Lifecycle/Generation 已过期，且请求属于当前 Lifecycle | NOT_RUN |
+| DFX-036 | `PARTIAL_COMPLETION` / R_RUNTIME | 外部提交确定、资源责任状态为 PENDING，随后进入 FAILED 请求路由；实际终态应 SAFE_STOPPED | NOT_RUN |
+| DFX-037 | `ACTION_BUDGET_EXCEEDED` / R_RUNTIME | 已到达 Host 有效动作上限后再尝试一个外部 Action；验证未超额派发及停止决策 | NOT_RUN |
+| DFX-038 | `CONCURRENT_MODIFICATION` / R_RUNTIME | 外部事实在准入和实际派发之间被其他 Invocation 版本化修改；拒绝错误版本继续提交 | NOT_RUN |
+| DFX-039 | `RETRY_ADMISSION_DENIED` / R_RUNTIME | 尝试第二次消费同一个已验证 NOT_COMMITTED 重试凭证，或在缺少原调用关联时重发 | NOT_RUN |
+| DFX-040 | `RECONCILE_CONTRACT_INVALID` / C_STATIC | 同一受信 ToolCatalog 快照的一个 Mutation 的 mutation.reconcile.callable 指向精确 READ operation；另一个 Skill 在普通 operation.target 中调用该 READ，且提供独立的 READ Capability Grant。Compiler 必须检查整份快照的 Mutation 关联并阻断普通调用，不得只检索本 Skill 已引用的 Mutation | NOT_RUN |
+| DFX-041 | `RECONCILE_CONTRACT_INVALID` / C_STATIC | 以 G.2.1 有效 Reconcile READ + receiptSchema 作为基线：先验证 proofPath receipt.commit 可在移除逻辑 receipt 锚点后从 schema 根解析。单独将路径改成 receipt.receipt.commit 或裸 commit；前者多出未声明 Schema 段，后者缺少必需通道锚点，二者都不得自动改写或链接通过 | NOT_RUN |
+
+## K.3 冻结后复审的六项回归候选（Informative）
+
+编号 RFX-117–RFX-122 是审查工作的资料性追踪标识，**不**属于 E01–E114，也不承诺将来一定命名为 E117–E122。全部 `NOT_IMPLEMENTED`，对应原始可信 Host、Owner、Compiler 和 Runtime Fixture 尚未交付。
+
+**RFX-117 — "§13.3", "§23", "§30"（资料性，非 E 编号）**
+
+输入变体：Owner or deployment Scope labels pduSessionId as identity. Call binds context.request.pduSessionId directly.；Host publishes and validates an authoritative PSI/Session Context path; call explicitly binds that trusted path with correct Scope/Owner contract.。
+
+预期行为：C_STATIC CALLABLE_ARGUMENT_PROVENANCE_INVALID; no dispatch；May pass provenance ONLY when the authoritative Host identity and all other contracts are verifiably present; not automatically PASS or Runtime READY。**状态：NOT_IMPLEMENTED**。
+
+**RFX-118 — "§17.1", "§17.2"（资料性，非 E 编号）**
+
+输入变体：Predicate param omits requires and ALL call sites bind exempt Host/request/literal sources；Same param omits requires but a call site binds external Operation/Observation；Param explicitly declares requires; a call site binds exempt context.ueRef but has no matching Producer guarantee；Explicitly declared requires is statically satisfiable, but this invocation has no valid matching evidence record。
+
+预期行为：No PREDICATE_EVIDENCE_REQUIRED solely due to exempt origins；C_STATIC PREDICATE_EVIDENCE_REQUIRED；C_STATIC PREDICATE_EVIDENCE_UNSATISFIABLE; exemption does not cancel declared guarantees；R_RUNTIME Predicate UNKNOWN; no automatic PASS。**状态：NOT_IMPLEMENTED**。
+
+**RFX-119 — "§24.1", "§24.2", "Appendix H"（资料性，非 E 编号）**
+
+输入变体：Extract H unique (Code, Phase) keys and link to §24.1/§24.2 trigger and handler rules；Check that already dispatched READ/Observation SCOPE_MISMATCH or CORRELATION_MISMATCH uses UNKNOWN-or-stop, never DENIED。
+
+预期行为：No duplicate (Code, Phase), undefined diagnostics or contradictory routing classification；Exactly matching Runtime dispatch rules。**状态：NOT_IMPLEMENTED**。
+
+**RFX-120 — "§F.5", "§G.4", "§34.1"（资料性，非 E 编号）**
+
+输入变体：Each of allOf, anyOf, oneOf, not, if/then/else independently appears in an otherwise valid Schema；Schema uses only supported G.4 keywords but Source is not assignable to Target。
+
+预期行为：C_STATIC SCHEMA_INVALID for each unsupported composition, regardless of hypothetical inclusion proof；C_STATIC INPUT_TYPE_MISMATCH for valid schemas with incompatibility unrelated to nullability。**状态：NOT_IMPLEMENTED**。
+
+**RFX-121 — "§34.0.2", "§F.4", "§G.3.1"（资料性，非 E 编号）**
+
+输入变体：IndependentDomains trusted relationship missing, self-paired, duplicated or unauthorized；Trusted domains and independentPairs valid, actual two Producer records are same underlying source；Trusted domains and independentPairs valid, actual Producer records demonstrably independent。
+
+预期行为：C_STATIC EVIDENCE_GUARANTEE_LINK_INVALID for invalid trust relationship；R_RUNTIME Predicate UNKNOWN when actual independence is not established；Business evaluator PASS/FAIL only after guarantees and independent evidence are verified。**状态：NOT_IMPLEMENTED**。
+
+**RFX-122 — "§12.8", "§20.1.1", "§29", "§G.5"（资料性，非 E 编号）**
+
+输入变体：Business Goal Predicate PASS with pendingResponsibilitiesRetained=true and an authenticated PENDING disposition record；Same local Goal PASS but all known confirmed responsibilities verified TRANSFERRED or CLEANED, no unresolved calls, all other Goal/Scope/Evidence gates valid。
+
+预期行为：Invocation SAFE_STOPPED, retaining the PENDING record; TERMINAL_STATE_MISMATCH when a SUCCEEDED request is superseded；Eligible for Invocation SUCCEEDED only after all §12.8/§12.9 checks, not by the boolean alone。**状态：NOT_IMPLEMENTED**。
+
+
+## K.4 符合性报告模板（Informative，未测试）
+
+报告的八项门槛由 §45.2 定义。下述 YAML 只是填写结构的资料性示例；内部的 `same-document` 引用用于定位本文件附录，不是新的正式 URI 或 BuildRequest 字段。**不得**在缺少原始、不可变 CI / Owner/部署证据时把 `NOT_TESTED` 改成 `PASS`。
+
+```yaml
+# Informative reporting template; this is NOT an executable CA-SL fixture.
+# Do not change any NOT_TESTED to PASS without immutable raw evidence.
+# Authoritative gates: CA-SL v1alpha3 §45.2 (items 1–8).
+reportKind: ca-sl-implementation-conformance
+languageTarget: connectionagent.io/v1alpha3
+languageContract: FROZEN
+productConformance: NOT_QUALIFIED
+reportStatus: NOT_TESTED
+implementation:
+  product: null
+  repository: null
+  commitSha: null
+  platform: null
+  buildArtifactDigest: null
+  ownerExports:
+    - ownerId: null
+      packageId: null
+      snapshotDigest: null
+      publisherAuthorizationRef: null
+  toolchain:
+    cel:
+      implementation: null
+      versionOrCommit: null
+      enabledMacrosAndFunctionsRef: null
+    python:
+      astTypingAnalyzer: null
+      analyzerVersionOrCommit: null
+      runtimeVersion: null
+      sandboxArtifactDigest: null
+    jsonSchema:
+      implementation: null
+      versionOrCommit: null
+      dialect: https://json-schema.org/draft/2020-12/schema
+      caSlSupportedSubset: G.4
+    compilerNative:
+      commitOrArtifactDigest: null
+    compilerWasm:
+      commitOrArtifactDigest: null
+    studioLsp:
+      commitOrArtifactDigest: null
+    hostRuntime:
+      commitOrArtifactDigest: null
+caseMatrix:
+  normativeIndex: "same-document:Appendix-E"
+  caseRange: E01-E114
+  executableSuiteRef: null
+  rawResultRef: null
+  executedCaseCount: 0
+  passedCaseCount: 0
+  status: NOT_TESTED
+diagnosticMatrix:
+  normativeIndex: "same-document:Appendix-H"
+  gapRegister: "same-document:Appendix-K.2"
+  executableSuiteRef: null
+  rawResultRef: null
+  status: NOT_TESTED
+gates:
+  - id: 1
+    name: owner-exports
+    status: NOT_TESTED
+    evidenceRef: null
+  - id: 2
+    name: deployment-trust
+    status: NOT_TESTED
+    evidenceRef: null
+  - id: 3
+    name: compiler-ci-fixtures
+    status: NOT_TESTED
+    evidenceRef: null
+  - id: 4
+    name: native-wasm-studio-parity
+    status: NOT_TESTED
+    evidenceRef: null
+  - id: 5
+    name: runtime-host
+    status: NOT_TESTED
+    evidenceRef: null
+  - id: 6
+    name: fivegc-owner-and-36-cases
+    status: NOT_TESTED
+    evidenceRef: null
+  - id: 7
+    name: compiler-runtime-artifacts
+    status: NOT_TESTED
+    evidenceRef: null
+  - id: 8
+    name: evidence-and-release-record
+    status: NOT_TESTED
+    evidenceRef: null
+```
+
+## K.5 单文件审查的完成条件
+
+**文本完整性：** §0–§45、附录 A–H、已合并作者指南 I、决策与历史裁决 J、诊断/符合性计划 K 均在同一个 Markdown 文件中，无须从外部勘误记录拼接才能理解现行语义。
+
+**实现真实性：** 本次单文件整合与 Source Hygiene 检查最多说明文档结构及基本校验完成；只有实际 Owner 发布物、受信部署输入、Native/WASM/Studio 的机器 Fixture、Runtime Trace、真实 5GC Case 结果及 §45.2 的逐项报告经独立核验后才能改变相应产品状态。现行统一裁决仍为 **CA-SL v1alpha3 FROZEN；产品 NOT QUALIFIED**。
+
+---
+
+**全文结束。**
