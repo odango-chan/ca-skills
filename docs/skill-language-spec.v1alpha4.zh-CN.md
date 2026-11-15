@@ -1024,7 +1024,7 @@ graph = reachable stage/outcome DAG from entry
 # Every automatic same-node normal edge carries its source stage's normal Outcome.
 # In particular: precondition PASS -> next stage has edge.outcome == PASS.
 if globalRef != NONE:
-    require globalRef in graph.reachable_stages,
+    require graph.has_reachable_stage(parse_node_stage(globalRef)),
             else ENTRY_PRECONDITION_REF_INVALID   # before any BYPASSED check
 successEdges = graph.reachable_edges_to(terminal.SUCCEEDED)
 legalFinalEdges = [edge for edge in successEdges
@@ -1065,7 +1065,7 @@ for vertex in topological_order(graph.stages):
 | 场景 | 静态传递 | Runtime 复核 / 结果 |
 |---|---|---|
 | 全局 Precondition 聚合 PASS | **包括同 Node PASS 自动推进边**在内的所有该阶段 PASS 出边均设置 `passedGlobal=true`；FAIL/UNKNOWN 不设置 | 原绑定全部有效，才准入紧随其后的 Operation/MUTATION 或终态；不能把隐式自动边算成 BYPASSED |
-| Contract 引用的 Precondition 阶段存在但从 `start` 不可达 | 在完成全局引用语法/阶段种类检查后，额外要求 `globalRef in graph.reachable_stages`，失败时首先 `ENTRY_PRECONDITION_REF_INVALID` | 不进入 Runtime；与有效引用但某条具体路径跳过所指全局阶段的 `ENTRY_PRECONDITION_BYPASSED` 区分 |
+| Contract 引用的 Precondition 阶段存在但从 `start` 不可达 | 在完成全局引用语法/阶段种类检查后，额外要求 `graph.has_reachable_stage(parse_node_stage(globalRef))`，失败时首先 `ENTRY_PRECONDITION_REF_INVALID` | 不进入 Runtime；与有效引用但某条具体路径跳过所指全局阶段的 `ENTRY_PRECONDITION_BYPASSED` 区分 |
 | 两条可达路径汇合，仅一条通过全局门禁 | AND=false | 后续 MUTATION 或成功终态拒绝；不能借另一条的 PASS |
 | 局部 Precondition / Postcondition 聚合 PASS，继续到其他 Node | 不设置全局门禁（除恰为 Contract 引用的 Precondition）；**不建立可携带 Goal 证明** | 对直接后继 MUTATION 的局部门禁按既有规则复核 |
 | READ、Observation、Script 或 Mutation 发生在某次 Postcondition PASS 之后 | 依原 Stage Outcome 正常继续，**没有 Goal proof 位可保留** | 若后续请求成功，仍必须经过**新的最终 Postcondition**聚合 PASS |
@@ -2407,7 +2407,7 @@ v1alpha4 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 Observatio
 1. 分离 Contract、Procedure 与 Predicate 参数，改用阶段 `routes`，复查所有终态覆盖。
 2. 重新绑定权威 Producer 和 Evidence，核对 Capability 与 Effect。
 3. 为 Procedure Script 声明 TypedDict 签名，为 Predicate Script 使用生成输入类型，复跑 §45 的验收。
-4. 在 vNext 源码保留旧式 `verify` Node 字段时，Compiler 对已识别的旧语法报 `UNSUPPORTED_V02_SYNTAX`，迁移为 `postcondition` 阶段和显式路由。
+4. 在 v1alpha4 源码保留旧式 `verify` Node 字段时，Compiler 对已识别的旧语法报 `UNSUPPORTED_V02_SYNTAX`，迁移为 `postcondition` 阶段和显式路由。
 
 ## 45. 冻结裁决与产品符合性
 
@@ -2459,7 +2459,7 @@ v1alpha4 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 Observatio
 3. Compiler 在 CI 中执行附录 E01–E120 的适用正反例（包含 G.9），覆盖错误码、类型、SourcePath、Evidence、全局 Precondition 必经性、汇合 AND 以及最终 Postcondition 直接成功边。附录 H 中标记为“部分覆盖”或“待 Fixture”的诊断仍需通过独立的、与 `(Code, Phase)` 精确对应的可执行用例验收。本文件**附录 K 的资料性诊断 Fixture 缺口表**用于跟踪候选输入，**不增加 E01–E120 的规范性编号范围，也不构成 CI 通过证据**。声称符合本版的实现不得以 E 编号完整代替对未覆盖诊断的校验。
 4. Native / WASM / Studio 同一输入返回相同的链接和诊断结果；LSP 补全与检查共用规范源，不能发明不同解释。
 5. Runtime / Host 验证安全派发、预算、Deadline、取消、Reconcile、并发隔离、证据复核、Trace 和资源责任终态。
-6. 三个 5GC 异步完成 Operation 由其 Owner 确认；将真实 5GC Skill 迁移后执行 36 个 Case 的 vNext 回归；MAS 不列入已完成的运行验收基线。
+6. 三个 5GC 异步完成 Operation 由其 Owner 确认；将真实 5GC Skill 迁移后执行 36 个 Case 的 v1alpha4 回归；MAS 不列入已完成的运行验收基线。
 7. Compiler Artifact Contract 独立冻结生成 Schema 的序列化与可达依赖闭包；Runtime Artifact Contract 独立冻结 Trace 线格式、版本和兼容性。
 8. 交付符合性记录：语言目标版本、每项 Owner 导出及摘要、发布授权、执行 Fixture、原始 CI 结果、实际代码提交和未通过项。缺项不得标记 Runtime READY / live E2E PASS。
 
@@ -2707,7 +2707,7 @@ flowchart LR
 | ID | 决定 | 说明 |
 |---|---|---|
 | D-01 | ca-skills 是 Skill 源码与语言语义唯一权威 | ca-agent-demo 是行为参考 |
-| D-02 | vNext 采用破坏性迁移 | 不保留 v0.2 隐式兼容 |
+| D-02 | v1alpha4 采用破坏性迁移 | 不保留 v0.2 隐式兼容 |
 | D-03 | Skill 只 Grant Capability | 不直接 Grant Operation |
 | D-04 | Procedure 调用精确 callable | Operation 和 Observation Query 都由 ToolCatalog 解析 |
 | D-05 | Observation 是 Tool 体系中的只读查询能力 | 不保留平行 ObservationSource Registry |
