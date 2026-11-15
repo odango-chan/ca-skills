@@ -4247,7 +4247,8 @@ flowchart TD
 | `null`、`true`、`false`（均无引号） | 合法 Core Null/Boolean 字面量，仍受目标参数 Schema 类型约束 |
 | `Null`、`NULL`、`~` | **不能**作为合法 v1alpha3 null；即使 YAML 库能解码也应按既有语法/表达式规则拒绝 |
 | `TRUE`、`False` | **不能**作为合法 v1alpha3 Boolean；不可自动大小写规范化 |
-| `0x10`、`01` | 不属于允许的有限十进制/无前导零形态（按具体语法位置判定），不能把其他进制或不规范数值当作合法整数 |
+| `0x10` | 不属于 G.1 的有限十进制数字形态，不能因 YAML 库支持其他进制而当作合法数值 |
+| `01` | 保留原始词法，**先依据所在语法位置**判定：G.1 的 `PositiveInteger` 明确拒绝前导零；作为 `arguments` 的 `FiniteDecimalNumber` 时必须核对该类别的冻结定义，不得在本候选中擅自新增“所有前导零均非法”的规则。若文本尚不足以唯一裁决，记录待独立词法评审，不将其作为已通过或确定的负例 |
 | `"12"`、`"true"`、`"null"`（带引号） | 是 string 字面量，不得被词法归一化为数值、Boolean 或 null；与目标类型不匹配时使用既有类型诊断 |
 | `context.request.dnn`（无引号） | 符合 SourcePath 词法的字段引用，但还必须做已声明字段、路径可用性与类型检查 |
 | `"context.request.dnn"`（带引号） | 字符串字面量，**不是** SourcePath |
