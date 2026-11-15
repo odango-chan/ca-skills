@@ -8,17 +8,16 @@ target ca-skill-compiler; this script checks package/source hygiene only.
 
 from __future__ import annotations
 
-import ast
 import json
 import re
 from pathlib import Path
+from verify_v1alpha4_examples import validate_example_scripts
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS_ROOT = ROOT / "skills"
 EXAMPLE_SKILLS = ("establish-pdu-session", "establish-pdu-session-mas")
 EXAMPLE_SKILLS_ROOT = ROOT / "examples" / "skills"
 ASSURANCE_FILES = ("contract.yaml", "procedure.yaml", "predicates.yaml")
-SCRIPT_REF_RE = re.compile(r"(?m)^\s*(?:script|ref):\s*(scripts/[^\s#]+)\s*(?:#.*)?$")
 RUN_PRODUCED_FACT_IDS = ("virtual_group.id",)
 
 
@@ -64,55 +63,6 @@ def validate_package_layout(skill: Path, errors: list[str]) -> None:
         for name in legacy_case_files:
             for path in cases.glob("*/" + name):
                 errors.append(f"{path.relative_to(ROOT)}: consolidate case source into case.yaml")
-
-
-def typed_dict_names(tree: ast.Module) -> set[str]:
-    names: set[str] = set()
-    for node in tree.body:
-        if isinstance(node, ast.ClassDef):
-            if any(isinstance(base, ast.Name) and base.id == "TypedDict" for base in node.bases):
-                names.add(node.name)
-        elif isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
-            call = node.value
-            if isinstance(call.func, ast.Name) and call.func.id == "TypedDict":
-                for target in node.targets:
-                    if isinstance(target, ast.Name):
-                        names.add(target.id)
-    return names
-
-
-def validate_script(path: Path, errors: list[str]) -> None:
-    source = path.read_text(encoding="utf-8")
-    if "connectionagent-tool" in source:
-        errors.append(f"{path.relative_to(ROOT)}: legacy connectionagent-tool metadata is forbidden")
-    try:
-        tree = ast.parse(source, filename=str(path))
-    except SyntaxError as error:
-        errors.append(f"{path.relative_to(ROOT)}:{error.lineno}:{error.offset}: Python syntax error: {error.msg}")
-        return
-
-    mains = [node for node in tree.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "main"]
-    if len(mains) != 1 or not isinstance(mains[0], ast.FunctionDef):
-        errors.append(f"{path.relative_to(ROOT)}: expected exactly one synchronous main(input: dict) -> OutputTypedDict")
-        return
-
-    main = mains[0]
-    args = main.args
-    positional = [*args.posonlyargs, *args.args]
-    if (
-        len(positional) != 1
-        or positional[0].arg != "input"
-        or not isinstance(positional[0].annotation, ast.Name)
-        or positional[0].annotation.id != "dict"
-        or args.vararg is not None
-        or args.kwarg is not None
-        or args.kwonlyargs
-        or args.defaults
-        or args.kw_defaults
-    ):
-        errors.append(f"{path.relative_to(ROOT)}: entry point must be exactly main(input: dict)")
-    if not isinstance(main.returns, ast.Name) or main.returns.id not in typed_dict_names(tree):
-        errors.append(f"{path.relative_to(ROOT)}: main return annotation must name a TypedDict declared in the same file")
 
 
 def validate_v1alpha4_example(skill_name: str, errors: list[str]) -> None:
@@ -169,6 +119,9 @@ def validate_v1alpha4_example(skill_name: str, errors: list[str]) -> None:
             errors.append(f"{skill_name}: unsupported G.4 Schema keyword in request Schema")
         if "https://json-schema.org/draft/2020-12/schema" not in request:
             errors.append(f"{skill_name}: request Schema missing frozen Draft 2020-12 dialect")
+
+    # v1alpha4 Script checks are local AST/closed-TypedDict/source hygiene only.
+    validate_example_scripts(skill, errors)
 
     # This gate intentionally does not validate Owner exports/capabilities.
     # Their illustration-only urn:example identities MUST NOT be treated as
@@ -245,7 +198,8 @@ def main() -> None:
 
     print(f"PACKAGE_LAYOUT_OK ({len(packages)} historical Skill directories)")
     print("V1ALPHA4_EXAMPLE_SHAPE_OK (2 source examples; Owner links NOT_QUALIFIED)")
-    print("NOTE: historical Script behavior is preserved under examples/legacy/ and not typechecked here")
+    print("V1ALPHA4_LOCAL_SCRIPT_SHAPE_PASS (typed signatures, path refs, closed Script bindings)")
+    print("NOTE: external Owner/Context SourcePaths and historical Cases are not typechecked or executed")
     print("LEGACY_TOOL_CATALOG_SNAPSHOT_OK (12 Operations; not a v1alpha4 Owner publication)")
     print("SEMANTIC_TOKEN_REGISTRY_OK (v0.2.0)")
     print("SOURCE_HYGIENE_PASS")
