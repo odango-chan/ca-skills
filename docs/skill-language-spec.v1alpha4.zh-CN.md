@@ -1421,13 +1421,13 @@ Host / Runtime 仍负责 Deadline、Cancellation、Correlation、预算、UNKNOW
 |---|---|---|
 | Precondition / Postcondition | `PASS`（全部 `predicates[]` PASS 后的唯一阶段结果） | `FAIL`（任一 FAIL）、`UNKNOWN`（无 FAIL 且至少一项 UNKNOWN），见 §12.2/§12.5；**只有 Postcondition 聚合 PASS 可以请求终态 SUCCEEDED** |
 | READ Operation / Observation | `SUCCEEDED` | `FAILED`、`DENIED`、`UNKNOWN` |
-| MUTATION Operation | `SUCCEEDED` | `FAILED`、`DENIED`、`NOT_COMMITTED`、`OUTCOME_UNKNOWN` |
+| MUTATION Operation | `SUCCEEDED` | `FAILED`、`DENIED`、`NOT_COMMITTED`、`OUTCOME_UNKNOWN`，及受信 Host 仅在恢复已提交但无承诺恢复输出时产生的 `COMMITTED` |
 | Procedure Script | `SUCCEEDED` | `FAILED` |
-| Reconcile | `COMMITTED` | `NOT_COMMITTED`、`UNRESOLVED` |
+| Host 内部 Reconcile READ（非作者 Stage） | 不单独产生作者阶段 Outcome | 由 Host 验证并映射至原 MUTATION 的 SUCCEEDED、COMMITTED、NOT_COMMITTED 或 OUTCOME_UNKNOWN |
 
-Predicate 的 PASS 表示命题得到充分支持。FAIL 表示命题被充分证伪。UNKNOWN 表示无法可靠判断。Mutation 及 Reconcile 的提交语义见 §20。
+Predicate 的 PASS 表示命题得到充分支持。FAIL 表示命题被充分证伪。UNKNOWN 表示无法可靠判断。Mutation 的提交状态安全确认仍由 Host 调用受信 Owner Reconcile READ，但其结果归并为原 Mutation 阶段 Outcome，详见 §20。
 
-普通 callable 的 Owner 业务结果为 SUCCEEDED、FAILED，以及仅 Mutation 可用的 NOT_COMMITTED。Owner 必须声明 SUCCEEDED，其余按支持情况声明。Runtime 保留普通 callable 的 DENIED、READ / Observation 的 UNKNOWN，以及 Mutation 的 OUTCOME_UNKNOWN。Owner 不得声明或返回这些 Runtime 结果。Reconcile 的 COMMITTED、NOT_COMMITTED、UNRESOLVED 是 Runtime 验证调和证明后产生的阶段结果。Predicate 和 Procedure Script 仍采用表中的完整集合。
+普通 callable 的 Owner 业务结果为 SUCCEEDED、FAILED，以及仅 Mutation 可用的 NOT_COMMITTED。Owner 必须声明 SUCCEEDED，其余按支持情况声明。Runtime 保留普通 callable 的 DENIED、READ / Observation 的 UNKNOWN，以及 Mutation 的 OUTCOME_UNKNOWN。Owner 不得声明或返回这些 Runtime 结果。恢复专用 READ 的 Owner 结果不直接变成作者阶段 Outcome；Host 依据受信证明在**原 Mutation Operation** 上产生 COMMITTED、NOT_COMMITTED 或保留 OUTCOME_UNKNOWN。Predicate 和 Procedure Script 仍采用表中的完整集合。
 
 **命名空间总览（资料性导航，判定以 §22.1、§20、§12.8、§24 及 H 为准）：**
 
@@ -1437,13 +1437,14 @@ Predicate 的 PASS 表示命题得到充分支持。FAIL 表示命题被充分�
 | `SUCCEEDED` / `FAILED`（Owner） | 普通 READ/MUTATION、Observation 的 Owner 调用 | 是，SUCCEEDED 必需 | 是 | 正常 SUCCEEDED 非末阶段自动推进、末阶段必填；Owner 已声明的 FAILED 必须路由 |
 | `SUCCEEDED` / `FAILED`（Script） | Procedure Script | 不属于 Tool Owner | 是 | 按 §22.1 正常推进或显式 FAILED 路由 |
 | `DENIED`、`UNKNOWN`（READ） | Runtime 对普通 READ/Observation 的保留结果 | 否 | 可选 | 省略时按 §12.8 直接停止，不等于成功 |
-| `OUTCOME_UNKNOWN`（MUTATION） | Runtime 无法确认本次 Mutation 提交状态 | 否 | 是，必须显式路由 | 只能经安全 Reconcile 或终止，不得推断 NOT_COMMITTED |
-| `NOT_COMMITTED`（Mutation Owner） | Mutation Owner 的确定未提交结果 | 是（仅 Mutation） | 已声明时必填 | 仍需单独证明、无残留及重试授权；不等于 Invocation 终态 |
-| `COMMITTED` / `NOT_COMMITTED` / `UNRESOLVED`（Reconcile） | Runtime 从独立受信调和结果映射 | 否 | 是（按 §22.1） | 不能由调和 Owner 自报；UNRESOLVED 直接请求安全终止 |
+| `OUTCOME_UNKNOWN`（MUTATION） | Host 已尝试允许的安全结果确认但仍无法证明提交状态，或该 READ 无法准入 | 否 | 是，必须显式路由 | 只能直接请求 UNRESOLVED / SAFE_STOPPED 安全终止，禁止新的业务 Mutation |
+| `NOT_COMMITTED`（Mutation Owner） | Mutation Owner 直接或 Host 经可信调和读确认原 Mutation 未提交 | 是（仅 Mutation Owner 原始 Outcome） | 已声明时必填 | 仍需无副作用与重试授权证明，不等于 Invocation 终态；不允许隐式重发 |
+| `COMMITTED`（原 Mutation） | Host 受信恢复证明已提交，但 Owner 未承诺恢复普通 SUCCEEDED 输出 | 否 | 可选（未配置直接安全停止） | 不暴露原调用 output，不能直接请求 SUCCEEDED |
+| `NOT_COMMITTED`（原 Mutation） | Owner 可信已证明未提交，或 Host 从独立受信恢复读确认 | 是（仅 Owner 的原始类别）/ Host 可归并 | 已声明时必填 | 仍需无副作用、retryable 和原调用关联证明才可显式重试 |
 | `SUCCEEDED` / `FAILED` / `UNRESOLVED` / `SAFE_STOPPED`（Invocation） | Runtime 最终裁决；仅作 route 目标值 | 非 Owner callable Outcome | **否**，作为目标值 | `routes.PASS: SUCCEEDED` 仅请求终态，实际须经 Goal/责任/门禁复核 |
 | `EFFECT_MISMATCH` 等诊断 | Compiler 或 Runtime（按 H 的 Phase） | 非 Outcome | **否** | 诊断说明原因，终态仍由 §12.8、§20 决定 |
 
-普通 callable 的允许路由键是已声明 Owner 结果与适用 Runtime 保留结果的并集。Owner 的非正常结果及 Mutation 的 OUTCOME_UNKNOWN 必须显式路由；DENIED 与 READ / Observation 的 UNKNOWN 路由可选，省略时按 §24.2 停止。正常结果在末阶段必填，在非末阶段自动推进且禁止显式声明。全局 CANCELLED 与 DEADLINE_EXCEEDED 直接停止，不作为路由键。未知或未声明的 Owner 回包按 §24.2 隔离并停止。Compiler 构图时对省略的可选 Runtime 路由建模为直接停止，不传播成功证明。
+普通 callable 的允许路由键是已声明 Owner 结果与适用 Runtime 保留结果的并集，另仅为已可信链接安全 `mutation.reconcile` 的 Mutation 允许可选 `COMMITTED` 出边。禁止在普通 READ/Observation/Script 上声明 COMMITTED。Owner 的非正常结果及 Mutation 的 OUTCOME_UNKNOWN 必须显式路由；DENIED 与 READ / Observation 的 UNKNOWN 路由可选，省略时按 §24.2 停止。正常结果在末阶段必填，在非末阶段自动推进且禁止显式声明。全局 CANCELLED 与 DEADLINE_EXCEEDED 直接停止，不作为路由键。未知或未声明的 Owner 回包按 §24.2 隔离并停止。Compiler 构图时对省略的可选 Runtime 路由建模为直接停止，不传播成功证明。
 
 ### 22.1 路由矩阵
 
@@ -1454,10 +1455,10 @@ Predicate 的 PASS 表示命题得到充分支持。FAIL 表示命题被充分�
 | Precondition / Postcondition | PASS：禁止 / 必填 | FAIL、UNKNOWN | 无 | 不适用 |
 | Procedure Script | SUCCEEDED：禁止 / 必填 | FAILED | 无 | 不适用 |
 | READ / Observation | SUCCEEDED：禁止 / 必填 | 已声明的 Owner FAILED | Runtime DENIED、UNKNOWN | 按 §12.8 直接停止 |
-| Mutation | SUCCEEDED：禁止 / 必填 | 已声明的 Owner FAILED、NOT_COMMITTED，以及 Runtime OUTCOME_UNKNOWN | Runtime DENIED | 按 §12.8 直接停止 |
-| Reconcile | COMMITTED：禁止 / 必填 | NOT_COMMITTED、UNRESOLVED | 无 | 不适用 |
+| Mutation | SUCCEEDED：禁止 / 必填 | 已声明的 Owner FAILED、NOT_COMMITTED，以及 Runtime OUTCOME_UNKNOWN | Runtime DENIED、受信恢复已提交且无承诺普通输出时的 COMMITTED | 可选 COMMITTED 省略时直接按 §12.8 安全停止；OUTCOME_UNKNOWN 只能指向 UNRESOLVED 或 SAFE_STOPPED |
+| Host 内部 Reconcile READ（非作者阶段） | 不适用 | 不适用 | 不适用 | 专用 READ 的结果归并到原 Mutation，按 §12.7/§20 审计 |
 
-**成功终态目标限制（v1alpha4 Normative）：** 上表规范的是 `routes` 的允许/必填**键**，不是所有键可指向的**终态目标**。仅 `postcondition.routes.PASS: SUCCEEDED` 合法；其余任何 Stage / Outcome 的路由若指向 `SUCCEEDED`（包括 Operation 的 `SUCCEEDED: SUCCEEDED`、Reconcile 的 `COMMITTED: SUCCEEDED`、Precondition 的 `PASS: SUCCEEDED`、Postcondition 的 `FAIL/UNKNOWN: SUCCEEDED`），均按 `SUCCESS_BYPASSES_FINAL_POSTCONDITION` 阻止构建。Postcondition 的 `PASS` 指向另一个业务 Node 则属于局部验收，不产生可继承的 Goal 证明。**此目标约束不改变**其他合法 Outcome 的路由键集合与停止终态。
+**成功终态目标限制（v1alpha4 Normative）：** 上表规范的是 `routes` 的允许/必填**键**，不是所有键可指向的**终态目标**。仅 `postcondition.routes.PASS: SUCCEEDED` 合法；其余任何 Stage / Outcome 的路由若指向 `SUCCEEDED`（包括 Operation 的 `SUCCEEDED: SUCCEEDED` 或 `COMMITTED: SUCCEEDED`、Precondition 的 `PASS: SUCCEEDED`、Postcondition 的 `FAIL/UNKNOWN: SUCCEEDED`），均按 `SUCCESS_BYPASSES_FINAL_POSTCONDITION` 阻止构建。Postcondition 的 `PASS` 指向另一个业务 Node 则属于局部验收，不产生可继承的 Goal 证明。**此目标约束不改变**其他合法 Outcome 的路由键集合与停止终态。
 
 缺必填键报 ROUTE_OUTCOME_MISSING。可选 Runtime 边省略时直接进入 §12.8 的终态裁决，并保留诊断和责任。显式配置非末阶段的正常键报 ROUTE_NORMAL_OUTCOME_NOT_ALLOWED。正常构建缺少 Script FAILED 路由报 `ROUTE_OUTCOME_MISSING` 并阻断构建。§24.2 的缺边规则仅用于 Runtime 遇到异常执行图时的防御性停止。Studio 补全和 Compiler 校验应共用本矩阵。本节即为完整路由矩阵的唯一 Normative 判定入口；资料性测试视角见附录 K。任何外部机器镜像均不能取代本节或授权新 Outcome。
 
