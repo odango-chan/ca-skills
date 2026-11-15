@@ -1,13 +1,13 @@
-# ConnectionAgent Skill Language Specification
+# CA-SL v1alpha3 — Single-file specification / 单文件评审入口
 
-**Canonical specification:** [ConnectionAgent Skill Language Specification（CA-SL）— 中文完整规范](skill-language-spec.zh-CN.md)
+**Review this one file:** [CA-SL v1alpha3 完整中文规范（唯一 Normative 源）](skill-language-spec.zh-CN.md)
 
-The linked document is the sole normative CA-SL v1alpha3 specification for this repository (`vNext` is a non-normative series alias). It includes the language background, conceptual model, terminology, YAML grammar, static and runtime semantics, ToolCatalog / CapabilityContracts, Observation and Evidence model, error handling, PDU Session examples, toolchain requirements, design references, decision register and review FAQ.
+The linked Markdown contains the full language text, §§0–91, Appendices A–H, all E01–E114 expectations, and the consolidated informative appendices: **I** authoring/Schema projection guidance, **J** runtime decision index and errata dispositions, and **K** diagnostic fixtures, case execution planning, and conformance report template.
 
-The [first v1alpha3 errata record](design/ca-sl-v1alpha3-errata-2026-11-14.md), [second errata review](design/ca-sl-v1alpha3-errata-2026-11-14-r2.md), [diagnostic/PSI trace errata](design/ca-sl-v1alpha3-diagnostic-trace-errata.md), [interop/implementation baseline clarification](design/ca-sl-v1alpha3-interop-clarifications-2026-11-14.md), [Reconcile/Runtime diagnostic errata](design/ca-sl-v1alpha3-reconcile-runtime-errata-2026-11-14.md), [Evidence/source/routing/schema errata](design/ca-sl-v1alpha3-evidence-source-and-routing-errata.md) and [editorial review closure](design/ca-sl-v1alpha3-editorial-closure-2026-11-14.md) and [interop audit / conformance routing clarification](design/ca-sl-v1alpha3-interop-audit-2026-11-14.md) and [receipt anchor audit](design/ca-sl-v1alpha3-receipt-anchor-audit-2026-11-15.md) and [excerpt review / routing scope clarification](design/ca-sl-v1alpha3-excerpt-review-scope-2026-11-15.md) and [post-freeze consistency review](design/ca-sl-v1alpha3-postfreeze-consistency-review-2026-11-15.md) track documentary clarifications and incomplete executable fixtures. None independently changes the frozen language target.
+**只需要评审这一份文件。** 此前独立的勘误、冻结审计、作者指南、决定索引和测试候选文件保留作历史或机器处理用途，但**不再是理解当前规范所需的独立材料**。如有歧义，以同一提交中的中文规范正文及 Normative 附录 E/F/G/H 为准；历史文件不能修改其效力。
 
-This English-path document is an index only. It intentionally does not duplicate the normative language definition. Until an approved English translation is published, the Chinese document remains the sole authoritative v1alpha3 language contract. The source language and its normative Appendices F/G/H are frozen; the complete Root Routing / Applicability author syntax is not defined by v1alpha3, although ambiguous Skill selection must fail closed. Owner, Compiler, Studio, Runtime and 5GC implementation conformance are separately gated by §45.2.
+**Language target:** `connectionagent.io/v1alpha3` (`vNext` is an informative alias)  
+**Language:** FROZEN  
+**Product / Owner conformance:** NOT QUALIFIED — all actual §45.2 gates require independent evidence.
 
-**Version:** `connectionagent.io/v1alpha3` (vNext is an informative alias)  
-**Status:** FROZEN LANGUAGE + INTEROPERABILITY CONTRACT — IMPLEMENTATION NOT QUALIFIED  
-**Owner:** ca-skills
+This index is intentionally non-normative and does not duplicate any language rule.
