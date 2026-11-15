@@ -1128,7 +1128,7 @@ Compiler 必须验证：
 - 参数名在目标 Schema 中存在；
 - 所有 Required 参数均提供；
 - 不得传入未声明字段；
-- SourcePath 必须在每条可达路径上存在。Compiler 先解析 Producer 与其输出 Schema，再检查路径和 Outcome，最后检查类型可赋值性。路径某段未在对应 Schema 中声明时报告 `SOURCE_PATH_INVALID`。已声明的路径因当前分支没有相应 Producer Outcome 而不可用时报告 `SOURCE_NOT_AVAILABLE`；引用 Owner 未声明的 Reconcile 输出时按 §12.7 报 `RECONCILE_OUTPUT_UNAVAILABLE`。若属性在该 Outcome 的 Schema 中可缺失（包括 TypedDict 的 `NotRequired`），直接取该属性的路径报告 `SOURCE_NOT_AVAILABLE`。可绑定保证存在的外层对象，再由消费者按其 Schema 处理可选成员。Predicate PASS 本身不缩窄后续 SourcePath 类型。例如局部门禁确认 `read-policy.operation.output` 中的可选 `policyRef` 有值，即使 PASS 边直接连到 Mutation，其 `arguments.policyRef: read-policy.operation.output.policyRef` 仍在构建期报 `SOURCE_NOT_AVAILABLE`，该 Skill 因此无法运行，也不会执行 §12.9 的派发前局部门禁复核。若目标 Schema 允许，可省略该实参。若业务必需，由 Owner 在输出 Schema 中声明必需字段，或将保证存在的外层对象传给 Procedure Script。对于非身份实参，Script 只有能产生有效值时才返回包含必需字段的 TypedDict。若该字段参与 Scope 或身份校验，应由权威 Producer 或 Host 提供可直接绑定的必需字段。若字段缺失且无法得出有效引用，Script 显式抛出异常，由 Runtime 走 FAILED 边（§24.2、§32.1）。
+- SourcePath 必须在每条可达路径上存在。Compiler 先解析 Producer 与其输出 Schema，再检查路径和 Outcome，最后检查类型可赋值性。路径某段未在对应 Schema 中声明时报告 `SOURCE_PATH_INVALID`。已声明的路径因当前分支没有相应 Producer Outcome 而不可用时报告 `SOURCE_NOT_AVAILABLE`；**特例**：若消费路径仅来自原 Mutation 的 `COMMITTED` 出边、且受信 Owner 没有声明可恢复普通成功输出，尝试绑定该原 Operation 输出按 §12.7 报 `RECONCILE_OUTPUT_UNAVAILABLE`，优先于 SOURCE_NOT_AVAILABLE（E10b/E63）。若属性在该 Outcome 的 Schema 中可缺失（包括 TypedDict 的 `NotRequired`），直接取该属性的路径报告 `SOURCE_NOT_AVAILABLE`。可绑定保证存在的外层对象，再由消费者按其 Schema 处理可选成员。Predicate PASS 本身不缩窄后续 SourcePath 类型。例如局部门禁确认 `read-policy.operation.output` 中的可选 `policyRef` 有值，即使 PASS 边直接连到 Mutation，其 `arguments.policyRef: read-policy.operation.output.policyRef` 仍在构建期报 `SOURCE_NOT_AVAILABLE`，该 Skill 因此无法运行，也不会执行 §12.9 的派发前局部门禁复核。若目标 Schema 允许，可省略该实参。若业务必需，由 Owner 在输出 Schema 中声明必需字段，或将保证存在的外层对象传给 Procedure Script。对于非身份实参，Script 只有能产生有效值时才返回包含必需字段的 TypedDict。若该字段参与 Scope 或身份校验，应由权威 Producer 或 Host 提供可直接绑定的必需字段。若字段缺失且无法得出有效引用，Script 显式抛出异常，由 Runtime 走 FAILED 边（§24.2、§32.1）。
 - Source Schema 可赋给目标字段 Schema；
 - Optional、Nullability、enum、const、范围和数组元素约束兼容；
 - 来源的 Subject、Session、Lifecycle 和 Evidence Scope 没有被不安全地扩大；
@@ -1533,7 +1533,7 @@ Environment
 | INPUT_TYPE_MISMATCH | Source 不可赋给 Target，包括 enum、const、范围和数组元素约束不兼容（空值冲突按专用诊断） | 阻止构建 |
 | INPUT_NULLABILITY_MISMATCH | nullable Source 绑定非 nullable Target | 阻止构建 |
 | SOURCE_NOT_AVAILABLE | Producer 非所有路径可用，例如原 Mutation NOT_COMMITTED/OUTCOME_UNKNOWN 分支访问成功输出；COMMITTED 且 Owner 未声明恢复输出时优先专用 RECONCILE_OUTPUT_UNAVAILABLE | 阻止构建 |
-| RECONCILE_OUTPUT_UNAVAILABLE | Reconcile 后使用未由 Owner 声明可恢复的输出 | 阻止构建 |
+| RECONCILE_OUTPUT_UNAVAILABLE | 只沿原 Mutation COMMITTED（已证实提交、Owner 未声明恢复成功输出）到达消费者，却绑定原 Mutation `operation.output`；优先于 SOURCE_NOT_AVAILABLE | 阻止构建 |
 | ROUTE_OUTCOME_MISSING | 阶段缺少必须显式声明的 Outcome 路由 | 阻止构建 |
 | ROUTE_OUTCOME_UNKNOWN | 路由键不属于该阶段的精确 Outcome 集 | 阻止构建 |
 | ROUTE_NORMAL_OUTCOME_NOT_ALLOWED | 在非末阶段的 `routes` 中声明正常 Outcome，可能跳过同一 Node 的后续阶段 | 阻止构建 |
@@ -4031,16 +4031,16 @@ has(obj.optionalNullable) &&
 | Mutation | 原调用提交证明有效，SUCCEEDED 所承诺输出和保证均有效 | 记录已提交；沿 **Mutation Stage** 的 SUCCEEDED 边，非 Invocation 成功终态 | §20.1、§12.8–§12.9 |
 | Mutation | 已提交，但承诺输出缺失、不合法或无法关联 | 保留提交状态与责任；`COMMITTED_OUTPUT_UNAVAILABLE`；按 §12.8 停止，存在待处置的确认变更则 SAFE_STOPPED | §20.1、§20.1.1 |
 | Mutation | 已证明未提交，Owner 结果属于已声明、已验证的确定失败类别且无残留副作用 | 根据 Owner 已声明映射沿 FAILED 或 NOT_COMMITTED；FAILED 不自动准许重试 | §20.1、§20.2 |
-| Mutation | 无可信提交结论，或可信证明相互矛盾 | OUTCOME_UNKNOWN；根据已链接的调和契约进入唯一 Reconcile 或安全停止，保留原调用责任 | §20.1、§20.2 |
+| Mutation | 原派发未决，Host 有受信 Owner Reconcile READ 权限及预算 | Host 最多确认一次并归并该原 Mutation Outcome；仍无法确认则 OUTCOME_UNKNOWN 直接安全停止 | §12.7、§20.2 |
 | Reconcile 准入 | 与原 Mutation 绑定的独立 READ callable、Capability、Scope、Deadline、预算及原 Invocation 证明有效 | 对同一原调用至多执行一次 READ 调和；不得新增业务 Mutation | §12.7、§20.2、G.2 |
-| Reconcile | Owner SUCCEEDED 且证明原调用已提交；恢复子对象有效或契约不承诺恢复数据 | Reconcile Stage COMMITTED；只有已验证的 `recoverableOutputPath` 子对象可绑定为 `operation.output` | §20.3、G.2 |
-| Reconcile | 已提交，但承诺的恢复子对象缺失或校验失败 | `COMMITTED_OUTPUT_UNAVAILABLE`；保留已确认提交及责任，按 §12.8 停止 | §20.3、G.2 |
-| Reconcile | Owner SUCCEEDED 且可信证明原调用未提交 | Reconcile Stage NOT_COMMITTED；重试仍需独立证明与一次性授权 | §20.3、§20.2 |
-| Reconcile | 未取得有效且不冲突的提交结论 | Reconcile Stage UNRESOLVED，按 §12.8 判定终态并保留原调用责任 | §20.3、§20.1.1 |
+| Host Reconcile READ | Owner SUCCEEDED 且证明原调用已提交、恢复普通成功输出完整有效 | 原 Mutation SUCCEEDED，原 Node output 可用并保留恢复 Producer 来源；未承诺恢复输出则原 Mutation COMMITTED 且无 output | §20.3、G.2 |
+| Host Reconcile READ | 已提交，但承诺的恢复子对象缺失或校验失败 | `COMMITTED_OUTPUT_UNAVAILABLE`；保留提交及责任，强制安全停止 | §20.3、G.2 |
+| Host Reconcile READ | Owner SUCCEEDED 且可信证明原调用未提交 | 原 Mutation NOT_COMMITTED；retryOf 的显式新尝试仍须 Owner 与 Host 独立准入，且本版至多一次 | §20.3、§20.2 |
+| Host Reconcile READ | 未取得有效且不冲突的提交结论 | 原 Mutation OUTCOME_UNKNOWN 直接保全停止；不可盲重试 | §20.3、§20.1.1 |
 | 任一停止路径 | 存在已确认 PENDING 责任 | SAFE_STOPPED 优先；否则有未决提交/关键事实时为 UNRESOLVED；其他情形按 §12.8 | §12.8、§20.1.1、G.5 |
 | 任一成功请求 | 最终 Postcondition 聚合 `PASS: SUCCEEDED` 直接请求成功 | 只有单数全局门禁（若声明）、最终全部 Predicate 的原绑定 Scope/Evidence 与提交、责任均通过复核，才能发布 Invocation SUCCEEDED | §12.8–§12.9、G.8 |
 
-**分类说明：** `COMMITTED`、`NOT_COMMITTED`、`UNRESOLVED` 在 Reconcile 表示 Stage Outcome；`OUTCOME_UNKNOWN` 是 Mutation Stage Outcome；`SUCCEEDED` 作为右侧路由目标才可能表示请求发布 Invocation 终态。Owner callable 的 `ownerOutcomes` 不得包含 Runtime 自行产生的分类。以上索引不替代 §20.1、§20.3、G.2.2 的证明结构和路径校验。
+**分类说明：** `COMMITTED`、`NOT_COMMITTED`、`OUTCOME_UNKNOWN` 均指原 Mutation Stage Outcome；内部 Reconcile READ **没有作者 Stage Outcome**。`SUCCEEDED` 作为右侧路由目标才可能表示请求发布 Invocation 终态，且仅最终 Postcondition 聚合 PASS 可以请求。Owner callable 的 `ownerOutcomes` 不得包含 Runtime 自行产生的分类。以上索引不替代 §20.1、§20.3、G.2.2 的证明结构和路径校验。
 
 ### J.2 Evidence 独立性判定流程（资料性）
 
@@ -4125,7 +4125,7 @@ flowchart TD
 | E14 | 运行模拟 | NOT_IMPLEMENTED |
 | E15 | 业务评审 | NOT_IMPLEMENTED |
 | E16 | 静态链接 | NOT_IMPLEMENTED |
-| E17 | 静态链接 | NOT_IMPLEMENTED |
+| E17 | 静态+Host 恢复模拟（两个成功 Producer 变体） | NOT_IMPLEMENTED |
 | E18 | 静态链接 | NOT_IMPLEMENTED |
 | E19 | 静态链接 | NOT_IMPLEMENTED |
 | E20 | 运行模拟 | NOT_IMPLEMENTED |
@@ -4216,7 +4216,7 @@ flowchart TD
 | E105 | 静态链接 | NOT_IMPLEMENTED |
 | E106 | 静态+运行 | NOT_IMPLEMENTED |
 | E107 | 静态链接 | NOT_IMPLEMENTED |
-| E108 | 运行模拟 | NOT_IMPLEMENTED |
+| E108 | Host 恢复归并及 Producer/Evidence 模拟 | NOT_IMPLEMENTED |
 | E109 | 静态链接 | NOT_IMPLEMENTED |
 | E110 | 静态链接 | NOT_IMPLEMENTED |
 | E111 | 静态链接 | NOT_IMPLEMENTED |
