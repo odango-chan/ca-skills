@@ -1381,6 +1381,8 @@ Runtime 只用可信且关联到本次原调用的证明记录提交状态。Own
 | `create-session` 的 `SUCCEEDED` → `retry-session`，或旁路 Node → `retry-session` | `RETRY_CONTRACT_INVALID`，阻断构建 | 存在一条到达重试的路径没有经过目标原调用或其唯一 Reconcile 的 `NOT_COMMITTED` 出边 |
 | 汇合路径：一条经 `reconcile-session.NOT_COMMITTED`，另一条从未证实状态直接进入 `retry-session` | `RETRY_CONTRACT_INVALID`，阻断构建 | 合流时不得把一条路径取得的未提交资格授予其他路径 |
 
+**多个 `retryOf` 候选与同一未提交证明（Informative；不新增静态禁令或结果码）。** 本版未规定不同合法重试 Node 不得引用同一原 Mutation；但静态 `retryOf` 路径覆盖只证明**可达前提**，不会给每个 Node 各发一张重试资格。Runtime 对**同一个原 Mutation Invocation 的已验证未提交凭证**建立唯一消费记录：实际派发新的业务 Mutation 前，必须在原调用/证明/Scope/业务身份均验证后**原子抢占并消费一次**，成功者取得独立新 Invocation；其余候选（即使静态图上合法、另一个分支仍可达）不得复用同一证明，按现有 `RETRY_ADMISSION_DENIED` 保全停止。审计中保留原 Invocation ID、证明引用/验证结果、每个候选 Node/新调用身份、抢占/已消费状态和拒绝原因；不同执行调度不能使同一证明多次授权。**这里不新增并发调度顺序保证、不要求静态拒绝全部多候选图，也不改变 §20.2 第 5 项的受信前提。**
+
 本表不改变 `UNRESOLVED` 的终止责任、`NOT_COMMITTED` 的一次性消费规则，也不将普通 Observation 代替原调用 Reconcile；精确判断仍以本条第 5 项为准。
 
 ### 20.3 Reconcile Owner 回包分类
@@ -3450,7 +3452,7 @@ Compiler 的绑定链：operation.reconcile 的原 Node → 原普通 MUTATION O
 
 Runtime 重做相同检查，对同一原调用最多派发一次受控 Reconcile。Reconcile 专用 callable 不得通过普通 `operation.target` 绕过原调用检验；一个 Capability 可以显式同时列 Mutation 与 Reconcile 两个成员。
 
-**同一受信快照内的可检查情形。** Compiler 必须检查该快照中所有已发布 Mutation 的 `mutation.reconcile.callable` 目标，而非仅当前 Skill 已直接引用的 Mutation；若普通 `operation.target` 指向其中一个已识别的专用 READ callable，报既有 `RECONCILE_CONTRACT_INVALID`。Runtime 派发前须根据同一受信 Owner 发布关系复核，不能因该成员为 READ 或具有单独 Capability Grant 而跳过原调用核验。此检查仅落实已明确禁止的同快照绕过；不允许根据 `originalInvocationId` 等同名字段臆测专用身份。跨快照/跨发布物的完整性仍须由 Owner 的版本化发布契约提供可验证关联，未经真实验收不得声称该范围的互操作符合性已通过。没有安全 Owner 调和能力时必须遵循 §20.2 的保全停止，不创建伪 Reconcile。
+**同一受信快照内的可检查情形。** Compiler 必须检查该快照中所有已发布 Mutation 的 `mutation.reconcile.callable` 目标，而非仅当前 Skill 已直接引用的 Mutation；若普通 `operation.target` 指向其中一个已识别的专用 READ callable，报既有 `RECONCILE_CONTRACT_INVALID`。Runtime 派发前须根据同一受信 Owner 发布关系复核，不能因该成员为 READ 或具有单独 Capability Grant 而跳过原调用核验。此检查仅落实已明确禁止的同快照绕过；不允许根据 `originalInvocationId` 等同名字段臆测专用身份。跨快照/跨发布物的完整性仍须由 Owner 的版本化发布契约提供可验证关联，未经真实验收不得声称该范围的互操作符合性已通过。**跨快照情形的解释性边界（不新增物理关联字段）：** 可以消费由**独立、受信、版本化** Owner/部署契约实际证明的 `(Owner, Mutation callable, 专用 Reconcile READ callable, 原调用绑定, Scope)` 关联，且仍须通过同一 Owner、精确 READ、独立 Capability、Proof/Receipt 与反绕过校验；**没有**该实际关联或不能解码验证时，既不能猜测存在专用 Reconcile 身份，也不能以普通 READ Grant 规避规则。不能证明安全链接的跨快照调和按已有 `RECONCILE_CONTRACT_INVALID` / 对应受信依赖链接错误拒绝，Runtime 保留原调用并安全停止。该逻辑属性清单只是已有 G.2 规则的检查视图，**不代表** v1alpha3 已冻结其跨发布物线格式或证明物；需要另行交付版本化契约并按 §45.2 验收。没有安全 Owner 调和能力时必须遵循 §20.2 的保全停止，不创建伪 Reconcile。
 
 **证明与恢复字段归属表（Normative 交叉索引）**
 
@@ -3663,7 +3665,9 @@ predicates:
 
 结构必须满足 G.1：members 至少两项，每项两个字段 parameter 和 guarantee 均为必需；每组的 (parameter,guarantee) 对唯一，且必须确实属于 requires[parameter]；没有隐式的组 ID、位置索引或默认同名绑定。Compiler 静态检查来源类别、Scope 映射、Owner 保证及可信来源身份。Runtime 在同一已接纳 Evidence 视图中逐项验证成员的精确记录与底层来源身份并证明两两不同；无法证明时 Predicate 得到 UNKNOWN，而不是 FAIL。
 
-同一个绑定点的诊断优先级：一、YAML/Predicate 结构不合法 → YAML_PARSE_ERROR / UNKNOWN_FIELD；二、成员对不在 requires、保证导出失效、Owner 身份提取规则失效或跨 Owner 共同事实映射无效 → EVIDENCE_GUARANTEE_LINK_INVALID；三、描述符与受信域关系都合法，但仅根据静态 Schema、Producer 集合和保证约束即可证明**在任何合法运行中**都不存在满足独立性组的证据组合 → PREDICATE_EVIDENCE_UNSATISFIABLE；四、静态组可满足且链接通过，但**本次** Producer 实际记录缺失、同源、过期、Scope 冲突或不可核实 → UNKNOWN。不可将第 2 类问题回退为第 3 类；同一文件的不同绑定点可同时有不同诊断。§17.1 中的独立性规则交叉引用统一指向 §17.1.1、§17.2 和本节。
+同一个绑定点的诊断优先级：一、YAML/Predicate 结构不合法 → YAML_PARSE_ERROR / UNKNOWN_FIELD；二、成员对不在 requires、保证导出失效、Owner 身份提取规则失效或跨 Owner 共同事实映射无效 → EVIDENCE_GUARANTEE_LINK_INVALID；三、描述符与受信域关系都合法，但仅根据静态 Schema、Producer 集合和保证约束即可证明**在任何合法运行中**都不存在满足独立性组的证据组合 → PREDICATE_EVIDENCE_UNSATISFIABLE；四、静态组可满足且链接通过，但**本次** Producer 实际记录缺失、同源、过期、Scope 冲突或不可核实 → UNKNOWN。**静态不可满足的可判定性边界（现有三阶段分类的保守实现说明）。** `PREDICATE_EVIDENCE_UNSATISFIABLE` 的证明前提是：Owner/部署身份、Schema、受信域与事实映射**全部合法且已验证**，且仅用这些已冻结的静态 Producer 候选、允许值、域对和保证组合就能**有限且确定地证明**无任何合法记录组合满足要求。例如同一 independence 组被合法但确定的静态约束限定为只有一个不可重复的底层来源，且无第二个合法独立候选。若受信映射本身不可比/未授权，优先为 `EVIDENCE_GUARANTEE_LINK_INVALID`；若静态关系合法但 Compiler **不能证明**对所有合法运行都不可满足，不能靠猜测或执行试探报静态 UNSAT，应保留可执行的链接结果，实际 Evidence 是否可满足交由 Runtime 依记录判为 PASS/FAIL/UNKNOWN（证据不足为 UNKNOWN）。这并不允许跳过其他已能静态判定的类型、强制保证与 Scope 检查。该说明不要求采用某个外部 SAT 求解器，也不削弱可证明 UNSAT 时的原有阻断义务。
+
+不可将第 2 类问题回退为第 3 类；同一文件的不同绑定点可同时有不同诊断。§17.1 中的独立性规则交叉引用统一指向 §17.1.1、§17.2 和本节。
 
 
 ### G.3.1 独立来源与共同事实的描述符形状
