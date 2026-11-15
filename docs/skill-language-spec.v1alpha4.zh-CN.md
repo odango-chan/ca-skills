@@ -3335,7 +3335,23 @@ predicates:
 
 # 附录 F：继承自 v1alpha3 的互操作与类型剖面（v1alpha4 FROZEN）
 
-**Normative、FROZEN（v1alpha4；外部物理协议版本保持独立）。** §9、§17、§34 的逻辑互操作属性由 v1alpha3 已冻结契约继承。本版的作者级变化还包括单数 Contract 全局门禁、删除 Postcondition 根的 Goal、直接最终 PASS→SUCCEEDED 和 `operation/observation.tool`；这些变化均不新增外部 ToolCatalog/CapabilityContracts/BuildRequest/Trace 线字段。实际 ToolCatalog 与 CapabilityContracts 例子仍显示其各自发布的 v1alpha3 API 版本。
+**Normative、FROZEN（v1alpha4；外部物理协议版本保持独立）。** §9、§17、§34 的逻辑互操作属性由 v1alpha3 已冻结契约继承。本版的作者级变化还包括单数 Contract 全局门禁、删除 Postcondition 根的 Goal、直接最终 PASS→SUCCEEDED 和 `operation/observation.tool`；这些变化均不新增外部 ToolCatalog/CapabilityContracts/BuildRequest/Trace 线字段。**现行可直接链接版本组合与可扩展条件以 F.0 为权威入口**，F.1/F.2 分别保留精确 v1alpha3 外部 `apiVersion`，不等于作者语言目标 v1alpha3。
+
+## F.0 本语言目标与外部发布物的版本组合（Normative）
+
+**版本不是同步加一的计数器。** 语言目标固定为 `connectionagent.io/v1alpha4`；这**不等于** ToolCatalog、CapabilityContracts、BuildRequest、Evidence Descriptor 或 Runtime Artifact/Trace 的物理版本也叫 `v1alpha4`。以下是本语言当前已冻结、可直接解释的**精确受信输入映射**；缺失版本的外部材料不能因为字段形状碰巧相同而被接受。
+
+| 接口/契约 | v1alpha4 语言当前可直接链接的版本或剖面 | 唯一字段解释入口 | 与语言版本关系 |
+|---|---|---|---|
+| CA-SL 作者语言 | `connectionagent.io/v1alpha4` | §10.1、§12–§24、E/H | 本文件唯一语言目标，不能降级或从外部 apiVersion 反推 |
+| ToolCatalog（含 Mutation / Reconcile 专用 READ） | **精确 `connectionagent.io/toolcatalog/v1alpha3`** 的受信发布物 | F.1；逻辑证明与类型还受 G.2/G.2.2、§9/§20 约束 | v1alpha4 作者语言 **可以**链接 v1alpha3 Owner 契约；并不要求 Owner 自动升到 v1alpha4 |
+| CapabilityContracts（含恢复 READ 独立授权） | **精确 `connectionagent.io/capability-contracts/v1alpha3`** 的受信部署发布物 | F.2；§9.3、§34 的 Scope/Grant 检查 | 版本独立，不把 ToolCatalog Owner 信任当成部署授权 |
+| Evidence Guarantee Descriptor / IndependentDomains | F.3/G.3/G.3.1 的**抽象字段剖面**；本文件没有为其单独规定物理 `apiVersion` | F.3、G.3/G.3.1、§17 | 实际可信身份、发布协议/传输版本须由对应 Owner/部署接口独立承诺，未发布则拒绝 |
+| Request/Host/Owner Schema | JSON Schema **Draft 2020-12** 的 G.4 白名单投影，`$schema` 精确指定该方言 | G.4、G.6、F.5 | Schema 方言版本与 ToolCatalog/语言版本分开；不允许未知断言 |
+| BuildRequest / DependencySnapshot | **独立、被明确选定且受信的 BuildRequest 契约版本**；本语言不指定其物理版本号 | §34、F.4、§45.2 | 必须包含适用版本要求的 Snapshot/Owner/Scope/摘要信任属性；不存在默认 `v1alpha4` framing |
+| Runtime Artifact / Trace | **独立发布并经受信版本确认**；本文只冻结语义、来源与责任最低义务 | §12.8、§23/§24、§45.2 | 不从语言冻结推出 Trace 物理协议兼容或产品通过 |
+
+**跨版兼容规则（Normative）。** 本版 F.1/F.2 的明确 `apiVersion` 是**当前直接链接的精确值**。未来 Owner/部署发行新物理版本时，不得让 Compiler 自动把任意未知版本当成 v1alpha3，也不得根据文件名、同名字段、所谓“向后兼容”声明或 LLM 文本接受。若要在不改变 CA-SL v1alpha4 语言语义的条件下支持新的外部版本，必须由**另行版本化且受信的解码/规范化适配契约**明确识别源版本、目标 F.1/F.2 剖面、所有字段及安全证明的无损映射，保留 Owner、Scope、Effect、来源与证据身份，并实际完成 §45.2 的同一预期集验收；不存在这份适配契约时只接受上表当前精确值。若某升级改变任何已冻结作者输入集合、Outcome、重试/证明授权或安全诊断，属于语言 C 类或对应协议升版问题，不能用“等价解码”掩盖。任何单独产品版本升级都**不自动**触发 CA-SL 语言版本升级。
 
 ## F.1 ToolCatalog / Mutation 发布
 
@@ -3760,7 +3776,7 @@ factIdentity:
 
 ## G.4 JSON Schema 白名单、静态兼容与 CEL 型别
 
-本版仅定义 JSON Schema Draft 2020-12 的有限、可互操作子集。所有参与链接、静态可赋值性和 Script 类型派生的 Schema 根必须显式声明 $schema: https://json-schema.org/draft/2020-12/schema。缺少或不同方言即 SCHEMA_INVALID，不允许从文件扩展名、外部发布者名称、Compiler 配置或声明顺序猜测。许可**验证关键字**仅为：$ref、type、properties、required、additionalProperties、items、minItems、maxItems、minLength、maxLength、minimum、maximum、exclusiveMinimum、exclusiveMaximum、enum、const。
+本版仅定义 JSON Schema Draft 2020-12 的有限、可互操作子集。**该方言与支持关键字在此处一次列尽（见下两段），适用于 §11.5 的 Host Context/Request 根及所有外部 Schema；不能从例子的 title/description 等注解或宿主 Schema 库追加任何关键词。**所有参与链接、静态可赋值性和 Script 类型派生的 Schema 根必须显式声明 $schema: https://json-schema.org/draft/2020-12/schema。缺少或不同方言即 SCHEMA_INVALID，不允许从文件扩展名、外部发布者名称、Compiler 配置或声明顺序猜测。许可**验证关键字**仅为：$ref、type、properties、required、additionalProperties、items、minItems、maxItems、minLength、maxLength、minimum、maximum、exclusiveMinimum、exclusiveMaximum、enum、const。
 
 许可的**非断言注解**仅为：$schema、$id、title、description、default、examples；default 不合成值。**`$defs`、`definitions` 均不属于许可关键字，因此 v1alpha4 不支持 Schema 内的具名子定义及其 JSON Pointer 片段引用（包括 `#/$defs/...`、`#/definitions/...`）。** 所有未知字段及其他断言一律 SCHEMA_INVALID；不得忽略未知关键字。特别不支持 allOf、anyOf、oneOf、not、if/then/else、pattern、patternProperties、unevaluatedProperties、contains、prefixItems、format、动态引用或扩展关键字。来自现实 Owner 的复杂 Schema 应由其 Owner 发布语义等价、正式版本化且受支持的投影，不得由 Skill 复制影子结构。
 
