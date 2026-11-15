@@ -13,7 +13,7 @@ description: CA-SL v1alpha4 illustrative Open5GS / UE-requested initial PDU Sess
 
 One admitted, initial IPv4 / SSC1, local non-roaming PDU Session request. Never substitute an arbitrary UE, PSI, lifecycle, resource or late callback; identity and Scope require independent Host/Owner proof.
 
-Conventional 5GC progression is UDM SM-data retrieval, UDM SDM Subscribe, PCF SM Policy Create, prepared N1/N2 transfer, authoritative RAN and N4 convergence, and durable resource responsibility. The old complete 5GC business Case catalog is retained in `examples/legacy/establish-pdu-session/cases/` for migration review, not imported as v1alpha4 test fixtures.
+Conventional 5GC **proposed** progression is UDM SM-data retrieval, UDM SDM Subscribe, PCF SM Policy Create, target `UPN.CREATE_UP_SESSION` N4 completion, prepared N1/N2 transfer, target `SSM.SIGNAL_UE_AN` RAN adoption, target `UPN.MODIFY_UP_SESSION` forwarding, and durable resource responsibility. These three §21 target Owners have **not** published callable contracts or qualified Results/Evidence. See [migration decision register](../../MIGRATION-REVIEW-v1alpha4.md). The old complete 5GC business Case catalog is retained in `examples/legacy/establish-pdu-session/cases/` for migration review, not imported as v1alpha4 test fixtures.
 
 ## Runtime and evidence boundary
 
