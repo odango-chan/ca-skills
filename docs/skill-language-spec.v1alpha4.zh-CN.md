@@ -3,7 +3,7 @@
 **中文名称：** ConnectionAgent Skill 语言规范  
 **简称：** CA-SL  
 **目标版本：** `connectionagent.io/v1alpha4`（简称 v1alpha4；`vNext` 仅为资料性系列别名）  
-**状态：** FROZEN CANDIDATE — PENDING BLOCKING CORRECTIONS（v1alpha4 语言语义复审；v1alpha3 独立保持 FROZEN；产品/Owner 仍 NOT QUALIFIED）  
+**状态：** FROZEN — LANGUAGE SPECIFICATION ONLY（v1alpha4 已完成 C 类重新开放、阻塞闭合与复审冻结；v1alpha3 独立保持 FROZEN；产品/Owner 仍 NOT QUALIFIED）  
 **规范所有者：** odango-chan/ca-skills  
 **适用对象：** Skill 作者、Skill Studio、Compiler、Agent Host / Runtime、Tool Owner、Schema Owner、语言服务及符合性评审机构  
 **更新日期：** 2026-11-15
@@ -2403,7 +2403,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 
 本版仅继承 v1alpha3 中**仍一致且未被本版明确改变**的 SourcePath、Evidence、Capability、Owner/Scope 与责任安全下限；v1alpha4 的作者源码和静态/运行结论完全以**本文件**为准，不把 v1alpha3 的跨 Node Goal 传播或作者 Reconcile 节点默许为兼容语法。**v1alpha4 的 C 类改变**包括：单数 Contract 全局 `precondition`、Pre/Postcondition 非空 `predicates` 列表、移除 Node 级 `goal` 和最终 Postcondition PASS 直达成功；G.1 词法闭合、单路径 DAG 执行、明确错误优先级；将作者级 Reconcile 改为受信 Owner + 共享 Host 安全结算、原 Mutation 合成 COMMITTED / 完整恢复的 SUCCEEDED、真实 Evidence Producer 双路径校验；重试显式 `retryOf` 且默认 0、最多 1 次。**这里是 v1alpha4 的重新开放、复审与重新冻结裁决，不追溯修改已经冻结的 v1alpha3，也不是把 C 类改变假称 A/B 勘误。**产品实现与机器执行属于 §45.2 独立门槛。
 
-本 v1alpha4 语言已冻结的判定依据：§10–14 的唯一源码结构与闭合语法；§12.9、§17、§20、§22 的路径敏感证明与 fail-closed 规则；§F.1–F.6 / §G.1–G.9 的精确字段、Receipt/Proof/SourceIdentity、Schema-CEL 和责任模型，附录 H 的诊断索引；E01–E120 的规范预期及负例。无法静态证明兼容的 Schema / Owner 导出必须拒绝链接，不能靠样例值、运行时回退或 Studio 自动猜测。v0.2 是既有可执行基线，编译器不得静默迁移到本版。
+本 v1alpha4 语言**本次复审冻结**的判定依据：§10–14 的唯一源码结构与闭合语法；§12.9、§17、§20、§22 的路径敏感证明与 fail-closed 规则；§F.1–F.6 / §G.1–G.9 的精确字段、Receipt/Proof/SourceIdentity、Schema-CEL 和责任模型，附录 H 的诊断索引；E01–E120 的规范预期及负例。无法静态证明兼容的 Schema / Owner 导出必须拒绝链接，不能靠样例值、运行时回退或 Studio 自动猜测。v0.2 是既有可执行基线，编译器不得静默迁移到本版。
 
 冻结后对任何字段、路由、默认值、证据/身份解释、允许的 Schema 关键字、Script 注解或诊断结果作语义性改变，必须明确升级语言或相应互操作契约版本。纯笔误勘正不得改变 Appendix E 的预期。语言规范 Owner 与外部 Tool/Host/Deployment Owner 各自拥有其版本，不能代替对方批准发布物。
 
@@ -2421,7 +2421,7 @@ vNext 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 ObservationSo
 
 **决定：对 PR #44 曾作出的 v1alpha4 早期 FROZEN 裁决予以明确撤回并重新进行 C 类设计复审；本次复审封闭后发布的 v1alpha4 单文件为新唯一 Normative 基线。** 原 v1alpha3 保持独立 FROZEN，不受该次纠正影响。Compiler、Studio/LSP、Host/Runtime、Tool/Schema Owner、Deployment 和真实 5GC **均 NOT QUALIFIED**，不得从语言冻结推断任何产品 PASS。
 
-**裁决与审计轨迹：** PR #42 完成对称多 Predicate 设计；PR #43 统一 Contract 单数门禁、最终成功边和 `operation/observation.tool`；PR #44 的最早 v1alpha4 冻结提交为 `69c840884c7ca94a8d669710f215f6e424bcdca9`，其后的正式评审确认词法、执行汇聚、诊断分派和防御诊断存在语言层未闭合项。当前修订并未把这些 C 类差异伪装成 B 类勘误：**撤回该早期冻结裁决，标记 FROZEN CANDIDATE，重新打开 v1alpha4 审查**；本文件合并后，**重新冻结的规范发布身份只能是本次复审修订合并到 main 后的不可变提交**，不能用 #44 的旧提交或浮动 main 代替。
+**裁决与审计轨迹：** PR #42 完成对称多 Predicate 设计；PR #43 统一 Contract 单数门禁、最终成功边和 `operation/observation.tool`；PR #44 的最早 v1alpha4 冻结提交为 `69c840884c7ca94a8d669710f215f6e424bcdca9`，其后的正式评审确认词法、执行汇聚、诊断分派和防御诊断存在语言层未闭合项。当前修订并未把这些 C 类差异伪装成 B 类勘误：**撤回该早期冻结裁决、经历 FROZEN CANDIDATE 阶段并重新打开 v1alpha4 审查，现完成复审闭合**；本文件合并后，**重新冻结的规范发布身份只能是本次复审修订合并到 main 后的不可变提交**，不能用 #44 的旧提交或浮动 main 代替。
 
 | 评审阻塞或重要裁决 | 本次 Normative 闭合 | 可逐项核对的预期 |
 |---|---|---|
@@ -4117,7 +4117,7 @@ flowchart TD
 
 ## K.1 E01–E120 的执行责任计划（Informative）
 
-以下 E01–E114 的计划从 v1alpha3 冻结版继承，E115–E120 是 v1alpha4 **新增并冻结、但机器尚未执行**的聚合 Predicate 正反例。所有 `NOT_IMPLEMENTED` 均不代表机器测试通过；必须同时提供版本化 Fixture、实际执行结果及原始证据后才可计入 §45.2。
+以下 E01–E114 的**用例编号及适用测试类别**从旧版继承，其中更改过的恢复/Retry/诊断预期已按本版 C 类复审重新定义；E115–E120 是 v1alpha4 **新增并冻结、但机器尚未执行**的聚合 Predicate 正反例。所有 `NOT_IMPLEMENTED` 均不代表机器测试通过；必须同时提供版本化 Fixture、实际执行结果及原始证据后才可计入 §45.2。
 
 | 用例 | 建议执行类别 | 本登记状态 |
 |---|---|---|
