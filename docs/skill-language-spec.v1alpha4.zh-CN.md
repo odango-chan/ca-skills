@@ -2502,7 +2502,7 @@ v1alpha4 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 Observatio
 | #44 初次冻结 | `69c840884c7ca94a8d669710f215f6e424bcdca9` | 早期裁决，已由 #45 重新复审替代 |
 | #45 C 类重新冻结 | `466ed1fca6d458e094a342a4afea252ea43f8169` | 语言语义重新冻结，但当时允许旧外部版本组合；**不得用于本版 F.0 统一剖面** |
 | #46 A/B 勘误 | `b68a780912b9a2c150cca15e471d2a370142874b` | C 类版本统一前的历史文本 |
-| #47 C 类版本统一 | `2f13ebb598b6015a93201cab890215ee81e9de55` | 首次精确要求三类 apiVersion 都是 v1alpha4；无旧版 fallback |
+| #47 C 类版本统一 | `2f13ebb598b6015a93201cab890215ee81e9de55` | 首次精确要求语言 `languageTarget` 与 ToolCatalog/CapabilityContracts 两个 `apiVersion` 均为 v1alpha4；无旧版 fallback |
 | #48 A/B 结果与术语勘误 | `476d6f25fcca4e19832ea6bf30e60d9ce7dda89a` | 本次勘误前的完整 v1alpha4 规范性单文件基线 |
 | #51 仓库入口修复 | `2be3907b4a8830cdf9e45b80c789759fe79de4cd` | 仅入口/作者指南/旧 Token 声明，不修改规范单文件 |
 | #52 A/B 文本勘误 | `1462d1f74618460e5b75e481b26716af668a20e0` | §45.1.5、表格及术语等第一轮修订；该提交 E.9 尾部仍有表格断裂，见 #55 |
@@ -3899,7 +3899,7 @@ E30/E40 的严格绑定规则有意保留：较新的已接纳权威记录即使
 | E105 | 分别令 PredicateId=foo..bar、Alias=ca:demo、ExportId=foo..bar、QualifiedSchemaId=ca::relative/path、LocalScriptPath=scripts/../x.py | 独立 PredicateId 与 Alias 字段报 IDENTIFIER_INVALID；位于完整 `Alias::ExportId` 中的非法 ExportId 以及 QualifiedSchemaId 均报 QUALIFIED_REFERENCE_INVALID；LocalScriptPath 报 PACKAGE_PATH_INVALID。此处 ExportId 为限定引用的组成部分而非独立源码字段（G.1）；诊断不依赖 YAML parser 的裸标量解析方式 |
 | E106 | G.3 requires + independence 两成员；删掉其中一个 requires；复制相同 member；运行时不同 Evidence Ref 其实来自同一底层记录 | 合法字段静态链接通过；成员非法报 EVIDENCE_GUARANTEE_LINK_INVALID；静态合法但同源执行得 UNKNOWN |
 | E107 | G.2 正确的 Reconcile READ；分别改 Effect 为 MUTATION、kind 为 observation、inputSchema 多加可写字段、删除 proofPath、只 Grant 原 Mutation | 合法例通过链接；变体分别 EFFECT_MISMATCH、RECONCILE_CONTRACT_INVALID、RECONCILE_CONTRACT_INVALID、RECONCILE_CONTRACT_INVALID、CAPABILITY_NOT_GRANTED |
-| E108 | 受信 Reconcile READ Owner SUCCEEDED 与原调用 COMMITTED 证明+完整恢复输出；取消恢复声明；提供损坏恢复输出；证明 NOT_COMMITTED；READ Owner 直接发 COMMITTED | 分别使原 Mutation 归并 SUCCEEDED+有效原节点 output、COMMITTED+无 output、安全停止并 COMMITTED_OUTPUT_UNAVAILABLE、NOT_COMMITTED、OWNER_OUTCOME_UNDECLARED 并隔离停止；保留恢复 Producer lineage |
+| E108 | 受信 Reconcile READ Owner SUCCEEDED 与原调用 COMMITTED 证明+完整恢复输出；取消恢复声明；提供损坏恢复输出；在原 Mutation Owner 已发布可验证 NOT_COMMITTED 类别的前提下证明未提交；READ Owner 直接发 COMMITTED | 分别使原 Mutation 归并 SUCCEEDED+有效原节点 output、COMMITTED+无 output、安全停止并 COMMITTED_OUTPUT_UNAVAILABLE、NOT_COMMITTED、OWNER_OUTCOME_UNDECLARED 并隔离停止；保留恢复 Producer lineage |
 | E109 | Reconcile Evidence Producer 以 Owner SUCCEEDED 绑定恢复结果，再替换为 Runtime 的 COMMITTED | 前者链接通过；后者 EVIDENCE_GUARANTEE_LINK_INVALID |
 | E110 | 有效的 nullable / object / items Schema；替换任一为 anyOf、pattern 或动态引用 | 前者按 F.5 赋值；三个不受支持变体均 SCHEMA_INVALID |
 | E111 | CEL 使用 has(obj.optional) && obj.optional == "X"；删除 has；对 nullable 字段删除非 null 守卫；添加数组索引 | 守卫版缺字段可按业务表达式得 FAIL；其余三项静态拒绝 CEL_INVALID |
