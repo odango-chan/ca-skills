@@ -1031,86 +1031,64 @@ Host 在派发 Mutation 前记录原调用身份和负责处理结果的 Owner /
 
 Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时必须拒绝准入，不得采用随机选择或隐式默认目标。Procedure Predicate 仅判定业务条件，不负责 Skill 身份选择。**本版没有 `Applicability` 作者级 YAML 字段、Root Routing 选择算法或匹配优先级的完整规范，不能凭本版源码构造出这些字段。** 它们应在独立版本化的 Root Routing 契约中冻结；其发布之前 Host 必须采用本版已定义的拒绝歧义安全条件，而不得从缺失的选择协议推断某 Skill 默认适用。历史 `applicability.when` 不作为隐式兼容语法（§0、§10.1、§45.1）。
 
-### 12.9 全局前置条件、最终验收与控制流
+### 12.9 单一全局前置阶段、最终验收与控制流
 
-- Contract 的 `preconditions` 列出本次 Invocation 必须通过的前置判断。每条从 `start` 到业务 Mutation 派发或 `SUCCEEDED` 终态路由的可达路径，都必须经过列表中每项 Precondition 的 PASS。未执行、FAIL 或 UNKNOWN 均不能满足该项。列表顺序不影响执行。Procedure 可以先用 READ 或 Observation 获取事实，也可以在同一个 Node 中先执行 Precondition 再派发 Mutation。
-- 每次业务 Mutation 派发前，Runtime 复核所有全局前置条件以及适用于该派发的局部门禁。局部门禁包括同一 Node 的 Precondition，以及直接前驱 Node 正常完成时最后执行的局部判断（未被 Contract 引用的 Precondition 或无 `goal` 的 Postcondition）。跨 Node 的局部判定仅在其正常完成边直接进入目标 Mutation，且该 Mutation 是下一 Node 的首个阶段时复核。同一次 PASS 同时适用时只复核一次。Reconcile 按 §20 独立准入。
-- 全局 Postcondition 要求证明 Contract 的单一 `goal`。`postcondition.goal` 必须精确匹配该 Goal；**阶段中全部 `predicates` 成员 PASS 的聚合 PASS** 才建立证明。各成功分支可以由不同 Node 的 Postcondition 建立证明。`start` 可指向带有 Goal Postcondition 的 Node。同一验收需要多项事实时，可以在同一 Postcondition 使用多个 Predicate，或在一个 Predicate 内组合判断；两者都不能减少 §17 的 Evidence 义务。
-- Runtime 发布 SUCCEEDED 前复核全部全局前置条件、当前 Goal 证明的来源与 Evidence，以及资源责任。所有门禁复核都使用原绑定和最新校验时间。若缺少要求的 PASS 或复核失败，按 §12.8 停止，保留原 Trace。Runtime 不隐式重新求值、查询、换绑证据或回退到更早的 Goal 证明。失败或停止终态按 §12.8 发布，无需全局 PASS 或 Goal 证明。
+**v1alpha4 候选 Normative：唯一全局门禁与最终 Postcondition 直达成功。** Contract 的 `goal` 是业务目标声明；`precondition` 可省略，若存在必须是**一个**精确的 `<node-id>.precondition` 阶段引用，而不是列表。它引用的阶段可以包含多个纯 Predicate，只有**整个阶段聚合 PASS** 才表示全局门禁通过。未声明此字段表示没有 Contract 级全局门禁，但 Procedure 仍可有局部 Precondition 与 Postcondition。
 
-Compiler 构建以 `(Node ID, 阶段名)` 为顶点的分析图。**多 Predicate Pre/Postcondition 仍是单个阶段顶点；只有列表聚合的阶段 PASS 边才可传播全局门禁或 Goal 证明。** 任一成员的 PASS 不是独立控制流边，也不是分支可借用的证明。每个合法 Outcome 对应一条边，边记录来源顶点、Outcome 与目标。若还有后续阶段，正常 Outcome 生成一条自动推进边，目标为同一 Node 的下一已声明阶段。其他边来自 `routes`，目标为另一 Node 的首个阶段或终态。两种边都按来源阶段和 Outcome 应用相同的门禁及证明更新规则。伪代码中的 `vertex.effect` 是普通 Tool Operation 经过链接校验的 Effect，只在普通 Tool Operation 的阶段顶点上有值。Reconcile 和 Procedure Script 的该值为空。
+- **全局门禁必经性：** 对每条从 `start` 到业务 MUTATION 派发或 Invocation `SUCCEEDED` 的可达路径，若声明 Contract `precondition`，该路径必须经过这个唯一阶段的聚合 `PASS`。先前 PASS 的 Trace/原绑定保留，经过后续其他 Node 时不凭阶段名称重做判断；Runtime 每次派发业务 Mutation 以及发布成功前按 §17/§24 复核原已接受的全体成员及 Evidence。否则报 `ENTRY_PRECONDITION_BYPASSED`；无效标量、数组/对象、错误身份或不存在的阶段报 `ENTRY_PRECONDITION_REF_INVALID`。多个业务前置判断放进同一阶段的 `predicates` 列表，Procedure 其他 Precondition 仍为局部门禁。
+- **局部门禁：** 每次业务 Mutation 派发前，Runtime 还复核同 Node 的 Precondition，以及正常完成并直接进入该 Mutation 的局部判断；跨 Node 的局部判定仅在直接前驱判断沿正常结果边进入目标 Node、且 Mutation 为其首阶段时复核。全局门禁与局部门禁重合时同一执行结果只复核一次。Reconcile 仍按 §20 的独立条件准入。
+- **成功证明：** 唯一允许请求 Invocation `SUCCEEDED` 的源码边是一个**可达 Postcondition 阶段**的**聚合 `PASS` 边**，并且其路由**直接**指向 `SUCCEEDED`。该 Postcondition 的全部 Predicate 均 PASS 后，才视为本次 `contract.goal` 的最终证明；任何 Operation/Observation/Precondition、Postcondition 的 FAIL/UNKNOWN、或中间业务 Node 的路由都不能直接请求成功。没有 `postcondition.goal` 或 `contract.postconditions` 之类的重复声明。某个 Postcondition 的 PASS 若指向另一 Node，仅属于局部验收；**它的 PASS 不跨 Node 携带为 Goal 证明**。若后续又发生 READ/Script/Mutation/Reconcile，必须在其后再次走最终 Postcondition PASS 直接到成功终态。
+- **多条成功分支：** 正常路径和 Reconcile 恢复路径可以各有不同的最终 Postcondition，无需强制汇合；各自必须聚合 PASS 且直达 SUCCEEDED。已有正常路径不能替异常路径借用一个旧 PASS。每条成功路径均满足相同的全局门禁、Evidence、提交状态和资源责任检查。没有任何可达 Postcondition PASS→SUCCEEDED 边时，报 `FINAL_POSTCONDITION_MISSING`；存在合法最终边但另一条可达成功边不是来自 Postcondition PASS 时，报 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`。这些优先级仅说明诊断条件，不使非法的成功边合法。
+- **安全终态：** Runtime 发布 SUCCEEDED 时复核最终 Postcondition **每一个已执行且必须 PASS 的成员**的原绑定、Producer、Scope、Correlation、Evidence 和 Freshness，复核可选全局门禁及资源责任。不能隐式重跑 Predicate、重新查询、换绑旧 Evidence，也不能用另一分支的旧 PASS 顶替当前最终阶段。若失败，按 §12.8 的 SAFE_STOPPED / UNRESOLVED / FAILED 顺序安全停止。STOP 分支无须最终 Goal 证明，仍须记录实际终态和责任。
 
-分析图的 vertex.kind 由已解析阶段及 Operation 目标决定，包括 observation、tool_operation、script_operation 和 reconcile；script_operation 仅对应 operation 的 script 目标。下文的 READ Operation 指链接后的 Effect 为 READ 的普通 Tool Operation。此处不增加作者源码字段。Compiler 先更新边上的状态，再检查每条可达的 `SUCCEEDED` 终态边。最后阶段的 Goal PASS 因此可以直接证明同一条成功边。入口顶点是 `start` Node 的第一个已声明阶段，进入时没有已通过的全局前置条件，也没有 Goal 证明。
-
-可达图是从该入口经显式路由和自动推进得到的可达闭包，包含所有可达阶段及其出边，包括终态边。不可达阶段的出边不参与任何汇合。每个可达的非入口阶段至少有一条来自可达阶段的入边。汇合点仅对这些入边计算已通过条件的交集和 Goal 证明的 AND。不可达 Node 另报 `UNREACHABLE_NODE`。若存在可达 SUCCEEDED 且没有可达的 Goal Postcondition，报告 `FINAL_POSTCONDITION_MISSING`；否则缺少证明的成功路径报告 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`。任一受保护的 Mutation 或成功终态绕过全局前置判断的 PASS 时，报告 `ENTRY_PRECONDITION_BYPASSED`。
-
-正常完成的 READ Operation、Observation 与 Procedure Script 仅保留已有 Goal 证明及其原绑定。Runtime 仍按原绑定复核。后续调用产生的新值不能替换已记录的证明输入。若需以新状态证明 Goal，Procedure 必须显式将新的 Producer 输出绑定到 Goal Postcondition 并取得新的 PASS。
-
-Compiler 在证明传播前按 §12.7 和 §24.1 校验 `start`。入口无效时报告相应错误，跳过以下证明传播。**还必须先校验全部已声明的 Postcondition：显式 `postcondition.goal` 不等于 `contract.goal` 时，报告 `FINAL_POSTCONDITION_GOAL_MISMATCH` 并阻断构建，不能以缺少 Goal 证明的后续错误替代；省略 `goal` 的局部 Postcondition 合法但不产生全局证明。** 下列伪代码以此检查通过为前提。
+**路径敏感静态算法（Normative）。** Compiler 构造以 `(NodeId, Stage)` 为顶点的可达 DAG，包含显式 `routes` 和同 Node 正常 Outcome 自动推进边。多 Predicate Pre/Postcondition 在此图上都只是单一阶段；只有阶段汇总的 `PASS` 是可路由 Outcome，成员没有单独图边。先完成 §12.7、§22、§24 的引用和路由语法校验，再在 `start` 的首阶段建立入口，沿所有**可达**边传播一个布尔标志 `passedGlobal`。无全局门禁时，后述全局检查恒为满足。某顶点有多条可达入边时，取全部 `passedGlobal` 的逻辑 AND；不可达节点不参与汇合，另按 `UNREACHABLE_NODE` 报告。不可达 Node 的语法及 Reconcile 唯一入边约束仍须独立校验。
 
 ~~~text
-required = set(contract.preconditions or empty list)
-entry = first stage present in the start Node, in the execution order of §12.1
-graph = reachable outcome graph from entry  # explicit routes and automatic advances
+globalRef = contract.precondition if declared else NONE
+entry = first stage of procedure.nodes[procedure.start]
+graph = reachable stage/outcome DAG from entry
+
 for vertex in topological_order(graph.stages):
     if vertex == entry:
-        passed = empty set
-        proof = false
+        passedGlobal = false
     else:
-        incoming = graph.incoming_edges(vertex)
+        incoming = graph.reachableIncoming(vertex)
         require incoming is not empty, else REACHABLE_STAGE_NO_INCOMING_EDGE
-        passed = INTERSECT(edge.passed for edge in incoming)
-        proof = AND(edge.proof for edge in incoming)
+        passedGlobal = AND(edge.passedGlobal for edge in incoming)
+
     if vertex.stage == operation and vertex.effect == MUTATION:
-        require required is a subset of passed
-    for edge in graph.outgoing_edges(vertex):  # includes automatic advances and terminal edges
-        edge.passed = passed
-        if vertex.stage == precondition and edge.outcome == PASS:
-            ref = vertex.node_id + ".precondition"
-            if ref is in required:
-                edge.passed = passed UNION {ref}
-        if vertex.stage == postcondition and vertex.goal == contract.goal and edge.outcome == PASS:
-            edge.proof = true  # only an exact Contract Goal Postcondition PASS creates proof
-        else if edge is PASS from any Precondition or a local Postcondition:
-            edge.proof = proof
-        else if edge.outcome == SUCCEEDED and (
-            vertex.kind == observation or vertex.kind == script_operation or
-            (vertex.kind == tool_operation and vertex.effect == READ)):
-            edge.proof = proof
-        else:
-            edge.proof = false
-        if edge targets the SUCCEEDED terminal status:
-            require required is a subset of edge.passed
-            require edge.proof
+        require globalRef == NONE or passedGlobal, else ENTRY_PRECONDITION_BYPASSED
+
+    for edge in graph.outgoing_edges(vertex):
+        edge.passedGlobal = passedGlobal
+        if vertex.stage == precondition and edge.outcome == PASS
+           and globalRef == vertex.nodeId + ".precondition":
+            edge.passedGlobal = true   # only the full predicate group PASS
+
+        if edge.target == terminal.SUCCEEDED:
+            require globalRef == NONE or edge.passedGlobal, else ENTRY_PRECONDITION_BYPASSED
+            require vertex.stage == postcondition and edge.outcome == PASS,
+                    else SUCCESS_BYPASSES_FINAL_POSTCONDITION
+            # This exact final PASS edge is the Goal proof. No carried proof bit.
+
+if exists reachable edge to terminal.SUCCEEDED and
+   no reachable edge (postcondition, PASS) -> terminal.SUCCEEDED:
+    report FINAL_POSTCONDITION_MISSING
 ~~~
 
-例如，全局 Precondition 的 PASS 自动推进到同一 Node 的 Mutation 时，该边先将 `<node-id>.precondition` 加入已通过集合。全局 Precondition 的 PASS 保留已有 Goal 证明。Mutation、Reconcile 和非正常 Outcome 清除证明。业务 Mutation 派发前及成功终态边仍必须满足全部全局前置条件。Mutation 的 SUCCEEDED 即使自动推进也会清除证明，随后 Goal Postcondition 的 PASS 可以重新建立证明。
+**判定表（Informative；不扩张上述合法输入集合）：**
 
-**证明传播等价判断表（Informative；只是上面伪代码的判定展开，不新增可接受路径）。** `passed` 是本阶段入口沿全部可达入边交集取得的全局 Precondition PASS 集合；`proof` 是全部可达入边的 Goal 证明逻辑 AND。仅来自入口的初始状态为空集/false。所有边（包括同 Node 的自动推进）均先更新 `passed`，后独立更新 `proof`，绝不把局部 PASS 当作 Goal PASS。
-
-| 入边/出边位置及情形 | `passed` 与 `proof` 的精确更新 | 对成功路径的后果 |
+| 场景 | 静态传递 | Runtime 复核 / 结果 |
 |---|---|---|
-| 两条及更多**可达**入边汇入同一阶段 | `passed=∩ incoming.passed`，`proof=AND(incoming.proof)`；不按最后到达边取值；不可达边不参与 | 任一可能路径缺少全局门禁或 Goal 证明，都不能让汇合点继承该证明 |
-| Contract 所列 Precondition 的 PASS | 当前边的 `passed` 增加本阶段精确 Ref；`proof` 保留入边值 | 不等于直接建立新的 Goal 证明 |
-| 非全局 Precondition 的 PASS 或无 `goal` 的**局部 Postcondition** PASS | `passed` 不凭局部判断增加全局集合；`proof` 保留 | 局部 PASS 只受 §12.9 的 Runtime 局部门禁规则约束，不建立全局 Goal 证明 |
-| `postcondition.goal == contract.goal` 的 PASS | `proof=true`；`passed` 不变 | 只有此边可重新建立 Goal 证明（前提是已通过静态 Goal 匹配校验） |
-| READ Operation、Observation、Procedure Script 正常 SUCCEEDED（含自动推进） | 保留已有 `proof` 与 `passed`；不能换绑原证明所引用的值 | 仍受发布前的最新 Evidence 和原始绑定复核 |
-| Mutation 的 SUCCEEDED、Reconcile COMMITTED、各类非正常结果 | `proof=false`；已有全局 `passed` 集合不自动伪造新的 PASS | Mutation 后若要成功，必须显式到新的 Goal Postcondition PASS 重建证明 |
-| 显式 `SUCCEEDED` 终态边 | 必须具备完整全局 `passed` 和 `proof=true` | 即使静态通过，Runtime 仍按 §12.8 核验资源责任和最新 Evidence |
+| 全局 Precondition 聚合 PASS | 仅本阶段 PASS 出边设置 `passedGlobal=true`；FAIL/UNKNOWN 不设置 | 原绑定全部有效，才准入后续 MUTATION 或终态 |
+| 两条可达路径汇合，仅一条通过全局门禁 | AND=false | 后续 MUTATION 或成功终态拒绝；不能借另一条的 PASS |
+| 局部 Precondition / Postcondition 聚合 PASS，继续到其他 Node | 不设置全局门禁（除恰为 Contract 引用的 Precondition）；**不建立可携带 Goal 证明** | 对直接后继 MUTATION 的局部门禁按既有规则复核 |
+| READ、Observation、Script 或 Mutation 发生在某次 Postcondition PASS 之后 | 依原 Stage Outcome 正常继续，**没有 Goal proof 位可保留** | 若后续请求成功，仍必须经过**新的最终 Postcondition**聚合 PASS |
+| 最终 Postcondition `PASS: SUCCEEDED` | 检查可选全局门禁已必经；本条边直接证明 Goal | 核验全部成员、Evidence、Scope、提交与资源责任后发布 SUCCEEDED |
+| 非 Postcondition 阶段直达 SUCCEEDED，或 Postcondition FAIL/UNKNOWN 直达 SUCCEEDED | 违反成功边的来源/Outcome 约束 | 阻断构建，不进入 Runtime；失败诊断 `SUCCESS_BYPASSES_FINAL_POSTCONDITION` |
+| Reconcile 恢复分支成功 | 必须有本分支自己的最终 Postcondition PASS→SUCCEEDED 边 | 既有 §20 提交证明和责任要求依旧生效 |
 
-**现有规范的三个反例/正例组合（资料性，非新增 E 编号）：** （a）两条路径汇合，仅一条经过全局 Precondition PASS：交集缺项，后续业务 Mutation/成功终态拒绝；（b）一条边的 Goal PASS 与另一条没有 Goal PASS 的路径汇合：AND=false，不能靠前者借证明；（c）同 Node 自动推进经过 Mutation SUCCEEDED 后，先前的 Goal 证明清零，必须由**之后**的 Goal Postcondition PASS 显式重建；局部 Postcondition PASS 无 `goal` 时只能保留已有证明，不能重建。上述例子的精确机器 Fixture 仍需交付，参见 K.3 的复审候选说明。
-
-§12.9 的伪代码只验证构建期的全局门禁路径覆盖与 Goal 证明。局部门禁的派发前复核由 Runtime 执行。
-
-| 门禁/准入条件 | Compiler 构建期 | Runtime 派发或终态复核 |
-|---|---|---|
-| 同 Node Precondition 的 PASS | 检查阶段次序、PASS 边及可达性，不假定 Predicate 真值 | 在保护动作派发前复核其已接受的 PASS 及 Evidence 是否仍有效 |
-| 直接前驱 Node 的局部 Postcondition PASS | 检查直接连接和可达性，不将局部 PASS 自动视为 Contract Goal | 在受保护 Mutation 派发前复核该 Postcondition 的关联、Scope 和时效 |
-| 跨 Node 直接进入 Mutation 首阶段的局部判定 | 证明结构上的直接前驱及正常路由存在；无法证明业务事实真值 | 依据实际选中边与原局部证明复核；不隐式重新执行 Predicate |
-| Contract 全局 Precondition | §12.9 路径敏感 PASS 交集、Mutation 与 SUCCEEDED 全覆盖 | 派发业务 Mutation 前以及发布 SUCCEEDED 前重验此前证明的来源/关联/时效 |
-| Reconcile 独立准入 | §20.2 唯一入边、原调用和独立 READ callable/Grant 链接 | 核验原 Invocation、当前 Scope/Capability、预算、Deadline、取消和至多一次派发 |
-
-**边界：** Compiler 静态检查的是必经的证明来源和图结构，不在构建时执行 Predicate；Runtime 只复核已选执行路径对应的证明及准入条件，不因直接前驱的某个分支名字自动授予权限。缺全局门禁 PASS 或 Goal 证明的成功路径会阻断构建。实际执行到 SUCCEEDED 路由时，Runtime 仍按 §12.8、§17.2、§20 复核证据、提交状态与资源责任。若证据到期或其他发布条件不成立，保留原 Trace 并发布相应停止终态。Node 间的图必须为 DAG，Node 内的阶段按固定顺序推进。受控新尝试由 §20 规定。
+**边界：** `contract.goal` 不等于 Compiler 可以从 PredicateId 的字面名称自动验证业务意图。业务作者负责让最终 Postcondition 的各条 Predicate 真正充分证明该 Goal；Compiler/Runtime 严格校验它们的显式参数、Evidence、可达性、终态路由和授权，不发明语义蕴含规则。Postcondition 的业务充分性按 §12.6 评审。此版以**直达成功边**取代旧版本的跨 Node Goal-proof 传播，不允许在规范或测试中同时保留两套成功判据。
 
 ## 13. Arguments 与数据来源
 
