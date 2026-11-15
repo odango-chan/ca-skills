@@ -1003,7 +1003,7 @@ Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时必�
 
 - **全局门禁必经性：** 对每条从 `start` 到业务 MUTATION 派发或 Invocation `SUCCEEDED` 的可达路径，若声明 Contract `precondition`，该路径必须经过这个唯一阶段的聚合 `PASS`。先前 PASS 的 Trace/原绑定保留，经过后续其他 Node 时不凭阶段名称重做判断；Runtime 每次派发业务 Mutation 以及发布成功前按 §17/§24 复核原已接受的全体成员及 Evidence。否则报 `ENTRY_PRECONDITION_BYPASSED`；无效标量、数组/对象、错误身份、不存在的阶段或**声明引用的阶段从 `start` 根本不可达**报 `ENTRY_PRECONDITION_REF_INVALID`。不可达全局引用的诊断先于逐路径 BYPASSED，避免把无效 Contract 引用误称为正常分支绕过；合法但仅部分路径经过它仍报 BYPASSED。多个业务前置判断放进同一阶段的 `predicates` 列表，Procedure 其他 Precondition 仍为局部门禁。
 - **局部门禁：** 每次业务 Mutation 派发前，Runtime 还复核同 Node 的 Precondition，以及正常完成并直接进入该 Mutation 的局部判断；跨 Node 的局部判定仅在直接前驱判断沿正常结果边进入目标 Node、且 Mutation 为其首阶段时复核。全局门禁与局部门禁重合时同一执行结果只复核一次。Reconcile 仍按 §20 的独立条件准入。
-- **成功证明：** 唯一允许请求 Invocation `SUCCEEDED` 的源码边是一个**可达 Postcondition 阶段**的**聚合 `PASS` 边**，并且其路由**直接**指向 `SUCCEEDED`。该 Postcondition 的全部 Predicate 均 PASS 后，才视为本次 `contract.goal` 的最终证明；任何 Operation/Observation/Precondition、Postcondition 的 FAIL/UNKNOWN、或中间业务 Node 的路由都不能直接请求成功。没有 `postcondition.goal` 或 `contract.postconditions` 之类的重复声明。某个 Postcondition 的 PASS 若指向另一 Node，仅属于局部验收；**它的 PASS 不跨 Node 携带为 Goal 证明**。若后续又发生 READ/Script/Mutation/Reconcile，必须在其后再次走最终 Postcondition PASS 直接到成功终态。
+- **成功证明：** 唯一允许请求 Invocation `SUCCEEDED` 的源码边是一个**可达 Postcondition 阶段**的**聚合 `PASS` 边**，并且其路由**直接**指向 `SUCCEEDED`。该 Postcondition 的全部 Predicate 均 PASS 后，才视为本次 `contract.goal` 的最终证明；任何 Operation/Observation/Precondition、Postcondition 的 FAIL/UNKNOWN、或中间业务 Node 的路由都不能直接请求成功。没有 `postcondition.goal` 或 `contract.postconditions` 之类的重复声明。某个 Postcondition 的 PASS 若指向另一 Node，仅属于局部验收；**它的 PASS 不跨 Node 携带为 Goal 证明**。若后续又发生 READ/Script/Mutation，必须在其后再次走最终 Postcondition PASS 直接到成功终态；Host 内部结果确认不创建新的作者级阶段。
 - **多条成功分支与恢复来源：** 不同业务路径可以各有最终 Postcondition，或原 Mutation 的普通成功与 Host 恢复完整成功输出后在**同一**原 Node 的后续阶段汇聚；均必须在实际所选路径上聚合 PASS 并直达 SUCCEEDED。Host 恢复输出仍须保留独立 Producer/Evidence 绑定，不能借用另一条路径的旧 PASS。每条成功路径均满足相同的全局门禁、Evidence、提交状态和资源责任检查。没有任何可达 Postcondition PASS→SUCCEEDED 边时，报 `FINAL_POSTCONDITION_MISSING`；存在合法最终边但另一条可达成功边不是来自 Postcondition PASS 时，报 `SUCCESS_BYPASSES_FINAL_POSTCONDITION`。这些优先级仅说明诊断条件，不使非法的成功边合法。
 - **安全终态：** Runtime 发布 SUCCEEDED 时复核最终 Postcondition **每一个已执行且必须 PASS 的成员**的原绑定、Producer、Scope、Correlation、Evidence 和 Freshness，复核可选全局门禁及资源责任。不能隐式重跑 Predicate、重新查询、换绑旧 Evidence，也不能用另一分支的旧 PASS 顶替当前最终阶段。若失败，按 §12.8 的 SAFE_STOPPED / UNRESOLVED / FAILED 顺序安全停止。STOP 分支无须最终 Goal 证明，仍须记录实际终态和责任。
 
@@ -1270,7 +1270,11 @@ Procedure Script 输出保守继承其全部绑定实参的来源类别，包括
 
 Predicate 参数 Schema 由 `parameters` 声明。Producer 值的 Schema 从已发布的输出或 Host Context Schema 按值路径解析，并对参数 Schema 检查可赋值性。`provides[].guarantee` 是该发布方快照中精确的描述符导出键，可以指向同一快照内的独立契约。Compiler 必须解析到唯一导出，并核对描述符允许的 Producer 身份、Outcome 与 `provides[].path`；`output` 指整个已声明的输出。缺失、歧义或路径不匹配均拒绝链接。声明的 `provides` 引用解析失败时报告 `EVIDENCE_GUARANTEE_LINK_INVALID`。
 
-**Host 恢复成功的双 Producer 检查（Normative）：** 同一作者 SourcePath `<original-node>.operation.output` 的正常 SUCCEEDED 与 Host 经恢复 READ 后归并的 SUCCEEDED 属于**两种实际 Producer 来源**。编译器对所有会消费该 SourcePath 的 Predicate/Evidence 绑定，必须分别证明普通原 Mutation 成功回包和专用恢复 READ 的真实输出路径、Owner/outcome、保证 ID、Schema、Scope、Correlation 与 Freshness 均满足要求；任一来源缺少可信保证或不可静态证明时，按 §17.2 现有 `PREDICATE_EVIDENCE_UNSATISFIABLE` / `EVIDENCE_GUARANTEE_LINK_INVALID` fail-closed，不能靠运行时冒充另一个 Producer 来绕过。Host 终态复核必须核对本次真实 Producer 和绑定原调用的恢复 lineage；没有读到恢复分支时不凭名字重跑或换绑。恢复 READ 不能伪装成普通原 Mutation Owner 回包。**若 Owner 不提供可以授权的同一 Goal Evidence 保证，作者须让未决操作安全停止，而不是假定恢复业务结果等价。**
+**Host 恢复成功的双 Producer 检查（Normative，按可达路径限定）：** 同一作者 SourcePath `<original-node>.operation.output` 的普通 SUCCEEDED 与 Host 完整恢复后归并的 SUCCEEDED 可以具有**不同的实际 Producer**，但并非每份 Skill 都必须同时证明两者。Compiler 先按 §12.9 找到**真正可达**的消费者和进入该消费者的 SUCCEEDED 来源路径，再依受信 Owner/部署契约判断该原 Mutation 是否**可能**由 Host 从未决状态恢复成 SUCCEEDED：仅当其 `mutation.reconcile` 已受信链接、具备独立授权，且 Owner **明确发布了完整可恢复的普通成功输出 Schema/path 及相应证据保证**时，才存在可达的恢复 SUCCEEDED 候选。Host 的动态 READ 成功与否不能在静态期假定；**已经存在可信候选的恢复路径不得因为当前运行尚未发生而省略校验**。
+
+对于**确有该可达恢复 SUCCEEDED 路径，且此 SourcePath 在该路径被 Predicate/Evidence 消费**的场合，Compiler 必须分别校验正常原 Mutation 成功回包和恢复 READ 的真实 Producer、Outcome、值路径、保证 ID、Schema、Scope、Correlation、Freshness；任一必需来源保证缺失或不一致，依 §17.2 原有 `PREDICATE_EVIDENCE_UNSATISFIABLE` / `EVIDENCE_GUARANTEE_LINK_INVALID` fail-closed，不得伪造原响应。若**没有可恢复普通成功输出承诺**，未决结果只能变成 COMMITTED（无原 `operation.output`）或 OUTCOME_UNKNOWN 并保全停止，**普通直接 SUCCEEDED 的消费仅验证正常 Producer，不必虚构第二 Producer**。若消费节点不可达、或该可达业务路径实际并不绑定原 Mutation 输出，就不对该不存在的消费路径要求双来源证明；不可达节点自己的作者语法/依赖约束及 `UNREACHABLE_NODE` 规则仍需独立校验。两种 SUCCEEDED 来源都不可达但消费者尝试读取该值时，优先按 §13.3 报 `SOURCE_NOT_AVAILABLE`，而非无依据地要求恢复 Evidence。
+
+Host 终态复核只接受本次实际 Producer 和原调用绑定的恢复 lineage，不隐式重跑、换绑或把 READ 结果冒充原 Owner 回包。**如果 Owner 未提供可授权的恢复 Evidence，不得通过放宽 Predicate/Goal 保证来继续执行**；真正要允许普通成功输出继续消费时，应取得受信保证并重新链接；没有安全恢复路径时，Host 保留 COMMITTED/OUTCOME_UNKNOWN 的安全停止语义。
 
 E.3 示范分文件声明。Operation Result 和 Observation Result 可提供同一个保证，前提是该权威 Owner 明确授权两条 Producer 路径。Skill 只引用保证 ID；Schema、Owner、相关性和有效期由 Owner 契约提供。描述符中，Observation Producer 的实参引用根为 `query`，Operation Producer 的实参引用根为 `arguments`。两者是保留根，指向相应 Producer 派发时物化并通过校验的实参。Compiler 按描述符中的 Producer kind 校验引用根与字段路径，未知根、根与 kind 不符或实参路径无法解析时报 `EVIDENCE_GUARANTEE_LINK_INVALID`。描述符字段的互操作要求按附录 F.3；真实 Owner 发布和 Transport 联调按 §45.2。
 
@@ -3040,7 +3044,7 @@ expected:
 | E14：Host Action Budget 为 0 或非法 | Admission fail-closed，不允许 Skill limits 放宽 |
 | E15（informative，业务评审）：Observation 已可从充分 Operation Result 中获得且满足 Evidence 要求 | 不应为了形式强制增加 Observation 阶段 |
 | E16：未引用的额外 Snapshot 被传入 BuildRequest | 按声明边界链接，额外导出不可访问 |
-| E17：原 Mutation 直接成功与 Host 可信恢复后归并为 SUCCEEDED，均到达原 Node 的最终 Postcondition | 两种结果来源都须由本次 Postcondition 聚合 PASS 直接请求 SUCCEEDED；恢复不能伪造 Owner 原回包或借用旧 PASS |
+| E17：原 Mutation 普通成功、Host 可信恢复完整成功，以及无恢复成功候选或无可达消费者 | 仅实际可能到达并消费原输出的成功来源须提供精确 Evidence；存在受信恢复成功候选时必须分别链接真实 Producer；否则未决安全停止，不能强迫不存在的恢复来源提供保证 |
 | E18：保留正常 SUCCEEDED→最终 Postcondition PASS 的合法成功边，另将原 Mutation 的 COMMITTED 直接路由 SUCCEEDED | SUCCESS_BYPASSES_FINAL_POSTCONDITION；已存在合法最终边但另有非法成功边 |
 | E19：相同 Payload Schema 的 Producer 缺少参数要求的保证 | PREDICATE_EVIDENCE_UNSATISFIABLE |
 | E20：多保证参数缺一条有效记录；另测错误 Owner、错 PSI / Lifecycle、过期、同 Scope 冲突 | UNKNOWN，即使业务值使 evaluator 返回 PASS |
@@ -3135,7 +3139,7 @@ E39、E43 的 ca 快照基线：将可信 Owner 集合设为 `[example-ue-owner,
 
 | 用例 | 基线与最小改动 | 预期 |
 |---|---|---|
-| E17 | §12.1 原 Mutation 直接 SUCCEEDED，以及超时后经 Host 受信 Reconcile READ 证明提交、恢复完整普通输出并提供覆盖同一 Predicate 参数的权威 Evidence 后归并 SUCCEEDED；均到达同一 Postcondition。反例取消恢复 Producer 的 Evidence 保证 | 两条正常/恢复路径都要满足最终 Postcondition 聚合 PASS→SUCCEEDED，Trace 保留不同真实 Producer lineage；反例按 §17.2 拒绝链接，不能伪造原 Owner 成功回包 |
+| E17 | 对同一原 Mutation 输出消费者，测试（a）普通直接 SUCCEEDED，（b）已受信链接、具备可恢复 Schema/Evidence 的 Host 恢复 SUCCEEDED，（c）Owner 只承诺提交确认、**不发布**可恢复普通成功输出，（d）消费者不可达或路径不读取此输出；另在（b）中移除恢复 READ 的 Evidence 保证 | (a) 只校验原普通 Producer；(b) 两个可达来源分别满足最终 Postcondition，Trace 保留真实恢复 lineage，移除必需恢复保证则按 §17.2 拒绝；(c) 没有恢复 SUCCEEDED 候选，COMMITTED 无 output 并安全停，正常 SUCCEEDED 消费不需要第二来源；(d) 对不存在的消费路径不做双来源校验，仍须检查作者结构及可达性 |
 | E18 | 保留 §12.1 正常 SUCCEEDED→Postcondition PASS→SUCCEEDED，另改 `create-subscription.operation.routes.COMMITTED: SUCCEEDED` | SUCCESS_BYPASSES_FINAL_POSTCONDITION；即使另一条合法最终 Postcondition 边存在，COMMITTED 也不得直接发布 Invocation SUCCEEDED |
 | E10a | §12.1 将 `create-subscription.operation.routes.NOT_COMMITTED` 指向新 Observation Node，该 Observation 输入绑定 `create-subscription.operation.output.subscriptionRef`（原普通成功 Schema 中必需） | SOURCE_NOT_AVAILABLE；NOT_COMMITTED 不产生正常成功输出；若字段未声明则先报 SOURCE_PATH_INVALID |
 | E10b | Owner `mutation.reconcile` 不声明 recoverableOutputSchema/path；将原 Mutation `routes.COMMITTED` 指向一个新的 Observation，它绑定 `create-subscription.operation.output.subscriptionRef` | RECONCILE_OUTPUT_UNAVAILABLE；COMMITTED 无恢复输出承诺，区别于 E10a 的 NOT_COMMITTED；需独立 Fixture/原始结果 |
