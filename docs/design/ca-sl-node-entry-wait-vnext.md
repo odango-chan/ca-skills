@@ -111,22 +111,6 @@ The proposed Wait shape is:
 
 The event selector does not itself identify a Run. A trusted Integration ingress contract must provide a deterministic correlation binding from the protocol request to exactly one armed Wait occurrence. That binding is Integration-owned and Host-private; Skill source does not declare `ueRef`, callback tokens, operation handles or correlation keys. If the binding cannot produce one unique match, the event is rejected or quarantined rather than assigned to the newest or most convenient Run. The binding must also distinguish successive Wait generations for the same protocol resource; a Host-generated generation number that is absent from the inbound request is not, by itself, a valid discriminator.
 
-### 3.3 Paired response boundary
-
-An inbound request may carry a protocol response obligation. The Integration Ingress Operation export defines the response Schema, allowed protocol outcomes, wire encoding and mapping from the Runtime's declared response-boundary result. The Host retains the durable response-obligation record; Runtime does not choose an HTTP status or serialize the protocol response.
-
-The proposed optional binding is:
-
-```yaml
-wait:
-  response:
-    after: modify-n4-session
-```
-
-`response.after` names a Node whose completion (including its declared Postcondition) is the response boundary. If omitted, the boundary is the completion of the Wait-bearing Node. The Compiler must prove that every normal event-accepted path reaches the boundary; a path that terminates earlier must have a trusted Integration failure-response mapping. The response boundary is not the terminal Run: later Procedure work may continue after the paired protocol response has been delivered.
-
-For 3GPP Step 15/17, the boundary must be after the required Step 16 N4 Session Modification. In the illustrative graph above, `modify-n4-session` is therefore the response boundary. The Step 17 response must not wait for unrelated later Procedure work. `response.after` is protocol-continuation metadata, not a fifth business stage or a new Node kind.
-
 ### 3.2 One route model, one scoped outcome
 
 There is no `onTimeout` field. The timeout route uses the existing `routes` shape and route-target rules:
@@ -149,6 +133,22 @@ The structure of `routes` and its target values is reused, but its key domain is
 The `TIMEOUT` route is mandatory. It must target another Node or a stopping Invocation terminal (`FAILED`, `UNRESOLVED` or `SAFE_STOPPED`). It MUST NOT target `SUCCEEDED`: a timeout cannot prove the business Goal, and only a final Postcondition aggregate PASS may request `SUCCEEDED`.
 
 If the timeout needs business-state inspection or resource handling, route to a dedicated existing-style business Node. Do not infer failure merely from the absence of a message.
+
+### 3.3 Paired response boundary
+
+An inbound request may carry a protocol response obligation. The Integration Ingress Operation export defines the response Schema, allowed protocol outcomes, wire encoding and mapping from the Runtime's declared response-boundary result. The Host retains the durable response-obligation record; Runtime does not choose an HTTP status or serialize the protocol response.
+
+The proposed optional binding is:
+
+```yaml
+wait:
+  response:
+    after: modify-n4-session
+```
+
+`response.after` names a Node whose completion (including its declared Postcondition) is the response boundary. If omitted, the boundary is the completion of the Wait-bearing Node. The Compiler must prove that every normal event-accepted path reaches the boundary; a path that terminates earlier must have a trusted Integration failure-response mapping. The response boundary is not the terminal Run: later Procedure work may continue after the paired protocol response has been delivered.
+
+For 3GPP Step 15/17, the boundary must be after the required Step 16 N4 Session Modification. In the illustrative graph above, `modify-n4-session` is therefore the response boundary. The Step 17 response must not wait for unrelated later Procedure work. `response.after` is protocol-continuation metadata, not a fifth business stage or a new Node kind.
 
 ## 4. Schema ownership and unification
 
