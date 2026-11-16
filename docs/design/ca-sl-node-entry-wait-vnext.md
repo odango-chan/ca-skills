@@ -97,7 +97,7 @@ The proposed Wait shape is:
 
 `event.source` means the authenticated peer NF type, not an untrusted body field. The event identity is not an arbitrary label. For the 5GC example it identifies the AMF-originated `Nsmf_PDUSession.UpdateSMContext` service operation. The exact API artifact, API version, OpenAPI operation, media types and request Schema are pinned by the declared Integration dependency; they are not guessed from a name or negotiated dynamically at runtime.
 
-The event selector does not itself identify a Run. A trusted Integration ingress contract must provide a deterministic correlation binding from the protocol request to exactly one armed Wait occurrence. That binding is Integration-owned and Host-private; Skill source does not declare `ueRef`, callback tokens, operation handles or correlation keys. If the binding cannot produce one unique match, the event is rejected or quarantined rather than assigned to the newest or most convenient Run.
+The event selector does not itself identify a Run. A trusted Integration ingress contract must provide a deterministic correlation binding from the protocol request to exactly one armed Wait occurrence. That binding is Integration-owned and Host-private; Skill source does not declare `ueRef`, callback tokens, operation handles or correlation keys. If the binding cannot produce one unique match, the event is rejected or quarantined rather than assigned to the newest or most convenient Run. The binding must also distinguish successive Wait generations for the same protocol resource; a Host-generated generation number that is absent from the inbound request is not, by itself, a valid discriminator.
 
 ### 3.2 One route model, one scoped outcome
 
@@ -239,10 +239,12 @@ Therefore, the future implementation requires a generic inbound-event continuati
 ### 6.4 Race, duplicate, timeout and recovery
 
 - Event acceptance and Wait timeout are an atomic race. Exactly one may win for a given Wait occurrence.
-- A duplicate delivery of the accepted event is idempotently recognized; it cannot execute the Node twice.
+- A malformed, unauthenticated, unsupported-version or schema-invalid delivery does not satisfy or reset the Wait. The Integration adapter rejects it under the protocol contract; the armed Wait remains pending until its own deadline or another Runtime stop condition.
+- A duplicate delivery of the accepted event is idempotently recognized; it cannot execute the Node twice. Duplicate response behavior remains Integration-owned.
 - Once timeout wins, that Wait occurrence is closed. A later event cannot revive the old Run or reopen its `wait.output`; the Integration adapter handles the late request under the protocol response contract.
-- Wait identity includes a per-Run occurrence/generation maintained privately by Host/Runtime. A late event for an expired generation cannot satisfy a later Wait with the same service-operation identity.
+- Wait identity includes a per-Run occurrence/generation maintained privately by Host/Runtime. The Integration correlation contract must prove that a late event from an expired generation cannot satisfy a later Wait for the same protocol resource. A private generation number that is not represented or distinguishable at the protocol boundary is not sufficient by itself.
 - The Integration correlation contract must distinguish concurrent Runs using the exact protocol/resource identifiers and trusted Integration association available for that operation. SUPI alone is not assumed to be sufficient; `ueRef` MUST NOT be invented. If two Runs match the same correlation key, the event is ambiguous and must be rejected/quarantined.
+- If the 3GPP interface provides no on-wire generation/transaction discriminator, the Integration must prove an equivalent single-flight and stale-delivery/tombstone policy for that resource. If it cannot prevent a late prior request from matching a newer Wait, that interface use is not linkable under this design; the Host must not guess.
 - Event receipt, Wait registration/activation, selected route, timeout, duplicate/late classification and continuation must be durably traceable across Host/Runtime restart.
 - A transport response handle is not assumed to survive process restart. The Integration contract must define durable response-obligation recovery or an explicit failure response if the underlying transport channel is no longer usable.
 - If the event and timeout race during recovery, the durable atomic winner is authoritative; recovery must not accept both.
@@ -346,7 +348,7 @@ Before this design can be frozen into a language revision, independent review mu
 - [ ] exact grammar and required Wait fields;
 - [ ] the Integration-owned Ingress Operation export and exact API artifact/version/digest binding;
 - [ ] normalized request Schema behavior for path/query parameters, JSON bodies and supported multipart/binary parts;
-- [ ] deterministic correlation-key derivation before the triggering external action and unique matching under concurrent Runs;
+- [ ] deterministic correlation-key derivation before the triggering external action, unique matching under concurrent Runs and safe generation reuse (including a single-flight/tombstone rule when the protocol has no on-wire generation discriminator);
 - [ ] the generic Host continuation port and durable suspended-Run/Wait state, including restart recovery;
 - [ ] supported duration lexical subset, deployment maximum and precedence against Invocation and inbound response deadlines;
 - [ ] mandatory `wait.routes.TIMEOUT` and permitted stopping terminals;
