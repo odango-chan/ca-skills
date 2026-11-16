@@ -361,4 +361,24 @@ Before this design can be frozen into a language revision, independent review mu
 - [ ] Step 15/17 response obligation ownership and failure mapping;
 - [ ] diagnostics, trace semantics and positive/negative conformance fixtures.
 
+
+### 12.1 Minimum conformance matrix
+
+| Scenario | Required result |
+|---|---|
+| Valid event arrives after Wait registration but before target Node activation | Integration delivery is durably buffered; it is consumed only if the selected route activates that exact Wait occurrence |
+| Valid event arrives after target Node activation | The same Run resumes once; `wait.output` becomes available before the Node's first business stage |
+| Event arrives before any matching Wait registration | It is not converted into a new Invocation or attached to a future Wait; Integration applies its unmatched-request policy |
+| Invalid peer, API version, media type or request Schema | Integration rejects the delivery; it does not satisfy or reset the Wait |
+| Unsupported multipart/binary part | Delivery is rejected or quarantined unless the pinned Integration contract defines a normalized representation; no part is silently dropped |
+| Two active Runs match the same correlation key | Delivery is ambiguous and is rejected/quarantined; Host must not select the newest Run |
+| A prior Wait times out and a later Wait reuses the same resource identity | A stale prior delivery cannot satisfy the later Wait; require a protocol discriminator or proven single-flight/tombstone rule |
+| Event and Wait timeout occur concurrently | Exactly one durable atomic winner is recorded; the losing transition cannot execute |
+| Duplicate delivery follows an accepted event | The target Node is not entered twice; duplicate protocol response handling remains Integration-owned |
+| Global Invocation deadline/cancellation wins before the declared Wait timeout | Runtime applies the global stop semantics; it does not route through the author's `TIMEOUT` branch |
+| Inbound protocol response deadline expires after event acceptance | Integration applies the published response failure mapping; this is not reclassified as the pre-event Wait `TIMEOUT` |
+| Multiple predecessor paths reach the same Wait Node | The selected path activates once; all paths must use the same Ingress Operation export and provide a valid correlation binding; no implicit graph join occurs |
+| One predecessor path cannot establish the required correlation binding | Compiler/admission rejects the Wait Node/path; no fallback to SUPI-only or guessed identity is allowed |
+
+These cases are semantic acceptance requirements. They do not imply that the Compiler, Host, Runtime or Integration adapter already implements them.
 No implementation or product-conformance claim follows from this design document alone.
