@@ -1,11 +1,11 @@
-> **Status notice (2026-11-14):** Non-normative implementation-boundary note. The CA-SL v1alpha3 language/interop contract is frozen; concrete external BuildRequest transport and Owner deployment artifacts remain separately versioned. The comprehensive [CA-SL vNext Specification](../skill-language-spec.zh-CN.md) is the sole normative source for language and dependency identity semantics. This note records implementation boundaries and unresolved deployment inputs; the current normative ToolCatalog / CapabilityContracts interoperability profile is now in Appendices F and G of the canonical spec.
+> **Status notice (2026-11-14):** Non-normative implementation-boundary note. The CA-SL v1alpha4 language/interop contract is frozen; concrete external BuildRequest transport and Owner deployment artifacts remain separately versioned. The comprehensive [CA-SL vNext Specification](../skill-language-spec.zh-CN.md) is the sole normative source for language and dependency identity semantics. This note records implementation boundaries and unresolved deployment inputs; the current normative ToolCatalog / CapabilityContracts interoperability profile is now in Appendices F and G of the canonical spec.
 
 # Dependency Identity & Owner Schema Resolution — Skill Language vNext
 
 **Status:** Implementation guidance only; CA-SL language frozen, external toolchain and Owner conformity pending (2026-11-14).
 **Scope:** `ca-skills`, Skill Studio Plugin-managed Configuration, `ca-skill-compiler`, and the executable conventional 5GC Skill.
 
-This note records an earlier cross-repository implementation boundary. The canonical [CA-SL v1alpha3 specification](../skill-language-spec.zh-CN.md) is now the frozen language authority. Older DESIGN-REVIEW proposals in this file do not override that contract; BuildRequest transport and real Owner releases still require their independent conformance gates.
+This note records an earlier cross-repository implementation boundary. The canonical [CA-SL v1alpha4 specification](../skill-language-spec.zh-CN.md) is now the frozen language authority. Older DESIGN-REVIEW proposals in this file do not override that contract; BuildRequest transport and real Owner releases still require their independent conformance gates.
 
 ## 1. Decisions
 
@@ -49,7 +49,7 @@ BuildResult returns diagnostics and generated Skill-owned output files. It does 
 
 - Operation call: `fivegc-tools::sbi.udm.sm_data.get`
 - Observation query: `fivegc-observations::ue.registration.current`
-- Owner Schema: `host-context::urn:connectionagent:5gc:skill-context:ingress:v1`
+- Host Subject Schema: `ca-context::urn:connectionagent:ca:context:subject:v1` (opaque `ueRef` only)
 - Capability grant: `provider-5gc.createdsession.udm`
 
 The alias selects the exact caller-supplied snapshot. The exported ID remains Owner-defined. Resolve the export uniquely within the selected snapshot; enforce any additional Schema or Capability identity uniqueness constraints during linking.
@@ -67,7 +67,7 @@ Observation query contracts are not inferred one-for-one from Operations:
 - an Operation output may be consumed directly when it already supplies the exact value and correlated Evidence;
 - independent Observation queries are added only where the Agent/Procedure needs additional authoritative context.
 
-The current 17 legacy 5GC Predicate Observation refs are migration inputs, not 17 mandatory new query Tools or READ Operations. Their source-backed classification remains:
+The current 17 legacy 5GC Predicate Observation refs are migration inputs, not 17 mandatory new query Tools or READ Operations. The 2026-11-16 context boundary supersedes their old access plan: Host ingress/journal facts remain private; prior Operation values are consumed from the exact Operation Result; non-SMF reads remain inside their responsible Tool; only exact SMF MAS-owned projections may become direct Agent Observations. In particular, raw N4/UPF resource and RAN setup snapshots must not be relabelled as UPN/SSM facts by name similarity. The historical source-backed classification was:
 - 1 captured ingress projection from Host Invocation Context;
 - 9 prior-Operation/local projections;
 - 2 Host journal projections;
@@ -91,12 +91,23 @@ For local projections over hold, operation-context, PCF input, resource-ownershi
 
 ## 6. 5GC-first acceptance
 
-1. Use the exact Host-owned Invocation Context Schema and the Host Evidence-reference projection.
+1. Use the Host-owned subject-only Context Schema (opaque `ueRef`) and the Host Evidence-reference projection; keep ingress/lifecycle/invocation metadata in the separate private Host execution context.
 2. Publish typed Tool Output Schemas for all current Operation outputs consumed by Predicates.
-3. Publish exact Observation Tool query contracts only for the independent fact queries still required after direct Operation-output and Context-projection reuse is proven.
+3. Publish exact SMF MAS Observation Tool query contracts only for SMF-owned facts still required after direct Operation-output and Subject Context reuse is proven. Non-SMF context stays inside the responsible Tool; do not expose cross-NF Agent query surfaces.
 4. Update the trusted CapabilityContracts map and ToolCatalog together for both Operations and Observation query identities; fail closed on missing/duplicate membership or Effect mismatch.
 5. Migrate the conventional 5GC Skill to pure Predicate inputs and explicit Observation Tool queries where needed; do not add Skill-level Wait/polling.
 6. Build the 5GC Skill using supplied dependency snapshots without any physical `lib/` folder.
 7. Validate the existing 36 Cases and three References as unchanged business constraints, then run focused Compiler/Runtime/5GC acceptance.
 
 MAS remains non-executable design material and is not a prerequisite for 5GC acceptance.
+
+
+## 7. 2026-11-16 SMF-only context access decision
+
+The SMF MAS QueryContext SBI v0.10 design is an implemented external baseline, not a new schema-authoring task for ca-skills. CA Agent Host will provide one local Observation adapter with eight separately typed read-only query callables. Skill source references only exact Host/Owner exports after publication; it never embeds SBI paths, static tokens, SUPI/IMSI lookup keys or private lifecycle/correlation values.
+
+The wire response exposes `masId/status/key/context`. `AVAILABLE` means the MAS State has been authoritatively written, not that the value is fresh or that the complete PDU Session is established. `UNAVAILABLE` is an empty projection for an existing UE/session whose MAS State is not written; it is not false. `SESSION_NOT_FOUND` remains a distinct 404.
+
+The v0.10 response does not carry source time or Host lifecycle identity. Host/SMF must publish the missing temporal/freshness and exact UE/PSI/lifecycle Evidence binding before any of these callables can qualify under CA-SL v1alpha4. Do not invent `observedAt` from Host receipt time.
+
+See the detailed Host contract design: https://github.com/odango-chan/ca-agent-demo/blob/main/docs/design/5gc-agent-context-contracts-v1alpha4.md. The current Skill examples use the subject-only Schema reference but still carry placeholder Package IDs and Capability IDs; they are not linkable or qualified.
