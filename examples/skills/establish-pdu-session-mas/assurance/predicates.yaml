@@ -1,7 +1,6 @@
-# MAS v1alpha4 Predicate declarations. The MAS Owner output Schemas and
-# guarantees below are EXAMPLE-ONLY candidates, never published/link-qualified.
-# Each check reintroduces a named business gate from the legacy policy-first flow.
-# Host admission, invocation/lifecycle correlation and persistence are not Skill Predicates.
+# CA-SL v1alpha4 predicates for the OpenAMSM MAS policy-first example.
+# Every MAS Schema and Evidence Guarantee below is an unpublished source-derived
+# placeholder. Linking must fail closed until the MAS Owner publishes exact exports.
 predicates:
   establishment.request.supported:
     parameters:
@@ -12,163 +11,144 @@ predicates:
       type: cel
       expression: requestType == 1 && requestedPduSessionType == "IPV4" && requestedSscMode == 1
 
-  establishment.mas.subscription_valid:
+  establishment.smf.session_context_absent:
     parameters:
-      - result: mas::urn:example:mas:subscription-state:v1
+      - sessionContext: ca-observations::urn:connectionagent:ca:observation:smf-session-context-read-result:v1
     evidence:
       requires:
-        result: [mas::establishment.subscription_valid]
+        sessionContext: [ca-observations::smf.session-context.read-evidence]
     evaluator:
       type: cel
-      expression: result.subscription_valid == true
+      expression: sessionContext.sessionPresence == "ABSENT"
 
-  establishment.mas.secondary_auth_resolved:
+  establishment.mas.subscription_validated:
     parameters:
-      - result: mas::urn:example:mas:secondary-auth-state:v1
+      - result: mas::urn:example:openamsm:mas:sc-validate-subscription-result:v1
     evidence:
       requires:
-        result: [mas::establishment.secondary_auth_resolved]
+        result: [mas::sc.subscription-validated]
     evaluator:
       type: cel
-      expression: result.secondary_auth_resolved == true
+      expression: result.sub_summary == "ok"
 
-  establishment.mas.context_ready:
+  establishment.mas.secondary_auth_skipped:
     parameters:
-      - result: mas::urn:example:mas:context-state:v1
+      - result: mas::urn:example:openamsm:mas:saa-secondary-auth-result:v1
     evidence:
       requires:
-        result: [mas::establishment.context_ready]
+        result: [mas::saa.secondary-auth-disposition]
     evaluator:
       type: cel
-      expression: result.context_ready == true
+      expression: result.phase == "SKIPPED"
+
+  establishment.mas.context_created:
+    parameters:
+      - result: mas::urn:example:openamsm:mas:sc-create-sm-context-result:v1
+    evidence:
+      requires:
+        result: [mas::sc.context-created]
+    evaluator:
+      type: cel
+      expression: result.lifecycle == "OPERATIONAL" && result.session_keys != ""
 
   establishment.mas.uecm_registered:
     parameters:
-      - result: mas::urn:example:mas:uecm-state:v1
+      - result: mas::urn:example:openamsm:mas:sc-register-uecm-result:v1
     evidence:
       requires:
-        result: [mas::establishment.uecm_registered]
+        result: [mas::sc.uecm-registered]
     evaluator:
       type: cel
-      expression: result.uecm_registered == true
+      expression: result.uecm_registered == "1"
 
-  establishment.mas.policy_created:
+  establishment.mas.policy_association_created:
     parameters:
-      - result: mas::urn:example:mas:policy-state:v1
+      - result: mas::urn:example:openamsm:mas:pa-policy-result:v1
     evidence:
       requires:
-        result: [mas::establishment.policy_created]
+        result: [mas::pa.policy-association-created]
     evaluator:
       type: cel
-      expression: result.policy_created == true
+      expression: result.policy_assoc_id != "" && result.policy_assoc_id != "bound"
 
   establishment.mas.anchor_selected:
     parameters:
-      - result: mas::urn:example:mas:anchor-state:v1
+      - result: mas::urn:example:openamsm:mas:ups-anchor-result:v1
     evidence:
       requires:
-        result: [mas::establishment.anchor_selected]
+        result: [mas::ups.anchor-selected]
     evaluator:
       type: cel
-      expression: result.anchor_selected == true
+      expression: result.up_anchor == "1"
 
-  establishment.mas.address_ready:
+  establishment.mas.address_allocated:
     parameters:
-      - result: mas::urn:example:mas:address-state:v1
+      - result: mas::urn:example:openamsm:mas:iam-address-result:v1
     evidence:
       requires:
-        result: [mas::establishment.address_ready]
+        result: [mas::iam.address-allocated]
     evaluator:
       type: cel
-      expression: result.address_ready == true
+      expression: result.ue_addr == "1"
 
   establishment.mas.policy_updated:
     parameters:
-      - result: mas::urn:example:mas:policy-update-state:v1
+      - result: mas::urn:example:openamsm:mas:pa-policy-result:v1
     evidence:
       requires:
-        result: [mas::establishment.policy_updated]
+        result: [mas::pa.policy-updated]
     evaluator:
       type: cel
-      expression: result.policy_updated == true
+      expression: result.policy_assoc_id != "" && result.policy_assoc_id != "bound"
 
-  establishment.mas.charging_owned:
+  # The source implementation currently returns charging_ref="1" and records
+  # NOT_IMPL_skip. A real resource reference plus trusted evidence is required.
+  establishment.mas.charging_reservation_created:
     parameters:
-      - result: mas::urn:example:mas:charging-state:v1
+      - result: mas::urn:example:openamsm:mas:ca-charging-result:v1
     evidence:
       requires:
-        result: [mas::establishment.charging_owned]
+        result: [mas::ca.charging-reservation-created]
     evaluator:
       type: cel
-      expression: result.charging_owned == true
+      expression: result.charging_ref != "" && result.charging_ref != "1"
 
-  establishment.mas.initial_resources_ready:
+  establishment.mas.n4_session_established:
     parameters:
-      - result: mas::urn:example:mas:initial-n4-state:v1
+      - result: mas::urn:example:openamsm:mas:upn-create-up-session-result:v1
     evidence:
       requires:
-        result: [mas::establishment.initial_resources_ready]
+        result: [mas::upn.n4-session-established]
     evaluator:
       type: cel
-      expression: result.initial_resources_ready == true
+      expression: result.est_done == "1" && result.n4_seid != "" && result.n4_seid != "0"
 
-  establishment.mas.address_confirmed:
+  establishment.mas.access_network_ready:
     parameters:
-      - result: mas::urn:example:mas:address-confirm-state:v1
+      - result: mas::urn:example:openamsm:mas:ssm-signal-ue-an-result:v1
     evidence:
       requires:
-        result: [mas::establishment.address_confirmed]
+        result: [mas::ssm.access-network-ready]
     evaluator:
       type: cel
-      expression: result.address_confirmed == true
+      expression: result.an_tunnel == "1" && result.an_tunnel_teid != "" && result.an_tunnel_ip != ""
 
-  establishment.mas.ran_adopted:
+  establishment.mas.n3_synchronized:
     parameters:
-      - result: mas::urn:example:mas:ran-state:v1
+      - result: mas::urn:example:openamsm:mas:upn-modify-up-session-result:v1
     evidence:
       requires:
-        result: [mas::establishment.ran_adopted]
+        result: [mas::upn.n3-synchronized]
     evaluator:
       type: cel
-      expression: result.ran_accepted == true
+      expression: result.n3_synced == "1"
 
-  establishment.mas.forwarding_ready:
+  establishment.mas.establishment_event_recorded:
     parameters:
-      - result: mas::urn:example:mas:forwarding-state:v1
+      - result: mas::urn:example:openamsm:mas:se-emit-events-result:v1
     evidence:
       requires:
-        result: [mas::establishment.forwarding_ready]
+        result: [mas::se.establishment-event-recorded]
     evaluator:
       type: cel
-      expression: result.forwarding_ready == true
-
-  establishment.mas.events_accounted:
-    parameters:
-      - result: mas::urn:example:mas:events-state:v1
-    evidence:
-      requires:
-        result: [mas::establishment.events_accounted]
-    evaluator:
-      type: cel
-      expression: result.events_accounted == true
-
-  establishment.mas.resources_managed:
-    parameters:
-      - result: mas::urn:example:mas:responsibility-state:v1
-    evidence:
-      requires:
-        result: [mas::establishment.resources_managed]
-    evaluator:
-      type: cel
-      expression: result.resources_managed == true
-
-  establishment.mas.cleanup_complete:
-    parameters:
-      - result: mas::urn:example:mas:cleanup-state:v1
-    evidence:
-      requires:
-        result: [mas::establishment.cleanup_complete]
-    evaluator:
-      type: cel
-      expression: result.cleanup_complete == true
-
+      expression: result.last_event == "1"
