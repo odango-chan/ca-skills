@@ -93,6 +93,8 @@ The Host Package IDs are reserved in the contract proposal, but neither package 
 
 The two example Skills currently use only `ca-context`; neither Procedure invokes the eight new Observation callables. The initial PDU Session Skill must not add `ca-observations` before a real Procedure reference exists.
 
+The Host-owned HostBusinessCorrelation Schema contains only `ingressRef` and `lifecycleRef`. Runtime separately generates `requestId`, `runId`, `invocationId`, Action/Node occurrence identity and `dispatchAttemptId`, and resolves `environmentRef`. The proposed RuntimeHost `hostBusinessCorrelation` transport extension is not yet in RuntimeHost.v1; no merged physical Host/Runtime envelope Schema is published.
+
 The Host ToolCatalog is an Owner dependency snapshot for Compiler/Studio linking, not a second Server Tool Catalog. The existing `tool-mcp-gw` Server Tool Catalog and Runtime Resolved CA Toolset remain authoritative. CapabilityContracts is separate deployment-owned trusted input; each Capability is deployment-owned, and its callable member is owned by `ca-agent-host`.
 
 The eight query callables and candidate Guarantee DottedIds are proposal-only. No Evidence Descriptor is publishable from SMF MAS v0.10 alone: the response has no source `observedAt` / `validUntil`; Host `queryStartedAt` / `receivedAt` are audit bounds, not source timestamps. The per-MAS Scope policy names are reserved; policy bodies and trusted grants are not published. All eight Observation callables remain NOT_QUALIFIED for Evidence-dependent PASS.
