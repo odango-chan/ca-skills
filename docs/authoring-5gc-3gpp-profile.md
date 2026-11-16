@@ -161,6 +161,7 @@ A 5GC migration is not ready for review closure until:
 - both sides of SMF service request/response boundaries are assigned: step 3/5 `Nsmf_PDUSession_CreateSMContext` and step 15/17 `Nsmf_PDUSession_UpdateSMContext` must be explicitly owned by the Skill graph or by a documented Host/service entry/exit boundary;
 - every asynchronous completion proof is assigned to the corresponding Owner Operation/adapter;
 - supplementary Observations are co-located with the Operation they support, run after that Operation and before its Postcondition, and are not duplicated as standalone Nodes without an explicit business-boundary rationale;
+- any confirmed-failure resource handoff has its own authoritative Postcondition/Evidence before the Procedure may terminate as FAILED;
 - all legacy business gates and failure Cases remain traceable;
 - no unpublished Owner ID, Schema, Evidence or Capability is described as qualified.
 
