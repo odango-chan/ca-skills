@@ -92,7 +92,7 @@ For local projections over hold, operation-context, PCF input, resource-ownershi
 ## 6. 5GC-first acceptance
 
 1. Use the Host-owned subject-only Context Schema (opaque `ueRef`) and the Host Evidence-reference projection; keep ingress/lifecycle/invocation metadata in the separate private Host execution context.
-2. Publish typed Tool Output Schemas for all current Operation outputs consumed by Predicates.
+2. Keep the Host private execution-context Schema separate from Skill `contextSchema`; the current proposed export is an internal Host-to-Tool contract, not a normal Skill dependency. Publish typed Tool Output Schemas for all current Operation outputs consumed by Predicates.
 3. Publish exact SMF MAS Observation Tool query contracts only for SMF-owned facts still required after direct Operation-output and Subject Context reuse is proven. Non-SMF context stays inside the responsible Tool; do not expose cross-NF Agent query surfaces.
 4. Update the trusted CapabilityContracts map and ToolCatalog together for both Operations and Observation query identities; fail closed on missing/duplicate membership or Effect mismatch.
 5. Migrate the conventional 5GC Skill to pure Predicate inputs and explicit Observation Tool queries where needed; do not add Skill-level Wait/polling.
