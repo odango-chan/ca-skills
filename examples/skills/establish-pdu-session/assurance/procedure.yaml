@@ -47,7 +47,7 @@ nodes:
   validate-and-select-session-configuration:
     # Pure selection does not mint evidence or authorize Subscription data.
     operation:
-      script: scripts/validate-and-select-session-configuration.py
+      script: scripts/select-establishment-configuration.py
       arguments:
         dnn: context.request.dnn
         sNssai: context.request.sNssai
@@ -160,7 +160,7 @@ nodes:
   # 3GPP: CA_ADAPTER — local input construction for step 7b; not a separate 3GPP service operation.
   ca-build-sm-policy-association-inputs:
     operation:
-      script: scripts/ca-build-sm-policy-association-inputs.py
+      script: scripts/build-pcf-policy-inputs.py
       arguments:
         subscriptionData: validate-and-select-session-configuration.operation.output.subscriptionData
         subscriptionSource: validate-and-select-session-configuration.operation.output.subscriptionSource
@@ -281,7 +281,7 @@ nodes:
   # 3GPP: CA_ADAPTER — constructs N1 SM/N2 SM payloads for TS 23.502 §4.3.2.2.1 step 11.
   ca-build-n1n2-message:
     operation:
-      script: scripts/ca-build-n1n2-message.py
+      script: scripts/build-n1n2-delivery.py
       arguments:
         preparedResponse: ca-prepare-pdu-session-establishment-accept.operation.output
         operationContextRef: ca-read-sm-operation-context.operation.output.contextRef
