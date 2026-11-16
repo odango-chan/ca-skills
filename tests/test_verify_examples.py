@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-from verify_v1alpha4_examples import validate_example_scripts, validate_3gpp_traceability, validate_host_context_separation, validate_pcf_owner_boundary
+from verify_v1alpha4_examples import validate_example_scripts, validate_3gpp_traceability, validate_host_context_separation, validate_pcf_owner_boundary, validate_n4_owner_boundary, validate_predicate_scripts
 
 SOURCE_PROCEDURE = """start: produce
 nodes:
@@ -337,6 +337,96 @@ nodes:
             self.assertTrue(any("must be removed" in e for e in errors), errors)
             self.assertTrue(any("must not pass a separately constructed" in e for e in errors), errors)
             self.assertTrue(any("must remain internal" in e for e in errors), errors)
+
+    def test_step8_native_selection_is_folded_into_n4_owner(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "establish-pdu-session"
+            (root / "assurance").mkdir(parents=True)
+            (root / "scripts").mkdir()
+            (root / "assurance" / "procedure.yaml").write_text("""nodes:
+  establish-n4-session:
+    operation:
+      tool: upn::UPN.CREATE_UP_SESSION
+      arguments:
+        ueRef: context.ueRef
+        request: context.request
+        udmReadResult: get-sm-subscription-data.operation.output.result
+        policyAssociationRef: establish-sm-policy-association.operation.output.policyAssociationRef
+        policyResultRef: establish-sm-policy-association.operation.output.policyResultRef
+  transfer-n1n2-message:
+    operation:
+      tool: ca::sbi.amf.n1n2.transfer
+      arguments:
+        initialN4Result: establish-n4-session.operation.output
+""", encoding="utf-8")
+            (root / "assurance" / "predicates.yaml").write_text("""predicates:
+  establishment.subscription.request_valid:
+    evaluator:
+      type: script
+      script: scripts/validate-subscription-request.py
+""", encoding="utf-8")
+            (root / "SKILL.md").write_text(
+                "| \x60establish-n4-session\x60 | step 8 native SMF session/UPF selection, then steps 10a–10b; §4.4.1.2 |\\n",
+                encoding="utf-8",
+            )
+            errors: list[str] = []
+            validate_n4_owner_boundary(root, errors)
+            self.assertEqual(errors, [])
+
+    def test_step8_script_split_and_separate_selection_payload_are_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "establish-pdu-session"
+            (root / "assurance").mkdir(parents=True)
+            (root / "scripts").mkdir()
+            (root / "assurance" / "procedure.yaml").write_text("""nodes:
+  select-session-configuration:
+    operation:
+      script: scripts/select-establishment-configuration.py
+  establish-n4-session:
+    operation:
+      tool: upn::UPN.CREATE_UP_SESSION
+      arguments:
+        selection: select-session-configuration.operation.output
+  transfer-n1n2-message:
+    operation:
+      tool: ca::sbi.amf.n1n2.transfer
+      arguments:
+        selection: select-session-configuration.operation.output
+""", encoding="utf-8")
+            (root / "assurance" / "predicates.yaml").write_text("predicates: {}\\n", encoding="utf-8")
+            (root / "SKILL.md").write_text("| \x60select-session-configuration\x60 | step 8 |\\n", encoding="utf-8")
+            (root / "scripts" / "select-establishment-configuration.py").write_text("# obsolete\\n", encoding="utf-8")
+            errors: list[str] = []
+            validate_n4_owner_boundary(root, errors)
+            self.assertTrue(any("must not be a separate Procedure Node" in e for e in errors), errors)
+            self.assertTrue(any("must receive the admitted request" in e for e in errors), errors)
+            self.assertTrue(any("separate Skill-generated selection payload" in e for e in errors), errors)
+            self.assertTrue(any("separate Step 8 Script payload" in e for e in errors), errors)
+
+    def test_predicate_script_uses_generated_input_and_result_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "establish-pdu-session"
+            (root / "assurance").mkdir(parents=True)
+            (root / "scripts").mkdir()
+            (root / "assurance" / "predicates.yaml").write_text("""predicates:
+  establishment.subscription.request_valid:
+    evaluator:
+      type: script
+      script: scripts/check.py
+""", encoding="utf-8")
+            (root / "scripts" / "check.py").write_text("""from __future__ import annotations
+from typing import Annotated, Literal, TypedDict
+class PredicateEvaluationResult(TypedDict):
+    result: Literal["PASS", "FAIL", "UNKNOWN"]
+    reasonCode: Annotated[str, {"minLength": 1}]
+    evidenceUsed: list[str]
+def main(input: PredicateInput) -> PredicateEvaluationResult:
+    return {"result": "PASS", "reasonCode": "OK", "evidenceUsed": []}
+""", encoding="utf-8")
+            errors: list[str] = []
+            refs = validate_predicate_scripts(root, errors)
+            self.assertEqual(errors, [])
+            self.assertIn((root / "scripts" / "check.py").resolve(), refs)
 
 if __name__ == "__main__":
     unittest.main()

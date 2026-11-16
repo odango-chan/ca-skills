@@ -245,10 +245,135 @@ def validate_pcf_owner_boundary(skill: Path, errors: list[str]) -> None:
         errors.append(f"{skill.name}: PCF input-readiness Evidence must remain internal to the PCF Owner")
 
 
+def validate_n4_owner_boundary(skill: Path, errors: list[str]) -> None:
+    """Keep native Step 8 selection inside the single N4 Owner interaction."""
+    if skill.name != "establish-pdu-session":
+        return
+    procedure = skill / "assurance" / "procedure.yaml"
+    predicates = skill / "assurance" / "predicates.yaml"
+    skill_doc = skill / "SKILL.md"
+    if not procedure.is_file() or not predicates.is_file() or not skill_doc.is_file():
+        return
+    procedure_text = procedure.read_text(encoding="utf-8")
+    predicate_text = predicates.read_text(encoding="utf-8")
+    skill_text = skill_doc.read_text(encoding="utf-8")
+
+    if "select-session-configuration" in procedure_text or "scripts/select-establishment-configuration.py" in procedure_text:
+        errors.append(f"{skill.name}: Step 8 native selection must not be a separate Procedure Node or Operation Script")
+    if (skill / "scripts" / "select-establishment-configuration.py").exists():
+        errors.append(f"{skill.name}: obsolete Step 8 selection Script must be removed")
+
+    n4 = re.search(
+        r"(?ms)^  establish-n4-session:\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)",
+        procedure_text,
+    )
+    if not n4:
+        errors.append(f"{skill.name}: missing establish-n4-session business Node")
+    else:
+        block = n4.group(1)
+        if not re.search(r"(?m)^      tool: upn::UPN\.CREATE_UP_SESSION\s*$", block):
+            errors.append(f"{skill.name}: Step 8 and N4 must be owned by UPN.CREATE_UP_SESSION")
+        if not re.search(r"(?m)^        request: context\.request\s*$", block):
+            errors.append(f"{skill.name}: UPN Owner must receive the admitted request for native Step 8 selection")
+        if not re.search(r"(?m)^        udmReadResult: get-sm-subscription-data\.operation\.output\.result\s*$", block):
+            errors.append(f"{skill.name}: UPN Owner must receive the validated UDM subscription result")
+        if re.search(r"(?m)^        selection:", block):
+            errors.append(f"{skill.name}: UPN Owner must not receive a separate Skill-generated selection payload")
+
+    transfer = re.search(
+        r"(?ms)^  transfer-n1n2-message:\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)",
+        procedure_text,
+    )
+    if not transfer:
+        errors.append(f"{skill.name}: missing transfer-n1n2-message business Node")
+    else:
+        block = transfer.group(1)
+        if re.search(r"(?m)^        selection:", block):
+            errors.append(f"{skill.name}: N1/N2 must not consume a separate Step 8 Script payload")
+        if not re.search(r"(?m)^        initialN4Result: establish-n4-session\.operation\.output\s*$", block):
+            errors.append(f"{skill.name}: N1/N2 must consume the effective configuration from the N4 Owner result")
+
+    if "establishment.subscription.request_valid:" not in predicate_text:
+        errors.append(f"{skill.name}: missing Step 4 subscription/request compatibility Predicate")
+    if "script: scripts/validate-subscription-request.py" not in predicate_text:
+        errors.append(f"{skill.name}: subscription compatibility must use a Step 4 Predicate Script")
+    if not re.search(
+        r"(?m)^\| \x60establish-n4-session\x60 \| step 8 native SMF session/UPF selection, then steps 10a–10b;",
+        skill_text,
+    ):
+        errors.append(f"{skill.name}: SKILL.md must map Step 8 to the establish-n4-session Owner boundary")
+
+
+def validate_predicate_scripts(skill: Path, errors: list[str]) -> set[Path]:
+    """Validate local Predicate Script refs and their generated-result contract."""
+    predicates = skill / "assurance" / "predicates.yaml"
+    if not predicates.is_file():
+        return set()
+    refs: list[tuple[str, Path]] = []
+    for line in predicates.read_text(encoding="utf-8").splitlines():
+        match = SCRIPT.match(line)
+        if not match:
+            continue
+        ref = match[1]
+        if not re.fullmatch(r"scripts/[A-Za-z0-9_-]+\.py", ref) or "/" in ref[8:]:
+            errors.append(f"{skill.name}: unsafe Predicate Script ref {ref}")
+            continue
+        refs.append((f"predicate-script-{len(refs) + 1}", skill / ref))
+
+    referenced: set[Path] = set()
+    for predicate, script in refs:
+        referenced.add(script.resolve())
+        if not script.is_file():
+            errors.append(f"{skill.name}/{predicate}: Predicate Script not found {script.relative_to(skill)}")
+            continue
+        try:
+            module = ast.parse(script.read_text(encoding="utf-8"), filename=str(script))
+            defs = _fields(module)
+            mains = [n for n in module.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == "main"]
+            if len(mains) != 1 or not isinstance(mains[0], ast.FunctionDef):
+                raise ValueError("exactly one synchronous main required")
+            main = mains[0]
+            if (len(main.args.args) != 1 or main.args.args[0].arg != "input"
+                or main.args.vararg or main.args.kwarg or main.args.defaults
+                or main.args.kwonlyargs or main.args.posonlyargs or main.returns is None):
+                raise ValueError("main(input: PredicateInput) -> PredicateEvaluationResult required")
+            if (not isinstance(main.args.args[0].annotation, ast.Name)
+                or main.args.args[0].annotation.id != "PredicateInput"
+                or not isinstance(main.returns, ast.Name)
+                or main.returns.id != "PredicateEvaluationResult"):
+                raise ValueError("main signature must use generated PredicateInput and strict PredicateEvaluationResult")
+            output = _schema(main.returns, defs)
+            if output[0] != "object":
+                raise ValueError("PredicateEvaluationResult must be a strict TypedDict")
+            fields = {name for name, _, _ in output[1]}
+            required = {name for name, needed, _ in output[1] if needed}
+            expected = {"result", "reasonCode", "evidenceUsed"}
+            if fields != expected or required != expected:
+                raise ValueError(f"PredicateEvaluationResult fields must be exactly {sorted(expected)}")
+            for node in ast.walk(module):
+                if isinstance(node, ast.Import) and any(x.name.split(".")[0] in BANNED_IMPORTS for x in node.names):
+                    raise ValueError("forbidden external/ambient import")
+                if isinstance(node, ast.ImportFrom) and (node.module or "").split(".")[0] in BANNED_IMPORTS:
+                    raise ValueError("forbidden external/ambient import")
+                if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in BANNED_CALLS:
+                    raise ValueError("forbidden dynamic or external call")
+            for node in ast.walk(main):
+                if not isinstance(node, ast.Return) or not isinstance(node.value, ast.Dict):
+                    continue
+                literal = {key.value for key in node.value.keys if isinstance(key, ast.Constant) and isinstance(key.value, str)}
+                if literal != expected or len(literal) != len(node.value.keys):
+                    raise ValueError("every Predicate Script return must provide exactly result, reasonCode and evidenceUsed")
+        except (SyntaxError, ValueError, TypeError) as exc:
+            errors.append(f"{skill.name}/{predicate}: invalid Predicate Script {script.name}: {exc}")
+    return referenced
+
+
 def validate_example_scripts(skill: Path, errors: list[str]) -> None:
     validate_3gpp_traceability(skill, errors)
     validate_host_context_separation(skill, errors)
     validate_pcf_owner_boundary(skill, errors)
+    validate_n4_owner_boundary(skill, errors)
+    predicate_script_refs = validate_predicate_scripts(skill, errors)
     procedure = skill / "assurance" / "procedure.yaml"
     text = procedure.read_text(encoding="utf-8")
     script_nodes: dict[str, tuple[Path, dict[str, str]]] = {}
@@ -279,7 +404,7 @@ def validate_example_scripts(skill: Path, errors: list[str]) -> None:
             elif line.startswith("      ") or not line.startswith("        "):
                 in_args = False
 
-    referenced = {p.resolve() for p, _ in script_nodes.values()}
+    referenced = {p.resolve() for p, _ in script_nodes.values()} | predicate_script_refs
     directory = skill / "scripts"
     for file in sorted(directory.glob("*.py")) if directory.exists() else []:
         if file.resolve() not in referenced:
