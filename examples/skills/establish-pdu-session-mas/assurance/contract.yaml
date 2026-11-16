@@ -1,18 +1,27 @@
-# CA-SL v1alpha4 author syntax. MAS contracts here are NOT published.
-# Skill-visible Host context is subject-only (ueRef); invocation/lifecycle/correlation metadata stays private to Host.
-# ca-context Package ID is reserved but not yet published; other example dependencies/Capabilities remain placeholders.
+# CA-SL v1alpha4 author syntax. MAS ToolCatalog / CapabilityContracts are NOT published.
+# Host context is subject-only (ueRef); HostBusinessInstance and Runtime identities remain private.
 goal: pdu_session.initial_request_fulfilled
-precondition: validate-sm-subscription.precondition
+precondition: read-existing-sm-context.precondition
 requestSchema: schemas/establishment-request.schema.yaml
 contextSchema: ca-context::urn:connectionagent:ca:context:subject:v1
 dependencies:
   ca-context: urn:connectionagent:ca:host-context
-  mas: urn:example:connectionagent:mas-tool-contracts
+  ca-observations: urn:connectionagent:ca:host:smf-mas-observations
+  mas: urn:example:connectionagent:openamsm-mas-tool-contracts
 capabilities:
-  - urn:example:connectionagent:capability:3gpp:udm-session-management-data:v1
-  - urn:example:connectionagent:capability:3gpp:pcf-sm-policy-control:v1
-  - urn:example:connectionagent:capability:3gpp:n4-session-management:v1
-  - urn:example:connectionagent:capability:3gpp:amf-communication-n1n2:v1
-  - urn:example:connectionagent:capability:ca:mas-session-lifecycle:v1
+  - urn:example:connectionagent:capability:ca:smf-session-context-read:v1
+  - urn:example:connectionagent:capability:mas:sc-validate-subscription:v1
+  - urn:example:connectionagent:capability:mas:saa-secondary-auth:v1
+  - urn:example:connectionagent:capability:mas:sc-create-sm-context:v1
+  - urn:example:connectionagent:capability:mas:sc-register-uecm:v1
+  - urn:example:connectionagent:capability:mas:pa-create-sm-policy:v1
+  - urn:example:connectionagent:capability:mas:ups-decide-anchor:v1
+  - urn:example:connectionagent:capability:mas:iam-allocate-address:v1
+  - urn:example:connectionagent:capability:mas:pa-update-sm-policy:v1
+  - urn:example:connectionagent:capability:mas:ca-create-charging:v1
+  - urn:example:connectionagent:capability:mas:upn-create-up-session:v1
+  - urn:example:connectionagent:capability:mas:ssm-signal-ue-an:v1
+  - urn:example:connectionagent:capability:mas:upn-modify-up-session:v1
+  - urn:example:connectionagent:capability:mas:se-emit-events:v1
 limits:
-  maxActions: 48
+  maxActions: 32
