@@ -28,7 +28,7 @@ Before reviewing, read these sources from the target branch/commit:
 7. Trace every argument to request input, subject context, a preceding Operation Result or an Observation Result. Check Schema assignability and exact Owner exports.
 8. Audit each Predicate and Script for purity, determinism, declared inputs and absence of implicit global Context or network side effects.
 9. Audit Host, Runtime and Owner responsibilities, especially business-instance identity, invocation lifecycle, async callbacks, duplicate/late messages, transport response obligations and reconciliation.
-10. Audit READ/MUTATION effects, idempotency, competing operations, OUTCOME_UNKNOWN, safe stop, cleanup and resource responsibility.
+10. Audit READ/MUTATION effects, idempotency, competing operations, OUTCOME_UNKNOWN, safe stop, cleanup and resource responsibility. A confirmed FAILED terminal must be gated by evidence that any required failure-resource handoff was accepted and covers the resources.
 11. Verify evidence authority, exact subject/resource/Invocation scope, occurrence binding, freshness and the distinction among absence, presence, unavailable projection and unknown.
 12. Verify final Goal proof and all terminal branches. A transport acknowledgement or intermediate Operation success is not final business success unless the trusted contract says it is.
 13. Compare the current source with the previous approved business behavior and Cases. Record omissions, intentional profile restrictions and unproven equivalence; do not silently drop business requirements.
