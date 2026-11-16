@@ -23,7 +23,7 @@ nodes:
     observation:
       tool: ca-session-context::context.smf.session.read
       arguments:
-        ueRef: context.ueRef
+        supi: context.supi
         pduSessionId: context.request.pduSessionId
       routes:
         FAILED: UNRESOLVED
@@ -39,15 +39,15 @@ nodes:
         UNKNOWN: SAFE_STOPPED
 
   # OpenAMSM OES: SC.VALIDATE_SUBSCRIPTION (NW Agent Plan s1).
-  # The adapter resolves ueRef to the private ue_identity and maps PSI/S-NSSAI.
+  # The Operation receives the source OES identity fields directly: `ue_identity` from 3GPP `supi` and `psi` from `pduSessionId`.
   # The source output exposed by the plan is sub_summary ("ok" on validation).
   # This is a CA adapter around the SMF's UDM SDM Get path, not a new 3GPP API.
   validate-sm-subscription:
     operation:
       tool: mas::SC.VALIDATE_SUBSCRIPTION
       arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
         dnn: context.request.dnn
         sNssai: context.request.sNssai
       routes:
@@ -71,7 +71,7 @@ nodes:
     operation:
       tool: mas::SAA.SECONDARY_AUTH
       arguments:
-        ueRef: context.ueRef
+        ue_identity: context.supi
         required: "0"
       routes:
         FAILED: FAILED
@@ -94,8 +94,8 @@ nodes:
     operation:
       tool: mas::SC.CREATE_SM_CONTEXT
       arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
         dnn: context.request.dnn
         sNssai: context.request.sNssai
         subSummary: validate-sm-subscription.operation.output.sub_summary
@@ -119,8 +119,8 @@ nodes:
     operation:
       tool: mas::SC.REGISTER_UECM
       arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
         sessionKeys: create-sm-context.operation.output.session_keys
       routes:
         FAILED: SAFE_STOPPED
@@ -143,8 +143,8 @@ nodes:
     operation:
       tool: mas::PA.CREATE_SM_POLICY
       arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
         dnn: context.request.dnn
         sNssai: context.request.sNssai
         pduSessionType: context.request.requestedPduSessionType
@@ -169,8 +169,8 @@ nodes:
     operation:
       tool: mas::UPS.DECIDE_ANCHOR
       arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
         dnn: context.request.dnn
         sNssai: context.request.sNssai
       routes:
@@ -194,8 +194,8 @@ nodes:
     operation:
       tool: mas::IAM.ALLOCATE_ADDRESS
       arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
         dnn: context.request.dnn
         allocator: "LOCAL_POOL"
         upAnchorReady: select-upf-anchor.operation.output.up_anchor
@@ -219,8 +219,8 @@ nodes:
     operation:
       tool: mas::PA.UPDATE_SM_POLICY
       arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
         dnn: context.request.dnn
         sNssai: context.request.sNssai
         pduSessionType: context.request.requestedPduSessionType
@@ -248,8 +248,8 @@ nodes:
     operation:
       tool: mas::CA.CREATE_CHARGING
       arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
         ratingGroupRefs: "default"
       routes:
         FAILED: SAFE_STOPPED
@@ -272,8 +272,8 @@ nodes:
     operation:
       tool: mas::UPN.CREATE_UP_SESSION
       arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
         upIntent: modify-sm-policy-association.operation.output.up_intent
         upAnchorReady: select-upf-anchor.operation.output.up_anchor
         ueAddrAllocated: allocate-pdu-session-address.operation.output.ue_addr
@@ -302,8 +302,8 @@ nodes:
     operation:
       tool: mas::SSM.SIGNAL_UE_AN
       arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
         sessionKeys: create-sm-context.operation.output.session_keys
         ueAddrAllocated: allocate-pdu-session-address.operation.output.ue_addr
         n4Seid: establish-n4-session.operation.output.n4_seid
@@ -327,8 +327,8 @@ nodes:
     operation:
       tool: mas::UPN.MODIFY_UP_SESSION
       arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
         anTunnelTeid: signal-ue-and-access-network.operation.output.an_tunnel_teid
         anTunnelIp: signal-ue-and-access-network.operation.output.an_tunnel_ip
         n4Seid: establish-n4-session.operation.output.n4_seid
@@ -352,8 +352,8 @@ nodes:
     operation:
       tool: mas::SE.EMIT_EVENTS
       arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
         event: "ESTABLISHED"
         sessionKeys: create-sm-context.operation.output.session_keys
       routes:
