@@ -1,9 +1,9 @@
-"""Validate the current SMF session context before N4 forwarding modification.
+"""Validate current SMF session facts before N4 forwarding modification.
 
-This is a Postcondition Predicate Script over an explicit, read-only context
-Observation. It does not poll for UpdateSMContext and does not inspect Host
-lifecycle metadata. The underlying context-query compatibility mechanism is
-not part of this Skill's business contract.
+The Observation is a fresh, read-only business query after the Step 15
+continuation. Session presence and projection availability are separate:
+ABSENT is a known business failure at this point; PRESENT+UNAVAILABLE is
+known presence but insufficient data; UNKNOWN means presence is indeterminate.
 """
 from __future__ import annotations
 
@@ -26,10 +26,26 @@ def main(input: PredicateInput) -> PredicateEvaluationResult:
         }
 
     observation = input["sessionContext"]
-    if observation["status"] != "AVAILABLE":
+    presence = observation["sessionPresence"]
+
+    if presence == "ABSENT":
+        return {
+            "result": "FAIL",
+            "reasonCode": "SMF_SESSION_CONTEXT_ABSENT_AFTER_UPDATE",
+            "evidenceUsed": evidence_refs,
+        }
+
+    if presence != "PRESENT":
         return {
             "result": "UNKNOWN",
-            "reasonCode": "SMF_SESSION_CONTEXT_UNAVAILABLE",
+            "reasonCode": "SMF_SESSION_CONTEXT_PRESENCE_UNKNOWN",
+            "evidenceUsed": evidence_refs,
+        }
+
+    if observation["projectionStatus"] != "AVAILABLE":
+        return {
+            "result": "UNKNOWN",
+            "reasonCode": "SMF_SESSION_CONTEXT_PROJECTION_UNAVAILABLE",
             "evidenceUsed": evidence_refs,
         }
 
