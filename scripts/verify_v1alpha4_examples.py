@@ -500,6 +500,8 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
             errors.append(f"{skill.name}: confirmed-failure handoff must prove resource responsibility")
         if not re.search(r"(?m)^            - ca-transfer-failed-resource-responsibility\.operation\.output\s*$", block):
             errors.append(f"{skill.name}: failure responsibility Predicate must consume its own Operation Result")
+        if re.search(r"(?m)^        SUCCEEDED:", block):
+            errors.append(f"{skill.name}: Operation success must flow through the failure-responsibility Postcondition")
         if not re.search(r"(?m)^        PASS: FAILED\s*$", block):
             errors.append(f"{skill.name}: FAILED terminal requires evidenced resource responsibility")
         if not re.search(r"(?m)^        FAIL: SAFE_STOPPED\s*$", block) or not re.search(r"(?m)^        UNKNOWN: UNRESOLVED\s*$", block):
