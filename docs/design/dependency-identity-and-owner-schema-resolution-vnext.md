@@ -49,7 +49,7 @@ BuildResult returns diagnostics and generated Skill-owned output files. It does 
 
 - Operation call: `fivegc-tools::sbi.udm.sm_data.get`
 - Observation query: `fivegc-observations::ue.registration.current`
-- Host Subject Schema: `ca-context::urn:connectionagent:ca:context:subject:v1` (opaque `ueRef` only)
+- Host Subject Schema: `ca-context::urn:connectionagent:ca:context:subject:v1` (3GPP `supi` only)
 - Capability grant: `provider-5gc.createdsession.udm`
 
 The alias selects the exact caller-supplied snapshot. The exported ID remains Owner-defined. Resolve the export uniquely within the selected snapshot; enforce any additional Schema or Capability identity uniqueness constraints during linking.
@@ -91,7 +91,7 @@ For local projections over hold, operation-context, PCF input, resource-ownershi
 
 ## 6. 5GC-first acceptance
 
-1. Use the Host-owned subject-only Context Schema (opaque `ueRef`) and the Host Evidence-reference projection; keep ingress/lifecycle/invocation metadata in the separate private Host execution context.
+1. Use the Host-owned subject-only Context Schema (3GPP `supi`) and the Host Evidence-reference projection; keep ingress/lifecycle/invocation metadata in the separate private Host execution context.
 2. Keep the Host private execution-context Schema separate from Skill `contextSchema`; the current proposed export is an internal Host-to-Tool contract, not a normal Skill dependency. Publish typed Tool Output Schemas for all current Operation outputs consumed by Predicates.
 3. Publish exact SMF MAS Observation Tool query contracts only for SMF-owned facts still required after direct Operation-output and Subject Context reuse is proven. Non-SMF context stays inside the responsible Tool; do not expose cross-NF Agent query surfaces.
 4. Update the trusted CapabilityContracts map and ToolCatalog together for both Operations and Observation query identities; fail closed on missing/duplicate membership or Effect mismatch.
