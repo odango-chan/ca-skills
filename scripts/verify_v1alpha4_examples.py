@@ -485,16 +485,27 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
         errors.append(f"{skill.name}: final Goal proof must consume the N4 Modification result")
 
     failed_handoff = re.search(
-        r"(?ms)^  ca-transfer-failed-resource-responsibility:\\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\\s*$|\\Z)",
+        r"(?ms)^  ca-transfer-failed-resource-responsibility:\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)",
         procedure_text,
     )
     if not failed_handoff:
         errors.append(f"{skill.name}: missing the confirmed-failure resource responsibility handoff")
     else:
         block = failed_handoff.group(1)
-        if not re.search(r"(?m)^      tool: ca::ca\\.session\\.resource_responsibility\\.transfer\\s*$", block):
+        if not re.search(r"(?m)^      tool: ca::ca\.session\.resource_responsibility\.transfer\s*$", block):
             errors.append(f"{skill.name}: failure responsibility must use the Host/Owner resource handoff")
-        if not re.search(r'(?m)^        disposition: "failed"\\s*    if not re.search(r"(?m)^\| \x60get-sm-subscription-data\x60 \| step 4", skill_text):
+        if not re.search(r'(?m)^        disposition: "failed"\s*$', block):
+            errors.append(f"{skill.name}: failure responsibility must be explicitly marked failed")
+        if not re.search(r"(?m)^        - predicate: establishment\.resources\.managed\s*$", block):
+            errors.append(f"{skill.name}: confirmed-failure handoff must prove resource responsibility")
+        if not re.search(r"(?m)^            - ca-transfer-failed-resource-responsibility\.operation\.output\s*$", block):
+            errors.append(f"{skill.name}: failure responsibility Predicate must consume its own Operation Result")
+        if not re.search(r"(?m)^        PASS: FAILED\s*$", block):
+            errors.append(f"{skill.name}: FAILED terminal requires evidenced resource responsibility")
+        if not re.search(r"(?m)^        FAIL: SAFE_STOPPED\s*$", block) or not re.search(r"(?m)^        UNKNOWN: UNRESOLVED\s*$", block):
+            errors.append(f"{skill.name}: failed responsibility proof must fail closed")
+
+    if not re.search(r"(?m)^\| \x60get-sm-subscription-data\x60 \| step 4", skill_text):
         errors.append(f"{skill.name}: SKILL.md must trace the Step 4 Node and its entry context Observation")
     if not re.search(r"(?m)^\| \x60update-sm-context\x60 \| step 15", skill_text):
         errors.append(f"{skill.name}: SKILL.md must trace update-sm-context to step 15 and its co-located Observation")
