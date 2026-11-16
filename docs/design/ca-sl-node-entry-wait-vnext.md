@@ -1,7 +1,7 @@
 # CA-SL Next Revision Design: Node-Level Event Wait
 
-**Status:** Design proposal for the language revision after CA-SL v1alpha4.  
-**Normative status:** Not frozen; this document does not amend CA-SL v1alpha4.  
+**Status:** Semantic design baseline frozen for the language revision after CA-SL v1alpha4.  
+**Normative status:** Design semantics frozen; not yet a normative language specification. This document does not amend CA-SL v1alpha4.  
 **Scope:** Procedure Node entry control, inbound event binding, typed dataflow, timeout routing and Host/Runtime continuation.  
 **Decision direction:** Node-level Wait with transition-level semantics; reuse the existing Procedure Graph and `routes` model.
 
