@@ -442,7 +442,7 @@ nodes:
           arguments:
             - context.request.requestType
     observation:
-      tool: ca::context.smf.session.read
+      tool: ca-observations::context.smf.session.read
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
@@ -484,7 +484,7 @@ nodes:
         PASS: read-smf-session-context
   read-smf-session-context:
     observation:
-      tool: ca::context.smf.session.read
+      tool: ca-observations::context.smf.session.read
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
@@ -521,6 +521,7 @@ nodes:
             - modify-n4-session.operation.output
 """, encoding="utf-8")
             (root / "assurance" / "contract.yaml").write_text("""dependencies:
+  ca-observations: urn:connectionagent:ca:host:smf-mas-observations
   ca: urn:example:connectionagent:5gc-tool-contracts
 capabilities:
   - urn:example:connectionagent:capability:ca:smf-session-context-read:v1
@@ -528,29 +529,31 @@ capabilities:
             (root / "assurance" / "predicates.yaml").write_text("""predicates:
   establishment.smf.session_context_absent:
     parameters:
-      - sessionContext: ca::urn:example:5gc:smf-session-context:v1
+      - sessionContext: ca-observations::urn:connectionagent:ca:observation:smf-session-context-read-result:v1
     evidence:
       requires:
-        sessionContext: [ca::smf.session-context.query-evidence]
+        sessionContext: [ca-observations::smf.session-context.read-evidence]
     evaluator:
       type: script
       script: scripts/validate-smf-session-context-entry.py
   establishment.smf.session_context_profile_ready:
     parameters:
-      - sessionContext: ca::urn:example:5gc:smf-session-context:v1
+      - sessionContext: ca-observations::urn:connectionagent:ca:observation:smf-session-context-read-result:v1
     evidence:
       requires:
-        sessionContext: [ca::smf.session-context.query-evidence]
+        sessionContext: [ca-observations::smf.session-context.read-evidence]
     evaluator:
       type: script
       script: scripts/validate-smf-session-context.py
 """, encoding="utf-8")
-            (root / "scripts" / "validate-smf-session-context-entry.py").write_text("""def main(input: PredicateInput) -> PredicateEvaluationResult:
-    return {"result": "PASS", "reasonCode": "SMF_SESSION_CONTEXT_CONFIRMED_ABSENT", "evidenceUsed": []}
-""", encoding="utf-8")
-            (root / "scripts" / "validate-smf-session-context.py").write_text("""def main(input: PredicateInput) -> PredicateEvaluationResult:
-    return {"result": "PASS", "reasonCode": "OK", "evidenceUsed": []}
-""", encoding="utf-8")
+            (root / "scripts" / "validate-smf-session-context-entry.py").write_text(
+                (ROOT / "examples" / "skills" / "establish-pdu-session" / "scripts" / "validate-smf-session-context-entry.py").read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+            (root / "scripts" / "validate-smf-session-context.py").write_text(
+                (ROOT / "examples" / "skills" / "establish-pdu-session" / "scripts" / "validate-smf-session-context.py").read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
             (root / "SKILL.md").write_text("""| \x60read-existing-sm-context\x60 | exact UE/PSI context existence before initial mutations |
 | \x60update-sm-context\x60 | step 15 — \x60Nsmf_PDUSession_UpdateSMContext Request\x60 |
 | \x60read-smf-session-context\x60 | current SMF session context after step 15 |
@@ -567,46 +570,57 @@ Runtime resumes the same Invocation; Host returns the paired step 17 response.
         main = runpy.run_path(
             str(ROOT / "examples" / "skills" / "establish-pdu-session" / "scripts" / "validate-smf-session-context-entry.py")
         )["main"]
-        def evaluate(presence: str) -> dict:
-            return main({
-                "evidence": {"sessionContext": {"refs": ["evidence:query"]}},
-                "sessionContext": {"sessionPresence": presence},
-            })
-        self.assertEqual(evaluate("ABSENT")["result"], "PASS")
-        self.assertEqual(evaluate("ABSENT")["reasonCode"], "SMF_SESSION_CONTEXT_CONFIRMED_ABSENT")
-        self.assertEqual(evaluate("PRESENT")["result"], "FAIL")
-        self.assertEqual(evaluate("PRESENT")["reasonCode"], "SMF_SESSION_CONTEXT_ALREADY_PRESENT")
-        self.assertEqual(evaluate("UNKNOWN")["result"], "UNKNOWN")
-        self.assertEqual(evaluate("UNKNOWN")["reasonCode"], "SMF_SESSION_CONTEXT_PRESENCE_UNKNOWN")
 
-        no_evidence = main({
-            "evidence": {"sessionContext": {"refs": []}},
-            "sessionContext": {"sessionPresence": "ABSENT"},
-        })
+        def evaluate(presence: str, projection: str, source_outcome: str, context: dict | None = None, refs: list[str] | None = None) -> dict:
+            return main({
+                "evidence": {"sessionContext": {"refs": refs if refs is not None else ["evidence:query"]}},
+                "sessionContext": {
+                    "sessionPresence": presence,
+                    "projectionStatus": projection,
+                    "sourceOutcome": source_outcome,
+                    "context": context if context is not None else {},
+                },
+            })
+
+        absent = evaluate("ABSENT", "NOT_APPLICABLE", "SESSION_NOT_FOUND")
+        self.assertEqual(absent["result"], "PASS")
+        self.assertEqual(absent["reasonCode"], "SMF_SESSION_CONTEXT_CONFIRMED_ABSENT")
+        present = evaluate("PRESENT", "UNAVAILABLE", "MAS_RESPONSE")
+        self.assertEqual(present["result"], "FAIL")
+        self.assertEqual(present["reasonCode"], "SMF_SESSION_CONTEXT_ALREADY_PRESENT")
+        malformed = evaluate("ABSENT", "UNAVAILABLE", "MAS_RESPONSE")
+        self.assertEqual(malformed["result"], "UNKNOWN")
+        unknown = evaluate("UNKNOWN", "NOT_APPLICABLE", "SESSION_NOT_FOUND")
+        self.assertEqual(unknown["result"], "UNKNOWN")
+        no_evidence = evaluate("ABSENT", "NOT_APPLICABLE", "SESSION_NOT_FOUND", refs=[])
         self.assertEqual(no_evidence["result"], "UNKNOWN")
 
         post_main = runpy.run_path(
             str(ROOT / "examples" / "skills" / "establish-pdu-session" / "scripts" / "validate-smf-session-context.py")
         )["main"]
-        def evaluate_post(presence: str, projection: str) -> dict:
+
+        def evaluate_post(presence: str, projection: str, source_outcome: str, context: dict) -> dict:
             return post_main({
                 "evidence": {"sessionContext": {"refs": ["evidence:query"]}},
                 "sessionContext": {
                     "sessionPresence": presence,
                     "projectionStatus": projection,
-                    "context": {
-                        "dnn": "internet",
-                        "sst": 1,
-                        "subscriptionValidated": True,
-                        "secondaryAuthRequired": False,
-                    },
+                    "sourceOutcome": source_outcome,
+                    "context": context,
                 },
                 "requestedDnn": "internet",
                 "requestedSst": 1,
             })
-        self.assertEqual(evaluate_post("ABSENT", "UNAVAILABLE")["result"], "FAIL")
-        self.assertEqual(evaluate_post("PRESENT", "UNAVAILABLE")["result"], "UNKNOWN")
-        self.assertEqual(evaluate_post("PRESENT", "AVAILABLE")["result"], "PASS")
+
+        self.assertEqual(evaluate_post("ABSENT", "NOT_APPLICABLE", "SESSION_NOT_FOUND", {})["result"], "FAIL")
+        self.assertEqual(evaluate_post("PRESENT", "UNAVAILABLE", "MAS_RESPONSE", {})["result"], "UNKNOWN")
+        self.assertEqual(evaluate_post(
+            "PRESENT", "AVAILABLE", "MAS_RESPONSE",
+            {
+                "dnn": "internet", "sst": 1,
+                "subscriptionValidated": True, "secondaryAuthRequired": False,
+            },
+        )["result"], "PASS")
 
     def test_conventional_skill_requires_context_observation_and_rejects_mas_names(self) -> None:
         with tempfile.TemporaryDirectory() as d:
