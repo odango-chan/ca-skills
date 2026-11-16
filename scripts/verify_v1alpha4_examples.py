@@ -137,6 +137,8 @@ def validate_3gpp_traceability(skill: Path, errors: list[str]) -> None:
     if not procedure.is_file() or not skill_doc.is_file():
         return  # Small isolated unit-test fixtures may omit the authoring document.
     lines = procedure.read_text(encoding="utf-8").splitlines()
+    if "waiterRef:" in "\\n".join(lines):
+        errors.append(f"{skill.name}: legacy waiterRef is not a v1alpha4 author field; use an Owner-defined holdRef if required")
     node_ids: list[str] = []
     for index, line in enumerate(lines):
         match = NODE.match(line)
