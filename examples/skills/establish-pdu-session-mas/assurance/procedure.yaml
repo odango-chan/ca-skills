@@ -1,8 +1,9 @@
 # v1alpha4 MAS policy-first DAG. Tool/Owner exports are NOT YET PUBLISHED.
 # Host, not author Nodes, performs trusted mutation.reconcile when available.
-start: check-request
+start: admit-create-sm-context-request
 nodes:
-  check-request:
+  # CA_EXTENSION — entry/admission for TS 23.502 V18.12.0 §4.3.2.2.1 step 3 (AMF → SMF CreateSMContext Request).
+  admit-create-sm-context-request:
     precondition:
       predicates:
         - predicate: establishment.request.supported
@@ -14,10 +15,11 @@ nodes:
           arguments:
             - context.entryEligibility
       routes:
-        PASS: validate-subscription
+        PASS: validate-sm-subscription
         FAIL: FAILED
         UNKNOWN: UNRESOLVED
-  validate-subscription:
+  # CA_ADAPTER — validates the Session Management Subscription associated with TS 23.502 §4.3.2.2.1 step 4; exact UDM retrieval/Owner contract is not published.
+  validate-sm-subscription:
     operation:
       tool: mas::ca.pdu_session.subscription.validate
       arguments:
@@ -42,12 +44,13 @@ nodes:
       predicates:
         - predicate: establishment.mas.subscription_valid
           arguments:
-            - validate-subscription.operation.output
+            - validate-sm-subscription.operation.output
       routes:
-        PASS: secondary-auth
+        PASS: resolve-secondary-authentication
         FAIL: FAILED
         UNKNOWN: SAFE_STOPPED
-  secondary-auth:
+  # 3GPP_ADAPTER — optional secondary authentication/authorization in TS 23.502 V18.12.0 §4.3.2.2.1 step 6; this MAS operation resolves the admitted profile's disposition.
+  resolve-secondary-authentication:
     operation:
       tool: mas::ca.pdu_session.secondary_auth.disposition
       arguments:
@@ -62,7 +65,7 @@ nodes:
         servingPlmn: context.request.servingPlmn
         requestedPduSessionType: context.request.requestedPduSessionType
         requestedSscMode: context.request.requestedSscMode
-        subscriptionStateRef: validate-subscription.operation.output.stateRef
+        subscriptionStateRef: validate-sm-subscription.operation.output.stateRef
         required: 0
       routes:
         FAILED: FAILED
@@ -74,12 +77,13 @@ nodes:
       predicates:
         - predicate: establishment.mas.secondary_auth_resolved
           arguments:
-            - secondary-auth.operation.output
+            - resolve-secondary-authentication.operation.output
       routes:
-        PASS: create-context
+        PASS: create-sm-context
         FAIL: FAILED
         UNKNOWN: SAFE_STOPPED
-  create-context:
+  # CA_ADAPTER — SM context creation associated with TS 23.502 V18.12.0 §4.3.2.2.1 steps 3 and 5; this MAS callable is not itself Nsmf_PDUSession_CreateSMContext.
+  create-sm-context:
     operation:
       tool: mas::ca.pdu_session.context.create
       arguments:
@@ -94,11 +98,11 @@ nodes:
         servingPlmn: context.request.servingPlmn
         requestedPduSessionType: context.request.requestedPduSessionType
         requestedSscMode: context.request.requestedSscMode
-        subscriptionStateRef: validate-subscription.operation.output.stateRef
-        authStateRef: secondary-auth.operation.output.stateRef
-        subSummary: validate-subscription.operation.output.sub_summary
+        subscriptionStateRef: validate-sm-subscription.operation.output.stateRef
+        authStateRef: resolve-secondary-authentication.operation.output.stateRef
+        subSummary: validate-sm-subscription.operation.output.sub_summary
       routes:
-        FAILED: cleanup
+        FAILED: ca-compensate-confirmed-failure
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
@@ -107,12 +111,13 @@ nodes:
       predicates:
         - predicate: establishment.mas.context_ready
           arguments:
-            - create-context.operation.output
+            - create-sm-context.operation.output
       routes:
-        PASS: register-uecm
-        FAIL: cleanup
+        PASS: ca-register-uecm
+        FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  register-uecm:
+  # CA_ADAPTER — uses UDM UECM registration semantics. Note: this MAS graph places it before policy/N4, unlike TS 23.502 §4.3.2.2.1 step 16c; this is a proposed MAS ordering deviation, not the standard sequence.
+  ca-register-uecm:
     operation:
       tool: mas::ca.pdu_session.uecm.register
       arguments:
@@ -127,10 +132,10 @@ nodes:
         servingPlmn: context.request.servingPlmn
         requestedPduSessionType: context.request.requestedPduSessionType
         requestedSscMode: context.request.requestedSscMode
-        contextStateRef: create-context.operation.output.stateRef
-        sessionKeys: create-context.operation.output.session_keys
+        contextStateRef: create-sm-context.operation.output.stateRef
+        sessionKeys: create-sm-context.operation.output.session_keys
       routes:
-        FAILED: cleanup
+        FAILED: ca-compensate-confirmed-failure
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
@@ -139,12 +144,13 @@ nodes:
       predicates:
         - predicate: establishment.mas.uecm_registered
           arguments:
-            - register-uecm.operation.output
+            - ca-register-uecm.operation.output
       routes:
-        PASS: create-policy
-        FAIL: cleanup
+        PASS: establish-sm-policy-association
+        FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  create-policy:
+  # 3GPP_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 step 7b; SM Policy Association Establishment / Npcf_SMPolicyControl_Create. The MAS callable remains unpublished.
+  establish-sm-policy-association:
     operation:
       tool: mas::ca.pdu_session.policy.create
       arguments:
@@ -159,11 +165,11 @@ nodes:
         servingPlmn: context.request.servingPlmn
         requestedPduSessionType: context.request.requestedPduSessionType
         requestedSscMode: context.request.requestedSscMode
-        contextStateRef: create-context.operation.output.stateRef
-        subscriptionStateRef: validate-subscription.operation.output.stateRef
-        sessionKeys: create-context.operation.output.session_keys
+        contextStateRef: create-sm-context.operation.output.stateRef
+        subscriptionStateRef: validate-sm-subscription.operation.output.stateRef
+        sessionKeys: create-sm-context.operation.output.session_keys
       routes:
-        FAILED: cleanup
+        FAILED: ca-compensate-confirmed-failure
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
@@ -172,12 +178,13 @@ nodes:
       predicates:
         - predicate: establishment.mas.policy_created
           arguments:
-            - create-policy.operation.output
+            - establish-sm-policy-association.operation.output
       routes:
-        PASS: select-anchor
-        FAIL: cleanup
+        PASS: select-upf-anchor
+        FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  select-anchor:
+  # 3GPP_ADAPTER — SMF UPF selection within TS 23.502 V18.12.0 §4.3.2.2.1 step 8; custom MAS anchor-selection contract is unpublished.
+  select-upf-anchor:
     operation:
       tool: mas::ca.pdu_session.anchor.select
       arguments:
@@ -192,9 +199,9 @@ nodes:
         servingPlmn: context.request.servingPlmn
         requestedPduSessionType: context.request.requestedPduSessionType
         requestedSscMode: context.request.requestedSscMode
-        policyStateRef: create-policy.operation.output.stateRef
+        policyStateRef: establish-sm-policy-association.operation.output.stateRef
       routes:
-        FAILED: cleanup
+        FAILED: ca-compensate-confirmed-failure
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
@@ -203,12 +210,13 @@ nodes:
       predicates:
         - predicate: establishment.mas.anchor_selected
           arguments:
-            - select-anchor.operation.output
+            - select-upf-anchor.operation.output
       routes:
-        PASS: allocate-address
-        FAIL: cleanup
+        PASS: allocate-pdu-session-address
+        FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  allocate-address:
+  # 3GPP_ADAPTER — SMF address allocation within TS 23.502 V18.12.0 §4.3.2.2.1 step 8; custom allocator is a MAS implementation detail.
+  allocate-pdu-session-address:
     operation:
       tool: mas::ca.pdu_session.address.allocate
       arguments:
@@ -223,11 +231,11 @@ nodes:
         servingPlmn: context.request.servingPlmn
         requestedPduSessionType: context.request.requestedPduSessionType
         requestedSscMode: context.request.requestedSscMode
-        anchorStateRef: select-anchor.operation.output.stateRef
+        anchorStateRef: select-upf-anchor.operation.output.stateRef
         allocator: "LOCAL_POOL"
-        upAnchor: select-anchor.operation.output.up_anchor
+        upAnchor: select-upf-anchor.operation.output.up_anchor
       routes:
-        FAILED: cleanup
+        FAILED: ca-compensate-confirmed-failure
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
@@ -236,12 +244,13 @@ nodes:
       predicates:
         - predicate: establishment.mas.address_ready
           arguments:
-            - allocate-address.operation.output
+            - allocate-pdu-session-address.operation.output
       routes:
-        PASS: update-policy
-        FAIL: cleanup
+        PASS: modify-sm-policy-association
+        FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  update-policy:
+  # 3GPP_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 step 9; SMF-initiated SM Policy Association Modification / Npcf_SMPolicyControl_Update. The MAS callable is unpublished.
+  modify-sm-policy-association:
     operation:
       tool: mas::ca.pdu_session.policy.update
       arguments:
@@ -256,14 +265,14 @@ nodes:
         servingPlmn: context.request.servingPlmn
         requestedPduSessionType: context.request.requestedPduSessionType
         requestedSscMode: context.request.requestedSscMode
-        contextStateRef: create-context.operation.output.stateRef
-        policyStateRef: create-policy.operation.output.stateRef
-        addressStateRef: allocate-address.operation.output.stateRef
-        sessionKeys: create-context.operation.output.session_keys
-        ueAddress: allocate-address.operation.output.ue_addr
-        policyAssociationId: create-policy.operation.output.policy_assoc_id
+        contextStateRef: create-sm-context.operation.output.stateRef
+        policyStateRef: establish-sm-policy-association.operation.output.stateRef
+        addressStateRef: allocate-pdu-session-address.operation.output.stateRef
+        sessionKeys: create-sm-context.operation.output.session_keys
+        ueAddress: allocate-pdu-session-address.operation.output.ue_addr
+        policyAssociationId: establish-sm-policy-association.operation.output.policy_assoc_id
       routes:
-        FAILED: cleanup
+        FAILED: ca-compensate-confirmed-failure
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
@@ -272,12 +281,13 @@ nodes:
       predicates:
         - predicate: establishment.mas.policy_updated
           arguments:
-            - update-policy.operation.output
+            - modify-sm-policy-association.operation.output
       routes:
-        PASS: create-charging
-        FAIL: cleanup
+        PASS: ca-create-charging-reservation
+        FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  create-charging:
+  # CA_EXTENSION — MAS charging reservation step; not a standalone step in the cited TS 23.502 PDU Session Establishment flow.
+  ca-create-charging-reservation:
     operation:
       tool: mas::ca.pdu_session.charging.create
       arguments:
@@ -292,10 +302,10 @@ nodes:
         servingPlmn: context.request.servingPlmn
         requestedPduSessionType: context.request.requestedPduSessionType
         requestedSscMode: context.request.requestedSscMode
-        updatedPolicyStateRef: update-policy.operation.output.stateRef
+        updatedPolicyStateRef: modify-sm-policy-association.operation.output.stateRef
         ratingGroupRefs: "default"
       routes:
-        FAILED: cleanup
+        FAILED: ca-compensate-confirmed-failure
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
@@ -304,12 +314,13 @@ nodes:
       predicates:
         - predicate: establishment.mas.charging_owned
           arguments:
-            - create-charging.operation.output
+            - ca-create-charging-reservation.operation.output
       routes:
-        PASS: establish-n4
-        FAIL: cleanup
+        PASS: establish-n4-session
+        FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  establish-n4:
+  # CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 10a–10b and §4.4.1.2; N4 Session Establishment Request/Response.
+  establish-n4-session:
     operation:
       tool: mas::ca.pdu_session.user_plane.establish
       arguments:
@@ -324,14 +335,14 @@ nodes:
         servingPlmn: context.request.servingPlmn
         requestedPduSessionType: context.request.requestedPduSessionType
         requestedSscMode: context.request.requestedSscMode
-        updatedPolicyStateRef: update-policy.operation.output.stateRef
-        anchorStateRef: select-anchor.operation.output.stateRef
-        addressStateRef: allocate-address.operation.output.stateRef
-        upIntent: update-policy.operation.output.up_intent
-        upAnchor: select-anchor.operation.output.up_anchor
-        ueAddress: allocate-address.operation.output.ue_addr
+        updatedPolicyStateRef: modify-sm-policy-association.operation.output.stateRef
+        anchorStateRef: select-upf-anchor.operation.output.stateRef
+        addressStateRef: allocate-pdu-session-address.operation.output.stateRef
+        upIntent: modify-sm-policy-association.operation.output.up_intent
+        upAnchor: select-upf-anchor.operation.output.up_anchor
+        ueAddress: allocate-pdu-session-address.operation.output.ue_addr
       routes:
-        FAILED: cleanup
+        FAILED: ca-compensate-confirmed-failure
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
@@ -340,12 +351,13 @@ nodes:
       predicates:
         - predicate: establishment.mas.initial_resources_ready
           arguments:
-            - establish-n4.operation.output
+            - establish-n4-session.operation.output
       routes:
-        PASS: confirm-address
-        FAIL: cleanup
+        PASS: ca-confirm-pdu-session-address
+        FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  confirm-address:
+  # CA_EXTENSION — confirms MAS address state after step 8; no separate 3GPP procedure counterpart is claimed.
+  ca-confirm-pdu-session-address:
     operation:
       tool: mas::ca.pdu_session.address.confirm
       arguments:
@@ -360,11 +372,11 @@ nodes:
         servingPlmn: context.request.servingPlmn
         requestedPduSessionType: context.request.requestedPduSessionType
         requestedSscMode: context.request.requestedSscMode
-        addressStateRef: allocate-address.operation.output.stateRef
+        addressStateRef: allocate-pdu-session-address.operation.output.stateRef
         allocator: "LOCAL_POOL"
-        ueAddress: allocate-address.operation.output.ue_addr
+        ueAddress: allocate-pdu-session-address.operation.output.ue_addr
       routes:
-        FAILED: cleanup
+        FAILED: ca-compensate-confirmed-failure
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
@@ -373,12 +385,13 @@ nodes:
       predicates:
         - predicate: establishment.mas.address_confirmed
           arguments:
-            - confirm-address.operation.output
+            - ca-confirm-pdu-session-address.operation.output
       routes:
-        PASS: signal-access
-        FAIL: cleanup
+        PASS: complete-an-resource-setup
+        FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  signal-access:
+  # CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 11–15. Step 11 is Namf_Communication_N1N2MessageTransfer; steps 12–14 are AMF/(R)AN/UE; step 15 returns N2 result to SMF via Nsmf_PDUSession_UpdateSMContext Request. This MAS callable is not a standard 3GPP service.
+  complete-an-resource-setup:
     operation:
       tool: mas::ca.pdu_session.access.signal
       arguments:
@@ -393,14 +406,14 @@ nodes:
         servingPlmn: context.request.servingPlmn
         requestedPduSessionType: context.request.requestedPduSessionType
         requestedSscMode: context.request.requestedSscMode
-        contextStateRef: create-context.operation.output.stateRef
-        addressStateRef: confirm-address.operation.output.stateRef
-        userPlaneStateRef: establish-n4.operation.output.stateRef
-        sessionKeys: create-context.operation.output.session_keys
-        ueAddress: allocate-address.operation.output.ue_addr
-        n4Seid: establish-n4.operation.output.n4_seid
+        contextStateRef: create-sm-context.operation.output.stateRef
+        addressStateRef: ca-confirm-pdu-session-address.operation.output.stateRef
+        userPlaneStateRef: establish-n4-session.operation.output.stateRef
+        sessionKeys: create-sm-context.operation.output.session_keys
+        ueAddress: allocate-pdu-session-address.operation.output.ue_addr
+        n4Seid: establish-n4-session.operation.output.n4_seid
       routes:
-        FAILED: cleanup
+        FAILED: ca-compensate-confirmed-failure
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
@@ -409,12 +422,13 @@ nodes:
       predicates:
         - predicate: establishment.mas.ran_adopted
           arguments:
-            - signal-access.operation.output
+            - complete-an-resource-setup.operation.output
       routes:
-        PASS: activate-n4
-        FAIL: cleanup
+        PASS: modify-n4-session
+        FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  activate-n4:
+  # CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 16a–16b and §4.4.1.3; N4 Session Modification Request/Response.
+  modify-n4-session:
     operation:
       tool: mas::ca.pdu_session.user_plane.activate
       arguments:
@@ -429,13 +443,13 @@ nodes:
         servingPlmn: context.request.servingPlmn
         requestedPduSessionType: context.request.requestedPduSessionType
         requestedSscMode: context.request.requestedSscMode
-        userPlaneStateRef: establish-n4.operation.output.stateRef
-        ranStateRef: signal-access.operation.output.stateRef
-        anTunnelTeid: signal-access.operation.output.an_tunnel_teid
-        anTunnelIp: signal-access.operation.output.an_tunnel_ip
-        n4Seid: establish-n4.operation.output.n4_seid
+        userPlaneStateRef: establish-n4-session.operation.output.stateRef
+        ranStateRef: complete-an-resource-setup.operation.output.stateRef
+        anTunnelTeid: complete-an-resource-setup.operation.output.an_tunnel_teid
+        anTunnelIp: complete-an-resource-setup.operation.output.an_tunnel_ip
+        n4Seid: establish-n4-session.operation.output.n4_seid
       routes:
-        FAILED: cleanup
+        FAILED: ca-compensate-confirmed-failure
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
@@ -444,12 +458,13 @@ nodes:
       predicates:
         - predicate: establishment.mas.forwarding_ready
           arguments:
-            - activate-n4.operation.output
+            - modify-n4-session.operation.output
       routes:
-        PASS: emit-events
-        FAIL: cleanup
+        PASS: ca-emit-establishment-events
+        FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  emit-events:
+  # CA_EXTENSION — MAS event accounting; map to a 3GPP notification only if the Owner contract identifies the exact standard service/operation. No standard mapping is assumed here.
+  ca-emit-establishment-events:
     operation:
       tool: mas::ca.pdu_session.events.emit
       arguments:
@@ -464,12 +479,12 @@ nodes:
         servingPlmn: context.request.servingPlmn
         requestedPduSessionType: context.request.requestedPduSessionType
         requestedSscMode: context.request.requestedSscMode
-        contextStateRef: create-context.operation.output.stateRef
-        forwardingStateRef: activate-n4.operation.output.stateRef
+        contextStateRef: create-sm-context.operation.output.stateRef
+        forwardingStateRef: modify-n4-session.operation.output.stateRef
         eventName: "ESTABLISHED"
-        sessionKeys: create-context.operation.output.session_keys
+        sessionKeys: create-sm-context.operation.output.session_keys
       routes:
-        FAILED: cleanup
+        FAILED: ca-compensate-confirmed-failure
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
@@ -478,12 +493,13 @@ nodes:
       predicates:
         - predicate: establishment.mas.events_accounted
           arguments:
-            - emit-events.operation.output
+            - ca-emit-establishment-events.operation.output
       routes:
-        PASS: finalize-resources
-        FAIL: cleanup
+        PASS: ca-transfer-resource-responsibility
+        FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  finalize-resources:
+  # CA_EXTENSION — durable resource responsibility handoff; no direct 3GPP procedure counterpart.
+  ca-transfer-resource-responsibility:
     operation:
       tool: mas::ca.pdu_session.resources.finalize
       arguments:
@@ -498,10 +514,10 @@ nodes:
         servingPlmn: context.request.servingPlmn
         requestedPduSessionType: context.request.requestedPduSessionType
         requestedSscMode: context.request.requestedSscMode
-        eventsStateRef: emit-events.operation.output.stateRef
-        forwardingStateRef: activate-n4.operation.output.stateRef
+        eventsStateRef: ca-emit-establishment-events.operation.output.stateRef
+        forwardingStateRef: modify-n4-session.operation.output.stateRef
       routes:
-        FAILED: cleanup
+        FAILED: ca-compensate-confirmed-failure
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
@@ -510,16 +526,17 @@ nodes:
       predicates:
         - predicate: establishment.mas.resources_managed
           arguments:
-            - finalize-resources.operation.output
+            - ca-transfer-resource-responsibility.operation.output
       routes:
-        PASS: verify-final
-        FAIL: cleanup
+        PASS: verify-pdu-session-establishment
+        FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  cleanup:
-    # Confirmed business FAIL only. Mutation OUTCOME_UNKNOWN never enters cleanup.
+  # CA_EXTENSION — MAS compensation after confirmed failure; do not treat as a 3GPP release procedure without an exact published mapping.
+  ca-compensate-confirmed-failure:
+    # Confirmed business FAIL only. Mutation OUTCOME_UNKNOWN never enters ca-compensate-confirmed-failure.
     # Cleanup authorization and side-effect safety require the published MAS Owner.
     operation:
-      tool: mas::ca.pdu_session.resources.cleanup
+      tool: mas::ca.pdu_session.resources.ca-compensate-confirmed-failure
       arguments:
         ueRef: context.ueRef
         ingressRef: context.correlation.ingressRef
@@ -538,25 +555,26 @@ nodes:
         DENIED: SAFE_STOPPED
     postcondition:
       predicates:
-        - predicate: establishment.mas.cleanup_complete
+        - predicate: establishment.mas.ca-compensate-confirmed-failure_complete
           arguments:
-            - cleanup.operation.output
+            - ca-compensate-confirmed-failure.operation.output
       routes:
         PASS: FAILED
         FAIL: SAFE_STOPPED
         UNKNOWN: UNRESOLVED
-  verify-final:
+  # CA_EXTENSION — final Goal proof over 3GPP session facts and CA responsibility Evidence; not a separate 3GPP operation.
+  verify-pdu-session-establishment:
     postcondition:
       predicates:
         - predicate: establishment.mas.ran_adopted
           arguments:
-            - signal-access.operation.output
+            - complete-an-resource-setup.operation.output
         - predicate: establishment.mas.forwarding_ready
           arguments:
-            - activate-n4.operation.output
+            - modify-n4-session.operation.output
         - predicate: establishment.mas.resources_managed
           arguments:
-            - finalize-resources.operation.output
+            - ca-transfer-resource-responsibility.operation.output
       routes:
         PASS: SUCCEEDED
         FAIL: SAFE_STOPPED
