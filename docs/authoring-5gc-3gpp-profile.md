@@ -158,7 +158,7 @@ Passing repository-local source checks does not establish Compiler, Owner, Runti
 
 The Agent directly queries only SMF-owned MAS context. It does not directly query AMF, UDM, PCF, UPF, RAN, Fabric or other NF context.
 
-The existing SMF MAS QueryContext SBI v0.10 contract exposes eight read-only endpoints: SC, PA, UPN, SSM, IAM, UPS, CA and SAA. Their exact paths, request keys, authentication, response envelope, MAS-specific projection fields, error semantics and security constraints are specified in the CA Agent Host [5GC Agent Context and Observation Contracts](https://github.com/odango-chan/ca-agent-demo/blob/main/docs/design/5gc-agent-context-contracts-v1alpha4.md). The existing wire contract is an implemented baseline; do not redesign it or copy its schemas into Skill packages.
+The existing SMF MAS QueryContext SBI v0.10 contract exposes eight read-only endpoints: SC, PA, UPN, SSM, IAM, UPS, CA and SAA. Their exact paths, request keys, authentication, response envelope, MAS-specific projection fields, error semantics and security constraints are specified in the CA Agent Host [5GC Agent Context and Observation Contracts](https://github.com/odango-chan/ca-agent-demo/blob/main/docs/5gc-agent-context-contracts-v1alpha4.md). The existing wire contract is an implemented baseline; do not redesign it or copy its schemas into Skill packages.
 
 The target CA Agent Host integration is one built-in local adapter with eight separately typed CA-SL v1alpha4 `kind: observation` callables, each READ-only. The Host adapter resolves the Skill's opaque `ueRef` and request PSI to the SMF lookup key and invokes the corresponding SBI endpoint. Exact callable IDs, package identity, Schema exports, CapabilityContracts membership and Evidence descriptors are not yet published. The examples must not invent them or claim linkability.
 
@@ -173,7 +173,7 @@ The v0.10 response has no source `observedAt`, `eventTime` or `validUntil`; the 
 
 Any non-SMF context needed to complete an Operation is obtained and validated inside the responsible Tool/Owner adapter. The Skill consumes only that Tool's declared Operation Result/Evidence. A Tool-internal SBI/PFCP/local read is not a separate Skill Observation.
 
-Host owns ingress admission, invocation/instance identity, lifecycle, correlation, persistence, holds, journals and late-result responsibility. The Skill-visible Host context is subject-only `ueRef`; the Skill separately owns its request Schema. The incoming CreateSMContext Request is a Host ingress trigger, not a Procedure Node. The Skill's business request-profile check belongs on the first business Node, not on an `admit-*` Host Node.
+Host owns ingress admission, invocation/instance identity, lifecycle, correlation, persistence, journals and late-result responsibility. It tracks Owner hold/claim references but does not become the authority for the Owner's hold state. The Skill-visible Host context is subject-only `ueRef`; the Skill separately owns its request Schema. The incoming CreateSMContext Request is a Host ingress trigger, not a Procedure Node. The Skill's business request-profile check belongs on the first business Node, not on an `admit-*` Host Node.
 
 Do not automatically query all MAS after each Operation. Query only when a business decision needs an SMF-owned fact that is not already present in the Operation Result/Evidence or Host Subject Context. Initial PDU Session establishment has no pre-existing SMF context to query before the initial SM Context is created.
 
