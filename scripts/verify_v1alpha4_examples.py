@@ -130,7 +130,44 @@ def _navigate(schema: tuple, path: str) -> tuple | None:
             return None
     return result
 
+def validate_3gpp_traceability(skill: Path, errors: list[str]) -> None:
+    """Require every current 5GC Procedure Node to have a 3GPP/CA mapping."""
+    procedure = skill / "assurance" / "procedure.yaml"
+    skill_doc = skill / "SKILL.md"
+    if not procedure.is_file() or not skill_doc.is_file():
+        return  # Small isolated unit-test fixtures may omit the authoring document.
+    lines = procedure.read_text(encoding="utf-8").splitlines()
+    node_ids: list[str] = []
+    for index, line in enumerate(lines):
+        match = NODE.match(line)
+        if not match:
+            continue
+        node = match[1]
+        node_ids.append(node)
+        previous = lines[index - 1] if index else ""
+        if not previous.startswith("  # 3GPP: "):
+            errors.append(f"{skill.name}/{node}: missing adjacent '# 3GPP:' mapping comment")
+        elif not any(tag in previous for tag in
+                     ("3GPP_NATIVE", "3GPP_ADAPTER", "CA_ADAPTER", "CA_EXTENSION")):
+            errors.append(f"{skill.name}/{node}: mapping comment lacks a valid classification")
+
+    doc = skill_doc.read_text(encoding="utf-8")
+    if "## 3GPP Traceability" not in doc:
+        errors.append(f"{skill.name}: missing '## 3GPP Traceability' table")
+        return
+    if "TS 23.502 V18.12.0" not in doc:
+        errors.append(f"{skill.name}: 3GPP reference version is not pinned")
+    documented = set(re.findall(r"^\\|\\s*\\x60([A-Za-z][A-Za-z0-9_-]*)\\x60\\s*\\|",
+                                doc, flags=re.MULTILINE))
+    expected = set(node_ids)
+    for node in sorted(expected - documented):
+        errors.append(f"{skill.name}/{node}: missing SKILL.md 3GPP traceability row")
+    for node in sorted(documented - expected):
+        errors.append(f"{skill.name}/{node}: traceability row has no Procedure Node")
+
+
 def validate_example_scripts(skill: Path, errors: list[str]) -> None:
+    validate_3gpp_traceability(skill, errors)
     procedure = skill / "assurance" / "procedure.yaml"
     text = procedure.read_text(encoding="utf-8")
     script_nodes: dict[str, tuple[Path, dict[str, str]]] = {}
