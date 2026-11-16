@@ -1,7 +1,8 @@
 # CA-SL v1alpha4 ordered Predicate signatures. All ca::urn:example Schema IDs
 # and ca:: guarantees below are UNPUBLISHED until their actual Owner releases them.
 # Host admission, invocation/lifecycle correlation and hold/journal state are not Skill business Predicates.
-# This file contains only business predicates over the request and declared Operation Results/Evidence.
+# This file contains business predicates over the request, declared Operation Results/Evidence,
+# and explicit read-only SMF session-context Observations.
 # Linking must fail closed; matching old v0.2 names does not grant provenance.
 predicates:
   establishment.request.supported:
@@ -93,6 +94,21 @@ predicates:
     evaluator:
       type: script
       script: scripts/validate-subscription-request.py
+
+  # Validate the current SMF session profile before N4 forwarding modification.
+  # Missing/unavailable source Evidence is UNKNOWN; mismatched or unsupported business
+  # facts fail this admitted initial-session profile.
+  establishment.smf.session_context_profile_ready:
+    parameters:
+      - sessionContext: ca::urn:example:5gc:smf-session-context:v1
+      - requestedDnn: string
+      - requestedSst: integer
+    evidence:
+      requires:
+        sessionContext: [ca::smf.session-context.query-evidence]
+    evaluator:
+      type: script
+      script: scripts/validate-smf-session-context.py
 
   establishment.n4.initial_resources_ready:
     parameters:
