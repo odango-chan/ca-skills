@@ -2,7 +2,7 @@
 
 The generic Host Observation normalizes the SC compatibility response:
 - 404 SESSION_NOT_FOUND -> ABSENT + NOT_APPLICABLE + SESSION_NOT_FOUND
-- 200 AVAILABLE/UNAVAILABLE -> PRESENT + corresponding projectionStatus + MAS_RESPONSE
+- 200 AVAILABLE/UNAVAILABLE -> PRESENT + corresponding projectionStatus + CONTEXT_RESPONSE
 - indeterminate transport/authentication failures -> Owner UNKNOWN outcome
 
 Only an evidenced ABSENT result selects initial creation. PRESENT is not absence.
@@ -51,7 +51,7 @@ def main(input: PredicateInput) -> PredicateEvaluationResult:
         }
 
     if presence == "PRESENT":
-        if source_outcome == "MAS_RESPONSE" and projection in {"AVAILABLE", "UNAVAILABLE"}:
+        if source_outcome == "CONTEXT_RESPONSE" and projection in {"AVAILABLE", "UNAVAILABLE"}:
             return {
                 "result": "FAIL",
                 "reasonCode": "SMF_SESSION_CONTEXT_ALREADY_PRESENT",
