@@ -154,16 +154,39 @@ A 5GC migration is not ready for review closure until:
 Passing repository-local source checks does not establish Compiler, Owner, Runtime, MAS or live 5GC conformance.
 
 
-## 8. 5GC context ownership and access boundary (2026-11-16)
+## 11. 5GC context ownership and access boundary (2026-11-16)
 
-The CA Agent replaces the SMF-side orchestration role. It directly queries only SMF-owned MAS context through explicit, read-only Observation Queries to the eight existing SMF QueryContext SBI endpoints (SC, PA, UPN, SSM, IAM, UPS, CA and SAA). It does not directly query AMF, UDM, PCF, UPF or other NF context.
+The Agent directly queries only SMF-owned MAS context. It does not directly query AMF, UDM, PCF, UPF, RAN, Fabric or other NF context.
 
-Any non-SMF context needed to complete an Operation is obtained and validated inside the responsible Tool/Owner adapter. The Skill consumes only that Tool's declared Operation Result and Evidence. An internal SBI/PFCP/local read by a Tool is not a separate Skill Observation.
+The existing SMF MAS QueryContext SBI v0.10 contract exposes eight read-only endpoints: SC, PA, UPN, SSM, IAM, UPS, CA and SAA. Their exact paths, request keys, authentication, response envelope, MAS-specific projection fields, error semantics and security constraints are specified in the CA Agent Host [5GC Agent Context and Observation Contracts](https://github.com/odango-chan/ca-agent-demo/blob/main/docs/design/5gc-agent-context-contracts-v1alpha4.md). The existing wire contract is an implemented baseline; do not redesign it or copy its schemas into Skill packages.
 
-Host owns ingress admission, invocation/instance identity, lifecycle, correlation, persistence, holds, journals and late-result responsibility. These are not Skill Predicates, Skill context facts or authored Operation arguments. The Skill-visible Host context is the subject-only ueRef projection; the Skill separately owns its request Schema.
+The target CA Agent Host integration is one built-in local adapter with eight separately typed CA-SL v1alpha4 `kind: observation` callables, each READ-only. The Host adapter resolves the Skill's opaque `ueRef` and request PSI to the SMF lookup key and invokes the corresponding SBI endpoint. Exact callable IDs, package identity, Schema exports, CapabilityContracts membership and Evidence descriptors are not yet published. The examples must not invent them or claim linkability.
 
-The incoming CreateSMContext Request is the Host ingress trigger. It is not a Procedure Node. Host must complete admission and internal business-instance correlation before invoking the Skill. The Skill's request-profile Predicate is a separate business check and belongs on the first business Node, not on an admit-* Host Node. This keeps the Procedure graph focused on the SMF business interactions.
+The response semantics are strict:
 
-Do not automatically query all MAS after each Operation. Add an Observation only when the Operation Result/Evidence is insufficient. Initial PDU Session establishment has no pre-existing SMF session to query before the initial SM Context is created.
+- `AVAILABLE` means the queried MAS has authoritatively written its own State. It may contain a valid business `false`; it does not prove overall PDU Session completion or a bounded freshness interval.
+- `UNAVAILABLE` means the UE/session exists but that MAS has not authoritatively written its State; `context` is exactly `{}`. It is not business false.
+- `404 SESSION_NOT_FOUND` is distinct from `UNAVAILABLE` and must never be converted to PASS.
+- The eight reads are independent and do not create an atomic cross-MAS snapshot.
 
-See https://github.com/odango-chan/ca-agent-demo/blob/main/docs/design/5gc-agent-context-access-boundary-v1alpha4.md for endpoint fields, response status semantics, legacy Observation reclassification and qualification gates.
+The v0.10 response has no source `observedAt`, `eventTime` or `validUntil`; the Host must not relabel its local `receivedAt` as source time. Its echoed lookup key also does not contain Host `lifecycleRef`. A qualified Observation therefore needs an explicit source freshness contract and Host UE/PSI/lifecycle binding evidence.
+
+Any non-SMF context needed to complete an Operation is obtained and validated inside the responsible Tool/Owner adapter. The Skill consumes only that Tool's declared Operation Result/Evidence. A Tool-internal SBI/PFCP/local read is not a separate Skill Observation.
+
+Host owns ingress admission, invocation/instance identity, lifecycle, correlation, persistence, holds, journals and late-result responsibility. The Skill-visible Host context is subject-only `ueRef`; the Skill separately owns its request Schema. The incoming CreateSMContext Request is a Host ingress trigger, not a Procedure Node. The Skill's business request-profile check belongs on the first business Node, not on an `admit-*` Host Node.
+
+Do not automatically query all MAS after each Operation. Query only when a business decision needs an SMF-owned fact that is not already present in the Operation Result/Evidence or Host Subject Context. Initial PDU Session establishment has no pre-existing SMF context to query before the initial SM Context is created.
+
+## 12. 5GC contract publication gates
+
+Before either example Skill can be qualified:
+
+1. Host publishes the exact subject-context Package ID and Schema export.
+2. Host publishes the abstract and physical Host-to-Tool private execution-context contract, including the UE/PSI/lifecycle binding semantics.
+3. Host publishes a v1alpha4 ToolCatalog with eight exact Observation callables and MAS-specific output Schemas.
+4. Trusted CapabilityContracts grant the exact Observation callables with least-privilege Scope and READ Effect.
+5. Evidence Descriptors establish SMF authority, subject/PSI Scope, Host lifecycle binding, invocation correlation and executable freshness semantics.
+6. Each legacy CreatedSession Observation is reclassified by its actual source; raw UPF/N4 or AMF/RAN snapshots must not be relabelled as UPN/SSM projections by name alone.
+7. Tool contracts remove Host-private ingress/lifecycle fields from Skill-authored arguments only after the private adapter dispatch binding is published.
+
+Until these gates close, the example source remains NOT_QUALIFIED. This authoring profile does not change the frozen CA-SL v1alpha4 language.
