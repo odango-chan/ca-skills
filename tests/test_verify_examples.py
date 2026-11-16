@@ -95,6 +95,28 @@ nodes:
             validate_3gpp_traceability(root, errors)
             self.assertEqual(errors, [])
 
+    def test_author_wait_node_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "assurance").mkdir()
+            (root / "assurance" / "procedure.yaml").write_text("""start: wait-for-n2-response
+nodes:
+  # 3GPP: CA_ADAPTER — TS 23.502 step 15
+  wait-for-n2-response:
+    operation:
+      tool: ssm::SSM.SIGNAL_UE_AN
+""", encoding="utf-8")
+            tick = chr(96)
+            doc = "\n".join([
+                "## 3GPP Traceability", "TS 23.502 V18.12.0",
+                "| Procedure Node | Mapping |", "|---|---|",
+                "| " + tick + "wait-for-n2-response" + tick + " | step 15 |",
+            ])
+            (root / "SKILL.md").write_text(doc, encoding="utf-8")
+            errors: list[str] = []
+            validate_3gpp_traceability(root, errors)
+            self.assertTrue(any("author-level Wait/Await/Poll" in error for error in errors), errors)
+
     def test_legacy_waiter_ref_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
