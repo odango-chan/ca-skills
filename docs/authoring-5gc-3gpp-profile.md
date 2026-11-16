@@ -114,14 +114,14 @@ This section separates the frozen v1alpha4 authoring rule from the proposed next
 
 ### 8.1 Current v1alpha4 rule
 
-CA-SL v1alpha4 §21 remains authoritative for the current examples in this PR: no author-level `wait`, `await` or polling Node. The current v1alpha4 source models asynchronous completion as an ordinary business Node whose Owner Operation may remain pending under its published completion contract. Host admits the later inbound protocol request and correlates it to that exact pending Operation in the existing Invocation. The Owner returns its contractually validated result and Evidence; Runtime resumes the same Invocation at the pending Node. Current v1alpha4 Procedure YAML MUST NOT add the proposed `wait` field or `wait.output` SourcePath.
+CA-SL v1alpha4 §21 remains authoritative for the current examples in this PR: no author-level `wait`, `await` or polling Node. The current v1alpha4 source models asynchronous completion as an ordinary business Node whose Owner Operation may remain pending under its published completion contract. The Host/Integration ingress boundary admits the later inbound protocol request and correlates it to that exact pending Operation in the existing Invocation. The Owner returns its contractually validated result and Evidence; Runtime resumes the same Invocation at the pending Node. Current v1alpha4 Procedure YAML MUST NOT add the proposed `wait` field or `wait.output` SourcePath.
 
 ### 8.2 Next-revision proposal: Node-level Wait
 
 [CA-SL Node-level Event Wait design proposal, Draft PR #60](https://github.com/odango-chan/ca-skills/pull/60) proposes a different model for the language revision after v1alpha4:
 
 1. The outbound Step 11 `Namf_Communication_N1N2MessageTransfer` Operation routes to the target `update-sm-context` Node.
-2. Before dispatching the triggering Operation, Host/Runtime arms the expected Wait for the same Run. Arming does not activate the Node or start its timeout.
+2. Before dispatching the triggering Operation, the Integration/Host continuation binding registers the expected Wait for the same Run. Arming does not activate the Node or start its timeout.
 3. AMF later sends the Step 15 `Nsmf_PDUSession_UpdateSMContext Request`.
 4. The 5GC Integration ingress adapter authenticates the AMF peer, validates and normalizes the request against the exact version-pinned 3GPP API contract, and derives its trusted correlation key. Generic Host matches the normalized delivery to exactly one existing Run and Wait occurrence. Early arrivals are durably buffered.
 5. Runtime resumes the same Run at `update-sm-context`. The Integration contract's normalized request value becomes the typed `update-sm-context.wait.output`; Host/Integration correlation and transport metadata remain private.
@@ -130,9 +130,9 @@ CA-SL v1alpha4 §21 remains authoritative for the current examples in this PR: n
 
 In this model, the Step 15 inbound request is the event that activates the target Node; it is not delivered to an Owner Operation that has been left pending merely to wait for that request. The Owner still implements the declared callable and owns its actual business effect, normalized Operation Result and Evidence.
 
-The proposed Wait is Node-entry control, not a fifth stage or a separate Wait Node. Its timeout uses the existing route shape as `wait.routes.TIMEOUT`; there is no `onTimeout`. The inbound request Schema is resolved from the trusted, version-pinned 3GPP API request contract through the Host's public ingress contract. Skill source does not repeat a `payloadSchema` and does not declare a separate EventCatalog. See PR #60 for the proposed grammar, SourcePath, validation and runtime rules.
+The proposed Wait is Node-entry control, not a fifth stage or a separate Wait Node. Its timeout uses the existing route shape as `wait.routes.TIMEOUT`; there is no `onTimeout`. The inbound request Schema is resolved from the trusted, version-pinned 3GPP API request contract through the declared Integration Ingress Operation export. Skill source does not repeat a `payloadSchema` and does not declare a separate EventCatalog. See PR #60 for the proposed grammar, SourcePath, validation and runtime rules.
 
-This proposal is not v1alpha4 syntax. Do not migrate the current v1alpha4 example YAML until a new language version is explicitly frozen and its Compiler/Runtime/Host contracts are qualified.
+This proposal is not v1alpha4 syntax. Do not migrate the current v1alpha4 example YAML until a new language version is explicitly frozen and its Compiler/Runtime/Generic Host/Integration contracts are qualified.
 
 ### 8.3 Shared 3GPP response and responsibility rules
 
