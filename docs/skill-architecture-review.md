@@ -72,14 +72,14 @@ Additional rules:
 
 ## 5. Asynchronous messages and continuation
 
-- A later inbound message that completes a pending business Operation MUST be correlated to that exact pending Operation and existing Invocation.
-- It MUST NOT select a new Skill, create a second Invocation or restart the Procedure at start.
-- Host owns ingress admission and private request/response continuity.
-- The protocol Owner owns transaction/callback matching, deduplication, late/duplicate classification, final Operation Result and Evidence.
-- Runtime owns pending Action/Node state and resumption of the same Invocation.
-- Skill source declares the business Operation and consumes its eventual result. It does not declare author-level Wait/Await/Poll nodes, callback endpoints, transport handles or Host correlation metadata.
-- Distinguish message arrival, Operation completion and Procedure completion. They are separate events.
-- Define timeout, duplicate, stale, late, uncorrelated and indeterminate outcomes at the Host/Owner boundary. Do not guess paired protocol response behavior from Skill terminal labels.
+- A later inbound message MUST correlate to the exact existing Invocation and the exact continuation point; it MUST NOT select a new Skill, create a second Invocation or restart the Procedure at `start`.
+- For frozen CA-SL v1alpha4 source, the continuation point is the exact pending Owner Operation; v1alpha4 has no author-level `wait`/`await`/polling Node.
+- The next-revision proposal in [CA-SL Node-level Event Wait, Draft PR #60](https://github.com/odango-chan/ca-skills/pull/60) changes the continuation point to a target Node's Wait: Host authenticates, validates, correlates and durably buffers the inbound request; Runtime resumes the same Run at the target Node; the Agent executes that Node's declared business stages. Do not apply this proposed syntax to v1alpha4 sources.
+- Under the v1alpha4 pending-Operation model, the protocol Owner owns the pending transaction/callback matching and final Operation Result/Evidence. Under the proposed Node-Wait model, Host owns inbound message-to-Run/Wait correlation, deduplication and late/duplicate classification; the Tool Owner still owns its callable's actual business effect, normalized Operation Result and Evidence.
+- Host owns ingress admission and private request/response continuity. Runtime owns active Node/Wait state, timeout and resumption of the same Run.
+- Skill source must never declare callback endpoints, transport handles or Host correlation metadata. The proposed `wait.output` is only the validated inbound request body; it does not expose Host-private correlation fields or automatically constitute Evidence.
+- Distinguish message arrival, business Operation completion and Procedure completion. They are separate events.
+- Define timeout, duplicate, stale, late, uncorrelated and indeterminate outcomes at the Host/Runtime/Owner boundary. Do not guess paired protocol response behavior from Skill terminal labels.
 
 ## 6. Context, dataflow and Predicate rules
 
