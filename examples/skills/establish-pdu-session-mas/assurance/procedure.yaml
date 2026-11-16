@@ -3,10 +3,13 @@
 # Host also owns ingress admission, invocation identity and lifecycle/correlation.
 # The Agent queries only SMF-owned MAS context when an explicit Observation is needed;
 # non-SMF context required by an Operation remains inside the responsible Tool.
-start: admit-create-sm-context-request
+# Host performs ingress admission, identity/instance association, duplicate suppression and execution lifecycle before this graph starts.
+# This draft Skill validates only the business request profile; Host execution metadata is not a Procedure input.
+start: validate-sm-subscription
 nodes:
-  # 3GPP: CA_EXTENSION — entry/admission for TS 23.502 V18.12.0 §4.3.2.2.1 step 3 (AMF → SMF CreateSMContext Request).
-  admit-create-sm-context-request:
+  # 3GPP: CA_ADAPTER — validates the Session Management Subscription associated with TS 23.502 §4.3.2.2.1 step 4; exact UDM retrieval/Owner contract is not published.
+  validate-sm-subscription:
+    # Global Skill gate: business request profile only. PASS advances to this Node's Operation.
     precondition:
       predicates:
         - predicate: establishment.request.supported
@@ -15,11 +18,8 @@ nodes:
             - context.request.requestedPduSessionType
             - context.request.requestedSscMode
       routes:
-        PASS: validate-sm-subscription
         FAIL: FAILED
         UNKNOWN: UNRESOLVED
-  # 3GPP: CA_ADAPTER — validates the Session Management Subscription associated with TS 23.502 §4.3.2.2.1 step 4; exact UDM retrieval/Owner contract is not published.
-  validate-sm-subscription:
     operation:
       tool: mas::ca.pdu_session.subscription.validate
       arguments:

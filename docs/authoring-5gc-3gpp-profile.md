@@ -12,6 +12,7 @@ A 5GC Skill is authored from the **SMF point of view** and follows the standard 
 - A **Skill** expresses a stable business goal, such as fulfilling one admitted UE-requested initial PDU Session Establishment.
 - Its **Procedure** expresses the complete SMF-owned business procedure for that goal. It may span multiple 3GPP protocol exchanges.
 - A **Node** represents one logical 3GPP interaction step or one tightly related group of protocol exchanges, viewed from the SMF's responsibility boundary. A Node will commonly correspond to a Request/Response exchange, but the mapping is not mechanically one Node per message or one Node per internal function.
+- Host ingress admission, duplicate suppression, business-instance association, Invocation lifecycle and correlation are pre-Procedure Host services, not Skill Nodes or Predicates. A Skill's business request-profile gate belongs on the first business Node as its global Precondition; it must not be named or described as Host admission.
 - A Node may contain CA-SL Precondition, Operation, Observation and Postcondition stages. Those stages describe the conditions and proof for that 3GPP interaction; they do not change the identity of the interaction.
 - A Node must not be introduced solely for a trivial implementation helper, temporary variable, local copy or one-line mapping. A separate CA Node is permitted when it is a governed Host/Owner action or Observation, or a meaningful typed Script transformation required by the v1alpha4 dataflow. An SMF-local pure computation that is part of the standard procedure is classified `3GPP_LOCAL` and keeps a business-step name. A CA-specific governed adapter/extension instead uses a clear `ca-` identity, is classified `CA_ADAPTER`/`CA_EXTENSION`, and points to the 3GPP interaction it supports; it must never be mistaken for a standard NF interaction.
 
@@ -92,6 +93,8 @@ Every Node/Operation mapping must be one of:
 
 A CA adapter must not claim that a standard NF Service Operation exists when it is actually a multi-step internal orchestration. A CA extension must not be disguised as a 3GPP Node.
 
+Host ingress admission, identity / duplicate checking, HostBusinessInstanceId allocation, Invocation lifecycle, correlation and persistence are not CA_EXTENSION Nodes: they happen before Skill Procedure execution and remain Host-private. Do not create an admit-* Node for these functions. The first business Node may carry the Skill's single global request-profile Precondition; its PASS advances to that Node's next declared stage.
+
 ## 7. MAS-specific rule
 
 The current MAS example is a proposed policy-first implementation design, not a normative 3GPP procedure. Its ordering and custom state-management operations MUST be identified as MAS/CA-specific. Each step may cite the related 3GPP phase it supports, but must be labelled `CA_ADAPTER` or `CA_EXTENSION` unless it is an exact 3GPP interaction.
@@ -116,7 +119,7 @@ For the current local/non-roaming, UE-requested initial PDU Session example, the
 
 | 3GPP step | SMF-side interaction | Canonical name / boundary |
 |---|---|---|
-| 3 | AMF → SMF | `Nsmf_PDUSession_CreateSMContext Request` (Skill entry/admission context) |
+| 3 | AMF → SMF | `Nsmf_PDUSession_CreateSMContext Request` (Host ingress trigger; outside the Skill Procedure) |
 | 4 | SMF ↔ UDM | Session Management Subscription retrieval and subscription for updates; `Nudm_SDM_Get` and `Nudm_SDM_Subscribe` |
 | 5 | SMF → AMF | `Nsmf_PDUSession_CreateSMContext Response` (early context response; not final Goal proof) |
 | 6 | SMF ↔ DN-AAA (optional) | PDU Session authentication/authorization; only if the admitted profile requires it |
@@ -157,6 +160,8 @@ The CA Agent replaces the SMF-side orchestration role. It directly queries only 
 Any non-SMF context needed to complete an Operation is obtained and validated inside the responsible Tool/Owner adapter. The Skill consumes only that Tool's declared Operation Result and Evidence. An internal SBI/PFCP/local read by a Tool is not a separate Skill Observation.
 
 Host owns ingress admission, invocation/instance identity, lifecycle, correlation, persistence, holds, journals and late-result responsibility. These are not Skill Predicates, Skill context facts or authored Operation arguments. The Skill-visible Host context is the subject-only ueRef projection; the Skill separately owns its request Schema.
+
+The incoming CreateSMContext Request is the Host ingress trigger. It is not a Procedure Node. Host must complete admission and internal business-instance correlation before invoking the Skill. The Skill's request-profile Predicate is a separate business check and belongs on the first business Node, not on an admit-* Host Node. This keeps the Procedure graph focused on the SMF business interactions.
 
 Do not automatically query all MAS after each Operation. Add an Observation only when the Operation Result/Evidence is insufficient. Initial PDU Session establishment has no pre-existing SMF session to query before the initial SM Context is created.
 

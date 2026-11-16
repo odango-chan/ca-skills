@@ -172,8 +172,41 @@ def validate_3gpp_traceability(skill: Path, errors: list[str]) -> None:
         errors.append(f"{skill.name}/{node}: traceability row has no Procedure Node")
 
 
+def validate_host_context_separation(skill: Path, errors: list[str]) -> None:
+    """Keep Host execution metadata outside the two current 5GC Skill graphs."""
+    if skill.name not in {"establish-pdu-session", "establish-pdu-session-mas"}:
+        return
+    procedure = skill / "assurance" / "procedure.yaml"
+    contract = skill / "assurance" / "contract.yaml"
+    if not procedure.is_file() or not contract.is_file():
+        return
+    procedure_text = procedure.read_text(encoding="utf-8")
+    contract_text = contract.read_text(encoding="utf-8")
+
+    forbidden = (
+        (r"\bcontext\.(?:ingress|lifecycle|correlation)\b", "Host ingress/lifecycle/correlation context"),
+        (r"(?m)^\s*(?:ingressRef|lifecycleRef|currentInstanceRef|instanceId|invocationId|holdRef|claimRef|waiterRef|journalRef)\s*:", "Host dispatch metadata"),
+    )
+    for pattern, label in forbidden:
+        if re.search(pattern, procedure_text):
+            errors.append(f"{skill.name}: {label} must not be a Skill Procedure input")
+
+    if re.search(r"(?m)^  admit-create-sm-context-request:\s*$", procedure_text):
+        errors.append(f"{skill.name}: Host ingress admission must not be an authored Procedure Node")
+
+    start = re.search(r"(?m)^start:\s*([A-Za-z][A-Za-z0-9_-]*)\s*$", procedure_text)
+    precondition = re.search(r"(?m)^precondition:\s*([A-Za-z][A-Za-z0-9_-]*)\.precondition\s*$", contract_text)
+    if not start or not precondition or start.group(1) != precondition.group(1):
+        errors.append(f"{skill.name}: the business request-profile global Precondition must be attached to the first business Node")
+
+    context_schema = re.search(r"(?m)^contextSchema:\s*(\S+)\s*$", contract_text)
+    if not context_schema or context_schema.group(1) != "ca-context::urn:connectionagent:ca:context:subject:v1":
+        errors.append(f"{skill.name}: Skill Host Context must use the subject-only contextSchema")
+
+
 def validate_example_scripts(skill: Path, errors: list[str]) -> None:
     validate_3gpp_traceability(skill, errors)
+    validate_host_context_separation(skill, errors)
     procedure = skill / "assurance" / "procedure.yaml"
     text = procedure.read_text(encoding="utf-8")
     script_nodes: dict[str, tuple[Path, dict[str, str]]] = {}

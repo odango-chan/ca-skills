@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-from verify_v1alpha4_examples import validate_example_scripts, validate_3gpp_traceability
+from verify_v1alpha4_examples import validate_example_scripts, validate_3gpp_traceability, validate_host_context_separation
 
 SOURCE_PROCEDURE = """start: produce
 nodes:
@@ -216,6 +216,63 @@ nodes:
     def test_ambient_import_is_rejected(self) -> None:
         errors = self.lint(producer="import os\n" + PRODUCER)
         self.assertTrue(any("forbidden external/ambient import" in e for e in errors), errors)
+
+    def test_host_business_precondition_is_on_first_node(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "establish-pdu-session"
+            (root / "assurance").mkdir(parents=True)
+            (root / "assurance" / "procedure.yaml").write_text("""start: get-sm-subscription-data
+nodes:
+  get-sm-subscription-data:
+    precondition:
+      predicates:
+        - predicate: establishment.request.supported
+          arguments: [context.request.requestType]
+      routes:
+        FAIL: FAILED
+        UNKNOWN: UNRESOLVED
+    operation:
+      tool: ca::sbi.udm.sm_data.get
+""", encoding="utf-8")
+            (root / "assurance" / "contract.yaml").write_text(
+                "precondition: get-sm-subscription-data.precondition\n"
+                "contextSchema: ca-context::urn:connectionagent:ca:context:subject:v1\n",
+                encoding="utf-8",
+            )
+            errors: list[str] = []
+            validate_host_context_separation(root, errors)
+            self.assertEqual(errors, [])
+
+    def test_host_lifecycle_and_ingress_are_rejected_as_skill_inputs(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "establish-pdu-session"
+            (root / "assurance").mkdir(parents=True)
+            (root / "assurance" / "procedure.yaml").write_text("""start: admit-create-sm-context-request
+nodes:
+  admit-create-sm-context-request:
+    precondition:
+      predicates:
+        - predicate: host.lifecycle.ready
+          arguments:
+            - context.lifecycle
+        - predicate: host.ingress.eligible
+          arguments:
+            - context.ingress
+    operation:
+      tool: ca::sbi.udm.sm_data.get
+      arguments:
+        lifecycleRef: context.lifecycleRef
+""", encoding="utf-8")
+            (root / "assurance" / "contract.yaml").write_text(
+                "precondition: admit-create-sm-context-request.precondition\n"
+                "contextSchema: ca-context::urn:connectionagent:ca:context:subject:v1\n",
+                encoding="utf-8",
+            )
+            errors: list[str] = []
+            validate_host_context_separation(root, errors)
+            self.assertTrue(any("Host ingress/lifecycle/correlation context" in e for e in errors), errors)
+            self.assertTrue(any("Host dispatch metadata" in e for e in errors), errors)
+            self.assertTrue(any("must not be an authored Procedure Node" in e for e in errors), errors)
 
 if __name__ == "__main__":
     unittest.main()

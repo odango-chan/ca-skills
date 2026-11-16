@@ -6,11 +6,11 @@ predicates:
   establishment.request.supported:
     parameters:
       - requestType: integer
-      - pduType: string
-      - sscMode: integer
+      - requestedPduSessionType: string
+      - requestedSscMode: integer
     evaluator:
       type: cel
-      expression: requestType == 1 && pduType == "IPV4" && sscMode == 1
+      expression: requestType == 1 && requestedPduSessionType == "IPV4" && requestedSscMode == 1
 
   establishment.mas.subscription_valid:
     parameters:

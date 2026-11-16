@@ -15,6 +15,12 @@ One admitted, initial IPv4 / SSC1, local non-roaming PDU Session request. Never 
 
 MAS is a **proposed, not Owner-approved policy-first** graph, with per-step Postcondition and confirmed-failure-only cleanup; on OUTCOME_UNKNOWN it stops and retains responsibility. See [migration decision register](../../MIGRATION-REVIEW-v1alpha4.md). The intended sequence is: validate subscription and required authentication disposition, establish context and UECM, create policy, choose UP anchor, allocate address, update policy with actual allocation, create charging and N4, signal RAN, activate forwarding, account for events and transfer durable ownership.
 
+## Host invocation boundary (outside the Procedure)
+
+The incoming TS 23.502 §4.3.2.2.1 step 3 CreateSMContext Request is the Host ingress trigger, not an authored Procedure Node. Host is responsible for source/action/identity admission, duplicate suppression, business-instance association, Invocation lifecycle and correlation before Skill execution. These details remain Host-private and reach Tool adapters only through trusted Host-to-Tool / Runtime dispatch metadata.
+
+The MAS draft's global Contract Precondition validates only the business request profile. It is not an ingress-eligibility or Host-lifecycle check. The first Procedure Node is validate-sm-subscription; the MAS-specific Owner operations remain unpublished and NOT_QUALIFIED.
+
 ## 3GPP Traceability — SMF view and MAS deviations
 
 **Pinned reference:** 3GPP TS 23.502 V18.12.0 (Release 18), §4.3.2.2.1; N4 procedures §4.4.1.2–§4.4.1.3.
@@ -23,7 +29,6 @@ This is a **proposed MAS policy-first implementation graph**, not a standard 3GP
 
 | Procedure Node | 3GPP source / interaction | Classification and deviation |
 |---|---|---|
-| `admit-create-sm-context-request` | §4.3.2.2.1 step 3 — `Nsmf_PDUSession_CreateSMContext Request` | `CA_EXTENSION`: entry admission and lifecycle checks. |
 | `validate-sm-subscription` | step 4 — Session Management Subscription retrieval/validation | `CA_ADAPTER`: MAS validation operation; not yet mapped to a published `Nudm_SDM_Get` Owner contract. |
 | `resolve-secondary-authentication` | step 6 — optional secondary authentication/authorization | `CA_ADAPTER`: determines whether the admitted profile requires the optional flow. |
 | `create-sm-context` | steps 3 and 5 — `Nsmf_PDUSession_CreateSMContext` Request/Response boundary | `CA_ADAPTER`: MAS context creation is not itself the standard Nsmf service operation. |
@@ -69,7 +74,7 @@ Every Mutation `OUTCOME_UNKNOWN` goes to an explicit safe stop. An Owner-publish
 
 ## Context ownership
 
-The Skill receives only the Host-resolved opaque UE subject handle (ueRef) plus its own validated request. Host admission, invocation/instance identity, lifecycle, correlation, holds, journals and late-result responsibility remain private Host/Owner state; they are not Skill Predicates or authored Operation arguments.
+The Skill receives only the Host-resolved opaque UE subject handle (ueRef) plus its own validated request. Host admission, invocation/instance identity, lifecycle, correlation, holds, journals and late-result responsibility remain private Host/Owner state; they are not Skill Predicates or authored Operation arguments. The global request-profile Precondition belongs to the first business Node and does not model Host admission.
 
 The Agent may request explicit read-only Observations only for context owned by the SMF MAS. It does not directly query AMF, UDM, PCF, UPF or other NF context. The responsible Tool/Owner adapter obtains and validates non-SMF context internally and returns its declared Operation Result/Evidence.
 

@@ -24,13 +24,18 @@ The Skill does **not** expose Host/Runtime plumbing. Hold binding, Claim, waiter
 
 The target UPN/SSM Owner callables and their v1alpha4 schemas/evidence are **not published**. See the [migration decision register](../../MIGRATION-REVIEW-v1alpha4.md). The old complete 5GC business Case catalog is retained in `examples/legacy/establish-pdu-session/cases/` for migration review, not imported as v1alpha4 test fixtures.
 
+## Host invocation boundary (outside the Procedure)
+
+The incoming TS 23.502 §4.3.2.2.1 step 3 CreateSMContext Request is the Host ingress trigger, not an authored Procedure Node. Host is responsible for source/action/identity admission, duplicate suppression, business-instance association, Invocation lifecycle and correlation before Skill execution. These details remain Host-private and reach Tool adapters only through trusted Host-to-Tool / Runtime dispatch metadata.
+
+The Skill's global Contract Precondition validates only the admitted business request profile. It is not an ingress-eligibility or Host-lifecycle check. The first Procedure Node is the Step 4 UDM interaction, get-sm-subscription-data.
+
 ## 3GPP Traceability — SMF view
 
 **Pinned reference:** 3GPP TS 23.502 V18.12.0 (Release 18), §4.3.2.2.1; N4 procedures §4.4.1.2–§4.4.1.3. This table describes intended mapping, not Owner approval or product conformance.
 
 | Procedure Node | 3GPP source / interaction | Classification and SMF responsibility |
 |---|---|---|
-| `admit-create-sm-context-request` | §4.3.2.2.1 step 3 — AMF → SMF `Nsmf_PDUSession_CreateSMContext Request` | `CA_EXTENSION`: validate admitted invocation, identity and lifecycle. |
 | `get-sm-subscription-data` | step 4 — `Nudm_SDM_Get` | `3GPP_NATIVE`: retrieve Session Management Subscription data. |
 | `subscribe-sm-data` | step 4 — `Nudm_SDM_Subscribe` | `3GPP_NATIVE`: subscribe to Session Management Subscription updates; Owner adapter internally binds and claims the exact original request. |
 | `build-sm-policy-association-inputs` | step 7b — SMF local construction of the PCF policy request from the validated subscription | `3GPP_LOCAL`: pure Script data transformation; no external call and no Capability. |
@@ -80,7 +85,7 @@ Every Mutation `OUTCOME_UNKNOWN` goes to an explicit safe stop. An Owner-publish
 
 ## Context ownership
 
-The Skill receives only the Host-resolved opaque UE subject handle (ueRef) plus its own validated request. It does not receive ingressRef, lifecycleRef, instanceId, hold, waiter or journal metadata.
+The Skill receives only the Host-resolved opaque UE subject handle (ueRef) plus its own validated request. It does not receive ingressRef, lifecycleRef, instanceId, hold, waiter or journal metadata. Host ingress admission and business-instance correlation finish before this Procedure starts; the request-profile Predicate is a business gate, not a Host lifecycle check.
 
 The Agent may request explicit read-only Observations only for context owned by the SMF MAS. It does not directly query AMF, UDM, PCF, UPF or other NF context. If a Tool needs non-SMF context, the responsible Tool/Owner adapter obtains and validates it internally and returns its declared Operation Result/Evidence.
 

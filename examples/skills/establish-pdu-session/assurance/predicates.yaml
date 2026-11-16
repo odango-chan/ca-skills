@@ -7,14 +7,13 @@ predicates:
   establishment.request.supported:
     parameters:
       - requestType: integer
-      - pduType: string
-      - sscMode: integer
+      - requestedPduSessionType: string
+      - requestedSscMode: integer
     evaluator:
       type: cel
-      expression: requestType == 1 && pduType == "IPV4" && sscMode == 1
+      expression: requestType == 1 && requestedPduSessionType == "IPV4" && requestedSscMode == 1
 
-  # Restored v0.2 ingress/lifecycle admission, now explicit global members.
-  # The context projection is UNPUBLISHED and must be linked before use.
+  # Business request-profile validation only; Host ingress admission and execution lifecycle are outside this PredicateSet.
   establishment.udm.subscription_owned:
     parameters:
       - subscription: ca::urn:example:5gc:udm-subscription-resource:v1

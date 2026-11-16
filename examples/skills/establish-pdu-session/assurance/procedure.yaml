@@ -2,10 +2,13 @@
 # Runtime coordination (Hold/Claim/Waiter/Journal/Reconcile), invocation identity and lifecycle/correlation are Host/Owner internals.
 # The Agent queries only SMF-owned MAS context when an explicit Observation is needed;
 # non-SMF context required by an Operation is obtained inside that Tool/Owner adapter.
-start: admit-create-sm-context-request
+# Host performs ingress admission, identity/instance association, duplicate suppression and execution lifecycle before this graph starts.
+# This Skill validates only the business request profile; Host execution metadata is not a Procedure input.
+start: get-sm-subscription-data
 nodes:
-  # 3GPP: CA_EXTENSION — entry/admission for TS 23.502 V18.12.0 §4.3.2.2.1 step 3 (AMF → SMF Nsmf_PDUSession_CreateSMContext Request).
-  admit-create-sm-context-request:
+  # 3GPP: 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 4; SMF → UDM Nudm_SDM_Get.
+  get-sm-subscription-data:
+    # Global Skill gate: business request profile only. PASS advances to this Node's Operation.
     precondition:
       predicates:
         - predicate: establishment.request.supported
@@ -14,12 +17,8 @@ nodes:
             - context.request.requestedPduSessionType
             - context.request.requestedSscMode
       routes:
-        PASS: get-sm-subscription-data
         FAIL: FAILED
         UNKNOWN: UNRESOLVED
-
-  # 3GPP: 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 4; SMF → UDM Nudm_SDM_Get.
-  get-sm-subscription-data:
     operation:
       tool: ca::sbi.udm.sm_data.get
       arguments:
