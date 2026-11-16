@@ -149,14 +149,17 @@ nodes:
           arguments:
             - transfer-n1n2-message.operation.output
       routes:
-        PASS: complete-an-resource-setup
+        PASS: update-sm-context
         FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
 
-  # AMF/(R)AN/UE perform steps 12–14; the SMF receives the access-network result
-  # through step 15 Nsmf_PDUSession_UpdateSMContext Request. SSM is not a standard API.
-  # 3GPP: CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 12–15.
-  complete-an-resource-setup:
+  # Step 15 is a later inbound Nsmf_PDUSession_UpdateSMContext Request, not a new
+  # Skill invocation. Host admits it and correlates it to this pending Operation;
+  # the Owner completes the exact asynchronous Operation and Runtime resumes this
+  # same Invocation here. Host keeps the paired Step 17 response obligation private.
+  # AMF/(R)AN/UE perform steps 12–14; SSM is the CA adapter for the SMF-side result.
+  # 3GPP: CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 step 15; Nsmf_PDUSession_UpdateSMContext Request (SSM is an internal CA callable, not a standard API).
+  update-sm-context:
     operation:
       tool: ssm::SSM.SIGNAL_UE_AN
       arguments:
@@ -173,7 +176,32 @@ nodes:
       predicates:
         - predicate: establishment.ran.adopted
           arguments:
-            - complete-an-resource-setup.operation.output
+            - update-sm-context.operation.output
+      routes:
+        PASS: read-smf-session-context
+        FAIL: ca-transfer-failed-resource-responsibility
+        UNKNOWN: SAFE_STOPPED
+
+  # This is a deliberate SMF-owned Observation after the initial SM Context exists.
+  # It is not used to wait for the callback and does not fan out to every MAS.
+  # no direct 3GPP procedure counterpart.
+  # 3GPP: CA_EXTENSION — read-only client-tools Observation supporting the Step 16 decision.
+  read-smf-session-context:
+    observation:
+      tool: smf-mas-observations::smf.mas.sc.context.query
+      arguments:
+        ueRef: context.ueRef
+        pduSessionId: context.request.pduSessionId
+      routes:
+        FAILED: UNRESOLVED
+        UNKNOWN: UNRESOLVED
+    postcondition:
+      predicates:
+        - predicate: establishment.smf.session_context_profile_ready
+          arguments:
+            - read-smf-session-context.observation.output
+            - context.request.dnn
+            - context.request.sNssai.sst
       routes:
         PASS: modify-n4-session
         FAIL: ca-transfer-failed-resource-responsibility
@@ -187,7 +215,7 @@ nodes:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
         initialN4Result: establish-n4-session.operation.output
-        ranResult: complete-an-resource-setup.operation.output
+        ranResult: update-sm-context.operation.output
       routes:
         FAILED: ca-transfer-failed-resource-responsibility
         OUTCOME_UNKNOWN: SAFE_STOPPED
@@ -234,7 +262,7 @@ nodes:
       predicates:
         - predicate: establishment.ran.adopted
           arguments:
-            - complete-an-resource-setup.operation.output
+            - update-sm-context.operation.output
         - predicate: establishment.n4.forwarding_ready
           arguments:
             - modify-n4-session.operation.output

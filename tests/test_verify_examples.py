@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-from verify_v1alpha4_examples import validate_example_scripts, validate_3gpp_traceability, validate_host_context_separation, validate_pcf_owner_boundary, validate_n4_owner_boundary, validate_predicate_scripts
+from verify_v1alpha4_examples import validate_example_scripts, validate_3gpp_traceability, validate_host_context_separation, validate_pcf_owner_boundary, validate_n4_owner_boundary, validate_async_update_sm_context_boundary, validate_predicate_scripts
 
 SOURCE_PROCEDURE = """start: produce
 nodes:
@@ -427,6 +427,109 @@ def main(input: PredicateInput) -> PredicateEvaluationResult:
             refs = validate_predicate_scripts(root, errors)
             self.assertEqual(errors, [])
             self.assertIn((root / "scripts" / "check.py").resolve(), refs)
+
+    def test_update_sm_context_callback_resumes_same_invocation_and_reads_only_sc_mas(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "establish-pdu-session"
+            (root / "assurance").mkdir(parents=True)
+            (root / "scripts").mkdir()
+            (root / "assurance" / "procedure.yaml").write_text("""nodes:
+  transfer-n1n2-message:
+    operation:
+      tool: ca::sbi.amf.n1n2.transfer
+      routes:
+        SUCCEEDED: update-sm-context
+  update-sm-context:
+    operation:
+      tool: ssm::SSM.SIGNAL_UE_AN
+      arguments:
+        transferOperationRef: transfer-n1n2-message.operation.output.operationRef
+    postcondition:
+      predicates:
+        - predicate: establishment.ran.adopted
+          arguments:
+            - update-sm-context.operation.output
+      routes:
+        PASS: read-smf-session-context
+  read-smf-session-context:
+    observation:
+      tool: smf-mas-observations::smf.mas.sc.context.query
+      arguments:
+        ueRef: context.ueRef
+        pduSessionId: context.request.pduSessionId
+    postcondition:
+      predicates:
+        - predicate: establishment.smf.session_context_profile_ready
+          arguments:
+            - read-smf-session-context.observation.output
+            - context.request.dnn
+            - context.request.sNssai.sst
+      routes:
+        PASS: modify-n4-session
+  modify-n4-session:
+    operation:
+      tool: upn::UPN.MODIFY_UP_SESSION
+      arguments:
+        ranResult: update-sm-context.operation.output
+  verify-pdu-session-establishment:
+    postcondition:
+      predicates:
+        - predicate: establishment.ran.adopted
+          arguments:
+            - update-sm-context.operation.output
+""", encoding="utf-8")
+            (root / "assurance" / "contract.yaml").write_text("""dependencies:
+  smf-mas-observations: urn:connectionagent:ca:5gc:smf-mas-observations
+capabilities:
+  - urn:example:connectionagent:capability:ca:smf-mas-sc-context-read:v1
+""", encoding="utf-8")
+            (root / "assurance" / "predicates.yaml").write_text("""predicates:
+  establishment.smf.session_context_profile_ready:
+    parameters:
+      - sessionContext: smf-mas-observations::urn:connectionagent:ca:observation:smf-mas-sc-query-result:v1
+    evaluator:
+      type: script
+      script: scripts/validate-smf-session-context.py
+""", encoding="utf-8")
+            (root / "SKILL.md").write_text(
+                "| \x60update-sm-context\x60 | step 15 — \x60Nsmf_PDUSession_UpdateSMContext Request\x60 |\n"
+                "| \x60read-smf-session-context\x60 | current SMF SC projection |\n"
+                "Runtime resumes the same Invocation; Host returns the paired step 17 response.\n",
+                encoding="utf-8",
+            )
+            errors: list[str] = []
+            validate_async_update_sm_context_boundary(root, errors)
+            self.assertEqual(errors, [])
+
+    def test_update_sm_context_must_not_restart_or_leak_host_correlation(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "establish-pdu-session"
+            (root / "assurance").mkdir(parents=True)
+            (root / "scripts").mkdir()
+            (root / "assurance" / "procedure.yaml").write_text("""nodes:
+  transfer-n1n2-message:
+    operation:
+      tool: ca::sbi.amf.n1n2.transfer
+      routes:
+        SUCCEEDED: complete-an-resource-setup
+  complete-an-resource-setup:
+    operation:
+      tool: ssm::SSM.SIGNAL_UE_AN
+      arguments:
+        lifecycleRef: context.lifecycleRef
+""", encoding="utf-8")
+            (root / "assurance" / "contract.yaml").write_text("""dependencies:
+  smf-mas-observations: urn:connectionagent:ca:5gc:smf-mas-observations
+capabilities:
+  - urn:example:connectionagent:capability:ca:smf-mas-sc-context-read:v1
+""", encoding="utf-8")
+            (root / "assurance" / "predicates.yaml").write_text("predicates: {}\n", encoding="utf-8")
+            (root / "SKILL.md").write_text("## 3GPP Traceability\n", encoding="utf-8")
+            errors: list[str] = []
+            validate_async_update_sm_context_boundary(root, errors)
+            self.assertTrue(any("canonical update-sm-context" in e for e in errors), errors)
+            self.assertTrue(any("missing step-15 update-sm-context" in e for e in errors), errors)
+            self.assertTrue(any("Host ingress, lifecycle and transport response metadata" in e for e in errors), errors)
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,12 +1,13 @@
 # CA-SL v1alpha4 author syntax. Capability IDs below are illustrative and NOT published.
 # Skill-visible Host context is subject-only (ueRef); invocation/lifecycle/correlation metadata stays private to Host.
-# ca-context Package ID is reserved but not yet published; other example dependencies/Capabilities remain placeholders.
+# ca-context and smf-mas-observations Package IDs are reserved but not yet published; other example dependencies/Capabilities remain placeholders.
 goal: pdu_session.initial_request_fulfilled
 precondition: get-sm-subscription-data.precondition
 requestSchema: schemas/establishment-request.schema.yaml
 contextSchema: ca-context::urn:connectionagent:ca:context:subject:v1
 dependencies:
   ca-context: urn:connectionagent:ca:host-context
+  smf-mas-observations: urn:connectionagent:ca:5gc:smf-mas-observations
   ca: urn:example:connectionagent:5gc-tool-contracts
   upn: urn:example:connectionagent:upn-tool-contracts
   ssm: urn:example:connectionagent:ssm-tool-contracts
@@ -19,5 +20,7 @@ capabilities:
   - urn:example:connectionagent:capability:ca:ssm-access-network-completion:v1
   - urn:example:connectionagent:capability:3gpp:n4-session-modification:v1
   - urn:example:connectionagent:capability:ca:resource-responsibility:v1
+  # Illustrative grant only; exact deployment Capability ID from ca-5gc-client-tools is NOT PUBLISHED.
+  - urn:example:connectionagent:capability:ca:smf-mas-sc-context-read:v1
 limits:
   maxActions: 32

@@ -304,6 +304,101 @@ def validate_n4_owner_boundary(skill: Path, errors: list[str]) -> None:
         errors.append(f"{skill.name}: SKILL.md must map Step 8 to the establish-n4-session Owner boundary")
 
 
+def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) -> None:
+    """Keep UpdateSMContext as a continuation of the existing Skill Invocation."""
+    if skill.name != "establish-pdu-session":
+        return
+    procedure = skill / "assurance" / "procedure.yaml"
+    contract = skill / "assurance" / "contract.yaml"
+    predicates = skill / "assurance" / "predicates.yaml"
+    skill_doc = skill / "SKILL.md"
+    if not all(path.is_file() for path in (procedure, contract, predicates, skill_doc)):
+        return
+    procedure_text = procedure.read_text(encoding="utf-8")
+    contract_text = contract.read_text(encoding="utf-8")
+    predicate_text = predicates.read_text(encoding="utf-8")
+    skill_text = skill_doc.read_text(encoding="utf-8")
+
+    if "complete-an-resource-setup" in procedure_text:
+        errors.append(f"{skill.name}: use the canonical update-sm-context Node, not the implementation-only completion name")
+    if re.search(r"(?m)^  respond-update-sm-context:\s*$", procedure_text):
+        errors.append(f"{skill.name}: Step 17 response belongs to the Host service exit, not a Skill-authored callback response Node")
+    if re.search(r"(?m)^\s*(?:ingressRef|lifecycleRef|hostBusinessInstanceId|invocationId|requestId|responseHandle|responseRef)\s*:", procedure_text):
+        errors.append(f"{skill.name}: Host ingress, lifecycle and transport response metadata must remain private")
+
+    update = re.search(
+        r"(?ms)^  update-sm-context:\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)",
+        procedure_text,
+    )
+    if not update:
+        errors.append(f"{skill.name}: missing step-15 update-sm-context continuation Node")
+    else:
+        block = update.group(1)
+        if not re.search(r"(?m)^      tool: ssm::SSM\.SIGNAL_UE_AN\s*$", block):
+            errors.append(f"{skill.name}: update-sm-context must use the SSM completion Owner Operation")
+        if not re.search(r"(?m)^        transferOperationRef: transfer-n1n2-message\.operation\.output\.operationRef\s*$", block):
+            errors.append(f"{skill.name}: SSM callback must be associated with the exact N1/N2 transfer Operation")
+        if not re.search(r"(?m)^            - update-sm-context\.operation\.output\s*$", block):
+            errors.append(f"{skill.name}: RAN adoption Predicate must consume the UpdateSMContext Operation Result")
+        if not re.search(r"(?m)^        PASS: read-smf-session-context\s*$", block):
+            errors.append(f"{skill.name}: the callback continuation must proceed to the explicit SMF context decision")
+
+    transfer = re.search(
+        r"(?ms)^  transfer-n1n2-message:\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)",
+        procedure_text,
+    )
+    if not transfer or not re.search(r"(?m)^        PASS: update-sm-context\s*$", transfer.group(1)):
+        errors.append(f"{skill.name}: N1/N2 transfer success must continue to the pending UpdateSMContext Operation")
+
+    observation = re.search(
+        r"(?ms)^  read-smf-session-context:\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)",
+        procedure_text,
+    )
+    if not observation:
+        errors.append(f"{skill.name}: missing explicit post-callback SMF SC context Observation")
+    else:
+        block = observation.group(1)
+        if not re.search(r"(?m)^      tool: smf-mas-observations::smf\.mas\.sc\.context\.query\s*$", block):
+            errors.append(f"{skill.name}: post-callback context read must use the client-tools SC MAS Observation callable")
+        if not re.search(r"(?m)^        ueRef: context\.ueRef\s*$", block) or not re.search(r"(?m)^        pduSessionId: context\.request\.pduSessionId\s*$", block):
+            errors.append(f"{skill.name}: SC Observation must be scoped by the Skill subject and business PSI")
+        if not re.search(r"(?m)^        PASS: modify-n4-session\s*$", block):
+            errors.append(f"{skill.name}: only a passing SC context Predicate may advance to N4 Modification")
+
+    modify = re.search(
+        r"(?ms)^  modify-n4-session:\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)",
+        procedure_text,
+    )
+    if not modify or not re.search(r"(?m)^        ranResult: update-sm-context\.operation\.output\s*$", modify.group(1)):
+        errors.append(f"{skill.name}: N4 Modification must consume the validated UpdateSMContext/RAN result")
+
+    verify = re.search(
+        r"(?ms)^  verify-pdu-session-establishment:\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)",
+        procedure_text,
+    )
+    if not verify or not re.search(r"(?m)^            - update-sm-context\.operation\.output\s*$", verify.group(1)):
+        errors.append(f"{skill.name}: final Goal proof must consume the same UpdateSMContext/RAN result")
+
+    if "smf-mas-observations: urn:connectionagent:ca:5gc:smf-mas-observations" not in contract_text:
+        errors.append(f"{skill.name}: Skill must declare the reserved ca-5gc-client-tools Observation dependency")
+    if "urn:example:connectionagent:capability:ca:smf-mas-sc-context-read:v1" not in contract_text:
+        errors.append(f"{skill.name}: Skill must declare an explicitly unqualified SC MAS read Capability placeholder")
+    if "smf-mas-observations::urn:connectionagent:ca:observation:smf-mas-sc-query-result:v1" not in predicate_text:
+        errors.append(f"{skill.name}: SC Predicate must consume the schema from the client-tools dependency")
+    if ("establishment.smf.session_context_profile_ready:" not in predicate_text
+        or "script: scripts/validate-smf-session-context.py" not in predicate_text):
+        errors.append(f"{skill.name}: missing explicit three-state SMF SC profile Predicate Script")
+
+    if not re.search(r"(?m)^\| \x60update-sm-context\x60 \| step 15", skill_text):
+        errors.append(f"{skill.name}: SKILL.md must trace update-sm-context to step 15")
+    if not re.search(r"(?m)^\| \x60read-smf-session-context\x60 \| current SMF SC projection", skill_text):
+        errors.append(f"{skill.name}: SKILL.md must trace the SC Observation Node")
+    if "resumes the same Invocation" not in skill_text or "paired step 17" not in skill_text:
+        errors.append(f"{skill.name}: SKILL.md must define same-Invocation resume and paired step-17 Host response")
+    if len(re.findall(r"smf-mas-observations::smf\.mas\.[a-z]+\.context\.query", procedure_text)) != 1:
+        errors.append(f"{skill.name}: this profile should query only the one required SC MAS projection, not fan out to all MAS")
+
+
 def validate_predicate_scripts(skill: Path, errors: list[str]) -> set[Path]:
     """Validate local Predicate Script refs and their generated-result contract."""
     predicates = skill / "assurance" / "predicates.yaml"
@@ -373,6 +468,7 @@ def validate_example_scripts(skill: Path, errors: list[str]) -> None:
     validate_host_context_separation(skill, errors)
     validate_pcf_owner_boundary(skill, errors)
     validate_n4_owner_boundary(skill, errors)
+    validate_async_update_sm_context_boundary(skill, errors)
     predicate_script_refs = validate_predicate_scripts(skill, errors)
     procedure = skill / "assurance" / "procedure.yaml"
     text = procedure.read_text(encoding="utf-8")
