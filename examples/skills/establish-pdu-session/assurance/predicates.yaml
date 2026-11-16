@@ -26,21 +26,24 @@ predicates:
         subscription.ownership == "AGENT" &&
         subscription.managementState == "DURABLE"
 
+  # The Owner's association-owned Evidence must bind the created association to this
+  # exact Skill occurrence, UE/PSI, request, UDM read result and SDM subscription.
+  # It also attests that internally derived inputs passed hold, pre-N4 baseline,
+  # lifecycle-isolation and competing-create checks before the single PCF Create.
+  # No PCF input-readiness or governance intermediate is exposed as a Skill Predicate.
   establishment.pcf.association_owned:
     parameters:
       - association: ca::urn:example:5gc:pcf-association-resource:v1
-      - inputs: ca::urn:example:5gc:pcf-create-inputs:v1
     evidence:
       requires:
         association: [ca::pcf.association-owned]
-        inputs: [ca::pcf.create-inputs-current]
     evaluator:
       type: cel
       expression: >-
         association.creationState == "CREATED" &&
         association.ownership == "AGENT" &&
         association.managementState == "DURABLE" &&
-        association.policyAssociationRef == inputs.pcfPolicyAssociationRef
+        association.policyAssociationRef != ""
 
   establishment.amf.transfer_initiated:
     parameters:

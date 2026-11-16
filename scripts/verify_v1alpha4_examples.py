@@ -204,9 +204,51 @@ def validate_host_context_separation(skill: Path, errors: list[str]) -> None:
         errors.append(f"{skill.name}: Skill Host Context must use the subject-only contextSchema")
 
 
+def validate_pcf_owner_boundary(skill: Path, errors: list[str]) -> None:
+    """Keep PCF request preparation and governance inside the single PCF Owner Operation."""
+    if skill.name != "establish-pdu-session":
+        return
+    procedure = skill / "assurance" / "procedure.yaml"
+    predicates = skill / "assurance" / "predicates.yaml"
+    if not procedure.is_file() or not predicates.is_file():
+        return
+    procedure_text = procedure.read_text(encoding="utf-8")
+    predicate_text = predicates.read_text(encoding="utf-8")
+
+    if "build-sm-policy-association-inputs" in procedure_text or "scripts/build-pcf-policy-inputs.py" in procedure_text:
+        errors.append(f"{skill.name}: PCF request-only preparation must not be a separate Skill Node or Script")
+    if (skill / "scripts" / "build-pcf-policy-inputs.py").exists():
+        errors.append(f"{skill.name}: obsolete PCF input-builder Script must be removed")
+
+    node = re.search(
+        r"(?ms)^  establish-sm-policy-association:\\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\\s*$|\\Z)",
+        procedure_text,
+    )
+    if not node:
+        errors.append(f"{skill.name}: missing establish-sm-policy-association business Node")
+    else:
+        block = node.group(1)
+        if not re.search(r"(?m)^      tool: ca::sbi\\.pcf\\.sm_policy\\.create\\s*$", block):
+            errors.append(f"{skill.name}: Step 7b must be the PCF Create Owner Operation")
+        if not re.search(r"(?m)^        udmReadResult: get-sm-subscription-data\\.operation\\.output\\.result\\s*$", block):
+            errors.append(f"{skill.name}: PCF Owner must consume the validated UDM read result directly")
+        if re.search(r"(?m)^        policyInputs:", block):
+            errors.append(f"{skill.name}: Skill must not pass a separately constructed PCF policyInputs object")
+
+    predicate = re.search(
+        r"(?ms)^  establishment\\.pcf\\.association_owned:\\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_.-]*:\\s*$|\\Z)",
+        predicate_text,
+    )
+    if not predicate:
+        errors.append(f"{skill.name}: missing establishment.pcf.association_owned business Postcondition")
+    elif re.search(r"(?m)^\\s*(?:- )?inputs:", predicate.group(1)) or "create-inputs-current" in predicate.group(1):
+        errors.append(f"{skill.name}: PCF input-readiness Evidence must remain internal to the PCF Owner")
+
+
 def validate_example_scripts(skill: Path, errors: list[str]) -> None:
     validate_3gpp_traceability(skill, errors)
     validate_host_context_separation(skill, errors)
+    validate_pcf_owner_boundary(skill, errors)
     procedure = skill / "assurance" / "procedure.yaml"
     text = procedure.read_text(encoding="utf-8")
     script_nodes: dict[str, tuple[Path, dict[str, str]]] = {}

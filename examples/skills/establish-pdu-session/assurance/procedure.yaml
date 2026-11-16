@@ -64,23 +64,13 @@ nodes:
           arguments:
             - subscribe-sm-data.operation.output
       routes:
-        PASS: build-sm-policy-association-inputs
+        PASS: establish-sm-policy-association
         FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
 
-  # Pure Script Operation; no external Tool, Capability or network side effect.
-  # 3GPP: 3GPP_LOCAL — TS 23.502 V18.12.0 §4.3.2.2.1 step 7b; local construction of SM Policy Association request inputs.
-  build-sm-policy-association-inputs:
-    operation:
-      script: scripts/build-pcf-policy-inputs.py
-      arguments:
-        udmResult: get-sm-subscription-data.operation.output.result
-      routes:
-        SUCCEEDED: establish-sm-policy-association
-        FAILED: FAILED
-
-  # The Owner adapter internally resolves PCF request inputs and enforces exact hold,
-  # pre-N4 baseline, lifecycle isolation and competing-create guards before dispatch.
+  # The PCF Owner consumes the validated UDM read result and SDM subscription handle,
+  # derives the Npcf request internally, and enforces exact hold, pre-N4 baseline,
+  # lifecycle isolation and competing-create guards before dispatch.
   # 3GPP: 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 7b; Npcf_SMPolicyControl_Create / SM Policy Association Establishment.
   establish-sm-policy-association:
     operation:
@@ -88,7 +78,7 @@ nodes:
       arguments:
         ueRef: context.ueRef
         request: context.request
-        policyInputs: build-sm-policy-association-inputs.operation.output
+        udmReadResult: get-sm-subscription-data.operation.output.result
         sdmSubscriptionRef: subscribe-sm-data.operation.output.subscriptionRef
       routes:
         FAILED: SAFE_STOPPED

@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-from verify_v1alpha4_examples import validate_example_scripts, validate_3gpp_traceability, validate_host_context_separation
+from verify_v1alpha4_examples import validate_example_scripts, validate_3gpp_traceability, validate_host_context_separation, validate_pcf_owner_boundary
 
 SOURCE_PROCEDURE = """start: produce
 nodes:
@@ -273,6 +273,70 @@ nodes:
             self.assertTrue(any("Host ingress/lifecycle/correlation context" in e for e in errors), errors)
             self.assertTrue(any("Host dispatch metadata" in e for e in errors), errors)
             self.assertTrue(any("must not be an authored Procedure Node" in e for e in errors), errors)
+
+    def test_pcf_request_preparation_is_inside_single_owner_node(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "establish-pdu-session"
+            (root / "assurance").mkdir(parents=True)
+            (root / "scripts").mkdir()
+            (root / "assurance" / "procedure.yaml").write_text("""start: get-sm-subscription-data
+nodes:
+  establish-sm-policy-association:
+    operation:
+      tool: ca::sbi.pcf.sm_policy.create
+      arguments:
+        ueRef: context.ueRef
+        request: context.request
+        udmReadResult: get-sm-subscription-data.operation.output.result
+        sdmSubscriptionRef: subscribe-sm-data.operation.output.subscriptionRef
+""", encoding="utf-8")
+            (root / "assurance" / "predicates.yaml").write_text("""predicates:
+  establishment.pcf.association_owned:
+    parameters:
+      - association: ca::urn:example:5gc:pcf-association-resource:v1
+    evidence:
+      requires:
+        association: [ca::pcf.association-owned]
+    evaluator:
+      type: cel
+      expression: association.creationState == "CREATED"
+""", encoding="utf-8")
+            errors: list[str] = []
+            validate_pcf_owner_boundary(root, errors)
+            self.assertEqual(errors, [])
+
+    def test_pcf_script_split_and_skill_facing_input_evidence_are_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "establish-pdu-session"
+            (root / "assurance").mkdir(parents=True)
+            (root / "scripts").mkdir()
+            (root / "assurance" / "procedure.yaml").write_text("""start: build-sm-policy-association-inputs
+nodes:
+  build-sm-policy-association-inputs:
+    operation:
+      script: scripts/build-pcf-policy-inputs.py
+  establish-sm-policy-association:
+    operation:
+      tool: ca::sbi.pcf.sm_policy.create
+      arguments:
+        policyInputs: build-sm-policy-association-inputs.operation.output
+""", encoding="utf-8")
+            (root / "assurance" / "predicates.yaml").write_text("""predicates:
+  establishment.pcf.association_owned:
+    parameters:
+      - association: ca::urn:example:5gc:pcf-association-resource:v1
+      - inputs: ca::urn:example:5gc:pcf-create-inputs:v1
+    evidence:
+      requires:
+        inputs: [ca::pcf.create-inputs-current]
+""", encoding="utf-8")
+            (root / "scripts" / "build-pcf-policy-inputs.py").write_text("# obsolete\n", encoding="utf-8")
+            errors: list[str] = []
+            validate_pcf_owner_boundary(root, errors)
+            self.assertTrue(any("must not be a separate Skill Node" in e for e in errors), errors)
+            self.assertTrue(any("must be removed" in e for e in errors), errors)
+            self.assertTrue(any("must not pass a separately constructed" in e for e in errors), errors)
+            self.assertTrue(any("must remain internal" in e for e in errors), errors)
 
 if __name__ == "__main__":
     unittest.main()

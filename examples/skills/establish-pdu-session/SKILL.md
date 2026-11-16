@@ -17,8 +17,8 @@ The conventional SMF procedure follows the 3GPP sequence: Step 4 UDM Session Man
 
 The Skill keeps business decisions visible:
 - Step 4 Postconditions verify the UDM response and whether the requested DNN, S-NSSAI, PDU Session Type and SSC Mode are allowed by the subscription.
-- A local Script constructs the PCF policy inputs for Step 7b.
-- A separate local Script performs Step 8 session-configuration selection. Its output is passed explicitly to N4 establishment and subsequent session preparation.
+- The Step 7b PCF Create Owner consumes the validated UDM read result and SDM subscription handle, derives the PCF request internally, and performs its pre-dispatch governance. The Skill exposes only the business action and its association-ownership result; it has no intermediate PCF input-building Script or readiness Predicate.
+- A separate local Script performs Step 8 session-configuration selection. This is an SMF-local business decision; its output is passed explicitly to N4 establishment and subsequent session preparation.
 
 The Skill does **not** expose Host/Runtime plumbing. Hold binding, Claim, waiter correlation, Journal, exact-original Reconcile, PCF request preparation/governance, operation-context lookup and N1/N2 response-artifact preparation are internal to the responsible Owner/Tool adapters. These mechanisms remain mandatory and must be covered by their trusted contracts; hiding them does not remove their safety requirements.
 
@@ -38,8 +38,7 @@ The Skill's global Contract Precondition validates only the admitted business re
 |---|---|---|
 | `get-sm-subscription-data` | step 4 — `Nudm_SDM_Get` | `3GPP_NATIVE`: retrieve Session Management Subscription data. |
 | `subscribe-sm-data` | step 4 — `Nudm_SDM_Subscribe` | `3GPP_NATIVE`: subscribe to Session Management Subscription updates; Owner adapter internally binds and claims the exact original request. |
-| `build-sm-policy-association-inputs` | step 7b — SMF local construction of the PCF policy request from the validated subscription | `3GPP_LOCAL`: pure Script data transformation; no external call and no Capability. |
-| `establish-sm-policy-association` | step 7b — `Npcf_SMPolicyControl_Create` | `3GPP_NATIVE`: establish the SM Policy Association. Owner adapter internally resolves PCF request inputs and enforces pre-dispatch governance. |
+| `establish-sm-policy-association` | step 7b — `Npcf_SMPolicyControl_Create` | `3GPP_NATIVE`: the PCF Owner consumes the UDM read result and SDM subscription handle, derives the request, enforces pre-dispatch governance and returns the authoritative association result/Evidence. |
 | `select-session-configuration` | step 8 — SMF local session-configuration selection (including the admitted SSC Mode / PDU Session Type profile) | `3GPP_LOCAL`: pure Script selection; no SBI operation and no Capability. |
 | `establish-n4-session` | steps 10a–10b; §4.4.1.2 N4 Session Establishment | `CA_ADAPTER`: UPN Owner completes N4 establishment; the callable is not a 3GPP SBI operation. |
 | `transfer-n1n2-message` | step 11 — `Namf_Communication_N1N2MessageTransfer` | `3GPP_NATIVE`: SMF transfers N1/N2 information to AMF. The adapter prepares the response and binds the exact request internally; ACK does not prove RAN acceptance. |
@@ -74,7 +73,7 @@ The exact IDs must be replaced only by matching trusted CapabilityContracts expo
 
 **No author-level Wait/Await/Poll, Hold, Claim, waiter, Journal or Reconcile.** These are Host/Runtime/Owner-adapter responsibilities, not Skill business steps. The Procedure MUST NOT expose `holdRef`, `waiterRef`, `claimRef` or `journalRef` as arguments or outputs. The responsible adapter resolves exact correlation from trusted Invocation Context and Owner state, preserves UE/Session/ingress/lifecycle/current-instance binding, claims once, sends once, records the original operation and reconciles only that exact operation. If the Owner cannot prove these guarantees, linking must fail closed.
 
-The PCF Create adapter must internally verify the exact held PCF request, pre-N4 baseline, lifecycle isolation and absence of a competing forwarded Create before dispatch. The AMF N1/N2 transfer adapter must internally resolve the exact held request, validate delivery context and response artifact, and only then claim and dispatch. These are mandatory Owner pre-dispatch guarantees, not author Nodes or extra Capability grants.
+The PCF Create adapter must internally derive its request from the exact UDM read result and SDM subscription handle, then verify the exact held PCF request, pre-N4 baseline, lifecycle isolation and absence of a competing forwarded Create before dispatch. Its association-owned Evidence must bind the durable result to the exact Skill occurrence, UE/PSI and request; PCF input-readiness and governance intermediates are not separate Skill Predicates. The AMF N1/N2 transfer adapter must internally resolve the exact held request, validate delivery context and response artifact, and only then claim and dispatch. These are mandatory Owner pre-dispatch guarantees, not author Nodes or extra Capability grants.
 
 Asynchronous access-network completion belongs to the SSM Owner Operation. It may report success only when its published contract and authoritative Result/Evidence prove the relevant SMF-side completion; an AMF transfer acknowledgement alone never proves RAN adoption or N4 forwarding readiness.
 
