@@ -95,6 +95,34 @@ nodes:
             validate_3gpp_traceability(root, errors)
             self.assertEqual(errors, [])
 
+
+    def test_local_3gpp_step_classification_is_accepted(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "assurance").mkdir()
+            (root / "assurance" / "procedure.yaml").write_text("""start: select
+nodes:
+  # 3GPP: 3GPP_LOCAL — TS 23.502 step 8; local SMF selection
+  select:
+    operation:
+      script: scripts/select.py
+""", encoding="utf-8")
+            tick = chr(96)
+            doc = "\\n".join([
+                "## 3GPP Traceability", "TS 23.502 V18.12.0",
+                "| Procedure Node | Mapping |", "|---|---|",
+                "| " + tick + "select" + tick + " | local SMF selection |",
+            ])
+            (root / "SKILL.md").write_text(doc, encoding="utf-8")
+            (root / "scripts").mkdir()
+            (root / "scripts" / "select.py").write_text(
+                "from typing import TypedDict\\nclass Input(TypedDict):\\n    x: int\\nclass Output(TypedDict):\\n    y: int\\ndef main(input: Input) -> Output:\\n    return {'y': input['x']}\\n",
+                encoding="utf-8",
+            )
+            errors: list[str] = []
+            validate_3gpp_traceability(root, errors)
+            self.assertEqual(errors, [])
+
     def test_author_wait_node_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
