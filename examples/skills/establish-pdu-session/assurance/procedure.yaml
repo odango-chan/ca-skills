@@ -5,14 +5,14 @@
 # context required by an Operation stays inside its responsible Tool/Owner adapter.
 # Host performs ingress admission, identity/instance association, duplicate suppression and execution lifecycle before this graph starts.
 # This Skill validates only the business request profile; Host execution metadata is not a Procedure input.
-start: read-existing-sm-context
+start: get-sm-subscription-data
 nodes:
   # CA_EXTENSION — one exact UE/PSI lookup before any session-creating or session-mutating Operation.
   # 404 SESSION_NOT_FOUND is normalized to a typed ABSENT result with exact-scope Evidence;
   # 200 AVAILABLE/UNAVAILABLE means PRESENT. Transport failure is not ABSENT.
   # PRESENT is not an initial-creation path. Until an idempotent/recovery Owner contract
   # exists, stop rather than replaying UDM/PCF/N4 mutations. Query failure is not ABSENT.
-  read-existing-sm-context:
+  get-sm-subscription-data:
     precondition:
       predicates:
         - predicate: establishment.request.supported
@@ -23,26 +23,6 @@ nodes:
       routes:
         FAIL: FAILED
         UNKNOWN: UNRESOLVED
-    observation:
-      tool: ca-session-context::context.smf.session.read
-      arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
-      routes:
-        FAILED: UNRESOLVED
-        UNKNOWN: UNRESOLVED
-    postcondition:
-      predicates:
-        - predicate: establishment.smf.session_context_absent
-          arguments:
-            - read-existing-sm-context.observation.output
-      routes:
-        PASS: get-sm-subscription-data
-        FAIL: SAFE_STOPPED
-        UNKNOWN: SAFE_STOPPED
-
-  # 3GPP: 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 4; SMF → UDM Nudm_SDM_Get.
-  get-sm-subscription-data:
     operation:
       tool: ca::sbi.udm.sm_data.get
       arguments:
@@ -54,6 +34,14 @@ nodes:
         FAILED: SAFE_STOPPED
         UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
+    observation:
+      tool: ca-session-context::context.smf.session.read
+      arguments:
+        ueRef: context.ueRef
+        pduSessionId: context.request.pduSessionId
+      routes:
+        FAILED: UNRESOLVED
+        UNKNOWN: UNRESOLVED
     postcondition:
       predicates:
         - predicate: establishment.udm.response_valid
@@ -66,10 +54,13 @@ nodes:
             - context.request.sNssai
             - context.request.requestedPduSessionType
             - context.request.requestedSscMode
+        - predicate: establishment.smf.session_context_absent
+          arguments:
+            - get-sm-subscription-data.observation.output
       routes:
         PASS: subscribe-sm-data
-        FAIL: FAILED
-        UNKNOWN: UNRESOLVED
+        FAIL: SAFE_STOPPED
+        UNKNOWN: SAFE_STOPPED
 
   # The Owner adapter resolves and claims the exact original UDM request internally.
   # 3GPP: 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 4; SMF → UDM Nudm_SDM_Subscribe.
@@ -196,23 +187,6 @@ nodes:
         FAILED: ca-transfer-failed-resource-responsibility
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
-    postcondition:
-      predicates:
-        - predicate: establishment.ran.adopted
-          arguments:
-            - update-sm-context.operation.output
-      routes:
-        PASS: read-smf-session-context
-        FAIL: ca-transfer-failed-resource-responsibility
-        UNKNOWN: SAFE_STOPPED
-
-  # Re-read the exact UE/PSI after the Step 15 continuation for the current
-  # SMF-owned facts needed by the N4 decision. Presence and projection availability
-  # are checked again; this is a synchronous READ, not callback polling.
-  # The callable is a generic CA context interface; its compatibility backend is
-  # deliberately not exposed in this conventional Skill.
-  # 3GPP: CA_EXTENSION — current SMF session-context read supporting steps 16a–16b.
-  read-smf-session-context:
     observation:
       tool: ca-session-context::context.smf.session.read
       arguments:
@@ -223,9 +197,12 @@ nodes:
         UNKNOWN: UNRESOLVED
     postcondition:
       predicates:
+        - predicate: establishment.ran.adopted
+          arguments:
+            - update-sm-context.operation.output
         - predicate: establishment.smf.session_context_profile_ready
           arguments:
-            - read-smf-session-context.observation.output
+            - update-sm-context.observation.output
             - context.request.dnn
             - context.request.sNssai.sst
       routes:
@@ -233,7 +210,12 @@ nodes:
         FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
 
-  # 3GPP: CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 16a–16b and §4.4.1.3; N4 Session Modification Request/Response.
+  # Re-read the exact UE/PSI after the Step 15 continuation for the current
+  # SMF-owned facts needed by the N4 decision. Presence and projection availability
+  # are checked again; this is a synchronous READ, not callback polling.
+  # The callable is a generic CA context interface; its compatibility backend is
+  # deliberately not exposed in this conventional Skill.
+  # 3GPP: CA_EXTENSION — current SMF session-context read supporting steps 16a–16b.
   modify-n4-session:
     operation:
       tool: upn::UPN.MODIFY_UP_SESSION
