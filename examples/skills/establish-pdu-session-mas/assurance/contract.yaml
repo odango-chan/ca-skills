@@ -7,9 +7,10 @@ dependencies:
   ca-context: urn:example:connectionagent:host-context
   mas: urn:example:connectionagent:mas-tool-contracts
 capabilities:
-  - mas-session-read
-  - mas-session-mutation
-  - mas-session-assurance
-  - mas-session-responsibility
+  - urn:example:connectionagent:capability:3gpp:udm-session-management-data:v1
+  - urn:example:connectionagent:capability:3gpp:pcf-sm-policy-control:v1
+  - urn:example:connectionagent:capability:3gpp:n4-session-management:v1
+  - urn:example:connectionagent:capability:3gpp:amf-communication-n1n2:v1
+  - urn:example:connectionagent:capability:ca:mas-session-lifecycle:v1
 limits:
   maxActions: 48
