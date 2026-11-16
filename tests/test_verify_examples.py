@@ -545,22 +545,18 @@ capabilities:
       type: script
       script: scripts/validate-smf-session-context.py
 """, encoding="utf-8")
-            (root / "scripts" / "validate-smf-session-context-entry.py").write_text(
-                "def main(input: PredicateInput) -> PredicateEvaluationResult:\\n    return {\\"result\\": \\"PASS\\", \\"reasonCode\\": \\"SMF_SESSION_CONTEXT_CONFIRMED_ABSENT\\", \\"evidenceUsed\\": []}\\n",
-                encoding="utf-8",
-            )
-            (root / "scripts" / "validate-smf-session-context.py").write_text(
-                "def main(input: PredicateInput) -> PredicateEvaluationResult:\\n    return {\\"result\\": \\"PASS\\", \\"reasonCode\\": \\"OK\\", \\"evidenceUsed\\": []}\\n",
-                encoding="utf-8",
-            )
-            (root / "SKILL.md").write_text(
-                "| \x60read-existing-sm-context\x60 | exact UE/PSI context existence before initial mutations |\\n"
-                "| \x60update-sm-context\x60 | step 15 — \x60Nsmf_PDUSession_UpdateSMContext Request\x60 |\\n"
-                "| \x60read-smf-session-context\x60 | current SMF session context after step 15 |\\n"
-                "| \x60modify-n4-session\x60 | steps 16a–16b — N4 Session Modification |\\n"
-                "Runtime resumes the same Invocation; Host returns the paired step 17 response.\\n",
-                encoding="utf-8",
-            )
+            (root / "scripts" / "validate-smf-session-context-entry.py").write_text("""def main(input: PredicateInput) -> PredicateEvaluationResult:
+    return {"result": "PASS", "reasonCode": "SMF_SESSION_CONTEXT_CONFIRMED_ABSENT", "evidenceUsed": []}
+""", encoding="utf-8")
+            (root / "scripts" / "validate-smf-session-context.py").write_text("""def main(input: PredicateInput) -> PredicateEvaluationResult:
+    return {"result": "PASS", "reasonCode": "OK", "evidenceUsed": []}
+""", encoding="utf-8")
+            (root / "SKILL.md").write_text("""| \x60read-existing-sm-context\x60 | exact UE/PSI context existence before initial mutations |
+| \x60update-sm-context\x60 | step 15 — \x60Nsmf_PDUSession_UpdateSMContext Request\x60 |
+| \x60read-smf-session-context\x60 | current SMF session context after step 15 |
+| \x60modify-n4-session\x60 | steps 16a–16b — N4 Session Modification |
+Runtime resumes the same Invocation; Host returns the paired step 17 response.
+""", encoding="utf-8")
             errors: list[str] = []
             validate_async_update_sm_context_boundary(root, errors)
             self.assertEqual(errors, [])
