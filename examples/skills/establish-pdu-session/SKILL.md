@@ -13,7 +13,16 @@ description: CA-SL v1alpha4 illustrative Open5GS / UE-requested initial PDU Sess
 
 One admitted, initial IPv4 / SSC1, local non-roaming PDU Session request. Never substitute an arbitrary UE, PSI, lifecycle, resource or late callback; identity and Scope require independent Host/Owner proof.
 
-Conventional 5GC **proposed** progression is UDM SM-data retrieval, UDM SDM Subscribe, PCF SM Policy Create, target `UPN.CREATE_UP_SESSION` N4 completion, prepared N1/N2 transfer, target `SSM.SIGNAL_UE_AN` RAN adoption, target `UPN.MODIFY_UP_SESSION` forwarding, and durable resource responsibility. These three §21 target Owners have **not** published callable contracts or qualified Results/Evidence. See [migration decision register](../../MIGRATION-REVIEW-v1alpha4.md). The old complete 5GC business Case catalog is retained in `examples/legacy/establish-pdu-session/cases/` for migration review, not imported as v1alpha4 test fixtures.
+The conventional SMF procedure follows the 3GPP sequence: Step 4 UDM Session Management Subscription retrieval and subscription; Step 7b PCF SM Policy Association establishment; Step 8 SMF local session-configuration selection; N4 Session Establishment; Step 11 N1/N2 transfer; access-network completion through the SMF-side Step 15 result; N4 Session Modification; and durable resource responsibility.
+
+The Skill keeps business decisions visible:
+- Step 4 Postconditions verify the UDM response and whether the requested DNN, S-NSSAI, PDU Session Type and SSC Mode are allowed by the subscription.
+- A local Script constructs the PCF policy inputs for Step 7b.
+- A separate local Script performs Step 8 session-configuration selection. Its output is passed explicitly to N4 establishment and subsequent session preparation.
+
+The Skill does **not** expose Host/Runtime plumbing. Hold binding, Claim, waiter correlation, Journal, exact-original Reconcile, PCF request preparation/governance, operation-context lookup and N1/N2 response-artifact preparation are internal to the responsible Owner/Tool adapters. These mechanisms remain mandatory and must be covered by their trusted contracts; hiding them does not remove their safety requirements.
+
+The target UPN/SSM Owner callables and their v1alpha4 schemas/evidence are **not published**. See the [migration decision register](../../MIGRATION-REVIEW-v1alpha4.md). The old complete 5GC business Case catalog is retained in `examples/legacy/establish-pdu-session/cases/` for migration review, not imported as v1alpha4 test fixtures.
 
 ## 3GPP Traceability — SMF view
 
@@ -22,20 +31,13 @@ Conventional 5GC **proposed** progression is UDM SM-data retrieval, UDM SDM Subs
 | Procedure Node | 3GPP source / interaction | Classification and SMF responsibility |
 |---|---|---|
 | `admit-create-sm-context-request` | §4.3.2.2.1 step 3 — AMF → SMF `Nsmf_PDUSession_CreateSMContext Request` | `CA_EXTENSION`: validate admitted invocation, identity and lifecycle. |
-| `get-sm-subscription-data` | step 4 — `Nudm_SDM_Get` | `3GPP_NATIVE`: retrieve Session Management Subscription data. Tool ID remains the exact Owner export and is mapped in the implementation record. |
-| `validate-and-select-session-configuration` | step 4 subscription validity; step 8 SMF session/UPF selection | `CA_ADAPTER`: local validation/selection; not a separate SBI service operation. |
-| `ca-bind-udm-subscription-hold` | supports step 4 | `CA_EXTENSION`: Host/Owner correlation and hold preparation; no direct 3GPP operation. |
-| `subscribe-sm-data` | step 4 — `Nudm_SDM_Subscribe` | `3GPP_NATIVE`: subscribe to Session Management Subscription updates. |
-| `ca-bind-pcf-policy-hold` | supports step 7b | `CA_EXTENSION`: Host/Owner hold preparation. |
-| `ca-read-pcf-create-inputs` | supports step 7b | `CA_ADAPTER`: read and validate governed PCF create inputs. |
-| `ca-build-sm-policy-association-inputs` | step 7b | `CA_ADAPTER`: local construction of the PCF request payload. |
-| `establish-sm-policy-association` | step 7b — `Npcf_SMPolicyControl_Create` | `3GPP_NATIVE`: establish the SM Policy Association. |
-| `establish-n4-session` | steps 10a–10b; §4.4.1.2 N4 Session Establishment | `CA_ADAPTER`: UPN Owner completes N4 establishment; it is not a 3GPP SBI operation. |
-| `ca-read-sm-operation-context` | supports step 11 | `CA_EXTENSION`: Host/SMF context preparation. |
-| `ca-prepare-pdu-session-establishment-accept` | step 11 N1 SM container — PDU Session Establishment Accept | `CA_ADAPTER`: prepare the N1 SM payload. |
-| `ca-build-n1n2-message` | step 11 N1 SM / N2 SM information | `CA_ADAPTER`: build the N1/N2 transfer payload. |
-| `ca-bind-n1n2-transfer-hold` | supports step 11 | `CA_EXTENSION`: Host/Owner correlation and hold preparation. |
-| `transfer-n1n2-message` | step 11 — `Namf_Communication_N1N2MessageTransfer` | `3GPP_NATIVE`: SMF transfers N1/N2 information to AMF. ACK does not prove RAN acceptance. |
+| `get-sm-subscription-data` | step 4 — `Nudm_SDM_Get` | `3GPP_NATIVE`: retrieve Session Management Subscription data. |
+| `subscribe-sm-data` | step 4 — `Nudm_SDM_Subscribe` | `3GPP_NATIVE`: subscribe to Session Management Subscription updates; Owner adapter internally binds and claims the exact original request. |
+| `build-sm-policy-association-inputs` | step 7b — SMF local construction of the PCF policy request from the validated subscription | `3GPP_LOCAL`: pure Script data transformation; no external call and no Capability. |
+| `establish-sm-policy-association` | step 7b — `Npcf_SMPolicyControl_Create` | `3GPP_NATIVE`: establish the SM Policy Association. Owner adapter internally resolves PCF request inputs and enforces pre-dispatch governance. |
+| `select-session-configuration` | step 8 — SMF local session-configuration selection (including the admitted SSC Mode / PDU Session Type profile) | `3GPP_LOCAL`: pure Script selection; no SBI operation and no Capability. |
+| `establish-n4-session` | steps 10a–10b; §4.4.1.2 N4 Session Establishment | `CA_ADAPTER`: UPN Owner completes N4 establishment; the callable is not a 3GPP SBI operation. |
+| `transfer-n1n2-message` | step 11 — `Namf_Communication_N1N2MessageTransfer` | `3GPP_NATIVE`: SMF transfers N1/N2 information to AMF. The adapter prepares the response and binds the exact request internally; ACK does not prove RAN acceptance. |
 | `complete-an-resource-setup` | steps 12–15; step 15 is `Nsmf_PDUSession_UpdateSMContext Request` | `CA_ADAPTER`: SSM wraps the asynchronous access-network completion. AMF/(R)AN/UE own steps 12–14; the SMF receives the result through step 15. |
 | `modify-n4-session` | steps 16a–16b; §4.4.1.3 N4 Session Modification | `CA_ADAPTER`: UPN Owner completes forwarding modification. |
 | `ca-transfer-resource-responsibility` | CA lifecycle handoff after successful network procedure | `CA_EXTENSION`: no direct 3GPP procedure counterpart. |
@@ -48,7 +50,7 @@ Step 9 (SMF-initiated SM Policy Association Modification) is conditional and mus
 
 ### Capability mapping
 
-The following are illustrative IDs only; they are **not** published CapabilityContracts exports:
+The following are illustrative IDs only; they are **not** published CapabilityContracts exports. Procedure Scripts and Runtime-internal coordination are deliberately absent from this list.
 
 | Capability placeholder | Standard / CA scope |
 |---|---|
@@ -57,6 +59,7 @@ The following are illustrative IDs only; they are **not** published CapabilityCo
 | `urn:example:connectionagent:capability:3gpp:npcf-sm-policy-control-create:v1` | PCF `Npcf_SMPolicyControl_Create` |
 | `urn:example:connectionagent:capability:3gpp:n4-session-establishment:v1` | UPF N4 Session Establishment |
 | `urn:example:connectionagent:capability:3gpp:namf-communication-n1n2-transfer:v1` | AMF `Namf_Communication_N1N2MessageTransfer` |
+| `urn:example:connectionagent:capability:ca:ssm-access-network-completion:v1` | SSM adapter for SMF-side access-network completion / Step 15 result |
 | `urn:example:connectionagent:capability:3gpp:n4-session-modification:v1` | UPF N4 Session Modification |
 | `urn:example:connectionagent:capability:ca:resource-responsibility:v1` | CA resource lifecycle handoff |
 
@@ -64,7 +67,11 @@ The exact IDs must be replaced only by matching trusted CapabilityContracts expo
 
 ## Runtime and evidence boundary
 
-**No author-level wait/await/poll.** The candidate `holdRef` arguments are opaque Owner correlation handles, not Wait/Poll Nodes; their exact v1alpha4 schemas remain unpublished. Asynchronous setup completion belongs to the corresponding Tool/Provider/SMF Operation, which may report SUCCEEDED only when its published Owner contract and authoritative Result/Evidence support the required completion. The Procedure's Postcondition verifies that evidence. The legacy callables do **not** yet make those v1alpha4 guarantees; do not treat an old HTTP or N1/N2 dispatch ACK as completed N4/RAN establishment. Host/Runtime retains Deadline, Cancellation and Correlation.
+**No author-level Wait/Await/Poll, Hold, Claim, waiter, Journal or Reconcile.** These are Host/Runtime/Owner-adapter responsibilities, not Skill business steps. The Procedure MUST NOT expose `holdRef`, `waiterRef`, `claimRef` or `journalRef` as arguments or outputs. The responsible adapter resolves exact correlation from trusted Invocation Context and Owner state, preserves UE/Session/ingress/lifecycle/current-instance binding, claims once, sends once, records the original operation and reconciles only that exact operation. If the Owner cannot prove these guarantees, linking must fail closed.
+
+The PCF Create adapter must internally verify the exact held PCF request, pre-N4 baseline, lifecycle isolation and absence of a competing forwarded Create before dispatch. The AMF N1/N2 transfer adapter must internally resolve the exact held request, validate delivery context and response artifact, and only then claim and dispatch. These are mandatory Owner pre-dispatch guarantees, not author Nodes or extra Capability grants.
+
+Asynchronous access-network completion belongs to the SSM Owner Operation. It may report success only when its published contract and authoritative Result/Evidence prove the relevant SMF-side completion; an AMF transfer acknowledgement alone never proves RAN adoption or N4 forwarding readiness.
 
 Every Mutation `OUTCOME_UNKNOWN` goes to an explicit safe stop. An Owner-published `mutation.reconcile` can be used **only through the Host common safety boundary**, not an authored `reconcile` Node. The only successful Invocation edge is `verify-pdu-session-establishment.postcondition.routes.PASS: SUCCEEDED`, where all listed predicates must pass with authoritative, fresh, same-lifecycle Evidence.
 
