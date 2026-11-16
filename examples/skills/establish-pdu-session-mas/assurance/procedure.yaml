@@ -1,5 +1,8 @@
 # v1alpha4 MAS policy-first DAG. Tool/Owner exports are NOT YET PUBLISHED.
 # Host, not author Nodes, performs trusted mutation.reconcile when available.
+# Host also owns ingress admission, invocation identity and lifecycle/correlation.
+# The Agent queries only SMF-owned MAS context when an explicit Observation is needed;
+# non-SMF context required by an Operation remains inside the responsible Tool.
 start: admit-create-sm-context-request
 nodes:
   # 3GPP: CA_EXTENSION — entry/admission for TS 23.502 V18.12.0 §4.3.2.2.1 step 3 (AMF → SMF CreateSMContext Request).
@@ -11,9 +14,6 @@ nodes:
             - context.request.requestType
             - context.request.requestedPduSessionType
             - context.request.requestedSscMode
-        - predicate: establishment.mas.eligible
-          arguments:
-            - context.entryEligibility
       routes:
         PASS: validate-sm-subscription
         FAIL: FAILED
@@ -24,8 +24,6 @@ nodes:
       tool: mas::ca.pdu_session.subscription.validate
       arguments:
         ueRef: context.ueRef
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
         pduSessionId: context.request.pduSessionId
         pti: context.request.pti
         requestType: context.request.requestType
@@ -55,8 +53,6 @@ nodes:
       tool: mas::ca.pdu_session.secondary_auth.disposition
       arguments:
         ueRef: context.ueRef
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
         pduSessionId: context.request.pduSessionId
         pti: context.request.pti
         requestType: context.request.requestType
@@ -88,8 +84,6 @@ nodes:
       tool: mas::ca.pdu_session.context.create
       arguments:
         ueRef: context.ueRef
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
         pduSessionId: context.request.pduSessionId
         pti: context.request.pti
         requestType: context.request.requestType
@@ -122,8 +116,6 @@ nodes:
       tool: mas::ca.pdu_session.uecm.register
       arguments:
         ueRef: context.ueRef
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
         pduSessionId: context.request.pduSessionId
         pti: context.request.pti
         requestType: context.request.requestType
@@ -155,8 +147,6 @@ nodes:
       tool: mas::ca.pdu_session.policy.create
       arguments:
         ueRef: context.ueRef
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
         pduSessionId: context.request.pduSessionId
         pti: context.request.pti
         requestType: context.request.requestType
@@ -189,8 +179,6 @@ nodes:
       tool: mas::ca.pdu_session.anchor.select
       arguments:
         ueRef: context.ueRef
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
         pduSessionId: context.request.pduSessionId
         pti: context.request.pti
         requestType: context.request.requestType
@@ -221,8 +209,6 @@ nodes:
       tool: mas::ca.pdu_session.address.allocate
       arguments:
         ueRef: context.ueRef
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
         pduSessionId: context.request.pduSessionId
         pti: context.request.pti
         requestType: context.request.requestType
@@ -255,8 +241,6 @@ nodes:
       tool: mas::ca.pdu_session.policy.update
       arguments:
         ueRef: context.ueRef
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
         pduSessionId: context.request.pduSessionId
         pti: context.request.pti
         requestType: context.request.requestType
@@ -292,8 +276,6 @@ nodes:
       tool: mas::ca.pdu_session.charging.create
       arguments:
         ueRef: context.ueRef
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
         pduSessionId: context.request.pduSessionId
         pti: context.request.pti
         requestType: context.request.requestType
@@ -325,8 +307,6 @@ nodes:
       tool: mas::ca.pdu_session.user_plane.establish
       arguments:
         ueRef: context.ueRef
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
         pduSessionId: context.request.pduSessionId
         pti: context.request.pti
         requestType: context.request.requestType
@@ -362,8 +342,6 @@ nodes:
       tool: mas::ca.pdu_session.address.confirm
       arguments:
         ueRef: context.ueRef
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
         pduSessionId: context.request.pduSessionId
         pti: context.request.pti
         requestType: context.request.requestType
@@ -396,8 +374,6 @@ nodes:
       tool: mas::ca.pdu_session.access.signal
       arguments:
         ueRef: context.ueRef
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
         pduSessionId: context.request.pduSessionId
         pti: context.request.pti
         requestType: context.request.requestType
@@ -433,8 +409,6 @@ nodes:
       tool: mas::ca.pdu_session.user_plane.activate
       arguments:
         ueRef: context.ueRef
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
         pduSessionId: context.request.pduSessionId
         pti: context.request.pti
         requestType: context.request.requestType
@@ -469,8 +443,6 @@ nodes:
       tool: mas::ca.pdu_session.events.emit
       arguments:
         ueRef: context.ueRef
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
         pduSessionId: context.request.pduSessionId
         pti: context.request.pti
         requestType: context.request.requestType
@@ -504,8 +476,6 @@ nodes:
       tool: mas::ca.pdu_session.resources.finalize
       arguments:
         ueRef: context.ueRef
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
         pduSessionId: context.request.pduSessionId
         pti: context.request.pti
         requestType: context.request.requestType
@@ -539,8 +509,6 @@ nodes:
       tool: mas::ca.pdu_session.resources.ca-compensate-confirmed-failure
       arguments:
         ueRef: context.ueRef
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
         pduSessionId: context.request.pduSessionId
         pti: context.request.pti
         requestType: context.request.requestType
