@@ -87,7 +87,7 @@ The following entries are one-to-one *traceability* rows, not converted fixtures
 
 ## 2026-11-16 Host context and SMF MAS contract boundary
 
-The Host Package IDs are reserved in the contract proposal, but neither package is published or trusted:
+The Host Subject Context and client-tools Package IDs are reserved in the contract proposal, but neither package is published or trusted:
 - `ca-context` → `urn:connectionagent:ca:host-context` (subject-only `ueRef` projection);
 - `smf-mas-observations` → `urn:connectionagent:ca:5gc:smf-mas-observations` (eight SMF MAS Observation callable/schema exports owned by `ca-5gc-client-tools`).
 
