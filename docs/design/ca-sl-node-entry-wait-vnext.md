@@ -144,8 +144,8 @@ A valid request payload is not automatically Evidence that the requested network
 The future SourcePath grammar adds Wait as a typed Producer source:
 
 ```ebnf
-ProducerOutputPath = NodeId, ".", ProducerStage, ".output", { ".", Identifier } ;
-ProducerStage      = "operation" | "observation" | "wait" ;
+ProducerOutputPath = NodeId, ".", ProducerSource, ".output", { ".", Identifier } ;
+ProducerSource     = "operation" | "observation" | "wait" ;
 ```
 
 Examples:
