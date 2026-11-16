@@ -35,6 +35,8 @@ This record distinguishes **authoring design choices** in the PR from **unapprov
 
 ## 2026-11-16 OpenAMSM MAS operation alignment
 
+The cross-repository implementation boundary and DeepSeek Harness handoff are recorded in [ca-agent-demo: DeepSeek Handoff — 5GC Context and OpenAMSM MAS](https://github.com/odango-chan/ca-agent-demo/blob/docs/5gc-agent-context-boundary-20261116/docs/DEEPSEEK-HANDOFF-5GC-MAS-20261116.md).
+
 The current `establish-pdu-session-mas` Procedure has been rewritten against the imported OpenAMSM NW Agent OES plan, rather than the earlier hand-invented `mas::ca.pdu_session.*` surface. The source mapping records the exact OES operations and output fields, including the absence of `stateRef`, the `up_anchor` / `ue_addr` marker semantics, the optional local-pool address-confirmation step, the SAA hard-coded skip, the charging stub, local SE event recording and Host-owned compensation boundary.
 
 The current OpenAMSM source has `CA.CREATE_CHARGING` implemented as `NOT_IMPL_skip` and returns `charging_ref="1"`. The Skill deliberately refuses to treat this as a charging reservation; its charging Predicate requires a real reference and trusted Evidence. Therefore the current source cannot produce a qualified successful MAS Skill run. The legacy secondary-auth-required Case is also unsupported by the plan's fixed `secondary_auth_required='0'` input.
