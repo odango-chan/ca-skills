@@ -45,8 +45,8 @@ nodes:
         FAIL: FAILED
         UNKNOWN: UNRESOLVED
 
-  # 3GPP: 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 4; SMF → UDM Nudm_SDM_Subscribe.
   # The Owner adapter resolves and claims the exact original UDM request internally.
+  # 3GPP: 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 4; SMF → UDM Nudm_SDM_Subscribe.
   subscribe-sm-data:
     operation:
       tool: ca::sbi.udm.sdm_subscription.create
@@ -69,8 +69,8 @@ nodes:
         FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
 
-  # 3GPP: 3GPP_LOCAL — TS 23.502 V18.12.0 §4.3.2.2.1 step 7b; local construction of SM Policy Association request inputs.
   # Pure Script Operation; no external Tool, Capability or network side effect.
+  # 3GPP: 3GPP_LOCAL — TS 23.502 V18.12.0 §4.3.2.2.1 step 7b; local construction of SM Policy Association request inputs.
   build-sm-policy-association-inputs:
     operation:
       script: scripts/build-pcf-policy-inputs.py
@@ -80,9 +80,9 @@ nodes:
         SUCCEEDED: establish-sm-policy-association
         FAILED: FAILED
 
-  # 3GPP: 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 7b; Npcf_SMPolicyControl_Create / SM Policy Association Establishment.
   # The Owner adapter internally resolves PCF request inputs and enforces exact hold,
   # pre-N4 baseline, lifecycle isolation and competing-create guards before dispatch.
+  # 3GPP: 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 7b; Npcf_SMPolicyControl_Create / SM Policy Association Establishment.
   establish-sm-policy-association:
     operation:
       tool: ca::sbi.pcf.sm_policy.create
@@ -105,9 +105,9 @@ nodes:
         FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
 
-  # 3GPP: 3GPP_LOCAL — TS 23.502 V18.12.0 §4.3.2.2.1 step 8; SMF local session-configuration selection.
   # Select the admitted PDU Session Type / SSC Mode before N4 establishment.
   # Pure Script Operation; it is not a separate SBI operation or Capability.
+  # 3GPP: 3GPP_LOCAL — TS 23.502 V18.12.0 §4.3.2.2.1 step 8; SMF local session-configuration selection.
   select-session-configuration:
     operation:
       script: scripts/select-establishment-configuration.py
@@ -121,8 +121,8 @@ nodes:
         SUCCEEDED: establish-n4-session
         FAILED: FAILED
 
-  # 3GPP: CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 10a–10b and §4.4.1.2; N4 Session Establishment Request/Response.
   # UPN is an internal Owner adapter, not a 3GPP API name.
+  # 3GPP: CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 10a–10b and §4.4.1.2; N4 Session Establishment Request/Response.
   establish-n4-session:
     operation:
       tool: upn::UPN.CREATE_UP_SESSION
@@ -146,9 +146,9 @@ nodes:
         FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
 
-  # 3GPP: 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 11; SMF → AMF Namf_Communication_N1N2MessageTransfer.
   # The Owner adapter internally resolves the exact N1/N2 request, prepares the response
   # artifact and payload, performs pre-dispatch checks, claims once and sends once.
+  # 3GPP: 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 11; SMF → AMF Namf_Communication_N1N2MessageTransfer.
   transfer-n1n2-message:
     operation:
       tool: ca::sbi.amf.n1n2.transfer
@@ -174,9 +174,9 @@ nodes:
         FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
 
-  # 3GPP: CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 12–15.
   # AMF/(R)AN/UE perform steps 12–14; the SMF receives the access-network result
   # through step 15 Nsmf_PDUSession_UpdateSMContext Request. SSM is not a standard API.
+  # 3GPP: CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 12–15.
   complete-an-resource-setup:
     operation:
       tool: ssm::SSM.SIGNAL_UE_AN
