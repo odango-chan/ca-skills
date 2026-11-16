@@ -1,9 +1,8 @@
-# CA-SL v1alpha4 ordered Predicate signatures. All ca::urn:example Schema IDs
-# and ca:: guarantees below are UNPUBLISHED until their actual Owner releases them.
+# CA-SL v1alpha4 ordered Predicate signatures.
+# All urn:example Schema IDs and Evidence guarantees below are UNPUBLISHED until their actual Owner releases them.
 # Host admission, invocation/lifecycle correlation and hold/journal state are not Skill business Predicates.
 # This file contains business predicates over the request, declared Operation Results/Evidence,
-# and explicit read-only SMF session-context Observations.
-# Linking must fail closed; matching old v0.2 names does not grant provenance.
+# and explicit read-only SMF session-context Observations. Linking must fail closed.
 predicates:
   establishment.request.supported:
     parameters:
@@ -16,7 +15,7 @@ predicates:
 
   establishment.udm.subscription_owned:
     parameters:
-      - subscription: ca::urn:example:5gc:udm-subscription-resource:v1
+      - subscription: ca::urn:example:5gc:udm-subscription-result:v1
     evidence:
       requires:
         subscription: [ca::udm.subscription-owned]
@@ -27,14 +26,12 @@ predicates:
         subscription.ownership == "AGENT" &&
         subscription.managementState == "DURABLE"
 
-  # The Owner's association-owned Evidence must bind the created association to this
-  # exact Skill occurrence, UE/PSI, request, UDM read result and SDM subscription.
-  # It also attests that internally derived inputs passed hold, pre-N4 baseline,
-  # lifecycle-isolation and competing-create checks before the single PCF Create.
-  # No PCF input-readiness or governance intermediate is exposed as a Skill Predicate.
+  # The PCF Owner attests that Step 6 secondary authentication is not required and
+  # that the PCF response contains no Step 9 modification trigger for this fixed profile.
+  # It returns normalized policy data; association handles remain private to the Owner.
   establishment.pcf.association_owned:
     parameters:
-      - association: ca::urn:example:5gc:pcf-association-resource:v1
+      - association: ca::urn:example:5gc:pcf-association-result:v1
     evidence:
       requires:
         association: [ca::pcf.association-owned]
@@ -44,25 +41,28 @@ predicates:
         association.creationState == "CREATED" &&
         association.ownership == "AGENT" &&
         association.managementState == "DURABLE" &&
-        association.policyAssociationRef != ""
+        association.policyResult.resultDigest != "" &&
+        association.profile.secondaryAuthenticationRequired == false &&
+        association.profile.step9ModificationRequired == false
 
   establishment.amf.transfer_initiated:
     parameters:
       - response: ca::urn:example:5gc:amf-transfer-initiation:v1
+      - initialN4Result: smf::urn:example:smf:n4-session-establishment-result:v1
     evidence:
       requires:
         response: [ca::amf.transfer-initiated]
     evaluator:
       type: cel
-      # This confirms initiation ONLY; never proves RAN adoption/N4 state.
-      # Owner MUST provide a 3-state classification for 202/buffered/ambiguous
-      # responses before this predicate can link as production admission.
+      # This confirms initiation ONLY and binds the payload to the exact N4 result.
+      # It never proves RAN adoption or N4 forwarding state.
       expression: >-
         response.networkOutcome == "HTTP_RESPONSE" &&
         response.responseOrigin == "TARGET_SERVICE_VIA_SCP" &&
         response.captureComplete == true &&
         response.httpStatus == 200 &&
-        response.cause == "N1_N2_TRANSFER_INITIATED"
+        response.cause == "N1_N2_TRANSFER_INITIATED" &&
+        response.sessionConfigurationDigest == initialN4Result.sessionConfigurationDigest
 
   establishment.udm.response_valid:
     parameters:
@@ -79,8 +79,7 @@ predicates:
         receipt.result.responseOrigin == "TARGET_SERVICE_VIA_SCP" &&
         receipt.result.captureComplete == true
 
-  # The UDM Owner Evidence must bind this result to the exact UE/DNN/S-NSSAI/
-  # serving-PLMN query. This Predicate checks request compatibility with the profile.
+  # The UDM Owner Evidence binds this result to the exact UE/DNN/S-NSSAI/serving-PLMN query.
   establishment.subscription.request_valid:
     parameters:
       - receipt: ca::urn:example:5gc:udm-read-receipt:v1
@@ -95,9 +94,8 @@ predicates:
       type: script
       script: scripts/validate-subscription-request.py
 
-  # Entry decision: a confirmed 404 SESSION_NOT_FOUND is ABSENT and may select the
-  # initial-creation path. PRESENT (including projection UNAVAILABLE) is not ABSENT.
-  # Missing evidence or an indeterminate query is UNKNOWN, never permission to create.
+  # Entry decision: only an evidenced 404 SESSION_NOT_FOUND is ABSENT.
+  # PRESENT (including projection UNAVAILABLE) is not permission to create.
   establishment.smf.session_context_absent:
     parameters:
       - sessionContext: ca-session-context::urn:connectionagent:ca:observation:smf-session-context-read-result:v1
@@ -108,9 +106,7 @@ predicates:
       type: script
       script: scripts/validate-smf-session-context-entry.py
 
-  # Validate the current SMF session profile before N4 forwarding modification.
-  # Missing/unavailable source Evidence is UNKNOWN; mismatched or unsupported business
-  # facts fail this admitted initial-session profile.
+  # Validate current SMF-owned facts after Step 15 and before N4 Modification.
   establishment.smf.session_context_profile_ready:
     parameters:
       - sessionContext: ca-session-context::urn:connectionagent:ca:observation:smf-session-context-read-result:v1
@@ -125,23 +121,33 @@ predicates:
 
   establishment.n4.initial_resources_ready:
     parameters:
-      - resources: ca::urn:example:5gc:n4-initial-resources:v1
+      - resources: smf::urn:example:smf:n4-session-establishment-result:v1
+      - requestedDnn: string
+      - requestedSst: integer
+      - requestedPduSessionType: string
+      - requestedSscMode: integer
     evidence:
       requires:
-        resources: [ca::n4.initial-resources-ready]
+        resources: [smf::n4.initial-resources-ready]
     evaluator:
       type: cel
       expression: >-
         resources.bindingStatus == "CURRENT" &&
         resources.defaultFlowInstalled == true &&
-        resources.uplinkEndpointBound == true
+        resources.uplinkEndpointBound == true &&
+        resources.allocatedIpv4 != "" &&
+        resources.selectedDnn == requestedDnn &&
+        resources.selectedSst == requestedSst &&
+        resources.selectedPduSessionType == requestedPduSessionType &&
+        resources.selectedSscMode == requestedSscMode &&
+        resources.sessionConfigurationDigest != ""
 
   establishment.ran.adopted:
     parameters:
-      - network: ca::urn:example:5gc:ran-adoption:v1
+      - network: smf::urn:example:smf:nsmf-update-sm-context-result:v1
     evidence:
       requires:
-        network: [ca::ran.setup-adopted]
+        network: [smf::nsmf.ran-adopted]
     evaluator:
       type: cel
       expression: >-
@@ -152,27 +158,34 @@ predicates:
 
   establishment.n4.forwarding_ready:
     parameters:
-      - network: ca::urn:example:5gc:n4-forwarding:v1
+      - network: smf::urn:example:smf:n4-session-modification-result:v1
+      - initialN4Result: smf::urn:example:smf:n4-session-establishment-result:v1
+      - ranResult: smf::urn:example:smf:nsmf-update-sm-context-result:v1
     evidence:
       requires:
-        network: [ca::n4.forwarding-ready]
+        network: [smf::n4.forwarding-ready]
     evaluator:
       type: cel
       expression: >-
         network.bindingStatus == "CURRENT" &&
         network.requiredFlowMatched == true &&
         network.downlinkTunnelMatched == true &&
-        network.gatesAllowForwarding == true
+        network.gatesAllowForwarding == true &&
+        network.sessionConfigurationDigest == initialN4Result.sessionConfigurationDigest &&
+        network.ranResultDigest == ranResult.resultDigest
 
-  establishment.resources.managed:
+  establishment.udm.uecm_registration_satisfied:
     parameters:
-      - responsibility: ca::urn:example:5gc:resource-responsibility:v1
+      - registration: ca::urn:example:5gc:udm-uecm-registration-result:v1
+      - supi: string
+      - pduSessionId: integer
     evidence:
       requires:
-        responsibility: [ca::resources.durably-managed]
+        registration: [ca::udm.uecm-registration]
     evaluator:
       type: cel
       expression: >-
-        responsibility.managementState == "ACCEPTED" &&
-        responsibility.allResourcesCovered == true &&
-        responsibility.pendingResponsibilitiesRetained == true
+        registration.registrationState in ["REGISTERED", "ALREADY_REGISTERED"] &&
+        registration.supi == supi &&
+        registration.pduSessionId == pduSessionId &&
+        registration.managementState == "DURABLE"
