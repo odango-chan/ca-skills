@@ -15,7 +15,7 @@ This is not a request for a second graph, a fifth business stage, or a polling l
 
 ## 2. Core decision
 
-**Wait is an optional Node-entry control. It is not a Node and is not a business stage.**
+**Wait is an optional Node-entry control. It is not a Node kind and is not a business stage.**
 
 A Node may contain:
 
@@ -25,9 +25,15 @@ A Node may contain:
 
 The four business stages retain their current meanings and ordering. Wait is evaluated before the first declared business stage. When the expected event is accepted, the Runtime enters that first stage. If the event does not arrive before the deadline, the Wait control outcome is routed through `wait.routes`.
 
-A Wait Node is still a business Node: it must contain at least one of the existing business stages. Wait-only Nodes are not introduced. An Operation is not mandatory merely because a Node has Wait; the author declares the business stages actually needed after the event. Where the inbound request is processed by an existing logical Operation, put the Wait on that Operation's target Node rather than creating a synthetic receive Operation.
+A Node with Wait is still a business Node: it must contain at least one of the existing business stages. Wait-only Nodes are not introduced. An Operation is not mandatory merely because a Node has Wait; the author declares the business stages actually needed after the event. In the 5GC Step 15 case, the target Node contains the logical SMF Operation that processes the received UpdateSMContext request. A supplementary Observation, if needed, remains after that Operation and before the same Node's Postcondition.
 
-This preserves the v1alpha4 concepts of `start`, `nodes`, the four stages, explicit `arguments`, and a single static Procedure Graph.
+This preserves `start`, `nodes`, the four business stages, explicit arguments and one static Procedure Graph.
+
+### 2.1 Event Wait is not Runtime Evidence Wait
+
+The existing Generic Agent Host's `BoundedEvidenceWaiter` is an Observation-based bounded acquisition loop: it repeatedly asks an ObservationSource for a declared fact under freshness, scope, correlation, deadline and observation-budget controls. That mechanism is not an inbound-event listener and MUST NOT be repurposed to poll for an AMF request.
+
+The proposed Event Wait is push-driven ingress plus continuation of an existing Run. It does not call an ObservationSource, does not create Evidence, and does not turn message arrival into a Predicate verdict. The two mechanisms may share generic deadline/cancellation utilities, but their data source, lifecycle, result and proof semantics remain distinct.
 
 ## 3. Author syntax
 
@@ -81,19 +87,21 @@ nodes:
 
 The callable IDs above are placeholders, not claims that corresponding Owner exports have been published. The `request` argument is illustrative; actual Operation argument names and paths must match the linked Owner Input Schema. The example does not define a new 3GPP API or change the semantics of Step 15.
 
-### 3.1 Wait fields
+### 3.1 Wait fields and event identity
 
 The proposed Wait shape is:
 
-- `event`: exact inbound interface identity, using canonical NF/service/operation names;
-- `timeout`: required maximum active waiting duration;
+- `event`: exact inbound interface identity, using canonical source NF type, service name and service-operation name;
+- `timeout`: required maximum time the activated Node may wait for that event;
 - `routes`: required timeout route mapping.
 
-The event identity is not an arbitrary event label. For the 5GC example it identifies the AMF-originated `Nsmf_PDUSession.UpdateSMContext` request. The exact API version and request contract are pinned by the trusted dependency/Host ingress contract, not guessed from a name or selected dynamically at runtime.
+`event.source` means the authenticated peer NF type, not an untrusted body field. The event identity is not an arbitrary label. For the 5GC example it identifies the AMF-originated `Nsmf_PDUSession.UpdateSMContext` service operation. The exact API artifact, API version, OpenAPI operation, media types and request Schema are pinned by the declared Integration dependency; they are not guessed from a name or negotiated dynamically at runtime.
+
+The event selector does not itself identify a Run. A trusted Integration ingress contract must provide a deterministic correlation binding from the protocol request to exactly one armed Wait occurrence. That binding is Integration-owned and Host-private; Skill source does not declare `ueRef`, callback tokens, operation handles or correlation keys. If the binding cannot produce one unique match, the event is rejected or quarantined rather than assigned to the newest or most convenient Run.
 
 ### 3.2 One route model, one scoped outcome
 
-There is no `onTimeout` field. The timeout route uses the existing `routes` shape and the existing route-target rules:
+There is no `onTimeout` field. The timeout route uses the existing `routes` shape and route-target rules:
 
 ```yaml
 wait:
@@ -116,9 +124,9 @@ If the timeout needs business-state inspection or resource handling, route to a 
 
 ## 4. Schema ownership and unification
 
-**Do not add `payloadSchema` to Skill-authored Wait.** Do not add an independent EventCatalog solely to support Wait.
+**Do not add `payloadSchema` to Skill-authored Wait. Do not add a global or author-facing EventCatalog.**
 
-CA-SL already has a consistent Schema ownership model:
+CA-SL already has a consistent Schema ownership model. The inbound event follows the same trusted dependency/export principle, but its contract is owned by the Integration that implements the protocol ingress:
 
 | Data producer / consumer | Schema authority | Skill-side binding |
 |---|---|---|
@@ -127,15 +135,22 @@ CA-SL already has a consistent Schema ownership model:
 | Predicate | Skill PredicateSet: declared `parameters` | `predicates[].arguments` |
 | Invocation Host Context | Trusted Host Context Schema | `context.xxx` |
 | Skill Request | Skill-owned `requestSchema` | `context.request.xxx` |
-| Inbound Wait message | Trusted 3GPP API request contract, resolved through the Host's published ingress contract | `node.wait.output` |
+| Inbound Wait event | Trusted Integration Ingress Operation export in a declared dependency snapshot | `node.wait.event`; `node.wait.output` is typed by its normalized request Schema |
 
-The Skill identifies the inbound interface operation; it does not restate the request-body Schema. The exact request Schema is resolved from the trusted, version-pinned 3GPP API contract exposed through the Host's public ingress contract. That contract binds the canonical source NF, service operation and API version to one request-body Schema. It is a Host/interface contract, not a new author-facing EventCatalog and not a per-Skill Schema declaration.
+The Integration package publishes an exact Ingress Operation contract as one of its trusted exports. This is not a second global catalog. At minimum, the export binds:
 
-The Host ingress contract must make this binding deterministic. If the interface identity has no trusted request Schema, resolves to more than one Schema, uses an unsupported Schema dialect, or cannot be linked to the selected dependency snapshot, compilation/admission fails closed. The compiler must not select a similarly named Schema or infer one from the inbound JSON.
+- canonical peer/source NF type, 3GPP service name and service-operation name;
+- exact source specification and OpenAPI artifact identity/digest, API URI version, HTTP method, path template and OpenAPI `operationId`;
+- accepted wire media types and their source request Schema references;
+- a normalized request Schema in the CA-SL supported JSON Schema subset, plus the traceable normalization mapping;
+- the deterministic correlation rule used both when arming a Wait and when receiving the inbound request;
+- the paired response contract and the protocol-specific response obligation lifecycle.
 
-For CA-SL static typing, the trusted request-body Schema must be available in the supported Schema dialect (currently JSON Schema Draft 2020-12 under the language's supported subset). If the source 3GPP OpenAPI artifact needs normalization to that subset, the normalized Schema is a trusted Host/dependency export and must retain traceability to the exact API operation and version. The Skill does not own or copy that normalized Schema.
+The Skill identifies the inbound interface operation; it does not restate the request Schema. The Compiler resolves the event selector against exact Ingress Operation exports in the Skill's declared, version-pinned dependency snapshots. Resolution must produce exactly one export. Zero matches, multiple matches, unsupported Schema dialects, digest mismatch or missing correlation/response bindings fail closed. The Compiler must not choose a similarly named Schema or infer a contract from an inbound JSON body.
 
-The Host validates the authenticated inbound request against this Schema before exposing it. `wait.output` is the validated, normalized request-body object—not a transport envelope. Headers, callback tokens, Host correlation keys, ingress/lifecycle references and other Host-private metadata remain private and are not implicitly included.
+The Integration ingress adapter owns protocol-specific source authentication, wire parsing, validation and normalization. The Generic Host consumes the adapter's normalized delivery and verifies its trusted contract identity; it does not parse 3GPP paths, media types or NF authentication. The Runtime uses the normalized request Schema for ordinary typed Producer/Consumer checking.
+
+If an OpenAPI request uses multipart media types or binary parts, the Integration contract must define their normalized representation. Binary parts may be represented by typed, immutable content references only when the Integration contract publishes and authorizes that representation. Unsupported parts MUST NOT be silently dropped or guessed. The Skill does not copy the source OpenAPI Schema or the normalized Schema into its own package.
 
 A valid request payload is not automatically Evidence that the requested network action succeeded. It is typed input data for the target Node. Business facts and final Goal still require the existing Owner Output/Evidence and Predicate rules.
 
@@ -151,10 +166,10 @@ ProducerSource     = "operation" | "observation" | "wait" ;
 Examples:
 
 - `update-sm-context.wait.output`
-- `update-sm-context.wait.output.n2SmInfo` (only if that property exists in the trusted request Schema)
-- `update-sm-context.wait.output.ueEpsPdnConnection` (only if that property exists in the trusted request Schema)
+- `update-sm-context.wait.output.smContextRef` (only if the Integration's normalized request Schema exports that property)
+- `update-sm-context.wait.output.n2SmInfo` (only if that property exists in the normalized request Schema)
 
-The exact field names are determined by the pinned API request Schema; these examples do not assert particular fields are required by every profile.
+`wait.output` is the Integration contract's normalized request value. It is not necessarily the raw HTTP body: it may include path/query parameters and normalized body parts when the contract declares them. A protocol resource identifier such as `smContextRef` is not Host-private merely because it appears in a URL path; if the target business Operation needs it, the Integration contract must expose it in the normalized request. If it is used only for private correlation, it may remain private. The contract decides this explicitly.
 
 The Wait output becomes available only after the Host has accepted and correlated the event for this Wait occurrence. It may be consumed by:
 
@@ -164,54 +179,77 @@ The Wait output becomes available only after the Host has accepted and correlate
 
 It is unavailable on the timeout branch and before event acceptance. Compiler path analysis must reject any reference that is not available on every path reaching the consumer. A timeout handler must not read the timed-out Wait's `wait.output`.
 
-The Wait output is an explicit Producer value. It is not injected into global Context, is not an Operation Result, is not an Observation Result, and does not replace Evidence.
+The Wait output is an explicit Producer value. It is not injected into global Context, is not an Operation Result, is not an Observation Result, and does not replace Evidence. Host correlation keys, transport headers, response handles, ingress references and lifecycle/invocation metadata are not part of `wait.output` unless a separate public protocol contract explicitly defines a field as business input.
 
 ## 6. Execution and Host/Runtime responsibilities
 
 ### 6.1 Registration and activation
 
-To avoid losing an event that arrives immediately after a triggering outbound Operation, Host/Runtime must arm the expected target Wait before dispatching the predecessor Operation that can cause the inbound request.
+To avoid losing an event that arrives immediately after a triggering outbound Operation, the exact target Wait occurrence must be registered before the predecessor Operation is dispatched.
 
-Arming is registration only:
+Registration is not activation:
 
 - it does not enter the target Node;
 - it does not start the Wait timeout;
 - it does not make `wait.output` available;
 - it does not cause the target Node's business stages to execute.
 
-If an event arrives after arming but before the target Node is selected, Host durably buffers the validated event for the exact Run and target Wait occurrence. When the selected route activates the target Node, Runtime consumes the buffered event and proceeds to the first business stage. The timeout clock starts only when that Wait is activated, not when it is armed.
+The Integration contract must be able to derive the Wait's correlation key before the triggering external action can produce the event. It may derive that key from already admitted protocol/resource context or from an explicit pre-dispatch binding supplied by the responsible Integration/Tool. It MUST NOT rely solely on an Operation output that becomes available only after the external request has already been sent. If the key cannot be armed before dispatch, the triggering action is not safe to expose through this Wait design.
+
+If an event arrives after registration but before the target Node is selected, the Integration adapter submits the normalized delivery and the Generic Host durably buffers it for the exact Run/Wait occurrence. When the selected route activates the target Node, Runtime consumes the buffered event and proceeds to the first business stage. The timeout clock starts only when the target Node is activated, not when it is registered.
 
 If the predecessor chooses a different route, any unselected candidate Wait registration is invalidated and cannot consume the event as though its Node had been selected.
 
-### 6.2 Inbound validation and correlation
+### 6.2 Responsibility split
 
-Host owns:
+**Integration ingress adapter owns protocol-specific work:**
 
-- authenticating and authorizing the inbound NF/source;
-- resolving the exact service operation and API version;
-- validating the request body against the trusted request Schema;
-- correlating the request to the exact existing Run, target Node/Wait occurrence and business resource;
-- deduplicating repeated delivery and durably buffering early arrivals;
-- retaining any paired protocol response obligation privately.
+- authenticate the peer NF and authorize it for the exact inbound interface;
+- resolve the exact API version, method, path and media type from the pinned Ingress Operation contract;
+- validate and normalize the wire request, including supported multipart/binary parts;
+- derive the exact correlation key from the authenticated request and trusted Integration state;
+- deduplicate protocol delivery where the protocol supplies a stable delivery identity;
+- retain the paired protocol response obligation and map the final Host/Runtime outcome to the exact response contract.
 
-Correlation must be exact across the relevant subject, session/resource, lifecycle and triggering business occurrence. Host-private correlation and transport identifiers MUST NOT become Skill Context fields or authored Operation arguments. A request that cannot be uniquely correlated is rejected or quarantined under the Host ingress contract; it must not create a new Invocation or be broadcast to candidate Runs.
+**Generic Host owns generic continuation coordination:**
 
-Runtime owns the Run's active Node, Wait activation, timeout clock, continuation and execution trace. On event acceptance, Runtime resumes the same Run at the target Node. The Agent then executes that Node's declared business stages. The event is not a new Skill selection, a second Invocation, a restart from `start`, or a completion result fabricated on behalf of a pending Owner Operation.
+- maintain the durable registry of armed Wait occurrences for existing Runs;
+- accept only normalized deliveries from an authorized Integration adapter and the exact pinned contract;
+- match the Integration-provided correlation key to exactly one armed Wait occurrence;
+- atomically accept one delivery, prevent a second Invocation and keep transport/response references private;
+- durably record the continuation/response-obligation references needed by the Integration adapter.
 
-The Tool Owner still owns the actual behavior, external side effects, normalized Operation Result and Evidence of its callable. It does not own the Host's inbound Run correlation merely because the request belongs to its protocol domain.
+Generic Host MUST NOT parse a 3GPP API path, interpret a PDU Session identifier, authenticate an AMF certificate itself, or contain 5GC-specific correlation branches. Those are Integration responsibilities.
 
-### 6.3 Race, duplicate, timeout and recovery
+**Runtime owns execution continuation:**
+
+- the Run's active Node and Wait occurrence/generation;
+- Wait activation, deadline, atomic event-versus-timeout arbitration and cancellation;
+- suspension and resumption of the same Run at the target Node;
+- trace, SourcePath availability and exactly-once Node entry after event acceptance.
+
+The Agent executes the target Node's declared business stages. The Tool Owner still owns the actual callable behavior, external side effects, normalized Operation Result and Evidence. It does not own Run correlation merely because the request belongs to its protocol domain.
+
+### 6.3 Required Host/Runtime capability; not an existing implementation claim
+
+The current Generic Agent Host reference path is synchronous: its `InvocationSource` yields a new `ServiceInvocation`, and `Runtime.execute` returns a terminal result. That interface does not by itself provide durable suspended-Run continuation. The existing `BoundedEvidenceWaiter` is not a substitute.
+
+Therefore, the future implementation requires a generic inbound-event continuation port and durable suspended-Run/Wait state in the Host/Runtime boundary. An inbound event MUST be delivered to that continuation port for the exact existing Run; it MUST NOT be represented as a new `ServiceInvocation`, a new Root-selection request or a second Runtime execution. This is a future generic Host/Runtime capability, not a claim that current `ca-agent-demo` main already supports it. No 5GC-specific branch belongs in Generic Host or Runtime.
+
+### 6.4 Race, duplicate, timeout and recovery
 
 - Event acceptance and Wait timeout are an atomic race. Exactly one may win for a given Wait occurrence.
 - A duplicate delivery of the accepted event is idempotently recognized; it cannot execute the Node twice.
-- Once timeout wins, that Wait occurrence is closed. A later event cannot revive the old Run or reopen its `wait.output`.
-- Wait identity includes a per-Run occurrence/generation maintained privately by Host/Runtime. A late event for an expired generation cannot satisfy a later Wait with the same 3GPP operation identity.
-- Event receipt, Wait activation, selected route, timeout, duplicate/late classification and continuation must be durably traceable across Host/Runtime restart.
+- Once timeout wins, that Wait occurrence is closed. A later event cannot revive the old Run or reopen its `wait.output`; the Integration adapter handles the late request under the protocol response contract.
+- Wait identity includes a per-Run occurrence/generation maintained privately by Host/Runtime. A late event for an expired generation cannot satisfy a later Wait with the same service-operation identity.
+- The Integration correlation contract must distinguish concurrent Runs using the exact protocol/resource identifiers and trusted Integration association available for that operation. SUPI alone is not assumed to be sufficient; `ueRef` MUST NOT be invented. If two Runs match the same correlation key, the event is ambiguous and must be rejected/quarantined.
+- Event receipt, Wait registration/activation, selected route, timeout, duplicate/late classification and continuation must be durably traceable across Host/Runtime restart.
+- A transport response handle is not assumed to survive process restart. The Integration contract must define durable response-obligation recovery or an explicit failure response if the underlying transport channel is no longer usable.
 - If the event and timeout race during recovery, the durable atomic winner is authoritative; recovery must not accept both.
 
-## 7. Duration and budget semantics
+## 7. Duration and deadline semantics
 
-`timeout` uses a restricted, fixed-duration ISO 8601 representation. Examples:
+`timeout` uses a restricted, fixed-duration ISO 8601 representation with positive whole-second precision. Examples:
 
 | Value | Meaning |
 |---|---|
@@ -219,17 +257,19 @@ The Tool Owner still owns the actual behavior, external side effects, normalized
 | `PT1M` | 1 minute |
 | `PT5M` | 5 minutes |
 | `PT2H` | 2 hours |
-| `P1D` | 1 day |
+| `P1D` | 24 hours |
 
-The language should accept positive fixed durations and reject calendar years/months (for example `P1Y` and `P1M`), zero/negative values and malformed durations. The exact maximum and any fractional-second policy must be frozen with the Runtime deadline contract. The example `PT30S` is illustrative only; it is not a 3GPP-mandated timeout.
+The language accepts positive fixed durations and rejects calendar years/months (for example `P1Y` and `P1M`), zero/negative values, fractional seconds and malformed durations. CA-SL does not impose one arbitrary global maximum. A deployment that admits a Skill with Event Wait must publish a generic maximum Event Wait duration; admission rejects a declared timeout above that limit rather than silently shortening it. The exact deployment field name belongs to the Host deployment contract, not this Skill syntax.
 
-The timer begins at Wait activation. Host/Deployment may impose a stricter maximum; the effective wait must not exceed the remaining Invocation deadline. A global Runtime deadline or cancellation remains a Runtime stop condition and is not rewritten as the author's Wait `TIMEOUT` route.
+The timer begins at target Node activation. The effective Wait deadline is the earlier of the Node activation time plus the declared timeout and the remaining Invocation deadline. If the Wait deadline wins, route `TIMEOUT`. If the global Invocation deadline or cancellation wins first, Runtime stops under its existing global stop semantics; it MUST NOT relabel that stop as the author's `TIMEOUT` outcome.
+
+After the event is accepted, the inbound protocol request's response deadline (if defined by that API/transport contract) is a separate deadline for processing and responding to that request. The Integration adapter supplies that deadline to the Host/Runtime. It may further constrain execution, but its expiry is not the pre-event Wait `TIMEOUT`; the Integration adapter applies the published protocol failure/response mapping and Runtime preserves any unresolved business responsibility.
 
 Wait itself does not dispatch a Tool or Script and therefore does not consume the existing Tool/Script Action Budget. It does consume wall-clock time and remains subject to Host/Runtime execution and Node limits.
 
 ## 8. Procedure Graph and static validation
 
-The compiler models Wait as an entry-control vertex before the Node's first business stage. It adds:
+The Compiler models Wait as an entry-control vertex before the Node's first business stage. It adds:
 
 - an implicit normal `EVENT_RECEIVED` edge from the Wait gate to the Node's first declared business stage;
 - the explicit `TIMEOUT` edge from `wait.routes.TIMEOUT` to its selected Node or stopping terminal.
@@ -238,24 +278,40 @@ These are control-flow edges, not new business stages. The Wait gate does not pr
 
 Static analysis must include both Wait edges in reachability, cycle detection, path-sensitive SourcePath availability, global Precondition pass-through, terminal reachability and final-Postcondition proof checks. The only route to `SUCCEEDED` remains a reachable final Postcondition aggregate PASS directly targeting `SUCCEEDED`. The timeout edge can never provide Goal proof.
 
-If multiple incoming paths converge on a Node with Wait, every path must be compatible with the same exact inbound interface identity and trusted request Schema, and Host must be able to correlate the event to the selected Run/Wait occurrence on every path. If different events or incompatible correlation contracts are required, authors must use distinct target Nodes and converge later through the existing DAG. Runtime does not wait for multiple incoming paths or join concurrent branches.
+### 8.1 Multiple incoming paths
 
-A Node with Wait must still satisfy the existing requirement to declare at least one business stage. The Node's stage order and same-Node normal progression remain unchanged after the event is accepted.
+A Node with Wait may have multiple incoming routes, but this is not a parallel join. Exactly one predecessor path selects and activates the Node for a given Run; Runtime does not wait for all predecessors.
+
+All incoming paths must resolve to the same exact event identity, the same pinned Ingress Operation export and the same normalized request Schema. The Integration correlation key must be derivable before the triggering external action on every incoming path. The concrete key value may differ by Run, but its contract and derivation must be valid on every path.
+
+If one incoming path requires a different service operation, API version, normalized Schema or incompatible correlation contract, authors must use distinct target Nodes and converge later through the existing graph. If any path cannot establish a unique correlation key, compilation/admission fails closed. No path may silently inherit a correlation key from a different predecessor occurrence.
+
+A Node with Wait must still declare at least one business stage. After event acceptance, its stage order and same-Node progression remain unchanged.
 
 ## 9. 5GC Step 15 mapping
 
 For the conventional SMF-owned initial PDU Session flow, the future-revision mapping is:
 
 1. Step 11 `Namf_Communication_N1N2MessageTransfer` is the outbound Operation.
-2. Before dispatching Step 11, Host/Runtime arms the expected Step 15 Wait for the same Run.
-3. AMF later sends `Nsmf_PDUSession_UpdateSMContext Request`.
-4. Host authenticates, validates and correlates that request to the exact existing Run and `update-sm-context` Wait.
-5. Runtime resumes the same Run at `update-sm-context`; `update-sm-context.wait.output` is the validated inbound request body.
+2. Before dispatching Step 11, the Integration/Host continuation binding registers the expected Step 15 Wait for the same Run.
+3. AMF later sends the `Nsmf_PDUSession.UpdateSMContext` service request.
+4. The Integration ingress adapter authenticates the AMF peer, validates the exact pinned 3GPP API request, normalizes its path/body/media parts and derives the trusted correlation key.
+5. Generic Host matches the delivery to exactly one existing Run/Wait; Runtime resumes that same Run at `update-sm-context`. The normalized request becomes the typed `update-sm-context.wait.output`.
 6. The Agent executes the `update-sm-context` Node's declared logical SMF Operation using that explicit input. A supplementary SMF Context Observation, if needed, remains in the same Node after Operation and before Postcondition.
 7. The Postcondition checks the appropriate RAN adoption and SMF business facts; a successful route proceeds to N4 Session Modification.
-8. The paired Step 17 `Nsmf_PDUSession_UpdateSMContext Response` obligation remains Host-private and is fulfilled according to the trusted interface/response contract after the required downstream business work reaches its defined outcome.
+8. The Integration adapter fulfills the paired Step 17 `Nsmf_PDUSession.UpdateSMContext` response obligation for the exact inbound request after the required downstream business work reaches its defined outcome.
 
-This is a conventional 3GPP-facing model. It must not expose OpenAMSM/MAS internal module names or imply that AMF/(R)AN/UE actions are SMF-owned Operations. Exact Tool IDs, input/output Schemas, Evidence and response obligations must come from trusted Owner/Host publications; illustrative IDs are not implementation claims.
+### 9.1 Exact API binding
+
+The 3GPP service-operation name used in the procedure is `UpdateSMContext`. In the 3GPP TS 29.502 OpenAPI source, the corresponding `operationId` spelling is `UpdateSmContext`; the operation is `POST /sm-contexts/{smContextRef}/modify` under the `nsmf-pdusession` API. These are two names at different layers and must not be silently conflated.
+
+The cited 3GPP SA5 OpenAPI source shows that this request can use `application/json` with `SmContextUpdateData` or `multipart/related` with `jsonData` and binary N1/N2 parts. Its success responses include `200` with `SmContextUpdatedData` and `204` without a response body. The exact release/OpenAPI artifact used by a deployment must be pinned by digest in the Integration Ingress Operation contract; this design note does not select an API release.
+
+Source: [3GPP SA5 TS29502_Nsmf_PDUSession OpenAPI](https://forge.3gpp.org/rep/sa5/CH/-/blame/73b29750fb01ff09eed9ff1f92a4547227557abc/OpenAPI/TS29502_Nsmf_PDUSession.yaml), especially the Update SM Context operation and its request/response media types.
+
+The `smContextRef` path parameter is part of the public 3GPP operation input. The Integration contract must expose it in `wait.output` if the target Operation needs it; if it is used only to correlate the event to a Run, it remains private. The request body is not assumed to be JSON-only, and unsupported multipart/binary content cannot be discarded.
+
+This is a conventional 3GPP-facing model. It must not expose implementation-specific SMF module names or imply that AMF/(R)AN/UE actions are SMF-owned Operations. Exact Tool IDs, normalized request Schema, input/output Schemas, Evidence and response obligations must come from trusted Owner/Integration publications; illustrative IDs are not implementation claims.
 
 ## 10. v1alpha4 compatibility boundary
 
@@ -263,7 +319,7 @@ CA-SL v1alpha4 remains frozen and unchanged:
 
 - v1alpha4 §21 continues to prohibit author-level Wait/Await/Poll.
 - Existing v1alpha4 Skills and examples must continue to use the v1alpha4 pending-Operation contract; they must not add the proposed `wait` field or `wait.output` SourcePath.
-- This proposal does not authorize changing the current v1alpha4 grammar, diagnostics, Compiler, Studio/LSP, Runtime or Host implementation.
+- This proposal does not authorize changing the current v1alpha4 grammar, diagnostics, Compiler, Studio/LSP, Runtime, Generic Host or Integration implementation.
 - The next language version and its exact version identifier are not assigned by this design note. The feature requires an explicit versioned revision and independent review.
 
 ## 11. Normative change inventory for the future revision
@@ -273,27 +329,30 @@ CA-SL v1alpha4 remains frozen and unchanged:
 | §10.1 structure grammar | Add optional Node-level `wait` and its exact field grammar |
 | §12.1 Node execution | Define Wait as pre-stage entry control; retain four business stages |
 | §12.9 control-flow proof | Include Wait activation and timeout edges in DAG/path-sensitive checks |
-| §13.2–§13.3 SourcePath | Add typed `NodeId.wait.output`, availability and schema-assignability rules |
-| §19 Invocation lifecycle | Define Run suspension/resumption and durable Wait occurrence |
-| §21 asynchronous semantics | Replace the blanket no-author-Wait rule for the new version with the declarative Node-entry model |
+| §13.2–§13.3 SourcePath | Add typed `NodeId.wait.output`, normalized request Schema, availability and assignability rules |
+| §19 Invocation lifecycle | Define durable Run suspension/resumption, Wait occurrence identity and continuation delivery |
+| §21 asynchronous semantics | Replace the blanket no-author-Wait rule for the new version with the declarative Node-entry model; keep Evidence Wait distinct |
 | §22 routes | Define the Wait-scoped `TIMEOUT` key and reuse existing route targets |
-| §24 / Annex H | Add static and runtime diagnostics for event binding, Schema resolution, timeout routes and unavailable Wait output |
-| Schema/Host contract annexes | Define the trusted inbound interface-to-request-Schema binding and its version/identity rules |
+| §24 / Annex H | Add diagnostics for Ingress Operation resolution, correlation ambiguity, Schema/media normalization, timeout routes and unavailable Wait output |
+| Dependency/Integration contracts | Define exact Ingress Operation export, pinned API provenance, normalized request Schema, correlation binding and response obligation |
+| Host/Runtime contract | Define a generic continuation port and durable suspended-Run/Wait lifecycle; do not add 5GC-specific Host/Runtime branches |
 
-The revision must not add a fifth business stage, a Wait Node kind, a new Outcome family for business stages, `onTimeout`, `payloadSchema`, an author-facing EventCatalog, or a second Procedure Graph.
+The revision must not add a fifth business stage, a Wait Node kind, a new business-stage Outcome family, `onTimeout`, `payloadSchema`, a global author-facing EventCatalog, a second Procedure Graph, or a 5GC-specific branch in Generic Host/Runtime.
 
 ## 12. Review and acceptance checklist
 
 Before this design can be frozen into a language revision, independent review must confirm:
 
-- [ ] the exact grammar and whether all Wait fields are required;
-- [ ] the trusted Host ingress contract shape and exact mapping from 3GPP service operation/API version to request Schema;
-- [ ] the supported duration lexical subset, maximum and precedence against global deadlines;
+- [ ] exact grammar and required Wait fields;
+- [ ] the Integration-owned Ingress Operation export and exact API artifact/version/digest binding;
+- [ ] normalized request Schema behavior for path/query parameters, JSON bodies and supported multipart/binary parts;
+- [ ] deterministic correlation-key derivation before the triggering external action and unique matching under concurrent Runs;
+- [ ] the generic Host continuation port and durable suspended-Run/Wait state, including restart recovery;
+- [ ] supported duration lexical subset, deployment maximum and precedence against Invocation and inbound response deadlines;
 - [ ] mandatory `wait.routes.TIMEOUT` and permitted stopping terminals;
-- [ ] same-Node and downstream `wait.output` typing and path-sensitive availability;
-- [ ] early-event arming, durable buffering and cancellation of unselected candidate registrations;
-- [ ] exact correlation across concurrent UE/PSI/Invocation occurrences;
-- [ ] atomic event-versus-timeout behavior and late/duplicate event handling after restart;
+- [ ] same-Node/downstream `wait.output` typing and path-sensitive availability;
+- [ ] early-event registration, durable buffering and cancellation of unselected candidate registrations;
+- [ ] atomic event-versus-timeout behavior and late/duplicate handling after restart;
 - [ ] interaction with global Precondition, Action Budget, Node limits, cancellation and final Goal proof;
 - [ ] Step 15/17 response obligation ownership and failure mapping;
 - [ ] diagnostics, trace semantics and positive/negative conformance fixtures.
