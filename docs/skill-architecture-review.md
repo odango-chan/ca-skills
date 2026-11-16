@@ -57,9 +57,9 @@ For the conventional initial PDU Session profile:
 | Responsibility | Owner |
 |---|---|
 | Business goal, applicability, business decisions and static Procedure graph | Skill |
-| Protocol transport, peer authentication, wire validation/normalization and protocol response mapping | Domain Integration adapter |
-| Invocation admission, exact Run/Wait correlation, deduplication and private obligation references | Generic Host (using the trusted Integration binding) |
-| Procedure/Node progression, pending Action/Wait state, continuation and execution records | Runtime |
+| Protocol transport, peer authentication, wire validation/normalization, protocol correlation resolution and response mapping | Domain Integration adapter |
+| Generic normalized-delivery inbox/outbox, Host ingress/lifecycle references and durable response-obligation/replay lifecycle | Generic Host |
+| Authoritative ExpectedIngress registry, exact Run/Wait matching, atomic event/timeout arbitration, Procedure/Node progression and execution records | Runtime |
 | Business Operation effects, authoritative network facts, normalized Operation Result and Evidence | Tool Owner / Provider |
 | Shared callable dispatch, trusted binding and authorization enforcement | Host / Runtime integration under the published contract |
 
@@ -77,13 +77,14 @@ Additional rules:
 
 - A later inbound message MUST correlate to the exact existing Invocation and continuation point; it MUST NOT select a new Skill, create a second Invocation or restart the Procedure at `start`.
 - For frozen CA-SL v1alpha4 source, the continuation point is the exact pending Owner Operation; v1alpha4 has no author-level `wait`/`await`/polling Node.
-- The next-revision proposal in [CA-SL Node-level Event Wait, Draft PR #60](https://github.com/odango-chan/ca-skills/pull/60) changes the continuation point to a target Node's Wait. The Domain Integration adapter authenticates the peer, validates and normalizes the exact wire request, and derives the protocol correlation key. Generic Host matches the normalized delivery to exactly one existing Run/Wait; Runtime resumes that same Run at the target Node; the Agent executes that Node's declared business stages. Do not apply this proposed syntax to v1alpha4 sources.
-- Under the v1alpha4 pending-Operation model, the protocol Owner owns the pending transaction/callback matching and final Operation Result/Evidence. Under the proposed Node-Wait model, Integration owns protocol-specific ingress and response mapping; Generic Host owns exact Run/Wait matching and private delivery deduplication; Runtime owns Wait state and continuation; the Tool Owner still owns its callable's actual business effect, normalized Operation Result and Evidence.
+- The next-revision proposal in [CA-SL Node-level Event Wait, Draft PR #60](https://github.com/odango-chan/ca-skills/pull/60) changes the continuation point to a target Node's Wait. The Domain Integration adapter authenticates, validates and normalizes the exact wire request, then resolves it to one opaque `expectedIngressRef`. Generic Host persists and forwards the delivery; Runtime resolves the reference against its authoritative ExpectedIngress/Run state and resumes that same Run at the target Node; the Agent executes that Node's declared business stages. Do not apply this proposed syntax to v1alpha4 sources.
+- Under the v1alpha4 pending-Operation model, the protocol Owner owns the pending transaction/callback matching and final Operation Result/Evidence. Under the proposed Node-Wait model, Integration owns protocol-specific ingress/correlation and response mapping; Generic Host owns durable generic delivery and response-obligation lifecycle; Runtime owns authoritative Run/Wait matching, state and continuation; the Tool Owner still owns its callable's actual business effect, normalized Operation Result and Evidence.
 - Generic Host MUST NOT parse 3GPP API paths, authenticate an AMF peer itself or contain 5GC-specific correlation branches. It consumes an authorized normalized delivery through a generic continuation interface.
 - Skill source must never declare callback endpoints, transport handles or Host/Integration correlation metadata. The proposed `wait.output` is the Integration contract's typed normalized request value; it does not expose Host-private correlation fields or automatically constitute Evidence.
 - Distinguish inbound message arrival, business Operation completion and Procedure completion. They are separate events.
 - The proposed Event Wait is push-driven ingress; the current Runtime Evidence Wait is Observation polling. They are not interchangeable.
 - Define timeout, duplicate, stale, late, uncorrelated and indeterminate outcomes at the Integration/Host/Runtime/Owner boundary. Do not guess paired protocol response behavior from Skill terminal labels.
+- The proposed `wait.response.after` binds a paired protocol response to an exact Node completion, not terminal Run. For Step 17, the boundary follows required N4 Session Modification and precedes unrelated later Procedure work.
 - Correlation must distinguish both concurrent Runs and successive Wait generations for the same protocol resource. A private generation counter absent from the wire is not sufficient; when the protocol has no on-wire discriminator, require a proven single-flight/tombstone policy or fail closed.
 
 ## 6. Context, dataflow and Predicate rules
