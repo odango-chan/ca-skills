@@ -31,7 +31,7 @@ Passing YAML/source hygiene is not proof of 3GPP correctness, linkability, runti
 
 ## 3. Operation and Observation placement
 
-Operation is the primary action stage of a business Node. Observation is an optional, read-only supplementary stage. They are distinct CA-SL stages and callable kinds, but normally belong to the same Node.
+Operation is the primary action stage of a business Node. Observation is an optional, read-only supplementary stage. They are distinct CA-SL stages and callable kinds, but normally belong to the same Node. Both use the common Host Tool Dispatcher and trusted binding/authorization path; this does not merge their callable kinds or stage semantics.
 
 Required default:
 
