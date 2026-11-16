@@ -4,6 +4,10 @@
 
 The comprehensive specification is the sole normative language authority. If this file conflicts with it, the specification takes precedence.
 
+## 5GC domain profile
+
+The frozen CA-SL language is domain-neutral. A 5GC Skill must additionally follow the repository-level [3GPP-first SMF Authoring Profile](authoring-5gc-3gpp-profile.md). It requires Procedure Nodes to map to logical 3GPP interactions from the SMF point of view, canonical 3GPP naming where available, explicit CA adapter/extension classification, and per-Node/Capability traceability. This profile does not add fields to CA-SL YAML.
+
 ## Author-maintained source
 
 v1alpha4 retains three assurance source files with distinct responsibilities:
