@@ -1,81 +1,81 @@
 ---
 name: establish-pdu-session-mas
-description: CA-SL v1alpha4 illustrative SMF MAS policy-first initial PDU Session establishment source.
+description: CA-SL v1alpha4 illustrative OpenAMSM MAS policy-first initial PDU Session establishment source.
 ---
 
-# Establish PDU Session — SMF MAS
+# Establish PDU Session — OpenAMSM MAS policy-first profile
 
 **Source language:** CA-SL v1alpha4 (pinned normative specification `7f84393ee8c395e4d8c39a74cb5000a1f896588d`).
 
-**Adoption state: NOT_QUALIFIED.** This is an authoring and editor example, **not** a linked, executable or approved 5GC Skill. Its `urn:example:` dependency identities and evidence guarantees are illustration-only; there is no trusted v1alpha4 ToolCatalog or CapabilityContracts publication in this repository. The Compiler **must fail closed** when those exports or their exact version/trust bindings are absent.
+**Adoption state: NOT_QUALIFIED / NOT_LINKABLE.** This is a source-aligned authoring example, not a linked, executable or Owner-approved Skill. The MAS ToolCatalog, operation Schemas, Evidence Guarantees and CapabilityContracts are not published. The `mas` dependency and all source-derived MAS IDs remain placeholders; Compiler linking must fail closed.
 
-## Scope and business progression
+## Scope
 
-One admitted, initial IPv4 / SSC1, local non-roaming PDU Session request. Never substitute an arbitrary UE, PSI, resource or late callback; identity and Scope require independent Host/Owner proof. Host invocation lifecycle and correlation are not Skill context.
+One admitted, initial IPv4 / SSC1, local non-roaming PDU Session request with `allocator=LOCAL_POOL` and no secondary authentication. The first business Node performs an exact UE/PSI SMF context lookup. Only an evidence-backed `ABSENT` result enters the initial creation chain. `PRESENT` (including a projection with `UNAVAILABLE`) and `UNKNOWN` do not.
 
-MAS is a **proposed, not Owner-approved policy-first** graph, with per-step Postcondition and confirmed-failure-only cleanup; on OUTCOME_UNKNOWN it stops and retains responsibility. See [migration decision register](../../MIGRATION-REVIEW-v1alpha4.md). The intended sequence is: validate subscription and required authentication disposition, establish context and UECM, create policy, choose UP anchor, allocate address, update policy with actual allocation, create charging and N4, signal RAN, activate forwarding, account for events and transfer durable ownership.
+The Skill is deliberately a policy-first MAS compatibility profile. It is not the conventional 3GPP-first `establish-pdu-session` Skill and does not change that Skill's terminology or business flow.
 
-## Host invocation boundary (outside the Procedure)
+## Source-aligned progression
 
-The incoming TS 23.502 §4.3.2.2.1 step 3 CreateSMContext Request is the Host ingress trigger, not an authored Procedure Node. Host is responsible for source/action/identity admission, duplicate suppression, business-instance association, Invocation lifecycle and correlation before Skill execution. These details remain Host-private and reach Tool adapters only through trusted Host-to-Tool / Runtime dispatch metadata.
+The Procedure follows the imported OpenAMSM NW Agent plan:
 
-The MAS draft's global Contract Precondition validates only the business request profile. It is not an ingress-eligibility or Host-lifecycle check. The first Procedure Node is validate-sm-subscription; the MAS-specific Owner operations remain unpublished and NOT_QUALIFIED.
+1. SC `VALIDATE_SUBSCRIPTION`
+2. SAA `SECONDARY_AUTH` with the plan's fixed `required="0"` (therefore `SKIPPED`)
+3. SC `CREATE_SM_CONTEXT`
+4. SC `REGISTER_UECM`
+5. PA `CREATE_SM_POLICY`
+6. UPS `DECIDE_ANCHOR`
+7. IAM `ALLOCATE_ADDRESS` with `LOCAL_POOL`
+8. PA `UPDATE_SM_POLICY`
+9. CA `CREATE_CHARGING`
+10. UPN `CREATE_UP_SESSION`
+11. SSM `SIGNAL_UE_AN`
+12. UPN `MODIFY_UP_SESSION`
+13. SE `EMIT_EVENTS`
 
-## 3GPP Traceability — SMF view and MAS deviations
+The optional IAM `CONFIRM_ADDRESS` step is omitted because this profile fixes `LOCAL_POOL`; it is relevant to the UPF allocator path. The OES `COMPENSATE_RELEASE` operation is not an authored Procedure Node. The OES plan's `compensate_then_replan_once` strategy is not copied into CA-SL: the Host/Owner may reconcile the exact original mutation only through its trusted `mutation.reconcile` boundary, and must never replan after `OUTCOME_UNKNOWN`.
 
-**Pinned reference:** 3GPP TS 23.502 V18.12.0 (Release 18), §4.3.2.2.1; N4 procedures §4.4.1.2–§4.4.1.3.
+## Important source facts
 
-This is a **proposed MAS policy-first implementation graph**, not a standard 3GPP procedure and not Owner-approved. A mapping below identifies the related 3GPP phase; it does not claim the custom MAS operation is a standard NF Service Operation.
+- The OES plan and OpenAMSM output contracts do not define `stateRef`. The Procedure uses the actual `sub_summary`, `session_keys`, `lifecycle`, `uecm_registered`, `policy_assoc_id`, `up_anchor`, `ue_addr`, `n4_seid`, `est_done`, `an_tunnel_teid`, `an_tunnel_ip`, `n3_synced` and `last_event` fields.
+- `up_anchor` and `ue_addr` are `"1"/"0"` readiness/allocation markers. Neither is an anchor identifier or UE IP address. The selected PFCP node and actual allocated address remain inside SMF session state.
+- `n4_seid` is a single UPF SEID, not an SMF/UPF N4 pair. `sm_context_ref` is an internal source reference and is not exposed as a 3GPP Location or Host correlation identity.
+- `CA.CREATE_CHARGING` is currently a `NOT_IMPL_skip` stub returning `charging_ref="1"`. The Skill explicitly requires a real charging reference and trusted Evidence; the current implementation cannot pass that gate. No successful end-to-end qualification is possible until charging is implemented or an approved profile decision removes it.
+- `SE.EMIT_EVENTS` records a local MAS event and returns `last_event="1"`. It is not proof of TS 23.502 step-18 SM Context Status Notify.
+- The MAS plan registers UECM before PCF/N4, earlier than the conventional TS 23.502 step-16c placement. This is a deliberate MAS ordering deviation.
+- The plan hard-codes secondary authentication as not required. The legacy case requiring secondary authentication is not supported by this plan and remains an explicit migration gap.
 
-| Procedure Node | 3GPP source / interaction | Classification and deviation |
-|---|---|---|
-| `validate-sm-subscription` | step 4 — Session Management Subscription retrieval/validation | `CA_ADAPTER`: MAS validation operation; not yet mapped to a published `Nudm_SDM_Get` Owner contract. |
-| `resolve-secondary-authentication` | step 6 — optional secondary authentication/authorization | `CA_ADAPTER`: determines whether the admitted profile requires the optional flow. |
-| `create-sm-context` | steps 3 and 5 — `Nsmf_PDUSession_CreateSMContext` Request/Response boundary | `CA_ADAPTER`: MAS context creation is not itself the standard Nsmf service operation. |
-| `ca-register-uecm` | related to `Nudm_UECM_Registration`; standard flow places step 16c after N4 modification | `CA_ADAPTER` with an explicit ordering deviation: MAS registers earlier. This is not the TS 23.502 default sequence. |
-| `establish-sm-policy-association` | step 7b — `Npcf_SMPolicyControl_Create` | `CA_ADAPTER`: MAS policy creation is not yet an approved PCF Owner export. |
-| `select-upf-anchor` | step 8 — SMF UPF selection | `CA_ADAPTER`: custom MAS anchor-selection contract. |
-| `allocate-pdu-session-address` | step 8 — SMF address allocation | `CA_ADAPTER`: custom MAS allocator. |
-| `modify-sm-policy-association` | step 9 — SMF-initiated SM Policy Association Modification / `Npcf_SMPolicyControl_Update` | `CA_ADAPTER`: MAS updates policy with actual allocated address. |
-| `ca-create-charging-reservation` | no distinct step in §4.3.2.2.1 | `CA_EXTENSION`: MAS charging reservation. |
-| `establish-n4-session` | steps 10a–10b; §4.4.1.2 N4 Session Establishment | `CA_ADAPTER`: MAS user-plane establishment; Owner contract not published. |
-| `ca-confirm-pdu-session-address` | related to step 8 allocation | `CA_EXTENSION`: MAS-specific address confirmation. |
-| `complete-an-resource-setup` | steps 11–15; step 11 N1N2 transfer, step 15 Nsmf UpdateSMContext Request | `CA_ADAPTER`: wraps access-network completion; AMF/(R)AN/UE own steps 12–14. |
-| `modify-n4-session` | steps 16a–16b; §4.4.1.3 N4 Session Modification | `CA_ADAPTER`: MAS forwarding activation. |
-| `ca-emit-establishment-events` | potentially related to step 18 SM Context Status Notify, subject to exact mapping | `CA_EXTENSION`: no standard mapping is claimed without an Owner contract. |
-| `ca-transfer-resource-responsibility` | no direct step in §4.3.2.2.1 | `CA_EXTENSION`: durable resource ownership. |
-| `ca-compensate-confirmed-failure` | failure handling / potentially separate PDU Session Release procedure | `CA_EXTENSION`: not a 3GPP Release procedure unless the Owner contract explicitly implements that procedure. |
-| `verify-pdu-session-establishment` | final facts across steps 15–17 | `CA_EXTENSION`: final Goal proof, not a separate 3GPP operation. |
+The full source-by-source mapping, exact outputs, candidate callable identities and qualification gates are in [OpenAMSM Operation Mapping](assurance/openamsm-operation-mapping.md).
 
-**Open 3GPP boundaries:** TS 23.502 step 5 `Nsmf_PDUSession_CreateSMContext Response` is an early response, not final session establishment. Step 17 `Nsmf_PDUSession_UpdateSMContext Response` follows the access-network result and N4 modification. The MAS graph's custom context operation does not prove either standard response is emitted; the Host/Owner response boundary must be decided explicitly.
+## Host and asynchronous boundary
 
-### Capability mapping
+The incoming TS 23.502 step-3 CreateSMContext Request is a Host ingress trigger, not a Skill Node. Host performs admission, duplicate suppression and exact UE/PSI business-instance association before this graph starts.
 
-These are illustrative names, not published CapabilityContracts exports:
+The SSM `SIGNAL_UE_AN` Owner Operation sends the N1/N2 transfer and may remain pending until the later step-15 `Nsmf_PDUSession_UpdateSMContext Request` supplies the access-network result/F-TEID. Host correlates that exact request to the pending Operation and Runtime resumes this same Invocation. It is not a new Skill invocation and does not require a Skill Wait/Await/Poll Node. The paired step-17 response remains a Host service-exit obligation after N4 Modification and the Procedure's terminal business outcome.
 
-| Capability placeholder | Standard / CA scope |
-|---|---|
-| `urn:example:connectionagent:capability:3gpp:udm-session-management-data:v1` | UDM Session Management Subscription retrieval/registration |
-| `urn:example:connectionagent:capability:3gpp:pcf-sm-policy-control:v1` | PCF SM Policy Association create/update |
-| `urn:example:connectionagent:capability:3gpp:n4-session-management:v1` | UPF N4 establishment/modification |
-| `urn:example:connectionagent:capability:3gpp:amf-communication-n1n2:v1` | AMF N1/N2 transfer |
-| `urn:example:connectionagent:capability:ca:mas-session-lifecycle:v1` | MAS-specific context, charging, event and responsibility lifecycle |
+The Host owns resource responsibility and exact-original reconciliation. There is no authored `resources.finalize` or compensation Tool in this Procedure.
 
-The exact IDs must be replaced only by trusted CapabilityContracts exports. The MAS sequence and its non-standard ordering remain NOT_QUALIFIED.
+## 3GPP classification
 
-## Runtime and evidence boundary
+The MAS graph is a CA policy-first implementation profile, not a normative 3GPP procedure. The following are adapter/extension boundaries:
 
-**No author-level wait/await/poll.** Any future `holdRef` is an Owner correlation handle, not an author Wait/Poll Node. Asynchronous setup completion belongs to the corresponding Tool/Provider/SMF Operation, which may report SUCCEEDED only when its published Owner contract and authoritative Result/Evidence support the required completion. The Procedure's Postcondition verifies that evidence. The legacy callables do **not** yet make those v1alpha4 guarantees; do not treat an old HTTP or N1/N2 dispatch ACK as completed N4/RAN establishment. Host/Runtime retains Deadline, Cancellation and Correlation.
+- SC subscription validation wraps the UDM SDM Get path.
+- SC context creation is associated with the step-3/step-5 service boundary; the early response is not final Goal proof.
+- SC UECM registration is intentionally earlier than standard step 16c.
+- PA policy create/update wrap PCF interactions.
+- UPS/IAM selection and allocation are SMF-local CA adapters.
+- UPN Create/Modify own separate N4 Session Establishment and Modification proof boundaries.
+- SSM owns the N1/N2-to-step-15 completion result.
+- CA charging and SE event recording are MAS-specific extensions, not standard 3GPP operations.
 
-Every Mutation `OUTCOME_UNKNOWN` goes to an explicit safe stop. An Owner-published `mutation.reconcile` can be used **only through the Host common safety boundary**, not an authored `reconcile` Node. The only successful Invocation edge is `verify-pdu-session-establishment.postcondition.routes.PASS: SUCCEEDED`, where all listed predicates must pass with authoritative, fresh, same-lifecycle Evidence.
+## Qualification blockers
 
-**Known blockers:** missing exact v1alpha4 Owner/Capability publications, checked output Schemas and Evidence descriptors, confirmed callable input identities, and Compiler/Studio/Host §45.2 execution evidence. Do **not** infer completion or production readiness from YAML syntax checks.
+1. MAS Owner ToolCatalog, exact callable IDs, input/output Schemas and CapabilityContracts are unpublished.
+2. MAS Operation Evidence Guarantees and source-to-Host Scope/Correlation contracts are unpublished.
+3. Charging is a source-confirmed stub; the charging Predicate intentionally rejects its `"1"` marker.
+4. The SAA path is hard-coded to skip; auth-required legacy case 06 is unsupported.
+5. The generic SMF session-context Observation package and its temporal Evidence guarantee are not published.
+6. Host/Owner pending SSM continuation, duplicate/late result, Deadline and paired step-17 response contracts are not qualified.
+7. Host-owned exact-original reconciliation for `SC.COMPENSATE_RELEASE` is not published.
 
-
-## Context ownership
-
-The Skill receives only the Host-resolved opaque UE subject handle (ueRef) plus its own validated request. Host admission, invocation/instance identity, lifecycle, correlation, holds, journals and late-result responsibility remain private Host/Owner state; they are not Skill Predicates or authored Operation arguments. The global request-profile Precondition belongs to the first business Node and does not model Host admission.
-
-The Agent may request explicit read-only Observations only for context owned by the SMF MAS. It does not directly query AMF, UDM, PCF, UPF or other NF context. The responsible Tool/Owner adapter obtains and validates non-SMF context internally and returns its declared Operation Result/Evidence.
-
-The initial establishment flow does not need a pre-existing SMF context query before creating the SM Context. Do not manufacture a successful precondition from SESSION_NOT_FOUND. See the CA Agent Host 5GC context boundary: https://github.com/odango-chan/ca-agent-demo/blob/main/docs/design/5gc-agent-context-access-boundary-v1alpha4.md.
+The six legacy MAS Cases remain migration expectations, not executed v1alpha4 fixtures. Do not describe this Skill as runnable, linked, or qualified until all applicable gates close.
