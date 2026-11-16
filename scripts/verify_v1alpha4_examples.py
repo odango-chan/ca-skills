@@ -305,7 +305,7 @@ def validate_n4_owner_boundary(skill: Path, errors: list[str]) -> None:
 
 
 def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) -> None:
-    """Keep Step 15 continuation, explicit SMF context read and N4 modification distinct."""
+    """Enforce one primary action per Node and co-locate the two supporting SMF context reads."""
     if skill.name != "establish-pdu-session":
         return
     procedure = skill / "assurance" / "procedure.yaml"
@@ -339,27 +339,53 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
     if not re.search(r"(?m)^  ca-session-context:\s+urn:connectionagent:ca:host:smf-session-context\s*$", contract_text):
         errors.append(f"{skill.name}: generic context Observation must resolve through the ca-session-context dependency alias")
 
-    if not re.search(r"(?m)^start: read-existing-sm-context\s*$", procedure_text):
-        errors.append(f"{skill.name}: first business Node must query exact SM Context presence before initial mutations")
+    if not re.search(r"(?m)^start: get-sm-subscription-data\\s*$", procedure_text):
+        errors.append(f"{skill.name}: the first business Node must be the Step 4 UDM Get interaction")
 
     entry = re.search(
-        r"(?ms)^  read-existing-sm-context:\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)",
+        r"(?ms)^  get-sm-subscription-data:\\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\\s*$|\\Z)",
         procedure_text,
     )
     if not entry:
-        errors.append(f"{skill.name}: missing entry-time SM Context Observation")
+        errors.append(f"{skill.name}: missing the Step 4 UDM Get business Node")
     else:
         block = entry.group(1)
-        if not re.search(r"(?m)^      tool: ca-session-context::context\.smf\.session\.read\s*$", block):
-            errors.append(f"{skill.name}: entry lookup must use the generic SMF context Observation callable")
-        if not re.search(r"(?m)^        ueRef: context\.ueRef\s*$", block) or not re.search(r"(?m)^        pduSessionId: context\.request\.pduSessionId\s*$", block):
-            errors.append(f"{skill.name}: entry lookup must be scoped by exact UE and PDU Session ID")
-        if not re.search(r"(?m)^        PASS: get-sm-subscription-data\s*$", block):
-            errors.append(f"{skill.name}: only explicit ABSENT may enter the initial-creation chain")
-        if not re.search(r"(?m)^        FAIL: SAFE_STOPPED\s*$", block):
-            errors.append(f"{skill.name}: PRESENT context must not replay initial-creation mutations")
-        if not re.search(r"(?m)^        UNKNOWN: SAFE_STOPPED\s*$", block):
-            errors.append(f"{skill.name}: indeterminate context presence must fail closed")
+        if not re.search(r"(?m)^      tool: ca::sbi\\.udm\\.sm_data\\.get\\s*$", block):
+            errors.append(f"{skill.name}: first business Node must execute the UDM Get Operation")
+        if not re.search(r"(?m)^      tool: ca-session-context::context\\.smf\\.session\\.read\\s*$", block):
+            errors.append(f"{skill.name}: entry SM Context Observation must be co-located in get-sm-subscription-data")
+        if not re.search(r"(?m)^        ueRef: context\\.ueRef\\s*$", block) or not re.search(r"(?m)^        pduSessionId: context\\.request\\.pduSessionId\\s*$", block):
+            errors.append(f"{skill.name}: entry Observation must be scoped by exact UE and PDU Session ID")
+        if not re.search(r"(?m)^        - predicate: establishment\\.smf\\.session_context_absent\\s*$", block):
+            errors.append(f"{skill.name}: Step 4 Postcondition must evaluate the evidenced entry-presence Predicate")
+        if not re.search(r"(?m)^            - get-sm-subscription-data\\.observation\\.output\\s*$", block):
+            errors.append(f"{skill.name}: entry Predicate must consume the co-located Observation Result")
+        if not re.search(r"(?m)^        PASS: subscribe-sm-data\\s*$", block):
+            errors.append(f"{skill.name}: only evidenced ABSENT may advance to the first mutating UDM subscription")
+        if not re.search(r"(?m)^        FAIL: SAFE_STOPPED\\s*$", block) or not re.search(r"(?m)^        UNKNOWN: SAFE_STOPPED\\s*$", block):
+            errors.append(f"{skill.name}: PRESENT or indeterminate entry context must fail closed")
+        if not re.search(r"(?m)^    precondition:\\s*$", block):
+            errors.append(f"{skill.name}: the first business Node must carry the request-profile Precondition")
+        stage_positions = [block.find("    operation:"), block.find("    observation:"), block.find("    postcondition:")]
+        if any(position < 0 for position in stage_positions) or stage_positions != sorted(stage_positions):
+            errors.append(f"{skill.name}: entry Observation must follow the read-only Operation and precede the Postcondition")
+
+    if re.search(r"(?m)^  (?:read-existing-sm-context|read-smf-session-context):\\s*$", procedure_text):
+        errors.append(f"{skill.name}: supplementary SMF context reads must not be separate Observation-only Nodes")
+
+    node_blocks = re.findall(
+        r"(?ms)^  ([A-Za-z][A-Za-z0-9_-]*):\\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\\s*$|\\Z)",
+        procedure_text,
+    )
+    for node_id, block in node_blocks:
+        if re.search(r"(?m)^    observation:\\s*$", block):
+            operation_pos = block.find("    operation:")
+            observation_pos = block.find("    observation:")
+            postcondition_pos = block.find("    postcondition:")
+            if operation_pos < 0:
+                errors.append(f"{skill.name}/{node_id}: standalone Observation-only Node is forbidden for this Skill")
+            elif not (operation_pos < observation_pos < postcondition_pos):
+                errors.append(f"{skill.name}/{node_id}: Observation must follow the primary Operation and precede Postcondition")
 
     if "establishment.smf.session_context_absent:" not in predicate_text:
         errors.append(f"{skill.name}: missing the explicit SM Context ABSENT Predicate")
@@ -376,43 +402,37 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
             errors.append(f"{skill.name}: ABSENT must be an explicit business outcome, not generic query success")
 
     update = re.search(
-        r"(?ms)^  update-sm-context:\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)",
+        r"(?ms)^  update-sm-context:\\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\\s*$|\\Z)",
         procedure_text,
     )
     if not update:
         errors.append(f"{skill.name}: missing step-15 update-sm-context continuation Node")
     else:
         block = update.group(1)
-        if not re.search(r"(?m)^      tool: ssm::SSM\.SIGNAL_UE_AN\s*$", block):
+        if not re.search(r"(?m)^      tool: ssm::SSM\\.SIGNAL_UE_AN\\s*$", block):
             errors.append(f"{skill.name}: update-sm-context must use the SSM completion Owner Operation")
-        if not re.search(r"(?m)^        transferOperationRef: transfer-n1n2-message\.operation\.output\.operationRef\s*$", block):
+        if not re.search(r"(?m)^        transferOperationRef: transfer-n1n2-message\\.operation\\.output\\.operationRef\\s*$", block):
             errors.append(f"{skill.name}: SSM callback must be associated with the exact N1/N2 transfer Operation")
-        if not re.search(r"(?m)^            - update-sm-context\.operation\.output\s*$", block):
+        if not re.search(r"(?m)^      tool: ca-session-context::context\\.smf\\.session\\.read\\s*$", block):
+            errors.append(f"{skill.name}: fresh post-Step-15 Observation must be co-located in update-sm-context")
+        if not re.search(r"(?m)^        ueRef: context\\.ueRef\\s*$", block) or not re.search(r"(?m)^        pduSessionId: context\\.request\\.pduSessionId\\s*$", block):
+            errors.append(f"{skill.name}: post-Step-15 Observation must be scoped by exact UE and PDU Session ID")
+        if not re.search(r"(?m)^            - update-sm-context\\.operation\\.output\\s*$", block):
             errors.append(f"{skill.name}: RAN adoption Predicate must consume the UpdateSMContext Operation Result")
-        if not re.search(r"(?m)^        PASS: read-smf-session-context\s*$", block):
-            errors.append(f"{skill.name}: Step 15 continuation must proceed to the explicit SMF context decision")
+        if not re.search(r"(?m)^            - update-sm-context\\.observation\\.output\\s*$", block):
+            errors.append(f"{skill.name}: context profile Predicate must consume the co-located Observation Result")
+        if not re.search(r"(?m)^        PASS: modify-n4-session\\s*$", block):
+            errors.append(f"{skill.name}: only a passing post-Step-15 context decision may advance to N4 Modification")
+        stage_positions = [block.find("    operation:"), block.find("    observation:"), block.find("    postcondition:")]
+        if any(position < 0 for position in stage_positions) or stage_positions != sorted(stage_positions):
+            errors.append(f"{skill.name}: post-Step-15 Observation must follow the asynchronous Operation and precede Postcondition")
 
     transfer = re.search(
-        r"(?ms)^  transfer-n1n2-message:\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)",
+        r"(?ms)^  transfer-n1n2-message:\\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\\s*$|\\Z)",
         procedure_text,
     )
-    if not transfer or not re.search(r"(?m)^        PASS: update-sm-context\s*$", transfer.group(1)):
+    if not transfer or not re.search(r"(?m)^        PASS: update-sm-context\\s*$", transfer.group(1)):
         errors.append(f"{skill.name}: N1/N2 transfer success must continue to the pending UpdateSMContext Operation")
-
-    observation = re.search(
-        r"(?ms)^  read-smf-session-context:\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)",
-        procedure_text,
-    )
-    if not observation:
-        errors.append(f"{skill.name}: missing explicit post-callback SMF session-context Observation")
-    else:
-        block = observation.group(1)
-        if not re.search(r"(?m)^      tool: ca-session-context::context\.smf\.session\.read\s*$", block):
-            errors.append(f"{skill.name}: use the generic CA SMF session-context Observation callable")
-        if not re.search(r"(?m)^        ueRef: context\.ueRef\s*$", block) or not re.search(r"(?m)^        pduSessionId: context\.request\.pduSessionId\s*$", block):
-            errors.append(f"{skill.name}: context Observation must be scoped by the Skill subject and business PSI")
-        if not re.search(r"(?m)^        PASS: modify-n4-session\s*$", block):
-            errors.append(f"{skill.name}: only a passing context Predicate may advance to N4 Modification")
 
     if "establishment.smf.session_context_profile_ready:" not in predicate_text:
         errors.append(f"{skill.name}: missing the SMF session-context business Predicate")
