@@ -80,7 +80,7 @@ The following entries are one-to-one *traceability* rows, not converted fixtures
 | [03-policy-update-outcome-unknown](legacy/establish-pdu-session-mas/cases/03-policy-update-outcome-unknown/case.yaml) | modify-sm-policy-association.OUTCOME_UNKNOWN → SAFE_STOPPED; no ca-compensate-confirmed-failure mutation | NOT_RUN / Owner not linked |
 | [04-namf-ack-without-ran-adoption](legacy/establish-pdu-session-mas/cases/04-namf-ack-without-ran-adoption/case.yaml) | complete-an-resource-setup.postcondition: ran_adopted (no ACK shortcut) | NOT_RUN / Owner not linked |
 | [05-resource-handoff-missing](legacy/establish-pdu-session-mas/cases/05-resource-handoff-missing/case.yaml) | ca-transfer-resource-responsibility + verify-pdu-session-establishment.resources_managed | NOT_RUN / Owner not linked |
-| [06-resolve-secondary-authentication-required-out-of-profile](legacy/establish-pdu-session-mas/cases/06-resolve-secondary-authentication-required-out-of-profile/case.yaml) | resolve-secondary-authentication.postcondition (confirmed auth restriction) | NOT_RUN / Owner not linked |
+| [06-secondary-auth-required-out-of-profile](legacy/establish-pdu-session-mas/cases/06-secondary-auth-required-out-of-profile/case.yaml) | resolve-secondary-authentication.postcondition (confirmed auth restriction) | NOT_RUN / Owner not linked |
 
 
 ## Outstanding review gates
