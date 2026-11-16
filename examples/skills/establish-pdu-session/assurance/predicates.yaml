@@ -13,7 +13,6 @@ predicates:
       type: cel
       expression: requestType == 1 && requestedPduSessionType == "IPV4" && requestedSscMode == 1
 
-  # Business request-profile validation only; Host ingress admission and execution lifecycle are outside this PredicateSet.
   establishment.udm.subscription_owned:
     parameters:
       - subscription: ca::urn:example:5gc:udm-subscription-resource:v1
