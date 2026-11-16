@@ -38,4 +38,4 @@ For the current 5GC profile:
 - Direct Agent Observation scope is limited to SMF-owned MAS projections. AMF/UDM/PCF/UPF/RAN/Fabric context needed by an Operation is acquired inside the responsible Tool/Owner adapter and returned as Operation Result/Evidence.
 - The current SMF MAS v0.10 response lacks source `observedAt` / `validUntil` and does not carry Host `lifecycleRef`. A Host-generated `receivedAt` is not source observation time. Exact temporal and lifecycle Scope guarantees are required before a query can be qualified as a v1alpha4 Observation.
 
-See the CA Agent Host [5GC Agent Context and Observation Contracts](https://github.com/odango-chan/ca-agent-demo/blob/main/docs/design/5gc-agent-context-contracts-v1alpha4.md) for the complete contract boundary and publication gates.
+See the CA Agent Host [5GC Agent Context and Observation Contracts](https://github.com/odango-chan/ca-agent-demo/blob/main/docs/5gc-agent-context-contracts-v1alpha4.md) for the complete contract boundary and publication gates.
