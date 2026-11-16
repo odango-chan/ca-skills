@@ -9,7 +9,7 @@ The comprehensive specification is the sole normative source for Schema ownershi
 - Skill owns its public Request Schema and genuinely Skill-owned data. The Request Schema lives under `schemas/**` and is referenced by `assurance/contract.yaml`.
 - Tool Owner owns Operation Input / Output / Reconcile Schemas.
 - Observation Owner publishes Query Input and normalized Output Schemas through ToolCatalog.
-- Host owns the Invocation Context Schema and Evidence-reference projection. `contract.yaml` references the exact Host export in `contextSchema`. Host validates required fields and references at admission.
+- Host owns the Skill-visible Subject Context Schema and the Evidence-reference projection. `contract.yaml` references only the exact subject projection in `contextSchema` (for the current 5GC profile, opaque `ueRef` only). Host-private ingress, invocation, UE/PSI instance, lifecycle and correlation metadata is a separate execution-context contract; it is not exposed to the Skill and is not an authored Operation/Observation argument.
 - Contract declares a direct alias-to-Package-ID map in `dependencies` and requested grants in `capabilities`. Dependency identity is not a version lock or download instruction; a Grant is not a dependency.
 - Operation / Observation arguments are named mappings checked against Owner Schemas.
 - Procedure Script arguments are named mappings that define the exact local input projection; strict return TypedDict generates the output Schema.
@@ -25,3 +25,17 @@ Skill Studio lets the author select public dependencies and Capability Grants fr
 Compiler verifies the existing snapshot digest and compares the Contract Package ID with the trusted caller binding for that alias and digest. It validates Owner and exact export identities before linking. The caller establishes provenance; Compiler consumes supplied bytes and metadata. Preserve immutable revision markers in Owner Schema IDs.
 
 The trusted deployment CapabilityContracts is supplied separately from ordinary DependencySnapshot inputs. It defines exact callable membership and Effect; imported ToolCatalog bytes provide the corresponding callable schemas. Compiler validates that every external callable is covered by exactly one granted Capability and matches the trusted Effect.
+
+
+## 5GC context and Observation boundary
+
+For the current 5GC profile:
+
+- The Host Subject Context exports only the opaque `ueRef`. The Skill's Request Schema separately carries business parameters such as `pduSessionId`.
+- Host-owned `ingressRef`, `lifecycleRef`, invocation identity, cancellation and journal state are injected through a private Host-to-Tool dispatch context. They must not appear in `contextSchema`, Predicate inputs or Skill-authored callable arguments.
+- The current combined Host invocation-context Schema is transitional. The Host Owner must publish a stable Package ID for the subject Schema and a separately versioned physical execution-context interface before a Skill can link the real package.
+- The SMF MAS QueryContext SBI v0.10 contract remains owned by the SMF. The Host may provide a local adapter and publish typed CA-SL v1alpha4 Observation callables, but must consume the exact SMF Owner wire schema rather than copying or silently redefining it.
+- Direct Agent Observation scope is limited to SMF-owned MAS projections. AMF/UDM/PCF/UPF/RAN/Fabric context needed by an Operation is acquired inside the responsible Tool/Owner adapter and returned as Operation Result/Evidence.
+- The current SMF MAS v0.10 response lacks source `observedAt` / `validUntil` and does not carry Host `lifecycleRef`. A Host-generated `receivedAt` is not source observation time. Exact temporal and lifecycle Scope guarantees are required before a query can be qualified as a v1alpha4 Observation.
+
+See the CA Agent Host [5GC Agent Context and Observation Contracts](https://github.com/odango-chan/ca-agent-demo/blob/main/docs/design/5gc-agent-context-contracts-v1alpha4.md) for the complete contract boundary and publication gates.
