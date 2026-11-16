@@ -1,7 +1,8 @@
 # Illustrative CA-SL v1alpha4 deterministic DAG, NOT linked to qualified Owners.
 # Runtime coordination (Hold/Claim/Waiter/Journal/Reconcile), invocation identity and lifecycle/correlation are Host/Owner internals.
-# Skill decisions consume declared Operation Results/Evidence. Network-side context
-# required by an Operation is obtained inside its responsible Tool/Owner adapter.
+# Skill decisions consume declared Operation Results/Evidence and explicit read-only
+# Observations when a business decision requires current SMF-owned context. Non-SMF
+# context required by an Operation stays inside its responsible Tool/Owner adapter.
 # Host performs ingress admission, identity/instance association, duplicate suppression and execution lifecycle before this graph starts.
 # This Skill validates only the business request profile; Host execution metadata is not a Procedure input.
 start: get-sm-subscription-data
@@ -178,25 +179,46 @@ nodes:
           arguments:
             - update-sm-context.operation.output
       routes:
-        PASS: receive-n4-session-modification
+        PASS: read-smf-session-context
         FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
 
-  # The SMF performs N4 Session Modification while handling the Step 15 request.
-  # This local CA Mock Tool waits for Fabric to receive the matching real N4
-  # Modification Response. It does not send N4 and does not query SMF context.
-  # The initial N4 result and exact Step 15 result scope the business session;
-  # Host-only Invocation/lifecycle correlation remains private.
-  # Tool ID and its typed completion Evidence are proposed and NOT PUBLISHED.
+  # Read current SMF-owned session facts after the initial SM Context exists and
+  # the Step 15 UpdateSMContext continuation has completed. This is a synchronous,
+  # read-only business Observation, not callback polling or Host lifecycle lookup.
+  # The callable is a generic CA context interface; its compatibility backend is
+  # deliberately not exposed in this conventional Skill.
+  # 3GPP: CA_EXTENSION — current SMF session-context read supporting steps 16a–16b.
+  read-smf-session-context:
+    observation:
+      tool: ca::context.smf.session.read
+      arguments:
+        ueRef: context.ueRef
+        pduSessionId: context.request.pduSessionId
+      routes:
+        FAILED: UNRESOLVED
+        UNKNOWN: UNRESOLVED
+    postcondition:
+      predicates:
+        - predicate: establishment.smf.session_context_profile_ready
+          arguments:
+            - read-smf-session-context.observation.output
+            - context.request.dnn
+            - context.request.sNssai.sst
+      routes:
+        PASS: modify-n4-session
+        FAIL: ca-transfer-failed-resource-responsibility
+        UNKNOWN: SAFE_STOPPED
+
   # 3GPP: CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 16a–16b and §4.4.1.3; N4 Session Modification Request/Response.
-  receive-n4-session-modification:
+  modify-n4-session:
     operation:
-      tool: ca::mock.n4.session.modification.response
+      tool: upn::UPN.MODIFY_UP_SESSION
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
         initialN4Result: establish-n4-session.operation.output
-        updateSMContextResult: update-sm-context.operation.output
+        ranResult: update-sm-context.operation.output
       routes:
         FAILED: ca-transfer-failed-resource-responsibility
         OUTCOME_UNKNOWN: SAFE_STOPPED
@@ -205,7 +227,7 @@ nodes:
       predicates:
         - predicate: establishment.n4.forwarding_ready
           arguments:
-            - receive-n4-session-modification.operation.output
+            - modify-n4-session.operation.output
       routes:
         PASS: ca-transfer-resource-responsibility
         FAIL: ca-transfer-failed-resource-responsibility
@@ -246,7 +268,7 @@ nodes:
             - update-sm-context.operation.output
         - predicate: establishment.n4.forwarding_ready
           arguments:
-            - receive-n4-session-modification.operation.output
+            - modify-n4-session.operation.output
         - predicate: establishment.n4.initial_resources_ready
           arguments:
             - establish-n4-session.operation.output
