@@ -433,7 +433,33 @@ def main(input: PredicateInput) -> PredicateEvaluationResult:
             root = Path(d) / "establish-pdu-session"
             (root / "assurance").mkdir(parents=True)
             (root / "scripts").mkdir()
-            (root / "assurance" / "procedure.yaml").write_text("""nodes:
+            (root / "assurance" / "procedure.yaml").write_text("""start: read-existing-sm-context
+nodes:
+  read-existing-sm-context:
+    precondition:
+      predicates:
+        - predicate: establishment.request.supported
+          arguments:
+            - context.request.requestType
+    observation:
+      tool: ca::context.smf.session.read
+      arguments:
+        ueRef: context.ueRef
+        pduSessionId: context.request.pduSessionId
+    postcondition:
+      predicates:
+        - predicate: establishment.smf.session_context_absent
+          arguments:
+            - read-existing-sm-context.observation.output
+      routes:
+        PASS: get-sm-subscription-data
+        FAIL: SAFE_STOPPED
+        UNKNOWN: SAFE_STOPPED
+  get-sm-subscription-data:
+    operation:
+      tool: ca::sbi.udm.sm_data.get
+      routes:
+        SUCCEEDED: transfer-n1n2-message
   transfer-n1n2-message:
     operation:
       tool: ca::sbi.amf.n1n2.transfer
@@ -500,6 +526,15 @@ capabilities:
   - urn:example:connectionagent:capability:ca:smf-session-context-read:v1
 """, encoding="utf-8")
             (root / "assurance" / "predicates.yaml").write_text("""predicates:
+  establishment.smf.session_context_absent:
+    parameters:
+      - sessionContext: ca::urn:example:5gc:smf-session-context:v1
+    evidence:
+      requires:
+        sessionContext: [ca::smf.session-context.query-evidence]
+    evaluator:
+      type: script
+      script: scripts/validate-smf-session-context-entry.py
   establishment.smf.session_context_profile_ready:
     parameters:
       - sessionContext: ca::urn:example:5gc:smf-session-context:v1
@@ -510,20 +545,43 @@ capabilities:
       type: script
       script: scripts/validate-smf-session-context.py
 """, encoding="utf-8")
+            (root / "scripts" / "validate-smf-session-context-entry.py").write_text(
+                "def main(input: PredicateInput) -> PredicateEvaluationResult:\\n    return {\\"result\\": \\"PASS\\", \\"reasonCode\\": \\"SMF_SESSION_CONTEXT_CONFIRMED_ABSENT\\", \\"evidenceUsed\\": []}\\n",
+                encoding="utf-8",
+            )
             (root / "scripts" / "validate-smf-session-context.py").write_text(
-                "def main(input: PredicateInput) -> PredicateEvaluationResult:\n    return {\"result\": \"PASS\", \"reasonCode\": \"OK\", \"evidenceUsed\": []}\n",
+                "def main(input: PredicateInput) -> PredicateEvaluationResult:\\n    return {\\"result\\": \\"PASS\\", \\"reasonCode\\": \\"OK\\", \\"evidenceUsed\\": []}\\n",
                 encoding="utf-8",
             )
             (root / "SKILL.md").write_text(
-                "| \x60update-sm-context\x60 | step 15 — \x60Nsmf_PDUSession_UpdateSMContext Request\x60 |\n"
-                "| \x60read-smf-session-context\x60 | current SMF session context after step 15 |\n"
-                "| \x60modify-n4-session\x60 | steps 16a–16b — N4 Session Modification |\n"
-                "Runtime resumes the same Invocation; Host returns the paired step 17 response.\n",
+                "| \x60read-existing-sm-context\x60 | exact UE/PSI context existence before initial mutations |\\n"
+                "| \x60update-sm-context\x60 | step 15 — \x60Nsmf_PDUSession_UpdateSMContext Request\x60 |\\n"
+                "| \x60read-smf-session-context\x60 | current SMF session context after step 15 |\\n"
+                "| \x60modify-n4-session\x60 | steps 16a–16b — N4 Session Modification |\\n"
+                "Runtime resumes the same Invocation; Host returns the paired step 17 response.\\n",
                 encoding="utf-8",
             )
             errors: list[str] = []
             validate_async_update_sm_context_boundary(root, errors)
             self.assertEqual(errors, [])
+
+    def test_entry_context_predicate_distinguishes_absent_present_and_unknown(self) -> None:
+        import runpy
+
+        main = runpy.run_path(
+            str(ROOT / "examples" / "skills" / "establish-pdu-session" / "scripts" / "validate-smf-session-context-entry.py")
+        )["main"]
+        def evaluate(presence: str) -> dict:
+            return main({
+                "evidence": {"sessionContext": {"refs": ["evidence:query"]}},
+                "sessionContext": {"sessionPresence": presence},
+            })
+        self.assertEqual(evaluate("ABSENT")["result"], "PASS")
+        self.assertEqual(evaluate("ABSENT")["reasonCode"], "SMF_SESSION_CONTEXT_CONFIRMED_ABSENT")
+        self.assertEqual(evaluate("PRESENT")["result"], "FAIL")
+        self.assertEqual(evaluate("PRESENT")["reasonCode"], "SMF_SESSION_CONTEXT_ALREADY_PRESENT")
+        self.assertEqual(evaluate("UNKNOWN")["result"], "UNKNOWN")
+        self.assertEqual(evaluate("UNKNOWN")["reasonCode"], "SMF_SESSION_CONTEXT_PRESENCE_UNKNOWN")
 
     def test_conventional_skill_requires_context_observation_and_rejects_mas_names(self) -> None:
         with tempfile.TemporaryDirectory() as d:
