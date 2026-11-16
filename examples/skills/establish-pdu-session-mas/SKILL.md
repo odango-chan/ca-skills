@@ -11,7 +11,7 @@ description: CA-SL v1alpha4 illustrative SMF MAS policy-first initial PDU Sessio
 
 ## Scope and business progression
 
-One admitted, initial IPv4 / SSC1, local non-roaming PDU Session request. Never substitute an arbitrary UE, PSI, lifecycle, resource or late callback; identity and Scope require independent Host/Owner proof.
+One admitted, initial IPv4 / SSC1, local non-roaming PDU Session request. Never substitute an arbitrary UE, PSI, resource or late callback; identity and Scope require independent Host/Owner proof. Host invocation lifecycle and correlation are not Skill context.
 
 MAS is a **proposed, not Owner-approved policy-first** graph, with per-step Postcondition and confirmed-failure-only cleanup; on OUTCOME_UNKNOWN it stops and retains responsibility. See [migration decision register](../../MIGRATION-REVIEW-v1alpha4.md). The intended sequence is: validate subscription and required authentication disposition, establish context and UECM, create policy, choose UP anchor, allocate address, update policy with actual allocation, create charging and N4, signal RAN, activate forwarding, account for events and transfer durable ownership.
 
@@ -65,3 +65,12 @@ The exact IDs must be replaced only by trusted CapabilityContracts exports. The 
 Every Mutation `OUTCOME_UNKNOWN` goes to an explicit safe stop. An Owner-published `mutation.reconcile` can be used **only through the Host common safety boundary**, not an authored `reconcile` Node. The only successful Invocation edge is `verify-pdu-session-establishment.postcondition.routes.PASS: SUCCEEDED`, where all listed predicates must pass with authoritative, fresh, same-lifecycle Evidence.
 
 **Known blockers:** missing exact v1alpha4 Owner/Capability publications, checked output Schemas and Evidence descriptors, confirmed callable input identities, and Compiler/Studio/Host §45.2 execution evidence. Do **not** infer completion or production readiness from YAML syntax checks.
+
+
+## Context ownership
+
+The Skill receives only the Host-resolved opaque UE subject handle (ueRef) plus its own validated request. Host admission, invocation/instance identity, lifecycle, correlation, holds, journals and late-result responsibility remain private Host/Owner state; they are not Skill Predicates or authored Operation arguments.
+
+The Agent may request explicit read-only Observations only for context owned by the SMF MAS. It does not directly query AMF, UDM, PCF, UPF or other NF context. The responsible Tool/Owner adapter obtains and validates non-SMF context internally and returns its declared Operation Result/Evidence.
+
+The initial establishment flow does not need a pre-existing SMF context query before creating the SM Context. Do not manufacture a successful precondition from SESSION_NOT_FOUND. See the CA Agent Host 5GC context boundary: https://github.com/odango-chan/ca-agent-demo/blob/main/docs/design/5gc-agent-context-access-boundary-v1alpha4.md.
