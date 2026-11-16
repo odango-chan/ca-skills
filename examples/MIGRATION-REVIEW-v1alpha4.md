@@ -14,7 +14,6 @@ This record distinguishes **authoring design choices** in the PR from **unapprov
 |---|---|---|
 | No author Wait | §21/§52: real asynchronous protocol completion inside matching Owner Operation, no `ca.session.evidence.await` | Tool Owner actual output, completion, Correlation, Deadline, Evidence, failure classes and snapshots not published |
 | Step 8 + initial N4 | No separate Step 8 Script Node; `establish-n4-session` = `upn::UPN.CREATE_UP_SESSION` performs native SMF UPF/session-address selection and N4 establishment | UPN Owner must consume the exact admitted request, UDM subscription result and PCF policy result, and return the effective session configuration plus authoritative N4 result; contract not published |
-| Initial N4 | `establish-n4-session` = `upn::UPN.CREATE_UP_SESSION` (not PCF create) | UPN Provider contract not published. Old PCF reply cannot substitute for this result |
 | RAN acceptance | `complete-an-resource-setup` = `ssm::SSM.SIGNAL_UE_AN` (not AMF N1N2-transfer ACK) | SSM Provider contract not published |
 | N4 forwarding | `modify-n4-session` = `upn::UPN.MODIFY_UP_SESSION` (not AMF ACK) | UPN mutation contract not published |
 | Initial admission | CreateSMContext Request is the Host ingress trigger outside the Procedure; Host performs source/action/identity admission, duplicate suppression, business-instance association and lifecycle/correlation. The Skill's request-profile Precondition is on its first business Node | Host execution metadata remains private; only the subject `ueRef` projection is Skill-visible |

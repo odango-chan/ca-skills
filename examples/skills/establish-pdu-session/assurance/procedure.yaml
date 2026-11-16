@@ -100,8 +100,7 @@ nodes:
   # The UPN Owner performs native SMF Step 8 selection (UPF/session-address and
   # effective session configuration) as part of N4 preparation, then owns the
   # N4 Session Establishment Request/Response. Step 8 is not a separate Skill Node.
-  # 3GPP: CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 step 8 and steps 10a–10b;
-  # §4.4.1.2 N4 Session Establishment.
+  # 3GPP: CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 step 8 and steps 10a–10b; §4.4.1.2 N4 Session Establishment.
   establish-n4-session:
     operation:
       tool: upn::UPN.CREATE_UP_SESSION
