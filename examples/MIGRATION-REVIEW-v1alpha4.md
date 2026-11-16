@@ -11,13 +11,13 @@ This record distinguishes **authoring design choices** in the PR from **unapprov
 | Decision | Source mapping | Owner / validation gap |
 |---|---|---|
 | No author Wait | §21/§52: real asynchronous protocol completion inside matching Owner Operation, no `ca.session.evidence.await` | Tool Owner actual output, completion, Correlation, Deadline, Evidence, failure classes and snapshots not published |
-| Initial N4 | `create-initial-n4` = `upn::UPN.CREATE_UP_SESSION` (not PCF create) | UPN Provider contract not published. Old PCF reply cannot substitute for this result |
-| RAN acceptance | `signal-ran` = `ssm::SSM.SIGNAL_UE_AN` (not AMF N1N2-transfer ACK) | SSM Provider contract not published |
-| N4 forwarding | `modify-forwarding` = `upn::UPN.MODIFY_UP_SESSION` (not AMF ACK) | UPN mutation contract not published |
-| Initial admission | Global `check-request.precondition` lists request, ingress and lifecycle (MAS uses request + eligibility) | Context/ingress/lifecycle Owner Schema, evidence and exact projection names unapproved |
+| Initial N4 | `establish-n4-session` = `upn::UPN.CREATE_UP_SESSION` (not PCF create) | UPN Provider contract not published. Old PCF reply cannot substitute for this result |
+| RAN acceptance | `complete-an-resource-setup` = `ssm::SSM.SIGNAL_UE_AN` (not AMF N1N2-transfer ACK) | SSM Provider contract not published |
+| N4 forwarding | `modify-n4-session` = `upn::UPN.MODIFY_UP_SESSION` (not AMF ACK) | UPN mutation contract not published |
+| Initial admission | Global `admit-create-sm-context-request.precondition` lists request, ingress and lifecycle (MAS uses request + eligibility) | Context/ingress/lifecycle Owner Schema, evidence and exact projection names unapproved |
 | 5GC local gates | UDM ownership, PCF hold, create-inputs, association ownership, delivery context, AMF transfer initiation and terminal responsibility checks restored | Old predicates use separate Owner observations; candidates in new PredicateSet cannot link until exact Producers and guarantees are published |
 | MAS business gates | Postcondition for each of 15 business Operations and separately for cleanup; original output dependencies restored | MAS ToolCatalog/evidence and data schemas not approved; flags are authoring hypotheses |
-| Confirmed failure handoff / MAS cleanup | Business FAIL/FAILED may enter author `finalize-failed` or MAS `cleanup` **only after** Owner proves the original attempted mutation resolved and cleanup/handoff authorized | Requires explicit owner contract, no automatic authority |
+| Confirmed failure handoff / MAS cleanup | Business FAIL/FAILED may enter author `ca-transfer-failed-resource-responsibility` or MAS `cleanup` **only after** Owner proves the original attempted mutation resolved and cleanup/handoff authorized | Requires explicit owner contract, no automatic authority |
 | Commit uncertainty | On `OUTCOME_UNKNOWN`, stop directly `SAFE_STOPPED`; **never** call cleanup/handoff or retry. Host retains immutable original call and pending resource responsibility | Host §12.7/§20 proof, post-stop retention and Late Result handling remain NOT_QUALIFIED |
 | Actual terminal | §12.8 terminal priority `SAFE_STOPPED > UNRESOLVED > FAILED` determines final publication based on admitted resources/unknown status | A requested `FAILED` route may publish `SAFE_STOPPED`; trace and mismatch diagnostics still require runtime evidence |
 
@@ -33,40 +33,40 @@ The following entries are one-to-one *traceability* rows, not converted fixtures
 
 | Legacy Case | Candidate v1alpha4 point of responsibility | Result |
 |---|---|---|
-| [01-complete-profile](legacy/establish-pdu-session/cases/01-complete-profile/case.yaml) | verify-final; N4/RAN/managed ownership | NOT_RUN / Owner not linked |
-| [02-ingress-unknown](legacy/establish-pdu-session/cases/02-ingress-unknown/case.yaml) | check-request global ingress/lifecycle | NOT_RUN / Owner not linked |
-| [03-udm-partial-or-ambiguous](legacy/establish-pdu-session/cases/03-udm-partial-or-ambiguous/case.yaml) | read-udm + UDM producer Evidence | NOT_RUN / Owner not linked |
-| [04-udm-target-rejection](legacy/establish-pdu-session/cases/04-udm-target-rejection/case.yaml) | read-udm + UDM producer Evidence | NOT_RUN / Owner not linked |
-| [05-address-or-callback-missing](legacy/establish-pdu-session/cases/05-address-or-callback-missing/case.yaml) | read-operation-context / prepare-response | NOT_RUN / Owner not linked |
-| [06-subscription-ownership-unknown](legacy/establish-pdu-session/cases/06-subscription-ownership-unknown/case.yaml) | subscribe-udm.postcondition / outcome unknown | NOT_RUN / Owner not linked |
-| [07-pcf-association-reused](legacy/establish-pdu-session/cases/07-pcf-association-reused/case.yaml) | create-pcf.postcondition / outcome unknown | NOT_RUN / Owner not linked |
-| [08-initial-n4-not-proven](legacy/establish-pdu-session/cases/08-initial-n4-not-proven/case.yaml) | create-initial-n4 (UPN.CREATE_UP_SESSION) | NOT_RUN / Owner not linked |
-| [09-old-instance-or-no-authority](legacy/establish-pdu-session/cases/09-old-instance-or-no-authority/case.yaml) | read-operation-context.postcondition | NOT_RUN / Owner not linked |
-| [10-response-artifact-invalid](legacy/establish-pdu-session/cases/10-response-artifact-invalid/case.yaml) | build-n1n2-delivery / prepare-response | NOT_RUN / Owner not linked |
-| [11-amf-202-unsupported](legacy/establish-pdu-session/cases/11-amf-202-unsupported/case.yaml) | check-request global ingress/lifecycle | NOT_RUN / Owner not linked |
-| [12-ran-setup-failure](legacy/establish-pdu-session/cases/12-ran-setup-failure/case.yaml) | signal-ran (SSM.SIGNAL_UE_AN) / confirmed FAIL vs UNKNOWN | NOT_RUN / Owner not linked |
-| [13-ran-late-or-ambiguous](legacy/establish-pdu-session/cases/13-ran-late-or-ambiguous/case.yaml) | signal-ran (SSM.SIGNAL_UE_AN) / confirmed FAIL vs UNKNOWN | NOT_RUN / Owner not linked |
-| [14-n4-forwarding-failure](legacy/establish-pdu-session/cases/14-n4-forwarding-failure/case.yaml) | modify-forwarding (UPN.MODIFY_UP_SESSION) | NOT_RUN / Owner not linked |
-| [15-no-ue-observation-required](legacy/establish-pdu-session/cases/15-no-ue-observation-required/case.yaml) | verify-final avoids unsupported UE-observation requirement | NOT_RUN / Owner not linked |
-| [16-manager-receipt-missing](legacy/establish-pdu-session/cases/16-manager-receipt-missing/case.yaml) | transfer-responsibility/finalize-failed; Host retains UNKNOWN | NOT_RUN / Owner not linked |
-| [17-subscribe-udm-unknown](legacy/establish-pdu-session/cases/17-subscribe-udm-unknown/case.yaml) | subscribe-udm.postcondition / outcome unknown | NOT_RUN / Owner not linked |
-| [18-create-policy-unknown](legacy/establish-pdu-session/cases/18-create-policy-unknown/case.yaml) | create-pcf.postcondition / outcome unknown | NOT_RUN / Owner not linked |
-| [19-response-prepare-denied](legacy/establish-pdu-session/cases/19-response-prepare-denied/case.yaml) | prepare-response.FAILED | NOT_RUN / Owner not linked |
-| [20-transfer-to-amf-unknown](legacy/establish-pdu-session/cases/20-transfer-to-amf-unknown/case.yaml) | transfer-n1n2.OUTCOME_UNKNOWN → SAFE_STOPPED | NOT_RUN / Owner not linked |
-| [21-handoff-success-unknown](legacy/establish-pdu-session/cases/21-handoff-success-unknown/case.yaml) | transfer-responsibility/finalize-failed; Host retains UNKNOWN | NOT_RUN / Owner not linked |
-| [22-handoff-failed-unknown](legacy/establish-pdu-session/cases/22-handoff-failed-unknown/case.yaml) | transfer-responsibility/finalize-failed; Host retains UNKNOWN | NOT_RUN / Owner not linked |
+| [01-complete-profile](legacy/establish-pdu-session/cases/01-complete-profile/case.yaml) | verify-pdu-session-establishment; N4/RAN/managed ownership | NOT_RUN / Owner not linked |
+| [02-ingress-unknown](legacy/establish-pdu-session/cases/02-ingress-unknown/case.yaml) | admit-create-sm-context-request global ingress/lifecycle | NOT_RUN / Owner not linked |
+| [03-udm-partial-or-ambiguous](legacy/establish-pdu-session/cases/03-udm-partial-or-ambiguous/case.yaml) | get-sm-subscription-data + UDM producer Evidence | NOT_RUN / Owner not linked |
+| [04-udm-target-rejection](legacy/establish-pdu-session/cases/04-udm-target-rejection/case.yaml) | get-sm-subscription-data + UDM producer Evidence | NOT_RUN / Owner not linked |
+| [05-address-or-callback-missing](legacy/establish-pdu-session/cases/05-address-or-callback-missing/case.yaml) | ca-read-sm-operation-context / ca-prepare-pdu-session-establishment-accept | NOT_RUN / Owner not linked |
+| [06-subscription-ownership-unknown](legacy/establish-pdu-session/cases/06-subscription-ownership-unknown/case.yaml) | subscribe-sm-data.postcondition / outcome unknown | NOT_RUN / Owner not linked |
+| [07-pcf-association-reused](legacy/establish-pdu-session/cases/07-pcf-association-reused/case.yaml) | establish-sm-policy-association.postcondition / outcome unknown | NOT_RUN / Owner not linked |
+| [08-initial-n4-not-proven](legacy/establish-pdu-session/cases/08-initial-n4-not-proven/case.yaml) | establish-n4-session (UPN.CREATE_UP_SESSION) | NOT_RUN / Owner not linked |
+| [09-old-instance-or-no-authority](legacy/establish-pdu-session/cases/09-old-instance-or-no-authority/case.yaml) | ca-read-sm-operation-context.postcondition | NOT_RUN / Owner not linked |
+| [10-response-artifact-invalid](legacy/establish-pdu-session/cases/10-response-artifact-invalid/case.yaml) | ca-build-n1n2-message / ca-prepare-pdu-session-establishment-accept | NOT_RUN / Owner not linked |
+| [11-amf-202-unsupported](legacy/establish-pdu-session/cases/11-amf-202-unsupported/case.yaml) | admit-create-sm-context-request global ingress/lifecycle | NOT_RUN / Owner not linked |
+| [12-ran-setup-failure](legacy/establish-pdu-session/cases/12-ran-setup-failure/case.yaml) | complete-an-resource-setup (SSM.SIGNAL_UE_AN) / confirmed FAIL vs UNKNOWN | NOT_RUN / Owner not linked |
+| [13-ran-late-or-ambiguous](legacy/establish-pdu-session/cases/13-ran-late-or-ambiguous/case.yaml) | complete-an-resource-setup (SSM.SIGNAL_UE_AN) / confirmed FAIL vs UNKNOWN | NOT_RUN / Owner not linked |
+| [14-n4-forwarding-failure](legacy/establish-pdu-session/cases/14-n4-forwarding-failure/case.yaml) | modify-n4-session (UPN.MODIFY_UP_SESSION) | NOT_RUN / Owner not linked |
+| [15-no-ue-observation-required](legacy/establish-pdu-session/cases/15-no-ue-observation-required/case.yaml) | verify-pdu-session-establishment avoids unsupported UE-observation requirement | NOT_RUN / Owner not linked |
+| [16-manager-receipt-missing](legacy/establish-pdu-session/cases/16-manager-receipt-missing/case.yaml) | ca-transfer-resource-responsibility/ca-transfer-failed-resource-responsibility; Host retains UNKNOWN | NOT_RUN / Owner not linked |
+| [17-subscribe-sm-data-unknown](legacy/establish-pdu-session/cases/17-subscribe-sm-data-unknown/case.yaml) | subscribe-sm-data.postcondition / outcome unknown | NOT_RUN / Owner not linked |
+| [18-create-policy-unknown](legacy/establish-pdu-session/cases/18-create-policy-unknown/case.yaml) | establish-sm-policy-association.postcondition / outcome unknown | NOT_RUN / Owner not linked |
+| [19-response-prepare-denied](legacy/establish-pdu-session/cases/19-response-prepare-denied/case.yaml) | ca-prepare-pdu-session-establishment-accept.FAILED | NOT_RUN / Owner not linked |
+| [20-transfer-to-amf-unknown](legacy/establish-pdu-session/cases/20-transfer-to-amf-unknown/case.yaml) | transfer-n1n2-message.OUTCOME_UNKNOWN → SAFE_STOPPED | NOT_RUN / Owner not linked |
+| [21-handoff-success-unknown](legacy/establish-pdu-session/cases/21-handoff-success-unknown/case.yaml) | ca-transfer-resource-responsibility/ca-transfer-failed-resource-responsibility; Host retains UNKNOWN | NOT_RUN / Owner not linked |
+| [22-handoff-failed-unknown](legacy/establish-pdu-session/cases/22-handoff-failed-unknown/case.yaml) | ca-transfer-resource-responsibility/ca-transfer-failed-resource-responsibility; Host retains UNKNOWN | NOT_RUN / Owner not linked |
 | [23-denied-before-resource-create](legacy/establish-pdu-session/cases/23-denied-before-resource-create/case.yaml) | pre-Mutation FAILED terminal, not SAFE_STOPPED without resources | NOT_RUN / Owner not linked |
-| [24-amf-200-still-buffered](legacy/establish-pdu-session/cases/24-amf-200-still-buffered/case.yaml) | transfer-n1n2.postcondition + signal-ran; ACK != RAN adoption | NOT_RUN / Owner not linked |
-| [25-handoff-unresolved-unknown](legacy/establish-pdu-session/cases/25-handoff-unresolved-unknown/case.yaml) | transfer-responsibility/finalize-failed; Host retains UNKNOWN | NOT_RUN / Owner not linked |
-| [26-handoff-success-not-committed](legacy/establish-pdu-session/cases/26-handoff-success-not-committed/case.yaml) | transfer-responsibility/finalize-failed; Host retains UNKNOWN | NOT_RUN / Owner not linked |
-| [27-handoff-failed-not-committed](legacy/establish-pdu-session/cases/27-handoff-failed-not-committed/case.yaml) | transfer-responsibility/finalize-failed; Host retains UNKNOWN | NOT_RUN / Owner not linked |
-| [28-handoff-unresolved-not-committed](legacy/establish-pdu-session/cases/28-handoff-unresolved-not-committed/case.yaml) | transfer-responsibility/finalize-failed; Host retains UNKNOWN | NOT_RUN / Owner not linked |
-| [29-lifecycle-not-ready](legacy/establish-pdu-session/cases/29-lifecycle-not-ready/case.yaml) | check-request global ingress/lifecycle | NOT_RUN / Owner not linked |
-| [30-lifecycle-proof-unavailable](legacy/establish-pdu-session/cases/30-lifecycle-proof-unavailable/case.yaml) | check-request global ingress/lifecycle | NOT_RUN / Owner not linked |
+| [24-amf-200-still-buffered](legacy/establish-pdu-session/cases/24-amf-200-still-buffered/case.yaml) | transfer-n1n2-message.postcondition + complete-an-resource-setup; ACK != RAN adoption | NOT_RUN / Owner not linked |
+| [25-handoff-unresolved-unknown](legacy/establish-pdu-session/cases/25-handoff-unresolved-unknown/case.yaml) | ca-transfer-resource-responsibility/ca-transfer-failed-resource-responsibility; Host retains UNKNOWN | NOT_RUN / Owner not linked |
+| [26-handoff-success-not-committed](legacy/establish-pdu-session/cases/26-handoff-success-not-committed/case.yaml) | ca-transfer-resource-responsibility/ca-transfer-failed-resource-responsibility; Host retains UNKNOWN | NOT_RUN / Owner not linked |
+| [27-handoff-failed-not-committed](legacy/establish-pdu-session/cases/27-handoff-failed-not-committed/case.yaml) | ca-transfer-resource-responsibility/ca-transfer-failed-resource-responsibility; Host retains UNKNOWN | NOT_RUN / Owner not linked |
+| [28-handoff-unresolved-not-committed](legacy/establish-pdu-session/cases/28-handoff-unresolved-not-committed/case.yaml) | ca-transfer-resource-responsibility/ca-transfer-failed-resource-responsibility; Host retains UNKNOWN | NOT_RUN / Owner not linked |
+| [29-lifecycle-not-ready](legacy/establish-pdu-session/cases/29-lifecycle-not-ready/case.yaml) | admit-create-sm-context-request global ingress/lifecycle | NOT_RUN / Owner not linked |
+| [30-lifecycle-proof-unavailable](legacy/establish-pdu-session/cases/30-lifecycle-proof-unavailable/case.yaml) | admit-create-sm-context-request global ingress/lifecycle | NOT_RUN / Owner not linked |
 | [31-read-only-unknown](legacy/establish-pdu-session/cases/31-read-only-unknown/case.yaml) | read-only UNKNOWN / §12.8 terminal priority | NOT_RUN / Owner not linked |
 | [32-budget-after-subscribe](legacy/establish-pdu-session/cases/32-budget-after-subscribe/case.yaml) | limits.maxActions / Host budget enforcement | NOT_RUN / Owner not linked |
-| [33-required-subscription-fields-missing](legacy/establish-pdu-session/cases/33-required-subscription-fields-missing/case.yaml) | read-udm + UDM producer Evidence | NOT_RUN / Owner not linked |
-| [34-udm-producer-evidence-mismatch](legacy/establish-pdu-session/cases/34-udm-producer-evidence-mismatch/case.yaml) | read-udm + UDM producer Evidence | NOT_RUN / Owner not linked |
+| [33-required-subscription-fields-missing](legacy/establish-pdu-session/cases/33-required-subscription-fields-missing/case.yaml) | get-sm-subscription-data + UDM producer Evidence | NOT_RUN / Owner not linked |
+| [34-udm-producer-evidence-mismatch](legacy/establish-pdu-session/cases/34-udm-producer-evidence-mismatch/case.yaml) | get-sm-subscription-data + UDM producer Evidence | NOT_RUN / Owner not linked |
 | [35-reconciled-commit-still-stops](legacy/establish-pdu-session/cases/35-reconciled-commit-still-stops/case.yaml) | Host Owner-only mutation.reconcile (no authored stage) | NOT_RUN / Owner not linked |
 | [36-reconciled-not-committed-no-retry](legacy/establish-pdu-session/cases/36-reconciled-not-committed-no-retry/case.yaml) | Host Owner-only mutation.reconcile (no authored stage) | NOT_RUN / Owner not linked |
 
@@ -75,11 +75,11 @@ The following entries are one-to-one *traceability* rows, not converted fixtures
 
 | Legacy Case | Candidate v1alpha4 point of responsibility | Result |
 |---|---|---|
-| [01-policy-first-happy](legacy/establish-pdu-session-mas/cases/01-policy-first-happy/case.yaml) | validate-subscription → verify-final (positive path) | NOT_RUN / Owner not linked |
-| [02-entry-eligibility-unknown](legacy/establish-pdu-session-mas/cases/02-entry-eligibility-unknown/case.yaml) | check-request.precondition: establishment.mas.eligible | NOT_RUN / Owner not linked |
+| [01-policy-first-happy](legacy/establish-pdu-session-mas/cases/01-policy-first-happy/case.yaml) | validate-subscription → verify-pdu-session-establishment (positive path) | NOT_RUN / Owner not linked |
+| [02-entry-eligibility-unknown](legacy/establish-pdu-session-mas/cases/02-entry-eligibility-unknown/case.yaml) | admit-create-sm-context-request.precondition: establishment.mas.eligible | NOT_RUN / Owner not linked |
 | [03-policy-update-outcome-unknown](legacy/establish-pdu-session-mas/cases/03-policy-update-outcome-unknown/case.yaml) | update-policy.OUTCOME_UNKNOWN → SAFE_STOPPED; no cleanup mutation | NOT_RUN / Owner not linked |
 | [04-namf-ack-without-ran-adoption](legacy/establish-pdu-session-mas/cases/04-namf-ack-without-ran-adoption/case.yaml) | signal-access.postcondition: ran_adopted (no ACK shortcut) | NOT_RUN / Owner not linked |
-| [05-resource-handoff-missing](legacy/establish-pdu-session-mas/cases/05-resource-handoff-missing/case.yaml) | finalize-resources + verify-final.resources_managed | NOT_RUN / Owner not linked |
+| [05-resource-handoff-missing](legacy/establish-pdu-session-mas/cases/05-resource-handoff-missing/case.yaml) | finalize-resources + verify-pdu-session-establishment.resources_managed | NOT_RUN / Owner not linked |
 | [06-secondary-auth-required-out-of-profile](legacy/establish-pdu-session-mas/cases/06-secondary-auth-required-out-of-profile/case.yaml) | secondary-auth.postcondition (confirmed auth restriction) | NOT_RUN / Owner not linked |
 
 
