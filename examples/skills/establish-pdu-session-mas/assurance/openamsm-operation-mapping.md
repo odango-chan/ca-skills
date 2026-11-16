@@ -28,6 +28,8 @@ The NW Agent plan starts with:
 | `secondary_auth_required` | literal `'0'` | Fixed out-of-profile skip; not a dynamic subscription-derived decision |
 | `allocator` | literal `LOCAL_POOL` | Fixed local-pool profile |
 
+The current `establishment-request.schema.yaml` represents `sNssai.sd` as an integer, but the imported OES plan carries `s_nssai_sd` as a string. This is an explicit unresolved type-boundary mismatch. No Tool Schema or adapter conversion is published; do not silently stringify a decimal integer or claim the field is already source-compatible.
+
 The Owner binds every Operation to the exact Host-admitted UE/PSI business instance. `ueRef` is not converted into an Agent-visible SUPI/IMSI. The MAS operations run against the same SMF session; the Skill passes only declared typed handles/results, not `stateRef`, raw identities, Host lifecycle IDs or transport references.
 
 ## Operation-by-operation source mapping
@@ -76,6 +78,7 @@ The Owner binds every Operation to the exact Host-admitted UE/PSI business insta
 
 - Publish the exact MAS ToolCatalog and CapabilityContracts with the source-derived callable IDs, Effects, input/output Schemas, declared outcomes and Evidence Guarantees.
 - Publish typed Owner output Schemas for the exact fields in the table; do not copy Owner schemas into Skill-owned files.
+- Resolve the `sNssai.sd` integer-to-`s_nssai_sd` string representation at the Owner/Skill Schema boundary with a tested, lossless 24-bit mapping.
 - Replace every `urn:example:` Schema, ToolCatalog and Capability placeholder with trusted Owner exports.
 - Close the generic SMF context Observation's source-authority and temporal/freshness contract. v0.10 does not supply source timestamps; source inspection alone is not Owner publication.
 - Implement real charging or explicitly approve a profile that excludes charging; do not accept the current `NOT_IMPL_skip` marker.
