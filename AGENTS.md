@@ -12,6 +12,7 @@
 - The v1alpha4-shaped PDU Session authoring examples are at `examples/skills/establish-pdu-session/` and `examples/skills/establish-pdu-session-mas/`; the original v0.2/v1alpha1 business sources and Cases are archived under `examples/legacy/`, NOT imported into current v1alpha4 builds.
 - Other historical Skill directories remain outside this refresh and must not be treated as current syntax authority.
 - Preserve current business Procedure and Operation identities unless an explicit business-owner decision changes them.
+- For every 5GC Skill, follow [docs/authoring-5gc-3gpp-profile.md](docs/authoring-5gc-3gpp-profile.md): model from the SMF perspective, map each Node to a 3GPP interaction or explicitly classify it as a CA adapter/extension, use canonical 3GPP names where available, and trace every Capability to its NF/service scope.
 - The MAS Skill's 16 `ca.pdu_session.*` Operation references remain unresolved. Do not invent or approve a ToolCatalog.
 
 ## Language contracts
@@ -31,6 +32,7 @@ Key rules:
 - Only a final Postcondition aggregate `PASS` routed directly to `SUCCEEDED` proves the Goal; PASS is not carried across Nodes.
 - Source Schemas, Evidence and v1alpha4 ToolCatalog/CapabilityContracts require trusted Owner publications. Missing sources are blockers; a legacy `call`/`with` Script or Owner metadata snapshot cannot be silently relabeled as v1alpha4.
 - Cases are source obligations only. Do not add a Qualification engine or claim Case execution.
+- Do not present helper functions, internal methods, AMF/RAN/UE-owned actions, or unpublished CA operations as standard 3GPP Operations. Exact callable IDs must come from trusted Owner exports; record the 3GPP mapping separately.
 
 ## Validation
 
