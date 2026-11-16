@@ -168,7 +168,7 @@ For the current local/non-roaming, UE-requested initial PDU Session example, the
 | 12–14 | AMF ↔ (R)AN ↔ UE | Access-network resource setup and N2 PDU Session Response; not an SMF-owned service call |
 | 15 | AMF → SMF | `Nsmf_PDUSession_UpdateSMContext Request` carrying the access-network result; v1alpha4 source correlates it to the pending Owner Operation, while the next-revision proposal correlates it to the target Node's Wait in the same Run |
 | 16a–16b | SMF ↔ UPF | N4 Session Modification Request/Response |
-| 17 | SMF → AMF | `Nsmf_PDUSession_UpdateSMContext Response`; Host emits the paired response for the exact step 15 request after the Procedure's N4 Modification path reaches its terminal business outcome |
+| 17 | SMF → AMF | `Nsmf_PDUSession_UpdateSMContext Response`; the Integration response adapter fulfills the paired response for the exact Step 15 request using the final Host/Runtime outcome after the Procedure's N4 Modification path reaches its defined business outcome |
 | 18 | SMF → AMF | `Nsmf_PDUSession_SMContextStatusNotify` when applicable |
 | 21 | SMF ↔ UDM | Unsubscription when applicable |
 
