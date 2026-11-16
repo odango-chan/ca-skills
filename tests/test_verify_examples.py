@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-from verify_v1alpha4_examples import validate_example_scripts
+from verify_v1alpha4_examples import validate_example_scripts, validate_3gpp_traceability
 
 SOURCE_PROCEDURE = """start: produce
 nodes:
@@ -72,6 +72,41 @@ class V1Alpha4ScriptTests(unittest.TestCase):
             errors: list[str] = []
             validate_example_scripts(root, errors)
             return errors
+
+    def test_every_procedure_node_requires_3gpp_traceability(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "assurance").mkdir()
+            (root / "assurance" / "procedure.yaml").write_text(
+                "start: retrieve\\nnodes:\\n  # 3GPP: 3GPP_NATIVE — TS 23.502 step 4\\n  retrieve:\\n    operation: {}\\n",
+                encoding="utf-8",
+            )
+            (root / "SKILL.md").write_text(
+                "## 3GPP Traceability\\n\\nTS 23.502 V18.12.0\\n"
+                "| Procedure Node | Mapping |\\n|---|---|\\n| \\x60retrieve\\x60 | step 4 |\\n",
+                encoding="utf-8",
+            )
+            errors: list[str] = []
+            validate_3gpp_traceability(root, errors)
+            self.assertEqual(errors, [])
+
+    def test_missing_node_mapping_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "assurance").mkdir()
+            (root / "assurance" / "procedure.yaml").write_text(
+                "start: retrieve\\nnodes:\\n  retrieve:\\n    operation: {}\\n",
+                encoding="utf-8",
+            )
+            (root / "SKILL.md").write_text(
+                "## 3GPP Traceability\\nTS 23.502 V18.12.0\\n"
+                "| Procedure Node | Mapping |\\n|---|---|\\n",
+                encoding="utf-8",
+            )
+            errors: list[str] = []
+            validate_3gpp_traceability(root, errors)
+            self.assertTrue(any("missing adjacent" in error for error in errors), errors)
+            self.assertTrue(any("missing SKILL.md" in error for error in errors), errors)
 
     def test_closed_nested_typed_dict_matches(self) -> None:
         self.assertEqual(self.lint(), [])
