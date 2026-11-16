@@ -24,7 +24,7 @@ nodes:
         FAIL: FAILED
         UNKNOWN: UNRESOLVED
     observation:
-      tool: ca-observations::context.smf.session.read
+      tool: ca-session-context::context.smf.session.read
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
@@ -214,7 +214,7 @@ nodes:
   # 3GPP: CA_EXTENSION — current SMF session-context read supporting steps 16a–16b.
   read-smf-session-context:
     observation:
-      tool: ca-observations::context.smf.session.read
+      tool: ca-session-context::context.smf.session.read
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
