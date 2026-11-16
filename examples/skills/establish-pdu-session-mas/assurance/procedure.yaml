@@ -371,7 +371,7 @@ nodes:
         UNKNOWN: SAFE_STOPPED
 
   # Final business proof. Host resource responsibility remains a separate
-  # terminal gate; no Skill-authored resources.finalize or compensation Node.
+  # terminal gate; no Skill-authored finalizer or compensation Node.
   verify-pdu-session-establishment:
     postcondition:
       predicates:
