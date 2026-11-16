@@ -105,7 +105,8 @@ The following entries are one-to-one *traceability* rows, not converted fixtures
 
 The Host Subject Context and client-tools Package IDs are reserved in the contract proposal, but neither package is published or trusted:
 - `ca-context` → `urn:connectionagent:ca:host-context` (subject-only `ueRef` projection);
-- `ca-observations` → `urn:connectionagent:ca:host:smf-mas-observations` (Host-owned generic SMF context read plus eight projection-specific Observation exports; `ca-client-tools` is only the CLI backend).
+- `ca-session-context` → `urn:connectionagent:ca:host:smf-session-context` (generic SC-backed session-context read callable used by both initial Skills; `ca-client-tools` is only the CLI backend).
+- `ca-observations` → `urn:connectionagent:ca:host:smf-mas-observations` (eight projection-specific MAS Observation exports, optional to Skills that need those facts; `ca-client-tools` is only the CLI backend).
 
 The conventional and MAS policy-first examples both declare a generic read-only SMF context lookup at entry. The conventional Skill also performs a separate fresh read after Step 15 for the N4 decision. The generic Host Observation normalizes only the exact SC `404 SESSION_NOT_FOUND` result to `sessionPresence=ABSENT`; 200 `AVAILABLE` and 200 `UNAVAILABLE` both mean `PRESENT`, while transport/auth/indeterminate failures are `UNKNOWN`. Only an evidence-backed `ABSENT` Predicate selects initial creation. The MAS Skill then follows the source-aligned OpenAMSM OES operations documented in [OpenAMSM Operation Mapping](skills/establish-pdu-session-mas/assurance/openamsm-operation-mapping.md).
 
