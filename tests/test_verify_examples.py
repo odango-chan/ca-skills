@@ -639,6 +639,9 @@ Runtime resumes the same Invocation; Host returns the paired step 17 response.
       tool: ssm::SSM.SIGNAL_UE_AN
       routes:
         PASS: modify-n4-session
+  read-smf-session-context:
+    observation:
+      tool: ca-session-context::context.smf.session.read
   modify-n4-session:
     operation:
       tool: upn::UPN.MODIFY_UP_SESSION
@@ -652,6 +655,7 @@ Runtime resumes the same Invocation; Host returns the paired step 17 response.
             validate_async_update_sm_context_boundary(root, errors)
             self.assertTrue(any("must not declare or mention MAS implementation details" in e for e in errors), errors)
             self.assertTrue(any("fresh post-Step-15 Observation must be co-located in update-sm-context" in e for e in errors), errors)
+            self.assertTrue(any("standalone Observation-only Node is forbidden" in e for e in errors), errors)
 
     def test_update_sm_context_must_not_restart_or_leak_host_correlation(self) -> None:
         with tempfile.TemporaryDirectory() as d:
