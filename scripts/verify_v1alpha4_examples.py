@@ -337,7 +337,7 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
     if re.search(r"(?m)^\s*mas\s*:|capability:mas:|smf\.mas\.", contract_text):
         errors.append(f"{skill.name}: conventional Skill must not depend on MAS-named namespaces or callable identities")
     if not re.search(r"(?m)^  ca-observations:\s+urn:connectionagent:ca:host:smf-mas-observations\s*$", contract_text):
-        errors.append(f"{skill.name}: generic context Observation must resolve through the ca-observations dependency alias")
+        errors.append(f"{skill.name}: generic context Observation must resolve through the ca-session-context dependency alias")
 
     if not re.search(r"(?m)^start: read-existing-sm-context\s*$", procedure_text):
         errors.append(f"{skill.name}: first business Node must query exact SM Context presence before initial mutations")
@@ -427,15 +427,15 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
             errors.append(f"{skill.name}: post-Step-15 Predicate must distinguish PRESENT+UNAVAILABLE from PRESENT+AVAILABLE")
         if "sourceOutcome" not in post_script_text:
             errors.append(f"{skill.name}: post-Step-15 Predicate must validate the normalized source outcome")
-    if "sessionContext: ca-observations::urn:connectionagent:ca:observation:smf-session-context-read-result:v1" not in predicate_text:
+    if "sessionContext: ca-session-context::urn:connectionagent:ca:observation:smf-session-context-read-result:v1" not in predicate_text:
         errors.append(f"{skill.name}: SMF session-context Predicate must use the generic context result Schema")
-    if "sessionContext: [ca-observations::smf.session-context.read-evidence]" not in predicate_text:
+    if "sessionContext: [ca-session-context::smf.session-context.read-evidence]" not in predicate_text:
         errors.append(f"{skill.name}: SMF session-context Predicate must require its declared read Evidence")
     if "script: scripts/validate-smf-session-context.py" not in predicate_text:
         errors.append(f"{skill.name}: missing the three-state SMF session-context Predicate Script")
     if not (skill / "scripts" / "validate-smf-session-context.py").is_file():
         errors.append(f"{skill.name}: missing the SMF session-context Predicate Script")
-    if "urn:example:connectionagent:capability:ca:smf-session-context-read:v1" not in contract_text or "ca-observations: urn:connectionagent:ca:host:smf-mas-observations" not in contract_text:
+    if "urn:example:connectionagent:capability:ca:smf-session-context-read:v1" not in contract_text or "ca-session-context: urn:connectionagent:ca:host:smf-session-context" not in contract_text:
         errors.append(f"{skill.name}: Skill must declare the generic read-only SMF session-context Capability")
 
     modify = re.search(
