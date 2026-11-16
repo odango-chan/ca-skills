@@ -146,7 +146,7 @@ wait:
     after: modify-n4-session
 ```
 
-`response.after` names a Node whose completion (including its declared Postcondition) is the response boundary. If omitted, the boundary is the completion of the Wait-bearing Node. The Compiler must prove that every normal event-accepted path reaches the boundary; a path that terminates earlier must have a trusted Integration failure-response mapping. The response boundary is not the terminal Run: later Procedure work may continue after the paired protocol response has been delivered.
+`response.after` names a Node whose completion (including its declared Postcondition) is the response boundary. If omitted, the boundary is the completion of the Wait-bearing Node. The Compiler must prove that every normal event-accepted path reaches the boundary; a path that terminates earlier must have a trusted Integration failure-response mapping. The response boundary is not the terminal Run: later Procedure work may continue after the paired protocol response has been delivered. The boundary controls response timing only. The Integration response mapping must also bind the required response-body/result fields to exact typed Producer outputs that are available at that boundary (including an earlier Node's Operation output when applicable); it must not infer them from raw request data or the eventual terminal Run.
 
 For 3GPP Step 15/17, the boundary must be after the required Step 16 N4 Session Modification. In the illustrative graph above, `modify-n4-session` is therefore the response boundary. The Step 17 response must not wait for unrelated later Procedure work. `response.after` is protocol-continuation metadata, not a fifth business stage or a new Node kind.
 
@@ -386,7 +386,7 @@ Before this design can be frozen into a language revision, independent review mu
 - [ ] early-event registration, durable buffering and cancellation of unselected candidate registrations;
 - [ ] atomic event-versus-timeout behavior and late/duplicate handling after restart;
 - [ ] interaction with global Precondition, Action Budget, Node limits, cancellation and final Goal proof;
-- [ ] Step 15/17 response obligation ownership, `response.after` path proof and failure mapping;
+- [ ] Step 15/17 response obligation ownership, `response.after` path proof, exact typed result/response-body binding (including earlier Operation outputs where needed) and failure mapping;
 - [ ] diagnostics, trace semantics and positive/negative conformance fixtures.
 
 
