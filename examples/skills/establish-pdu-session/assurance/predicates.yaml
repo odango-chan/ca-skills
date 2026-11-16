@@ -100,10 +100,10 @@ predicates:
   # Missing evidence or an indeterminate query is UNKNOWN, never permission to create.
   establishment.smf.session_context_absent:
     parameters:
-      - sessionContext: ca-observations::urn:connectionagent:ca:observation:smf-session-context-read-result:v1
+      - sessionContext: ca-session-context::urn:connectionagent:ca:observation:smf-session-context-read-result:v1
     evidence:
       requires:
-        sessionContext: [ca-observations::smf.session-context.read-evidence]
+        sessionContext: [ca-session-context::smf.session-context.read-evidence]
     evaluator:
       type: script
       script: scripts/validate-smf-session-context-entry.py
@@ -113,12 +113,12 @@ predicates:
   # facts fail this admitted initial-session profile.
   establishment.smf.session_context_profile_ready:
     parameters:
-      - sessionContext: ca-observations::urn:connectionagent:ca:observation:smf-session-context-read-result:v1
+      - sessionContext: ca-session-context::urn:connectionagent:ca:observation:smf-session-context-read-result:v1
       - requestedDnn: string
       - requestedSst: integer
     evidence:
       requires:
-        sessionContext: [ca-observations::smf.session-context.read-evidence]
+        sessionContext: [ca-session-context::smf.session-context.read-evidence]
     evaluator:
       type: script
       script: scripts/validate-smf-session-context.py
