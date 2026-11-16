@@ -433,14 +433,16 @@ def main(input: PredicateInput) -> PredicateEvaluationResult:
             root = Path(d) / "establish-pdu-session"
             (root / "assurance").mkdir(parents=True)
             (root / "scripts").mkdir()
-            (root / "assurance" / "procedure.yaml").write_text("""start: read-existing-sm-context
+            (root / "assurance" / "procedure.yaml").write_text("""start: get-sm-subscription-data
 nodes:
-  read-existing-sm-context:
+  get-sm-subscription-data:
     precondition:
       predicates:
         - predicate: establishment.request.supported
           arguments:
             - context.request.requestType
+    operation:
+      tool: ca::sbi.udm.sm_data.get
     observation:
       tool: ca-session-context::context.smf.session.read
       arguments:
@@ -450,16 +452,11 @@ nodes:
       predicates:
         - predicate: establishment.smf.session_context_absent
           arguments:
-            - read-existing-sm-context.observation.output
+            - get-sm-subscription-data.observation.output
       routes:
-        PASS: get-sm-subscription-data
+        PASS: subscribe-sm-data
         FAIL: SAFE_STOPPED
         UNKNOWN: SAFE_STOPPED
-  get-sm-subscription-data:
-    operation:
-      tool: ca::sbi.udm.sm_data.get
-      routes:
-        SUCCEEDED: transfer-n1n2-message
   transfer-n1n2-message:
     operation:
       tool: ca::sbi.amf.n1n2.transfer
@@ -475,14 +472,6 @@ nodes:
       tool: ssm::SSM.SIGNAL_UE_AN
       arguments:
         transferOperationRef: transfer-n1n2-message.operation.output.operationRef
-    postcondition:
-      predicates:
-        - predicate: establishment.ran.adopted
-          arguments:
-            - update-sm-context.operation.output
-      routes:
-        PASS: read-smf-session-context
-  read-smf-session-context:
     observation:
       tool: ca-session-context::context.smf.session.read
       arguments:
@@ -490,19 +479,17 @@ nodes:
         pduSessionId: context.request.pduSessionId
     postcondition:
       predicates:
+        - predicate: establishment.ran.adopted
+          arguments:
+            - update-sm-context.operation.output
         - predicate: establishment.smf.session_context_profile_ready
           arguments:
-            - read-smf-session-context.observation.output
-            - context.request.dnn
-            - context.request.sNssai.sst
+            - update-sm-context.observation.output
       routes:
         PASS: modify-n4-session
   modify-n4-session:
     operation:
       tool: upn::UPN.MODIFY_UP_SESSION
-      arguments:
-        initialN4Result: establish-n4-session.operation.output
-        ranResult: update-sm-context.operation.output
     postcondition:
       predicates:
         - predicate: establishment.n4.forwarding_ready
@@ -520,9 +507,9 @@ nodes:
           arguments:
             - modify-n4-session.operation.output
 """, encoding="utf-8")
-            (root / "assurance" / "contract.yaml").write_text("""dependencies:
+            (root / "assurance" / "contract.yaml").write_text("""precondition: get-sm-subscription-data.precondition
+dependencies:
   ca-session-context: urn:connectionagent:ca:host:smf-session-context
-  ca: urn:example:connectionagent:5gc-tool-contracts
 capabilities:
   - urn:example:connectionagent:capability:ca:smf-session-context-read:v1
 """, encoding="utf-8")
@@ -546,18 +533,17 @@ capabilities:
       type: script
       script: scripts/validate-smf-session-context.py
 """, encoding="utf-8")
-            (root / "scripts" / "validate-smf-session-context-entry.py").write_text(
-                (ROOT / "examples" / "skills" / "establish-pdu-session" / "scripts" / "validate-smf-session-context-entry.py").read_text(encoding="utf-8"),
-                encoding="utf-8",
-            )
-            (root / "scripts" / "validate-smf-session-context.py").write_text(
-                (ROOT / "examples" / "skills" / "establish-pdu-session" / "scripts" / "validate-smf-session-context.py").read_text(encoding="utf-8"),
-                encoding="utf-8",
-            )
-            (root / "SKILL.md").write_text("""| \x60read-existing-sm-context\x60 | exact UE/PSI context existence before initial mutations |
-| \x60update-sm-context\x60 | step 15 — \x60Nsmf_PDUSession_UpdateSMContext Request\x60 |
-| \x60read-smf-session-context\x60 | current SMF session context after step 15 |
-| \x60modify-n4-session\x60 | steps 16a–16b — N4 Session Modification |
+            for script_name in (
+                "validate-smf-session-context-entry.py",
+                "validate-smf-session-context.py",
+            ):
+                (root / "scripts" / script_name).write_text(
+                    (ROOT / "examples" / "skills" / "establish-pdu-session" / "scripts" / script_name).read_text(encoding="utf-8"),
+                    encoding="utf-8",
+                )
+            (root / "SKILL.md").write_text("""| `get-sm-subscription-data` | step 4 — `Nudm_SDM_Get` with co-located entry context Observation |
+| `update-sm-context` | step 15 — `Nsmf_PDUSession_UpdateSMContext Request` with co-located fresh context Observation |
+| `modify-n4-session` | steps 16a–16b — N4 Session Modification |
 Runtime resumes the same Invocation; Host returns the paired step 17 response.
 """, encoding="utf-8")
             errors: list[str] = []
