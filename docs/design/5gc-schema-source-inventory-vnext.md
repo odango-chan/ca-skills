@@ -145,3 +145,8 @@ This is the intended source-of-truth reconciliation:
 - Do not copy output-side placeholders `n1n2-delivery.schema.yaml` / `pcf-policy-inputs.schema.yaml`; the official v0.2 Script output contract is derived from strict TypedDict output declarations and validated at the Tool boundary.
 
 The Procedure is already byte-identical between `ca-agent-demo/main` and `ca-skills/main`. The Script files and their legacy metadata, plus `contract.yaml` and `predicates.yaml`, still require deliberate dialect migration. No source overwrite was performed for those files.
+
+
+## 14. SMF-only Agent context access policy (2026-11-16)
+
+This source inventory is not a mandate for the Agent to query all legacy Observation refs. The current 5GC profile directly queries only SMF MAS-owned context (SC/PA/UPN/SSM/IAM/UPS/CA/SAA). AMF/UDM/PCF/UPF context required by an Operation is acquired internally by its responsible Tool/Owner adapter. Fabric ingress, Host lifecycle/correlation, holds and journals remain Host/Tool execution metadata, not Skill business Predicates. Reclassify the legacy inventory by actual owner before any Observation migration. See https://github.com/odango-chan/ca-agent-demo/blob/main/docs/design/5gc-agent-context-access-boundary-v1alpha4.md.
