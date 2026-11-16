@@ -580,7 +580,7 @@ Runtime resumes the same Invocation; Host returns the paired step 17 response.
         present = {
             "sessionPresence": "PRESENT",
             "projectionStatus": "AVAILABLE",
-            "sourceOutcome": "MAS_RESPONSE",
+            "sourceOutcome": "CONTEXT_RESPONSE",
             "context": {
                 "dnn": "internet", "sst": 1,
                 "subscriptionValidated": True,
@@ -624,13 +624,13 @@ Runtime resumes the same Invocation; Host returns the paired step 17 response.
         unavailable = {
             "sessionPresence": "PRESENT",
             "projectionStatus": "UNAVAILABLE",
-            "sourceOutcome": "MAS_RESPONSE",
+            "sourceOutcome": "CONTEXT_RESPONSE",
             "context": {},
         }
         available = {
             "sessionPresence": "PRESENT",
             "projectionStatus": "AVAILABLE",
-            "sourceOutcome": "MAS_RESPONSE",
+            "sourceOutcome": "CONTEXT_RESPONSE",
             "context": {
                 "dnn": "internet",
                 "sst": 1,
