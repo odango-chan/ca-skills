@@ -2,7 +2,7 @@
 # Host, not author Nodes, performs trusted mutation.reconcile when available.
 start: admit-create-sm-context-request
 nodes:
-  # CA_EXTENSION — entry/admission for TS 23.502 V18.12.0 §4.3.2.2.1 step 3 (AMF → SMF CreateSMContext Request).
+  # 3GPP: CA_EXTENSION — entry/admission for TS 23.502 V18.12.0 §4.3.2.2.1 step 3 (AMF → SMF CreateSMContext Request).
   admit-create-sm-context-request:
     precondition:
       predicates:
@@ -18,7 +18,7 @@ nodes:
         PASS: validate-sm-subscription
         FAIL: FAILED
         UNKNOWN: UNRESOLVED
-  # CA_ADAPTER — validates the Session Management Subscription associated with TS 23.502 §4.3.2.2.1 step 4; exact UDM retrieval/Owner contract is not published.
+  # 3GPP: CA_ADAPTER — validates the Session Management Subscription associated with TS 23.502 §4.3.2.2.1 step 4; exact UDM retrieval/Owner contract is not published.
   validate-sm-subscription:
     operation:
       tool: mas::ca.pdu_session.subscription.validate
@@ -49,7 +49,7 @@ nodes:
         PASS: resolve-secondary-authentication
         FAIL: FAILED
         UNKNOWN: SAFE_STOPPED
-  # 3GPP_ADAPTER — optional secondary authentication/authorization in TS 23.502 V18.12.0 §4.3.2.2.1 step 6; this MAS operation resolves the admitted profile's disposition.
+  # 3GPP: 3GPP_ADAPTER — optional secondary authentication/authorization in TS 23.502 V18.12.0 §4.3.2.2.1 step 6; this MAS operation resolves the admitted profile's disposition.
   resolve-secondary-authentication:
     operation:
       tool: mas::ca.pdu_session.secondary_auth.disposition
@@ -82,7 +82,7 @@ nodes:
         PASS: create-sm-context
         FAIL: FAILED
         UNKNOWN: SAFE_STOPPED
-  # CA_ADAPTER — SM context creation associated with TS 23.502 V18.12.0 §4.3.2.2.1 steps 3 and 5; this MAS callable is not itself Nsmf_PDUSession_CreateSMContext.
+  # 3GPP: CA_ADAPTER — SM context creation associated with TS 23.502 V18.12.0 §4.3.2.2.1 steps 3 and 5; this MAS callable is not itself Nsmf_PDUSession_CreateSMContext.
   create-sm-context:
     operation:
       tool: mas::ca.pdu_session.context.create
@@ -116,7 +116,7 @@ nodes:
         PASS: ca-register-uecm
         FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  # CA_ADAPTER — uses UDM UECM registration semantics. Note: this MAS graph places it before policy/N4, unlike TS 23.502 §4.3.2.2.1 step 16c; this is a proposed MAS ordering deviation, not the standard sequence.
+  # 3GPP: CA_ADAPTER — uses UDM UECM registration semantics. Note: this MAS graph places it before policy/N4, unlike TS 23.502 §4.3.2.2.1 step 16c; this is a proposed MAS ordering deviation, not the standard sequence.
   ca-register-uecm:
     operation:
       tool: mas::ca.pdu_session.uecm.register
@@ -149,7 +149,7 @@ nodes:
         PASS: establish-sm-policy-association
         FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  # 3GPP_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 step 7b; SM Policy Association Establishment / Npcf_SMPolicyControl_Create. The MAS callable remains unpublished.
+  # 3GPP: 3GPP_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 step 7b; SM Policy Association Establishment / Npcf_SMPolicyControl_Create. The MAS callable remains unpublished.
   establish-sm-policy-association:
     operation:
       tool: mas::ca.pdu_session.policy.create
@@ -183,7 +183,7 @@ nodes:
         PASS: select-upf-anchor
         FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  # 3GPP_ADAPTER — SMF UPF selection within TS 23.502 V18.12.0 §4.3.2.2.1 step 8; custom MAS anchor-selection contract is unpublished.
+  # 3GPP: 3GPP_ADAPTER — SMF UPF selection within TS 23.502 V18.12.0 §4.3.2.2.1 step 8; custom MAS anchor-selection contract is unpublished.
   select-upf-anchor:
     operation:
       tool: mas::ca.pdu_session.anchor.select
@@ -215,7 +215,7 @@ nodes:
         PASS: allocate-pdu-session-address
         FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  # 3GPP_ADAPTER — SMF address allocation within TS 23.502 V18.12.0 §4.3.2.2.1 step 8; custom allocator is a MAS implementation detail.
+  # 3GPP: 3GPP_ADAPTER — SMF address allocation within TS 23.502 V18.12.0 §4.3.2.2.1 step 8; custom allocator is a MAS implementation detail.
   allocate-pdu-session-address:
     operation:
       tool: mas::ca.pdu_session.address.allocate
@@ -249,7 +249,7 @@ nodes:
         PASS: modify-sm-policy-association
         FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  # 3GPP_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 step 9; SMF-initiated SM Policy Association Modification / Npcf_SMPolicyControl_Update. The MAS callable is unpublished.
+  # 3GPP: 3GPP_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 step 9; SMF-initiated SM Policy Association Modification / Npcf_SMPolicyControl_Update. The MAS callable is unpublished.
   modify-sm-policy-association:
     operation:
       tool: mas::ca.pdu_session.policy.update
@@ -286,7 +286,7 @@ nodes:
         PASS: ca-create-charging-reservation
         FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  # CA_EXTENSION — MAS charging reservation step; not a standalone step in the cited TS 23.502 PDU Session Establishment flow.
+  # 3GPP: CA_EXTENSION — MAS charging reservation step; not a standalone step in the cited TS 23.502 PDU Session Establishment flow.
   ca-create-charging-reservation:
     operation:
       tool: mas::ca.pdu_session.charging.create
@@ -319,7 +319,7 @@ nodes:
         PASS: establish-n4-session
         FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  # CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 10a–10b and §4.4.1.2; N4 Session Establishment Request/Response.
+  # 3GPP: CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 10a–10b and §4.4.1.2; N4 Session Establishment Request/Response.
   establish-n4-session:
     operation:
       tool: mas::ca.pdu_session.user_plane.establish
@@ -356,7 +356,7 @@ nodes:
         PASS: ca-confirm-pdu-session-address
         FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  # CA_EXTENSION — confirms MAS address state after step 8; no separate 3GPP procedure counterpart is claimed.
+  # 3GPP: CA_EXTENSION — confirms MAS address state after step 8; no separate 3GPP procedure counterpart is claimed.
   ca-confirm-pdu-session-address:
     operation:
       tool: mas::ca.pdu_session.address.confirm
@@ -390,7 +390,7 @@ nodes:
         PASS: complete-an-resource-setup
         FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  # CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 11–15. Step 11 is Namf_Communication_N1N2MessageTransfer; steps 12–14 are AMF/(R)AN/UE; step 15 returns N2 result to SMF via Nsmf_PDUSession_UpdateSMContext Request. This MAS callable is not a standard 3GPP service.
+  # 3GPP: CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 11–15. Step 11 is Namf_Communication_N1N2MessageTransfer; steps 12–14 are AMF/(R)AN/UE; step 15 returns N2 result to SMF via Nsmf_PDUSession_UpdateSMContext Request. This MAS callable is not a standard 3GPP service.
   complete-an-resource-setup:
     operation:
       tool: mas::ca.pdu_session.access.signal
@@ -427,7 +427,7 @@ nodes:
         PASS: modify-n4-session
         FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  # CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 16a–16b and §4.4.1.3; N4 Session Modification Request/Response.
+  # 3GPP: CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 16a–16b and §4.4.1.3; N4 Session Modification Request/Response.
   modify-n4-session:
     operation:
       tool: mas::ca.pdu_session.user_plane.activate
@@ -463,7 +463,7 @@ nodes:
         PASS: ca-emit-establishment-events
         FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  # CA_EXTENSION — MAS event accounting; map to a 3GPP notification only if the Owner contract identifies the exact standard service/operation. No standard mapping is assumed here.
+  # 3GPP: CA_EXTENSION — MAS event accounting; map to a 3GPP notification only if the Owner contract identifies the exact standard service/operation. No standard mapping is assumed here.
   ca-emit-establishment-events:
     operation:
       tool: mas::ca.pdu_session.events.emit
@@ -498,7 +498,7 @@ nodes:
         PASS: ca-transfer-resource-responsibility
         FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  # CA_EXTENSION — durable resource responsibility handoff; no direct 3GPP procedure counterpart.
+  # 3GPP: CA_EXTENSION — durable resource responsibility handoff; no direct 3GPP procedure counterpart.
   ca-transfer-resource-responsibility:
     operation:
       tool: mas::ca.pdu_session.resources.finalize
@@ -531,7 +531,7 @@ nodes:
         PASS: verify-pdu-session-establishment
         FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  # CA_EXTENSION — MAS compensation after confirmed failure; do not treat as a 3GPP release procedure without an exact published mapping.
+  # 3GPP: CA_EXTENSION — MAS compensation after confirmed failure; do not treat as a 3GPP release procedure without an exact published mapping.
   ca-compensate-confirmed-failure:
     # Confirmed business FAIL only. Mutation OUTCOME_UNKNOWN never enters ca-compensate-confirmed-failure.
     # Cleanup authorization and side-effect safety require the published MAS Owner.
@@ -562,7 +562,7 @@ nodes:
         PASS: FAILED
         FAIL: SAFE_STOPPED
         UNKNOWN: UNRESOLVED
-  # CA_EXTENSION — final Goal proof over 3GPP session facts and CA responsibility Evidence; not a separate 3GPP operation.
+  # 3GPP: CA_EXTENSION — final Goal proof over 3GPP session facts and CA responsibility Evidence; not a separate 3GPP operation.
   verify-pdu-session-establishment:
     postcondition:
       predicates:
