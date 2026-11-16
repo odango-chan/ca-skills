@@ -95,6 +95,30 @@ nodes:
             validate_3gpp_traceability(root, errors)
             self.assertEqual(errors, [])
 
+    def test_legacy_waiter_ref_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "assurance").mkdir()
+            (root / "assurance" / "procedure.yaml").write_text("""start: retrieve
+nodes:
+  # 3GPP: 3GPP_NATIVE — TS 23.502 step 4
+  retrieve:
+    operation:
+      tool: udm::Nudm_SDM_Subscribe
+      arguments:
+        waiterRef: context.holdRef
+""", encoding="utf-8")
+            tick = chr(96)
+            doc = "\n".join([
+                "## 3GPP Traceability", "TS 23.502 V18.12.0",
+                "| Procedure Node | Mapping |", "|---|---|",
+                "| " + tick + "retrieve" + tick + " | step 4 |",
+            ])
+            (root / "SKILL.md").write_text(doc, encoding="utf-8")
+            errors: list[str] = []
+            validate_3gpp_traceability(root, errors)
+            self.assertTrue(any("legacy waiterRef" in error for error in errors), errors)
+
     def test_missing_node_mapping_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
