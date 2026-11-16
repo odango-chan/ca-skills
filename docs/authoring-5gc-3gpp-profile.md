@@ -182,6 +182,6 @@ Before either example Skill can be qualified:
 3. Publish the Host Owner ToolCatalog dependency snapshot with eight exact Observation callable IDs and G.4-compatible query/output Schemas. This is not a second Server Tool Catalog.
 4. Publish deployment-owned CapabilityContracts with one least-privilege Capability per Observation callable; Capability owner is the deployment and callable owner is `ca-agent-host`.
 5. Publish per-MAS Evidence Descriptors and deployment Scope policies with exact SMF authority, subject/PSI/lifecycle Scope, Invocation correlation and executable freshness semantics. SMF v0.10 alone does not close the temporal gate.
-6. Complete the 17-reference legacy Observation source audit; raw UPF/N4 or AMF/RAN snapshots must not be relabelled as UPN/SSM projections by name alone.
+6. Review and accept the completed 17-reference legacy Observation crosswalk; raw UPF/N4 or AMF/RAN snapshots must not be relabelled as UPN/SSM projections by name alone.
 7. Publish the reserved `ca-observations` Package ID `urn:connectionagent:ca:host:smf-mas-observations` only with its complete Owner snapshot and trusted binding. Do not add this dependency to either example until a Procedure actually references an Observation callable.
 8. Qualify each Skill independently with executable v1alpha4 fixtures and the required Compiler/Studio/Host/Runtime/5GC evidence.
