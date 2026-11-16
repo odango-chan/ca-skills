@@ -104,10 +104,20 @@ MAS remains non-executable design material and is not a prerequisite for 5GC acc
 
 ## 7. 2026-11-16 SMF-only context access decision
 
-The SMF MAS QueryContext SBI v0.10 design is an implemented external baseline, not a new schema-authoring task for ca-skills. CA Agent Host will provide one local Observation adapter with eight separately typed read-only query callables. Skill source references only exact Host/Owner exports after publication; it never embeds SBI paths, static tokens, SUPI/IMSI lookup keys or private lifecycle/correlation values.
+The SMF MAS QueryContext SBI v0.10 design is an implemented external baseline, not a new schema-authoring task for ca-skills. CA Agent Host proposes one local adapter with eight separately typed read-only query callables. Skill source references only exact Host/Owner exports after publication; it never embeds SBI paths, static tokens, SUPI/IMSI lookup keys or private lifecycle/correlation values.
+
+The reserved Host Package IDs are:
+- `ca-context`: `urn:connectionagent:ca:host-context` (subject-only Context Schema package);
+- `ca-observations`: `urn:connectionagent:ca:host:smf-mas-observations` (eight SMF MAS Observation callable/schema package).
+
+Both IDs are reserved identities, not published dependency snapshots or trusted Owner bindings. The two example Skills use only the `ca-context` subject projection and do not call the eight Observation tools. Do not add `ca-observations` to either Skill until a Procedure actually references one of its callables.
+
+The proposed Host ToolCatalog is an Owner dependency snapshot used for CA-SL linking. It is not a second Server Tool Catalog. The existing `tool-mcp-gw` Server Tool Catalog and Runtime Resolved CA Toolset / Capability authorization / Admission path remain authoritative. The Host-local adapter registry is an implementation binding, not a grant or catalog.
+
+The eight callable exports use reserved DottedId Guarantee names (`smf.mas.<mas>.context.query-evidence`). The Evidence Descriptors are not publishable until the SMF Owner provides an exact stable authority identity and closes the temporal guarantee. The per-MAS Scope policy names are deployment-owned references; the corresponding trusted policy bodies and grants are not published. CapabilityContracts remains a separate deployment-owned BuildRequest input; each Capability is deployment-owned and each callable member is owned by `ca-agent-host`.
 
 The wire response exposes `masId/status/key/context`. `AVAILABLE` means the MAS State has been authoritatively written, not that the value is fresh or that the complete PDU Session is established. `UNAVAILABLE` is an empty projection for an existing UE/session whose MAS State is not written; it is not false. `SESSION_NOT_FOUND` remains a distinct 404.
 
-The v0.10 response does not carry source time or Host lifecycle identity. Host/SMF must publish the missing temporal/freshness and exact UE/PSI/lifecycle Evidence binding before any of these callables can qualify under CA-SL v1alpha4. Do not invent `observedAt` from Host receipt time.
+The v0.10 response does not carry source time or Host lifecycle identity. Host `queryStartedAt` and `receivedAt` are audit timestamps, not source `observedAt`. Host/SMF must publish the missing temporal/freshness and exact UE/PSI/lifecycle Evidence binding before any of these callables can qualify under CA-SL v1alpha4. Do not invent `observedAt` from Host receipt time.
 
-See the detailed Host contract design: https://github.com/odango-chan/ca-agent-demo/blob/main/docs/5gc-agent-context-contracts-v1alpha4.md. The current Skill examples use the subject-only Schema reference but still carry placeholder Package IDs and Capability IDs; they are not linkable or qualified.
+The complete 17-reference legacy source mapping is recorded in the [Legacy CreatedSession Observation Crosswalk](https://github.com/odango-chan/ca-agent-demo/blob/docs/5gc-agent-context-boundary-20261116/docs/5gc-legacy-observation-crosswalk-v1alpha4.md). The current example Skill source still contains placeholder identities for its non-Host Tool packages and Capabilities; the reserved Host Package ID alone does not make either Skill linkable or qualified.
