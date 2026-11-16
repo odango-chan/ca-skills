@@ -1,6 +1,6 @@
 # CA-SL v1alpha4 author syntax. MAS contracts here are NOT published.
 goal: pdu_session.initial_request_fulfilled
-precondition: check-request.precondition
+precondition: admit-create-sm-context-request.precondition
 requestSchema: schemas/establishment-request.schema.yaml
 contextSchema: ca-context::urn:connectionagent:ca:context:invocation:v1
 dependencies:
