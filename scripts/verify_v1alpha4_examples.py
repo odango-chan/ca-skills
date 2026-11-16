@@ -336,6 +336,42 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
             errors.append(f"{skill.name}: conventional Skill {label} must not declare or mention MAS implementation details")
             break
 
+    if not re.search(r"(?m)^start: read-existing-sm-context\s*$", procedure_text):
+        errors.append(f"{skill.name}: first business Node must query exact SM Context presence before initial mutations")
+
+    entry = re.search(
+        r"(?ms)^  read-existing-sm-context:\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)",
+        procedure_text,
+    )
+    if not entry:
+        errors.append(f"{skill.name}: missing entry-time SM Context Observation")
+    else:
+        block = entry.group(1)
+        if not re.search(r"(?m)^      tool: ca::context\.smf\.session\.read\s*$", block):
+            errors.append(f"{skill.name}: entry lookup must use the generic SMF context Observation callable")
+        if not re.search(r"(?m)^        ueRef: context\.ueRef\s*$", block) or not re.search(r"(?m)^        pduSessionId: context\.request\.pduSessionId\s*$", block):
+            errors.append(f"{skill.name}: entry lookup must be scoped by exact UE and PDU Session ID")
+        if not re.search(r"(?m)^        PASS: get-sm-subscription-data\s*$", block):
+            errors.append(f"{skill.name}: only explicit ABSENT may enter the initial-creation chain")
+        if not re.search(r"(?m)^        FAIL: SAFE_STOPPED\s*$", block):
+            errors.append(f"{skill.name}: PRESENT context must not replay initial-creation mutations")
+        if not re.search(r"(?m)^        UNKNOWN: SAFE_STOPPED\s*$", block):
+            errors.append(f"{skill.name}: indeterminate context presence must fail closed")
+
+    if "establishment.smf.session_context_absent:" not in predicate_text:
+        errors.append(f"{skill.name}: missing the explicit SM Context ABSENT Predicate")
+    if "script: scripts/validate-smf-session-context-entry.py" not in predicate_text:
+        errors.append(f"{skill.name}: missing the entry-time context-presence Predicate Script")
+    entry_script = skill / "scripts" / "validate-smf-session-context-entry.py"
+    if not entry_script.is_file():
+        errors.append(f"{skill.name}: missing the entry-time context-presence Predicate Script")
+    else:
+        entry_script_text = entry_script.read_text(encoding="utf-8")
+        if not all(token in entry_script_text for token in ('"ABSENT"', '"PRESENT"', '"UNKNOWN"')):
+            errors.append(f"{skill.name}: entry Predicate must distinguish ABSENT, PRESENT and UNKNOWN")
+        if "SMF_SESSION_CONTEXT_CONFIRMED_ABSENT" not in entry_script_text:
+            errors.append(f"{skill.name}: ABSENT must be an explicit business outcome, not generic query success")
+
     update = re.search(
         r"(?ms)^  update-sm-context:\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)",
         procedure_text,
@@ -377,6 +413,11 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
 
     if "establishment.smf.session_context_profile_ready:" not in predicate_text:
         errors.append(f"{skill.name}: missing the SMF session-context business Predicate")
+    post_script_text = (skill / "scripts" / "validate-smf-session-context.py").read_text(encoding="utf-8")
+    if "sessionPresence" not in post_script_text:
+        errors.append(f"{skill.name}: post-Step-15 Predicate must distinguish absent from present context")
+    if "projectionStatus" not in post_script_text:
+        errors.append(f"{skill.name}: post-Step-15 Predicate must distinguish PRESENT+UNAVAILABLE from PRESENT+AVAILABLE")
     if "sessionContext: ca::urn:example:5gc:smf-session-context:v1" not in predicate_text:
         errors.append(f"{skill.name}: SMF session-context Predicate must use the generic context result Schema")
     if "sessionContext: [ca::smf.session-context.query-evidence]" not in predicate_text:
@@ -414,6 +455,8 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
     if not verify or not re.search(r"(?m)^            - modify-n4-session\.operation\.output\s*$", verify.group(1)):
         errors.append(f"{skill.name}: final Goal proof must consume the N4 Modification result")
 
+    if not re.search(r"(?m)^\| \x60read-existing-sm-context\x60 \| exact UE/PSI context existence", skill_text):
+        errors.append(f"{skill.name}: SKILL.md must trace the entry-time SM Context existence Observation")
     if not re.search(r"(?m)^\| \x60update-sm-context\x60 \| step 15", skill_text):
         errors.append(f"{skill.name}: SKILL.md must trace update-sm-context to step 15")
     if not re.search(r"(?m)^\| \x60read-smf-session-context\x60 \| current SMF session context", skill_text):
