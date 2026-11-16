@@ -2,7 +2,7 @@
 
 **Status: PROPOSED FOR BUSINESS OWNER REVIEW — NOT APPROVED; NOT_QUALIFIED.**
 
-5GC Node granularity and standard mapping follow the [3GPP-first SMF Authoring Profile](../docs/authoring-5gc-3gpp-profile.md).
+5GC Node granularity and standard mapping follow the [3GPP-first SMF Authoring Profile](../docs/authoring-5gc-3gpp-profile.md). The v1alpha4 candidate uses `holdRef` for an opaque Owner correlation handle; the legacy ToolCatalog `waiterRef` name is not treated as v1alpha4 authority, and no author-level Wait/Await/Poll Node is retained.
 Normative CA-SL pin: `7f84393ee8c395e4d8c39a74cb5000a1f896588d`.
 Independent code review: [PR #58 review #5911630734](https://github.com/odango-chan/ca-skills/pull/58#pullrequestreview-5911630734).
 
