@@ -1,8 +1,9 @@
 # Illustrative CA-SL v1alpha4 deterministic DAG, NOT linked to qualified Owners.
 # A missing Owner output / Evidence guarantee MUST block compilation, not be guessed.
-start: check-request
+start: admit-create-sm-context-request
 nodes:
-  check-request:
+  # CA_EXTENSION — entry/admission for TS 23.502 V18.12.0 §4.3.2.2.1 step 3 (AMF → SMF Nsmf_PDUSession_CreateSMContext Request).
+  admit-create-sm-context-request:
     precondition:
       predicates:
         - predicate: establishment.request.supported
@@ -17,10 +18,11 @@ nodes:
           arguments:
             - context.lifecycle
       routes:
-        PASS: read-udm
+        PASS: get-sm-subscription-data
         FAIL: FAILED
         UNKNOWN: UNRESOLVED
-  read-udm:
+  # 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 4; SMF → UDM Nudm_SDM_Get.
+  get-sm-subscription-data:
     operation:
       tool: ca::sbi.udm.sm_data.get
       arguments:
@@ -36,25 +38,27 @@ nodes:
       predicates:
         - predicate: establishment.udm.response_valid
           arguments:
-            - read-udm.operation.output
+            - get-sm-subscription-data.operation.output
       routes:
-        PASS: select-establishment-configuration
+        PASS: validate-and-select-session-configuration
         FAIL: FAILED
         UNKNOWN: UNRESOLVED
-  select-establishment-configuration:
+  # CA_ADAPTER — SMF subscription validation and session-parameter selection within TS 23.502 §4.3.2.2.1 steps 4 and 8; local processing, not a separate SBI operation.
+  validate-and-select-session-configuration:
     # Pure selection does not mint evidence or authorize Subscription data.
     operation:
-      script: scripts/select-establishment-configuration.py
+      script: scripts/validate-and-select-session-configuration.py
       arguments:
         dnn: context.request.dnn
         sNssai: context.request.sNssai
         requestedPduSessionType: context.request.requestedPduSessionType
         requestedSscMode: context.request.requestedSscMode
-        udmResult: read-udm.operation.output.result
+        udmResult: get-sm-subscription-data.operation.output.result
       routes:
-        SUCCEEDED: bind-udm-hold
+        SUCCEEDED: ca-bind-udm-subscription-hold
         FAILED: FAILED
-  bind-udm-hold:
+  # CA_EXTENSION — Host/Owner hold and correlation preparation supporting step 4; no direct 3GPP operation.
+  ca-bind-udm-subscription-hold:
     operation:
       tool: ca::ca.session.udm_hold.bind
       arguments:
@@ -64,16 +68,17 @@ nodes:
         ingressRef: context.correlation.ingressRef
         lifecycleRef: context.correlation.lifecycleRef
       routes:
-        SUCCEEDED: subscribe-udm
+        SUCCEEDED: subscribe-sm-data
         FAILED: SAFE_STOPPED
         UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
-  subscribe-udm:
+  # 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 4; SMF → UDM Nudm_SDM_Subscribe.
+  subscribe-sm-data:
     precondition:
       predicates:
         - predicate: establishment.udm.hold_bound
           arguments:
-            - bind-udm-hold.operation.output
+            - ca-bind-udm-subscription-hold.operation.output
             - context.request.dnn
             - context.request.sNssai.sst
       routes:
@@ -83,26 +88,27 @@ nodes:
       tool: ca::sbi.udm.sdm_subscription.create
       arguments:
         ueRef: context.ueRef
-        udmInvocationRef: read-udm.operation.output.invocationId
-        udmTransactionRef: read-udm.operation.output.result.transactionRef
-        selection: select-establishment-configuration.operation.output
+        udmInvocationRef: get-sm-subscription-data.operation.output.invocationId
+        udmTransactionRef: get-sm-subscription-data.operation.output.result.transactionRef
+        selection: validate-and-select-session-configuration.operation.output
         ingressRef: context.correlation.ingressRef
         lifecycleRef: context.correlation.lifecycleRef
-        waiterRef: bind-udm-hold.operation.output.holdRef
+        waiterRef: ca-bind-udm-subscription-hold.operation.output.holdRef
       routes:
-        FAILED: finalize-failed
+        FAILED: ca-transfer-failed-resource-responsibility
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
     postcondition:
       predicates:
         - predicate: establishment.udm.subscription_owned
           arguments:
-            - subscribe-udm.operation.output
+            - subscribe-sm-data.operation.output
       routes:
-        PASS: bind-pcf-hold
-        FAIL: finalize-failed
+        PASS: ca-bind-pcf-policy-hold
+        FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
-  bind-pcf-hold:
+  # CA_EXTENSION — Host/Owner hold preparation supporting step 7b; no direct 3GPP operation.
+  ca-bind-pcf-policy-hold:
     operation:
       tool: ca::ca.session.pcf_hold.bind
       arguments:
@@ -111,20 +117,21 @@ nodes:
         ingressRef: context.correlation.ingressRef
         lifecycleRef: context.correlation.lifecycleRef
       routes:
-        FAILED: finalize-failed
+        FAILED: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
     postcondition:
       predicates:
         - predicate: establishment.pcf.hold_bound
           arguments:
-            - bind-pcf-hold.operation.output
+            - ca-bind-pcf-policy-hold.operation.output
             - context.correlation.lifecycleRef
       routes:
-        PASS: read-pcf-inputs
-        FAIL: finalize-failed
+        PASS: ca-read-pcf-create-inputs
+        FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
-  read-pcf-inputs:
+  # CA_ADAPTER — governed PCF input readiness for step 7b; not a separate 3GPP service operation.
+  ca-read-pcf-create-inputs:
     operation:
       tool: ca::ca.session.pcf_create_inputs.read
       arguments:
@@ -134,32 +141,34 @@ nodes:
         requestType: context.request.requestType
         ingressRef: context.correlation.ingressRef
         lifecycleRef: context.correlation.lifecycleRef
-        fabricHoldRef: bind-pcf-hold.operation.output.holdRef
-        selection: select-establishment-configuration.operation.output
+        fabricHoldRef: ca-bind-pcf-policy-hold.operation.output.holdRef
+        selection: validate-and-select-session-configuration.operation.output
       routes:
-        FAILED: finalize-failed
+        FAILED: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
     postcondition:
       predicates:
         - predicate: establishment.pcf.create_inputs.ready
           arguments:
-            - read-pcf-inputs.operation.output
-            - bind-pcf-hold.operation.output
+            - ca-read-pcf-create-inputs.operation.output
+            - ca-bind-pcf-policy-hold.operation.output
       routes:
-        PASS: build-pcf-policy-inputs
-        FAIL: finalize-failed
+        PASS: ca-build-sm-policy-association-inputs
+        FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
-  build-pcf-policy-inputs:
+  # CA_ADAPTER — local input construction for step 7b; not a separate 3GPP service operation.
+  ca-build-sm-policy-association-inputs:
     operation:
-      script: scripts/build-pcf-policy-inputs.py
+      script: scripts/ca-build-sm-policy-association-inputs.py
       arguments:
-        subscriptionData: select-establishment-configuration.operation.output.subscriptionData
-        subscriptionSource: select-establishment-configuration.operation.output.subscriptionSource
+        subscriptionData: validate-and-select-session-configuration.operation.output.subscriptionData
+        subscriptionSource: validate-and-select-session-configuration.operation.output.subscriptionSource
       routes:
-        SUCCEEDED: create-pcf
+        SUCCEEDED: establish-sm-policy-association
         FAILED: FAILED
-  create-pcf:
+  # 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 7b; Npcf_SMPolicyControl_Create / SM Policy Association Establishment.
+  establish-sm-policy-association:
     # The old 5GC baseline requires both PCF create governance and a proven
     # PRE-N4 no-pair baseline. Those Owner/Evidence guarantees are not published
     # in v1alpha4 yet: linker must fail closed rather than skip this gate.
@@ -167,7 +176,7 @@ nodes:
       predicates:
         - predicate: establishment.pcf.create_governed
           arguments:
-            - read-pcf-inputs.operation.output
+            - ca-read-pcf-create-inputs.operation.output
             - context.correlation.lifecycleRef
       routes:
         FAIL: SAFE_STOPPED
@@ -176,12 +185,12 @@ nodes:
       tool: ca::sbi.pcf.sm_policy.create
       arguments:
         ueRef: context.ueRef
-        pcfCreateInputsRef: read-pcf-inputs.operation.output.pcfCreateInputsRef
-        selection: select-establishment-configuration.operation.output
-        policyInputs: build-pcf-policy-inputs.operation.output
+        pcfCreateInputsRef: ca-read-pcf-create-inputs.operation.output.pcfCreateInputsRef
+        selection: validate-and-select-session-configuration.operation.output
+        policyInputs: ca-build-sm-policy-association-inputs.operation.output
         lifecycleRef: context.correlation.lifecycleRef
-        sdmSubscriptionRef: subscribe-udm.operation.output.subscriptionRef
-        waiterRef: bind-pcf-hold.operation.output.holdRef
+        sdmSubscriptionRef: subscribe-sm-data.operation.output.subscriptionRef
+        waiterRef: ca-bind-pcf-policy-hold.operation.output.holdRef
       routes:
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
@@ -192,13 +201,14 @@ nodes:
       predicates:
         - predicate: establishment.pcf.association_owned
           arguments:
-            - create-pcf.operation.output
-            - read-pcf-inputs.operation.output
+            - establish-sm-policy-association.operation.output
+            - ca-read-pcf-create-inputs.operation.output
       routes:
-        PASS: create-initial-n4
-        FAIL: finalize-failed
+        PASS: establish-n4-session
+        FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
-  create-initial-n4:
+  # CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 10a–10b and §4.4.1.2; N4 Session Establishment Request/Response. UPN is an internal Owner adapter, not a 3GPP API name.
+  establish-n4-session:
     # §21 target design only: real UPN Owner/Schema/Evidence MUST be published.
     # Completes the actual N4 CREATE operation internally; no Skill wait loop.
     operation:
@@ -207,22 +217,23 @@ nodes:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
         lifecycleRef: context.correlation.lifecycleRef
-        policyAssociationRef: read-pcf-inputs.operation.output.pcfPolicyAssociationRef
-        policyResultRef: create-pcf.operation.output.policyResultRef
+        policyAssociationRef: ca-read-pcf-create-inputs.operation.output.pcfPolicyAssociationRef
+        policyResultRef: establish-sm-policy-association.operation.output.policyResultRef
       routes:
-        FAILED: finalize-failed
+        FAILED: ca-transfer-failed-resource-responsibility
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
     postcondition:
       predicates:
         - predicate: establishment.n4.initial_resources_ready
           arguments:
-            - create-initial-n4.operation.output
+            - establish-n4-session.operation.output
       routes:
-        PASS: read-operation-context
-        FAIL: finalize-failed
+        PASS: ca-read-sm-operation-context
+        FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
-  read-operation-context:
+  # CA_EXTENSION — Host/SMF invocation context preparation supporting step 11; no direct 3GPP operation.
+  ca-read-sm-operation-context:
     operation:
       tool: ca::ca.session.operation_context.read
       arguments:
@@ -232,52 +243,55 @@ nodes:
         requestType: context.request.requestType
         ingressRef: context.correlation.ingressRef
         lifecycleRef: context.correlation.lifecycleRef
-        selection: select-establishment-configuration.operation.output
-        policyResultRef: create-pcf.operation.output.policyResultRef
+        selection: validate-and-select-session-configuration.operation.output
+        policyResultRef: establish-sm-policy-association.operation.output.policyResultRef
         purpose: "nas-and-n2-delivery"
       routes:
-        FAILED: finalize-failed
+        FAILED: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
     postcondition:
       predicates:
         - predicate: establishment.delivery_context.ready
           arguments:
-            - read-operation-context.operation.output
+            - ca-read-sm-operation-context.operation.output
             - context.correlation.lifecycleRef
       routes:
-        PASS: prepare-response
-        FAIL: finalize-failed
+        PASS: ca-prepare-pdu-session-establishment-accept
+        FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
-  prepare-response:
+  # CA_ADAPTER — prepares the N1 SM PDU Session Establishment Accept carried in step 11; not a separate NF service operation.
+  ca-prepare-pdu-session-establishment-accept:
     operation:
       tool: ca::ca.session.establishment_response.prepare
       arguments:
-        operationContextRef: read-operation-context.operation.output.contextRef
-        runtimeInvocationRef: read-operation-context.operation.output.runtimeInvocationRef
+        operationContextRef: ca-read-sm-operation-context.operation.output.contextRef
+        runtimeInvocationRef: ca-read-sm-operation-context.operation.output.runtimeInvocationRef
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
         pti: context.request.pti
         lifecycleRef: context.correlation.lifecycleRef
-        selection: select-establishment-configuration.operation.output
-        policyResultRef: create-pcf.operation.output.policyResultRef
+        selection: validate-and-select-session-configuration.operation.output
+        policyResultRef: establish-sm-policy-association.operation.output.policyResultRef
       routes:
-        SUCCEEDED: build-n1n2-delivery
+        SUCCEEDED: ca-build-n1n2-message
         FAILED: SAFE_STOPPED
         UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
-  build-n1n2-delivery:
+  # CA_ADAPTER — constructs N1 SM/N2 SM payloads for TS 23.502 §4.3.2.2.1 step 11.
+  ca-build-n1n2-message:
     operation:
-      script: scripts/build-n1n2-delivery.py
+      script: scripts/ca-build-n1n2-message.py
       arguments:
-        preparedResponse: prepare-response.operation.output
-        operationContextRef: read-operation-context.operation.output.contextRef
-        policyResultRef: create-pcf.operation.output.policyResultRef
-        pduSessionType: select-establishment-configuration.operation.output.pduSessionType
+        preparedResponse: ca-prepare-pdu-session-establishment-accept.operation.output
+        operationContextRef: ca-read-sm-operation-context.operation.output.contextRef
+        policyResultRef: establish-sm-policy-association.operation.output.policyResultRef
+        pduSessionType: validate-and-select-session-configuration.operation.output.pduSessionType
       routes:
-        SUCCEEDED: bind-n1n2-hold
+        SUCCEEDED: ca-bind-n1n2-transfer-hold
         FAILED: FAILED
-  bind-n1n2-hold:
+  # CA_EXTENSION — Host/Owner hold preparation for step 11; no direct 3GPP operation.
+  ca-bind-n1n2-transfer-hold:
     operation:
       tool: ca::ca.session.n1n2_hold.bind
       arguments:
@@ -286,16 +300,17 @@ nodes:
         ingressRef: context.correlation.ingressRef
         lifecycleRef: context.correlation.lifecycleRef
       routes:
-        SUCCEEDED: transfer-n1n2
+        SUCCEEDED: transfer-n1n2-message
         FAILED: SAFE_STOPPED
         UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
-  transfer-n1n2:
+  # 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 11; SMF → AMF Namf_Communication_N1N2MessageTransfer.
+  transfer-n1n2-message:
     precondition:
       predicates:
         - predicate: establishment.n1n2.hold_bound
           arguments:
-            - bind-n1n2-hold.operation.output
+            - ca-bind-n1n2-transfer-hold.operation.output
             - context.correlation.lifecycleRef
       routes:
         FAIL: SAFE_STOPPED
@@ -303,14 +318,14 @@ nodes:
     operation:
       tool: ca::sbi.amf.n1n2.transfer
       arguments:
-        operationContextRef: read-operation-context.operation.output.contextRef
-        runtimeInvocationRef: read-operation-context.operation.output.runtimeInvocationRef
+        operationContextRef: ca-read-sm-operation-context.operation.output.contextRef
+        runtimeInvocationRef: ca-read-sm-operation-context.operation.output.runtimeInvocationRef
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
         lifecycleRef: context.correlation.lifecycleRef
-        responseArtifactRef: prepare-response.operation.output.responseArtifactRef
-        waiterRef: bind-n1n2-hold.operation.output.holdRef
-        delivery: build-n1n2-delivery.operation.output
+        responseArtifactRef: ca-prepare-pdu-session-establishment-accept.operation.output.responseArtifactRef
+        waiterRef: ca-bind-n1n2-transfer-hold.operation.output.holdRef
+        delivery: ca-build-n1n2-message.operation.output
       routes:
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
@@ -320,12 +335,13 @@ nodes:
       predicates:
         - predicate: establishment.amf.transfer_initiated
           arguments:
-            - transfer-n1n2.operation.output
+            - transfer-n1n2-message.operation.output
       routes:
-        PASS: signal-ran
-        FAIL: finalize-failed
+        PASS: complete-an-resource-setup
+        FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
-  signal-ran:
+  # CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 12–15. AMF/(R)AN/UE perform steps 12–14; SMF receives the access-network result through step 15 Nsmf_PDUSession_UpdateSMContext Request. SSM is not a standard 3GPP service operation.
+  complete-an-resource-setup:
     # §21 SSM Owner executes RAN signaling/adoption to completion.
     operation:
       tool: ssm::SSM.SIGNAL_UE_AN
@@ -335,23 +351,24 @@ nodes:
         pti: context.request.pti
         ingressRef: context.correlation.ingressRef
         lifecycleRef: context.correlation.lifecycleRef
-        operationContextRef: read-operation-context.operation.output.contextRef
-        transferOperationRef: transfer-n1n2.operation.output.operationRef
-        initialN4Result: create-initial-n4.operation.output
+        operationContextRef: ca-read-sm-operation-context.operation.output.contextRef
+        transferOperationRef: transfer-n1n2-message.operation.output.operationRef
+        initialN4Result: establish-n4-session.operation.output
       routes:
-        FAILED: finalize-failed
+        FAILED: ca-transfer-failed-resource-responsibility
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
     postcondition:
       predicates:
         - predicate: establishment.ran.adopted
           arguments:
-            - signal-ran.operation.output
+            - complete-an-resource-setup.operation.output
       routes:
-        PASS: modify-forwarding
-        FAIL: finalize-failed
+        PASS: modify-n4-session
+        FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
-  modify-forwarding:
+  # CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 16a–16b and §4.4.1.3; N4 Session Modification Request/Response.
+  modify-n4-session:
     # §21 UPN Owner executes N4 forwarding mutation to completion.
     operation:
       tool: upn::UPN.MODIFY_UP_SESSION
@@ -359,33 +376,35 @@ nodes:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
         lifecycleRef: context.correlation.lifecycleRef
-        initialN4Result: create-initial-n4.operation.output
-        ranResult: signal-ran.operation.output
+        initialN4Result: establish-n4-session.operation.output
+        ranResult: complete-an-resource-setup.operation.output
       routes:
-        FAILED: finalize-failed
+        FAILED: ca-transfer-failed-resource-responsibility
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
     postcondition:
       predicates:
         - predicate: establishment.n4.forwarding_ready
           arguments:
-            - modify-forwarding.operation.output
+            - modify-n4-session.operation.output
       routes:
-        PASS: transfer-responsibility
-        FAIL: finalize-failed
+        PASS: ca-transfer-resource-responsibility
+        FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
-  transfer-responsibility:
+  # CA_EXTENSION — CA resource-lifecycle handoff; no direct 3GPP procedure counterpart.
+  ca-transfer-resource-responsibility:
     operation:
       tool: ca::ca.session.resource_responsibility.transfer
       arguments:
         lifecycleRef: context.correlation.lifecycleRef
         disposition: "success"
       routes:
-        SUCCEEDED: verify-final
+        SUCCEEDED: verify-pdu-session-establishment
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
-  finalize-failed:
+  # CA_EXTENSION — CA failure/resource-responsibility handoff; no direct 3GPP procedure counterpart.
+  ca-transfer-failed-resource-responsibility:
     # Only reached from definitive business FAIL/FAILED with a confirmed
     # original Mutation outcome. OUTCOME_UNKNOWN must directly SAFE_STOP.
     # Requires separately trusted responsibility-Owner/Scope grant.
@@ -399,21 +418,22 @@ nodes:
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
-  verify-final:
+  # CA_EXTENSION — final Goal proof over authoritative 3GPP session facts and CA responsibility Evidence; not a separate 3GPP operation.
+  verify-pdu-session-establishment:
     postcondition:
       predicates:
         - predicate: establishment.ran.adopted
           arguments:
-            - signal-ran.operation.output
+            - complete-an-resource-setup.operation.output
         - predicate: establishment.n4.forwarding_ready
           arguments:
-            - modify-forwarding.operation.output
+            - modify-n4-session.operation.output
         - predicate: establishment.n4.initial_resources_ready
           arguments:
-            - create-initial-n4.operation.output
+            - establish-n4-session.operation.output
         - predicate: establishment.resources.managed
           arguments:
-            - transfer-responsibility.operation.output
+            - ca-transfer-resource-responsibility.operation.output
       routes:
         PASS: SUCCEEDED
         FAIL: SAFE_STOPPED
