@@ -22,7 +22,7 @@ The NW Agent plan starts with:
 | `psi` | `/pduSessionId` | Skill `request.pduSessionId` |
 | `dnn` | `/dnn` | Skill `request.dnn` |
 | `s_nssai` | `/sNssai/sst` | Skill `request.sNssai.sst` |
-| `s_nssai_sd` | `/sNssai/sd`, default empty | Skill `request.sNssai.sd`; Owner normalizes omission to empty |
+| `s_nssai_sd` | `/sNssai/sd`, default empty string | Skill `request.sNssai.sd`; current Skill Schema uses integer while OES input is string, so a lossless 24-bit mapping must be published and tested |
 | `pdu_session_type` | `/pduSessionType` | Skill `request.requestedPduSessionType` |
 | `gpsi` | optional `/gpsi`, default empty | Owner-private optional input; not part of this example request Schema |
 | `secondary_auth_required` | literal `'0'` | Fixed out-of-profile skip; not a dynamic subscription-derived decision |
