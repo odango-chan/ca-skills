@@ -101,7 +101,7 @@ In particular, do not present custom MAS context creation, UECM registration, ch
 
 CA-SL v1alpha4 §21 remains authoritative: no author-level Wait/Await/Poll Node. The Owner Operation or CA adapter responsible for the asynchronous 3GPP interaction must own its completion contract, correlation, final result and Evidence. The Procedure may proceed only after that Operation reports a contractually proven result.
 
-This does not permit an adapter to collapse distinct 3GPP proof boundaries. In particular:
+This does not permit an adapter to collapse distinct 3GPP proof boundaries. An opaque `holdRef` may be passed only as an Owner-defined correlation handle; it is not an author Wait instruction. The legacy ToolCatalog's `waiterRef` field is not a v1alpha4 authority and must not be copied into a new Owner publication without an explicit contract decision. In particular:
 
 - PCF association creation is not N4 establishment.
 - N1N2 transfer initiation is not RAN resource acceptance.
