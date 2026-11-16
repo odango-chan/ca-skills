@@ -2,7 +2,7 @@
 # A missing Owner output / Evidence guarantee MUST block compilation, not be guessed.
 start: admit-create-sm-context-request
 nodes:
-  # CA_EXTENSION — entry/admission for TS 23.502 V18.12.0 §4.3.2.2.1 step 3 (AMF → SMF Nsmf_PDUSession_CreateSMContext Request).
+  # 3GPP: CA_EXTENSION — entry/admission for TS 23.502 V18.12.0 §4.3.2.2.1 step 3 (AMF → SMF Nsmf_PDUSession_CreateSMContext Request).
   admit-create-sm-context-request:
     precondition:
       predicates:
@@ -21,7 +21,7 @@ nodes:
         PASS: get-sm-subscription-data
         FAIL: FAILED
         UNKNOWN: UNRESOLVED
-  # 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 4; SMF → UDM Nudm_SDM_Get.
+  # 3GPP: 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 4; SMF → UDM Nudm_SDM_Get.
   get-sm-subscription-data:
     operation:
       tool: ca::sbi.udm.sm_data.get
@@ -43,7 +43,7 @@ nodes:
         PASS: validate-and-select-session-configuration
         FAIL: FAILED
         UNKNOWN: UNRESOLVED
-  # CA_ADAPTER — SMF subscription validation and session-parameter selection within TS 23.502 §4.3.2.2.1 steps 4 and 8; local processing, not a separate SBI operation.
+  # 3GPP: CA_ADAPTER — SMF subscription validation and session-parameter selection within TS 23.502 §4.3.2.2.1 steps 4 and 8; local processing, not a separate SBI operation.
   validate-and-select-session-configuration:
     # Pure selection does not mint evidence or authorize Subscription data.
     operation:
@@ -57,7 +57,7 @@ nodes:
       routes:
         SUCCEEDED: ca-bind-udm-subscription-hold
         FAILED: FAILED
-  # CA_EXTENSION — Host/Owner hold and correlation preparation supporting step 4; no direct 3GPP operation.
+  # 3GPP: CA_EXTENSION — Host/Owner hold and correlation preparation supporting step 4; no direct 3GPP operation.
   ca-bind-udm-subscription-hold:
     operation:
       tool: ca::ca.session.udm_hold.bind
@@ -72,7 +72,7 @@ nodes:
         FAILED: SAFE_STOPPED
         UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
-  # 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 4; SMF → UDM Nudm_SDM_Subscribe.
+  # 3GPP: 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 4; SMF → UDM Nudm_SDM_Subscribe.
   subscribe-sm-data:
     precondition:
       predicates:
@@ -107,7 +107,7 @@ nodes:
         PASS: ca-bind-pcf-policy-hold
         FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
-  # CA_EXTENSION — Host/Owner hold preparation supporting step 7b; no direct 3GPP operation.
+  # 3GPP: CA_EXTENSION — Host/Owner hold preparation supporting step 7b; no direct 3GPP operation.
   ca-bind-pcf-policy-hold:
     operation:
       tool: ca::ca.session.pcf_hold.bind
@@ -130,7 +130,7 @@ nodes:
         PASS: ca-read-pcf-create-inputs
         FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
-  # CA_ADAPTER — governed PCF input readiness for step 7b; not a separate 3GPP service operation.
+  # 3GPP: CA_ADAPTER — governed PCF input readiness for step 7b; not a separate 3GPP service operation.
   ca-read-pcf-create-inputs:
     operation:
       tool: ca::ca.session.pcf_create_inputs.read
@@ -157,7 +157,7 @@ nodes:
         PASS: ca-build-sm-policy-association-inputs
         FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
-  # CA_ADAPTER — local input construction for step 7b; not a separate 3GPP service operation.
+  # 3GPP: CA_ADAPTER — local input construction for step 7b; not a separate 3GPP service operation.
   ca-build-sm-policy-association-inputs:
     operation:
       script: scripts/ca-build-sm-policy-association-inputs.py
@@ -167,7 +167,7 @@ nodes:
       routes:
         SUCCEEDED: establish-sm-policy-association
         FAILED: FAILED
-  # 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 7b; Npcf_SMPolicyControl_Create / SM Policy Association Establishment.
+  # 3GPP: 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 7b; Npcf_SMPolicyControl_Create / SM Policy Association Establishment.
   establish-sm-policy-association:
     # The old 5GC baseline requires both PCF create governance and a proven
     # PRE-N4 no-pair baseline. Those Owner/Evidence guarantees are not published
@@ -207,7 +207,7 @@ nodes:
         PASS: establish-n4-session
         FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
-  # CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 10a–10b and §4.4.1.2; N4 Session Establishment Request/Response. UPN is an internal Owner adapter, not a 3GPP API name.
+  # 3GPP: CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 10a–10b and §4.4.1.2; N4 Session Establishment Request/Response. UPN is an internal Owner adapter, not a 3GPP API name.
   establish-n4-session:
     # §21 target design only: real UPN Owner/Schema/Evidence MUST be published.
     # Completes the actual N4 CREATE operation internally; no Skill wait loop.
@@ -232,7 +232,7 @@ nodes:
         PASS: ca-read-sm-operation-context
         FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
-  # CA_EXTENSION — Host/SMF invocation context preparation supporting step 11; no direct 3GPP operation.
+  # 3GPP: CA_EXTENSION — Host/SMF invocation context preparation supporting step 11; no direct 3GPP operation.
   ca-read-sm-operation-context:
     operation:
       tool: ca::ca.session.operation_context.read
@@ -260,7 +260,7 @@ nodes:
         PASS: ca-prepare-pdu-session-establishment-accept
         FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
-  # CA_ADAPTER — prepares the N1 SM PDU Session Establishment Accept carried in step 11; not a separate NF service operation.
+  # 3GPP: CA_ADAPTER — prepares the N1 SM PDU Session Establishment Accept carried in step 11; not a separate NF service operation.
   ca-prepare-pdu-session-establishment-accept:
     operation:
       tool: ca::ca.session.establishment_response.prepare
@@ -278,7 +278,7 @@ nodes:
         FAILED: SAFE_STOPPED
         UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
-  # CA_ADAPTER — constructs N1 SM/N2 SM payloads for TS 23.502 §4.3.2.2.1 step 11.
+  # 3GPP: CA_ADAPTER — constructs N1 SM/N2 SM payloads for TS 23.502 §4.3.2.2.1 step 11.
   ca-build-n1n2-message:
     operation:
       script: scripts/ca-build-n1n2-message.py
@@ -290,7 +290,7 @@ nodes:
       routes:
         SUCCEEDED: ca-bind-n1n2-transfer-hold
         FAILED: FAILED
-  # CA_EXTENSION — Host/Owner hold preparation for step 11; no direct 3GPP operation.
+  # 3GPP: CA_EXTENSION — Host/Owner hold preparation for step 11; no direct 3GPP operation.
   ca-bind-n1n2-transfer-hold:
     operation:
       tool: ca::ca.session.n1n2_hold.bind
@@ -304,7 +304,7 @@ nodes:
         FAILED: SAFE_STOPPED
         UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
-  # 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 11; SMF → AMF Namf_Communication_N1N2MessageTransfer.
+  # 3GPP: 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 11; SMF → AMF Namf_Communication_N1N2MessageTransfer.
   transfer-n1n2-message:
     precondition:
       predicates:
@@ -340,7 +340,7 @@ nodes:
         PASS: complete-an-resource-setup
         FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
-  # CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 12–15. AMF/(R)AN/UE perform steps 12–14; SMF receives the access-network result through step 15 Nsmf_PDUSession_UpdateSMContext Request. SSM is not a standard 3GPP service operation.
+  # 3GPP: CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 12–15. AMF/(R)AN/UE perform steps 12–14; SMF receives the access-network result through step 15 Nsmf_PDUSession_UpdateSMContext Request. SSM is not a standard 3GPP service operation.
   complete-an-resource-setup:
     # §21 SSM Owner executes RAN signaling/adoption to completion.
     operation:
@@ -367,7 +367,7 @@ nodes:
         PASS: modify-n4-session
         FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
-  # CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 16a–16b and §4.4.1.3; N4 Session Modification Request/Response.
+  # 3GPP: CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 16a–16b and §4.4.1.3; N4 Session Modification Request/Response.
   modify-n4-session:
     # §21 UPN Owner executes N4 forwarding mutation to completion.
     operation:
@@ -391,7 +391,7 @@ nodes:
         PASS: ca-transfer-resource-responsibility
         FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
-  # CA_EXTENSION — CA resource-lifecycle handoff; no direct 3GPP procedure counterpart.
+  # 3GPP: CA_EXTENSION — CA resource-lifecycle handoff; no direct 3GPP procedure counterpart.
   ca-transfer-resource-responsibility:
     operation:
       tool: ca::ca.session.resource_responsibility.transfer
@@ -403,7 +403,7 @@ nodes:
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
-  # CA_EXTENSION — CA failure/resource-responsibility handoff; no direct 3GPP procedure counterpart.
+  # 3GPP: CA_EXTENSION — CA failure/resource-responsibility handoff; no direct 3GPP procedure counterpart.
   ca-transfer-failed-resource-responsibility:
     # Only reached from definitive business FAIL/FAILED with a confirmed
     # original Mutation outcome. OUTCOME_UNKNOWN must directly SAFE_STOP.
@@ -418,7 +418,7 @@ nodes:
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
-  # CA_EXTENSION — final Goal proof over authoritative 3GPP session facts and CA responsibility Evidence; not a separate 3GPP operation.
+  # 3GPP: CA_EXTENSION — final Goal proof over authoritative 3GPP session facts and CA responsibility Evidence; not a separate 3GPP operation.
   verify-pdu-session-establishment:
     postcondition:
       predicates:
