@@ -23,7 +23,7 @@ The Skill keeps business decisions visible:
 
 The Skill does **not** expose Host/Runtime plumbing. Hold binding, Claim, callback/waiter correlation, Journal, exact-original Reconcile, PCF request preparation/governance, operation-context lookup, N1/N2 response-artifact preparation and the deferred step 17 SBI response obligation are internal to Host/Owner adapters. The SSM Operation may remain pending for the exact step 15 event; that is an Owner completion contract, not an author-level Wait. Runtime resumes the same Invocation after the Operation returns. These mechanisms remain mandatory and must be covered by trusted contracts; hiding them does not remove their safety requirements.
 
-The target UPN/SSM Owner callables and the local N4-completion Mock Tool contract/Evidence are **not published**. See the [migration decision register](../../MIGRATION-REVIEW-v1alpha4.md). The old complete 5GC business Case catalog is retained in `examples/legacy/establish-pdu-session/cases/` for migration review, not imported as v1alpha4 test fixtures.
+The target UPN/SSM Owner callables and their v1alpha4 Schemas/Evidence are **not published**. The generic SMF context-read callable and its Schema/Evidence are also not published. See the [migration decision register](../../MIGRATION-REVIEW-v1alpha4.md). The old complete 5GC business Case catalog is retained in `examples/legacy/establish-pdu-session/cases/` for migration review, not imported as v1alpha4 test fixtures.
 
 ## Host invocation boundary (outside the Procedure)
 
@@ -31,7 +31,7 @@ The incoming TS 23.502 §4.3.2.2.1 step 3 CreateSMContext Request is the Host in
 
 The later step 15 Nsmf_PDUSession_UpdateSMContext Request is not a new Skill invocation. Host admits the inbound request, matches it to the exact pending update-sm-context Owner Operation using trusted UE/PSI/HostBusinessInstance and transfer-operation association, and supplies it to that Operation. Once the Owner returns the validated result, Runtime resumes the same Invocation at the pending Node; the graph does not restart at start. Duplicate, stale and late callbacks are handled by Host/Owner correlation and late-result responsibility, never by selecting a new Skill.
 
-Host retains the exact step 15 request/response transport obligation privately. After the local Mock Tool has confirmed the real N4 Modification result and the Procedure has reached its terminal business outcome, Host emits the paired step 17 Nsmf_PDUSession_UpdateSMContext Response for that exact request. No response handle, ingressRef or lifecycleRef is exposed to Skill source. The response mapping for definitive failure and unresolved outcomes remains an Owner/Host contract publication gate.
+Host retains the exact step 15 request/response transport obligation privately. After the Procedure has completed N4 Modification and reached its terminal business outcome, Host emits the paired step 17 Nsmf_PDUSession_UpdateSMContext Response for that exact request. No response handle, ingressRef or lifecycleRef is exposed to Skill source. The response mapping for definitive failure and unresolved outcomes remains an Owner/Host contract publication gate.
 
 The Skill's global Contract Precondition validates only the admitted business request profile. It is not an ingress-eligibility or Host-lifecycle check. The first Procedure Node is the Step 4 UDM interaction, get-sm-subscription-data.
 
