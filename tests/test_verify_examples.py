@@ -84,12 +84,13 @@ nodes:
     operation: {}
 """, encoding="utf-8")
             tick = chr(96)
-            (root / "SKILL.md").write_text(
-                "## 3GPP Traceability\\n\\nTS 23.502 V18.12.0\\n"
-                "| Procedure Node | Mapping |\\n|---|---|\\n"
-                + "| " + tick + "retrieve" + tick + " | step 4 |\\n",
-                encoding="utf-8",
-            )
+            doc = "\n".join([
+                "## 3GPP Traceability", "",
+                "TS 23.502 V18.12.0",
+                "| Procedure Node | Mapping |", "|---|---|",
+                "| " + tick + "retrieve" + tick + " | step 4 |",
+            ])
+            (root / "SKILL.md").write_text(doc, encoding="utf-8")
             errors: list[str] = []
             validate_3gpp_traceability(root, errors)
             self.assertEqual(errors, [])
@@ -103,11 +104,11 @@ nodes:
   retrieve:
     operation: {}
 """, encoding="utf-8")
-            (root / "SKILL.md").write_text(
-                "## 3GPP Traceability\\nTS 23.502 V18.12.0\\n"
-                "| Procedure Node | Mapping |\\n|---|---|\\n",
-                encoding="utf-8",
-            )
+            doc = "\n".join([
+                "## 3GPP Traceability", "TS 23.502 V18.12.0",
+                "| Procedure Node | Mapping |", "|---|---|",
+            ])
+            (root / "SKILL.md").write_text(doc, encoding="utf-8")
             errors: list[str] = []
             validate_3gpp_traceability(root, errors)
             self.assertTrue(any("missing adjacent" in error for error in errors), errors)
