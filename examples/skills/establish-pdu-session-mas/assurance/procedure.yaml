@@ -1,20 +1,7 @@
 # v1alpha4 MAS policy-first DAG. Tool/Owner exports are NOT YET PUBLISHED.
 # Host, not author Nodes, performs trusted mutation.reconcile when available.
-start: read-entry-eligibility
+start: check-request
 nodes:
-  read-entry-eligibility:
-    observation:
-      tool: mas::establishment.snapshot
-      arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
-      routes:
-        SUCCEEDED: check-request
-        FAILED: UNRESOLVED
-        UNKNOWN: UNRESOLVED
-        DENIED: SAFE_STOPPED
   check-request:
     precondition:
       predicates:
@@ -25,7 +12,7 @@ nodes:
             - context.request.requestedSscMode
         - predicate: establishment.mas.eligible
           arguments:
-            - read-entry-eligibility.observation.output
+            - context.entryEligibility
       routes:
         PASS: validate-subscription
         FAIL: FAILED
@@ -46,20 +33,8 @@ nodes:
         requestedPduSessionType: context.request.requestedPduSessionType
         requestedSscMode: context.request.requestedSscMode
       routes:
-        FAILED: cleanup
-        NOT_COMMITTED: cleanup
+        FAILED: FAILED
         OUTCOME_UNKNOWN: SAFE_STOPPED
-        DENIED: cleanup
-    observation:
-      tool: mas::establishment.snapshot
-      arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
-      routes:
-        FAILED: UNRESOLVED
-        UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
     # is UNPUBLISHED, so positive completion is not yet trusted for linking.
@@ -67,11 +42,11 @@ nodes:
       predicates:
         - predicate: establishment.mas.subscription_valid
           arguments:
-            - validate-subscription.observation.output
+            - validate-subscription.operation.output
       routes:
         PASS: secondary-auth
-        FAIL: cleanup
-        UNKNOWN: UNRESOLVED
+        FAIL: FAILED
+        UNKNOWN: SAFE_STOPPED
   secondary-auth:
     operation:
       tool: mas::ca.pdu_session.secondary_auth.disposition
@@ -90,20 +65,8 @@ nodes:
         subscriptionStateRef: validate-subscription.operation.output.stateRef
         required: 0
       routes:
-        FAILED: cleanup
-        NOT_COMMITTED: cleanup
+        FAILED: FAILED
         OUTCOME_UNKNOWN: SAFE_STOPPED
-        DENIED: cleanup
-    observation:
-      tool: mas::establishment.snapshot
-      arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
-      routes:
-        FAILED: UNRESOLVED
-        UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
     # is UNPUBLISHED, so positive completion is not yet trusted for linking.
@@ -111,11 +74,11 @@ nodes:
       predicates:
         - predicate: establishment.mas.secondary_auth_resolved
           arguments:
-            - secondary-auth.observation.output
+            - secondary-auth.operation.output
       routes:
         PASS: create-context
-        FAIL: cleanup
-        UNKNOWN: UNRESOLVED
+        FAIL: FAILED
+        UNKNOWN: SAFE_STOPPED
   create-context:
     operation:
       tool: mas::ca.pdu_session.context.create
@@ -136,19 +99,7 @@ nodes:
         subSummary: validate-subscription.operation.output.sub_summary
       routes:
         FAILED: cleanup
-        NOT_COMMITTED: cleanup
         OUTCOME_UNKNOWN: SAFE_STOPPED
-        DENIED: cleanup
-    observation:
-      tool: mas::establishment.snapshot
-      arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
-      routes:
-        FAILED: UNRESOLVED
-        UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
     # is UNPUBLISHED, so positive completion is not yet trusted for linking.
@@ -156,11 +107,11 @@ nodes:
       predicates:
         - predicate: establishment.mas.context_ready
           arguments:
-            - create-context.observation.output
+            - create-context.operation.output
       routes:
         PASS: register-uecm
         FAIL: cleanup
-        UNKNOWN: UNRESOLVED
+        UNKNOWN: SAFE_STOPPED
   register-uecm:
     operation:
       tool: mas::ca.pdu_session.uecm.register
@@ -180,19 +131,7 @@ nodes:
         sessionKeys: create-context.operation.output.session_keys
       routes:
         FAILED: cleanup
-        NOT_COMMITTED: cleanup
         OUTCOME_UNKNOWN: SAFE_STOPPED
-        DENIED: cleanup
-    observation:
-      tool: mas::establishment.snapshot
-      arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
-      routes:
-        FAILED: UNRESOLVED
-        UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
     # is UNPUBLISHED, so positive completion is not yet trusted for linking.
@@ -200,11 +139,11 @@ nodes:
       predicates:
         - predicate: establishment.mas.uecm_registered
           arguments:
-            - register-uecm.observation.output
+            - register-uecm.operation.output
       routes:
         PASS: create-policy
         FAIL: cleanup
-        UNKNOWN: UNRESOLVED
+        UNKNOWN: SAFE_STOPPED
   create-policy:
     operation:
       tool: mas::ca.pdu_session.policy.create
@@ -225,19 +164,7 @@ nodes:
         sessionKeys: create-context.operation.output.session_keys
       routes:
         FAILED: cleanup
-        NOT_COMMITTED: cleanup
         OUTCOME_UNKNOWN: SAFE_STOPPED
-        DENIED: cleanup
-    observation:
-      tool: mas::establishment.snapshot
-      arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
-      routes:
-        FAILED: UNRESOLVED
-        UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
     # is UNPUBLISHED, so positive completion is not yet trusted for linking.
@@ -245,11 +172,11 @@ nodes:
       predicates:
         - predicate: establishment.mas.policy_created
           arguments:
-            - create-policy.observation.output
+            - create-policy.operation.output
       routes:
         PASS: select-anchor
         FAIL: cleanup
-        UNKNOWN: UNRESOLVED
+        UNKNOWN: SAFE_STOPPED
   select-anchor:
     operation:
       tool: mas::ca.pdu_session.anchor.select
@@ -268,19 +195,7 @@ nodes:
         policyStateRef: create-policy.operation.output.stateRef
       routes:
         FAILED: cleanup
-        NOT_COMMITTED: cleanup
         OUTCOME_UNKNOWN: SAFE_STOPPED
-        DENIED: cleanup
-    observation:
-      tool: mas::establishment.snapshot
-      arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
-      routes:
-        FAILED: UNRESOLVED
-        UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
     # is UNPUBLISHED, so positive completion is not yet trusted for linking.
@@ -288,11 +203,11 @@ nodes:
       predicates:
         - predicate: establishment.mas.anchor_selected
           arguments:
-            - select-anchor.observation.output
+            - select-anchor.operation.output
       routes:
         PASS: allocate-address
         FAIL: cleanup
-        UNKNOWN: UNRESOLVED
+        UNKNOWN: SAFE_STOPPED
   allocate-address:
     operation:
       tool: mas::ca.pdu_session.address.allocate
@@ -313,19 +228,7 @@ nodes:
         upAnchor: select-anchor.operation.output.up_anchor
       routes:
         FAILED: cleanup
-        NOT_COMMITTED: cleanup
         OUTCOME_UNKNOWN: SAFE_STOPPED
-        DENIED: cleanup
-    observation:
-      tool: mas::establishment.snapshot
-      arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
-      routes:
-        FAILED: UNRESOLVED
-        UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
     # is UNPUBLISHED, so positive completion is not yet trusted for linking.
@@ -333,11 +236,11 @@ nodes:
       predicates:
         - predicate: establishment.mas.address_ready
           arguments:
-            - allocate-address.observation.output
+            - allocate-address.operation.output
       routes:
         PASS: update-policy
         FAIL: cleanup
-        UNKNOWN: UNRESOLVED
+        UNKNOWN: SAFE_STOPPED
   update-policy:
     operation:
       tool: mas::ca.pdu_session.policy.update
@@ -361,19 +264,7 @@ nodes:
         policyAssociationId: create-policy.operation.output.policy_assoc_id
       routes:
         FAILED: cleanup
-        NOT_COMMITTED: cleanup
         OUTCOME_UNKNOWN: SAFE_STOPPED
-        DENIED: cleanup
-    observation:
-      tool: mas::establishment.snapshot
-      arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
-      routes:
-        FAILED: UNRESOLVED
-        UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
     # is UNPUBLISHED, so positive completion is not yet trusted for linking.
@@ -381,11 +272,11 @@ nodes:
       predicates:
         - predicate: establishment.mas.policy_updated
           arguments:
-            - update-policy.observation.output
+            - update-policy.operation.output
       routes:
         PASS: create-charging
         FAIL: cleanup
-        UNKNOWN: UNRESOLVED
+        UNKNOWN: SAFE_STOPPED
   create-charging:
     operation:
       tool: mas::ca.pdu_session.charging.create
@@ -405,19 +296,7 @@ nodes:
         ratingGroupRefs: "default"
       routes:
         FAILED: cleanup
-        NOT_COMMITTED: cleanup
         OUTCOME_UNKNOWN: SAFE_STOPPED
-        DENIED: cleanup
-    observation:
-      tool: mas::establishment.snapshot
-      arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
-      routes:
-        FAILED: UNRESOLVED
-        UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
     # is UNPUBLISHED, so positive completion is not yet trusted for linking.
@@ -425,11 +304,11 @@ nodes:
       predicates:
         - predicate: establishment.mas.charging_owned
           arguments:
-            - create-charging.observation.output
+            - create-charging.operation.output
       routes:
         PASS: establish-n4
         FAIL: cleanup
-        UNKNOWN: UNRESOLVED
+        UNKNOWN: SAFE_STOPPED
   establish-n4:
     operation:
       tool: mas::ca.pdu_session.user_plane.establish
@@ -453,9 +332,8 @@ nodes:
         ueAddress: allocate-address.operation.output.ue_addr
       routes:
         FAILED: cleanup
-        NOT_COMMITTED: cleanup
         OUTCOME_UNKNOWN: SAFE_STOPPED
-        DENIED: cleanup
+        DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
     # is UNPUBLISHED, so positive completion is not yet trusted for linking.
     postcondition:
@@ -466,7 +344,7 @@ nodes:
       routes:
         PASS: confirm-address
         FAIL: cleanup
-        UNKNOWN: UNRESOLVED
+        UNKNOWN: SAFE_STOPPED
   confirm-address:
     operation:
       tool: mas::ca.pdu_session.address.confirm
@@ -487,19 +365,7 @@ nodes:
         ueAddress: allocate-address.operation.output.ue_addr
       routes:
         FAILED: cleanup
-        NOT_COMMITTED: cleanup
         OUTCOME_UNKNOWN: SAFE_STOPPED
-        DENIED: cleanup
-    observation:
-      tool: mas::establishment.snapshot
-      arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
-      routes:
-        FAILED: UNRESOLVED
-        UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
     # is UNPUBLISHED, so positive completion is not yet trusted for linking.
@@ -507,11 +373,11 @@ nodes:
       predicates:
         - predicate: establishment.mas.address_confirmed
           arguments:
-            - confirm-address.observation.output
+            - confirm-address.operation.output
       routes:
         PASS: signal-access
         FAIL: cleanup
-        UNKNOWN: UNRESOLVED
+        UNKNOWN: SAFE_STOPPED
   signal-access:
     operation:
       tool: mas::ca.pdu_session.access.signal
@@ -535,20 +401,19 @@ nodes:
         n4Seid: establish-n4.operation.output.n4_seid
       routes:
         FAILED: cleanup
-        NOT_COMMITTED: cleanup
         OUTCOME_UNKNOWN: SAFE_STOPPED
-        DENIED: cleanup
+        DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
     # is UNPUBLISHED, so positive completion is not yet trusted for linking.
     postcondition:
       predicates:
-        - predicate: establishment.mas.ran_accepted
+        - predicate: establishment.mas.ran_adopted
           arguments:
             - signal-access.operation.output
       routes:
         PASS: activate-n4
         FAIL: cleanup
-        UNKNOWN: UNRESOLVED
+        UNKNOWN: SAFE_STOPPED
   activate-n4:
     operation:
       tool: mas::ca.pdu_session.user_plane.activate
@@ -571,9 +436,8 @@ nodes:
         n4Seid: establish-n4.operation.output.n4_seid
       routes:
         FAILED: cleanup
-        NOT_COMMITTED: cleanup
         OUTCOME_UNKNOWN: SAFE_STOPPED
-        DENIED: cleanup
+        DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
     # is UNPUBLISHED, so positive completion is not yet trusted for linking.
     postcondition:
@@ -584,7 +448,7 @@ nodes:
       routes:
         PASS: emit-events
         FAIL: cleanup
-        UNKNOWN: UNRESOLVED
+        UNKNOWN: SAFE_STOPPED
   emit-events:
     operation:
       tool: mas::ca.pdu_session.events.emit
@@ -606,19 +470,7 @@ nodes:
         sessionKeys: create-context.operation.output.session_keys
       routes:
         FAILED: cleanup
-        NOT_COMMITTED: cleanup
         OUTCOME_UNKNOWN: SAFE_STOPPED
-        DENIED: cleanup
-    observation:
-      tool: mas::establishment.snapshot
-      arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
-      routes:
-        FAILED: UNRESOLVED
-        UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
     # is UNPUBLISHED, so positive completion is not yet trusted for linking.
@@ -626,11 +478,11 @@ nodes:
       predicates:
         - predicate: establishment.mas.events_accounted
           arguments:
-            - emit-events.observation.output
+            - emit-events.operation.output
       routes:
         PASS: finalize-resources
         FAIL: cleanup
-        UNKNOWN: UNRESOLVED
+        UNKNOWN: SAFE_STOPPED
   finalize-resources:
     operation:
       tool: mas::ca.pdu_session.resources.finalize
@@ -650,19 +502,7 @@ nodes:
         forwardingStateRef: activate-n4.operation.output.stateRef
       routes:
         FAILED: cleanup
-        NOT_COMMITTED: cleanup
         OUTCOME_UNKNOWN: SAFE_STOPPED
-        DENIED: cleanup
-    observation:
-      tool: mas::establishment.snapshot
-      arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
-      routes:
-        FAILED: UNRESOLVED
-        UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
     # Intermediate business gate retained from legacy; actual owner Evidence
     # is UNPUBLISHED, so positive completion is not yet trusted for linking.
@@ -670,11 +510,11 @@ nodes:
       predicates:
         - predicate: establishment.mas.resources_managed
           arguments:
-            - finalize-resources.observation.output
+            - finalize-resources.operation.output
       routes:
         PASS: verify-final
         FAIL: cleanup
-        UNKNOWN: UNRESOLVED
+        UNKNOWN: SAFE_STOPPED
   cleanup:
     # Confirmed business FAIL only. Mutation OUTCOME_UNKNOWN never enters cleanup.
     # Cleanup authorization and side-effect safety require the published MAS Owner.
@@ -693,26 +533,14 @@ nodes:
         requestedPduSessionType: context.request.requestedPduSessionType
         requestedSscMode: context.request.requestedSscMode
       routes:
-        NOT_COMMITTED: SAFE_STOPPED
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
-        DENIED: SAFE_STOPPED
-    observation:
-      tool: mas::establishment.snapshot
-      arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
-      routes:
-        FAILED: UNRESOLVED
-        UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
     postcondition:
       predicates:
         - predicate: establishment.mas.cleanup_complete
           arguments:
-            - cleanup.observation.output
+            - cleanup.operation.output
       routes:
         PASS: FAILED
         FAIL: SAFE_STOPPED
@@ -720,10 +548,7 @@ nodes:
   verify-final:
     postcondition:
       predicates:
-        - predicate: establishment.mas.initial_resources_ready
-          arguments:
-            - establish-n4.operation.output
-        - predicate: establishment.mas.ran_accepted
+        - predicate: establishment.mas.ran_adopted
           arguments:
             - signal-access.operation.output
         - predicate: establishment.mas.forwarding_ready
@@ -731,7 +556,7 @@ nodes:
             - activate-n4.operation.output
         - predicate: establishment.mas.resources_managed
           arguments:
-            - finalize-resources.observation.output
+            - finalize-resources.operation.output
       routes:
         PASS: SUCCEEDED
         FAIL: SAFE_STOPPED
