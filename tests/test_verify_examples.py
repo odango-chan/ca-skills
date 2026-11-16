@@ -442,7 +442,7 @@ nodes:
           arguments:
             - context.request.requestType
     observation:
-      tool: ca-observations::context.smf.session.read
+      tool: ca-session-context::context.smf.session.read
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
@@ -484,7 +484,7 @@ nodes:
         PASS: read-smf-session-context
   read-smf-session-context:
     observation:
-      tool: ca-observations::context.smf.session.read
+      tool: ca-session-context::context.smf.session.read
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
@@ -521,7 +521,7 @@ nodes:
             - modify-n4-session.operation.output
 """, encoding="utf-8")
             (root / "assurance" / "contract.yaml").write_text("""dependencies:
-  ca-observations: urn:connectionagent:ca:host:smf-mas-observations
+  ca-session-context: urn:connectionagent:ca:host:smf-session-context
   ca: urn:example:connectionagent:5gc-tool-contracts
 capabilities:
   - urn:example:connectionagent:capability:ca:smf-session-context-read:v1
@@ -529,19 +529,19 @@ capabilities:
             (root / "assurance" / "predicates.yaml").write_text("""predicates:
   establishment.smf.session_context_absent:
     parameters:
-      - sessionContext: ca-observations::urn:connectionagent:ca:observation:smf-session-context-read-result:v1
+      - sessionContext: ca-session-context::urn:connectionagent:ca:observation:smf-session-context-read-result:v1
     evidence:
       requires:
-        sessionContext: [ca-observations::smf.session-context.read-evidence]
+        sessionContext: [ca-session-context::smf.session-context.read-evidence]
     evaluator:
       type: script
       script: scripts/validate-smf-session-context-entry.py
   establishment.smf.session_context_profile_ready:
     parameters:
-      - sessionContext: ca-observations::urn:connectionagent:ca:observation:smf-session-context-read-result:v1
+      - sessionContext: ca-session-context::urn:connectionagent:ca:observation:smf-session-context-read-result:v1
     evidence:
       requires:
-        sessionContext: [ca-observations::smf.session-context.read-evidence]
+        sessionContext: [ca-session-context::smf.session-context.read-evidence]
     evaluator:
       type: script
       script: scripts/validate-smf-session-context.py
