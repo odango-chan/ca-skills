@@ -1,5 +1,5 @@
 # CA-SL v1alpha4 author syntax. Capability IDs below are illustrative and NOT published.
-# Skill-visible Host context is subject-only (ueRef); invocation/lifecycle/correlation metadata stays private to Host.
+# Skill-visible context carries the 3GPP SUPI; invocation/lifecycle/correlation metadata stays private to Host.
 # ca-context Package ID is reserved but not yet published; Tool and Capability candidates remain illustrative and unqualified.
 goal: pdu_session.initial_request_fulfilled
 precondition: get-sm-subscription-data.precondition
