@@ -11,7 +11,7 @@ description: CA-SL v1alpha4 illustrative Open5GS / UE-requested initial PDU Sess
 
 ## Scope and business progression
 
-One admitted, initial IPv4 / SSC1, local non-roaming PDU Session request. Never substitute an arbitrary UE, PSI, lifecycle, resource or late callback; identity and Scope require independent Host/Owner proof.
+One admitted, initial IPv4 / SSC1, local non-roaming PDU Session request. Host/Owner must bind UE, PSI, invocation lifecycle, resource and late callback to the exact admitted instance; none of those execution identities are Skill-authored context.
 
 The conventional SMF procedure follows the 3GPP sequence: Step 4 UDM Session Management Subscription retrieval and subscription; Step 7b PCF SM Policy Association establishment; Step 8 SMF local session-configuration selection; N4 Session Establishment; Step 11 N1/N2 transfer; access-network completion through the SMF-side Step 15 result; N4 Session Modification; and durable resource responsibility.
 
