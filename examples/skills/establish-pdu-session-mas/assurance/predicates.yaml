@@ -13,10 +13,10 @@ predicates:
 
   establishment.smf.session_context_absent:
     parameters:
-      - sessionContext: ca-observations::urn:connectionagent:ca:observation:smf-session-context-read-result:v1
+      - sessionContext: ca-session-context::urn:connectionagent:ca:observation:smf-session-context-read-result:v1
     evidence:
       requires:
-        sessionContext: [ca-observations::smf.session-context.read-evidence]
+        sessionContext: [ca-session-context::smf.session-context.read-evidence]
     evaluator:
       type: cel
       expression: sessionContext.sessionPresence == "ABSENT"
