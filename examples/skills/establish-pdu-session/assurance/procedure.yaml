@@ -251,17 +251,25 @@ nodes:
 
   # 3GPP: CA_EXTENSION — CA failure/resource-responsibility handoff; no direct 3GPP procedure counterpart.
   ca-transfer-failed-resource-responsibility:
-    # Only reached from definitive business FAIL/FAILED with a confirmed original Mutation outcome.
+    # Only reached from a definitive business failure with a known original Mutation outcome.
     # OUTCOME_UNKNOWN must directly SAFE_STOP; no cleanup/retry follows uncertain commitment.
     operation:
       tool: ca::ca.session.resource_responsibility.transfer
       arguments:
         disposition: "failed"
       routes:
-        SUCCEEDED: FAILED
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
+    postcondition:
+      predicates:
+        - predicate: establishment.resources.managed
+          arguments:
+            - ca-transfer-failed-resource-responsibility.operation.output
+      routes:
+        PASS: FAILED
+        FAIL: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
 
   # 3GPP: CA_EXTENSION — final Goal proof over authoritative 3GPP session facts and CA responsibility Evidence.
   verify-pdu-session-establishment:
