@@ -60,7 +60,7 @@ The exact IDs must be replaced only by trusted CapabilityContracts exports. The 
 
 ## Runtime and evidence boundary
 
-**No author-level wait/await/poll.** Asynchronous setup completion belongs to the corresponding Tool/Provider/SMF Operation, which may report SUCCEEDED only when its published Owner contract and authoritative Result/Evidence support the required completion. The Procedure's Postcondition verifies that evidence. The legacy callables do **not** yet make those v1alpha4 guarantees; do not treat an old HTTP or N1/N2 dispatch ACK as completed N4/RAN establishment. Host/Runtime retains Deadline, Cancellation and Correlation.
+**No author-level wait/await/poll.** Any future `holdRef` is an Owner correlation handle, not an author Wait/Poll Node. Asynchronous setup completion belongs to the corresponding Tool/Provider/SMF Operation, which may report SUCCEEDED only when its published Owner contract and authoritative Result/Evidence support the required completion. The Procedure's Postcondition verifies that evidence. The legacy callables do **not** yet make those v1alpha4 guarantees; do not treat an old HTTP or N1/N2 dispatch ACK as completed N4/RAN establishment. Host/Runtime retains Deadline, Cancellation and Correlation.
 
 Every Mutation `OUTCOME_UNKNOWN` goes to an explicit safe stop. An Owner-published `mutation.reconcile` can be used **only through the Host common safety boundary**, not an authored `reconcile` Node. The only successful Invocation edge is `verify-pdu-session-establishment.postcondition.routes.PASS: SUCCEEDED`, where all listed predicates must pass with authoritative, fresh, same-lifecycle Evidence.
 
