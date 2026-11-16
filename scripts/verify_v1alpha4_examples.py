@@ -147,6 +147,8 @@ def validate_3gpp_traceability(skill: Path, errors: list[str]) -> None:
             continue
         node = match[1]
         node_ids.append(node)
+        if re.search(r"(?:^|[-_])(wait|await|poll)(?:$|[-_])", node, flags=re.IGNORECASE):
+            errors.append(f"{skill.name}/{node}: author-level Wait/Await/Poll Nodes are forbidden in v1alpha4")
         previous = lines[index - 1] if index else ""
         if not previous.startswith("  # 3GPP: "):
             errors.append(f"{skill.name}/{node}: missing adjacent '# 3GPP:' mapping comment")
