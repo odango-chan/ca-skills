@@ -215,7 +215,7 @@ Registration is not activation:
 
 The Integration contract must be able to derive the Wait's correlation key before the triggering external action can produce the event. It may derive that key from already admitted protocol/resource context or from an explicit pre-dispatch binding supplied by the responsible Integration/Tool. It MUST NOT rely solely on an Operation output that becomes available only after the external request has already been sent. If the key cannot be armed before dispatch, the triggering action is not safe to expose through this Wait design.
 
-If an event arrives after registration but before the target Node is selected, the Integration adapter submits the normalized delivery and the Generic Host durably buffers it for the exact Run/Wait occurrence. When the selected route activates the target Node, Runtime consumes the buffered event and proceeds to the first business stage. The timeout clock starts only when the target Node is activated, not when it is registered.
+If an event arrives after registration but before the target Node is selected, the Integration adapter resolves it to the opaque `expectedIngressRef` and submits the normalized delivery. Generic Host durably buffers the delivery by that opaque reference; it does not identify the Run or Node. When the selected route activates the target Node, Runtime validates and consumes the buffered event and proceeds to the first business stage. The timeout clock starts only when the target Node is activated, not when it is registered.
 
 If the predecessor chooses a different route, any unselected candidate Wait registration is invalidated and cannot consume the event as though its Node had been selected.
 
@@ -226,25 +226,25 @@ If the predecessor chooses a different route, any unselected candidate Wait regi
 - authenticate the peer NF and authorize it for the exact inbound interface;
 - resolve the exact API version, method, path and media type from the pinned Ingress Operation contract;
 - validate and normalize the wire request, including supported multipart/binary parts;
-- derive the exact correlation key from the authenticated request and trusted Integration state;
-- deduplicate protocol delivery where the protocol supplies a stable delivery identity;
-- retain the paired protocol response obligation and map the final Host/Runtime outcome to the exact response contract.
+- derive the protocol correlation from the authenticated request and trusted Integration state, then resolve it to exactly one opaque `expectedIngressRef`;
+- deduplicate protocol delivery according to the exact API/release retry contract;
+- own response Schema/status/error mapping and protocol response encoding.
 
-**Generic Host owns generic continuation coordination:**
+**Generic Host owns generic delivery lifecycle:**
 
-- maintain the durable registry of armed Wait occurrences for existing Runs;
 - accept only normalized deliveries from an authorized Integration adapter and the exact pinned contract;
-- match the Integration-provided correlation key to exactly one armed Wait occurrence;
-- atomically accept one delivery, prevent a second Invocation and keep transport/response references private;
-- durably record the continuation/response-obligation references needed by the Integration adapter.
+- persist the delivery, opaque `expectedIngressRef`, protected payload reference and Host-owned response-obligation reference in its durable inbox;
+- deduplicate the same opaque `deliveryRef` and forward the committed delivery through its outbox;
+- keep Host ingress/lifecycle and transport/response references private.
 
-Generic Host MUST NOT parse a 3GPP API path, interpret a PDU Session identifier, authenticate an AMF certificate itself, or contain 5GC-specific correlation branches. Those are Integration responsibilities.
+Generic Host MUST NOT parse a 3GPP API path, interpret a PDU Session identifier, authenticate an AMF certificate itself, derive protocol correlation or select a Run/Node. Those are Integration and Runtime responsibilities respectively.
 
-**Runtime owns execution continuation:**
+**Runtime owns authoritative continuation state:**
 
 - the Run's active Node and Wait occurrence/generation;
+- the authoritative ExpectedIngress registry and resolution of `expectedIngressRef` to the exact Run/Node;
 - Wait activation, deadline, atomic event-versus-timeout arbitration and cancellation;
-- suspension and resumption of the same Run at the target Node;
+- idempotent event acceptance, checkpointing and resumption of the same Run;
 - trace, SourcePath availability and exactly-once Node entry after event acceptance.
 
 The Agent executes the target Node's declared business stages. The Tool Owner still owns the actual callable behavior, external side effects, normalized Operation Result and Evidence. It does not own Run correlation merely because the request belongs to its protocol domain.
@@ -297,7 +297,7 @@ The Compiler models Wait as an entry-control vertex before the Node's first busi
 
 These are control-flow edges, not new business stages. The Wait gate does not produce Predicate PASS/FAIL/UNKNOWN and does not create an Operation/Observation Action.
 
-Static analysis must include both Wait edges in reachability, cycle detection, path-sensitive SourcePath availability, global Precondition pass-through, terminal reachability and final-Postcondition proof checks. The only route to `SUCCEEDED` remains a reachable final Postcondition aggregate PASS directly targeting `SUCCEEDED`. The timeout edge can never provide Goal proof.
+Static analysis must include both Wait edges and the resolved response boundary in reachability, cycle detection, path-sensitive SourcePath availability, global Precondition pass-through, terminal reachability and final-Postcondition proof checks. The Compiler must prove that every normal event-accepted path reaches `response.after` (or the default Wait-bearing Node completion); any earlier terminal/failure path requires the Integration's trusted failure-response mapping. The only route to `SUCCEEDED` remains a reachable final Postcondition aggregate PASS directly targeting `SUCCEEDED`. The timeout edge can never provide Goal proof.
 
 ### 8.1 Multiple incoming paths
 
@@ -317,7 +317,7 @@ For the conventional SMF-owned initial PDU Session flow, the future-revision map
 2. Before dispatching Step 11, the Integration/Host continuation binding registers the expected Step 15 Wait for the same Run.
 3. AMF later sends the `Nsmf_PDUSession.UpdateSMContext` service request.
 4. The Integration ingress adapter authenticates the AMF peer, validates the exact pinned 3GPP API request, normalizes its path/body/media parts and derives the trusted correlation key.
-5. Generic Host matches the delivery to exactly one existing Run/Wait; Runtime resumes that same Run at `update-sm-context`. The normalized request becomes the typed `update-sm-context.wait.output`.
+5. Generic Host persists and forwards the normalized delivery with its opaque `expectedIngressRef`; Runtime resolves that reference against its authoritative ExpectedIngress record, validates and accepts it, then resumes the exact Run at `update-sm-context`. The normalized request becomes the typed `update-sm-context.wait.output`.
 6. The Agent executes the `update-sm-context` Node's declared logical SMF Operation using that explicit input. A supplementary SMF Context Observation, if needed, remains in the same Node after Operation and before Postcondition.
 7. The Postcondition checks the appropriate RAN adoption and SMF business facts; a successful route proceeds to N4 Session Modification.
 8. The Integration adapter fulfills the paired Step 17 `Nsmf_PDUSession.UpdateSMContext` response obligation for the exact inbound request when the `modify-n4-session` response boundary is committed; later unrelated Run work does not delay Step 17.
@@ -398,6 +398,7 @@ Before this design can be frozen into a language revision, independent review mu
 | Inbound protocol response deadline expires after event acceptance | Integration applies the published response failure mapping; this is not reclassified as the pre-event Wait `TIMEOUT` |
 | Multiple predecessor paths reach the same Wait Node | The selected path activates once; all paths must use the same Ingress Operation export and provide a valid correlation binding; no implicit graph join occurs |
 | One predecessor path cannot establish the required correlation binding | Compiler/admission rejects the Wait Node/path; no fallback to SUPI-only or guessed identity is allowed |
+| Paired protocol response is due after a later business Node | Runtime emits response-ready at `response.after` completion, not at Wait-node completion or terminal Run; Host/Integration fulfills the exact response obligation |
 
 These cases are semantic acceptance requirements. They do not imply that the Compiler, Host, Runtime or Integration adapter already implements them.
 No implementation or product-conformance claim follows from this design document alone.
