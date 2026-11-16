@@ -484,12 +484,10 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
     if not verify or not re.search(r"(?m)^            - modify-n4-session\.operation\.output\s*$", verify.group(1)):
         errors.append(f"{skill.name}: final Goal proof must consume the N4 Modification result")
 
-    if not re.search(r"(?m)^\| \x60read-existing-sm-context\x60 \| exact UE/PSI context existence", skill_text):
-        errors.append(f"{skill.name}: SKILL.md must trace the entry-time SM Context existence Observation")
+    if not re.search(r"(?m)^\| \x60get-sm-subscription-data\x60 \| step 4", skill_text):
+        errors.append(f"{skill.name}: SKILL.md must trace the Step 4 Node and its entry context Observation")
     if not re.search(r"(?m)^\| \x60update-sm-context\x60 \| step 15", skill_text):
-        errors.append(f"{skill.name}: SKILL.md must trace update-sm-context to step 15")
-    if not re.search(r"(?m)^\| \x60read-smf-session-context\x60 \| current SMF session context", skill_text):
-        errors.append(f"{skill.name}: SKILL.md must trace the generic context Observation Node")
+        errors.append(f"{skill.name}: SKILL.md must trace update-sm-context to step 15 and its co-located Observation")
     if not re.search(r"(?m)^\| \x60modify-n4-session\x60 \| steps 16a–16b", skill_text):
         errors.append(f"{skill.name}: SKILL.md must trace N4 Modification to the UPN Owner Operation")
     if "resumes the same Invocation" not in skill_text or "paired step 17" not in skill_text:
