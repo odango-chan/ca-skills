@@ -169,7 +169,7 @@ The SMF MAS v0.10 response contains no source `observedAt`, `eventTime` or `vali
 
 Non-SMF context needed to complete an Operation remains inside the responsible Tool/Owner adapter. The Skill consumes only that Tool's declared Operation Result/Evidence. The completed [17-ref Legacy Observation Crosswalk](https://github.com/odango-chan/ca-agent-demo/blob/docs/5gc-agent-context-boundary-20261116/docs/5gc-legacy-observation-crosswalk-v1alpha4.md) records the old Observation source disposition. Do not promote every legacy helper into a Skill Procedure Node.
 
-Host owns ingress admission, invocation/instance identity, lifecycle, correlation, persistence, journals and late-result responsibility. These values remain private to Host-to-Tool dispatch and are not `contextSchema`, Predicate inputs or Skill-authored callable arguments. The incoming CreateSMContext Request is a Host ingress trigger, not a Procedure Node. The Skill's business request-profile check belongs on the first business Node, not on an `admit-*` Host Node.
+Host owns ingress admission, HostBusinessInstance lifecycle, `ingressRef` / `lifecycleRef`, persistence, journals and late-result responsibility. Runtime separately generates `requestId`, `runId`, `invocationId`, Action/Node occurrence identity and `dispatchAttemptId`, and resolves `environmentRef`. Neither owner injects these values as `contextSchema`, Predicate inputs or Skill-authored callable arguments. The incoming CreateSMContext Request is a Host ingress trigger, not a Procedure Node. The Skill's business request-profile check belongs on the first business Node, not on an `admit-*` Host Node.
 
 Do not automatically query all MAS after each Operation. Query only when a business decision needs an SMF-owned fact that is not already present in the Operation Result/Evidence or Host Subject Context.
 
@@ -178,7 +178,7 @@ Do not automatically query all MAS after each Operation. Query only when a busin
 Before either example Skill can be qualified:
 
 1. Publish the reserved Host Subject Context Package ID `urn:connectionagent:ca:host-context` with its exact Owner snapshot, Schema export and trusted Package ID/Owner/digest binding.
-2. Publish the separate Host-private execution-context interface and its trusted Runtime-to-adapter injection contract; do not expose its fields as Skill-authored inputs.
+2. Publish the Host-owned HostBusinessCorrelation Schema (`ingressRef`, `lifecycleRef`) and the RuntimeHost `hostBusinessCorrelation` transport extension. Runtime execution identities remain Runtime-owned; do not merge the two owners into a local schema or expose either as Skill-authored inputs.
 3. Publish the Host Owner ToolCatalog dependency snapshot with eight exact Observation callable IDs and G.4-compatible query/output Schemas. This is not a second Server Tool Catalog.
 4. Publish deployment-owned CapabilityContracts with one least-privilege Capability per Observation callable; Capability owner is the deployment and callable owner is `ca-agent-host`.
 5. Publish per-MAS Evidence Descriptors and deployment Scope policies with exact SMF authority, subject/PSI/lifecycle Scope, Invocation correlation and executable freshness semantics. SMF v0.10 alone does not close the temporal gate.
