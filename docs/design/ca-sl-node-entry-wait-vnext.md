@@ -59,6 +59,8 @@ nodes:
         service: Nsmf_PDUSession
         operation: UpdateSMContext
       timeout: PT30S
+      response:
+        after: modify-n4-session
       routes:
         TIMEOUT: handle-update-timeout
 
@@ -93,11 +95,28 @@ The proposed Wait shape is:
 
 - `event`: exact inbound interface identity, using canonical source NF type, service name and service-operation name;
 - `timeout`: required maximum time the activated Node may wait for that event;
+- `response`: optional protocol-response boundary binding, required by an Integration export when a paired response must wait beyond the Wait-bearing Node;
 - `routes`: required timeout route mapping.
 
 `event.source` means the authenticated peer NF type, not an untrusted body field. The event identity is not an arbitrary label. For the 5GC example it identifies the AMF-originated `Nsmf_PDUSession.UpdateSMContext` service operation. The exact API artifact, API version, OpenAPI operation, media types and request Schema are pinned by the declared Integration dependency; they are not guessed from a name or negotiated dynamically at runtime.
 
 The event selector does not itself identify a Run. A trusted Integration ingress contract must provide a deterministic correlation binding from the protocol request to exactly one armed Wait occurrence. That binding is Integration-owned and Host-private; Skill source does not declare `ueRef`, callback tokens, operation handles or correlation keys. If the binding cannot produce one unique match, the event is rejected or quarantined rather than assigned to the newest or most convenient Run. The binding must also distinguish successive Wait generations for the same protocol resource; a Host-generated generation number that is absent from the inbound request is not, by itself, a valid discriminator.
+
+### 3.3 Paired response boundary
+
+An inbound request may carry a protocol response obligation. The Integration Ingress Operation export defines the response Schema, allowed protocol outcomes, wire encoding and mapping from the Runtime's declared response-boundary result. The Host retains the durable response-obligation record; Runtime does not choose an HTTP status or serialize the protocol response.
+
+The proposed optional binding is:
+
+```yaml
+wait:
+  response:
+    after: modify-n4-session
+```
+
+`response.after` names a Node whose completion (including its declared Postcondition) is the response boundary. If omitted, the boundary is the completion of the Wait-bearing Node. The Compiler must prove that every normal event-accepted path reaches the boundary; a path that terminates earlier must have a trusted Integration failure-response mapping. The response boundary is not the terminal Run: later Procedure work may continue after the paired protocol response has been delivered.
+
+For 3GPP Step 15/17, the boundary must be after the required Step 16 N4 Session Modification. In the illustrative graph above, `modify-n4-session` is therefore the response boundary. The Step 17 response must not wait for unrelated later Procedure work. `response.after` is protocol-continuation metadata, not a fifth business stage or a new Node kind.
 
 ### 3.2 One route model, one scoped outcome
 
@@ -144,9 +163,9 @@ The Integration package publishes an exact Ingress Operation contract as one of 
 - accepted wire media types and their source request Schema references;
 - a normalized request Schema in the CA-SL supported JSON Schema subset, plus the traceable normalization mapping;
 - the deterministic correlation rule used both when arming a Wait and when receiving the inbound request;
-- the paired response contract and the protocol-specific response obligation lifecycle.
+- the paired response contract, response outcome/body mapping and protocol-specific response obligation lifecycle.
 
-The Skill identifies the inbound interface operation; it does not restate the request Schema. The Compiler resolves the event selector against exact Ingress Operation exports in the Skill's declared, version-pinned dependency snapshots. Resolution must produce exactly one export. Zero matches, multiple matches, unsupported Schema dialects, digest mismatch or missing correlation/response bindings fail closed. The Compiler must not choose a similarly named Schema or infer a contract from an inbound JSON body.
+The Skill identifies the inbound interface operation; it does not restate the request Schema. The Compiler resolves the event selector against exact Ingress Operation exports in the Skill's declared, version-pinned dependency snapshots. Resolution must produce exactly one export. Zero matches, multiple matches, unsupported Schema dialects, digest mismatch or missing correlation/response bindings fail closed. When the Integration declares a paired response, the Compiler also resolves `response.after` (or the default Wait-bearing Node boundary) and proves that all normal event-accepted paths reach it. The Compiler must not choose a similarly named Schema or infer a contract from an inbound JSON body.
 
 The Integration ingress adapter owns protocol-specific source authentication, wire parsing, validation and normalization. The Generic Host consumes the adapter's normalized delivery and verifies its trusted contract identity; it does not parse 3GPP paths, media types or NF authentication. The Runtime uses the normalized request Schema for ordinary typed Producer/Consumer checking.
 
@@ -265,7 +284,7 @@ The language accepts positive fixed durations and rejects calendar years/months 
 
 The timer begins at target Node activation. The effective Wait deadline is the earlier of the Node activation time plus the declared timeout and the remaining Invocation deadline. If the Wait deadline wins, route `TIMEOUT`. If the global Invocation deadline or cancellation wins first, Runtime stops under its existing global stop semantics; it MUST NOT relabel that stop as the author's `TIMEOUT` outcome.
 
-After the event is accepted, the inbound protocol request's response deadline (if defined by that API/transport contract) is a separate deadline for processing and responding to that request. The Integration adapter supplies that deadline to the Host/Runtime. It may further constrain execution, but its expiry is not the pre-event Wait `TIMEOUT`; the Integration adapter applies the published protocol failure/response mapping and Runtime preserves any unresolved business responsibility.
+After the event is accepted, the inbound protocol request's response deadline (if defined by that API/transport contract) is a separate deadline for processing and responding to that request. The Integration adapter supplies that deadline to the Host/Runtime. It may further constrain execution, but its expiry is not the pre-event Wait `TIMEOUT`; the Integration adapter applies the published protocol failure/response mapping and Runtime preserves any unresolved business responsibility. Runtime emits response-ready only when the resolved `response.after` boundary (or default target-Node boundary) is committed, not when the whole Run becomes terminal.
 
 Wait itself does not dispatch a Tool or Script and therefore does not consume the existing Tool/Script Action Budget. It does consume wall-clock time and remains subject to Host/Runtime execution and Node limits.
 
@@ -301,7 +320,7 @@ For the conventional SMF-owned initial PDU Session flow, the future-revision map
 5. Generic Host matches the delivery to exactly one existing Run/Wait; Runtime resumes that same Run at `update-sm-context`. The normalized request becomes the typed `update-sm-context.wait.output`.
 6. The Agent executes the `update-sm-context` Node's declared logical SMF Operation using that explicit input. A supplementary SMF Context Observation, if needed, remains in the same Node after Operation and before Postcondition.
 7. The Postcondition checks the appropriate RAN adoption and SMF business facts; a successful route proceeds to N4 Session Modification.
-8. The Integration adapter fulfills the paired Step 17 `Nsmf_PDUSession.UpdateSMContext` response obligation for the exact inbound request after the required downstream business work reaches its defined outcome.
+8. The Integration adapter fulfills the paired Step 17 `Nsmf_PDUSession.UpdateSMContext` response obligation for the exact inbound request when the `modify-n4-session` response boundary is committed; later unrelated Run work does not delay Step 17.
 
 ### 9.1 Exact API binding
 
@@ -330,7 +349,7 @@ CA-SL v1alpha4 remains frozen and unchanged:
 
 | Current v1alpha4 area | Required future-revision work |
 |---|---|
-| §10.1 structure grammar | Add optional Node-level `wait` and its exact field grammar |
+| §10.1 structure grammar | Add optional Node-level `wait`, `wait.response.after` and their exact field grammar |
 | §12.1 Node execution | Define Wait as pre-stage entry control; retain four business stages |
 | §12.9 control-flow proof | Include Wait activation and timeout edges in DAG/path-sensitive checks |
 | §13.2–§13.3 SourcePath | Add typed `NodeId.wait.output`, normalized request Schema, availability and assignability rules |
@@ -338,7 +357,7 @@ CA-SL v1alpha4 remains frozen and unchanged:
 | §21 asynchronous semantics | Replace the blanket no-author-Wait rule for the new version with the declarative Node-entry model; keep Evidence Wait distinct |
 | §22 routes | Define the Wait-scoped `TIMEOUT` key and reuse existing route targets |
 | §24 / Annex H | Add diagnostics for Ingress Operation resolution, correlation ambiguity, Schema/media normalization, timeout routes and unavailable Wait output |
-| Dependency/Integration contracts | Define exact Ingress Operation export, pinned API provenance, normalized request Schema, correlation binding and response obligation |
+| Dependency/Integration contracts | Define exact Ingress Operation export, pinned API provenance, normalized request Schema, correlation binding, response mapping and response-boundary binding |
 | Host/Runtime contract | Define a generic continuation port and durable suspended-Run/Wait lifecycle; do not add 5GC-specific Host/Runtime branches |
 
 The revision must not add a fifth business stage, a Wait Node kind, a new business-stage Outcome family, `onTimeout`, `payloadSchema`, a global author-facing EventCatalog, a second Procedure Graph, or a 5GC-specific branch in Generic Host/Runtime.
@@ -358,7 +377,7 @@ Before this design can be frozen into a language revision, independent review mu
 - [ ] early-event registration, durable buffering and cancellation of unselected candidate registrations;
 - [ ] atomic event-versus-timeout behavior and late/duplicate handling after restart;
 - [ ] interaction with global Precondition, Action Budget, Node limits, cancellation and final Goal proof;
-- [ ] Step 15/17 response obligation ownership and failure mapping;
+- [ ] Step 15/17 response obligation ownership, `response.after` path proof and failure mapping;
 - [ ] diagnostics, trace semantics and positive/negative conformance fixtures.
 
 
