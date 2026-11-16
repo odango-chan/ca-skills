@@ -89,13 +89,13 @@ The following entries are one-to-one *traceability* rows, not converted fixtures
 
 The Host Package IDs are reserved in the contract proposal, but neither package is published or trusted:
 - `ca-context` → `urn:connectionagent:ca:host-context` (subject-only `ueRef` projection);
-- `ca-observations` → `urn:connectionagent:ca:host:smf-mas-observations` (eight SMF MAS Observation callable/schema exports).
+- `smf-mas-observations` → `urn:connectionagent:ca:5gc:smf-mas-observations` (eight SMF MAS Observation callable/schema exports owned by `ca-5gc-client-tools`).
 
-The two example Skills currently use only `ca-context`; neither Procedure invokes the eight new Observation callables. The initial PDU Session Skill must not add `ca-observations` before a real Procedure reference exists.
+The two example Skills currently use only `ca-context`; neither Procedure invokes the eight new Observation callables. The initial PDU Session Skill must not add `smf-mas-observations` before a real Procedure reference exists.
 
 The Host-owned HostBusinessCorrelation Schema contains only `ingressRef` and `lifecycleRef`. Host supplies the stable Runtime Execute `requestId`; ca-runtime owns its `(host, requestId)` RequestStore, fingerprint, deduplication and replay authority. Runtime generates `runId`, `invocationId`, Action/Node occurrence identity and `dispatchAttemptId`, and resolves `environmentRef`. The proposed RuntimeHost `hostBusinessCorrelation` transport extension is not yet in RuntimeHost.v1; no merged physical Host/Runtime envelope Schema is published. Host persistence is limited to ProductTask, AgentInstance, HostBusinessInstance, ingress admission/deduplication and request-ledger/transport continuity. ca-runtime owns RunRecord/RunEvent, Procedure progression, Action outcome, Evidence and Reconcile; Provider/Owner owns protocol transactions, callbacks, waiter/hold/claim/journal records and resource receipts.
 
-The Host ToolCatalog is an Owner dependency snapshot for Compiler/Studio linking, not a second Server Tool Catalog. The existing `tool-mcp-gw` Server Tool Catalog and Runtime Resolved CA Toolset remain authoritative. CapabilityContracts is separate deployment-owned trusted input; each Capability is deployment-owned, and its callable member is owned by `ca-agent-host`.
+The `ca-5gc-client-tools` ToolCatalog is an Owner dependency snapshot for Compiler/Studio linking, not a second Server Tool Catalog. The existing `tool-mcp-gw` Server Tool Catalog and Runtime Resolved CA Toolset remain authoritative. CapabilityContracts is separate deployment-owned trusted input; each Capability is deployment-owned, and its callable member is owned by `ca-5gc-client-tools`.
 
 The eight query callables and candidate Guarantee DottedIds are proposal-only. No Evidence Descriptor is publishable from SMF MAS v0.10 alone: the response has no source `observedAt` / `validUntil`; Host `queryStartedAt` / `receivedAt` are audit bounds, not source timestamps. The per-MAS Scope policy names are reserved; policy bodies and trusted grants are not published. All eight Observation callables remain NOT_QUALIFIED for Evidence-dependent PASS.
 
@@ -104,7 +104,7 @@ The source-by-source audit of all 17 legacy Observation refs is in the [Legacy C
 ## Outstanding review gates
 
 - [ ] Business Owner approves each proposed 5GC and MAS authoring mapping, resource lifecycle and definitive failure/unknown handling.
-- [ ] Publish the reserved `ca-context` and `ca-observations` Host Package IDs with exact Owner snapshots/digests; publish exact UPN/SSM/MAS ToolCatalogs and deployment-owned CapabilityContracts; no `urn:example` aliases in a successful link.
+- [ ] Publish the reserved `ca-context` Host Package ID and the `smf-mas-observations` client-tools Package ID with exact Owner snapshots/digests; publish exact UPN/SSM/MAS ToolCatalogs and deployment-owned CapabilityContracts; no `urn:example` aliases in a successful link.
 - [ ] Script F.6 parser / strict TypedDict assignability tests run in actual Compiler Native/WASM (repository-local type lint is not conformance).
 - [ ] All 36 conventional Cases transformed into executable v1alpha4 fixtures and run; 6 MAS cases retain separate unqualified design obligations.
 - [ ] Close the SMF v0.10 temporal Evidence gate and publish per-MAS Evidence Descriptors/Scope policies before Observation-dependent PASS; then complete Native/WASM/Studio, Host/Runtime, Trace and live 5GC §45.2 proof or retain explicit NOT_QUALIFIED status.
