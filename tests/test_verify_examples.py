@@ -428,7 +428,7 @@ def main(input: PredicateInput) -> PredicateEvaluationResult:
             self.assertEqual(errors, [])
             self.assertIn((root / "scripts" / "check.py").resolve(), refs)
 
-    def test_update_sm_context_resumes_same_invocation_and_waits_for_fabric_n4_response(self) -> None:
+    def test_update_sm_context_resumes_same_invocation_and_reads_generic_smf_context(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d) / "establish-pdu-session"
             (root / "assurance").mkdir(parents=True)
@@ -455,18 +455,33 @@ def main(input: PredicateInput) -> PredicateEvaluationResult:
           arguments:
             - update-sm-context.operation.output
       routes:
-        PASS: receive-n4-session-modification
-  receive-n4-session-modification:
+        PASS: read-smf-session-context
+  read-smf-session-context:
+    observation:
+      tool: ca::context.smf.session.read
+      arguments:
+        ueRef: context.ueRef
+        pduSessionId: context.request.pduSessionId
+    postcondition:
+      predicates:
+        - predicate: establishment.smf.session_context_profile_ready
+          arguments:
+            - read-smf-session-context.observation.output
+            - context.request.dnn
+            - context.request.sNssai.sst
+      routes:
+        PASS: modify-n4-session
+  modify-n4-session:
     operation:
-      tool: ca::mock.n4.session.modification.response
+      tool: upn::UPN.MODIFY_UP_SESSION
       arguments:
         initialN4Result: establish-n4-session.operation.output
-        updateSMContextResult: update-sm-context.operation.output
+        ranResult: update-sm-context.operation.output
     postcondition:
       predicates:
         - predicate: establishment.n4.forwarding_ready
           arguments:
-            - receive-n4-session-modification.operation.output
+            - modify-n4-session.operation.output
       routes:
         PASS: ca-transfer-resource-responsibility
   verify-pdu-session-establishment:
@@ -477,35 +492,40 @@ def main(input: PredicateInput) -> PredicateEvaluationResult:
             - update-sm-context.operation.output
         - predicate: establishment.n4.forwarding_ready
           arguments:
-            - receive-n4-session-modification.operation.output
+            - modify-n4-session.operation.output
 """, encoding="utf-8")
             (root / "assurance" / "contract.yaml").write_text("""dependencies:
   ca: urn:example:connectionagent:5gc-tool-contracts
 capabilities:
-  - urn:example:connectionagent:capability:ca:n4-session-modification-completion-read:v1
+  - urn:example:connectionagent:capability:ca:smf-session-context-read:v1
 """, encoding="utf-8")
             (root / "assurance" / "predicates.yaml").write_text("""predicates:
-  establishment.n4.forwarding_ready:
+  establishment.smf.session_context_profile_ready:
     parameters:
-      - network: ca::urn:example:5gc:n4-forwarding:v1
+      - sessionContext: ca::urn:example:5gc:smf-session-context:v1
     evidence:
       requires:
-        network: [ca::n4.forwarding-ready]
+        sessionContext: [ca::smf.session-context.query-evidence]
     evaluator:
-      type: cel
-      expression: network.bindingStatus == "CURRENT"
+      type: script
+      script: scripts/validate-smf-session-context.py
 """, encoding="utf-8")
+            (root / "scripts" / "validate-smf-session-context.py").write_text(
+                "def main(input: PredicateInput) -> PredicateEvaluationResult:\n    return {\"result\": \"PASS\", \"reasonCode\": \"OK\", \"evidenceUsed\": []}\n",
+                encoding="utf-8",
+            )
             (root / "SKILL.md").write_text(
                 "| \x60update-sm-context\x60 | step 15 — \x60Nsmf_PDUSession_UpdateSMContext Request\x60 |\n"
-                "| \x60receive-n4-session-modification\x60 | steps 16a–16b — N4 Session Modification |\n"
-                "The local CA Mock Tool waits for Fabric's real N4 Response. Runtime resumes the same Invocation; Host returns the paired step 17 response.\n",
+                "| \x60read-smf-session-context\x60 | current SMF session context after step 15 |\n"
+                "| \x60modify-n4-session\x60 | steps 16a–16b — N4 Session Modification |\n"
+                "Runtime resumes the same Invocation; Host returns the paired step 17 response.\n",
                 encoding="utf-8",
             )
             errors: list[str] = []
             validate_async_update_sm_context_boundary(root, errors)
             self.assertEqual(errors, [])
 
-    def test_conventional_skill_rejects_mas_dependencies_and_direct_n4_mutation(self) -> None:
+    def test_conventional_skill_requires_context_observation_and_rejects_mas_names(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d) / "establish-pdu-session"
             (root / "assurance").mkdir(parents=True)
@@ -515,8 +535,8 @@ capabilities:
     operation:
       tool: ssm::SSM.SIGNAL_UE_AN
       routes:
-        PASS: receive-n4-session-modification
-  receive-n4-session-modification:
+        PASS: modify-n4-session
+  modify-n4-session:
     operation:
       tool: upn::UPN.MODIFY_UP_SESSION
 """, encoding="utf-8")
@@ -527,8 +547,8 @@ capabilities:
             (root / "SKILL.md").write_text("This conventional Skill must not mention MAS.\n", encoding="utf-8")
             errors: list[str] = []
             validate_async_update_sm_context_boundary(root, errors)
-            self.assertTrue(any("must not declare or mention SMF MAS" in e for e in errors), errors)
-            self.assertTrue(any("real SMF, not issued again" in e for e in errors), errors)
+            self.assertTrue(any("must not declare or mention MAS implementation details" in e for e in errors), errors)
+            self.assertTrue(any("missing explicit post-callback SMF session-context Observation" in e for e in errors), errors)
 
     def test_update_sm_context_must_not_restart_or_leak_host_correlation(self) -> None:
         with tempfile.TemporaryDirectory() as d:
