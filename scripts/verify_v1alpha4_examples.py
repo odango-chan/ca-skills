@@ -350,7 +350,7 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
         errors.append(f"{skill.name}: missing entry-time SM Context Observation")
     else:
         block = entry.group(1)
-        if not re.search(r"(?m)^      tool: ca::context\.smf\.session\.read\s*$", block):
+        if not re.search(r"(?m)^      tool: ca-observations::context\.smf\.session\.read\s*$", block):
             errors.append(f"{skill.name}: entry lookup must use the generic SMF context Observation callable")
         if not re.search(r"(?m)^        ueRef: context\.ueRef\s*$", block) or not re.search(r"(?m)^        pduSessionId: context\.request\.pduSessionId\s*$", block):
             errors.append(f"{skill.name}: entry lookup must be scoped by exact UE and PDU Session ID")
@@ -407,7 +407,7 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
         errors.append(f"{skill.name}: missing explicit post-callback SMF session-context Observation")
     else:
         block = observation.group(1)
-        if not re.search(r"(?m)^      tool: ca::context\.smf\.session\.read\s*$", block):
+        if not re.search(r"(?m)^      tool: ca-observations::context\.smf\.session\.read\s*$", block):
             errors.append(f"{skill.name}: use the generic CA SMF session-context Observation callable")
         if not re.search(r"(?m)^        ueRef: context\.ueRef\s*$", block) or not re.search(r"(?m)^        pduSessionId: context\.request\.pduSessionId\s*$", block):
             errors.append(f"{skill.name}: context Observation must be scoped by the Skill subject and business PSI")
@@ -435,7 +435,7 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
         errors.append(f"{skill.name}: missing the three-state SMF session-context Predicate Script")
     if not (skill / "scripts" / "validate-smf-session-context.py").is_file():
         errors.append(f"{skill.name}: missing the SMF session-context Predicate Script")
-    if "urn:example:connectionagent:capability:ca:smf-session-context-read:v1" not in contract_text:
+    if "urn:example:connectionagent:capability:ca:smf-session-context-read:v1" not in contract_text or "ca-observations: urn:connectionagent:ca:host:smf-mas-observations" not in contract_text:
         errors.append(f"{skill.name}: Skill must declare the generic read-only SMF session-context Capability")
 
     modify = re.search(
