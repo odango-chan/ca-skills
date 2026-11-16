@@ -1,7 +1,4 @@
-# CA-SL v1alpha4 author syntax. The external aliases below are *illustrative*,
-# not evidence of published, qualified ToolCatalog/CapabilityContracts owners.
-# All Capability IDs below are explicit 3GPP/CA scope placeholders, not published exports.
-# Exact CapabilityContracts IDs must replace them before linking.
+# CA-SL v1alpha4 author syntax. Capability IDs below are illustrative and NOT published.
 goal: pdu_session.initial_request_fulfilled
 precondition: admit-create-sm-context-request.precondition
 requestSchema: schemas/establishment-request.schema.yaml
@@ -9,14 +6,15 @@ contextSchema: ca-context::urn:connectionagent:ca:context:invocation:v1
 dependencies:
   ca-context: urn:example:connectionagent:host-context
   ca: urn:example:connectionagent:5gc-tool-contracts
-  upn: urn:example:connectionagent:upn-session-owner
-  ssm: urn:example:connectionagent:ssm-ran-owner
+  upn: urn:example:connectionagent:upn-tool-contracts
+  ssm: urn:example:connectionagent:ssm-tool-contracts
 capabilities:
   - urn:example:connectionagent:capability:3gpp:nudm-sdm-get:v1
   - urn:example:connectionagent:capability:3gpp:nudm-sdm-subscribe:v1
   - urn:example:connectionagent:capability:3gpp:npcf-sm-policy-control-create:v1
   - urn:example:connectionagent:capability:3gpp:n4-session-establishment:v1
   - urn:example:connectionagent:capability:3gpp:namf-communication-n1n2-transfer:v1
+  - urn:example:connectionagent:capability:ca:ssm-access-network-completion:v1
   - urn:example:connectionagent:capability:3gpp:n4-session-modification:v1
   - urn:example:connectionagent:capability:ca:resource-responsibility:v1
 limits:
