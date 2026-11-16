@@ -58,11 +58,18 @@ def main(input: PredicateInput) -> PredicateEvaluationResult:
             "evidenceUsed": evidence_refs,
         }
 
-    required = ("dnn", "sst", "subscriptionValidated", "secondaryAuthRequired")
+    required = ("dnn", "sst", "subscriptionValidated", "secondaryAuthRequired", "uecmRegistered")
     if any(field not in context for field in required):
         return {
             "result": "UNKNOWN",
             "reasonCode": "SMF_SESSION_CONTEXT_FIELDS_INCOMPLETE",
+            "evidenceUsed": evidence_refs,
+        }
+
+    if type(context["uecmRegistered"]) is not bool:
+        return {
+            "result": "UNKNOWN",
+            "reasonCode": "SMF_UECM_REGISTRATION_STATE_INVALID",
             "evidenceUsed": evidence_refs,
         }
 
