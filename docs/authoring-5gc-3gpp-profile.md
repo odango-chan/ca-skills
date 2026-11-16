@@ -182,7 +182,7 @@ Do not automatically query all MAS after each Operation. Query only when a busin
 Before either example Skill can be qualified:
 
 1. Host publishes the exact subject-context Package ID and Schema export.
-2. Host publishes the abstract and physical Host-to-Tool private execution-context contract, including the UE/PSI/lifecycle binding semantics.
+2. Host publishes the private execution-context Schema `urn:connectionagent:ca:host:tool-execution-context:v1alpha1`; the Runtime-to-adapter injection transport and UE/PSI/lifecycle binding implementation remain to be specified and implemented.
 3. Host publishes a v1alpha4 ToolCatalog with eight exact Observation callables and MAS-specific output Schemas.
 4. Trusted CapabilityContracts grant the exact Observation callables with least-privilege Scope and READ Effect.
 5. Evidence Descriptors establish SMF authority, subject/PSI Scope, Host lifecycle binding, invocation correlation and executable freshness semantics.
