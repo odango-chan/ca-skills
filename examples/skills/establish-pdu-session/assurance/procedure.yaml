@@ -1,7 +1,7 @@
 # Illustrative CA-SL v1alpha4 deterministic DAG, NOT linked to qualified Owners.
 # Runtime coordination (Hold/Claim/Waiter/Journal/Reconcile), invocation identity and lifecycle/correlation are Host/Owner internals.
-# The Agent queries only SMF-owned MAS context when an explicit Observation is needed;
-# non-SMF context required by an Operation is obtained inside that Tool/Owner adapter.
+# Skill decisions consume declared Operation Results/Evidence. Network-side context
+# required by an Operation is obtained inside its responsible Tool/Owner adapter.
 # Host performs ingress admission, identity/instance association, duplicate suppression and execution lifecycle before this graph starts.
 # This Skill validates only the business request profile; Host execution metadata is not a Procedure input.
 start: get-sm-subscription-data
@@ -178,44 +178,25 @@ nodes:
           arguments:
             - update-sm-context.operation.output
       routes:
-        PASS: read-smf-session-context
+        PASS: receive-n4-session-modification
         FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
 
-  # This is a deliberate SMF-owned Observation after the initial SM Context exists.
-  # It is not used to wait for the callback and does not fan out to every MAS.
-  # no direct 3GPP procedure counterpart.
-  # 3GPP: CA_EXTENSION — read-only client-tools Observation supporting the Step 16 decision.
-  read-smf-session-context:
-    observation:
-      tool: smf-mas-observations::smf.mas.sc.context.query
-      arguments:
-        ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
-      routes:
-        FAILED: UNRESOLVED
-        UNKNOWN: UNRESOLVED
-    postcondition:
-      predicates:
-        - predicate: establishment.smf.session_context_profile_ready
-          arguments:
-            - read-smf-session-context.observation.output
-            - context.request.dnn
-            - context.request.sNssai.sst
-      routes:
-        PASS: modify-n4-session
-        FAIL: ca-transfer-failed-resource-responsibility
-        UNKNOWN: SAFE_STOPPED
-
+  # The SMF performs N4 Session Modification while handling the Step 15 request.
+  # This local CA Mock Tool waits for Fabric to receive the matching real N4
+  # Modification Response. It does not send N4 and does not query SMF context.
+  # The initial N4 result and exact Step 15 result scope the business session;
+  # Host-only Invocation/lifecycle correlation remains private.
+  # Tool ID and its typed completion Evidence are proposed and NOT PUBLISHED.
   # 3GPP: CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 16a–16b and §4.4.1.3; N4 Session Modification Request/Response.
-  modify-n4-session:
+  receive-n4-session-modification:
     operation:
-      tool: upn::UPN.MODIFY_UP_SESSION
+      tool: ca::mock.n4.session.modification.response
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
         initialN4Result: establish-n4-session.operation.output
-        ranResult: update-sm-context.operation.output
+        updateSMContextResult: update-sm-context.operation.output
       routes:
         FAILED: ca-transfer-failed-resource-responsibility
         OUTCOME_UNKNOWN: SAFE_STOPPED
@@ -224,7 +205,7 @@ nodes:
       predicates:
         - predicate: establishment.n4.forwarding_ready
           arguments:
-            - modify-n4-session.operation.output
+            - receive-n4-session-modification.operation.output
       routes:
         PASS: ca-transfer-resource-responsibility
         FAIL: ca-transfer-failed-resource-responsibility
@@ -265,7 +246,7 @@ nodes:
             - update-sm-context.operation.output
         - predicate: establishment.n4.forwarding_ready
           arguments:
-            - modify-n4-session.operation.output
+            - receive-n4-session-modification.operation.output
         - predicate: establishment.n4.initial_resources_ready
           arguments:
             - establish-n4-session.operation.output

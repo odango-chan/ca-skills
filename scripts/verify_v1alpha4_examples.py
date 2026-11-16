@@ -305,7 +305,7 @@ def validate_n4_owner_boundary(skill: Path, errors: list[str]) -> None:
 
 
 def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) -> None:
-    """Keep UpdateSMContext as a continuation of the existing Skill Invocation."""
+    """Keep Step 15 as same-Invocation continuation and N4 completion as a local Mock wait."""
     if skill.name != "establish-pdu-session":
         return
     procedure = skill / "assurance" / "procedure.yaml"
@@ -326,6 +326,23 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
     if re.search(r"(?m)^\s*(?:ingressRef|lifecycleRef|hostBusinessInstanceId|invocationId|requestId|responseHandle|responseRef)\s*:", procedure_text):
         errors.append(f"{skill.name}: Host ingress, lifecycle and transport response metadata must remain private")
 
+    for label, content in (
+        ("Procedure", procedure_text),
+        ("Contract", contract_text),
+        ("Predicates", predicate_text),
+        ("SKILL.md", skill_text),
+    ):
+        if re.search(r"(?i)smf[-.]mas|smf-mas-observations|ca-5gc-client-tools|smf\.mas\.", content):
+            errors.append(f"{skill.name}: conventional Skill {label} must not declare or mention SMF MAS")
+            break
+
+    if "read-smf-session-context" in procedure_text or "establishment.smf.session_context_profile_ready" in predicate_text:
+        errors.append(f"{skill.name}: remove the direct SMF context Observation and its Predicate from the conventional Skill")
+    if (skill / "scripts" / "validate-smf-session-context.py").exists():
+        errors.append(f"{skill.name}: remove the unused SMF context Predicate Script")
+    if "UPN.MODIFY_UP_SESSION" in procedure_text or "modify-n4-session" in procedure_text:
+        errors.append(f"{skill.name}: N4 Modification must be completed by the real SMF, not issued again by the Skill")
+
     update = re.search(
         r"(?ms)^  update-sm-context:\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)",
         procedure_text,
@@ -340,8 +357,8 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
             errors.append(f"{skill.name}: SSM callback must be associated with the exact N1/N2 transfer Operation")
         if not re.search(r"(?m)^            - update-sm-context\.operation\.output\s*$", block):
             errors.append(f"{skill.name}: RAN adoption Predicate must consume the UpdateSMContext Operation Result")
-        if not re.search(r"(?m)^        PASS: read-smf-session-context\s*$", block):
-            errors.append(f"{skill.name}: the callback continuation must proceed to the explicit SMF context decision")
+        if not re.search(r"(?m)^        PASS: receive-n4-session-modification\s*$", block):
+            errors.append(f"{skill.name}: Step 15 continuation must proceed to the local N4 completion Mock Tool")
 
     transfer = re.search(
         r"(?ms)^  transfer-n1n2-message:\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)",
@@ -350,27 +367,24 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
     if not transfer or not re.search(r"(?m)^        PASS: update-sm-context\s*$", transfer.group(1)):
         errors.append(f"{skill.name}: N1/N2 transfer success must continue to the pending UpdateSMContext Operation")
 
-    observation = re.search(
-        r"(?ms)^  read-smf-session-context:\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)",
+    n4_wait = re.search(
+        r"(?ms)^  receive-n4-session-modification:\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)",
         procedure_text,
     )
-    if not observation:
-        errors.append(f"{skill.name}: missing explicit post-callback SMF SC context Observation")
+    if not n4_wait:
+        errors.append(f"{skill.name}: missing local Mock Tool for the real N4 Modification Response")
     else:
-        block = observation.group(1)
-        if not re.search(r"(?m)^      tool: smf-mas-observations::smf\.mas\.sc\.context\.query\s*$", block):
-            errors.append(f"{skill.name}: post-callback context read must use the client-tools SC MAS Observation callable")
-        if not re.search(r"(?m)^        ueRef: context\.ueRef\s*$", block) or not re.search(r"(?m)^        pduSessionId: context\.request\.pduSessionId\s*$", block):
-            errors.append(f"{skill.name}: SC Observation must be scoped by the Skill subject and business PSI")
-        if not re.search(r"(?m)^        PASS: modify-n4-session\s*$", block):
-            errors.append(f"{skill.name}: only a passing SC context Predicate may advance to N4 Modification")
-
-    modify = re.search(
-        r"(?ms)^  modify-n4-session:\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)",
-        procedure_text,
-    )
-    if not modify or not re.search(r"(?m)^        ranResult: update-sm-context\.operation\.output\s*$", modify.group(1)):
-        errors.append(f"{skill.name}: N4 Modification must consume the validated UpdateSMContext/RAN result")
+        block = n4_wait.group(1)
+        if not re.search(r"(?m)^      tool: ca::mock\.n4\.session\.modification\.response\s*$", block):
+            errors.append(f"{skill.name}: Step 16 completion must use the local CA Mock Tool, not a direct N4 mutation")
+        if not re.search(r"(?m)^        initialN4Result: establish-n4-session\.operation\.output\s*$", block):
+            errors.append(f"{skill.name}: N4 completion Mock must bind to the initial N4 session result")
+        if not re.search(r"(?m)^        updateSMContextResult: update-sm-context\.operation\.output\s*$", block):
+            errors.append(f"{skill.name}: N4 completion Mock must bind to the exact Step 15 result")
+        if not re.search(r"(?m)^            - receive-n4-session-modification\.operation\.output\s*$", block):
+            errors.append(f"{skill.name}: N4 forwarding Predicate must consume the Mock's correlated completion result")
+        if not re.search(r"(?m)^\s*PASS: ca-transfer-resource-responsibility\s*$", block):
+            errors.append(f"{skill.name}: only a proven N4 completion may advance to resource responsibility")
 
     verify = re.search(
         r"(?ms)^  verify-pdu-session-establishment:\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)",
@@ -378,25 +392,19 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
     )
     if not verify or not re.search(r"(?m)^            - update-sm-context\.operation\.output\s*$", verify.group(1)):
         errors.append(f"{skill.name}: final Goal proof must consume the same UpdateSMContext/RAN result")
+    if not verify or not re.search(r"(?m)^            - receive-n4-session-modification\.operation\.output\s*$", verify.group(1)):
+        errors.append(f"{skill.name}: final Goal proof must consume the real N4 completion result")
 
-    if "smf-mas-observations: urn:connectionagent:ca:5gc:smf-mas-observations" not in contract_text:
-        errors.append(f"{skill.name}: Skill must declare the reserved ca-5gc-client-tools Observation dependency")
-    if "urn:example:connectionagent:capability:ca:smf-mas-sc-context-read:v1" not in contract_text:
-        errors.append(f"{skill.name}: Skill must declare an explicitly unqualified SC MAS read Capability placeholder")
-    if "smf-mas-observations::urn:connectionagent:ca:observation:smf-mas-sc-query-result:v1" not in predicate_text:
-        errors.append(f"{skill.name}: SC Predicate must consume the schema from the client-tools dependency")
-    if ("establishment.smf.session_context_profile_ready:" not in predicate_text
-        or "script: scripts/validate-smf-session-context.py" not in predicate_text):
-        errors.append(f"{skill.name}: missing explicit three-state SMF SC profile Predicate Script")
-
+    if "smf-mas-observations:" in contract_text or "smf-mas-observations::" in predicate_text:
+        errors.append(f"{skill.name}: conventional Skill must not depend on an SMF MAS package or Observation schema")
     if not re.search(r"(?m)^\| \x60update-sm-context\x60 \| step 15", skill_text):
         errors.append(f"{skill.name}: SKILL.md must trace update-sm-context to step 15")
-    if not re.search(r"(?m)^\| \x60read-smf-session-context\x60 \| current SMF SC projection", skill_text):
-        errors.append(f"{skill.name}: SKILL.md must trace the SC Observation Node")
+    if not re.search(r"(?m)^\| \x60receive-n4-session-modification\x60 \| steps 16a–16b", skill_text):
+        errors.append(f"{skill.name}: SKILL.md must trace the local Mock Tool to the real N4 Modification exchange")
+    if "local CA Mock Tool" not in skill_text or "Fabric" not in skill_text:
+        errors.append(f"{skill.name}: SKILL.md must explain that the local Mock waits for Fabric's real N4 Response")
     if "resumes the same Invocation" not in skill_text or "paired step 17" not in skill_text:
         errors.append(f"{skill.name}: SKILL.md must define same-Invocation resume and paired step-17 Host response")
-    if len(re.findall(r"smf-mas-observations::smf\.mas\.[a-z]+\.context\.query", procedure_text)) != 1:
-        errors.append(f"{skill.name}: this profile should query only the one required SC MAS projection, not fan out to all MAS")
 
 
 def validate_predicate_scripts(skill: Path, errors: list[str]) -> set[Path]:

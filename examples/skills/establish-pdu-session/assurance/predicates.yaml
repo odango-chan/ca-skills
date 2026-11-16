@@ -1,7 +1,7 @@
 # CA-SL v1alpha4 ordered Predicate signatures. All ca::urn:example Schema IDs
 # and ca:: guarantees below are UNPUBLISHED until their actual Owner releases them.
 # Host admission, invocation/lifecycle correlation and hold/journal state are not Skill business Predicates.
-# This file contains only business predicates over request, Operation Results and explicit SMF Observations.
+# This file contains only business predicates over the request and declared Operation Results/Evidence.
 # Linking must fail closed; matching old v0.2 names does not grant provenance.
 predicates:
   establishment.request.supported:
@@ -94,20 +94,6 @@ predicates:
       type: script
       script: scripts/validate-subscription-request.py
 
-  # This is a profile decision over the SMF SC projection, not Host lifecycle state.
-  # UNAVAILABLE/missing Evidence is UNKNOWN; only an exact AVAILABLE projection
-  # with matching business parameters and supported authentication profile passes.
-  establishment.smf.session_context_profile_ready:
-    parameters:
-      - sessionContext: smf-mas-observations::urn:connectionagent:ca:observation:smf-mas-sc-query-result:v1
-      - requestedDnn: string
-      - requestedSst: integer
-    evidence:
-      requires:
-        sessionContext: [smf.mas.sc.context.query-evidence]
-    evaluator:
-      type: script
-      script: scripts/validate-smf-session-context.py
   establishment.n4.initial_resources_ready:
     parameters:
       - resources: ca::urn:example:5gc:n4-initial-resources:v1
