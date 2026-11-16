@@ -123,8 +123,8 @@ CA-SL v1alpha4 §21 remains authoritative for the current examples in this PR: n
 1. The outbound Step 11 `Namf_Communication_N1N2MessageTransfer` Operation routes to the target `update-sm-context` Node.
 2. Before dispatching the triggering Operation, Host/Runtime arms the expected Wait for the same Run. Arming does not activate the Node or start its timeout.
 3. AMF later sends the Step 15 `Nsmf_PDUSession_UpdateSMContext Request`.
-4. Host authenticates, validates the request against the exact version-pinned 3GPP API request Schema, and correlates it to the exact existing Run and Wait occurrence. Early arrivals are durably buffered.
-5. Runtime resumes the same Run at `update-sm-context`. The validated request body becomes the typed `update-sm-context.wait.output`; Host correlation/transport metadata remains private.
+4. The 5GC Integration ingress adapter authenticates the AMF peer, validates and normalizes the request against the exact version-pinned 3GPP API contract, and derives its trusted correlation key. Generic Host matches the normalized delivery to exactly one existing Run and Wait occurrence. Early arrivals are durably buffered.
+5. Runtime resumes the same Run at `update-sm-context`. The Integration contract's normalized request value becomes the typed `update-sm-context.wait.output`; Host/Integration correlation and transport metadata remain private.
 6. The Agent executes the target Node's declared logical SMF Operation using explicit arguments from `wait.output`. Any supplementary SMF Context Observation remains in that same Node after Operation and before Postcondition.
 7. The Node's Postcondition evaluates the Operation Result, Observation Result and authoritative Evidence before routing to N4 Session Modification.
 
@@ -136,7 +136,7 @@ This proposal is not v1alpha4 syntax. Do not migrate the current v1alpha4 exampl
 
 ### 8.3 Shared 3GPP response and responsibility rules
 
-The paired Step 17 `Nsmf_PDUSession_UpdateSMContext Response` obligation remains Host-private in either model. Host retains exact request/response continuity and emits the response only after the required downstream business work (for this profile, N4 Session Modification) reaches its defined outcome. Definitive failure and unresolved/unknown response mapping must be explicit in the trusted Host/interface contract; they must not be guessed from a Skill terminal label.
+The paired Step 17 `Nsmf_PDUSession_UpdateSMContext Response` obligation remains private to the 5GC Integration/ingress boundary in either model. The Integration adapter retains exact request/response continuity and maps the final Host/Runtime outcome to the protocol response only after the required downstream business work (for this profile, N4 Session Modification) reaches its defined outcome. Definitive failure and unresolved/unknown response mapping must be explicit in the trusted Integration response contract; they must not be guessed from a Skill terminal label.
 
 Neither model permits an adapter to collapse distinct 3GPP proof boundaries. In particular:
 
