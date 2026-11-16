@@ -1,7 +1,7 @@
 # CA-SL v1alpha4 author syntax. The external aliases below are *illustrative*,
 # not evidence of published, qualified ToolCatalog/CapabilityContracts owners.
-# The upn/ssm aliases and Capability IDs are draft §21 Owner adoption targets,
-# not published exports and cannot be used to claim a successful link.
+# All Capability IDs below are explicit 3GPP/CA scope placeholders, not published exports.
+# Exact CapabilityContracts IDs must replace them before linking.
 goal: pdu_session.initial_request_fulfilled
 precondition: admit-create-sm-context-request.precondition
 requestSchema: schemas/establishment-request.schema.yaml
@@ -12,12 +12,12 @@ dependencies:
   upn: urn:example:connectionagent:upn-session-owner
   ssm: urn:example:connectionagent:ssm-ran-owner
 capabilities:
-  - fivegc-session-read
-  - fivegc-session-mutation
-  - fivegc-session-assurance
-  - fivegc-session-responsibility
-  - upn-session-create
-  - ssm-ran-signal
-  - upn-session-modify
+  - urn:example:connectionagent:capability:3gpp:nudm-sdm-get:v1
+  - urn:example:connectionagent:capability:3gpp:nudm-sdm-subscribe:v1
+  - urn:example:connectionagent:capability:3gpp:npcf-sm-policy-control-create:v1
+  - urn:example:connectionagent:capability:3gpp:n4-session-establishment:v1
+  - urn:example:connectionagent:capability:3gpp:namf-communication-n1n2-transfer:v1
+  - urn:example:connectionagent:capability:3gpp:n4-session-modification:v1
+  - urn:example:connectionagent:capability:ca:resource-responsibility:v1
 limits:
   maxActions: 32
