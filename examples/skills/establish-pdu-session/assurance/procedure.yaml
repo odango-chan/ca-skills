@@ -1,5 +1,7 @@
 # Illustrative CA-SL v1alpha4 deterministic DAG, NOT linked to qualified Owners.
-# Runtime coordination (Hold/Claim/Waiter/Journal/Reconcile) is internal to Owner adapters.
+# Runtime coordination (Hold/Claim/Waiter/Journal/Reconcile), invocation identity and lifecycle/correlation are Host/Owner internals.
+# The Agent queries only SMF-owned MAS context when an explicit Observation is needed;
+# non-SMF context required by an Operation is obtained inside that Tool/Owner adapter.
 start: admit-create-sm-context-request
 nodes:
   # 3GPP: CA_EXTENSION — entry/admission for TS 23.502 V18.12.0 §4.3.2.2.1 step 3 (AMF → SMF Nsmf_PDUSession_CreateSMContext Request).
@@ -11,12 +13,6 @@ nodes:
             - context.request.requestType
             - context.request.requestedPduSessionType
             - context.request.requestedSscMode
-        - predicate: establishment.ingress.eligible
-          arguments:
-            - context.ingress
-        - predicate: establishment.lifecycle.ready
-          arguments:
-            - context.lifecycle
       routes:
         PASS: get-sm-subscription-data
         FAIL: FAILED
@@ -59,8 +55,6 @@ nodes:
         udmInvocationRef: get-sm-subscription-data.operation.output.invocationId
         udmTransactionRef: get-sm-subscription-data.operation.output.result.transactionRef
         udmReadResult: get-sm-subscription-data.operation.output.result
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
       routes:
         FAILED: ca-transfer-failed-resource-responsibility
         OUTCOME_UNKNOWN: SAFE_STOPPED
@@ -96,8 +90,6 @@ nodes:
         ueRef: context.ueRef
         request: context.request
         policyInputs: build-sm-policy-association-inputs.operation.output
-        lifecycleRef: context.correlation.lifecycleRef
-        ingressRef: context.correlation.ingressRef
         sdmSubscriptionRef: subscribe-sm-data.operation.output.subscriptionRef
       routes:
         FAILED: SAFE_STOPPED
@@ -137,7 +129,6 @@ nodes:
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
-        lifecycleRef: context.correlation.lifecycleRef
         policyAssociationRef: establish-sm-policy-association.operation.output.policyAssociationRef
         policyResultRef: establish-sm-policy-association.operation.output.policyResultRef
         selection: select-session-configuration.operation.output
@@ -166,8 +157,6 @@ nodes:
         pduSessionId: context.request.pduSessionId
         pti: context.request.pti
         request: context.request
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
         selection: select-session-configuration.operation.output
         policyResultRef: establish-sm-policy-association.operation.output.policyResultRef
         initialN4Result: establish-n4-session.operation.output
@@ -195,8 +184,6 @@ nodes:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
         pti: context.request.pti
-        ingressRef: context.correlation.ingressRef
-        lifecycleRef: context.correlation.lifecycleRef
         transferOperationRef: transfer-n1n2-message.operation.output.operationRef
         initialN4Result: establish-n4-session.operation.output
       routes:
@@ -220,7 +207,6 @@ nodes:
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
-        lifecycleRef: context.correlation.lifecycleRef
         initialN4Result: establish-n4-session.operation.output
         ranResult: complete-an-resource-setup.operation.output
       routes:
@@ -242,7 +228,6 @@ nodes:
     operation:
       tool: ca::ca.session.resource_responsibility.transfer
       arguments:
-        lifecycleRef: context.correlation.lifecycleRef
         disposition: "success"
       routes:
         SUCCEEDED: verify-pdu-session-establishment
@@ -257,7 +242,6 @@ nodes:
     operation:
       tool: ca::ca.session.resource_responsibility.transfer
       arguments:
-        lifecycleRef: context.correlation.lifecycleRef
         disposition: "failed"
       routes:
         SUCCEEDED: FAILED
