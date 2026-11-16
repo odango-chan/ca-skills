@@ -221,27 +221,27 @@ def validate_pcf_owner_boundary(skill: Path, errors: list[str]) -> None:
         errors.append(f"{skill.name}: obsolete PCF input-builder Script must be removed")
 
     node = re.search(
-        r"(?ms)^  establish-sm-policy-association:\\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\\s*$|\\Z)",
+        r"(?ms)^  establish-sm-policy-association:\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)",
         procedure_text,
     )
     if not node:
         errors.append(f"{skill.name}: missing establish-sm-policy-association business Node")
     else:
         block = node.group(1)
-        if not re.search(r"(?m)^      tool: ca::sbi\\.pcf\\.sm_policy\\.create\\s*$", block):
+        if not re.search(r"(?m)^      tool: ca::sbi\.pcf\.sm_policy\.create\s*$", block):
             errors.append(f"{skill.name}: Step 7b must be the PCF Create Owner Operation")
-        if not re.search(r"(?m)^        udmReadResult: get-sm-subscription-data\\.operation\\.output\\.result\\s*$", block):
+        if not re.search(r"(?m)^        udmReadResult: get-sm-subscription-data\.operation\.output\.result\s*$", block):
             errors.append(f"{skill.name}: PCF Owner must consume the validated UDM read result directly")
         if re.search(r"(?m)^        policyInputs:", block):
             errors.append(f"{skill.name}: Skill must not pass a separately constructed PCF policyInputs object")
 
     predicate = re.search(
-        r"(?ms)^  establishment\\.pcf\\.association_owned:\\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_.-]*:\\s*$|\\Z)",
+        r"(?ms)^  establishment\.pcf\.association_owned:\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_.-]*:\s*$|\Z)",
         predicate_text,
     )
     if not predicate:
         errors.append(f"{skill.name}: missing establishment.pcf.association_owned business Postcondition")
-    elif re.search(r"(?m)^\\s*(?:- )?inputs:", predicate.group(1)) or "create-inputs-current" in predicate.group(1):
+    elif re.search(r"(?m)^\s*(?:- )?inputs:", predicate.group(1)) or "create-inputs-current" in predicate.group(1):
         errors.append(f"{skill.name}: PCF input-readiness Evidence must remain internal to the PCF Owner")
 
 
