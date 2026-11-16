@@ -27,7 +27,7 @@ nodes:
     operation:
       tool: ca::sbi.udm.sm_data.get
       arguments:
-        ueRef: context.ueRef
+        supi: context.supi
         dnn: context.request.dnn
         sNssai: context.request.sNssai
         servingPlmn: context.request.servingPlmn
@@ -38,7 +38,7 @@ nodes:
     observation:
       tool: ca-session-context::context.smf.session.read
       arguments:
-        ueRef: context.ueRef
+        supi: context.supi
         pduSessionId: context.request.pduSessionId
       routes:
         FAILED: UNRESOLVED
@@ -69,7 +69,7 @@ nodes:
     operation:
       tool: ca::sbi.udm.sdm_subscription.create
       arguments:
-        ueRef: context.ueRef
+        supi: context.supi
         udmInvocationRef: get-sm-subscription-data.operation.output.invocationId
         udmTransactionRef: get-sm-subscription-data.operation.output.result.transactionRef
         udmReadResult: get-sm-subscription-data.operation.output.result
@@ -95,7 +95,7 @@ nodes:
     operation:
       tool: ca::sbi.pcf.sm_policy.create
       arguments:
-        ueRef: context.ueRef
+        supi: context.supi
         request: context.request
         udmReadResult: get-sm-subscription-data.operation.output.result
         sdmSubscriptionRef: subscribe-sm-data.operation.output.subscriptionRef
@@ -121,7 +121,7 @@ nodes:
     operation:
       tool: upn::UPN.CREATE_UP_SESSION
       arguments:
-        ueRef: context.ueRef
+        supi: context.supi
         request: context.request
         udmReadResult: get-sm-subscription-data.operation.output.result
         policyAssociationRef: establish-sm-policy-association.operation.output.policyAssociationRef
@@ -149,7 +149,7 @@ nodes:
     operation:
       tool: ca::sbi.amf.n1n2.transfer
       arguments:
-        ueRef: context.ueRef
+        supi: context.supi
         pduSessionId: context.request.pduSessionId
         pti: context.request.pti
         request: context.request
@@ -182,7 +182,7 @@ nodes:
     operation:
       tool: ssm::SSM.SIGNAL_UE_AN
       arguments:
-        ueRef: context.ueRef
+        supi: context.supi
         pduSessionId: context.request.pduSessionId
         pti: context.request.pti
         transferOperationRef: transfer-n1n2-message.operation.output.operationRef
@@ -194,7 +194,7 @@ nodes:
     observation:
       tool: ca-session-context::context.smf.session.read
       arguments:
-        ueRef: context.ueRef
+        supi: context.supi
         pduSessionId: context.request.pduSessionId
       routes:
         FAILED: UNRESOLVED
@@ -219,7 +219,7 @@ nodes:
     operation:
       tool: upn::UPN.MODIFY_UP_SESSION
       arguments:
-        ueRef: context.ueRef
+        supi: context.supi
         pduSessionId: context.request.pduSessionId
         initialN4Result: establish-n4-session.operation.output
         ranResult: update-sm-context.operation.output
