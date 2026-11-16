@@ -42,7 +42,7 @@ Conventional 5GC **proposed** progression is UDM SM-data retrieval, UDM SDM Subs
 | `ca-transfer-failed-resource-responsibility` | CA lifecycle handoff after confirmed failure | `CA_EXTENSION`: no direct 3GPP procedure counterpart. |
 | `verify-pdu-session-establishment` | final facts derived from steps 15–17 | `CA_EXTENSION`: final Goal proof over authoritative network facts and resource responsibility. |
 
-**Open 3GPP boundary:** TS 23.502 step 5 `Nsmf_PDUSession_CreateSMContext Response` is an early response and is not final PDU Session establishment. The current graph still needs an explicit decision on whether this response is owned by the SMF entry/Host boundary or a dedicated Owner operation. Do not infer that step 5 is covered by a later PCF/N4 result.
+**Open 3GPP boundaries:** TS 23.502 step 5 `Nsmf_PDUSession_CreateSMContext Response` is an early response and is not final PDU Session establishment. Step 17 `Nsmf_PDUSession_UpdateSMContext Response` is the later response after the access-network result and N4 modification. The current graph still needs an explicit decision on whether each response is owned by the SMF entry/Host boundary or a dedicated Owner operation. Do not infer that either response is covered by a later PCF/N4 result or by the final Predicate alone.
 
 Step 9 (SMF-initiated SM Policy Association Modification) is conditional and must be included only when the admitted profile requires it. Step 16c (UDM UECM Registration), step 18 (SM Context Status Notify) and step 21 (unsubscription) also require explicit applicability decisions; omission is not implicit PASS.
 
