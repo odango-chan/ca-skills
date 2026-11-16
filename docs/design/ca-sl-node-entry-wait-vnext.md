@@ -313,6 +313,8 @@ Source: [3GPP SA5 TS29502_Nsmf_PDUSession OpenAPI](https://forge.3gpp.org/rep/sa
 
 The `smContextRef` path parameter is part of the public 3GPP operation input. The Integration contract must expose it in `wait.output` if the target Operation needs it; if it is used only to correlate the event to a Run, it remains private. The request body is not assumed to be JSON-only, and unsupported multipart/binary content cannot be discarded.
 
+For this conventional initial-establishment flow, the SM Context resource is created by the earlier Step 3 `Nsmf_PDUSession_CreateSMContext` request and identified to AMF by the Step 5 successful response's `Location` resource URI. The Step 15 Wait is therefore armed against that already-established exact `smContextRef` before Step 11 is dispatched. Do not query for a not-yet-created resource at the beginning of the Procedure merely to prepare this later Wait, and do not substitute SUPI alone or an invented `ueRef` for the resource identity.
+
 This is a conventional 3GPP-facing model. It must not expose implementation-specific SMF module names or imply that AMF/(R)AN/UE actions are SMF-owned Operations. Exact Tool IDs, normalized request Schema, input/output Schemas, Evidence and response obligations must come from trusted Owner/Integration publications; illustrative IDs are not implementation claims.
 
 ## 10. v1alpha4 compatibility boundary
