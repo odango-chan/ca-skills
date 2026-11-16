@@ -72,11 +72,11 @@ The MAS graph is a CA policy-first implementation profile, not a normative 3GPP 
 
 1. MAS Owner ToolCatalog, exact callable IDs, input/output Schemas and CapabilityContracts are unpublished.
 2. The current Skill request Schema represents `sNssai.sd` as an integer while the OpenAMSM OES input `s_nssai_sd` is a string; the Owner must publish and test a lossless 24-bit representation mapping.
-2. MAS Operation Evidence Guarantees and source-to-Host Scope/Correlation contracts are unpublished.
-3. Charging is a source-confirmed stub; the charging Predicate intentionally rejects its `"1"` marker.
-4. The SAA path is hard-coded to skip; auth-required legacy case 06 is unsupported.
-5. The generic SMF session-context Observation package and its temporal Evidence guarantee are not published.
-6. Host/Owner pending SSM continuation, duplicate/late result, Deadline and paired step-17 response contracts are not qualified.
-7. Host-owned exact-original reconciliation for `SC.COMPENSATE_RELEASE` is not published.
+3. MAS Operation Evidence Guarantees and source-to-Host Scope/Correlation contracts are unpublished.
+4. Charging is a source-confirmed stub; the charging Predicate intentionally rejects its `"1"` marker.
+5. The SAA path is hard-coded to skip; auth-required legacy case 06 is unsupported.
+6. The generic SMF session-context Observation package and its temporal Evidence guarantee are not published.
+7. Host/Owner pending SSM continuation, duplicate/late result, Deadline and paired step-17 response contracts are not qualified.
+8. Host-owned exact-original reconciliation for `SC.COMPENSATE_RELEASE` is not published.
 
 The six legacy MAS Cases remain migration expectations, not executed v1alpha4 fixtures. Do not describe this Skill as runnable, linked, or qualified until all applicable gates close.
