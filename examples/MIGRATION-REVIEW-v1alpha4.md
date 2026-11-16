@@ -1,6 +1,8 @@
 # PR #58 — CA-SL v1alpha4 business migration decision register
 
 **Status: PROPOSED FOR BUSINESS OWNER REVIEW — NOT APPROVED; NOT_QUALIFIED.**
+
+5GC Node granularity and standard mapping follow the [3GPP-first SMF Authoring Profile](../docs/authoring-5gc-3gpp-profile.md).
 Normative CA-SL pin: `7f84393ee8c395e4d8c39a74cb5000a1f896588d`.
 Independent code review: [PR #58 review #5911630734](https://github.com/odango-chan/ca-skills/pull/58#pullrequestreview-5911630734).
 
@@ -49,8 +51,8 @@ The following entries are one-to-one *traceability* rows, not converted fixtures
 | [14-n4-forwarding-failure](legacy/establish-pdu-session/cases/14-n4-forwarding-failure/case.yaml) | modify-n4-session (UPN.MODIFY_UP_SESSION) | NOT_RUN / Owner not linked |
 | [15-no-ue-observation-required](legacy/establish-pdu-session/cases/15-no-ue-observation-required/case.yaml) | verify-pdu-session-establishment avoids unsupported UE-observation requirement | NOT_RUN / Owner not linked |
 | [16-manager-receipt-missing](legacy/establish-pdu-session/cases/16-manager-receipt-missing/case.yaml) | ca-transfer-resource-responsibility/ca-transfer-failed-resource-responsibility; Host retains UNKNOWN | NOT_RUN / Owner not linked |
-| [17-subscribe-sm-data-unknown](legacy/establish-pdu-session/cases/17-subscribe-sm-data-unknown/case.yaml) | subscribe-sm-data.postcondition / outcome unknown | NOT_RUN / Owner not linked |
-| [18-establish-sm-policy-association-unknown](legacy/establish-pdu-session/cases/18-establish-sm-policy-association-unknown/case.yaml) | establish-sm-policy-association.postcondition / outcome unknown | NOT_RUN / Owner not linked |
+| [17-subscribe-sm-data-unknown](legacy/establish-pdu-session/cases/17-subscribe-udm-unknown/case.yaml) | subscribe-sm-data.postcondition / outcome unknown | NOT_RUN / Owner not linked |
+| [18-establish-sm-policy-association-unknown](legacy/establish-pdu-session/cases/18-create-policy-unknown/case.yaml) | establish-sm-policy-association.postcondition / outcome unknown | NOT_RUN / Owner not linked |
 | [19-response-prepare-denied](legacy/establish-pdu-session/cases/19-response-prepare-denied/case.yaml) | ca-prepare-pdu-session-establishment-accept.FAILED | NOT_RUN / Owner not linked |
 | [20-transfer-to-amf-unknown](legacy/establish-pdu-session/cases/20-transfer-to-amf-unknown/case.yaml) | transfer-n1n2-message.OUTCOME_UNKNOWN → SAFE_STOPPED | NOT_RUN / Owner not linked |
 | [21-handoff-success-unknown](legacy/establish-pdu-session/cases/21-handoff-success-unknown/case.yaml) | ca-transfer-resource-responsibility/ca-transfer-failed-resource-responsibility; Host retains UNKNOWN | NOT_RUN / Owner not linked |
