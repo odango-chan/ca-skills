@@ -97,7 +97,7 @@ The Host ToolCatalog is an Owner dependency snapshot for Compiler/Studio linking
 
 The eight query callables and candidate Guarantee DottedIds are proposal-only. No Evidence Descriptor is publishable from SMF MAS v0.10 alone: the response has no source `observedAt` / `validUntil`; Host `queryStartedAt` / `receivedAt` are audit bounds, not source timestamps. The per-MAS Scope policy names are reserved; policy bodies and trusted grants are not published. All eight Observation callables remain NOT_QUALIFIED for Evidence-dependent PASS.
 
-The source-by-source audit of all 17 legacy Observation refs is in the [Legacy CreatedSession Observation Crosswalk](https://github.com/odango-chan/ca-agent-demo/blob/docs/5gc-agent-context-boundary-20261116/docs/5gc-legacy-observation-crosswalk-v1alpha4.md). This is a documentation/contract phase only; Host, Runtime, Dispatcher, Provider and Adapter implementations are not changed. The 36 conventional and 6 MAS historical Case inventories remain NOT_RUN, and both example Skills remain NOT_QUALIFIED.
+The source-by-source audit of all 17 legacy Observation refs is in the [Legacy CreatedSession Observation Crosswalk](https://github.com/odango-chan/ca-agent-demo/blob/docs/5gc-agent-context-boundary-20261116/docs/5gc-legacy-observation-crosswalk-v1alpha4.md). This is a documentation/contract phase only; Host, Runtime, Dispatcher, Provider and Adapter implementations are not changed. The 36 Conventional and 6 MAS historical Case records are migration-review material, not runtime execution or qualification evidence; both example Skills remain NOT_QUALIFIED.
 
 ## Outstanding review gates
 
