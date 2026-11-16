@@ -205,9 +205,9 @@ nodes:
         FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
 
-  # Read current SMF-owned session facts after the initial SM Context exists and
-  # the Step 15 UpdateSMContext continuation has completed. This is a synchronous,
-  # read-only business Observation, not callback polling or Host lifecycle lookup.
+  # Re-read the exact UE/PSI after the Step 15 continuation for the current
+  # SMF-owned facts needed by the N4 decision. Presence and projection availability
+  # are checked again; this is a synchronous READ, not callback polling.
   # The callable is a generic CA context interface; its compatibility backend is
   # deliberately not exposed in this conventional Skill.
   # 3GPP: CA_EXTENSION — current SMF session-context read supporting steps 16a–16b.
