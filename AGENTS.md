@@ -13,6 +13,7 @@
 - Other historical Skill directories remain outside this refresh and must not be treated as current syntax authority.
 - Preserve current business Procedure and Operation identities unless an explicit business-owner decision changes them.
 - For every 5GC Skill, follow [docs/authoring-5gc-3gpp-profile.md](docs/authoring-5gc-3gpp-profile.md): model from the SMF perspective, map each Node to a 3GPP interaction or explicitly classify it as a CA adapter/extension, use canonical 3GPP names where available, and trace every Capability to its NF/service scope.
+- Before authoring, refactoring or closing review on any official Skill, follow [docs/skill-architecture-review.md](docs/skill-architecture-review.md) and the reusable [.agents/skills/review-connectionagent-skill/SKILL.md](.agents/skills/review-connectionagent-skill/SKILL.md). A separate Observation-only Node is not the default: co-locate supplementary READ Observations with the primary Operation they support.
 - The MAS Skill's 16 `ca.pdu_session.*` Operation references remain unresolved. Do not invent or approve a ToolCatalog.
 
 ## Language contracts
