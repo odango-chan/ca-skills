@@ -571,56 +571,76 @@ Runtime resumes the same Invocation; Host returns the paired step 17 response.
             str(ROOT / "examples" / "skills" / "establish-pdu-session" / "scripts" / "validate-smf-session-context-entry.py")
         )["main"]
 
-        def evaluate(presence: str, projection: str, source_outcome: str, context: dict | None = None, refs: list[str] | None = None) -> dict:
+        absent = {
+            "sessionPresence": "ABSENT",
+            "projectionStatus": "NOT_APPLICABLE",
+            "sourceOutcome": "SESSION_NOT_FOUND",
+            "context": {},
+        }
+        present = {
+            "sessionPresence": "PRESENT",
+            "projectionStatus": "AVAILABLE",
+            "sourceOutcome": "MAS_RESPONSE",
+            "context": {
+                "dnn": "internet", "sst": 1,
+                "subscriptionValidated": True,
+                "secondaryAuthRequired": False,
+            },
+        }
+
+        def evaluate(observation: dict, refs: list[str] | None = None) -> dict:
             return main({
                 "evidence": {"sessionContext": {"refs": refs if refs is not None else ["evidence:query"]}},
-                "sessionContext": {
-                    "sessionPresence": presence,
-                    "projectionStatus": projection,
-                    "sourceOutcome": source_outcome,
-                    "context": context if context is not None else {},
-                },
+                "sessionContext": observation,
             })
 
-        absent = evaluate("ABSENT", "NOT_APPLICABLE", "SESSION_NOT_FOUND")
-        self.assertEqual(absent["result"], "PASS")
-        self.assertEqual(absent["reasonCode"], "SMF_SESSION_CONTEXT_CONFIRMED_ABSENT")
-        present = evaluate("PRESENT", "UNAVAILABLE", "MAS_RESPONSE")
-        self.assertEqual(present["result"], "FAIL")
-        self.assertEqual(present["reasonCode"], "SMF_SESSION_CONTEXT_ALREADY_PRESENT")
-        malformed = evaluate("ABSENT", "UNAVAILABLE", "MAS_RESPONSE")
-        self.assertEqual(malformed["result"], "UNKNOWN")
-        unknown = evaluate("UNKNOWN", "NOT_APPLICABLE", "SESSION_NOT_FOUND")
-        self.assertEqual(unknown["result"], "UNKNOWN")
-        no_evidence = evaluate("ABSENT", "NOT_APPLICABLE", "SESSION_NOT_FOUND", refs=[])
-        self.assertEqual(no_evidence["result"], "UNKNOWN")
+        self.assertEqual(evaluate(absent)["result"], "PASS")
+        self.assertEqual(evaluate(absent)["reasonCode"], "SMF_SESSION_CONTEXT_CONFIRMED_ABSENT")
+        self.assertEqual(evaluate(present)["result"], "FAIL")
+        self.assertEqual(evaluate(present)["reasonCode"], "SMF_SESSION_CONTEXT_ALREADY_PRESENT")
+
+        malformed = {**absent, "projectionStatus": "AVAILABLE"}
+        self.assertEqual(evaluate(malformed)["result"], "UNKNOWN")
+        self.assertEqual(evaluate(malformed)["reasonCode"], "SMF_SESSION_CONTEXT_ABSENCE_RESULT_MALFORMED")
+
+        self.assertEqual(evaluate(absent, refs=[])["result"], "UNKNOWN")
+        self.assertEqual(evaluate(absent, refs=[])["reasonCode"], "SMF_SESSION_CONTEXT_ENTRY_EVIDENCE_MISSING")
 
         post_main = runpy.run_path(
             str(ROOT / "examples" / "skills" / "establish-pdu-session" / "scripts" / "validate-smf-session-context.py")
         )["main"]
 
-        def evaluate_post(presence: str, projection: str, source_outcome: str, context: dict) -> dict:
+        def evaluate_post(observation: dict) -> dict:
             return post_main({
                 "evidence": {"sessionContext": {"refs": ["evidence:query"]}},
-                "sessionContext": {
-                    "sessionPresence": presence,
-                    "projectionStatus": projection,
-                    "sourceOutcome": source_outcome,
-                    "context": context,
-                },
+                "sessionContext": observation,
                 "requestedDnn": "internet",
                 "requestedSst": 1,
             })
 
-        self.assertEqual(evaluate_post("ABSENT", "NOT_APPLICABLE", "SESSION_NOT_FOUND", {})["result"], "FAIL")
-        self.assertEqual(evaluate_post("PRESENT", "UNAVAILABLE", "MAS_RESPONSE", {})["result"], "UNKNOWN")
-        self.assertEqual(evaluate_post(
-            "PRESENT", "AVAILABLE", "MAS_RESPONSE",
-            {
-                "dnn": "internet", "sst": 1,
-                "subscriptionValidated": True, "secondaryAuthRequired": False,
+        absent_after_update = {
+            **absent,
+        }
+        unavailable = {
+            "sessionPresence": "PRESENT",
+            "projectionStatus": "UNAVAILABLE",
+            "sourceOutcome": "MAS_RESPONSE",
+            "context": {},
+        }
+        available = {
+            "sessionPresence": "PRESENT",
+            "projectionStatus": "AVAILABLE",
+            "sourceOutcome": "MAS_RESPONSE",
+            "context": {
+                "dnn": "internet",
+                "sst": 1,
+                "subscriptionValidated": True,
+                "secondaryAuthRequired": False,
             },
-        )["result"], "PASS")
+        }
+        self.assertEqual(evaluate_post(absent_after_update)["result"], "FAIL")
+        self.assertEqual(evaluate_post(unavailable)["result"], "UNKNOWN")
+        self.assertEqual(evaluate_post(available)["result"], "PASS")
 
     def test_conventional_skill_requires_context_observation_and_rejects_mas_names(self) -> None:
         with tempfile.TemporaryDirectory() as d:
