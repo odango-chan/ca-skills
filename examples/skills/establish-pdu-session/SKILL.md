@@ -24,6 +24,8 @@ The Skill keeps business decisions visible:
 
 The Skill does **not** expose Host/Runtime plumbing. Hold binding, Claim, callback/waiter correlation, Journal, exact-original Reconcile, PCF request preparation/governance, operation-context lookup, N1/N2 response-artifact preparation and the deferred step 17 SBI response obligation are internal to Host/Owner adapters. The SSM Operation may remain pending for the exact step 15 event; that is an Owner completion contract, not an author-level Wait. Runtime resumes the same Invocation after the Operation returns. These mechanisms remain mandatory and must be covered by trusted contracts; hiding them does not remove their safety requirements.
 
+A confirmed-failure path may terminate as `FAILED` only after the failure resource-responsibility Operation returns and `establishment.resources.managed` passes with its own trusted Evidence. A failed or indeterminate responsibility handoff remains `SAFE_STOPPED` or `UNRESOLVED`; the Skill must not claim that resources are safely handed off merely because the handoff callable returned.
+
 The target UPN/SSM Owner callables and their v1alpha4 Schemas/Evidence are **not published**. The generic SMF context-read callable and its Schema/Evidence are also not published. See the [migration decision register](../../MIGRATION-REVIEW-v1alpha4.md). The old complete 5GC business Case catalog is retained in `examples/legacy/establish-pdu-session/cases/` for migration review, not imported as v1alpha4 test fixtures.
 
 ## Host invocation boundary (outside the Procedure)
