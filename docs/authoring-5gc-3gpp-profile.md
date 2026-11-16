@@ -13,7 +13,7 @@ A 5GC Skill is authored from the **SMF point of view** and follows the standard 
 - Its **Procedure** expresses the complete SMF-owned business procedure for that goal. It may span multiple 3GPP protocol exchanges.
 - A **Node** represents one logical 3GPP interaction step or one tightly related group of protocol exchanges, viewed from the SMF's responsibility boundary. A Node will commonly correspond to a Request/Response exchange, but the mapping is not mechanically one Node per message or one Node per internal function.
 - A Node may contain CA-SL Precondition, Operation, Observation and Postcondition stages. Those stages describe the conditions and proof for that 3GPP interaction; they do not change the identity of the interaction.
-- A Node must not be introduced solely for an implementation helper, temporary variable, local data copy, hold binding, response assembly function or internal method. Such work belongs inside the corresponding Owner Operation/adapter or is explicitly labelled as a CA extension when it has an independently governed business effect.
+- A Node must not be introduced solely for a trivial implementation helper, temporary variable, local copy or one-line mapping. A separate CA Node is permitted when it is a governed Host/Owner action or Observation, or a meaningful typed Script transformation required by the v1alpha4 dataflow. Such a Node MUST use a clear `ca-` identity, be classified as `CA_ADAPTER`/`CA_EXTENSION`, and point to the 3GPP interaction it supports; it must never be mistaken for a standard NF interaction.
 
 **Do not confuse the complete Procedure with one Request/Response.** For example, TS 23.502 §4.3.2.2.1 describes the full UE-requested PDU Session Establishment procedure. Its SMF interactions include UDM subscription retrieval/subscription, PCF SM Policy Association establishment, N4 Session Establishment, N1/N2 transfer, a later Nsmf UpdateSMContext request carrying the access-network result, N4 Session Modification and the corresponding response. These are distinct interaction boundaries within one SMF business procedure.
 
@@ -127,7 +127,7 @@ For the current local/non-roaming, UE-requested initial PDU Session example, the
 | 12–14 | AMF ↔ (R)AN ↔ UE | Access-network resource setup and N2 PDU Session Response; not an SMF-owned service call |
 | 15 | AMF → SMF | `Nsmf_PDUSession_UpdateSMContext Request` carrying the access-network result |
 | 16a–16b | SMF ↔ UPF | N4 Session Modification Request/Response |
-| 17 | SMF → AMF | `Nsmf_PDUSession_UpdateSMContext Response` |
+| 17 | SMF → AMF | `Nsmf_PDUSession_UpdateSMContext Response` (paired response to step 15) |
 | 18 | SMF → AMF | `Nsmf_PDUSession_SMContextStatusNotify` when applicable |
 | 21 | SMF ↔ UDM | Unsubscription when applicable |
 
@@ -141,6 +141,7 @@ A 5GC migration is not ready for review closure until:
 - Node names and Operation mappings use canonical 3GPP terminology where available;
 - each Capability is traceable to its exact trusted CapabilityContracts export and its NF/service scope;
 - all AMF/RAN/UE work is correctly distinguished from SMF-owned interactions;
+- both sides of SMF service request/response boundaries are assigned: step 3/5 `Nsmf_PDUSession_CreateSMContext` and step 15/17 `Nsmf_PDUSession_UpdateSMContext` must be explicitly owned by the Skill graph or by a documented Host/service entry/exit boundary;
 - every asynchronous completion proof is assigned to the corresponding Owner Operation/adapter;
 - all legacy business gates and failure Cases remain traceable;
 - no unpublished Owner ID, Schema, Evidence or Capability is described as qualified.
