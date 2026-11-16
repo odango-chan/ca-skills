@@ -147,3 +147,16 @@ A 5GC migration is not ready for review closure until:
 - no unpublished Owner ID, Schema, Evidence or Capability is described as qualified.
 
 Passing repository-local source checks does not establish Compiler, Owner, Runtime, MAS or live 5GC conformance.
+
+
+## 8. 5GC context ownership and access boundary (2026-11-16)
+
+The CA Agent replaces the SMF-side orchestration role. It directly queries only SMF-owned MAS context through explicit, read-only Observation Queries to the eight existing SMF QueryContext SBI endpoints (SC, PA, UPN, SSM, IAM, UPS, CA and SAA). It does not directly query AMF, UDM, PCF, UPF or other NF context.
+
+Any non-SMF context needed to complete an Operation is obtained and validated inside the responsible Tool/Owner adapter. The Skill consumes only that Tool's declared Operation Result and Evidence. An internal SBI/PFCP/local read by a Tool is not a separate Skill Observation.
+
+Host owns ingress admission, invocation/instance identity, lifecycle, correlation, persistence, holds, journals and late-result responsibility. These are not Skill Predicates, Skill context facts or authored Operation arguments. The Skill-visible Host context is the subject-only ueRef projection; the Skill separately owns its request Schema.
+
+Do not automatically query all MAS after each Operation. Add an Observation only when the Operation Result/Evidence is insufficient. Initial PDU Session establishment has no pre-existing SMF session to query before the initial SM Context is created.
+
+See https://github.com/odango-chan/ca-agent-demo/blob/main/docs/design/5gc-agent-context-access-boundary-v1alpha4.md for endpoint fields, response status semantics, legacy Observation reclassification and qualification gates.
