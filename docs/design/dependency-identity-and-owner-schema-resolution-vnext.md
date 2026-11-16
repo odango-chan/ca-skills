@@ -106,7 +106,7 @@ MAS remains non-executable design material and is not a prerequisite for 5GC acc
 
 The SMF MAS QueryContext SBI v0.10 design is an implemented external baseline, not a new schema-authoring task for ca-skills. The separate `ca-5gc-client-tools` package provides eight separately typed read-only query callables; the Host only supplies trusted subject/lifecycle context and dispatch. Skill source references only exact Host/Owner exports after publication; it never embeds SBI paths, static tokens, SUPI/IMSI lookup keys or private lifecycle/correlation values.
 
-The reserved Host Package IDs are:
+The reserved dependency Package IDs are:
 - `ca-context`: `urn:connectionagent:ca:host-context` (subject-only Context Schema package);
 - `smf-mas-observations`: `urn:connectionagent:ca:5gc:smf-mas-observations` (eight SMF MAS Observation callable/schema package owned by `ca-5gc-client-tools`).
 
@@ -114,7 +114,7 @@ Both IDs are reserved identities, not published dependency snapshots or trusted 
 
 HostBusinessCorrelation is a Host-owned private payload containing only `ingressRef` and `lifecycleRef`. The Host supplies the stable Runtime Execute `requestId`; ca-runtime owns its `(host, requestId)` RequestStore, fingerprint, deduplication and replay authority. Runtime generates `runId`, `invocationId`, Action/Node occurrence identity and `dispatchAttemptId`, and resolves `environmentRef`. The proposed RuntimeHost `hostBusinessCorrelation` transport extension is not yet in RuntimeHost.v1; no merged physical Host/Runtime envelope Schema is published. Host persistence is limited to ProductTask, AgentInstance, HostBusinessInstance, ingress admission/deduplication and request-ledger/transport continuity. ca-runtime owns RunRecord/RunEvent, Procedure progression, Action outcome, Evidence and Reconcile; Provider/Owner owns protocol transactions, callbacks, waiter/hold/claim/journal records and resource receipts. The Skill-visible Subject Context remains separate.
 
-The proposed Host ToolCatalog is an Owner dependency snapshot used for CA-SL linking. It is not a second Server Tool Catalog. The existing `tool-mcp-gw` Server Tool Catalog and Runtime Resolved CA Toolset / Capability authorization / Admission path remain authoritative. The Host-local adapter registry is an implementation binding, not a grant or catalog.
+The `ca-5gc-client-tools` ToolCatalog is an Owner dependency snapshot used for CA-SL linking. It is not a second Server Tool Catalog. The existing `tool-mcp-gw` Server Tool Catalog and Runtime Resolved CA Toolset / Capability authorization / Admission path remain authoritative. The Host-local adapter registry is an implementation binding, not a grant or catalog.
 
 The eight callable exports use reserved DottedId Guarantee names (`smf.mas.<mas>.context.query-evidence`). The Evidence Descriptors are not publishable until the SMF Owner provides an exact stable authority identity and closes the temporal guarantee. The per-MAS Scope policy names are deployment-owned references; the corresponding trusted policy bodies and grants are not published. CapabilityContracts remains a separate deployment-owned BuildRequest input; each Capability is deployment-owned and each callable member is owned by `ca-5gc-client-tools`.
 
