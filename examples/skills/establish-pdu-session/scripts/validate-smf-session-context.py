@@ -1,9 +1,9 @@
 """Validate current SMF session facts before N4 forwarding modification.
 
 The Observation is a fresh, read-only business query after the Step 15
-continuation. Session presence and projection availability are separate:
-ABSENT is a known business failure at this point; PRESENT+UNAVAILABLE is
-known presence but insufficient data; UNKNOWN means presence is indeterminate.
+continuation. ABSENT is a known business failure at this point;
+PRESENT+UNAVAILABLE is known presence but insufficient data. Indeterminate
+query failures are Owner UNKNOWN outcomes and do not fabricate an output.
 """
 from __future__ import annotations
 
@@ -27,52 +27,60 @@ def main(input: PredicateInput) -> PredicateEvaluationResult:
 
     observation = input["sessionContext"]
     presence = observation["sessionPresence"]
+    projection = observation["projectionStatus"]
+    source_outcome = observation["sourceOutcome"]
+    context = observation["context"]
 
     if presence == "ABSENT":
+        if projection == "NOT_APPLICABLE" and source_outcome == "SESSION_NOT_FOUND" and context == {}:
+            return {
+                "result": "FAIL",
+                "reasonCode": "SMF_SESSION_CONTEXT_ABSENT_AFTER_UPDATE",
+                "evidenceUsed": evidence_refs,
+            }
         return {
-            "result": "FAIL",
-            "reasonCode": "SMF_SESSION_CONTEXT_ABSENT_AFTER_UPDATE",
+            "result": "UNKNOWN",
+            "reasonCode": "SMF_SESSION_CONTEXT_ABSENCE_RESULT_MALFORMED",
             "evidenceUsed": evidence_refs,
         }
 
-    if presence != "PRESENT":
+    if presence != "PRESENT" or source_outcome != "MAS_RESPONSE":
         return {
             "result": "UNKNOWN",
             "reasonCode": "SMF_SESSION_CONTEXT_PRESENCE_UNKNOWN",
             "evidenceUsed": evidence_refs,
         }
 
-    if observation["projectionStatus"] != "AVAILABLE":
+    if projection != "AVAILABLE":
         return {
             "result": "UNKNOWN",
             "reasonCode": "SMF_SESSION_CONTEXT_PROJECTION_UNAVAILABLE",
             "evidenceUsed": evidence_refs,
         }
 
-    facts = observation["context"]
     required = ("dnn", "sst", "subscriptionValidated", "secondaryAuthRequired")
-    if any(field not in facts for field in required):
+    if any(field not in context for field in required):
         return {
             "result": "UNKNOWN",
             "reasonCode": "SMF_SESSION_CONTEXT_FIELDS_INCOMPLETE",
             "evidenceUsed": evidence_refs,
         }
 
-    if facts["dnn"] != input["requestedDnn"] or facts["sst"] != input["requestedSst"]:
+    if context["dnn"] != input["requestedDnn"] or context["sst"] != input["requestedSst"]:
         return {
             "result": "FAIL",
             "reasonCode": "SMF_SESSION_CONTEXT_REQUEST_MISMATCH",
             "evidenceUsed": evidence_refs,
         }
 
-    if facts["subscriptionValidated"] is not True:
+    if context["subscriptionValidated"] is not True:
         return {
             "result": "FAIL",
             "reasonCode": "SMF_SUBSCRIPTION_NOT_VALIDATED",
             "evidenceUsed": evidence_refs,
         }
 
-    if facts["secondaryAuthRequired"] is not False:
+    if context["secondaryAuthRequired"] is not False:
         return {
             "result": "FAIL",
             "reasonCode": "SECONDARY_AUTHENTICATION_REQUIRED_OUT_OF_PROFILE",
