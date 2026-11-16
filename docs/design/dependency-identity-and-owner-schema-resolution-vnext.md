@@ -1,11 +1,11 @@
-> **Status notice (2026-11-14):** Non-normative implementation-boundary note. The CA-SL v1alpha4 language/interop contract is frozen; concrete external BuildRequest transport and Owner deployment artifacts remain separately versioned. The comprehensive [CA-SL vNext Specification](../skill-language-spec.zh-CN.md) is the sole normative source for language and dependency identity semantics. This note records implementation boundaries and unresolved deployment inputs; the current normative ToolCatalog / CapabilityContracts interoperability profile is now in Appendices F and G of the canonical spec.
+> **Status notice (2026-11-14):** Non-normative implementation-boundary note. The CA-SL v1alpha4 language/interop contract is frozen; concrete external BuildRequest transport and Owner deployment artifacts remain separately versioned. The comprehensive [CA-SL vNext Specification](../skill-language-spec.v1alpha4.zh-CN.md) is the sole normative source for language and dependency identity semantics. This note records implementation boundaries and unresolved deployment inputs; the current normative ToolCatalog / CapabilityContracts interoperability profile is now in Appendices F and G of the canonical spec.
 
 # Dependency Identity & Owner Schema Resolution — Skill Language vNext
 
 **Status:** Implementation guidance only; CA-SL language frozen, external toolchain and Owner conformity pending (2026-11-14).
 **Scope:** `ca-skills`, Skill Studio Plugin-managed Configuration, `ca-skill-compiler`, and the executable conventional 5GC Skill.
 
-This note records an earlier cross-repository implementation boundary. The canonical [CA-SL v1alpha4 specification](../skill-language-spec.zh-CN.md) is now the frozen language authority. Older DESIGN-REVIEW proposals in this file do not override that contract; BuildRequest transport and real Owner releases still require their independent conformance gates.
+This note records an earlier cross-repository implementation boundary. The canonical [CA-SL v1alpha4 specification](../skill-language-spec.v1alpha4.zh-CN.md) is now the frozen language authority. Older DESIGN-REVIEW proposals in this file do not override that contract; BuildRequest transport and real Owner releases still require their independent conformance gates.
 
 ## 1. Decisions
 
