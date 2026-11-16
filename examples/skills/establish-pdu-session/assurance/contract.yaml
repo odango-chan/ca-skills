@@ -3,7 +3,7 @@
 # The upn/ssm aliases and Capability IDs are draft §21 Owner adoption targets,
 # not published exports and cannot be used to claim a successful link.
 goal: pdu_session.initial_request_fulfilled
-precondition: check-request.precondition
+precondition: admit-create-sm-context-request.precondition
 requestSchema: schemas/establishment-request.schema.yaml
 contextSchema: ca-context::urn:connectionagent:ca:context:invocation:v1
 dependencies:
