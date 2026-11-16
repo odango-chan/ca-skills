@@ -112,6 +112,8 @@ The reserved Host Package IDs are:
 
 Both IDs are reserved identities, not published dependency snapshots or trusted Owner bindings. The two example Skills use only the `ca-context` subject projection and do not call the eight Observation tools. Do not add `ca-observations` to either Skill until a Procedure actually references one of its callables.
 
+HostBusinessCorrelation is a Host-owned private payload containing only `ingressRef` and `lifecycleRef`. Runtime separately generates `requestId`, `runId`, `invocationId`, Action/Node occurrence identity and `dispatchAttemptId`, and resolves `environmentRef`. The proposed RuntimeHost `hostBusinessCorrelation` transport extension is not yet in RuntimeHost.v1; no merged physical Host/Runtime envelope Schema is published. The Skill-visible Subject Context remains separate.
+
 The proposed Host ToolCatalog is an Owner dependency snapshot used for CA-SL linking. It is not a second Server Tool Catalog. The existing `tool-mcp-gw` Server Tool Catalog and Runtime Resolved CA Toolset / Capability authorization / Admission path remain authoritative. The Host-local adapter registry is an implementation binding, not a grant or catalog.
 
 The eight callable exports use reserved DottedId Guarantee names (`smf.mas.<mas>.context.query-evidence`). The Evidence Descriptors are not publishable until the SMF Owner provides an exact stable authority identity and closes the temporal guarantee. The per-MAS Scope policy names are deployment-owned references; the corresponding trusted policy bodies and grants are not published. CapabilityContracts remains a separate deployment-owned BuildRequest input; each Capability is deployment-owned and each callable member is owned by `ca-agent-host`.
