@@ -437,8 +437,13 @@ def main(input: PredicateInput) -> PredicateEvaluationResult:
   transfer-n1n2-message:
     operation:
       tool: ca::sbi.amf.n1n2.transfer
+    postcondition:
+      predicates:
+        - predicate: establishment.amf.transfer_initiated
+          arguments:
+            - transfer-n1n2-message.operation.output
       routes:
-        SUCCEEDED: update-sm-context
+        PASS: update-sm-context
   update-sm-context:
     operation:
       tool: ssm::SSM.SIGNAL_UE_AN

@@ -332,7 +332,7 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
         ("Predicates", predicate_text),
         ("SKILL.md", skill_text),
     ):
-        if re.search(r"(?i)smf[-.]mas|smf-mas-observations|ca-5gc-client-tools|smf\.mas\.", content):
+        if re.search(r"(?i)\bMAS\b|smf[-.]mas|smf-mas-observations|ca-5gc-client-tools|smf\.mas\.", content):
             errors.append(f"{skill.name}: conventional Skill {label} must not declare or mention SMF MAS")
             break
 
