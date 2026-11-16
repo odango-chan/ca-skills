@@ -731,7 +731,7 @@ nodes:
             - activate-n4.operation.output
         - predicate: establishment.mas.resources_managed
           arguments:
-            - finalize-resources.operation.output
+            - finalize-resources.observation.output
       routes:
         PASS: SUCCEEDED
         FAIL: SAFE_STOPPED
