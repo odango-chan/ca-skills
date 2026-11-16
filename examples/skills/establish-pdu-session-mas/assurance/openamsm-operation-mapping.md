@@ -18,7 +18,7 @@ The NW Agent plan starts with:
 
 | Plan input | Source | Skill/Owner mapping |
 |---|---|---|
-| `ue_identity` | admitted CreateSMContext request `/supi` | Skill supplies only opaque `ueRef`; the trusted Owner resolves it to the private SUPI |
+| `ue_identity` | admitted CreateSMContext request `/supi` | Skill passes the same 3GPP `supi` value; Owner maps it to the OES `ue_identity` field without inventing an intermediate UE reference |
 | `psi` | `/pduSessionId` | Skill `request.pduSessionId` |
 | `dnn` | `/dnn` | Skill `request.dnn` |
 | `s_nssai` | `/sNssai/sst` | Skill `request.sNssai.sst` |
@@ -30,7 +30,7 @@ The NW Agent plan starts with:
 
 The current `establishment-request.schema.yaml` represents `sNssai.sd` as an integer, but the imported OES plan carries `s_nssai_sd` as a string. This is an explicit unresolved type-boundary mismatch. No Tool Schema or adapter conversion is published; do not silently stringify a decimal integer or claim the field is already source-compatible.
 
-The Owner binds every Operation to the exact Host-admitted UE/PSI business instance. `ueRef` is not converted into an Agent-visible SUPI/IMSI. The MAS operations run against the same SMF session; the Skill passes only declared typed handles/results, not `stateRef`, raw identities, Host lifecycle IDs or transport references.
+The Owner binds every Operation to the exact Host-admitted UE/PSI business instance. No synthetic `ueRef` is created or resolved; the admitted 3GPP `supi` remains the UE identity. The MAS operations run against the same SMF session; the Skill passes only declared typed handles/results, not `stateRef`, raw identities, Host lifecycle IDs or transport references.
 
 ## Operation-by-operation source mapping
 
