@@ -43,7 +43,8 @@ Use the canonical 3GPP procedure, service, operation or message name wherever on
 - `establish-n4-session` — N4 Session Establishment Request/Response
 - `transfer-n1n2-message` — `Namf_Communication_N1N2MessageTransfer`
 - `update-sm-context` — `Nsmf_PDUSession_UpdateSMContext`
-- `receive-n4-session-modification` — CA adapter that waits for Fabric's matching real N4 Session Modification Response
+- `read-smf-session-context` — generic CA Observation of current SMF-owned session facts, only when a business decision requires them
+- `modify-n4-session` — N4 Session Modification Request/Response (`UPN.MODIFY_UP_SESSION` Owner Operation)
 
 These are naming examples, not a declaration that the corresponding Owner exports are already published.
 
