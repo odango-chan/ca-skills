@@ -130,6 +130,7 @@ def _navigate(schema: tuple, path: str) -> tuple | None:
             return None
     return result
 
+# v1alpha4 forbids author-level Wait/Await/Poll Nodes; Owner holdRef is only an opaque correlation handle.
 def validate_3gpp_traceability(skill: Path, errors: list[str]) -> None:
     """Require every current 5GC Procedure Node to have a 3GPP/CA mapping."""
     procedure = skill / "assurance" / "procedure.yaml"
