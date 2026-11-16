@@ -78,12 +78,21 @@ nodes:
         SUCCEEDED: modify-n4-session
         FAILED: SAFE_STOPPED
 
+  modify-n4-session:
+    operation:
+      tool: <trusted-n4-session-modification-operation>
+      arguments:
+        request: update-sm-context.operation.output
+      routes:
+        SUCCEEDED: <next-business-node>
+        FAILED: SAFE_STOPPED
+
   handle-update-timeout:
     operation:
       tool: <trusted-timeout-handling-operation>
       arguments: {}
       routes:
-        SUCCEEDED: verify-timeout-state
+        SUCCEEDED: SAFE_STOPPED
         FAILED: UNRESOLVED
 ```
 
