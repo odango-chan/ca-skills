@@ -78,6 +78,22 @@ predicates:
         receipt.result.responseOrigin == "TARGET_SERVICE_VIA_SCP" &&
         receipt.result.captureComplete == true
 
+  # The UDM Owner Evidence must bind this result to the exact UE/DNN/S-NSSAI/
+  # serving-PLMN query. This Predicate checks request compatibility with the profile.
+  establishment.subscription.request_valid:
+    parameters:
+      - receipt: ca::urn:example:5gc:udm-read-receipt:v1
+      - requestedDnn: string
+      - requestedSNssai: ca::urn:example:5gc:snssai:v1
+      - requestedPduSessionType: string
+      - requestedSscMode: integer
+    evidence:
+      requires:
+        receipt: [ca::udm.subscription-state]
+    evaluator:
+      type: script
+      script: scripts/validate-subscription-request.py
+
   establishment.n4.initial_resources_ready:
     parameters:
       - resources: ca::urn:example:5gc:n4-initial-resources:v1

@@ -37,8 +37,11 @@ nodes:
             - get-sm-subscription-data.operation.output
         - predicate: establishment.subscription.request_valid
           arguments:
-            - context.request
             - get-sm-subscription-data.operation.output
+            - context.request.dnn
+            - context.request.sNssai
+            - context.request.requestedPduSessionType
+            - context.request.requestedSscMode
       routes:
         PASS: subscribe-sm-data
         FAIL: FAILED
@@ -90,37 +93,24 @@ nodes:
           arguments:
             - establish-sm-policy-association.operation.output
       routes:
-        PASS: select-session-configuration
+        PASS: establish-n4-session
         FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
 
-  # Select the admitted PDU Session Type / SSC Mode before N4 establishment.
-  # Pure Script Operation; it is not a separate SBI operation or Capability.
-  # 3GPP: 3GPP_LOCAL — TS 23.502 V18.12.0 §4.3.2.2.1 step 8; SMF local session-configuration selection.
-  select-session-configuration:
-    operation:
-      script: scripts/select-establishment-configuration.py
-      arguments:
-        dnn: context.request.dnn
-        sNssai: context.request.sNssai
-        requestedPduSessionType: context.request.requestedPduSessionType
-        requestedSscMode: context.request.requestedSscMode
-        udmResult: get-sm-subscription-data.operation.output.result
-      routes:
-        SUCCEEDED: establish-n4-session
-        FAILED: FAILED
-
-  # UPN is an internal Owner adapter, not a 3GPP API name.
-  # 3GPP: CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 steps 10a–10b and §4.4.1.2; N4 Session Establishment Request/Response.
+  # The UPN Owner performs native SMF Step 8 selection (UPF/session-address and
+  # effective session configuration) as part of N4 preparation, then owns the
+  # N4 Session Establishment Request/Response. Step 8 is not a separate Skill Node.
+  # 3GPP: CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 step 8 and steps 10a–10b;
+  # §4.4.1.2 N4 Session Establishment.
   establish-n4-session:
     operation:
       tool: upn::UPN.CREATE_UP_SESSION
       arguments:
         ueRef: context.ueRef
-        pduSessionId: context.request.pduSessionId
+        request: context.request
+        udmReadResult: get-sm-subscription-data.operation.output.result
         policyAssociationRef: establish-sm-policy-association.operation.output.policyAssociationRef
         policyResultRef: establish-sm-policy-association.operation.output.policyResultRef
-        selection: select-session-configuration.operation.output
       routes:
         FAILED: ca-transfer-failed-resource-responsibility
         OUTCOME_UNKNOWN: SAFE_STOPPED
@@ -135,6 +125,8 @@ nodes:
         FAIL: ca-transfer-failed-resource-responsibility
         UNKNOWN: SAFE_STOPPED
 
+  # The N4 Owner result carries the effective Step 8 session configuration required
+  # to construct N1/N2; no separate selection payload is passed by the Skill.
   # The Owner adapter internally resolves the exact N1/N2 request, prepares the response
   # artifact and payload, performs pre-dispatch checks, claims once and sends once.
   # 3GPP: 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 11; SMF → AMF Namf_Communication_N1N2MessageTransfer.
@@ -146,7 +138,6 @@ nodes:
         pduSessionId: context.request.pduSessionId
         pti: context.request.pti
         request: context.request
-        selection: select-session-configuration.operation.output
         policyResultRef: establish-sm-policy-association.operation.output.policyResultRef
         initialN4Result: establish-n4-session.operation.output
       routes:

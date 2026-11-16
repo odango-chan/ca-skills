@@ -13,12 +13,12 @@ description: CA-SL v1alpha4 illustrative Open5GS / UE-requested initial PDU Sess
 
 One admitted, initial IPv4 / SSC1, local non-roaming PDU Session request. Host/Owner must bind UE, PSI, invocation lifecycle, resource and late callback to the exact admitted instance; none of those execution identities are Skill-authored context.
 
-The conventional SMF procedure follows the 3GPP sequence: Step 4 UDM Session Management Subscription retrieval and subscription; Step 7b PCF SM Policy Association establishment; Step 8 SMF local session-configuration selection; N4 Session Establishment; Step 11 N1/N2 transfer; access-network completion through the SMF-side Step 15 result; N4 Session Modification; and durable resource responsibility.
+The conventional SMF procedure follows the 3GPP sequence: Step 4 UDM Session Management Subscription retrieval and subscription; Step 7b PCF SM Policy Association establishment; native SMF Step 8 session/UPF selection within N4 preparation; N4 Session Establishment; Step 11 N1/N2 transfer; access-network completion through the SMF-side Step 15 result; N4 Session Modification; and durable resource responsibility.
 
 The Skill keeps business decisions visible:
-- Step 4 Postconditions verify the UDM response and whether the requested DNN, S-NSSAI, PDU Session Type and SSC Mode are allowed by the subscription.
+- Step 4 Postconditions verify the UDM response and whether the requested DNN, S-NSSAI, PDU Session Type and SSC Mode are allowed by the subscription. The compatibility check is a Predicate Script within the Step 4 Postcondition, not a separate Procedure Node.
 - The Step 7b PCF Create Owner consumes the validated UDM read result and SDM subscription handle, derives the PCF request internally, and performs its pre-dispatch governance. The Skill exposes only the business action and its association-ownership result; it has no intermediate PCF input-building Script or readiness Predicate.
-- A separate local Script performs Step 8 session-configuration selection. This is an SMF-local business decision; its output is passed explicitly to N4 establishment and subsequent session preparation.
+- Step 8 is native SMF processing, not an independent Skill business result in this profile. The UPN Owner performs native UPF/session-address selection as part of N4 preparation; its N4 Operation Result carries the effective configuration consumed by N1/N2 preparation.
 
 The Skill does **not** expose Host/Runtime plumbing. Hold binding, Claim, waiter correlation, Journal, exact-original Reconcile, PCF request preparation/governance, operation-context lookup and N1/N2 response-artifact preparation are internal to the responsible Owner/Tool adapters. These mechanisms remain mandatory and must be covered by their trusted contracts; hiding them does not remove their safety requirements.
 
@@ -39,8 +39,7 @@ The Skill's global Contract Precondition validates only the admitted business re
 | `get-sm-subscription-data` | step 4 — `Nudm_SDM_Get` | `3GPP_NATIVE`: retrieve Session Management Subscription data. |
 | `subscribe-sm-data` | step 4 — `Nudm_SDM_Subscribe` | `3GPP_NATIVE`: subscribe to Session Management Subscription updates; Owner adapter internally binds and claims the exact original request. |
 | `establish-sm-policy-association` | step 7b — `Npcf_SMPolicyControl_Create` | `3GPP_NATIVE`: the PCF Owner consumes the UDM read result and SDM subscription handle, derives the request, enforces pre-dispatch governance and returns the authoritative association result/Evidence. |
-| `select-session-configuration` | step 8 — SMF local session-configuration selection (including the admitted SSC Mode / PDU Session Type profile) | `3GPP_LOCAL`: pure Script selection; no SBI operation and no Capability. |
-| `establish-n4-session` | steps 10a–10b; §4.4.1.2 N4 Session Establishment | `CA_ADAPTER`: UPN Owner completes N4 establishment; the callable is not a 3GPP SBI operation. |
+| `establish-n4-session` | step 8 native SMF session/UPF selection, then steps 10a–10b; §4.4.1.2 N4 Session Establishment | `CA_ADAPTER`: UPN Owner performs native selection and N4 establishment as one interaction boundary; its result carries the effective configuration required by N1/N2. |
 | `transfer-n1n2-message` | step 11 — `Namf_Communication_N1N2MessageTransfer` | `3GPP_NATIVE`: SMF transfers N1/N2 information to AMF. The adapter prepares the response and binds the exact request internally; ACK does not prove RAN acceptance. |
 | `complete-an-resource-setup` | steps 12–15; step 15 is `Nsmf_PDUSession_UpdateSMContext Request` | `CA_ADAPTER`: SSM wraps the asynchronous access-network completion. AMF/(R)AN/UE own steps 12–14; the SMF receives the result through step 15. |
 | `modify-n4-session` | steps 16a–16b; §4.4.1.3 N4 Session Modification | `CA_ADAPTER`: UPN Owner completes forwarding modification. |
