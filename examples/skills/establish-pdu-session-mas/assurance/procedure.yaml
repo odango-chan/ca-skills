@@ -47,7 +47,7 @@ nodes:
         PASS: resolve-secondary-authentication
         FAIL: FAILED
         UNKNOWN: SAFE_STOPPED
-  # 3GPP: 3GPP_ADAPTER — optional secondary authentication/authorization in TS 23.502 V18.12.0 §4.3.2.2.1 step 6; this MAS operation resolves the admitted profile's disposition.
+  # 3GPP: CA_ADAPTER — optional secondary authentication/authorization in TS 23.502 V18.12.0 §4.3.2.2.1 step 6; this MAS operation resolves the admitted profile's disposition.
   resolve-secondary-authentication:
     operation:
       tool: mas::ca.pdu_session.secondary_auth.disposition
@@ -141,7 +141,7 @@ nodes:
         PASS: establish-sm-policy-association
         FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  # 3GPP: 3GPP_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 step 7b; SM Policy Association Establishment / Npcf_SMPolicyControl_Create. The MAS callable remains unpublished.
+  # 3GPP: CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 step 7b; SM Policy Association Establishment / Npcf_SMPolicyControl_Create. The MAS callable remains unpublished.
   establish-sm-policy-association:
     operation:
       tool: mas::ca.pdu_session.policy.create
@@ -173,7 +173,7 @@ nodes:
         PASS: select-upf-anchor
         FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  # 3GPP: 3GPP_ADAPTER — SMF UPF selection within TS 23.502 V18.12.0 §4.3.2.2.1 step 8; custom MAS anchor-selection contract is unpublished.
+  # 3GPP: CA_ADAPTER — SMF UPF selection within TS 23.502 V18.12.0 §4.3.2.2.1 step 8; custom MAS anchor-selection contract is unpublished.
   select-upf-anchor:
     operation:
       tool: mas::ca.pdu_session.anchor.select
@@ -203,7 +203,7 @@ nodes:
         PASS: allocate-pdu-session-address
         FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  # 3GPP: 3GPP_ADAPTER — SMF address allocation within TS 23.502 V18.12.0 §4.3.2.2.1 step 8; custom allocator is a MAS implementation detail.
+  # 3GPP: CA_ADAPTER — SMF address allocation within TS 23.502 V18.12.0 §4.3.2.2.1 step 8; custom allocator is a MAS implementation detail.
   allocate-pdu-session-address:
     operation:
       tool: mas::ca.pdu_session.address.allocate
@@ -235,7 +235,7 @@ nodes:
         PASS: modify-sm-policy-association
         FAIL: ca-compensate-confirmed-failure
         UNKNOWN: SAFE_STOPPED
-  # 3GPP: 3GPP_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 step 9; SMF-initiated SM Policy Association Modification / Npcf_SMPolicyControl_Update. The MAS callable is unpublished.
+  # 3GPP: CA_ADAPTER — TS 23.502 V18.12.0 §4.3.2.2.1 step 9; SMF-initiated SM Policy Association Modification / Npcf_SMPolicyControl_Update. The MAS callable is unpublished.
   modify-sm-policy-association:
     operation:
       tool: mas::ca.pdu_session.policy.update
