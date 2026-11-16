@@ -579,6 +579,35 @@ Runtime resumes the same Invocation; Host returns the paired step 17 response.
         self.assertEqual(evaluate("UNKNOWN")["result"], "UNKNOWN")
         self.assertEqual(evaluate("UNKNOWN")["reasonCode"], "SMF_SESSION_CONTEXT_PRESENCE_UNKNOWN")
 
+        no_evidence = main({
+            "evidence": {"sessionContext": {"refs": []}},
+            "sessionContext": {"sessionPresence": "ABSENT"},
+        })
+        self.assertEqual(no_evidence["result"], "UNKNOWN")
+
+        post_main = runpy.run_path(
+            str(ROOT / "examples" / "skills" / "establish-pdu-session" / "scripts" / "validate-smf-session-context.py")
+        )["main"]
+        def evaluate_post(presence: str, projection: str) -> dict:
+            return post_main({
+                "evidence": {"sessionContext": {"refs": ["evidence:query"]}},
+                "sessionContext": {
+                    "sessionPresence": presence,
+                    "projectionStatus": projection,
+                    "context": {
+                        "dnn": "internet",
+                        "sst": 1,
+                        "subscriptionValidated": True,
+                        "secondaryAuthRequired": False,
+                    },
+                },
+                "requestedDnn": "internet",
+                "requestedSst": 1,
+            })
+        self.assertEqual(evaluate_post("ABSENT", "UNAVAILABLE")["result"], "FAIL")
+        self.assertEqual(evaluate_post("PRESENT", "UNAVAILABLE")["result"], "UNKNOWN")
+        self.assertEqual(evaluate_post("PRESENT", "AVAILABLE")["result"], "PASS")
+
     def test_conventional_skill_requires_context_observation_and_rejects_mas_names(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d) / "establish-pdu-session"
