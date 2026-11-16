@@ -490,6 +490,9 @@ nodes:
   modify-n4-session:
     operation:
       tool: upn::UPN.MODIFY_UP_SESSION
+      arguments:
+        initialN4Result: establish-n4-session.operation.output
+        ranResult: update-sm-context.operation.output
     postcondition:
       predicates:
         - predicate: establishment.n4.forwarding_ready
@@ -542,6 +545,7 @@ capabilities:
                     encoding="utf-8",
                 )
             (root / "SKILL.md").write_text("""| `get-sm-subscription-data` | step 4 — `Nudm_SDM_Get` with co-located entry context Observation |
+| `establish-n4-session` | step 8 native SMF selection plus steps 10a–10b — N4 Session Establishment |
 | `update-sm-context` | step 15 — `Nsmf_PDUSession_UpdateSMContext Request` with co-located fresh context Observation |
 | `modify-n4-session` | steps 16a–16b — N4 Session Modification |
 Runtime resumes the same Invocation; Host returns the paired step 17 response.
