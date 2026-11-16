@@ -1,6 +1,6 @@
 # CA-SL example packages
 
-The two authoring examples use the *frozen CA-SL v1alpha4 authoring shape* and live at `examples/skills/<name>`. At build time the logical Skill package root is still **`skills/<name>`** as required by CA-SL G.7; `examples/` is a repository packaging folder, not a change to the Compiler's logical package identity.
+The two authoring examples use the *frozen CA-SL v1alpha4 authoring shape* and live at `examples/skills/<name>`. Their 5GC Node granularity and Capability mapping must also follow the [3GPP-first SMF Authoring Profile](../docs/authoring-5gc-3gpp-profile.md); each Node must be traceable to a TS 23.502 interaction or explicitly marked as a CA adapter/extension. At build time the logical Skill package root is still **`skills/<name>`** as required by CA-SL G.7; `examples/` is a repository packaging folder, not a change to the Compiler's logical package identity.
 
 - `examples/skills/establish-pdu-session` — conventional Open5GS / UE-requested PDU establishment.
 - `examples/skills/establish-pdu-session-mas` — SMF MAS policy-first design.
