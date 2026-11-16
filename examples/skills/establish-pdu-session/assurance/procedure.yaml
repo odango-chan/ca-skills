@@ -5,11 +5,13 @@
 # context required by an Operation stays inside its responsible Tool/Owner adapter.
 # Host performs ingress admission, identity/instance association, duplicate suppression and execution lifecycle before this graph starts.
 # This Skill validates only the business request profile; Host execution metadata is not a Procedure input.
-start: get-sm-subscription-data
+start: read-existing-sm-context
 nodes:
-  # 3GPP: 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 4; SMF → UDM Nudm_SDM_Get.
-  get-sm-subscription-data:
-    # Global Skill gate: business request profile only. PASS advances to this Node's Operation.
+  # CA_EXTENSION — one exact UE/PSI lookup before any session-creating or session-mutating Operation.
+  # 404 SESSION_NOT_FOUND is normalized to ABSENT; 200 AVAILABLE/UNAVAILABLE means PRESENT.
+  # PRESENT is not an initial-creation path. Until an idempotent/recovery Owner contract
+  # exists, stop rather than replaying UDM/PCF/N4 mutations. Query failure is not ABSENT.
+  read-existing-sm-context:
     precondition:
       predicates:
         - predicate: establishment.request.supported
@@ -20,6 +22,26 @@ nodes:
       routes:
         FAIL: FAILED
         UNKNOWN: UNRESOLVED
+    observation:
+      tool: ca::context.smf.session.read
+      arguments:
+        ueRef: context.ueRef
+        pduSessionId: context.request.pduSessionId
+      routes:
+        FAILED: UNRESOLVED
+        UNKNOWN: UNRESOLVED
+    postcondition:
+      predicates:
+        - predicate: establishment.smf.session_context_absent
+          arguments:
+            - read-existing-sm-context.observation.output
+      routes:
+        PASS: get-sm-subscription-data
+        FAIL: SAFE_STOPPED
+        UNKNOWN: SAFE_STOPPED
+
+  # 3GPP: 3GPP_NATIVE — TS 23.502 V18.12.0 §4.3.2.2.1 step 4; SMF → UDM Nudm_SDM_Get.
+  get-sm-subscription-data:
     operation:
       tool: ca::sbi.udm.sm_data.get
       arguments:
