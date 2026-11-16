@@ -21,7 +21,7 @@ nodes:
         FAIL: FAILED
         UNKNOWN: UNRESOLVED
     observation:
-      tool: ca-observations::context.smf.session.read
+      tool: ca-session-context::context.smf.session.read
       arguments:
         ueRef: context.ueRef
         pduSessionId: context.request.pduSessionId
