@@ -1,6 +1,7 @@
 # MAS v1alpha4 Predicate declarations. The MAS Owner output Schemas and
 # guarantees below are EXAMPLE-ONLY candidates, never published/link-qualified.
 # Each check reintroduces a named business gate from the legacy policy-first flow.
+# Host admission, invocation/lifecycle correlation and persistence are not Skill Predicates.
 predicates:
   establishment.request.supported:
     parameters:
@@ -10,16 +11,6 @@ predicates:
     evaluator:
       type: cel
       expression: requestType == 1 && pduType == "IPV4" && sscMode == 1
-
-  establishment.mas.eligible:
-    parameters:
-      - result: mas::urn:example:mas:entry-eligibility:v1
-    evidence:
-      requires:
-        result: [mas::establishment.eligible]
-    evaluator:
-      type: cel
-      expression: result.eligible == true
 
   establishment.mas.subscription_valid:
     parameters:
