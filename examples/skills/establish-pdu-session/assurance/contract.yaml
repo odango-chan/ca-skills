@@ -2,7 +2,7 @@
 # Skill-visible Host context is subject-only (ueRef); invocation/lifecycle/correlation metadata stays private to Host.
 # ca-context Package ID is reserved but not yet published; Tool and Capability candidates remain illustrative and unqualified.
 goal: pdu_session.initial_request_fulfilled
-precondition: get-sm-subscription-data.precondition
+precondition: read-existing-sm-context.precondition
 requestSchema: schemas/establishment-request.schema.yaml
 contextSchema: ca-context::urn:connectionagent:ca:context:subject:v1
 dependencies:
