@@ -110,4 +110,4 @@ The wire response exposes `masId/status/key/context`. `AVAILABLE` means the MAS 
 
 The v0.10 response does not carry source time or Host lifecycle identity. Host/SMF must publish the missing temporal/freshness and exact UE/PSI/lifecycle Evidence binding before any of these callables can qualify under CA-SL v1alpha4. Do not invent `observedAt` from Host receipt time.
 
-See the detailed Host contract design: https://github.com/odango-chan/ca-agent-demo/blob/main/docs/design/5gc-agent-context-contracts-v1alpha4.md. The current Skill examples use the subject-only Schema reference but still carry placeholder Package IDs and Capability IDs; they are not linkable or qualified.
+See the detailed Host contract design: https://github.com/odango-chan/ca-agent-demo/blob/main/docs/5gc-agent-context-contracts-v1alpha4.md. The current Skill examples use the subject-only Schema reference but still carry placeholder Package IDs and Capability IDs; they are not linkable or qualified.
