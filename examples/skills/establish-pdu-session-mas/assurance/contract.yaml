@@ -1,11 +1,12 @@
 # CA-SL v1alpha4 author syntax. MAS contracts here are NOT published.
 # Skill-visible Host context is subject-only (ueRef); invocation/lifecycle/correlation metadata stays private to Host.
+# ca-context Package ID is reserved but not yet published; other example dependencies/Capabilities remain placeholders.
 goal: pdu_session.initial_request_fulfilled
 precondition: validate-sm-subscription.precondition
 requestSchema: schemas/establishment-request.schema.yaml
 contextSchema: ca-context::urn:connectionagent:ca:context:subject:v1
 dependencies:
-  ca-context: urn:example:connectionagent:host-context
+  ca-context: urn:connectionagent:ca:host-context
   mas: urn:example:connectionagent:mas-tool-contracts
 capabilities:
   - urn:example:connectionagent:capability:3gpp:udm-session-management-data:v1
