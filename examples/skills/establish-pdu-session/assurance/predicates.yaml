@@ -1,5 +1,7 @@
 # CA-SL v1alpha4 ordered Predicate signatures. All ca::urn:example Schema IDs
 # and ca:: guarantees below are UNPUBLISHED until their actual Owner releases them.
+# Host admission, invocation/lifecycle correlation and hold/journal state are not Skill business Predicates.
+# This file contains only business predicates over request, Operation Results and explicit SMF Observations.
 # Linking must fail closed; matching old v0.2 names does not grant provenance.
 predicates:
   establishment.request.supported:
@@ -13,35 +15,6 @@ predicates:
 
   # Restored v0.2 ingress/lifecycle admission, now explicit global members.
   # The context projection is UNPUBLISHED and must be linked before use.
-  establishment.ingress.eligible:
-    parameters:
-      - ingress: ca::urn:example:5gc:admitted-ingress:v1
-    evidence:
-      requires:
-        ingress: [ca::ingress.admission-current]
-    evaluator:
-      type: cel
-      expression: >-
-        ingress.messageType == 193 &&
-        ingress.bindingStatus == "CURRENT" &&
-        ingress.actionAuthorized == true &&
-        ingress.requestType == 1 &&
-        ingress.pti > 0
-
-  establishment.lifecycle.ready:
-    parameters:
-      - lifecycle: ca::urn:example:5gc:lifecycle-registration:v1
-    evidence:
-      requires:
-        lifecycle: [ca::lifecycle.registration-current]
-    evaluator:
-      type: cel
-      expression: >-
-        lifecycle.lifecycleRef != "" &&
-        lifecycle.registrationState == "DURABLE" &&
-        lifecycle.receiverState == "READY" &&
-        lifecycle.lateResultResponsibility == "RETAINED"
-
   establishment.udm.subscription_owned:
     parameters:
       - subscription: ca::urn:example:5gc:udm-subscription-resource:v1
@@ -54,42 +27,6 @@ predicates:
         subscription.creationState == "CREATED" &&
         subscription.ownership == "AGENT" &&
         subscription.managementState == "DURABLE"
-
-  establishment.pcf.hold_bound:
-    parameters:
-      - hold: ca::urn:example:5gc:pcf-hold-state:v1
-      - lifecycleRef: string
-    evidence:
-      requires:
-        hold: [ca::pcf.hold-bound]
-    evaluator:
-      type: cel
-      expression: >-
-        hold.bindingStatus == "CURRENT" &&
-        hold.operationKind == "PCF_SM_POLICY_CREATE" &&
-        hold.holdRef != "" &&
-        hold.currentInstanceRef != "" &&
-        hold.heldRequestDigest != "" &&
-        hold.policyAssociationRef != "" &&
-        hold.lifecycleRef == lifecycleRef
-
-  establishment.pcf.create_inputs.ready:
-    parameters:
-      - inputs: ca::urn:example:5gc:pcf-create-inputs:v1
-      - hold: ca::urn:example:5gc:pcf-hold-state:v1
-    evidence:
-      requires:
-        inputs: [ca::pcf.create-inputs-current]
-        hold: [ca::pcf.hold-bound]
-    evaluator:
-      type: cel
-      expression: >-
-        inputs.bindingStatus == "CURRENT" &&
-        inputs.pcfCreateInputsRef != "" &&
-        inputs.pcfPolicyAssociationRef != "" &&
-        inputs.fabricHoldRef == hold.holdRef &&
-        inputs.allocatedIPv4 != "" &&
-        inputs.selectionDigest != ""
 
   establishment.pcf.association_owned:
     parameters:
@@ -106,22 +43,6 @@ predicates:
         association.ownership == "AGENT" &&
         association.managementState == "DURABLE" &&
         association.policyAssociationRef == inputs.pcfPolicyAssociationRef
-
-  establishment.delivery_context.ready:
-    parameters:
-      - delivery: ca::urn:example:5gc:nas-delivery-context:v1
-      - lifecycleRef: string
-    evidence:
-      requires:
-        delivery: [ca::amf.delivery-context-current]
-    evaluator:
-      type: cel
-      expression: >-
-        delivery.bindingStatus == "CURRENT" &&
-        delivery.addressAllocated == true &&
-        delivery.nasInputsComplete == true &&
-        delivery.delegatedCallerAuthorized == true &&
-        delivery.lifecycleRef == lifecycleRef
 
   establishment.amf.transfer_initiated:
     parameters:
@@ -156,38 +77,6 @@ predicates:
         receipt.result.responseOrigin == "TARGET_SERVICE_VIA_SCP" &&
         receipt.result.captureComplete == true
 
-  establishment.udm.hold_bound:
-    parameters:
-      - hold: ca::urn:example:5gc:udm-hold-state:v1
-      - dnn: string
-      - sst: integer
-    evidence:
-      requires:
-        hold: [ca::udm.hold-bound]
-    evaluator:
-      type: cel
-      expression: >-
-        hold.bindingStatus == "CURRENT" &&
-        hold.operationKind == "UDM_SDM_SUBSCRIPTION_CREATE" &&
-        hold.deadline != "" &&
-        hold.holdRef != "" && hold.currentInstanceRef != "" &&
-        hold.heldRequestDigest != "" && hold.dnn == dnn && hold.sst == sst
-
-  establishment.pcf.create_governed:
-    parameters:
-      - readiness: ca::urn:example:5gc:pcf-create-governance:v1
-      - lifecycleRef: string
-    evidence:
-      requires:
-        readiness: [ca::pcf.create-governance, ca::n4.baseline-clear]
-    evaluator:
-      type: cel
-      expression: >-
-        readiness.lifecycleIsolationState == "CLEAN" &&
-        readiness.competingCreateState == "NOT_FORWARDED" &&
-        readiness.preN4PairState == "NO_N4_PAIR" &&
-        readiness.lifecycleRef == lifecycleRef
-
   establishment.n4.initial_resources_ready:
     parameters:
       - resources: ca::urn:example:5gc:n4-initial-resources:v1
@@ -200,23 +89,6 @@ predicates:
         resources.bindingStatus == "CURRENT" &&
         resources.defaultFlowInstalled == true &&
         resources.uplinkEndpointBound == true
-
-  establishment.n1n2.hold_bound:
-    parameters:
-      - hold: ca::urn:example:5gc:n1n2-hold-state:v1
-      - lifecycleRef: string
-    evidence:
-      requires:
-        hold: [ca::amf.n1n2-hold-bound]
-    evaluator:
-      type: cel
-      expression: >-
-        hold.bindingStatus == "CURRENT" &&
-        hold.operationKind == "N1N2_MESSAGE_TRANSFER" &&
-        hold.deadline != "" &&
-        hold.holdRef != "" && hold.currentInstanceRef != "" &&
-        hold.heldRequestDigest != "" && hold.targetNfInstanceId != "" &&
-        hold.supi != "" && hold.lifecycleRef == lifecycleRef
 
   establishment.ran.adopted:
     parameters:
