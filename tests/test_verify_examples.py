@@ -651,7 +651,7 @@ Runtime resumes the same Invocation; Host returns the paired step 17 response.
             errors: list[str] = []
             validate_async_update_sm_context_boundary(root, errors)
             self.assertTrue(any("must not declare or mention MAS implementation details" in e for e in errors), errors)
-            self.assertTrue(any("missing explicit post-callback SMF session-context Observation" in e for e in errors), errors)
+            self.assertTrue(any("fresh post-Step-15 Observation must be co-located in update-sm-context" in e for e in errors), errors)
 
     def test_update_sm_context_must_not_restart_or_leak_host_correlation(self) -> None:
         with tempfile.TemporaryDirectory() as d:
