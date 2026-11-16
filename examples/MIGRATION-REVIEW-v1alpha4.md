@@ -11,19 +11,19 @@ This record distinguishes **authoring design choices** in the PR from **unapprov
 | Decision | Source mapping | Owner / validation gap |
 |---|---|---|
 | No author Wait | §21/§52: real asynchronous protocol completion inside matching Owner Operation, no `ca.session.evidence.await` | Tool Owner actual output, completion, Correlation, Deadline, Evidence, failure classes and snapshots not published |
-| Initial N4 | `establish-n4-session` = `upn::UPN.CREATE_UP_SESSION` (not PCF create) | UPN Provider contract not published. Old PCF reply cannot substitute for this result |
+| Initial N4 | `establish-n4-session-session` = `upn::UPN.CREATE_UP_SESSION` (not PCF create) | UPN Provider contract not published. Old PCF reply cannot substitute for this result |
 | RAN acceptance | `complete-an-resource-setup` = `ssm::SSM.SIGNAL_UE_AN` (not AMF N1N2-transfer ACK) | SSM Provider contract not published |
 | N4 forwarding | `modify-n4-session` = `upn::UPN.MODIFY_UP_SESSION` (not AMF ACK) | UPN mutation contract not published |
 | Initial admission | Global `admit-create-sm-context-request.precondition` lists request, ingress and lifecycle (MAS uses request + eligibility) | Context/ingress/lifecycle Owner Schema, evidence and exact projection names unapproved |
 | 5GC local gates | UDM ownership, PCF hold, create-inputs, association ownership, delivery context, AMF transfer initiation and terminal responsibility checks restored | Old predicates use separate Owner observations; candidates in new PredicateSet cannot link until exact Producers and guarantees are published |
-| MAS business gates | Postcondition for each of 15 business Operations and separately for cleanup; original output dependencies restored | MAS ToolCatalog/evidence and data schemas not approved; flags are authoring hypotheses |
-| Confirmed failure handoff / MAS cleanup | Business FAIL/FAILED may enter author `ca-transfer-failed-resource-responsibility` or MAS `cleanup` **only after** Owner proves the original attempted mutation resolved and cleanup/handoff authorized | Requires explicit owner contract, no automatic authority |
-| Commit uncertainty | On `OUTCOME_UNKNOWN`, stop directly `SAFE_STOPPED`; **never** call cleanup/handoff or retry. Host retains immutable original call and pending resource responsibility | Host §12.7/§20 proof, post-stop retention and Late Result handling remain NOT_QUALIFIED |
+| MAS business gates | Postcondition for each of 15 business Operations and separately for ca-compensate-confirmed-failure; original output dependencies restored | MAS ToolCatalog/evidence and data schemas not approved; flags are authoring hypotheses |
+| Confirmed failure handoff / MAS ca-compensate-confirmed-failure | Business FAIL/FAILED may enter author `ca-transfer-failed-resource-responsibility` or MAS `ca-compensate-confirmed-failure` **only after** Owner proves the original attempted mutation resolved and ca-compensate-confirmed-failure/handoff authorized | Requires explicit owner contract, no automatic authority |
+| Commit uncertainty | On `OUTCOME_UNKNOWN`, stop directly `SAFE_STOPPED`; **never** call ca-compensate-confirmed-failure/handoff or retry. Host retains immutable original call and pending resource responsibility | Host §12.7/§20 proof, post-stop retention and Late Result handling remain NOT_QUALIFIED |
 | Actual terminal | §12.8 terminal priority `SAFE_STOPPED > UNRESOLVED > FAILED` determines final publication based on admitted resources/unknown status | A requested `FAILED` route may publish `SAFE_STOPPED`; trace and mismatch diagnostics still require runtime evidence |
 
 **Important unresolved business checks:** an Operation `SUCCEEDED` and its candidate output is **not** assumed to satisfy the Predicate on its own. Especially legacy `sbi.pcf.sm_policy.create` and `sbi.amf.n1n2.transfer` still only prove their original service result, not N4/RAN convergence. The new UPN/SSM IDs are **target design references in §21**, not proof of published APIs. Predicate outputs from independent authoritative observations must not be forged by passing the previous Operation reply as an Observation result.
 
-**Do not merge as qualified:** no runnable v1alpha4 Fixture or positive linked Build is available, no 36 conventional Case execution, no 6 MAS runtime acceptance. Before adoption: publish exact ToolCatalog/CapabilityContracts/Schema/Evidence, decide cleanup/terminal semantics and proof domains with business Owner, verify Stage routes, produce executable v1alpha4 fixtures, then run §45.2 CI/Host/5GC acceptance.
+**Do not merge as qualified:** no runnable v1alpha4 Fixture or positive linked Build is available, no 36 conventional Case execution, no 6 MAS runtime acceptance. Before adoption: publish exact ToolCatalog/CapabilityContracts/Schema/Evidence, decide ca-compensate-confirmed-failure/terminal semantics and proof domains with business Owner, verify Stage routes, produce executable v1alpha4 fixtures, then run §45.2 CI/Host/5GC acceptance.
 
 ## Legacy Case inventory (mapping candidates only)
 
@@ -40,7 +40,7 @@ The following entries are one-to-one *traceability* rows, not converted fixtures
 | [05-address-or-callback-missing](legacy/establish-pdu-session/cases/05-address-or-callback-missing/case.yaml) | ca-read-sm-operation-context / ca-prepare-pdu-session-establishment-accept | NOT_RUN / Owner not linked |
 | [06-subscription-ownership-unknown](legacy/establish-pdu-session/cases/06-subscription-ownership-unknown/case.yaml) | subscribe-sm-data.postcondition / outcome unknown | NOT_RUN / Owner not linked |
 | [07-pcf-association-reused](legacy/establish-pdu-session/cases/07-pcf-association-reused/case.yaml) | establish-sm-policy-association.postcondition / outcome unknown | NOT_RUN / Owner not linked |
-| [08-initial-n4-not-proven](legacy/establish-pdu-session/cases/08-initial-n4-not-proven/case.yaml) | establish-n4-session (UPN.CREATE_UP_SESSION) | NOT_RUN / Owner not linked |
+| [08-initial-n4-not-proven](legacy/establish-pdu-session/cases/08-initial-n4-not-proven/case.yaml) | establish-n4-session-session (UPN.CREATE_UP_SESSION) | NOT_RUN / Owner not linked |
 | [09-old-instance-or-no-authority](legacy/establish-pdu-session/cases/09-old-instance-or-no-authority/case.yaml) | ca-read-sm-operation-context.postcondition | NOT_RUN / Owner not linked |
 | [10-response-artifact-invalid](legacy/establish-pdu-session/cases/10-response-artifact-invalid/case.yaml) | ca-build-n1n2-message / ca-prepare-pdu-session-establishment-accept | NOT_RUN / Owner not linked |
 | [11-amf-202-unsupported](legacy/establish-pdu-session/cases/11-amf-202-unsupported/case.yaml) | admit-create-sm-context-request global ingress/lifecycle | NOT_RUN / Owner not linked |
@@ -50,7 +50,7 @@ The following entries are one-to-one *traceability* rows, not converted fixtures
 | [15-no-ue-observation-required](legacy/establish-pdu-session/cases/15-no-ue-observation-required/case.yaml) | verify-pdu-session-establishment avoids unsupported UE-observation requirement | NOT_RUN / Owner not linked |
 | [16-manager-receipt-missing](legacy/establish-pdu-session/cases/16-manager-receipt-missing/case.yaml) | ca-transfer-resource-responsibility/ca-transfer-failed-resource-responsibility; Host retains UNKNOWN | NOT_RUN / Owner not linked |
 | [17-subscribe-sm-data-unknown](legacy/establish-pdu-session/cases/17-subscribe-sm-data-unknown/case.yaml) | subscribe-sm-data.postcondition / outcome unknown | NOT_RUN / Owner not linked |
-| [18-create-policy-unknown](legacy/establish-pdu-session/cases/18-create-policy-unknown/case.yaml) | establish-sm-policy-association.postcondition / outcome unknown | NOT_RUN / Owner not linked |
+| [18-establish-sm-policy-association-unknown](legacy/establish-pdu-session/cases/18-establish-sm-policy-association-unknown/case.yaml) | establish-sm-policy-association.postcondition / outcome unknown | NOT_RUN / Owner not linked |
 | [19-response-prepare-denied](legacy/establish-pdu-session/cases/19-response-prepare-denied/case.yaml) | ca-prepare-pdu-session-establishment-accept.FAILED | NOT_RUN / Owner not linked |
 | [20-transfer-to-amf-unknown](legacy/establish-pdu-session/cases/20-transfer-to-amf-unknown/case.yaml) | transfer-n1n2-message.OUTCOME_UNKNOWN → SAFE_STOPPED | NOT_RUN / Owner not linked |
 | [21-handoff-success-unknown](legacy/establish-pdu-session/cases/21-handoff-success-unknown/case.yaml) | ca-transfer-resource-responsibility/ca-transfer-failed-resource-responsibility; Host retains UNKNOWN | NOT_RUN / Owner not linked |
@@ -75,12 +75,12 @@ The following entries are one-to-one *traceability* rows, not converted fixtures
 
 | Legacy Case | Candidate v1alpha4 point of responsibility | Result |
 |---|---|---|
-| [01-policy-first-happy](legacy/establish-pdu-session-mas/cases/01-policy-first-happy/case.yaml) | validate-subscription → verify-pdu-session-establishment (positive path) | NOT_RUN / Owner not linked |
+| [01-policy-first-happy](legacy/establish-pdu-session-mas/cases/01-policy-first-happy/case.yaml) | validate-sm-subscription → verify-pdu-session-establishment (positive path) | NOT_RUN / Owner not linked |
 | [02-entry-eligibility-unknown](legacy/establish-pdu-session-mas/cases/02-entry-eligibility-unknown/case.yaml) | admit-create-sm-context-request.precondition: establishment.mas.eligible | NOT_RUN / Owner not linked |
-| [03-policy-update-outcome-unknown](legacy/establish-pdu-session-mas/cases/03-policy-update-outcome-unknown/case.yaml) | update-policy.OUTCOME_UNKNOWN → SAFE_STOPPED; no cleanup mutation | NOT_RUN / Owner not linked |
-| [04-namf-ack-without-ran-adoption](legacy/establish-pdu-session-mas/cases/04-namf-ack-without-ran-adoption/case.yaml) | signal-access.postcondition: ran_adopted (no ACK shortcut) | NOT_RUN / Owner not linked |
-| [05-resource-handoff-missing](legacy/establish-pdu-session-mas/cases/05-resource-handoff-missing/case.yaml) | finalize-resources + verify-pdu-session-establishment.resources_managed | NOT_RUN / Owner not linked |
-| [06-secondary-auth-required-out-of-profile](legacy/establish-pdu-session-mas/cases/06-secondary-auth-required-out-of-profile/case.yaml) | secondary-auth.postcondition (confirmed auth restriction) | NOT_RUN / Owner not linked |
+| [03-policy-update-outcome-unknown](legacy/establish-pdu-session-mas/cases/03-policy-update-outcome-unknown/case.yaml) | modify-sm-policy-association.OUTCOME_UNKNOWN → SAFE_STOPPED; no ca-compensate-confirmed-failure mutation | NOT_RUN / Owner not linked |
+| [04-namf-ack-without-ran-adoption](legacy/establish-pdu-session-mas/cases/04-namf-ack-without-ran-adoption/case.yaml) | complete-an-resource-setup.postcondition: ran_adopted (no ACK shortcut) | NOT_RUN / Owner not linked |
+| [05-resource-handoff-missing](legacy/establish-pdu-session-mas/cases/05-resource-handoff-missing/case.yaml) | ca-transfer-resource-responsibility + verify-pdu-session-establishment.resources_managed | NOT_RUN / Owner not linked |
+| [06-resolve-secondary-authentication-required-out-of-profile](legacy/establish-pdu-session-mas/cases/06-resolve-secondary-authentication-required-out-of-profile/case.yaml) | resolve-secondary-authentication.postcondition (confirmed auth restriction) | NOT_RUN / Owner not linked |
 
 
 ## Outstanding review gates
