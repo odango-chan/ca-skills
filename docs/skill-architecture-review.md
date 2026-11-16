@@ -63,6 +63,8 @@ For the conventional initial PDU Session profile:
 | Business Operation effects, authoritative network facts, normalized Operation Result and Evidence | Tool Owner / Provider |
 | Shared callable dispatch, trusted binding and authorization enforcement | Host / Runtime integration under the published contract |
 
+The table describes the proposed Node-Wait responsibility split. For frozen v1alpha4, asynchronous callback matching remains with the exact pending protocol Owner Operation contract described in §5.
+
 Additional rules:
 
 - Host Invocation lifecycle is not the network Session lifecycle.
