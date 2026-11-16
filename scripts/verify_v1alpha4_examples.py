@@ -328,13 +328,16 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
 
     for label, content in (
         ("Procedure", procedure_text),
-        ("Contract", contract_text),
         ("Predicates", predicate_text),
         ("SKILL.md", skill_text),
     ):
-        if re.search(r"(?i)\bMAS\b|smf[-.]mas|smf-mas-observations|ca-5gc-client-tools|smf\.mas\.", content):
+        if re.search(r"(?i)\bMAS\b|smf[-.]mas|smf\.mas\.|ca-5gc-client-tools", content):
             errors.append(f"{skill.name}: conventional Skill {label} must not declare or mention MAS implementation details")
             break
+    if re.search(r"(?m)^\s*mas\s*:|capability:mas:|smf\.mas\.", contract_text):
+        errors.append(f"{skill.name}: conventional Skill must not depend on MAS-named namespaces or callable identities")
+    if not re.search(r"(?m)^  ca-observations:\s+urn:connectionagent:ca:host:smf-mas-observations\s*$", contract_text):
+        errors.append(f"{skill.name}: generic context Observation must resolve through the ca-observations dependency alias")
 
     if not re.search(r"(?m)^start: read-existing-sm-context\s*$", procedure_text):
         errors.append(f"{skill.name}: first business Node must query exact SM Context presence before initial mutations")
@@ -367,8 +370,8 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
         errors.append(f"{skill.name}: missing the entry-time context-presence Predicate Script")
     else:
         entry_script_text = entry_script.read_text(encoding="utf-8")
-        if not all(token in entry_script_text for token in ('"ABSENT"', '"PRESENT"', '"UNKNOWN"')):
-            errors.append(f"{skill.name}: entry Predicate must distinguish ABSENT, PRESENT and UNKNOWN")
+        if not all(token in entry_script_text for token in ('"ABSENT"', '"PRESENT"', '"SESSION_NOT_FOUND"', '"NOT_APPLICABLE"')):
+            errors.append(f"{skill.name}: entry Predicate must distinguish evidenced ABSENT from PRESENT and malformed results")
         if "SMF_SESSION_CONTEXT_CONFIRMED_ABSENT" not in entry_script_text:
             errors.append(f"{skill.name}: ABSENT must be an explicit business outcome, not generic query success")
 
@@ -422,9 +425,11 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
             errors.append(f"{skill.name}: post-Step-15 Predicate must distinguish absent from present context")
         if "projectionStatus" not in post_script_text:
             errors.append(f"{skill.name}: post-Step-15 Predicate must distinguish PRESENT+UNAVAILABLE from PRESENT+AVAILABLE")
-    if "sessionContext: ca::urn:example:5gc:smf-session-context:v1" not in predicate_text:
+        if "sourceOutcome" not in post_script_text:
+            errors.append(f"{skill.name}: post-Step-15 Predicate must validate the normalized source outcome")
+    if "sessionContext: ca-observations::urn:connectionagent:ca:observation:smf-session-context-read-result:v1" not in predicate_text:
         errors.append(f"{skill.name}: SMF session-context Predicate must use the generic context result Schema")
-    if "sessionContext: [ca::smf.session-context.query-evidence]" not in predicate_text:
+    if "sessionContext: [ca-observations::smf.session-context.read-evidence]" not in predicate_text:
         errors.append(f"{skill.name}: SMF session-context Predicate must require its declared read Evidence")
     if "script: scripts/validate-smf-session-context.py" not in predicate_text:
         errors.append(f"{skill.name}: missing the three-state SMF session-context Predicate Script")
