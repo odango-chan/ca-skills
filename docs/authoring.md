@@ -1,6 +1,6 @@
 # ConnectionAgent Skill Authoring Guide
 
-This guide follows the [CA-SL v1alpha4 Specification](skill-language-spec.v1alpha4.zh-CN.md), the sole normative language authority. The author syntax and interoperability profile are frozen; product conformance and executable 5GC migration are separate §45.2 gates.
+This guide follows the [CA-SL v1alpha4 Specification](skill-language-spec.v1alpha4.zh-CN.md), the sole normative language authority. The author syntax and interoperability profile are frozen; product conformance and executable 5GC migration are separate §45.2 gates. For 5GC packages, also follow the repository-level [3GPP-first SMF Authoring Profile](authoring-5gc-3gpp-profile.md), which governs Node granularity, SMF responsibility boundaries, 3GPP traceability and Capability naming without changing CA-SL grammar.
 
 ## 1. Current source baseline
 
