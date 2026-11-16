@@ -49,7 +49,7 @@ The full source-by-source mapping, exact outputs, candidate callable identities 
 
 ## Host and asynchronous boundary
 
-The incoming TS 23.502 step-3 CreateSMContext Request is a Host ingress trigger, not a Skill Node. Host performs admission, duplicate suppression and exact UE/PSI business-instance association before this graph starts.
+The incoming TS 23.502 step-3 CreateSMContext Request supplies the 3GPP `supi` and `pduSessionId` used by the Skill. Host performs ingress admission, duplicate suppression and private lifecycle/Invocation correlation before this graph starts; it does not generate a UE identity alias.
 
 The SSM `SIGNAL_UE_AN` Owner Operation sends the N1/N2 transfer and may remain pending until the later step-15 `Nsmf_PDUSession_UpdateSMContext Request` supplies the access-network result/F-TEID. Host correlates that exact request to the pending Operation and Runtime resumes this same Invocation. It is not a new Skill invocation and does not require a Skill Wait/Await/Poll Node. The paired step-17 response remains a Host service-exit obligation after N4 Modification and the Procedure's terminal business outcome.
 
