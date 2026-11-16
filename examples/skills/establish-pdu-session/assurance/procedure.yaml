@@ -93,7 +93,7 @@ nodes:
         selection: validate-and-select-session-configuration.operation.output
         ingressRef: context.correlation.ingressRef
         lifecycleRef: context.correlation.lifecycleRef
-        waiterRef: ca-bind-udm-subscription-hold.operation.output.holdRef
+        holdRef: ca-bind-udm-subscription-hold.operation.output.holdRef
       routes:
         FAILED: ca-transfer-failed-resource-responsibility
         OUTCOME_UNKNOWN: SAFE_STOPPED
@@ -190,13 +190,13 @@ nodes:
         policyInputs: ca-build-sm-policy-association-inputs.operation.output
         lifecycleRef: context.correlation.lifecycleRef
         sdmSubscriptionRef: subscribe-sm-data.operation.output.subscriptionRef
-        waiterRef: ca-bind-pcf-policy-hold.operation.output.holdRef
+        holdRef: ca-bind-pcf-policy-hold.operation.output.holdRef
       routes:
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
     # PCF policy association is NOT N4 establishment. Do not infer an N4
-    # completion state from the SBI create reply or its waiter/hold reference.
+    # completion state from the SBI create reply or its correlation/hold handle.
     postcondition:
       predicates:
         - predicate: establishment.pcf.association_owned
@@ -324,7 +324,7 @@ nodes:
         pduSessionId: context.request.pduSessionId
         lifecycleRef: context.correlation.lifecycleRef
         responseArtifactRef: ca-prepare-pdu-session-establishment-accept.operation.output.responseArtifactRef
-        waiterRef: ca-bind-n1n2-transfer-hold.operation.output.holdRef
+        holdRef: ca-bind-n1n2-transfer-hold.operation.output.holdRef
         delivery: ca-build-n1n2-message.operation.output
       routes:
         FAILED: SAFE_STOPPED
