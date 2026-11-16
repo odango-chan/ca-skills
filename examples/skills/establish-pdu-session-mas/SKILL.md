@@ -71,6 +71,7 @@ The MAS graph is a CA policy-first implementation profile, not a normative 3GPP 
 ## Qualification blockers
 
 1. MAS Owner ToolCatalog, exact callable IDs, input/output Schemas and CapabilityContracts are unpublished.
+2. The current Skill request Schema represents `sNssai.sd` as an integer while the OpenAMSM OES input `s_nssai_sd` is a string; the Owner must publish and test a lossless 24-bit representation mapping.
 2. MAS Operation Evidence Guarantees and source-to-Host Scope/Correlation contracts are unpublished.
 3. Charging is a source-confirmed stub; the charging Predicate intentionally rejects its `"1"` marker.
 4. The SAA path is hard-coded to skip; auth-required legacy case 06 is unsupported.
