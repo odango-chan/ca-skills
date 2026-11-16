@@ -336,7 +336,7 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
             break
     if re.search(r"(?m)^\s*mas\s*:|capability:mas:|smf\.mas\.", contract_text):
         errors.append(f"{skill.name}: conventional Skill must not depend on MAS-named namespaces or callable identities")
-    if not re.search(r"(?m)^  ca-observations:\s+urn:connectionagent:ca:host:smf-mas-observations\s*$", contract_text):
+    if not re.search(r"(?m)^  ca-session-context:\s+urn:connectionagent:ca:host:smf-session-context\s*$", contract_text):
         errors.append(f"{skill.name}: generic context Observation must resolve through the ca-session-context dependency alias")
 
     if not re.search(r"(?m)^start: read-existing-sm-context\s*$", procedure_text):
@@ -350,7 +350,7 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
         errors.append(f"{skill.name}: missing entry-time SM Context Observation")
     else:
         block = entry.group(1)
-        if not re.search(r"(?m)^      tool: ca-observations::context\.smf\.session\.read\s*$", block):
+        if not re.search(r"(?m)^      tool: ca-session-context::context\.smf\.session\.read\s*$", block):
             errors.append(f"{skill.name}: entry lookup must use the generic SMF context Observation callable")
         if not re.search(r"(?m)^        ueRef: context\.ueRef\s*$", block) or not re.search(r"(?m)^        pduSessionId: context\.request\.pduSessionId\s*$", block):
             errors.append(f"{skill.name}: entry lookup must be scoped by exact UE and PDU Session ID")
@@ -407,7 +407,7 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
         errors.append(f"{skill.name}: missing explicit post-callback SMF session-context Observation")
     else:
         block = observation.group(1)
-        if not re.search(r"(?m)^      tool: ca-observations::context\.smf\.session\.read\s*$", block):
+        if not re.search(r"(?m)^      tool: ca-session-context::context\.smf\.session\.read\s*$", block):
             errors.append(f"{skill.name}: use the generic CA SMF session-context Observation callable")
         if not re.search(r"(?m)^        ueRef: context\.ueRef\s*$", block) or not re.search(r"(?m)^        pduSessionId: context\.request\.pduSessionId\s*$", block):
             errors.append(f"{skill.name}: context Observation must be scoped by the Skill subject and business PSI")
