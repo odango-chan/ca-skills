@@ -77,13 +77,17 @@ class V1Alpha4ScriptTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             (root / "assurance").mkdir()
-            (root / "assurance" / "procedure.yaml").write_text(
-                "start: retrieve\\nnodes:\\n  # 3GPP: 3GPP_NATIVE — TS 23.502 step 4\\n  retrieve:\\n    operation: {}\\n",
-                encoding="utf-8",
-            )
+            (root / "assurance" / "procedure.yaml").write_text("""start: retrieve
+nodes:
+  # 3GPP: 3GPP_NATIVE — TS 23.502 step 4
+  retrieve:
+    operation: {}
+""", encoding="utf-8")
+            tick = chr(96)
             (root / "SKILL.md").write_text(
                 "## 3GPP Traceability\\n\\nTS 23.502 V18.12.0\\n"
-                "| Procedure Node | Mapping |\\n|---|---|\\n| \\x60retrieve\\x60 | step 4 |\\n",
+                "| Procedure Node | Mapping |\\n|---|---|\\n"
+                + "| " + tick + "retrieve" + tick + " | step 4 |\\n",
                 encoding="utf-8",
             )
             errors: list[str] = []
@@ -94,10 +98,11 @@ class V1Alpha4ScriptTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             (root / "assurance").mkdir()
-            (root / "assurance" / "procedure.yaml").write_text(
-                "start: retrieve\\nnodes:\\n  retrieve:\\n    operation: {}\\n",
-                encoding="utf-8",
-            )
+            (root / "assurance" / "procedure.yaml").write_text("""start: retrieve
+nodes:
+  retrieve:
+    operation: {}
+""", encoding="utf-8")
             (root / "SKILL.md").write_text(
                 "## 3GPP Traceability\\nTS 23.502 V18.12.0\\n"
                 "| Procedure Node | Mapping |\\n|---|---|\\n",
