@@ -154,7 +154,7 @@ def validate_3gpp_traceability(skill: Path, errors: list[str]) -> None:
         if not previous.startswith("  # 3GPP: "):
             errors.append(f"{skill.name}/{node}: missing adjacent '# 3GPP:' mapping comment")
         elif not any(tag in previous for tag in
-                     ("3GPP_NATIVE", "3GPP_ADAPTER", "CA_ADAPTER", "CA_EXTENSION")):
+                     ("3GPP_NATIVE", "3GPP_LOCAL", "CA_ADAPTER", "CA_EXTENSION")):
             errors.append(f"{skill.name}/{node}: mapping comment lacks a valid classification")
 
     doc = skill_doc.read_text(encoding="utf-8")
