@@ -84,6 +84,7 @@ Additional rules:
 - Distinguish inbound message arrival, business Operation completion and Procedure completion. They are separate events.
 - The proposed Event Wait is push-driven ingress; the current Runtime Evidence Wait is Observation polling. They are not interchangeable.
 - Define timeout, duplicate, stale, late, uncorrelated and indeterminate outcomes at the Integration/Host/Runtime/Owner boundary. Do not guess paired protocol response behavior from Skill terminal labels.
+- Correlation must distinguish both concurrent Runs and successive Wait generations for the same protocol resource. A private generation counter absent from the wire is not sufficient; when the protocol has no on-wire discriminator, require a proven single-flight/tombstone policy or fail closed.
 
 ## 6. Context, dataflow and Predicate rules
 
