@@ -484,6 +484,206 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
     if not verify or not re.search(r"(?m)^            - modify-n4-session\.operation\.output\s*$", verify.group(1)):
         errors.append(f"{skill.name}: final Goal proof must consume the N4 Modification result")
 
+    failed_handoff = re.search(
+        r"(?ms)^  ca-transfer-failed-resource-responsibility:\\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\\s*$|\\Z)",
+        procedure_text,
+    )
+    if not failed_handoff:
+        errors.append(f"{skill.name}: missing the confirmed-failure resource responsibility handoff")
+    else:
+        block = failed_handoff.group(1)
+        if not re.search(r"(?m)^      tool: ca::ca\\.session\\.resource_responsibility\\.transfer\\s*$", block):
+            errors.append(f"{skill.name}: failure responsibility must use the Host/Owner resource handoff")
+        if not re.search(r'(?m)^        disposition: "failed"\\s*    if not re.search(r"(?m)^\| \x60get-sm-subscription-data\x60 \| step 4", skill_text):
+        errors.append(f"{skill.name}: SKILL.md must trace the Step 4 Node and its entry context Observation")
+    if not re.search(r"(?m)^\| \x60update-sm-context\x60 \| step 15", skill_text):
+        errors.append(f"{skill.name}: SKILL.md must trace update-sm-context to step 15 and its co-located Observation")
+    if not re.search(r"(?m)^\| \x60modify-n4-session\x60 \| steps 16a–16b", skill_text):
+        errors.append(f"{skill.name}: SKILL.md must trace N4 Modification to the UPN Owner Operation")
+    if "resumes the same Invocation" not in skill_text or "paired step 17" not in skill_text:
+        errors.append(f"{skill.name}: SKILL.md must define same-Invocation resume and paired step-17 Host response")
+
+
+
+def validate_predicate_scripts(skill: Path, errors: list[str]) -> set[Path]:
+    """Validate local Predicate Script refs and their generated-result contract."""
+    predicates = skill / "assurance" / "predicates.yaml"
+    if not predicates.is_file():
+        return set()
+    refs: list[tuple[str, Path]] = []
+    for line in predicates.read_text(encoding="utf-8").splitlines():
+        match = SCRIPT.match(line)
+        if not match:
+            continue
+        ref = match[1]
+        if not re.fullmatch(r"scripts/[A-Za-z0-9_-]+\.py", ref) or "/" in ref[8:]:
+            errors.append(f"{skill.name}: unsafe Predicate Script ref {ref}")
+            continue
+        refs.append((f"predicate-script-{len(refs) + 1}", skill / ref))
+
+    referenced: set[Path] = set()
+    for predicate, script in refs:
+        referenced.add(script.resolve())
+        if not script.is_file():
+            errors.append(f"{skill.name}/{predicate}: Predicate Script not found {script.relative_to(skill)}")
+            continue
+        try:
+            module = ast.parse(script.read_text(encoding="utf-8"), filename=str(script))
+            defs = _fields(module)
+            mains = [n for n in module.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == "main"]
+            if len(mains) != 1 or not isinstance(mains[0], ast.FunctionDef):
+                raise ValueError("exactly one synchronous main required")
+            main = mains[0]
+            if (len(main.args.args) != 1 or main.args.args[0].arg != "input"
+                or main.args.vararg or main.args.kwarg or main.args.defaults
+                or main.args.kwonlyargs or main.args.posonlyargs or main.returns is None):
+                raise ValueError("main(input: PredicateInput) -> PredicateEvaluationResult required")
+            if (not isinstance(main.args.args[0].annotation, ast.Name)
+                or main.args.args[0].annotation.id != "PredicateInput"
+                or not isinstance(main.returns, ast.Name)
+                or main.returns.id != "PredicateEvaluationResult"):
+                raise ValueError("main signature must use generated PredicateInput and strict PredicateEvaluationResult")
+            output = _schema(main.returns, defs)
+            if output[0] != "object":
+                raise ValueError("PredicateEvaluationResult must be a strict TypedDict")
+            fields = {name for name, _, _ in output[1]}
+            required = {name for name, needed, _ in output[1] if needed}
+            expected = {"result", "reasonCode", "evidenceUsed"}
+            if fields != expected or required != expected:
+                raise ValueError(f"PredicateEvaluationResult fields must be exactly {sorted(expected)}")
+            for node in ast.walk(module):
+                if isinstance(node, ast.Import) and any(x.name.split(".")[0] in BANNED_IMPORTS for x in node.names):
+                    raise ValueError("forbidden external/ambient import")
+                if isinstance(node, ast.ImportFrom) and (node.module or "").split(".")[0] in BANNED_IMPORTS:
+                    raise ValueError("forbidden external/ambient import")
+                if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in BANNED_CALLS:
+                    raise ValueError("forbidden dynamic or external call")
+            for node in ast.walk(main):
+                if not isinstance(node, ast.Return) or not isinstance(node.value, ast.Dict):
+                    continue
+                literal = {key.value for key in node.value.keys if isinstance(key, ast.Constant) and isinstance(key.value, str)}
+                if literal != expected or len(literal) != len(node.value.keys):
+                    raise ValueError("every Predicate Script return must provide exactly result, reasonCode and evidenceUsed")
+        except (SyntaxError, ValueError, TypeError) as exc:
+            errors.append(f"{skill.name}/{predicate}: invalid Predicate Script {script.name}: {exc}")
+    return referenced
+
+
+def validate_example_scripts(skill: Path, errors: list[str]) -> None:
+    validate_3gpp_traceability(skill, errors)
+    validate_host_context_separation(skill, errors)
+    validate_pcf_owner_boundary(skill, errors)
+    validate_n4_owner_boundary(skill, errors)
+    validate_async_update_sm_context_boundary(skill, errors)
+    predicate_script_refs = validate_predicate_scripts(skill, errors)
+    procedure = skill / "assurance" / "procedure.yaml"
+    text = procedure.read_text(encoding="utf-8")
+    script_nodes: dict[str, tuple[Path, dict[str, str]]] = {}
+    current = ""
+    active_script: Path | None = None
+    in_args = False
+    for line in text.splitlines():
+        match = NODE.match(line)
+        if match:
+            current, active_script, in_args = match[1], None, False
+            continue
+        match = SCRIPT.match(line)
+        if match:
+            ref = match[1]
+            if not re.fullmatch(r"scripts/[A-Za-z0-9_-]+\.py", ref) or "/" in ref[8:]:
+                errors.append(f"{skill.name}/{current}: unsafe Script ref {ref}")
+                continue
+            active_script = skill / ref
+            script_nodes[current] = (active_script, {})
+            continue
+        if line == "      arguments:" and active_script is not None:
+            in_args = True
+            continue
+        if in_args and active_script is not None:
+            match = ARGUMENT.match(line)
+            if match:
+                script_nodes[current][1][match[1]] = match[2]
+            elif line.startswith("      ") or not line.startswith("        "):
+                in_args = False
+
+    referenced = {p.resolve() for p, _ in script_nodes.values()} | predicate_script_refs
+    directory = skill / "scripts"
+    for file in sorted(directory.glob("*.py")) if directory.exists() else []:
+        if file.resolve() not in referenced:
+            errors.append(f"{skill.name}: unreferenced Script {file.relative_to(skill)}")
+    models: dict[str, dict[str, tuple]] = {}
+    for node, (script, args) in script_nodes.items():
+        if not script.is_file():
+            errors.append(f"{skill.name}/{node}: Script not found {script.relative_to(skill)}")
+            continue
+        try:
+            source = script.read_text(encoding="utf-8")
+            module = ast.parse(source, filename=str(script))
+            defs = _fields(module)
+            mains = [n for n in module.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == "main"]
+            if len(mains) != 1 or not isinstance(mains[0], ast.FunctionDef):
+                raise ValueError("exactly one synchronous main required")
+            main = mains[0]
+            if (len(main.args.args) != 1 or main.args.args[0].arg != "input"
+                or main.args.vararg or main.args.kwarg or main.args.defaults
+                or main.args.kwonlyargs or main.args.posonlyargs or main.returns is None):
+                raise ValueError("main(input: InputTypedDict) -> OutputTypedDict required")
+            ann = main.args.args[0].annotation
+            if not isinstance(ann, ast.Name) or not isinstance(main.returns, ast.Name):
+                raise ValueError("main signature must name strict TypedDict classes")
+            ins = _schema(ann, defs)
+            outs = _schema(main.returns, defs)
+            if ins[0] != "object" or outs[0] != "object":
+                raise ValueError("main annotations must be strict TypedDict")
+            required_inputs = {k for k, needed, _ in ins[1] if needed}
+            input_names = {k for k, _, _ in ins[1]}
+            if not required_inputs <= args.keys() or not args.keys() <= input_names:
+                raise ValueError(f"arguments missing={sorted(required_inputs - args.keys())}, extra={sorted(args.keys()-input_names)}")
+            for n in ast.walk(module):
+                if isinstance(n, ast.Import) and any(x.name.split(".")[0] in BANNED_IMPORTS for x in n.names):
+                    raise ValueError("forbidden external/ambient import")
+                if isinstance(n, ast.ImportFrom) and (n.module or "").split(".")[0] in BANNED_IMPORTS:
+                    raise ValueError("forbidden external/ambient import")
+                if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id in BANNED_CALLS:
+                    raise ValueError("forbidden dynamic or external call")
+            # Static return mapping minimum: reject extra/absent literal keys.
+            out_fields = {k for k, _, _ in outs[1]}
+            out_required = {k for k, need, _ in outs[1] if need}
+            for n in ast.walk(main):
+                if not isinstance(n, ast.Return) or not isinstance(n.value, ast.Dict):
+                    continue
+                literal = {key.value for key in n.value.keys if isinstance(key, ast.Constant) and isinstance(key.value, str)}
+                if len(literal) != len(n.value.keys) or not out_required <= literal or not literal <= out_fields:
+                    raise ValueError(f"return mapping not compatible with strict output TypedDict {main.returns.id}")
+            models[node] = {"input": ins, "output": outs}
+        except (SyntaxError, ValueError, TypeError) as exc:
+            errors.append(f"{skill.name}/{node}: invalid v1alpha4 Script {script.name}: {exc}")
+
+    for node, (_, args) in script_nodes.items():
+        model = models.get(node)
+        if model is None:
+            continue
+        input_fields = {k: typ for k, _, typ in model["input"][1]}
+        for key, value in args.items():
+            match = SOURCE.fullmatch(value)
+            if not match or match[1] not in models:
+                continue  # Owner/Context paths need trusted Compiler link; do not infer schemas.
+            produced = _navigate(models[match[1]]["output"], match[2] or "")
+            if produced is None:
+                errors.append(f"{skill.name}/{node}: Script SourcePath missing: {value}")
+            elif not _subtype(produced, input_fields[key]):
+                errors.append(f"{skill.name}/{node}: INPUT_TYPE_MISMATCH for {key}: {value} incompatible with closed Script input")
+, block):
+            errors.append(f"{skill.name}: failure responsibility must be explicitly marked failed")
+        if not re.search(r"(?m)^        - predicate: establishment\\.resources\\.managed\\s*$", block):
+            errors.append(f"{skill.name}: confirmed-failure handoff must prove resource responsibility")
+        if not re.search(r"(?m)^            - ca-transfer-failed-resource-responsibility\\.operation\\.output\\s*$", block):
+            errors.append(f"{skill.name}: failure responsibility Predicate must consume its own Operation Result")
+        if not re.search(r"(?m)^        PASS: FAILED\\s*$", block):
+            errors.append(f"{skill.name}: FAILED terminal requires evidenced resource responsibility")
+        if not re.search(r"(?m)^        FAIL: SAFE_STOPPED\\s*$", block) or not re.search(r"(?m)^        UNKNOWN: UNRESOLVED\\s*$", block):
+            errors.append(f"{skill.name}: failed responsibility proof must fail closed")
+
     if not re.search(r"(?m)^\| \x60get-sm-subscription-data\x60 \| step 4", skill_text):
         errors.append(f"{skill.name}: SKILL.md must trace the Step 4 Node and its entry context Observation")
     if not re.search(r"(?m)^\| \x60update-sm-context\x60 \| step 15", skill_text):
