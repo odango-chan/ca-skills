@@ -42,6 +42,8 @@ This is a **proposed MAS policy-first implementation graph**, not a standard 3GP
 | `ca-compensate-confirmed-failure` | failure handling / potentially separate PDU Session Release procedure | `CA_EXTENSION`: not a 3GPP Release procedure unless the Owner contract explicitly implements that procedure. |
 | `verify-pdu-session-establishment` | final facts across steps 15–17 | `CA_EXTENSION`: final Goal proof, not a separate 3GPP operation. |
 
+**Open 3GPP boundaries:** TS 23.502 step 5 `Nsmf_PDUSession_CreateSMContext Response` is an early response, not final session establishment. Step 17 `Nsmf_PDUSession_UpdateSMContext Response` follows the access-network result and N4 modification. The MAS graph's custom context operation does not prove either standard response is emitted; the Host/Owner response boundary must be decided explicitly.
+
 ### Capability mapping
 
 These are illustrative names, not published CapabilityContracts exports:
