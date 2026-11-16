@@ -6,7 +6,7 @@ requestSchema: schemas/establishment-request.schema.yaml
 contextSchema: ca-context::urn:connectionagent:ca:context:subject:v1
 dependencies:
   ca-context: urn:connectionagent:ca:host-context
-  ca-observations: urn:connectionagent:ca:host:smf-mas-observations
+  ca-session-context: urn:connectionagent:ca:host:smf-session-context
   mas: urn:example:connectionagent:openamsm-mas-tool-contracts
 capabilities:
   - urn:example:connectionagent:capability:ca:smf-session-context-read:v1
