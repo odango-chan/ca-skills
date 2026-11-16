@@ -95,6 +95,19 @@ predicates:
       type: script
       script: scripts/validate-subscription-request.py
 
+  # Entry decision: a confirmed 404 SESSION_NOT_FOUND is ABSENT and may select the
+  # initial-creation path. PRESENT (including projection UNAVAILABLE) is not ABSENT.
+  # Missing evidence or an indeterminate query is UNKNOWN, never permission to create.
+  establishment.smf.session_context_absent:
+    parameters:
+      - sessionContext: ca::urn:example:5gc:smf-session-context:v1
+    evidence:
+      requires:
+        sessionContext: [ca::smf.session-context.query-evidence]
+    evaluator:
+      type: script
+      script: scripts/validate-smf-session-context-entry.py
+
   # Validate the current SMF session profile before N4 forwarding modification.
   # Missing/unavailable source Evidence is UNKNOWN; mismatched or unsupported business
   # facts fail this admitted initial-session profile.
