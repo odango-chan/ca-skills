@@ -1,4 +1,8 @@
-"""Select policy inputs from a verified UDM subscription (no Owner authority)."""
+"""Build the SM Policy Association inputs from the Step 4 UDM result.
+
+This is deterministic local business-data projection. It does not call an Owner,
+authorize subscription data, or create Evidence.
+"""
 from __future__ import annotations
 from typing import Annotated, Literal, NotRequired, TypedDict
 
@@ -26,8 +30,6 @@ OutputDefaultQos = TypedDict(
 )
 
 
-# Exact six-key structural projection of select-establishment-configuration.py.
-# The source contains all six required keys and is closed (additionalProperties:false).
 class SNssai(TypedDict):
     sst: Annotated[int, {"minimum": 0, "maximum": 255}]
     sd: NotRequired[Annotated[int, {"minimum": 0, "maximum": 16777214}]]
@@ -43,13 +45,37 @@ class SscModes(TypedDict):
     allowedSscModes: NotRequired[list[int]]
 
 
+class SessionAmbr(TypedDict):
+    uplink: Annotated[str, {"minLength": 1}]
+    downlink: Annotated[str, {"minLength": 1}]
+
+
+class DefaultQos(TypedDict):
+    fiveQi: int
+    arp: Arp
+    priorityLevel: NotRequired[int]
+
+
 class SubscriptionData(TypedDict):
     sNssai: SNssai
     dnn: Annotated[str, {"minLength": 1}]
     pduSessionTypes: PduSessionTypes
     sscModes: SscModes
-    sessionAmbr: Ambr
-    defaultQos: InputDefaultQos
+    sessionAmbr: SessionAmbr
+    defaultQos: DefaultQos
+
+
+class UdmReadResult(TypedDict):
+    selection: str
+    httpStatus: int
+    networkOutcome: str
+    responseOrigin: str
+    captureComplete: bool
+    transactionRef: str
+    requestRef: str
+    fabricRecordRef: str
+    fabricRecordDigest: str
+    subscription: SubscriptionData
 
 
 class SubscriptionSource(TypedDict):
@@ -60,8 +86,7 @@ class SubscriptionSource(TypedDict):
 
 
 class PolicyInput(TypedDict):
-    subscriptionData: SubscriptionData
-    subscriptionSource: SubscriptionSource
+    udmResult: UdmReadResult
 
 
 class PolicyOutput(TypedDict):
@@ -71,7 +96,8 @@ class PolicyOutput(TypedDict):
 
 
 def main(input: PolicyInput) -> PolicyOutput:
-    subscription = input["subscriptionData"]
+    result = input["udmResult"]
+    subscription = result["subscription"]
     qos = subscription["defaultQos"]
     result_qos: OutputDefaultQos = {
         "5qi": qos["fiveQi"],
@@ -83,5 +109,10 @@ def main(input: PolicyInput) -> PolicyOutput:
     return {
         "ambr": subscription["sessionAmbr"],
         "defaultQos": result_qos,
-        "subscriptionSource": input["subscriptionSource"],
+        "subscriptionSource": {
+            "transactionRef": result["transactionRef"],
+            "requestRef": result["requestRef"],
+            "fabricRecordRef": result["fabricRecordRef"],
+            "fabricRecordDigest": result["fabricRecordDigest"],
+        },
     }
