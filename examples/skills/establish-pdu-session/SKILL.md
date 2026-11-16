@@ -76,3 +76,12 @@ Asynchronous access-network completion belongs to the SSM Owner Operation. It ma
 Every Mutation `OUTCOME_UNKNOWN` goes to an explicit safe stop. An Owner-published `mutation.reconcile` can be used **only through the Host common safety boundary**, not an authored `reconcile` Node. The only successful Invocation edge is `verify-pdu-session-establishment.postcondition.routes.PASS: SUCCEEDED`, where all listed predicates must pass with authoritative, fresh, same-lifecycle Evidence.
 
 **Known blockers:** missing exact v1alpha4 Owner/Capability publications, checked output Schemas and Evidence descriptors, confirmed callable input identities, and Compiler/Studio/Host §45.2 execution evidence. Do **not** infer completion or production readiness from YAML syntax checks.
+
+
+## Context ownership
+
+The Skill receives only the Host-resolved opaque UE subject handle (ueRef) plus its own validated request. It does not receive ingressRef, lifecycleRef, instanceId, hold, waiter or journal metadata.
+
+The Agent may request explicit read-only Observations only for context owned by the SMF MAS. It does not directly query AMF, UDM, PCF, UPF or other NF context. If a Tool needs non-SMF context, the responsible Tool/Owner adapter obtains and validates it internally and returns its declared Operation Result/Evidence.
+
+This initial PDU Session establishment flow does not need a pre-existing SMF context query: the SM Context is created by the procedure itself. Do not turn SESSION_NOT_FOUND into a successful precondition. See the CA Agent Host 5GC context boundary: https://github.com/odango-chan/ca-agent-demo/blob/main/docs/design/5gc-agent-context-access-boundary-v1alpha4.md.
