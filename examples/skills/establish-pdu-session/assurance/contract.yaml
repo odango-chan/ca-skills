@@ -7,6 +7,7 @@ requestSchema: schemas/establishment-request.schema.yaml
 contextSchema: ca-context::urn:connectionagent:ca:context:subject:v1
 dependencies:
   ca-context: urn:connectionagent:ca:host-context
+  ca-observations: urn:connectionagent:ca:host:smf-mas-observations
   ca: urn:example:connectionagent:5gc-tool-contracts
   upn: urn:example:connectionagent:upn-tool-contracts
   ssm: urn:example:connectionagent:ssm-tool-contracts
