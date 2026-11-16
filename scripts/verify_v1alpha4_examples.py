@@ -354,7 +354,7 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
             errors.append(f"{skill.name}: first business Node must execute the UDM Get Operation")
         if not re.search(r"(?m)^      tool: ca-session-context::context\.smf\.session\.read\s*$", block):
             errors.append(f"{skill.name}: entry SM Context Observation must be co-located in get-sm-subscription-data")
-        if not re.search(r"(?m)^        ueRef: context\.ueRef\s*$", block) or not re.search(r"(?m)^        pduSessionId: context\.request\.pduSessionId\s*$", block):
+        if not re.search(r"(?m)^        supi: context\.supi\s*$", block) or not re.search(r"(?m)^        pduSessionId: context\.request\.pduSessionId\s*$", block):
             errors.append(f"{skill.name}: entry Observation must be scoped by exact UE and PDU Session ID")
         if not re.search(r"(?m)^        - predicate: establishment\.smf\.session_context_absent\s*$", block):
             errors.append(f"{skill.name}: Step 4 Postcondition must evaluate the evidenced entry-presence Predicate")
@@ -415,7 +415,7 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
             errors.append(f"{skill.name}: SSM callback must be associated with the exact N1/N2 transfer Operation")
         if not re.search(r"(?m)^      tool: ca-session-context::context\.smf\.session\.read\s*$", block):
             errors.append(f"{skill.name}: fresh post-Step-15 Observation must be co-located in update-sm-context")
-        if not re.search(r"(?m)^        ueRef: context\.ueRef\s*$", block) or not re.search(r"(?m)^        pduSessionId: context\.request\.pduSessionId\s*$", block):
+        if not re.search(r"(?m)^        supi: context\.supi\s*$", block) or not re.search(r"(?m)^        pduSessionId: context\.request\.pduSessionId\s*$", block):
             errors.append(f"{skill.name}: post-Step-15 Observation must be scoped by exact UE and PDU Session ID")
         if not re.search(r"(?m)^            - update-sm-context\.operation\.output\s*$", block):
             errors.append(f"{skill.name}: RAN adoption Predicate must consume the UpdateSMContext Operation Result")
