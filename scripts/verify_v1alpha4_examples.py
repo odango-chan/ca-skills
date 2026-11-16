@@ -157,7 +157,7 @@ def validate_3gpp_traceability(skill: Path, errors: list[str]) -> None:
         return
     if "TS 23.502 V18.12.0" not in doc:
         errors.append(f"{skill.name}: 3GPP reference version is not pinned")
-    documented = set(re.findall(r"^\\|\\s*`([A-Za-z][A-Za-z0-9_-]*)`\\s*\\|",
+    documented = set(re.findall(r"^\|\s*\x60([A-Za-z][A-Za-z0-9_-]*)\x60\s*\|",
                                 doc, flags=re.MULTILINE))
     expected = set(node_ids)
     for node in sorted(expected - documented):
