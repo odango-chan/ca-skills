@@ -29,6 +29,7 @@ description: Use when authoring or refreshing an official ConnectionAgent Skill 
 8. Use one `cases/<case>/case.yaml` per semantic obligation. Cases are source material; never claim execution or qualification without owner-run evidence.
 9. Put optional model knowledge in flat or logically grouped `references/` Markdown; list exact paths in `SKILL.md`. References are not automatically loaded.
 10. Before claiming Compiler compatibility, verify the actual target Compiler against every source construct and imported reference. Source hygiene is not Compiler acceptance.
+11. Before completing a source change or recommending a PR for merge, run the reusable review skill at [.agents/skills/review-connectionagent-skill/SKILL.md](../review-connectionagent-skill/SKILL.md) against the exact current head and resolve P0/P1 findings. In particular, map one primary business action per Node and co-locate supplementary Observation stages with the Operation they support; do not add standalone Observation-only Nodes by default.
 
 ## Validation language
 
