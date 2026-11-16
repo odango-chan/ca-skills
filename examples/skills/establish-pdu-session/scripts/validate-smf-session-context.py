@@ -44,7 +44,7 @@ def main(input: PredicateInput) -> PredicateEvaluationResult:
             "evidenceUsed": evidence_refs,
         }
 
-    if presence != "PRESENT" or source_outcome != "MAS_RESPONSE":
+    if presence != "PRESENT" or source_outcome != "CONTEXT_RESPONSE":
         return {
             "result": "UNKNOWN",
             "reasonCode": "SMF_SESSION_CONTEXT_PRESENCE_UNKNOWN",
