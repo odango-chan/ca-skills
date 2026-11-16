@@ -117,7 +117,7 @@ Additional rules:
 - Do not infer completion from an intermediate response, acknowledgement, accepted request or committed mutation when later network state is required.
 - The final Goal MUST be proved by the final Postcondition aggregate using authoritative, current, same-scope Evidence.
 - Do not carry a prior Node's PASS as proof for the final Goal. Reuse the underlying typed result only where its scope and freshness remain valid.
-- Every terminal path must have a defined business meaning and retain any unresolved resource/protocol responsibility.
+- Every terminal path must have a defined business meaning and retain any unresolved resource/protocol responsibility. A confirmed FAILED terminal may be reached only after any required failure-resource handoff has its own authoritative Postcondition/Evidence; a successful handoff call alone is not proof.
 
 ## 10. Contracts, capabilities and implementation isolation
 
