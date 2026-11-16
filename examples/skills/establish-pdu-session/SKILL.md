@@ -54,7 +54,7 @@ The Skill's global Contract Precondition validates only the admitted business re
 
 | `modify-n4-session` | steps 16a–16b; §4.4.1.3 N4 Session Modification | `CA_ADAPTER`: UPN Owner completes forwarding modification. |
 | `ca-transfer-resource-responsibility` | CA lifecycle handoff after successful network procedure | `CA_EXTENSION`: no direct 3GPP procedure counterpart. |
-| `ca-transfer-failed-resource-responsibility` | CA lifecycle handoff after confirmed failure | `CA_EXTENSION`: no direct 3GPP procedure counterpart. |
+| `ca-transfer-failed-resource-responsibility` | CA lifecycle handoff after confirmed failure | `CA_EXTENSION`: no direct 3GPP procedure counterpart; its own resource-management Evidence must pass before terminal `FAILED`. |
 | `verify-pdu-session-establishment` | final facts derived from steps 15–17 | `CA_EXTENSION`: final Goal proof over authoritative network facts and resource responsibility. |
 
 **Resolved service entry/exit boundaries:** step 3 `Nsmf_PDUSession_CreateSMContext Request` and its early step 5 response belong to the Host service ingress/exit boundary; step 5 is not final Goal proof. Step 15 `Nsmf_PDUSession_UpdateSMContext Request` is admitted by Host and correlated to the pending `update-sm-context` Operation in the existing Invocation. Step 17 `Nsmf_PDUSession_UpdateSMContext Response` is the paired Host service exit for that exact request, emitted after Fabric has received the real N4 Modification Response and the Procedure has reached its terminal business outcome. Neither response is a new Skill Node or a new Skill invocation. The exact Host/Owner transport, timeout and failure-response contract remains NOT_PUBLISHED; the example does not claim live conformance.
