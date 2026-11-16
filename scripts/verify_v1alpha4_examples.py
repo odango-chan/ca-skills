@@ -413,11 +413,15 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
 
     if "establishment.smf.session_context_profile_ready:" not in predicate_text:
         errors.append(f"{skill.name}: missing the SMF session-context business Predicate")
-    post_script_text = (skill / "scripts" / "validate-smf-session-context.py").read_text(encoding="utf-8")
-    if "sessionPresence" not in post_script_text:
-        errors.append(f"{skill.name}: post-Step-15 Predicate must distinguish absent from present context")
-    if "projectionStatus" not in post_script_text:
-        errors.append(f"{skill.name}: post-Step-15 Predicate must distinguish PRESENT+UNAVAILABLE from PRESENT+AVAILABLE")
+    post_script = skill / "scripts" / "validate-smf-session-context.py"
+    if not post_script.is_file():
+        errors.append(f"{skill.name}: missing the post-Step-15 SMF context Predicate Script")
+    else:
+        post_script_text = post_script.read_text(encoding="utf-8")
+        if "sessionPresence" not in post_script_text:
+            errors.append(f"{skill.name}: post-Step-15 Predicate must distinguish absent from present context")
+        if "projectionStatus" not in post_script_text:
+            errors.append(f"{skill.name}: post-Step-15 Predicate must distinguish PRESENT+UNAVAILABLE from PRESENT+AVAILABLE")
     if "sessionContext: ca::urn:example:5gc:smf-session-context:v1" not in predicate_text:
         errors.append(f"{skill.name}: SMF session-context Predicate must use the generic context result Schema")
     if "sessionContext: [ca::smf.session-context.query-evidence]" not in predicate_text:
