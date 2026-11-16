@@ -373,7 +373,7 @@ The revision must not add a fifth business stage, a Wait Node kind, a new busine
 
 ## 12. Review and acceptance checklist
 
-Before this design can be frozen into a language revision, independent review must confirm:
+Before this design can be published as a normative language specification, independent review must confirm the following formalization and conformance details. These items do not reopen the frozen architectural decisions in §13:
 
 - [ ] exact grammar and required Wait fields;
 - [ ] the Integration-owned Ingress Operation export and exact API artifact/version/digest binding;
@@ -411,3 +411,52 @@ Before this design can be frozen into a language revision, independent review mu
 
 These cases are semantic acceptance requirements. They do not imply that the Compiler, Host, Runtime or Integration adapter already implements them.
 No implementation or product-conformance claim follows from this design document alone.
+
+
+## 13. Frozen semantic baseline and change control
+
+The following semantic decisions are frozen as the baseline for the next CA-SL language revision. Implementations and the normative specification MUST preserve them.
+
+| Area | Frozen decision |
+|---|---|
+| Placement | Optional `wait` is declared at the outer level of an existing Procedure Node, before its business stages |
+| Node and stages | Wait is neither a fifth Node kind nor a fifth business stage; the existing four stages and their order remain unchanged |
+| Normal event path | A valid accepted event implicitly opens the target Node's first declared business stage; no explicit `EVENT_RECEIVED` route is authored |
+| Timeout path | Required `wait.routes.TIMEOUT`, using the existing route-target model; no `onTimeout` field |
+| Event identity | Exact event identity resolves against one trusted, version-pinned Integration Ingress Operation export |
+| Schema | No Skill-authored `payloadSchema` and no global EventCatalog; normalized request typing comes from the trusted Integration export |
+| Dataflow | Accepted normalized request is exposed only as typed `node.wait.output`; it is never implicit global Context or Evidence |
+| Registration | Expected ingress is registered before the triggering external Operation; registration does not activate the target Node or start its timeout |
+| Early delivery | A valid pre-activation delivery is durably buffered and consumed only if that exact target Node is selected |
+| Timeout | Clock starts at target Node activation; Wait timeout, global Invocation deadline and cancellation remain distinct |
+| Concurrency and staleness | Correlation must uniquely identify one armed Wait; stale generations cannot satisfy later Waits; where the protocol lacks a discriminator, Integration must prove a safe single-flight/tombstone policy or fail closed |
+| Response | Optional `wait.response.after` binds a paired protocol response to a Node completion boundary, independent of terminal Run completion; Integration owns protocol mapping and encoding |
+| Runtime distinction | Event Wait is push-driven continuation, not Observation polling or Runtime Evidence Wait |
+| Action budget | Wait itself dispatches no Tool or Script and consumes no Tool/Script Action Budget |
+| Ownership | Integration owns protocol ingress/correlation; Generic Host owns durable generic delivery and private response-obligation lifecycle; Runtime owns authoritative Wait/Run continuation; Tool Owner owns business effects, Operation Results and Evidence |
+| Compatibility | CA-SL v1alpha4 remains unchanged; this feature belongs only to a later, explicitly versioned language revision |
+
+### 13.1 Permitted changes before normative publication
+
+The following may be refined without reopening the frozen semantics:
+
+- exact YAML/EBNF grammar and field-level lexical constraints;
+- diagnostic identifiers, wording and Compiler conformance fixtures;
+- serialization of the trusted Integration export and generic Host/Runtime ports;
+- payload-reference representation for supported multipart/binary content;
+- deployment-specific maximum Wait duration and operational retry/backoff policy;
+- persistence technology, inbox/outbox implementation and recovery test details.
+
+Such refinements MUST NOT change the frozen decisions above. Any proposed semantic change requires an explicit design amendment, impact analysis against CA-SL, Host/Runtime and 5GC authoring, and a new independent review. It must not be introduced as an implementation convenience or silently folded into the normative text.
+
+### 13.2 Formal publication gate
+
+The semantic baseline is frozen, but the language feature is not yet released for authoring or implementation conformance. Formal publication still requires:
+
+1. the exact normative grammar and static validation rules to be incorporated into a versioned CA-SL specification;
+2. all diagnostics and positive/negative fixtures to be defined;
+3. the Integration export and Host/Runtime continuation contracts to be reviewed together;
+4. independent review of the complete normative text;
+5. an explicit language version identifier and release decision.
+
+Until those gates are met, v1alpha4 remains the only applicable published language contract, and the proposed `wait` syntax MUST NOT be added to v1alpha4 Skills.
