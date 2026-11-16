@@ -500,6 +500,24 @@ nodes:
             - modify-n4-session.operation.output
       routes:
         PASS: ca-transfer-resource-responsibility
+  ca-transfer-failed-resource-responsibility:
+    operation:
+      tool: ca::ca.session.resource_responsibility.transfer
+      arguments:
+        disposition: "failed"
+      routes:
+        FAILED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
+        DENIED: SAFE_STOPPED
+    postcondition:
+      predicates:
+        - predicate: establishment.resources.managed
+          arguments:
+            - ca-transfer-failed-resource-responsibility.operation.output
+      routes:
+        PASS: FAILED
+        FAIL: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
   verify-pdu-session-establishment:
     postcondition:
       predicates:
