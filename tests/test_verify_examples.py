@@ -285,7 +285,7 @@ nodes:
     operation:
       tool: ca::sbi.pcf.sm_policy.create
       arguments:
-        ueRef: context.ueRef
+        supi: context.supi
         request: context.request
         udmReadResult: get-sm-subscription-data.operation.output.result
         sdmSubscriptionRef: subscribe-sm-data.operation.output.subscriptionRef
@@ -348,7 +348,7 @@ nodes:
     operation:
       tool: upn::UPN.CREATE_UP_SESSION
       arguments:
-        ueRef: context.ueRef
+        supi: context.supi
         request: context.request
         udmReadResult: get-sm-subscription-data.operation.output.result
         policyAssociationRef: establish-sm-policy-association.operation.output.policyAssociationRef
@@ -446,7 +446,7 @@ nodes:
     observation:
       tool: ca-session-context::context.smf.session.read
       arguments:
-        ueRef: context.ueRef
+        supi: context.supi
         pduSessionId: context.request.pduSessionId
     postcondition:
       predicates:
@@ -475,7 +475,7 @@ nodes:
     observation:
       tool: ca-session-context::context.smf.session.read
       arguments:
-        ueRef: context.ueRef
+        supi: context.supi
         pduSessionId: context.request.pduSessionId
     postcondition:
       predicates:
