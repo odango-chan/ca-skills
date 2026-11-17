@@ -6,7 +6,7 @@
 
 ## Normative identity
 
-- **Complete normative source:** `docs/skill-language-spec.v1alpha5.zh-CN.md`
+- **Complete normative source:** [`docs/skill-language-spec.v1alpha5.zh-CN.md`](https://github.com/odango-chan/ca-skills/blob/0abfd0e1ab99f481a4ae01f3f47efc54783dd5e5/docs/skill-language-spec.v1alpha5.zh-CN.md)
 - **Immutable normative commit:** `0abfd0e1ab99f481a4ae01f3f47efc54783dd5e5`
 - **Publication PR:** [ca-skills #66](https://github.com/odango-chan/ca-skills/pull/66)
 - **Merge commit:** `0abfd0e1ab99f481a4ae01f3f47efc54783dd5e5`
@@ -17,7 +17,7 @@ The normative source is the complete single file at the commit above, including 
 
 - **IngressCatalog:** `connectionagent.io/ingresscatalog/v1alpha1`
 - **Diagnostic registry:** `connectionagent.io/ingress-diagnostics/v1alpha1`
-- **Companion contract:** `docs/design/integration-ingress-operation-contract-vnext.zh-CN.md`
+- **Companion contract:** [`docs/design/integration-ingress-operation-contract-vnext.zh-CN.md`](https://github.com/odango-chan/ca-skills/blob/9412be9894ef36acf846c757a5870dc0c48b33ac/docs/design/integration-ingress-operation-contract-vnext.zh-CN.md)
 - **Diagnostic registry:** `docs/design/ingress-diagnostic-registry-v1alpha1.md` and `docs/design/ingress-diagnostic-registry-v1alpha1.json`
 - **Immutable companion release commit:** `9412be9894ef36acf846c757a5870dc0c48b33ac`
 - **Publication PR:** [ca-skills #62](https://github.com/odango-chan/ca-skills/pull/62)
