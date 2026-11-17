@@ -164,8 +164,10 @@ Compiler MUST NOT：
 
 - id：非空、稳定、包内唯一的精确 export ID；
 - event：精确的 source/service/operation 三元组；
-- owner：与受信 dependency Owner binding 一致；
-Catalog 的 apiVersion 固定该 export 的结构版本；export identity 由受信 Package ID、Owner、exportKind、export ID 和 snapshot digest 共同确定，不再引入第二套可漂移的 contractVersion。
+- adapter：非空的 Integration 内部适配器身份，由受信部署绑定到实际运行实现；
+- owner：继承所属 IngressCatalog.metadata.owner，不在 operations[] 中重复声明。
+
+Catalog 的 apiVersion 固定 operations[] 中所有 Ingress Operation export 的结构版本。每个操作的有效 Owner 为 Catalog Owner；Compiler 对每个 (exportKind=ingressOperation, exportId) 使用独立的 trusted dependency Owner binding 核验。export identity 由受信 Package ID、Owner、exportKind、export ID 和 snapshot digest 共同确定，不再引入第二套可漂移的 contractVersion。adapter 只是实现身份，不是 Owner 身份或网络地址。
 
 同一 id 的任何协议版本、Schema、归一化、Correlation、响应或安全语义变化都必须产生新的不可变快照；不得原地改变已被 Skill pin 的内容。
 
@@ -177,7 +179,7 @@ protocol 至少声明：
 |---|---|
 | specification | 精确标准身份，例如 3GPP TS 29.502 |
 | release | 精确发布版本；不得使用 latest、范围或浮动标签 |
-| apiVersion | API URI 版本 |
+| apiUriVersion | API URI 版本 |
 | openapi.artifactRef | dependency snapshot 内精确 OpenAPI artifact 身份 |
 | openapi.artifactDigest | 对应 artifact 的 SHA-256 摘要 |
 | openapi.operationId | 精确 OpenAPI operationId |
@@ -195,7 +197,7 @@ request 必须声明：
 - acceptedMediaTypes[]：精确允许的 wire media types；
 - sourceSchemas[]：每种请求媒体类型对应的源 Schema 身份及摘要；
 - normalizedSchemaRef 和 normalizedSchemaDigest：唯一的 Skill-facing normalized request Schema；
-- normalization：确定性归一化实现身份、摘要及可审计的 source-to-normalized mapping。
+- normalization：按每种 accepted media type 声明的确定性、内联、可静态检查的 source-to-normalized mapping。
 
 sourceSchemas 必须与 acceptedMediaTypes 一一对应：每个允许的 media type 恰有一个源 Schema，不得存在缺失或多余的源 Schema。源 Schema 必须与 pinned OpenAPI artifact 中的 Request Body / multipart part 声明一致。Integration Adapter 按该精确 OpenAPI artifact 的方言验证 wire request；Compiler 验证源 Schema 引用及其 artifact/digest 归属，但不要求完整 OpenAPI Schema 方言落入 CA-SL 的 JSON Schema 子集，也不在 Compiler 中执行协议 wire validation。normalizedSchemaRef 才是 Compiler 用于 wait.output 路径、类型赋值和 CA-SL 静态分析的 Schema，必须符合 CA-SL 支持的 JSON Schema Draft 2020-12 子集。
 
@@ -217,7 +219,13 @@ Schema 选择不能依赖未验证的 Body 字段。未经认证的 source、UE 
 
 归一化必须确定、可复现、可审计。每个必需的源字段必须有明确目标字段；可选或忽略字段必须在 mapping 中明确标注。未知的语义字段、缺失的必需字段、类型不符和不支持的 media type 必须拒绝或隔离，不能静默丢弃、猜测或截断。
 
-Normalization mapping 必须被精确版本化并由 Integration Owner 负责。Compiler 至少验证 mapping artifact 身份、摘要、Schema 路径和完整性；Integration conformance tests 负责证明真实 adapter 的转换与 mapping 一致。禁止以 Skill Script、CEL 或 LLM 在运行时临时完成协议归一化。
+request.normalization.representations[] 必须对每个 accepted media type 恰好声明一个映射配置。每个配置至少包含精确 mediaType、multipart parts（适用时）和 mappings[]。每条 mapping 必须包含 source selector、normalized target JSON Pointer 和 transform。Normalization mapping 是 IngressCatalog operations[] 中的内联声明式数据，随整个 dependency snapshot digest 一起固定；本版不再引入独立 mappingRef/mappingDigest。
+
+source selector 的 kind 仅允许 path、query、header、json-body、multipart-json 和 multipart-binary。path/query/header 必须带精确参数名；json-body 必须带 JSON Pointer；multipart-json 必须带精确 part 名及 JSON Pointer；multipart-binary 必须带精确 part 名。header 只有在源协议明确将其定义为业务输入且 normalized Schema 显式声明对应属性时才允许映射，认证和传输控制 Header 不得映射。
+
+transform 的初始封闭集合仅为 identity、parse-integer、parse-number、parse-boolean 和 binary-content-ref。identity 要求来源 Schema 类型可直接赋值给目标属性；parse-integer 只接受规范十进制整数词法且不得溢出；parse-number 只接受规范十进制有限数值且不得舍入或产生非有限值；parse-boolean 只接受精确小写 true/false；binary-content-ref 只适用于 multipart-binary 并生成 normalized Schema 声明的受限不可变内容引用。不得执行任意 CEL、Python、表达式、反射、网络查询、隐式字符串化、locale 转换、截断或有损转换。
+
+对每一种 media type，normalized Schema 的每个 required 属性必须恰好由一条 mapping 提供；不得有重复 target、悬空 source、未知 target 或类型不可赋值。未映射源字段/part 默认拒绝；只有 pinned source Schema 明确声明其可忽略，且 export 显式列出该忽略项时才可丢弃。可选 normalized 属性可以在对应 wire representation 中缺失，但不得合成默认值。真实 Adapter 必须通过 conformance fixtures 证明执行结果与内联 mapping 完全一致。禁止以 Skill Script、CEL 或 LLM 在运行时临时完成协议归一化。
 
 ### 4.5 Multipart 与二进制内容
 
@@ -227,6 +235,7 @@ Normalization mapping 必须被精确版本化并由 Integration Owner 负责。
 - 对应源 Schema / OpenAPI part 定义；
 - normalized request 中的目标字段；
 - 最大长度与允许的内容类型；
+- normalized Schema 中对应的 binary reference Schema 身份；
 - 二进制内容的不可变引用表示及其生命周期。
 
 二进制内容不得因方便而转为未校验的任意字符串，也不得被静默丢弃。若 normalized request 暴露二进制引用，该引用是受限的业务数据引用，不是 normalizedPayloadRef、expectedIngressRef 或 responseObligationRef。
@@ -361,8 +370,10 @@ Integration 必须证明一个经过认证、验证和归一化的请求最多�
 
 - 对相同 correlation resource key，同一时刻最多允许一个有效 Wait occurrence；
 - Wait timeout、cancel 或 invalidation 后，该 key 必须进入 tombstone/quarantine；
-- 在协议或受信入口设施可证明的最大迟到消息窗口内，不得为相同 key 建立下一 Wait；
-- tombstone 到期依据必须是可审计的协议或部署保证，不得由 Skill 作者随意声明；
+- export 必须声明 maximumLateArrival、clockSkewAllowance 和 tombstoneRetention 三个固定时长；
+- tombstoneRetention MUST NOT 小于 maximumLateArrival + clockSkewAllowance；
+- 在 tombstoneRetention 到期前，不得为相同 key 建立下一 Wait；
+- maximumLateArrival 与 clockSkewAllowance 的依据必须由可审计的协议或部署保证支持，不得由 Skill 作者随意声明；
 - maximumLateArrival 使用 CA-SL 固定正时长的同一词法子集；若无法证明有限的迟到窗口，则不得复用该 key；Compiler/Admission 必须 fail-closed。
 
 不得只用 Runtime 内部 generation counter、expectedIngressRef 随机性或数据库行版本声称解决外部消息的迟到歧义。
@@ -414,7 +425,9 @@ response.result 是可选的 typed result 绑定，但在以下任一条件成�
 - 至少一个 response disposition 为 body: required；
 - 声明多个 response dispositions，需要依据业务结果确定所选 status/disposition。
 
-此时必须声明 responseResultSchemaRef、response.result.producer（operation 或 observation）以及确定性、版本化的 response mapping artifact 和摘要。Compiler 根据 wait.response.after（或默认 Wait-bearing Node）和 producer 类型推导唯一 SourcePath，并验证 boundary Producer Output 对 responseResultSchema 的可赋值性。responseResultSchema 必须符合 CA-SL 支持的 JSON Schema 子集；协议 responseSchemaRef 则按 pinned OpenAPI artifact 验证，由 Integration Adapter 负责实际 wire response validation。response mapping 必须选择一个已声明 disposition，并为 body-bearing disposition 提供全部 required response fields。
+此时必须声明 responseResultSchemaRef、response.result.producer（operation 或 observation）以及 response.result.mappings[]。若存在多个 response dispositions，还必须声明 dispositionSelector，从 responseResultSchema 的一个受限 enum 属性将每个值精确映射到一个 disposition id。每条 response mapping 必须声明 dispositionId、from（responseResultSchema 内的 JSON Pointer）、to（对应 disposition 的 protocol responseSchema 内的 JSON Pointer）和 transform。初始 profile 的 transform 仅允许 identity；不得执行脚本、CEL、任意表达式或读取历史 Run 输出。
+
+Compiler 根据 wait.response.after（或默认 Wait-bearing Node）和 producer 类型推导唯一 SourcePath，并验证 boundary Producer Output 对 responseResultSchema 的可赋值性。responseResultSchema 必须符合 CA-SL 支持的 JSON Schema 子集；协议 responseSchemaRef 则按 pinned OpenAPI artifact 验证，由 Integration Adapter 负责实际 wire response validation。Compiler 必须验证 dispositionSelector 的源属性为闭合 enum、其值集合与 dispositions 完整且一一对应，并验证每个 body-bearing disposition 的 response mapping 覆盖全部 required response fields。
 
 若仅声明一个 body: none 的 response disposition，则 response.result 可以省略；该 status 是固定的，不需要 Producer 来选择。若有多个 bodyless dispositions，也必须使用 typed result 和 mapping 明确选择，不能依赖运行时猜测。
 
@@ -548,7 +561,6 @@ metadata:
 spec:
   operations:
     - id: nsmf-pdusession.update-sm-context
-      contractDigest: sha256:<64-hex>
       event:
         source: AMF
         service: Nsmf_PDUSession
@@ -557,7 +569,7 @@ spec:
       protocol:
         specification: 3GPP TS 29.502
         release: "<exact-pinned-release>"
-        apiVersion: v1
+        apiUriVersion: v1
         openapi:
           artifactRef: urn:example:openapi:nsmf-pdusession
           artifactDigest: sha256:<64-hex>
@@ -584,8 +596,66 @@ spec:
         normalizedSchemaRef: urn:example:normalized:update-sm-context:v1
         normalizedSchemaDigest: sha256:<64-hex>
         normalization:
-          mappingRef: urn:example:mapping:update-sm-context
-          mappingDigest: sha256:<64-hex>
+          representations:
+            - mediaType: application/json
+              mappings:
+                - source:
+                    kind: path
+                    name: smContextRef
+                  target: /smContextRef
+                  transform: identity
+                - source:
+                    kind: json-body
+                    pointer: ""
+                  target: /updateData
+                  transform: identity
+            - mediaType: multipart/related
+              parts:
+                - name: jsonData
+                  mediaType: application/json
+                  kind: json
+                  required: true
+                  schemaRef: urn:example:openapi:update-sm-context-json-part
+                  schemaDigest: sha256:<64-hex>
+                - name: n1SmMsg
+                  mediaType: application/vnd.3gpp.5gnas
+                  kind: binary
+                  required: false
+                  maxBytes: <deployment-limit>
+                - name: n2SmInfo
+                  mediaType: application/vnd.3gpp.ngap
+                  kind: binary
+                  required: false
+                  maxBytes: <deployment-limit>
+              mappings:
+                - source:
+                    kind: path
+                    name: smContextRef
+                  target: /smContextRef
+                  transform: identity
+                - source:
+                    kind: multipart-json
+                    part: jsonData
+                    pointer: ""
+                  target: /updateData
+                  transform: identity
+                - source:
+                    kind: multipart-binary
+                    part: n1SmMsg
+                  target: /n1SmMessage
+                  transform: binary-content-ref
+                - source:
+                    kind: multipart-binary
+                    part: n2SmInfo
+                  target: /n2SmInformation
+                  transform: binary-content-ref
+        binaryContent:
+          referenceSchemaRef: urn:example:normalized:binary-content-reference:v1
+          digestAlgorithm: sha-256
+          immutable: true
+          access: authorized-tool-only
+          retention: PT10M
+          maxBytes: <deployment-limit>
 
       correlation:
         armInputSchemaRef: urn:example:schema:update-sm-context-arm-input
@@ -600,6 +670,8 @@ spec:
           strategy: single-flight-tombstone
           resourceKey: /smContextRef
           maximumLateArrival: "<exact-positive-duration>"
+          clockSkewAllowance: "<exact-positive-duration>"
+          tombstoneRetention: "<at-least-maximumLateArrival-plus-clockSkewAllowance>"
           basisRef: urn:example:protocol-or-deployment-guarantee
 
       arming:
@@ -625,8 +697,18 @@ spec:
         result:
           producer: operation
           responseResultSchemaRef: urn:example:response-result:update-sm-context:v1
-          mappingRef: urn:example:mapping:update-sm-context-response
-          mappingDigest: sha256:<64-hex>
+          dispositionSelector:
+            sourcePath: /responseDisposition
+            cases:
+              - value: update-accepted
+                dispositionId: update-accepted
+              - value: update-completed-no-content
+                dispositionId: update-completed-no-content
+          mappings:
+            - dispositionId: update-accepted
+              from: /smContextRef
+              to: /smContextRef
+              transform: identity
         dispositions:
           - id: update-accepted
             status: 200
@@ -653,12 +735,12 @@ spec:
 注意：
 
 - sourceSchemas 和 normalizedSchemaRef 是不同契约，不得互相替代；
-- artifactDigest 绑定精确 OpenAPI 文件，mappingDigest 绑定归一化/响应映射实现；
+- artifactDigest 绑定精确 OpenAPI 文件；内联 normalization/response mappings 由整个 IngressCatalog dependency snapshot digest 固定；
 - operationId 不能替代 Service-Operation 名称；
 - arming.triggers[].operation 是出站 ToolCatalog Operation，不是 Ingress Operation；Compiler 从该精确 ToolCatalog export 解析 Operation Input Schema，armInputSchemaRef 则定义单独的 correlationBinding Schema；
 - requestKey 指向 normalized request 的字段，bindingPath 指向 correlation.armInputSchemaRef 的字段，operation-argument.path 指向出站 Operation 已物化输入；
 - response.result.producer 只允许 operation 或 observation；只有单一 bodyless disposition 时才可省略 typed result Producer；
-- 示例的 maximumLateArrival 必须由受信协议/部署保证给出，不能照抄占位值；
+- 示例的 maximumLateArrival、clockSkewAllowance 和 tombstoneRetention 必须由受信协议/部署保证给出，且 tombstoneRetention 不得小于前两者之和；
 - 示例没有提供任何凭证、证书、网络地址或运行时私有句柄。
 
 ## 13. 建议的诊断与拒绝分类
@@ -761,4 +843,4 @@ spec:
 - paired response 在声明的 Node boundary 提交，不等待整个 Run terminal；
 - Generic Host、Runtime、Integration 和 Tool Owner 的职责分离。
 
-本文允许继续细化的内容仅包括：精确 Schema 序列化、诊断消息、BuildRequest 物理传输、mapping artifact 编码、deployment profile binding、DTO、持久化、恢复实现和机器 Fixture。任何改变上述冻结语义的提议必须单独进行影响分析和重新裁决。
+本文允许继续细化的内容仅包括：精确 Schema 序列化、诊断消息、BuildRequest 物理传输、deployment profile binding、DTO、持久化、恢复实现和机器 Fixture。任何改变上述冻结语义的提议必须单独进行影响分析和重新裁决。
