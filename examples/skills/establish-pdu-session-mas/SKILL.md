@@ -68,10 +68,32 @@ The MAS graph is a CA policy-first implementation profile, not a normative 3GPP 
 - SSM owns the N1/N2-to-step-15 completion result.
 - CA charging and SE event recording are MAS-specific extensions, not standard 3GPP operations.
 
+## 3GPP Traceability
+
+**Pinned reference:** 3GPP TS 23.502 V18.12.0 (Release 18), §4.3.2.2.1 and N4 procedures §4.4.1.2–§4.4.1.3. This table records the 3GPP interactions supported or adapted by the MAS source plan; it does not make the MAS sequence a normative 3GPP procedure. The authoritative OES operation/input/output mapping is in [OpenAMSM Operation Mapping](assurance/openamsm-operation-mapping.md).
+
+| Procedure Node | NW Agent / OES source | 3GPP interaction and classification |
+|---|---|---|
+| `read-existing-sm-context` | CA exact UE/PSI context Observation before mutation | `CA_EXTENSION` — supplementary SMF context READ; no direct 3GPP NF Service Operation. |
+| `validate-sm-subscription` | s1 — `SC.VALIDATE_SUBSCRIPTION` | `CA_ADAPTER` — wraps the Step 4 UDM `Nudm_SDM_Get` path. |
+| `skip-secondary-authentication` | s2 — `SAA.SECONDARY_AUTH`, fixed `required=0` | `CA_ADAPTER` — source-plan skip only; no secondary-authentication exchange is executed. |
+| `create-sm-context` | s3 — `SC.CREATE_SM_CONTEXT` | `CA_ADAPTER` — SM Context creation at the Step 3/5 service boundary; the early Step 5 response is not final Goal proof. |
+| `register-uecm` | s3r — `SC.REGISTER_UECM` | `3GPP_NATIVE` — UDM `Nudm_UECM_Registration`; MAS ordering is earlier than conventional Step 16c. |
+| `establish-sm-policy-association` | s3p — `PA.CREATE_SM_POLICY` | `3GPP_NATIVE` — PCF `Npcf_SMPolicyControl_Create`. |
+| `select-upf-anchor` | s4 — `UPS.DECIDE_ANCHOR` | `CA_ADAPTER` — SMF-local UPF selection; selected PFCP node remains internal. |
+| `allocate-pdu-session-address` | s5 — `IAM.ALLOCATE_ADDRESS`, `LOCAL_POOL` | `CA_ADAPTER` — SMF-local address allocation; the source marker is not the UE IP address. |
+| `modify-sm-policy-association` | s6u — `PA.UPDATE_SM_POLICY` | `3GPP_NATIVE` — PCF `Npcf_SMPolicyControl_Update`. |
+| `create-charging-reservation` | s7 — `CA.CREATE_CHARGING` | `CA_EXTENSION` — MAS-specific charging extension; current source is a stub, not a 3GPP charging operation. |
+| `establish-n4-session` | s8 — `UPN.CREATE_UP_SESSION` | `3GPP_NATIVE` — N4 Session Establishment, §4.4.1.2. |
+| `signal-ue-and-access-network` | s10 — `SSM.SIGNAL_UE_AN` | `CA_ADAPTER` — orchestrates Step 11 AMF N1/N2 transfer and the pending Step 15 UpdateSMContext completion. |
+| `modify-n4-session` | s11 — `UPN.MODIFY_UP_SESSION` | `3GPP_NATIVE` — N4 Session Modification, §4.4.1.3. |
+| `record-session-establishment-event` | s13 — `SE.EMIT_EVENTS` | `CA_EXTENSION` — local MAS event only; not Step 18 SM Context Status Notify. |
+| `verify-pdu-session-establishment` | Final aggregate over MAS Owner Results | `CA_EXTENSION` — final business Goal proof; no direct 3GPP operation. |
+
 ## Qualification blockers
 
 1. MAS Owner ToolCatalog, exact callable IDs, input/output Schemas and CapabilityContracts are unpublished.
-2. The current Skill request Schema represents `sNssai.sd` as an integer while the OpenAMSM OES input `s_nssai_sd` is a string; the Owner must publish and test a lossless 24-bit representation mapping.
+2. The Skill request Schema now represents `sNssai.sd` as the 3GPP six-hex-digit string, matching the OES input type. The MAS Owner must still publish and test the exact `sNssai.sd → s_nssai_sd` mapping and the plan's absent-value default.
 3. MAS Operation Evidence Guarantees and source-to-Host Scope/Correlation contracts are unpublished.
 4. Charging is a source-confirmed stub; the charging Predicate intentionally rejects its `"1"` marker.
 5. The SAA path is hard-coded to skip; auth-required legacy case 06 is unsupported.
