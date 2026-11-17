@@ -107,6 +107,10 @@ def validate_schema_closure_digest_vector() -> None:
     changed[0]["schema"]["properties"]["supi"]["type"] = "integer"
     if schema_closure_digest(root, changed) == expected:
         raise SystemExit("Schema Closure Digest did not change when a referenced Schema node changed")
+    changed_identity = copy.deepcopy(nodes)
+    changed_identity[0]["artifactRef"] = "urn:test:schemas/common-renamed"
+    if schema_closure_digest(root, changed_identity) == expected:
+        raise SystemExit("Schema Closure Digest did not change when a referenced artifact identity changed")
 
 
 def _resolver_error(message: str) -> None:
