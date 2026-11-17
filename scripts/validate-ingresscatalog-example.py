@@ -724,6 +724,14 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     multipart_response_missing_parts["spec"]["operations"][0]["response"]["dispositions"][0]["representations"][1].pop("parts")
     expect_schema_failure(validator, multipart_response_missing_parts, "multipart response missing root/parts declaration")
 
+    multipart_response_missing_max_binary_parts = copy.deepcopy(example)
+    multipart_response_missing_max_binary_parts["spec"]["operations"][0]["response"]["dispositions"][0]["representations"][1].pop("maxBinaryParts")
+    expect_schema_failure(validator, multipart_response_missing_max_binary_parts, "multipart response missing binary part upper bound")
+
+    request_multipart_missing_min_binary_parts = copy.deepcopy(example)
+    request_multipart_missing_min_binary_parts["spec"]["operations"][0]["request"]["normalization"]["representations"][1].pop("minBinaryParts")
+    expect_schema_failure(validator, request_multipart_missing_min_binary_parts, "multipart request missing binary part lower bound")
+
     multipart_response_without_binary = copy.deepcopy(example)
     response_parts = multipart_response_without_binary["spec"]["operations"][0]["response"]["dispositions"][0]["representations"][1]["parts"]
     response_parts[:] = [part for part in response_parts if part["kind"] != "binary"]
@@ -854,6 +862,27 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     wrong_3gpp_part_name = copy.deepcopy(example)
     wrong_3gpp_part_name["spec"]["operations"][0]["request"]["normalization"]["representations"][1]["parts"][1]["name"] = "n1SmMsg"
     expect_semantic_failure(wrong_3gpp_part_name, "incorrect 3GPP multipart part name")
+
+    wrong_request_binary_cardinality = copy.deepcopy(example)
+    wrong_request_binary_cardinality["spec"]["operations"][0]["request"]["normalization"]["representations"][1]["maxBinaryParts"] = 3
+    expect_protocol_failure(wrong_request_binary_cardinality, "TS 29.502 request cannot carry three actual binary parts")
+
+    wrong_response_binary_cardinality = copy.deepcopy(example)
+    wrong_response_binary_cardinality["spec"]["operations"][0]["response"]["dispositions"][0]["representations"][1]["maxBinaryParts"] = 3
+    expect_semantic_failure(wrong_response_binary_cardinality, "response binary part upper bound exceeds declared binary part count")
+
+    missing_ref_to_binary_mask = copy.deepcopy(example)
+    multipart_representation = missing_ref_to_binary_mask["spec"]["operations"][0]["request"]["normalization"]["representations"][1]
+    multipart_representation.pop("ignoredSources")
+    expect_protocol_failure(missing_ref_to_binary_mask, "raw RefToBinaryData would leak into normalized request")
+
+    masked_business_n2_type = copy.deepcopy(example)
+    multipart_representation = masked_business_n2_type["spec"]["operations"][0]["request"]["normalization"]["representations"][1]
+    multipart_representation["ignoredSources"].append({
+        "source": {"kind": "multipart-json", "part": "jsonData", "pointer": "/n2SmInfoTypeExt1"},
+        "reason": "incorrectly masked business N2 information type",
+    })
+    expect_protocol_failure(masked_business_n2_type, "N2SmInfoTypeExt1 must remain a business field")
 
     missing_content_id_binding = copy.deepcopy(example)
     missing_content_id_binding["spec"]["operations"][0]["request"]["normalization"]["representations"][1]["mappings"][2]["source"].pop("contentIdReference")
