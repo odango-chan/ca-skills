@@ -604,15 +604,12 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "body"
+        "producer",
+        "responseResultSchemaRef",
+        "mappingRef",
+        "mappingDigest"
       ],
       "properties": {
-        "body": {
-          "enum": [
-            "required",
-            "none"
-          ]
-        },
         "producer": {
           "enum": [
             "operation",
@@ -623,18 +620,6 @@
           "type": "string",
           "minLength": 1
         },
-        "responseSchemaRef": {
-          "type": "string",
-          "minLength": 1
-        },
-        "responseSchemaDigest": {
-          "type": "string",
-          "pattern": "^sha256:[0-9a-f]{64}$"
-        },
-        "mediaType": {
-          "type": "string",
-          "minLength": 1
-        },
         "mappingRef": {
           "type": "string",
           "minLength": 1
@@ -642,83 +627,8 @@
         "mappingDigest": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
-        },
-        "bodylessDispositionRef": {
-          "type": "string",
-          "minLength": 1
         }
-      },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "body": {
-                "const": "required"
-              }
-            },
-            "required": [
-              "body"
-            ]
-          },
-          "then": {
-            "required": [
-              "producer",
-              "responseResultSchemaRef",
-              "responseSchemaRef",
-              "responseSchemaDigest",
-              "mediaType",
-              "mappingRef",
-              "mappingDigest"
-            ],
-            "not": {
-              "required": [
-                "bodylessDispositionRef"
-              ]
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "body": {
-                "const": "none"
-              }
-            },
-            "required": [
-              "body"
-            ]
-          },
-          "then": {
-            "required": [
-              "bodylessDispositionRef"
-            ],
-            "not": {
-              "anyOf": [
-                {
-                  "required": [
-                    "producer"
-                  ]
-                },
-                {
-                  "required": [
-                    "responseResultSchemaRef"
-                  ]
-                },
-                {
-                  "required": [
-                    "mappingRef"
-                  ]
-                },
-                {
-                  "required": [
-                    "mappingDigest"
-                  ]
-                }
-              ]
-            }
-          }
-        }
-      ]
+      }
     },
     "failureResponses": {
       "type": "object",
@@ -808,7 +718,7 @@
       "required": [
         "mode",
         "deadlinePolicyRef",
-        "result",
+        "dispositions",
         "deliveryRecovery"
       ],
       "properties": {
@@ -822,13 +732,95 @@
         "result": {
           "$ref": "#/$defs/responseResult"
         },
+        "dispositions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/responseDisposition"
+          }
+        },
         "earlyFailureResponses": {
           "$ref": "#/$defs/failureResponses"
         },
         "deliveryRecovery": {
           "$ref": "#/$defs/deliveryRecovery"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "dispositions": {
+                "contains": {
+                  "properties": {
+                    "body": {
+                      "const": "required"
+                    }
+                  },
+                  "required": [
+                    "body"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "dispositions"
+            ]
+          },
+          "then": {
+            "required": [
+              "result"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "dispositions": {
+                "minItems": 2
+              }
+            },
+            "required": [
+              "dispositions"
+            ]
+          },
+          "then": {
+            "required": [
+              "result"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "dispositions": {
+                "maxItems": 1,
+                "contains": {
+                  "properties": {
+                    "body": {
+                      "const": "none"
+                    }
+                  },
+                  "required": [
+                    "body"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "dispositions"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "result"
+              ]
+            }
+          }
+        }
+      ]
     },
     "ingressOperation": {
       "type": "object",
@@ -877,6 +869,98 @@
           ]
         }
       }
+    },
+    "responseDisposition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "status",
+        "body"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
+        },
+        "body": {
+          "enum": [
+            "required",
+            "none"
+          ]
+        },
+        "mediaType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "responseSchemaRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "responseSchemaDigest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "body": {
+                "const": "required"
+              }
+            },
+            "required": [
+              "body"
+            ]
+          },
+          "then": {
+            "required": [
+              "mediaType",
+              "responseSchemaRef",
+              "responseSchemaDigest"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "body": {
+                "const": "none"
+              }
+            },
+            "required": [
+              "body"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "mediaType"
+                  ]
+                },
+                {
+                  "required": [
+                    "responseSchemaRef"
+                  ]
+                },
+                {
+                  "required": [
+                    "responseSchemaDigest"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
     }
   }
 }
