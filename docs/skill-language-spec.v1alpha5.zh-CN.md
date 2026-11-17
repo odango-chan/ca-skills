@@ -5027,14 +5027,18 @@ nodes:
         SUCCEEDED: classify-step17-result
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: UNRESOLVED
-    # This Observation runs after one of three Step 16 outcomes: successful N4
-    # Modification plus optional UDM registration; N2 resource-setup failure
-    # with the mandated pre-response N4 Release; or required UPE unavailable,
-    # where Step 16 is skipped without that pre-response Release. It queries the
-    # exact SM Context identified by wait.output.smContextRef and returns the
-    # typed Step 17 response DTO. On either rejection branch, the Operation
-    # output carries the prepared N1 SM Reject binary reference. This Node is
-    # the response boundary; Step 18 cleanup is deliberately later.
+    # This is an intentional standalone Observation-only Node under the
+    # paired protocol-response-boundary exception: no single adjacent Operation
+    # can own this read without moving Step 17 before the branch-specific Step 16
+    # actions. It runs after successful N4 Modification plus optional UDM
+    # registration, the required pre-response N4 Release for N2 setup failure,
+    # or the required-UPE branch that skips Step 16 without that Release.
+    # It queries only the exact SM Context identified by wait.output.smContextRef.
+    # The earlier update-sm-context Operation supplies the N1 SM Reject binary
+    # reference on either rejection branch; this Observation combines that
+    # explicit result with current SMF state into the complete typed Step 17
+    # response DTO. It is the Ingress response Producer, not polling or a
+    # generic context-read Node. Step 18 cleanup is deliberately later.
 
   classify-step17-result:
     precondition:
@@ -5315,6 +5319,8 @@ The trusted Integration export MUST declare:
 - explicit fixed failure-response mappings for any permitted early terminal disposition before the selected Producer has produced a result.
 
 The Compiler resolves the exact response SourcePath deterministically from wait.response.after (or the default Wait-bearing Node) and the export's Producer stage type: <response-boundary-node>.<producer>.output. It MUST NOT accept a Skill-specific NodeId or SourcePath embedded in the reusable Integration export. The selected Producer MUST exist at the response-boundary Node, MUST be available on every normal path reaching that boundary, and its Output Schema MUST be assignable to responseResultSchema. The Compiler MUST verify that the Integration mapping supplies each required protocol response field.
+
+A response-boundary Node whose selected Producer is an Observation MAY be Observation-only only as a narrow paired-protocol-response exception: it MUST be the exact boundary selected by the trusted Ingress contract; the Observation MUST run after every branch-required business Operation on every accepted path; no single adjacent Operation may own the read without moving the response before required work or misrepresenting the 3GPP interaction; and the Observation MUST return the complete typed response-result Schema. It MUST NOT be used for a generic context read, Host admission/lifecycle check or polling loop. This exception does not change the normal rule that supplementary Observations belong in the same Node as the Operation they support.
 
 If response data originates in an earlier Node, the Skill MUST pass the required values explicitly through the boundary Node's Operation/Observation arguments, and that Producer MUST expose the complete typed response result. Runtime/Integration MUST NOT read arbitrary historical Run outputs, infer the latest output or construct an untyped aggregate.
 
