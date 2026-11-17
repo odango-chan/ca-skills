@@ -218,6 +218,7 @@ nodes:
         - predicate: session.udm_registration_required
           arguments:
             - update-sm-context.wait.output
+            - update-sm-context.operation.output
       routes:
         PASS: perform-udm-registration
         FAIL: prepare-step17-response
@@ -244,9 +245,10 @@ nodes:
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: UNRESOLVED
     # This Observation runs after either N4 Modification + optional UDM
-    # Registration, or the N2-failure N4 Release. It returns the typed Step 17
-    # response DTO; on N2 failure, update.operation.output carries the prepared
-    # N1 SM Reject binary reference.
+    # Registration, or the N2-failure N4 Release. It queries the exact SM Context
+    # identified by wait.output.smContextRef to confirm the completed Step 16
+    # branch and returns the typed Step 17 response DTO. On N2 failure,
+    # update.operation.output carries the prepared N1 SM Reject binary reference.
 
 
   verify-final-session:
