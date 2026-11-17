@@ -167,7 +167,6 @@ nodes:
           arguments:
             - update-sm-context.wait.output
       routes:
-        PASS: update-sm-context
         FAIL: SAFE_STOPPED
         UNKNOWN: UNRESOLVED
     operation:
@@ -192,7 +191,19 @@ nodes:
       arguments:
         request: update-sm-context.operation.output
       routes:
+        SUCCEEDED: verify-final-session
         FAILED: SAFE_STOPPED
+
+  verify-final-session:
+    postcondition:
+      predicates:
+        - predicate: session.goal_satisfied
+          arguments:
+            - modify-n4-session.operation.output
+      routes:
+        PASS: SUCCEEDED
+        FAIL: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
 
   handle-update-timeout:
     operation:
