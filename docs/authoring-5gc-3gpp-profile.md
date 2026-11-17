@@ -188,7 +188,7 @@ The following Stage 2 and Stage 3 references were checked against ETSI publicati
 | TS 23.502 | V19.9.0 | PDU Session Establishment and N4 procedure steps |
 | TS 23.503 | V19.8.0 | PCC / SM Policy framework and policy-trigger context |
 | TS 29.502 | V19.7.0 | `Nsmf_PDUSession` service, CreateSMContext and UpdateSMContext API; OpenAPI Annex A.2 |
-| TS 29.500 | V19.7.1 | SBI technical realization, common HTTP/2 retry and request-deadline behavior |
+| TS 29.500 | V19.7.1 | SBI technical realization, common HTTP/2 retry and request-deadline behavior | [ETSI Work Programme](https://portal.etsi.org/webapp/WorkProgram/Frame_WorkItemList.asp?SearchPage=TRUE+++&butExpertSearch=++Search++&includeNonActiveTB=FALSE+++&optDisplay=ALL+++&qCURRENT_STATE_CODE=finalized+++&qINCLUDE_SUB_TB=True+++&qPROJECT_BOOLEAN=OR+++&qREPORT_TYPE=SUMMARY+++&qSORT=HIGHVERSION+++&qTITLE=TS+29.500+++&titleType=all+++) |
 | TS 29.503 | V19.7.0 | UDM SDM and UECM services; OpenAPI Annex A.2 and A.3 |
 | TS 29.512 | V19.6.0 | `Npcf_SMPolicyControl` service; OpenAPI Annex A.2 |
 | TS 29.518 | V19.8.0 | `Namf_Communication` service and N1N2 Message Transfer; OpenAPI Annex A.2 |
