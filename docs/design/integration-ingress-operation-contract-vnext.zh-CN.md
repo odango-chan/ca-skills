@@ -875,7 +875,7 @@ spec:
 5. 对 response result producer、bodyless/body-bearing response、early-failure response 和恢复责任的协议评审；
 6. 与 CA-SL Wait 规范化草案 PR #61 完成字段和诊断一致性核对；
 7. 与 Generic Host/Runtime 契约 PR #210 完成端口、私有身份和持久化责任核对；
-8. 为 IN-001–IN-045 建立机器可执行的正反例与实际 Integration adapter conformance tests；
+8. 为 IN-001–IN-048 建立机器可执行的正反例与实际 Integration adapter conformance tests；
 9. 完成独立审阅并明确该导出契约的发布版本和生效范围。
 
 本文不要求当前 v1alpha4 产品支持 IngressCatalog。当前实现仍是 NOT_QUALIFIED；缺少真实、受信、版本固定的 Ingress export 时必须 fail-closed。
