@@ -120,11 +120,18 @@ def main() -> None:
         if message_key not in spec:
             fail(f"normative diagnostic message key is missing: {message_key}")
     for code in INGRESS_DIAGNOSTICS:
-        if spec.count(code) < 1:
-            fail(f"{code} is missing from the unified v1alpha5 diagnostic index")
+        rows = [line for line in spec.splitlines() if line.startswith("| " + code + " |")]
+        if len(rows) != 1:
+            fail(f"{code} must have exactly one Appendix H.1 identity row")
+        if "| C_STATIC | Compiler ERROR | 是 |" not in rows[0]:
+            fail(f"{code} must be C_STATIC / ERROR / build-blocking in Appendix H.1")
+        if "ingress-diagnostics/v1alpha1" not in rows[0]:
+            fail(f"{code} must identify its versioned registry in Appendix H.1")
     if INGRESS_REGISTRY_ID not in spec:
         fail("versioned Ingress diagnostic registry ID is missing from Appendix H")
-    print("Wait conformance manifest integrity: PASS (36 obligations; 9 Ingress identities indexed; execution NOT_RUN)")
+    if "116 个唯一 Code、117 条唯一" not in spec:
+        fail("Appendix H combined diagnostic inventory count is inconsistent")
+    print("Wait conformance manifest integrity: PASS (36 Wait obligations; 9 Ingress identities indexed; execution NOT_RUN)")
 
 
 if __name__ == "__main__":
