@@ -175,6 +175,14 @@ jobs:
 
           common = yaml.safe_load(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
           session = yaml.safe_load(pathlib.Path(sys.argv[2]).read_text(encoding="utf-8"))
+          operations = [
+              operation
+              for methods in session["paths"].values()
+              for operation in methods.values()
+              if operation.get("operationId") == "UpdateSmContext"
+          ]
+          assert len(operations) == 1
+          operation = operations[0]
           assert common["openapi"] == "3.0.0"
           assert common["info"]["title"] == "Common Data Types"
           assert common["info"]["version"] == "1.6.0"
