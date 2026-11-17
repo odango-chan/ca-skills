@@ -242,7 +242,7 @@ If the predecessor chooses a different route, any unselected candidate Wait regi
 **Generic Host owns generic delivery lifecycle:**
 
 - accept only normalized deliveries from an authorized Integration adapter and the exact pinned contract;
-- persist the delivery, opaque `expectedIngressRef`, protected payload reference and Host-owned response-obligation reference in its durable inbox;
+- persist the delivery, opaque `expectedIngressRef`, protected payload reference and the Integration-owned responseObligationRef in its durable inbox; Host retains the private association and durable record without taking ownership of protocol response semantics;
 - deduplicate the same opaque `deliveryRef` and forward the committed delivery through its outbox;
 - keep Host ingress/lifecycle and transport/response references private.
 
@@ -433,7 +433,7 @@ The following semantic decisions are frozen as the baseline for the next CA-SL l
 | Response | Optional `wait.response.after` binds a paired protocol response to a Node completion boundary, independent of terminal Run completion; Integration owns protocol mapping and encoding |
 | Runtime distinction | Event Wait is push-driven continuation, not Observation polling or Runtime Evidence Wait |
 | Action budget | Wait itself dispatches no Tool or Script and consumes no Tool/Script Action Budget |
-| Ownership | Integration owns protocol ingress/correlation; Generic Host owns durable generic delivery and private response-obligation lifecycle; Runtime owns authoritative Wait/Run continuation; Tool Owner owns business effects, Operation Results and Evidence |
+| Ownership | Integration owns protocol ingress/correlation; Generic Host owns durable generic delivery and private persistence/relay of Integration-owned response obligations; Integration owns protocol response semantics and encoding; Runtime owns authoritative Wait/Run continuation; Tool Owner owns business effects, Operation Results and Evidence |
 | Compatibility | CA-SL v1alpha4 remains unchanged; this feature belongs only to a later, explicitly versioned language revision |
 
 ### 13.1 Permitted changes before normative publication
