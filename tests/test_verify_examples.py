@@ -318,7 +318,6 @@ nodes:
         supi: context.supi
         request: context.request
         udmReadResult: get-sm-subscription-data.operation.output.result
-        sdmSubscriptionRef: subscribe-sm-data.operation.output.subscriptionRef
 """, encoding="utf-8")
             (root / "assurance" / "predicates.yaml").write_text("""predicates:
   establishment.pcf.association_owned:
@@ -329,7 +328,10 @@ nodes:
         association: [ca::pcf.association-owned]
     evaluator:
       type: cel
-      expression: association.creationState == "CREATED"
+      expression: >-
+        association.creationState == "CREATED" &&
+        association.profile.secondaryAuthenticationRequired == false &&
+        association.profile.step9ModificationRequired == false
 """, encoding="utf-8")
             errors: list[str] = []
             validate_pcf_owner_boundary(root, errors)
@@ -365,8 +367,8 @@ nodes:
             validate_pcf_owner_boundary(root, errors)
             self.assertTrue(any("must not be a separate Skill Node" in e for e in errors), errors)
             self.assertTrue(any("must be removed" in e for e in errors), errors)
-            self.assertTrue(any("must not pass a separately constructed" in e for e in errors), errors)
-            self.assertTrue(any("must remain internal" in e for e in errors), errors)
+            self.assertTrue(any("PCF request data and association handles must remain Owner-managed" in e for e in errors), errors)
+            self.assertTrue(any("PCF input-readiness Evidence must remain internal to the PCF Owner" in e for e in errors), errors)
 
     def test_step8_native_selection_is_folded_into_n4_owner(self) -> None:
         with tempfile.TemporaryDirectory() as d:
@@ -376,13 +378,12 @@ nodes:
             (root / "assurance" / "procedure.yaml").write_text("""nodes:
   establish-n4-session:
     operation:
-      tool: upn::UPN.CREATE_UP_SESSION
+      tool: smf::n4.session.establish
       arguments:
         supi: context.supi
         request: context.request
         udmReadResult: get-sm-subscription-data.operation.output.result
-        policyAssociationRef: establish-sm-policy-association.operation.output.policyAssociationRef
-        policyResultRef: establish-sm-policy-association.operation.output.policyResultRef
+        policyResult: establish-sm-policy-association.operation.output.policyResult
   transfer-n1n2-message:
     operation:
       tool: ca::sbi.amf.n1n2.transfer
@@ -394,6 +395,14 @@ nodes:
     evaluator:
       type: script
       script: scripts/validate-subscription-request.py
+  establishment.n4.initial_resources_ready:
+    evaluator:
+      type: cel
+      expression: >-
+        resources.allocatedIpv4 != "" &&
+        resources.selectedPduSessionType != "" &&
+        resources.selectedSscMode > 0 &&
+        resources.sessionConfigurationDigest != ""
 """, encoding="utf-8")
             (root / "SKILL.md").write_text(
                 "| \x60establish-n4-session\x60 | step 8 native SMF session/UPF selection, then steps 10a–10b; §4.4.1.2 |\\n",
@@ -430,7 +439,7 @@ nodes:
             validate_n4_owner_boundary(root, errors)
             self.assertTrue(any("must not be a separate Procedure Node" in e for e in errors), errors)
             self.assertTrue(any("must receive the admitted request" in e for e in errors), errors)
-            self.assertTrue(any("separate Skill-generated selection payload" in e for e in errors), errors)
+            self.assertTrue(any("SMF N4 Owner must not receive a Skill-generated selection or Owner handle" in e for e in errors), errors)
             self.assertTrue(any("separate Step 8 Script payload" in e for e in errors), errors)
 
     def test_predicate_script_uses_generated_input_and_result_contract(self) -> None:
@@ -623,6 +632,7 @@ Runtime resumes the same Invocation; Host returns the paired step 17 response.
                 "dnn": "internet", "sst": 1,
                 "subscriptionValidated": True,
                 "secondaryAuthRequired": False,
+                "uecmRegistered": True,
             },
         }
 
@@ -674,6 +684,7 @@ Runtime resumes the same Invocation; Host returns the paired step 17 response.
                 "sst": 1,
                 "subscriptionValidated": True,
                 "secondaryAuthRequired": False,
+                "uecmRegistered": True,
             },
         }
         self.assertEqual(evaluate_post(absent_after_update)["result"], "FAIL")
