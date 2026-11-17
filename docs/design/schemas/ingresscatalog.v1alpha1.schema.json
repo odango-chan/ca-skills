@@ -345,9 +345,91 @@
           ]
         },
         "scope": {
-          "const": "expected-ingress"
+          "enum": [
+            "expected-ingress",
+            "protocol-defined",
+            "target-nf"
+          ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "identitySource": {
+                "const": "canonical-request-digest"
+              }
+            },
+            "required": [
+              "identitySource"
+            ]
+          },
+          "then": {
+            "properties": {
+              "scope": {
+                "const": "expected-ingress"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "identitySource": {
+                "const": "protocol-request-id"
+              }
+            },
+            "required": [
+              "identitySource"
+            ]
+          },
+          "then": {
+            "properties": {
+              "scope": {
+                "const": "protocol-defined"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "identitySource": {
+                "const": "trusted-gateway-request-id"
+              }
+            },
+            "required": [
+              "identitySource"
+            ]
+          },
+          "then": {
+            "properties": {
+              "scope": {
+                "const": "protocol-defined"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "identitySource": {
+                "const": "3gpp-sbi-idempotency-key"
+              }
+            },
+            "required": [
+              "identitySource"
+            ]
+          },
+          "then": {
+            "properties": {
+              "scope": {
+                "const": "target-nf"
+              }
+            }
+          }
+        }
+      ]
     },
     "staleWire": {
       "type": "object",
