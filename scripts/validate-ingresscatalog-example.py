@@ -585,7 +585,7 @@ def validate_standard_artifact_lock() -> None:
     if (
         normative["uri"] != "https://www.etsi.org/deliver/etsi_ts/129500_129599/129502/19.05.00_60/ts_129502v190500p.pdf"
         or normative["publisher"] != "ETSI"
-        or normative["normative"] is not True
+        or normative["annexA2"]["normative"] is not True
         or normative["byteLength"] != 2066717
         or normative["sha256"] != "5afc2745fb6baf6c1216b6c5f0873e0696c6aa1531eac462a73f32a80672c436"
     ):
