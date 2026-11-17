@@ -354,7 +354,11 @@
       "additionalProperties": false,
       "required": [
         "strategy",
-        "discriminator"
+        "discriminator",
+        "maximumLateArrival",
+        "clockSkewAllowance",
+        "discriminatorRetention",
+        "basisRef"
       ],
       "properties": {
         "strategy": {
@@ -400,6 +404,22 @@
               }
             }
           ]
+        },
+        "maximumLateArrival": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clockSkewAllowance": {
+          "type": "string",
+          "minLength": 1
+        },
+        "discriminatorRetention": {
+          "type": "string",
+          "minLength": 1
+        },
+        "basisRef": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
