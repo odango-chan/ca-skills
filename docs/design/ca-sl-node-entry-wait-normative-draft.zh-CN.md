@@ -162,6 +162,7 @@ nodes:
         operation: UpdateSMContext
       timeout: PT30S
       response:
+        # This sample covers the success branch only when Step 16c is not required or is already complete.
         after: modify-n4-session
       routes:
         TIMEOUT: handle-update-timeout
@@ -221,7 +222,7 @@ nodes:
         OUTCOME_UNKNOWN: SAFE_STOPPED
 ~~~
 
-This fragment is not a complete Skill: its referenced Nodes, schemas, Predicate declarations, dependency exports and final Goal Postcondition are intentionally omitted. It demonstrates only the Node-entry Wait shape, typed wait.output binding, timeout routing and the Step 17 response boundary. The Integration export MUST identify the triggering transfer callable and prove its pre-dispatch correlation binding. For a body-bearing Step 17 response, the Ingress export declares response.result.producer: operation and the typed responseResultSchema; Compiler derives modify-n4-session.operation.output from wait.response.after and validates that exact Output Schema before accepting the mapping.
+This fragment is not a complete Skill: its referenced Nodes, schemas, Predicate declarations, dependency exports and final Goal Postcondition are intentionally omitted. It demonstrates only the Node-entry Wait shape, typed wait.output binding, timeout routing and the Step 17 response boundary. The `modify-n4-session` boundary is valid only for the success branch where conditional Step 16c UDM registration is not required or has already completed; if Step 16c remains required, `wait.response.after` MUST identify a later Node after that registration. If Step 15 reports N2 user-plane resource setup failure, Step 16 is skipped, the SMF releases the N4 Session, and Step 17 carries a PDU Session Establishment Reject in the N1 SM Container; this failure branch requires multipart response support and is not represented by this JSON-only sample. The Integration export MUST identify the triggering transfer callable and prove its pre-dispatch correlation binding. For a body-bearing Step 17 response, the Ingress export declares response.result.producer: operation and the typed responseResultSchema; Compiler derives the exact Producer output from wait.response.after and validates that Output Schema before accepting the mapping.
 
 ## 3. Integration Ingress Operation export
 
