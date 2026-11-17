@@ -39,8 +39,8 @@ def main() -> None:
         fail("unexpected diagnostic registry schemaVersion")
     if registry.get("registryId") != "connectionagent.io/ingress-diagnostics/v1alpha1":
         fail("unexpected Ingress diagnostic registryId")
-    if registry.get("status") != "NORMATIVE_DRAFT_NOT_FROZEN":
-        fail("registry must remain explicitly NOT FROZEN")
+    if registry.get("status") != "NORMATIVE_FROZEN":
+        fail("registry status must be NORMATIVE_FROZEN")
     applies_to = registry.get("appliesTo", {})
     if applies_to != {
         "apiVersion": "connectionagent.io/ingresscatalog/v1alpha1",
