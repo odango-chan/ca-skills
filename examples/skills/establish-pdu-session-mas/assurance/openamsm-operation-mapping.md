@@ -22,15 +22,23 @@ The NW Agent plan starts with:
 | `psi` | `/pduSessionId` | Skill `request.pduSessionId` |
 | `dnn` | `/dnn` | Skill `request.dnn` |
 | `s_nssai` | `/sNssai/sst` | Skill `request.sNssai.sst` |
-| `s_nssai_sd` | `/sNssai/sd`, default empty string | Skill `request.sNssai.sd`; current Skill Schema uses integer while OES input is string, so a lossless 24-bit mapping must be published and tested |
+| `s_nssai_sd` | `/sNssai/sd`, default empty string | Skill `request.sNssai.sd` as the 3GPP six-hex-digit string; when absent, the Owner supplies the OES plan's empty-string default |
 | `pdu_session_type` | `/pduSessionType` | Skill `request.requestedPduSessionType` |
 | `gpsi` | optional `/gpsi`, default empty | Owner-private optional input; not part of this example request Schema |
 | `secondary_auth_required` | literal `'0'` | Fixed out-of-profile skip; not a dynamic subscription-derived decision |
 | `allocator` | literal `LOCAL_POOL` | Fixed local-pool profile |
 
-The current `establishment-request.schema.yaml` represents `sNssai.sd` as an integer, but the imported OES plan carries `s_nssai_sd` as a string. This is an explicit unresolved type-boundary mismatch. No Tool Schema or adapter conversion is published; do not silently stringify a decimal integer or claim the field is already source-compatible.
+Both Skill request Schemas represent `sNssai.sd` as the 3GPP six-hex-digit hexadecimal string, matching the OpenAMSM plan's string input. The OES plan defaults an absent SD to the empty string; the Owner adapter must apply that exact default rather than stringify a number or invent a value.
 
 The Owner binds every Operation to the exact Host-admitted UE/PSI business instance. The admitted 3GPP `supi` remains the UE identity; no intermediate identity alias is created or resolved. The MAS operations run against the same SMF session; the Skill passes declared business inputs (including 3GPP SUPI and PSI) and typed Operation results, not `stateRef`, Host lifecycle IDs or transport references.
+
+## Operation input boundary
+
+The NW Agent plan's `steps[].inputs` are OES plan fields (mostly snake_case). The Procedure's `mas::...` callables are **candidate CA Tool interfaces**, not literal OES step invocations; their current arguments use 3GPP-shaped or normalized names such as `sNssai`, `pduSessionType`, `sessionKeys`, `upAnchorReady`, `ueAddrAllocated`, `policyAssociationId`, `n4Seid`, `anTunnelTeid` and `anTunnelIp`. These names are not identical to the corresponding OES fields.
+
+Before the MAS Owner publishes a ToolCatalog, each callable Input Schema must make the adapter mapping explicit and typed. Examples include `sNssai.sst → s_nssai`, `sNssai.sd → s_nssai_sd` (absent SD → the plan's empty-string default), `pduSessionType → pdu_session_type`, `sessionKeys → session_keys`, `upAnchorReady → up_anchor`, `ueAddrAllocated → ue_addr`, `policyAssociationId → policy_assoc_id`, `n4Seid → n4_seid`, `anTunnelTeid → an_tunnel_teid`, `anTunnelIp → an_tunnel_ip`, `ratingGroupRefs → rating_group_refs`, `subSummary → sub_summary` and `event → ev`. The exact mapping must be checked against each pinned plan step's declared and required inputs; no implicit camelCase/snake_case conversion may be assumed.
+
+Therefore, the Skill's `ue_identity` is source-aligned with the plan's `ue_identity` and is populated directly from 3GPP `supi`, but the full Operation argument contract is **not yet proven identical** to the NW Agent plan. Until the Owner schemas and adapter mapping are published, this remains a source-aligned design only, not a qualified or executable one-to-one port.
 
 ## Operation-by-operation source mapping
 
