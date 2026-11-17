@@ -212,13 +212,13 @@ def validate_3gpp_reference_example(catalog: dict) -> None:
     response = operation["response"]
     status_by_id = {item["id"]: item["status"] for item in response["dispositions"]}
     if status_by_id != {
-        "update-accepted": 200,
+        "update-with-json-cause": 200,
         "update-completed-no-content": 204,
     }:
         raise SystemExit("UpdateSMContext success response dispositions must be 200 and 204")
     mappings = response["result"]["mappings"]
-    if not any(item["from"] == "/upCnxState" and item["to"] == "/upCnxState" for item in mappings):
-        raise SystemExit("UpdateSMContext response mapping must use SmContextUpdatedData.upCnxState")
+    if not any(item["from"] == "/cause" and item["to"] == "/cause" for item in mappings):
+        raise SystemExit("UpdateSMContext response mapping must use SmContextUpdatedData.cause")
 
 
 def expect_schema_failure(validator: Draft202012Validator, value: dict, label: str) -> None:
