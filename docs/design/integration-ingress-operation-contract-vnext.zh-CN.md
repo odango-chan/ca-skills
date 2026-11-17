@@ -442,7 +442,7 @@ Compiler 根据 Skill 的 wait.response.after 和 Ingress export 的 producer �
 
 paired response 必须声明非空的 response.dispositions[]。每个 disposition 至少声明唯一 id、精确 HTTP status 和 body 模式：
 
-- body: required 时，必须声明精确 mediaType、responseSchemaRef 和 responseSchemaDigest；v1alpha1 的 body-bearing representation 仅允许 application/json；
+- body: required 时，必须声明精确 mediaType、responseSchemaRef、responseSchemaDigest 和 maxBytes（整个 wire response body 的字节上限，不含 HTTP headers）；v1alpha1 的 body-bearing representation 仅允许 application/json；
 - body: none 时，不得声明 Body Schema 或 response mapping。
 
 response.result 是可选的 typed result 绑定，但在以下任一条件成立时 REQUIRED：
@@ -774,7 +774,7 @@ spec:
 - sourceSchemas 和 normalizedSchemaRef 是不同契约，不得互相替代；
 - artifactDigest 绑定精确 OpenAPI 文件；内联 normalization/response mappings 由整个 IngressCatalog dependency snapshot digest 固定；
 - operationId 不能替代 Service-Operation 名称；UpdateSMContext 的 multipart part 名称使用 pinned OpenAPI 中的 binaryDataN1SmMessage / binaryDataN2SmInformation，不能缩写成 n1SmMsg / n2SmInfo；
-- 示例 200 JSON response 仅映射 SmContextUpdatedData 的条件属性 cause；smContextRef 是 request path 参数，不是 SmContextUpdatedData response body 字段；示例不覆盖含 N1/N2 binary response parts 的 multipart/related 200 representation；
+- 示例 200 JSON response maxBytes=65536，仅映射 SmContextUpdatedData 的条件属性 cause；smContextRef 是 request path 参数，不是 SmContextUpdatedData response body 字段；示例不覆盖含 N1/N2 binary response parts 的 multipart/related 200 representation；
 - TS 23.502 Step 15 的 N2 setup failure 分支可能要求 Step 17 返回包含 PDU Session Establishment Reject 的 N1 SM binary container；本版 JSON-only response profile 不支持该 multipart failure response，不能把它伪装成 204 或通用 JSON 错误，必须保持 NOT LINKABLE，直到 response multipart 映射扩展完成；
 - 具体 TS 29.502 release 可能增加 multipart part（例如 N2 SM Information extension part）；示例仅列出当前引用的两个常见 part，正式 pinned OpenAPI 的完整 part 集必须逐项覆盖或明确拒绝，不能静默丢弃；
 - arming.triggers[].operation 是出站 ToolCatalog Operation，不是 Ingress Operation；Compiler 从该精确 ToolCatalog export 解析 Operation Input Schema，armInputSchemaRef 则定义单独的 correlationBinding Schema；
@@ -861,6 +861,7 @@ spec:
 | IN-045 | Step 15 N2 setup failure 要求 Step 17 携带 N1 SM Reject binary container，而 export 仅声明 JSON response | Integration/Admission 不得以 204 或通用 JSON error 替代；该失败分支保持 NOT LINKABLE |
 | IN-046 | staleDelivery 使用 3gpp-Sbi-Request-Info.idempotency-key，但请求缺少该参数或独立请求复用该 key | Integration 拒绝/隔离；不得退回 canonical digest 或重新分配到其他 Wait |
 | IN-047 | wire-discriminator 的 discriminatorRetention 小于 maximumLateArrival + clockSkewAllowance | Compiler/Admission 拒绝不足以覆盖迟到重传窗口的身份保留策略 |
+| IN-048 | body-bearing response serialization 超过 disposition.maxBytes | Integration 不得发送超限 Body；按明确的协议失败策略处理，不得截断或静默省略字段 |
 
 ## 15. 冻结与发布门槛
 
