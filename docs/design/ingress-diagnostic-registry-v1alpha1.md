@@ -2,7 +2,7 @@
 
 **Registry ID:** `connectionagent.io/ingress-diagnostics/v1alpha1`  
 **Applies to:** `connectionagent.io/ingresscatalog/v1alpha1` / `IngressCatalog`  
-**Status:** NORMATIVE DRAFT — NOT FROZEN  
+**Status:** NORMATIVE — FROZEN / RELEASED (2026-11-17)  
 **Normative machine-readable source:** [ingress-diagnostic-registry-v1alpha1.json](ingress-diagnostic-registry-v1alpha1.json)
 
 ## 1. Ownership and versioning
@@ -99,4 +99,4 @@ The machine-readable registry is normative for exact Codes, Phase, Severity, bui
 
 ## 6. Version boundary
 
-This registry is a candidate normative companion to IngressCatalog v1alpha1. It does not modify the frozen CA-SL v1alpha4 diagnostic index. CA-SL v1alpha5 Appendix H composes these identities into its unified review index while preserving this registry as their versioned owner. Until the IngressCatalog contract and registry are independently frozen and released, no Compiler implementation or product-conformance claim follows from this document.
+This registry is the frozen normative diagnostic companion to IngressCatalog v1alpha1. It does not modify the frozen CA-SL v1alpha4 diagnostic index. CA-SL v1alpha5 Appendix H composes these identities into its unified diagnostic index while preserving this registry as their versioned owner. The registry freeze does not qualify a Compiler implementation or any product; product qualification remains governed by the applicable implementation and deployment acceptance evidence.
