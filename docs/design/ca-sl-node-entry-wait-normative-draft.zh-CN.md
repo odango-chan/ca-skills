@@ -618,7 +618,7 @@ This draft is not a language release. Before normative publication, the followin
 1. independent review of the complete amendment against the full CA-SL normative text;
 2. final agreement on the logical Integration Ingress Operation export and response-result binding contract;
 3. exact diagnostic identities and messages added to the next-version diagnostic index;
-4. positive/negative conformance fixtures for EW-001–EW-025, including exact expected diagnostics;
+4. positive/negative conformance fixtures for EW-001–EW-035, including exact expected diagnostics;
 5. cross-review against the package-scoped Integration Ingress Operation export contract in [ca-skills PR #62](https://github.com/odango-chan/ca-skills/pull/62) and the Generic Host inbound-event continuation contract in [ca-agent-demo PR #210](https://github.com/odango-chan/ca-agent-demo/pull/210);
 6. a separately approved language version identifier and release decision.
 
