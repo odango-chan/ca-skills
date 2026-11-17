@@ -57,7 +57,16 @@ CONSUMER_MATCHED = CONSUMER_CLOSED_MISMATCH.replace(
 
 class V1Alpha4ScriptTests(unittest.TestCase):
     def test_s_nssai_sd_uses_the_3gpp_hex_string_in_both_skills(self) -> None:
-        expected = "sd: {type: string, minLength: 6, maxLength: 6, pattern: '^[0-9A-Fa-f]{6}    def lint(self, source: str = SOURCE_PROCEDURE,
+    def test_s_nssai_sd_uses_the_3gpp_hex_string_in_both_skills(self) -> None:
+        for skill in ("establish-pdu-session", "establish-pdu-session-mas"):
+            schema = ROOT / "examples" / "skills" / skill / "schemas" / "establishment-request.schema.yaml"
+            source = schema.read_text(encoding="utf-8")
+            self.assertIn("sd: {type: string", source, skill)
+            self.assertIn("maxLength: 6", source, skill)
+            self.assertIn("pattern:", source, skill)
+            self.assertNotIn("sd: {type: integer", source, skill)
+
+    def lint(self, source: str = SOURCE_PROCEDURE,
              producer: str = PRODUCER,
              consumer: str = CONSUMER_MATCHED,
              unused: bool = False) -> list[str]:
