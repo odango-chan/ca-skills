@@ -228,7 +228,7 @@ source selector 的 kind 仅允许 path、query、header、json-body、multipart
 
 transform 的初始封闭集合仅为 identity、parse-integer、parse-number、parse-boolean 和 binary-content-ref。identity 要求来源 Schema 类型可直接赋值给目标属性；parse-integer 只接受规范十进制整数词法且不得溢出；parse-number 只接受规范十进制有限数值且不得舍入或产生非有限值；parse-boolean 只接受精确小写 true/false；binary-content-ref 只适用于 multipart-binary 并生成 normalized Schema 声明的受限不可变内容引用。不得执行任意 CEL、Python、表达式、反射、网络查询、隐式字符串化、locale 转换、截断或有损转换。
 
-对于 3GPP TS 29.502 §6.1.2.4 的 multipart/related，Integration MUST 校验每个 binary part 的 `Content-ID` 与根 JSON part 中对应 `RefToBinaryData` 属性逐一匹配。`contentIdReference.part` 必须指向该 representation 的 JSON 根 part，`pointer` 必须指向精确 RefToBinaryData 对象中的 `contentId` 字符串属性；引用缺失、悬空、重复、指向错误 part、Content-ID 重复或存在未被引用的 binary part，均必须拒绝/隔离。part 名称不是 Content-ID，不能代替该关联校验。归一化后的业务字段只暴露受限 binary content reference，不把原始 Content-ID 当成业务身份。对 `application/json` representation，由于不存在 binary part，任何非空 RefToBinaryData 引用都必须拒绝，不得保留成看似可用的内容引用。
+对于 3GPP TS 29.502 V19.5.0 §6.1.2.4 的 multipart/related，Integration MUST 校验每个 binary part 的 `Content-ID` 与根 JSON part 中对应 `RefToBinaryData.contentId` 属性逐一匹配。`RefToBinaryData` 的结构由 TS 29.571 V19.5.0 §5.4.4.14 定义；`contentIdReference.part` 必须指向该 representation 的 JSON 根 part，`pointer` 必须指向精确 RefToBinaryData 对象中的 `contentId` 字符串属性；引用缺失、悬空、重复、指向错误 part、Content-ID 重复或存在未被引用的 binary part，均必须拒绝/隔离。part 名称不是 Content-ID，不能代替该关联校验。归一化后的业务字段只暴露受限 binary content reference，不把原始 Content-ID 当成业务身份。对 `application/json` representation，由于不存在 binary part，任何非空 RefToBinaryData 引用都必须拒绝，不得保留成看似可用的内容引用。
 
 对每一种 media type，normalized Schema 的每个 required 属性必须恰好由一条 mapping 提供；不得有重复 target、悬空 source、未知 target 或类型不可赋值。未映射源字段/part 默认拒绝；只有 pinned source Schema 明确声明其可忽略，且 export 显式列出该忽略项时才可丢弃。可选 normalized 属性可以在对应 wire representation 中缺失，但不得合成默认值。真实 Adapter 必须通过 conformance fixtures 证明执行结果与内联 mapping 完全一致。禁止以 Skill Script、CEL 或 LLM 在运行时临时完成协议归一化。
 
@@ -377,13 +377,13 @@ Integration 必须证明一个经过认证、验证和归一化的请求最多�
 - `normalized-request-path`：从已验证的 normalized request 中读取精确 JSON Pointer；该字段必须在源 Schema、归一化映射和受信协议定义中闭合，并且必须是协议定义的逐请求身份字段，在同一逻辑请求的所有重传中保持不变；资源 ID、UE/SUPI、PDU Session ID、Content-ID 和时间戳都不满足这一条件；
 - `authenticated-header-parameter`：当前仅支持 3GPP SBI 的 `3gpp-Sbi-Request-Info` header 中的 `idempotency-key` 参数。Peer profile 必须要求该参数在每个请求中提供；Integration 必须按 TS 29.500 解析参数，而不是把整个 Header 字符串当作 ID。
 
-对 TS 29.502 `UpdateSmContext`，`smContextRef` 只是资源 URI 路径参数，不能作为 successive Wait 的 wire discriminator；该 API 未定义可替代它的必需逐请求 ID。`3gpp-Sbi-Origination-Timestamp` 与 `3gpp-Sbi-Sender-Timestamp` 也不能用作 discriminator，因为 AMF 重试同一请求时会更新这些时间戳。
+对 TS 29.502 V19.5.0 `UpdateSmContext`，`smContextRef` 只是资源 URI 路径参数，不能作为 successive Wait 的 wire discriminator；该 API 未定义可替代它的必需逐请求 ID。TS 29.502 §6.1.2.5 规定 AMF 可在新 TCP 连接上重试同一 HTTP 请求，并在重试时更新 `3gpp-Sbi-Origination-Timestamp` 与 `3gpp-Sbi-Sender-Timestamp`（若存在），因此这些时间戳不能用作 discriminator。
 
 Wire discriminator 是外部请求身份，不是用于预派发匹配 Run/Wait 的 correlation key；它不要求在 arming 时预先知道，也不要求加入 normalized business Schema。Integration 在接收请求时提取 discriminator，并在匹配/提交 delivery 前检查它是否已被其他 Wait occurrence 消费。其值必须在 authenticated peer + Ingress export 的范围内对每个原始请求唯一，并在该请求的所有重传中保持不变。缺失、重复复用或格式不合法时必须拒绝/隔离，不得退回到猜测或选择 newest。
 
 wire-discriminator 策略还必须声明 maximumLateArrival、clockSkewAllowance、discriminatorRetention 和 basisRef。Integration 必须按 (authenticated peer, Ingress export identity, discriminator value) 持久记录已消费的 discriminator；discriminatorRetention 不得小于 maximumLateArrival + clockSkewAllowance。迟到副本在该保留期内到达时必须识别为已消费请求，不得分配给新 Wait。若无法证明有限迟到窗口或提供可审计依据，则不得使用 wire-discriminator 策略。
 
-3GPP 的 `3gpp-Sbi-Request-Info: idempotency-key=...` 在客户端/服务端启用重复请求检测时可提供这一保证；该机制是可选能力，因此不能假定所有 AMF 都会发送。若不要求并验证该 Header，则必须使用 single-flight/tombstone 策略。只在 Host/Runtime 内生成的 generation counter 不能区分外部迟到请求，除非该 generation 也能由入站协议请求可靠证明。
+3GPP 的 `3gpp-Sbi-Request-Info: idempotency-key=...` 在客户端/服务端启用 TS 29.500 V19.5.0 §5.2.8 的重复请求检测时可提供这一保证；该机制是可选能力，因此不能假定所有 AMF 都会发送。若不要求并验证该 Header，则必须使用 single-flight/tombstone 策略。只在 Host/Runtime 内生成的 generation counter 不能区分外部迟到请求，除非该 generation 也能由入站协议请求可靠证明。
 
 ### 7.3 无 Wire discriminator 时的 Single-flight
 
@@ -573,7 +573,7 @@ Compiler 不执行协议认证，不调用真实 Integration adapter，不通过
 
 ## 11. 5GC 参考映射：TS 23.502 Step 15 / Step 17
 
-以下按 3GPP TS 23.502 V19.5.0 与 TS 29.502 V19.5.0 对照说明责任和身份映射；示例的 OpenAPI artifact digest 仍是占位符，不代表已发布、已固定摘要的可部署 Owner artifact。
+以下按 3GPP TS 23.502 V19.5.0 §4.3.2.2.1、TS 29.502 V19.5.0 §6.1.2.4/§6.1.2.5 及 Annex A.2 OpenAPI、TS 29.571 V19.5.0 §5.4.4.14 对照说明责任和身份映射；示例的 OpenAPI artifact digest 仍是占位符，不代表已发布、已固定摘要的可部署 Owner artifact。
 
 - Step 11 Namf_Communication_N1N2MessageTransfer 是触发后续事件的出站 Operation。
 - Step 3 Nsmf_PDUSession_CreateSMContext 建立 SM Context；Step 5 成功响应的 Location resource URI 提供精确 smContextRef。
