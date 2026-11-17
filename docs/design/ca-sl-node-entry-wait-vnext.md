@@ -460,3 +460,9 @@ The semantic baseline is frozen, but the language feature is not yet released fo
 5. an explicit language version identifier and release decision.
 
 Until those gates are met, v1alpha4 remains the only applicable published language contract, and the proposed `wait` syntax MUST NOT be added to v1alpha4 Skills.
+
+## 14. Normative formalization follow-up
+
+The semantic baseline in this document is translated into proposed normative clauses in [Draft PR #61](https://github.com/odango-chan/ca-skills/pull/61). That amendment draft does not modify v1alpha4 and does not assign the next language version identifier. It formalizes the grammar, SourcePath, control-flow, correlation, response-boundary, diagnostics and conformance cases while keeping the architectural decisions in this document frozen.
+
+The generic Host/Runtime continuation contract is maintained separately in [ca-agent-demo PR #210](https://github.com/odango-chan/ca-agent-demo/pull/210). Physical DTOs, persistence technology and product conformance remain separate implementation work.
