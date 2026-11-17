@@ -201,7 +201,7 @@ def check_counts(text: str, errors: list[str]) -> None:
 def check_v1alpha5(text: str, errors: list[str]) -> None:
     """Check the released v1alpha5 publication boundary and H.1 projection."""
     require(
-        "`connectionagent.io/v1alpha5`" in text and "FROZEN / RELEASED" in text.splitlines()[4],
+        "`connectionagent.io/v1alpha5`" in text and re.search(r"(?m)^\\*\\*状态：\\*\\*.*FROZEN / RELEASED", text) is not None,
         "v1alpha5 must identify the released frozen language target",
         errors,
     )
