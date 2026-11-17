@@ -197,7 +197,7 @@ request 必须声明：
 - normalizedSchemaRef 和 normalizedSchemaDigest：唯一的 Skill-facing normalized request Schema；
 - normalization：确定性归一化实现身份、摘要及可审计的 source-to-normalized mapping。
 
-源 Schema 必须与 pinned OpenAPI artifact 中的 Request Body / multipart part 声明一致。Integration Adapter 按该精确 OpenAPI artifact 的方言验证 wire request；Compiler 验证源 Schema 引用及其 artifact/digest 归属，但不要求完整 OpenAPI Schema 方言落入 CA-SL 的 JSON Schema 子集，也不在 Compiler 中执行协议 wire validation。normalizedSchemaRef 才是 Compiler 用于 wait.output 路径、类型赋值和 CA-SL 静态分析的 Schema，必须符合 CA-SL 支持的 JSON Schema Draft 2020-12 子集。
+sourceSchemas 必须与 acceptedMediaTypes 一一对应：每个允许的 media type 恰有一个源 Schema，不得存在缺失或多余的源 Schema。源 Schema 必须与 pinned OpenAPI artifact 中的 Request Body / multipart part 声明一致。Integration Adapter 按该精确 OpenAPI artifact 的方言验证 wire request；Compiler 验证源 Schema 引用及其 artifact/digest 归属，但不要求完整 OpenAPI Schema 方言落入 CA-SL 的 JSON Schema 子集，也不在 Compiler 中执行协议 wire validation。normalizedSchemaRef 才是 Compiler 用于 wait.output 路径、类型赋值和 CA-SL 静态分析的 Schema，必须符合 CA-SL 支持的 JSON Schema Draft 2020-12 子集。
 
 ### 4.4 归一化规则
 
@@ -363,7 +363,7 @@ Integration 必须证明一个经过认证、验证和归一化的请求最多�
 - Wait timeout、cancel 或 invalidation 后，该 key 必须进入 tombstone/quarantine；
 - 在协议或受信入口设施可证明的最大迟到消息窗口内，不得为相同 key 建立下一 Wait；
 - tombstone 到期依据必须是可审计的协议或部署保证，不得由 Skill 作者随意声明；
-- 若无法证明有限的迟到窗口，则不得复用该 key；Compiler/Admission 必须 fail-closed。
+- maximumLateArrival 使用 CA-SL 固定正时长的同一词法子集；若无法证明有限的迟到窗口，则不得复用该 key；Compiler/Admission 必须 fail-closed。
 
 不得只用 Runtime 内部 generation counter、expectedIngressRef 随机性或数据库行版本声称解决外部消息的迟到歧义。
 
@@ -424,7 +424,7 @@ response.result 是可选的 typed result 绑定，但在以下任一条件成�
 
 Integration export 必须定义：
 
-- response.dispositions[] 中每个允许的响应状态、body 模式、media type 和 Schema，以及 typed response result 到所选 disposition/Body 的映射；该映射表达协议响应，不代表 Skill Goal 已 PASS；
+- response.dispositions[] 中每个允许的响应状态、body 模式、media type 和 Schema，以及 typed response result 到所选 disposition/Body 的映射；disposition id 和 HTTP status 在该 Ingress export 内必须唯一；该映射表达协议响应，不代表 Skill Goal 已 PASS；
 - 在响应 Producer 尚未产生可用结果前，Run 提前以 FAILED、UNRESOLVED 或 SAFE_STOPPED 结束时的显式 failure response mapping；
 - response deadline 的来源与到期处置；
 - response obligation 的持久化、重放、重复响应和失去原传输通道后的恢复策略。
@@ -728,6 +728,8 @@ spec:
 | IN-036 | Host/Runtime 试图解析原始 3GPP HTTP request | 架构符合性失败 |
 | IN-037 | Integration 试图通过启发式选择 Run/Node | 架构符合性失败 |
 | IN-038 | 同一资源的旧 Wait 关闭后立即重新 armed，tombstone 尚未到期 | Integration 必须拒绝重新注册 |
+| IN-039 | acceptedMediaTypes 与 sourceSchemas 不一一对应 | Compiler/Integration 拒绝不完整协议契约 |
+| IN-040 | 同一 Ingress export 的 response disposition id 或 HTTP status 重复 | Compiler 拒绝歧义响应映射 |
 
 ## 15. 冻结与发布门槛
 
@@ -740,7 +742,7 @@ spec:
 5. 对 response result producer、bodyless/body-bearing response、early-failure response 和恢复责任的协议评审；
 6. 与 CA-SL Wait 规范化草案 PR #61 完成字段和诊断一致性核对；
 7. 与 Generic Host/Runtime 契约 PR #210 完成端口、私有身份和持久化责任核对；
-8. 为 IN-001–IN-038 建立机器可执行的正反例与实际 Integration adapter conformance tests；
+8. 为 IN-001–IN-040 建立机器可执行的正反例与实际 Integration adapter conformance tests；
 9. 完成独立审阅并明确该导出契约的发布版本和生效范围。
 
 本文不要求当前 v1alpha4 产品支持 IngressCatalog。当前实现仍是 NOT_QUALIFIED；缺少真实、受信、版本固定的 Ingress export 时必须 fail-closed。
