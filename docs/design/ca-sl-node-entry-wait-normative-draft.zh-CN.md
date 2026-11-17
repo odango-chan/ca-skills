@@ -246,7 +246,7 @@ The trusted Ingress Operation export MUST bind, at minimum:
 9. deterministic correlation derivation, including the exact permitted triggering Operation callable identity/identities and the pre-dispatch binding required to arm the Wait;
 10. duplicate, stale-delivery, generation-reuse and unmatched-request handling;
 11. whether a paired protocol response exists, its response Schema/media types, success and failure mapping, and response-obligation lifecycle;
-12. when a response body is required, the typed response-result input Schema and exact mapping from a Producer output at the resolved response boundary.
+12. when a response body is required, the typed response-result input Schema and exact mapping from a set of typed Producer output SourcePaths available at the resolved response boundary, including earlier Node outputs where applicable.
 
 These are logical contract requirements. Their physical package serialization is owned by the Integration contract and is not prescribed as a new global CA-SL catalog.
 
