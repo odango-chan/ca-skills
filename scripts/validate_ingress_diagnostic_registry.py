@@ -16,15 +16,16 @@ CONTRACT = ROOT / "docs/design/integration-ingress-operation-contract-vnext.zh-C
 CATALOG_SCHEMA = ROOT / "docs/design/schemas/ingresscatalog.v1alpha1.schema.json"
 
 EXPECTED = [
-    ("INGRESS_CATALOG_INVALID", 10, "ingress.catalog.invalid", "IN-055"),
-    ("INGRESS_EXPORT_ID_DUPLICATE", 20, "ingress.export.id.duplicate", "IN-005"),
-    ("INGRESS_EVENT_SELECTOR_DUPLICATE", 21, "ingress.event.selector.duplicate", "IN-056"),
-    ("INGRESS_PROTOCOL_ARTIFACT_INVALID", 30, "ingress.protocol.artifact.invalid", "IN-057"),
-    ("INGRESS_PEER_PROFILE_REFERENCE_INVALID", 40, "ingress.peer.profile.reference.invalid", "IN-058"),
-    ("INGRESS_NORMALIZATION_INVALID", 50, "ingress.normalization.invalid", "IN-059"),
-    ("INGRESS_CORRELATION_INVALID", 60, "ingress.correlation.invalid", "IN-060"),
-    ("INGRESS_RESPONSE_CONTRACT_INVALID", 70, "ingress.response.contract.invalid", "IN-061"),
-    ("INGRESS_RESPONSE_MAPPING_INVALID", 80, "ingress.response.mapping.invalid", "IN-062"),
+    ("INGRESS_CATALOG_INVALID", 10, "ingress.catalog.invalid", ("IN-055",)),
+    ("INGRESS_EXPORT_ID_DUPLICATE", 20, "ingress.export.id.duplicate", ("IN-005",)),
+    ("INGRESS_EVENT_SELECTOR_DUPLICATE", 21, "ingress.event.selector.duplicate", ("IN-056",)),
+    ("INGRESS_PROTOCOL_ARTIFACT_INVALID", 30, "ingress.protocol.artifact.invalid", ("IN-007", "IN-057")),
+    ("INGRESS_PEER_PROFILE_REFERENCE_INVALID", 40, "ingress.peer.profile.reference.invalid", ("IN-058",)),
+    ("INGRESS_NORMALIZATION_INVALID", 50, "ingress.normalization.invalid", ("IN-014", "IN-015", "IN-039", "IN-059")),
+    ("INGRESS_BINARY_CONTENT_LIFECYCLE_INVALID", 55, "ingress.binary.content.lifecycle.invalid", ("IN-016", "IN-042")),
+    ("INGRESS_CORRELATION_INVALID", 60, "ingress.correlation.invalid", ("IN-023", "IN-046", "IN-047", "IN-060")),
+    ("INGRESS_RESPONSE_CONTRACT_INVALID", 70, "ingress.response.contract.invalid", ("IN-027", "IN-033", "IN-040", "IN-061")),
+    ("INGRESS_RESPONSE_MAPPING_INVALID", 80, "ingress.response.mapping.invalid", ("IN-032", "IN-044", "IN-045", "IN-062")),
 ]
 
 
@@ -54,7 +55,12 @@ def main() -> None:
     if not isinstance(entries, list):
         fail("registry entries must be an array")
     actual = [
-        (entry.get("code"), entry.get("precedence"), entry.get("messageKey"), entry.get("conformanceCase"))
+        (
+            entry.get("code"),
+            entry.get("precedence"),
+            entry.get("messageKey"),
+            tuple(entry.get("conformanceCases", [])),
+        )
         for entry in entries
     ]
     if actual != EXPECTED:
@@ -106,13 +112,18 @@ def main() -> None:
 
     registry_doc = REGISTRY_DOC.read_text(encoding="utf-8")
     contract_doc = CONTRACT.read_text(encoding="utf-8")
-    for code, _, message_key, conformance_case in EXPECTED:
+    for code, _, message_key, conformance_cases in EXPECTED:
         if code not in registry_doc or code not in contract_doc:
             fail(f"{code} is missing from the registry document or Ingress contract §13")
         if message_key not in registry_doc:
             fail(f"{message_key} is missing from the registry document")
-        if conformance_case not in contract_doc:
-            fail(f"{code} is missing its exact conformance case {conformance_case}")
+        for case_id in conformance_cases:
+            rows = [
+                line for line in contract_doc.splitlines()
+                if line.startswith("| " + case_id + " |")
+            ]
+            if len(rows) != 1 or code not in rows[0]:
+                fail(f"{code} must be explicitly assigned by exact conformance row {case_id}")
     if registry["registryId"] not in registry_doc or registry["registryId"] not in contract_doc:
         fail("versioned registry ID is not cross-referenced by both normative documents")
 
