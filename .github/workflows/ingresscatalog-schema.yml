@@ -150,5 +150,43 @@ jobs:
           print("Response 204: bodyless")
           print("Pinned ETSI Annex A.2 OpenAPI identity and protocol shape: PASS")
           PY
+      - name: Inspect official ETSI TS 29.571 V19.5.0 CommonData artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://www.etsi.org/deliver/etsi_ts/129500_129599/129571/19.05.00_60"
+          pdf="$RUNNER_TEMP/ts_129571v190500p.pdf"
+          zip="$RUNNER_TEMP/ts_129571v190500p0.zip"
+          yaml_file="$RUNNER_TEMP/TS29571_CommonData.yaml"
+          ua="Mozilla/5.0 (compatible; CA-Skill-Artifact-Lock/1.0)"
+          curl --fail --location --retry 3 --silent --show-error --user-agent "$ua" "$base/ts_129571v190500p.pdf" --output "$pdf"
+          curl --fail --location --retry 3 --silent --show-error --user-agent "$ua" "$base/ts_129571v190500p0.zip" --output "$zip"
+          echo "TS 29.571 PDF bytes: $(wc -c < "$pdf")"
+          echo "TS 29.571 PDF SHA-256:"
+          sha256sum "$pdf"
+          echo "TS 29.571 companion ZIP bytes: $(wc -c < "$zip")"
+          echo "TS 29.571 companion ZIP SHA-256:"
+          sha256sum "$zip"
+          unzip -l "$zip"
+          unzip -p "$zip" TS29571_CommonData.yaml > "$yaml_file"
+          echo "TS29571_CommonData.yaml bytes: $(wc -c < "$yaml_file")"
+          echo "TS29571_CommonData.yaml SHA-256:"
+          sha256sum "$yaml_file"
+          python - "$yaml_file" <<'PY'
+          import pathlib
+          import sys
+          import yaml
+
+          artifact = yaml.safe_load(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+          assert artifact["openapi"] == "3.0.0"
+          assert artifact["info"]["title"] == "Common Data Types"
+          assert artifact["info"]["version"] == "1.6.0"
+          assert artifact["externalDocs"]["description"].endswith("version 19.5.0")
+          schema = artifact["components"]["schemas"]["RefToBinaryData"]
+          assert schema["type"] == "object"
+          assert schema["required"] == ["contentId"]
+          assert schema["properties"]["contentId"]["type"] == "string"
+          print("Official TS 29.571 Annex A.2 identity and RefToBinaryData: PASS")
+          PY
       - name: Validate IngressCatalog example
         run: python scripts/validate-ingresscatalog-example.py
