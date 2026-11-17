@@ -554,6 +554,18 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     multipart_response_missing_parts["spec"]["operations"][0]["response"]["dispositions"][0]["representations"][1].pop("parts")
     expect_schema_failure(validator, multipart_response_missing_parts, "multipart response missing root/parts declaration")
 
+    multipart_response_without_binary = copy.deepcopy(example)
+    response_parts = multipart_response_without_binary["spec"]["operations"][0]["response"]["dispositions"][0]["representations"][1]["parts"]
+    response_parts[:] = [part for part in response_parts if part["kind"] != "binary"]
+    expect_schema_failure(validator, multipart_response_without_binary, "multipart response requires at least one binary part")
+
+    multipart_response_with_two_json_roots = copy.deepcopy(example)
+    response_parts = multipart_response_with_two_json_roots["spec"]["operations"][0]["response"]["dispositions"][0]["representations"][1]["parts"]
+    duplicate_root = copy.deepcopy(response_parts[0])
+    duplicate_root["name"] = "secondJsonRoot"
+    response_parts.append(duplicate_root)
+    expect_schema_failure(validator, multipart_response_with_two_json_roots, "multipart response has exactly one JSON root part")
+
     missing_response_limit = copy.deepcopy(example)
     del missing_response_limit["spec"]["operations"][0]["response"]["dispositions"][0]["representations"][0]["maxBytes"]
     expect_schema_failure(validator, missing_response_limit, "missing response representation byte limit")
@@ -710,6 +722,34 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     binary_mapping = next(item for item in response_mappings if item["target"]["kind"] == "multipart-binary")
     binary_mapping["target"]["contentIdField"]["pointer"] = "/smContextRef"
     expect_protocol_failure(wrong_response_content_id, "response Content-ID must bind RefToBinaryData.contentId")
+
+    wrong_response_binary_source = copy.deepcopy(example)
+    response_mappings = wrong_response_binary_source["spec"]["operations"][0]["response"]["result"]["mappings"]
+    binary_mapping = next(item for item in response_mappings if item["target"]["kind"] == "multipart-binary")
+    binary_mapping["from"] = "/smContextRef"
+    expect_protocol_failure(wrong_response_binary_source, "binary response mapping cannot read smContextRef")
+
+    duplicate_response_mapping = copy.deepcopy(example)
+    response_mappings = duplicate_response_mapping["spec"]["operations"][0]["response"]["result"]["mappings"]
+    duplicate_mapping = copy.deepcopy(response_mappings[-1])
+    duplicate_mapping["from"] = "/cause"
+    response_mappings.append(duplicate_mapping)
+    expect_protocol_failure(duplicate_response_mapping, "duplicate response binary target mapping")
+
+    wrong_response_root_order = copy.deepcopy(example)
+    response_parts = wrong_response_root_order["spec"]["operations"][0]["response"]["dispositions"][0]["representations"][1]["parts"]
+    response_parts[0], response_parts[1] = response_parts[1], response_parts[0]
+    expect_protocol_failure(wrong_response_root_order, "multipart response JSON root is not first")
+
+    mismatched_response_schema_digest = copy.deepcopy(example)
+    multipart_response = mismatched_response_schema_digest["spec"]["operations"][0]["response"]["dispositions"][0]["representations"][1]
+    multipart_response["responseSchemaDigest"] = "sha256:" + "1" * 64
+    expect_protocol_failure(mismatched_response_schema_digest, "multipart root response schema digest mismatch")
+
+    insufficient_response_total_limit = copy.deepcopy(example)
+    multipart_response = insufficient_response_total_limit["spec"]["operations"][0]["response"]["dispositions"][0]["representations"][1]
+    multipart_response["maxBytes"] = 2000000
+    expect_protocol_failure(insufficient_response_total_limit, "response total limit cannot fit declared part limits and MIME framing")
 
     missing_response_binary_mapping = copy.deepcopy(example)
     response_mappings = missing_response_binary_mapping["spec"]["operations"][0]["response"]["result"]["mappings"]
