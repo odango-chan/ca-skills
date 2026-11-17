@@ -1,0 +1,268 @@
+name: IngressCatalog Schema
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/design/integration-ingress-operation-contract-vnext.zh-CN.md"
+      - "docs/design/artifacts/ts-29.502-v19.5.0-nsmf-pdusession-openapi-source-lock.yaml"
+      - "docs/design/artifacts/ts-29.502-v19.7.0-nsmf-pdusession-openapi-source-lock.yaml"
+      - "docs/design/schemas/ingresscatalog.v1alpha1.schema.json"
+      - "docs/design/schemas/update-sm-context-response-result.v1.schema.json"
+      - "docs/design/schemas/response-binary-content-reference.v1.schema.json"
+      - "docs/design/schemas/schema-closure-digest-v1.vector.json"
+      - "docs/design/schema-closure-digest-v1.md"
+      - "scripts/validate-ingresscatalog-example.py"
+      - "scripts/validate_ingress_diagnostic_registry.py"
+      - "scripts/validate_etsi_production_artifact_lock.py"
+      - "docs/design/ingress-diagnostic-registry-v1alpha1.json"
+      - "docs/design/ingress-diagnostic-registry-v1alpha1.md"
+      - ".github/workflows/ingresscatalog-schema.yml"
+  push:
+    branches: [main]
+    paths:
+      - "docs/design/integration-ingress-operation-contract-vnext.zh-CN.md"
+      - "docs/design/artifacts/ts-29.502-v19.5.0-nsmf-pdusession-openapi-source-lock.yaml"
+      - "docs/design/artifacts/ts-29.502-v19.7.0-nsmf-pdusession-openapi-source-lock.yaml"
+      - "docs/design/schemas/ingresscatalog.v1alpha1.schema.json"
+      - "docs/design/schemas/update-sm-context-response-result.v1.schema.json"
+      - "docs/design/schemas/response-binary-content-reference.v1.schema.json"
+      - "docs/design/schemas/schema-closure-digest-v1.vector.json"
+      - "docs/design/schema-closure-digest-v1.md"
+      - "scripts/validate-ingresscatalog-example.py"
+      - "scripts/validate_ingress_diagnostic_registry.py"
+      - "scripts/validate_etsi_production_artifact_lock.py"
+      - "docs/design/ingress-diagnostic-registry-v1alpha1.json"
+      - "docs/design/ingress-diagnostic-registry-v1alpha1.md"
+      - ".github/workflows/ingresscatalog-schema.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-ingresscatalog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install validators
+        run: python -m pip install PyYAML jsonschema referencing rfc8785==0.1.4
+      - name: Verify pinned official ETSI TS 29.502 V19.5.0 OpenAPI artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://www.etsi.org/deliver/etsi_ts/129500_129599/129502/19.05.00_60"
+          pdf="$RUNNER_TEMP/ts_129502v190500p.pdf"
+          zip="$RUNNER_TEMP/ts_129502v190500p0.zip"
+          yaml_file="$RUNNER_TEMP/TS29502_Nsmf_PDUSession.yaml"
+          ua="Mozilla/5.0 (compatible; CA-Skill-Artifact-Lock/1.0)"
+          curl --fail --location --retry 3 --silent --show-error --user-agent "$ua" "$base/ts_129502v190500p.pdf" --output "$pdf"
+          curl --fail --location --retry 3 --silent --show-error --user-agent "$ua" "$base/ts_129502v190500p0.zip" --output "$zip"
+          test "$(wc -c < "$pdf")" -eq 2066717
+          test "$(wc -c < "$zip")" -eq 18012
+          echo "5afc2745fb6baf6c1216b6c5f0873e0696c6aa1531eac462a73f32a80672c436  $pdf" | sha256sum --check
+          echo "dca26e15363c01f37eac639305834d0359ae6b011f2c5adeac3c09f49300a883  $zip" | sha256sum --check
+          unzip -p "$zip" TS29502_Nsmf_PDUSession.yaml > "$yaml_file"
+          test "$(wc -c < "$yaml_file")" -eq 209138
+          echo "ca5d94e296a334c85635715fc325167459d865f2c83a16c47926c979dab7545b  $yaml_file" | sha256sum --check
+          python - "$yaml_file" <<'PY'
+          import pathlib
+          import sys
+          import yaml
+
+          artifact_path = pathlib.Path(sys.argv[1])
+          artifact = yaml.safe_load(artifact_path.read_text(encoding="utf-8"))
+          assert artifact["openapi"] == "3.0.0"
+          assert artifact["info"]["title"] == "Nsmf_PDUSession"
+          assert artifact["info"]["version"] == "1.4.0"
+
+          matches = [
+              (path, method, operation)
+              for path, methods in artifact["paths"].items()
+              for method, operation in methods.items()
+              if operation.get("operationId") == "UpdateSmContext"
+          ]
+          assert len(matches) == 1, "expected exactly one UpdateSmContext operation"
+          path, method, operation = matches[0]
+          assert (path, method.lower()) == ("/sm-contexts/{smContextRef}/modify", "post")
+
+          components = artifact["components"]["schemas"]
+          request_schema_ref = "#/components/schemas/SmContextUpdateData"
+          response_schema_ref = "#/components/schemas/SmContextUpdatedData"
+          request_schema = components["SmContextUpdateData"]
+          response_schema = components["SmContextUpdatedData"]
+          assert {"n1SmMsg", "n2SmInfo", "n2SmInfoType", "n2SmInfoExt1", "n2SmInfoTypeExt1"} <= set(request_schema["properties"])
+          assert {"n1SmMsg", "n2SmInfo", "n2SmInfoType", "cause"} <= set(response_schema["properties"])
+          common_ref = "TS29571_CommonData.yaml#/components/schemas/RefToBinaryData"
+          for schema, fields in (
+              (request_schema, ("n1SmMsg", "n2SmInfo", "n2SmInfoExt1")),
+              (response_schema, ("n1SmMsg", "n2SmInfo")),
+          ):
+              for field in fields:
+                  assert schema["properties"][field]["$ref"] == common_ref, (
+                      f"{field} must resolve through the pinned TS 29.571 CommonData artifact"
+                  )
+          for field in ("n2SmInfoType", "n2SmInfoTypeExt1"):
+              assert request_schema["properties"][field]["$ref"] == "#/components/schemas/N2SmInfoType"
+          assert response_schema["properties"]["n2SmInfoType"]["$ref"] == "#/components/schemas/N2SmInfoType"
+
+          request_content = operation["requestBody"]["content"]
+          assert set(request_content) == {"application/json", "multipart/related"}
+          assert request_content["application/json"]["schema"]["$ref"] == request_schema_ref
+          request_multipart = request_content["multipart/related"]
+          request_parts = request_multipart["schema"]["properties"]
+          expected_request_parts = {
+              "jsonData",
+              "binaryDataN1SmMessage",
+              "binaryDataN2SmInformation",
+              "binaryDataN2SmInformationExt1",
+          }
+          assert set(request_parts) == expected_request_parts
+          assert request_parts["jsonData"]["$ref"] == request_schema_ref
+
+          response_200 = operation["responses"]["200"]
+          response_content = response_200["content"]
+          assert set(response_content) == {"application/json", "multipart/related"}
+          assert response_content["application/json"]["schema"]["$ref"] == response_schema_ref
+          response_multipart = response_content["multipart/related"]
+          response_parts = response_multipart["schema"]["properties"]
+          assert set(response_parts) == {
+              "jsonData",
+              "binaryDataN1SmMessage",
+              "binaryDataN2SmInformation",
+          }
+          assert response_parts["jsonData"]["$ref"] == response_schema_ref
+          assert "content" not in operation["responses"]["204"], "204 must remain bodyless"
+
+          def verify_binary_encoding(media, expected):
+              encoding = media["encoding"]
+              assert encoding["jsonData"]["contentType"] == "application/json"
+              for part_name, media_type in expected.items():
+                  assert encoding[part_name]["contentType"] == media_type
+                  content_id = encoding[part_name]["headers"]["Content-Id"]["schema"]
+                  assert content_id["type"] == "string"
+
+          verify_binary_encoding(request_multipart, {
+              "binaryDataN1SmMessage": "application/vnd.3gpp.5gnas",
+              "binaryDataN2SmInformation": "application/vnd.3gpp.ngap",
+              "binaryDataN2SmInformationExt1": "application/vnd.3gpp.ngap",
+          })
+          verify_binary_encoding(response_multipart, {
+              "binaryDataN1SmMessage": "application/vnd.3gpp.5gnas",
+              "binaryDataN2SmInformation": "application/vnd.3gpp.ngap",
+          })
+
+          print("UpdateSmContext path:", path, method.upper())
+          print("Request multipart parts:", sorted(request_parts))
+          print("Response 200 media types:", sorted(response_content))
+          print("Response multipart parts:", sorted(response_parts))
+          print("Response 204: bodyless")
+          print("Pinned ETSI Annex A.2 OpenAPI identity and protocol shape: PASS")
+          PY
+      - name: Verify pinned official ETSI TS 29.571 V19.5.0 CommonData artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://www.etsi.org/deliver/etsi_ts/129500_129599/129571/19.05.00_60"
+          pdf="$RUNNER_TEMP/ts_129571v190500p.pdf"
+          zip="$RUNNER_TEMP/ts_129571v190500p0.zip"
+          yaml_file="$RUNNER_TEMP/TS29571_CommonData.yaml"
+          ua="Mozilla/5.0 (compatible; CA-Skill-Artifact-Lock/1.0)"
+          curl --fail --location --retry 3 --silent --show-error --user-agent "$ua" "$base/ts_129571v190500p.pdf" --output "$pdf"
+          curl --fail --location --retry 3 --silent --show-error --user-agent "$ua" "$base/ts_129571v190500p0.zip" --output "$zip"
+          test "$(wc -c < "$pdf")" -eq 1191071
+          test "$(wc -c < "$zip")" -eq 38569
+          echo "a608887aa19de1c28fdef8b3ae02d015fe8ccbaa8db52b3fa7defe48d5ff7c84  $pdf" | sha256sum --check
+          echo "5bc10332b197f1df131908cc236ca7c6ab97b0d3c908e7825f1d701c9d56e978  $zip" | sha256sum --check
+          unzip -p "$zip" TS29571_CommonData.yaml > "$yaml_file"
+          test "$(wc -c < "$yaml_file")" -eq 255480
+          echo "8632cbab60c73e9c3ba9be26577057144255f21aef7430a1990bdf113c1e7bd4  $yaml_file" | sha256sum --check
+          python - "$yaml_file" "$RUNNER_TEMP/TS29502_Nsmf_PDUSession.yaml" <<'PY'
+          import pathlib
+          import sys
+          import yaml
+
+          common = yaml.safe_load(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+          session = yaml.safe_load(pathlib.Path(sys.argv[2]).read_text(encoding="utf-8"))
+          operations = [
+              operation
+              for methods in session["paths"].values()
+              for operation in methods.values()
+              if operation.get("operationId") == "UpdateSmContext"
+          ]
+          assert len(operations) == 1
+          assert common["openapi"] == "3.0.0"
+          assert common["info"]["title"] == "Common Data Types"
+          assert common["info"]["version"] == "1.6.0"
+          assert common["externalDocs"]["description"].endswith("version 19.5.0")
+
+          common_ref = "TS29571_CommonData.yaml#/components/schemas/RefToBinaryData"
+          request_schema = session["components"]["schemas"]["SmContextUpdateData"]
+          response_schema = session["components"]["schemas"]["SmContextUpdatedData"]
+          mapped_fields = (
+              (request_schema, ("n1SmMsg", "n2SmInfo", "n2SmInfoExt1")),
+              (response_schema, ("n1SmMsg", "n2SmInfo")),
+          )
+          for schema, fields in mapped_fields:
+              for field in fields:
+                  assert schema["properties"][field]["$ref"] == common_ref, (
+                      f"{field} must resolve through the pinned TS 29.571 RefToBinaryData"
+                  )
+
+          def resolve_pointer(document, fragment):
+              assert fragment.startswith("/"), f"invalid JSON Pointer: {fragment}"
+              target = document
+              for token in fragment.lstrip("/").split("/"):
+                  token = token.replace("~1", "/").replace("~0", "~")
+                  target = target[token]
+              return target
+
+          ref_to_binary = resolve_pointer(
+              common,
+              "/components/schemas/RefToBinaryData",
+          )
+          assert ref_to_binary["type"] == "object"
+          assert ref_to_binary["required"] == ["contentId"]
+          assert ref_to_binary["properties"]["contentId"]["type"] == "string"
+
+          for schema, fields in (
+              (request_schema, ("n2SmInfoType", "n2SmInfoTypeExt1")),
+              (response_schema, ("n2SmInfoType",)),
+          ):
+              for field in fields:
+                  ref = schema["properties"][field]["$ref"]
+                  assert ref == "#/components/schemas/N2SmInfoType"
+                  resolve_pointer(session, ref[1:])
+
+          print("Official TS 29.571 Annex A.2 and RefToBinaryData: PASS")
+          print("UpdateSmContext mapped request/response schema closure: PASS")
+          PY
+      - name: Verify pinned production-profile ETSI TS 29.502 and TS 29.571 V19.7.0 artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          base502="https://www.etsi.org/deliver/etsi_ts/129500_129599/129502/19.07.00_60"
+          base571="https://www.etsi.org/deliver/etsi_ts/129500_129599/129571/19.07.00_60"
+          pdf502="$RUNNER_TEMP/ts_129502v190700p.pdf"
+          zip502="$RUNNER_TEMP/ts_129502v190700p0.zip"
+          yaml502="$RUNNER_TEMP/TS29502_Nsmf_PDUSession-v19.7.0.yaml"
+          pdf571="$RUNNER_TEMP/ts_129571v190700p.pdf"
+          zip571="$RUNNER_TEMP/ts_129571v190700p0.zip"
+          yaml571="$RUNNER_TEMP/TS29571_CommonData-v19.7.0.yaml"
+          ua="Mozilla/5.0 (compatible; CA-Skill-Artifact-Lock/1.0)"
+          curl --fail --location --retry 3 --silent --show-error --user-agent "$ua" "$base502/ts_129502v190700p.pdf" --output "$pdf502"
+          curl --fail --location --retry 3 --silent --show-error --user-agent "$ua" "$base502/ts_129502v190700p0.zip" --output "$zip502"
+          curl --fail --location --retry 3 --silent --show-error --user-agent "$ua" "$base571/ts_129571v190700p.pdf" --output "$pdf571"
+          curl --fail --location --retry 3 --silent --show-error --user-agent "$ua" "$base571/ts_129571v190700p0.zip" --output "$zip571"
+          unzip -p "$zip502" TS29502_Nsmf_PDUSession.yaml > "$yaml502"
+          unzip -p "$zip571" TS29571_CommonData.yaml > "$yaml571"
+          python scripts/validate_etsi_production_artifact_lock.py "$pdf502" "$zip502" "$yaml502" "$pdf571" "$zip571" "$yaml571"
+      - name: Validate IngressCatalog example
+        run: python scripts/validate-ingresscatalog-example.py
+      - name: Validate Ingress diagnostic registry
+        run: python scripts/validate_ingress_diagnostic_registry.py

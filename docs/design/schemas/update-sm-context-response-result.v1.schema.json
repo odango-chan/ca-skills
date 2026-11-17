@@ -1,0 +1,365 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:example:response-result:update-sm-context:v1",
+  "title": "Typed Step 17 UpdateSMContext response result",
+  "description": "Internal typed Producer output for the TS 23.502 V19.5.0 Step 15–17 reference flow. It distinguishes N2 user-plane resource setup failure (N4 Release before Step 17) from required User Plane Enforcement Policy failure (Step 16 skipped without that pre-response Release). Step 18 cleanup occurs after the Step 17 response boundary and is intentionally not part of this DTO. Only mapped SmContextUpdatedData fields are serialized on the wire. On the successful establishment branch, an N1 SM Reject is forbidden; when an N2 response binary is present its N2SmInfoType is PDU_RES_SETUP_RSP.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "procedureOutcome",
+    "step16Outcome",
+    "responseRepresentation"
+  ],
+  "properties": {
+    "procedureOutcome": {
+      "enum": [
+        "n2-user-plane-setup-succeeded",
+        "n2-user-plane-setup-failed",
+        "user-plane-enforcement-required-unavailable"
+      ]
+    },
+    "step16Outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "n4Action",
+        "udmRegistration"
+      ],
+      "properties": {
+        "n4Action": {
+          "enum": [
+            "session-modified",
+            "session-released",
+            "not-performed"
+          ]
+        },
+        "udmRegistration": {
+          "enum": [
+            "completed",
+            "not-required",
+            "skipped"
+          ]
+        }
+      }
+    },
+    "responseRepresentation": {
+      "enum": [
+        "json",
+        "multipart",
+        "no-content"
+      ]
+    },
+    "cause": {
+      "type": "string",
+      "minLength": 1
+    },
+    "n1SmMessage": {
+      "$ref": "urn:example:response:binary-content-reference:v1"
+    },
+    "n2SmInformation": {
+      "$ref": "urn:example:response:binary-content-reference:v1"
+    },
+    "n2SmInfoType": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "procedureOutcome": {
+            "const": "n2-user-plane-setup-failed"
+          }
+        },
+        "required": [
+          "procedureOutcome"
+        ]
+      },
+      "then": {
+        "required": [
+          "n1SmMessage"
+        ],
+        "properties": {
+          "responseRepresentation": {
+            "const": "multipart"
+          },
+          "step16Outcome": {
+            "properties": {
+              "n4Action": {
+                "const": "session-released"
+              },
+              "udmRegistration": {
+                "const": "skipped"
+              }
+            }
+          }
+        },
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "n2SmInformation"
+              ]
+            },
+            {
+              "required": [
+                "n2SmInfoType"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "procedureOutcome": {
+            "const": "n2-user-plane-setup-succeeded"
+          }
+        },
+        "required": [
+          "procedureOutcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "step16Outcome": {
+            "properties": {
+              "n4Action": {
+                "const": "session-modified"
+              },
+              "udmRegistration": {
+                "enum": [
+                  "completed",
+                  "not-required"
+                ]
+              }
+            }
+          }
+        },
+        "not": {
+          "required": [
+            "n1SmMessage"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "n1SmMessage"
+        ]
+      },
+      "then": {
+        "properties": {
+          "responseRepresentation": {
+            "const": "multipart"
+          },
+          "n1SmMessage": {
+            "properties": {
+              "mediaType": {
+                "const": "application/vnd.3gpp.5gnas"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "n2SmInformation"
+        ]
+      },
+      "then": {
+        "required": [
+          "n2SmInfoType"
+        ],
+        "properties": {
+          "responseRepresentation": {
+            "const": "multipart"
+          },
+          "n2SmInformation": {
+            "properties": {
+              "mediaType": {
+                "const": "application/vnd.3gpp.ngap"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "n2SmInfoType"
+        ]
+      },
+      "then": {
+        "required": [
+          "n2SmInformation"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "responseRepresentation": {
+            "const": "json"
+          }
+        },
+        "required": [
+          "responseRepresentation"
+        ]
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "n1SmMessage"
+              ]
+            },
+            {
+              "required": [
+                "n2SmInformation"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "responseRepresentation": {
+            "const": "multipart"
+          }
+        },
+        "required": [
+          "responseRepresentation"
+        ]
+      },
+      "then": {
+        "anyOf": [
+          {
+            "required": [
+              "n1SmMessage"
+            ]
+          },
+          {
+            "required": [
+              "n2SmInformation"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "responseRepresentation": {
+            "const": "no-content"
+          }
+        },
+        "required": [
+          "responseRepresentation"
+        ]
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "cause"
+              ]
+            },
+            {
+              "required": [
+                "n1SmMessage"
+              ]
+            },
+            {
+              "required": [
+                "n2SmInformation"
+              ]
+            },
+            {
+              "required": [
+                "n2SmInfoType"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "procedureOutcome": {
+            "const": "user-plane-enforcement-required-unavailable"
+          }
+        },
+        "required": [
+          "procedureOutcome"
+        ]
+      },
+      "then": {
+        "required": [
+          "n1SmMessage"
+        ],
+        "properties": {
+          "responseRepresentation": {
+            "const": "multipart"
+          },
+          "step16Outcome": {
+            "properties": {
+              "n4Action": {
+                "const": "not-performed"
+              },
+              "udmRegistration": {
+                "const": "skipped"
+              }
+            }
+          }
+        },
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "n2SmInformation"
+              ]
+            },
+            {
+              "required": [
+                "n2SmInfoType"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "procedureOutcome": {
+            "const": "n2-user-plane-setup-succeeded"
+          },
+          "n2SmInformation": {}
+        },
+        "required": [
+          "procedureOutcome",
+          "n2SmInformation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "n2SmInfoType": {
+            "const": "PDU_RES_SETUP_RSP"
+          }
+        }
+      }
+    }
+  ]
+}

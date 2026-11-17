@@ -1,0 +1,331 @@
+{
+  "schemaVersion": "connectionagent.io/diagnostic-registry/v1",
+  "registryId": "connectionagent.io/ingress-diagnostics/v1alpha1",
+  "appliesTo": {
+    "apiVersion": "connectionagent.io/ingresscatalog/v1alpha1",
+    "kind": "IngressCatalog"
+  },
+  "status": "NORMATIVE_FROZEN",
+  "identity": {
+    "key": [
+      "code",
+      "phase"
+    ],
+    "codesGloballyUnique": true,
+    "registryIdIsProvenance": true
+  },
+  "defaults": {
+    "phase": "C_STATIC",
+    "severity": "ERROR",
+    "blocksBuild": true
+  },
+  "sourceLocation": {
+    "kind": "catalog-source",
+    "fields": [
+      "dependencyAlias",
+      "snapshotPath",
+      "jsonPointer"
+    ],
+    "jsonPointerDialect": "RFC6901",
+    "fragmentPrefix": "#",
+    "lineColumn": "optional-derived-display-only",
+    "missingField": "point to nearest existing containing object",
+    "duplicate": "primary points to later occurrence; relatedLocations points to first occurrence"
+  },
+  "envelope": {
+    "requiredFields": [
+      "code",
+      "phase",
+      "severity",
+      "registryId",
+      "messageKey",
+      "sourceLocation"
+    ],
+    "optionalFields": [
+      "relatedLocations"
+    ],
+    "blocksBuildDerivedFrom": [
+      "phase",
+      "severity"
+    ],
+    "forIngressEntries": {
+      "phase": "C_STATIC",
+      "severity": "ERROR",
+      "blocksBuild": true
+    }
+  },
+  "ordering": {
+    "precedence": "ascending numeric precedence; then dependencyAlias UTF-8 byte order, snapshotPath UTF-8 byte order, jsonPointer UTF-8 byte order, code UTF-8 byte order",
+    "independentErrors": "may be co-reported",
+    "dependentErrors": "suppress downstream diagnostics after the earliest failed prerequisite"
+  },
+  "entries": [
+    {
+      "code": "INGRESS_CATALOG_INVALID",
+      "precedence": 10,
+      "messageKey": "ingress.catalog.invalid",
+      "messageTemplate": "IngressCatalog at '{catalogPath}' is structurally invalid or declares an unsupported apiVersion.",
+      "trigger": "Parsed YAML is not a valid connectionagent.io/ingresscatalog/v1alpha1 document, including an unsupported or missing apiVersion/kind or invalid catalog-level structure.",
+      "primaryLocation": "Exact invalid field; use '#' for an invalid root and the containing object pointer for a missing required field.",
+      "relatedLocation": "None unless a second catalog field is needed to explain the contradiction.",
+      "phase": "C_STATIC",
+      "severity": "ERROR",
+      "blocksBuild": true,
+      "sourceLocation": {
+        "primary": "Exact invalid field; use '#' for an invalid root and the containing object pointer for a missing required field.",
+        "related": "None unless a second catalog field is needed to explain the contradiction.",
+        "primaryPointerTemplate": [
+          "#",
+          "#/apiVersion",
+          "#/kind",
+          "#/spec"
+        ],
+        "relatedPointerTemplate": []
+      },
+      "conformanceCases": [
+        "IN-055"
+      ]
+    },
+    {
+      "code": "INGRESS_EXPORT_ID_DUPLICATE",
+      "precedence": 20,
+      "messageKey": "ingress.export.id.duplicate",
+      "messageTemplate": "Ingress Operation export id '{exportId}' is duplicated in this trusted Catalog.",
+      "trigger": "Two or more operations in one trusted Catalog declare the same id.",
+      "primaryLocation": "The id field of the later duplicate operation.",
+      "relatedLocation": "The id field of the first occurrence.",
+      "phase": "C_STATIC",
+      "severity": "ERROR",
+      "blocksBuild": true,
+      "sourceLocation": {
+        "primary": "The id field of the later duplicate operation.",
+        "related": "The id field of the first occurrence.",
+        "primaryPointerTemplate": [
+          "#/spec/operations/{index}/id"
+        ],
+        "relatedPointerTemplate": [
+          "#/spec/operations/{firstIndex}/id"
+        ]
+      },
+      "conformanceCases": [
+        "IN-005"
+      ]
+    },
+    {
+      "code": "INGRESS_EVENT_SELECTOR_DUPLICATE",
+      "precedence": 21,
+      "messageKey": "ingress.event.selector.duplicate",
+      "messageTemplate": "Ingress event selector '{source}/{service}/{operation}' is declared by more than one export.",
+      "trigger": "Two or more operations in one trusted Catalog declare the same exact event.source + event.service + event.operation tuple.",
+      "primaryLocation": "The event object of the later duplicate operation.",
+      "relatedLocation": "The event object of the first occurrence.",
+      "phase": "C_STATIC",
+      "severity": "ERROR",
+      "blocksBuild": true,
+      "sourceLocation": {
+        "primary": "The event object of the later duplicate operation.",
+        "related": "The event object of the first occurrence.",
+        "primaryPointerTemplate": [
+          "#/spec/operations/{index}/event"
+        ],
+        "relatedPointerTemplate": [
+          "#/spec/operations/{firstIndex}/event"
+        ]
+      },
+      "conformanceCases": [
+        "IN-056"
+      ]
+    },
+    {
+      "code": "INGRESS_PROTOCOL_ARTIFACT_INVALID",
+      "precedence": 30,
+      "messageKey": "ingress.protocol.artifact.invalid",
+      "messageTemplate": "Ingress export '{exportId}' does not match the pinned protocol artifact metadata at '{fieldPath}'.",
+      "trigger": "After the source artifact's byte digest and trusted dependency identity have passed, its protocol release, API URI version, HTTP method, path or OpenAPI operationId conflicts with the Catalog declaration.",
+      "primaryLocation": "The exact protocol metadata field in the Catalog that conflicts; use the protocol object pointer when the conflict is cross-field.",
+      "relatedLocation": "The corresponding OpenAPI operation or info field when it can be resolved unambiguously.",
+      "phase": "C_STATIC",
+      "severity": "ERROR",
+      "blocksBuild": true,
+      "sourceLocation": {
+        "primary": "The exact protocol metadata field in the Catalog that conflicts; use the protocol object pointer when the conflict is cross-field.",
+        "related": "The corresponding OpenAPI operation or info field when it can be resolved unambiguously.",
+        "primaryPointerTemplate": [
+          "#/spec/operations/{index}/protocol/{field}"
+        ],
+        "relatedPointerTemplate": [
+          "{resolvedOpenApiArtifactRef}#{openApiJsonPointer}"
+        ]
+      },
+      "conformanceCases": [
+        "IN-007",
+        "IN-057"
+      ]
+    },
+    {
+      "code": "INGRESS_PEER_PROFILE_REFERENCE_INVALID",
+      "precedence": 40,
+      "messageKey": "ingress.peer.profile.reference.invalid",
+      "messageTemplate": "Ingress export '{exportId}' has an invalid or unresolved peer profile reference at '{fieldPath}'.",
+      "trigger": "A peer authentication or authorization profile reference is malformed, has an undeclared alias, or does not resolve to the exact expected profile resource in an otherwise trusted declared dependency snapshot. Absence of a deployment-time binding is Host Admission, not this diagnostic.",
+      "primaryLocation": "The authenticationProfileRef or authorizationPolicyRef field.",
+      "relatedLocation": "The dependency resource location if resolution found a conflicting or wrong-kind resource.",
+      "phase": "C_STATIC",
+      "severity": "ERROR",
+      "blocksBuild": true,
+      "sourceLocation": {
+        "primary": "The authenticationProfileRef or authorizationPolicyRef field.",
+        "related": "The dependency resource location if resolution found a conflicting or wrong-kind resource.",
+        "primaryPointerTemplate": [
+          "#/spec/operations/{index}/security/authenticationProfileRef",
+          "#/spec/operations/{index}/security/authorizationPolicyRef"
+        ],
+        "relatedPointerTemplate": [
+          "{resolvedProfileArtifactRef}#{profileJsonPointer}"
+        ]
+      },
+      "conformanceCases": [
+        "IN-058"
+      ]
+    },
+    {
+      "code": "INGRESS_NORMALIZATION_INVALID",
+      "precedence": 50,
+      "messageKey": "ingress.normalization.invalid",
+      "messageTemplate": "Ingress export '{exportId}' has an invalid request normalization mapping at '{fieldPath}'.",
+      "trigger": "A request normalization representation is missing, duplicated, inconsistent with accepted media types, fails required wire-field coverage, has an invalid transform, or maps to an invalid normalized target. Missing/invalid source or normalized Schema references remain SCHEMA_MISSING / SCHEMA_INVALID.",
+      "primaryLocation": "The exact normalization representation or mapping field; use the containing representation/mapping object for a missing field.",
+      "relatedLocation": "The source/target Schema location when it is independently resolvable.",
+      "phase": "C_STATIC",
+      "severity": "ERROR",
+      "blocksBuild": true,
+      "sourceLocation": {
+        "primary": "The exact normalization representation or mapping field; use the containing representation/mapping object for a missing field.",
+        "related": "The source/target Schema location when it is independently resolvable.",
+        "primaryPointerTemplate": [
+          "#/spec/operations/{index}/request/normalization/representations/{representationIndex}/mappings/{mappingIndex}"
+        ],
+        "relatedPointerTemplate": [
+          "#/spec/operations/{index}/request/normalizedSchemaRef"
+        ]
+      },
+      "conformanceCases": [
+        "IN-014",
+        "IN-015",
+        "IN-039",
+        "IN-059"
+      ]
+    },
+    {
+      "code": "INGRESS_BINARY_CONTENT_LIFECYCLE_INVALID",
+      "phase": "C_STATIC",
+      "severity": "ERROR",
+      "blocksBuild": true,
+      "precedence": 55,
+      "messageKey": "ingress.binary.content.lifecycle.invalid",
+      "messageTemplate": "Ingress export '{exportId}' has an invalid immutable binary-content reference or lifecycle contract at '{fieldPath}'.",
+      "trigger": "A request or response binaryContent declaration is missing or contradicts its required immutable content-reference Schema, digest algorithm, access policy, maxBytes, retention, or declared consumer/recovery window. Missing or invalid referenced Schema artifacts remain SCHEMA_MISSING / SCHEMA_INVALID; missing request/response wire-to-part mappings remain INGRESS_NORMALIZATION_INVALID / INGRESS_RESPONSE_MAPPING_INVALID.",
+      "conformanceCases": [
+        "IN-016",
+        "IN-042"
+      ],
+      "sourceLocation": {
+        "primary": "The exact request.binaryContent or response.binaryContent field that violates the immutable reference/lifecycle contract; use the containing binaryContent object for a missing field.",
+        "related": "The multipart request/response part or declared consumer/recovery boundary that establishes the required lifetime, when independently resolvable.",
+        "primaryPointerTemplate": [
+          "#/spec/operations/{index}/request/binaryContent/{field}",
+          "#/spec/operations/{index}/response/binaryContent/{field}"
+        ],
+        "relatedPointerTemplate": [
+          "#/spec/operations/{index}/request/normalization/representations/{representationIndex}/parts/{partIndex}",
+          "#/spec/operations/{index}/response/dispositions/{dispositionIndex}/representations/{representationIndex}/parts/{partIndex}"
+        ]
+      }
+    },
+    {
+      "code": "INGRESS_CORRELATION_INVALID",
+      "precedence": 60,
+      "messageKey": "ingress.correlation.invalid",
+      "messageTemplate": "Ingress export '{exportId}' has an invalid correlation or stale-delivery declaration at '{fieldPath}'.",
+      "trigger": "The Catalog's own key declaration is not a stable comparable scalar, duplicate policy has an invalid identity source/scope, stale-delivery policy is absent or cannot guarantee occurrence isolation, or the declaration is otherwise internally inconsistent. A selected Skill's inability to materialize armInputSchema or prove its path-specific binding is WAIT_CORRELATION_BINDING_INVALID.",
+      "primaryLocation": "The exact correlation key, duplicate policy or staleDelivery field; use the correlation object pointer for cross-field contradictions.",
+      "relatedLocation": "The relevant armInputSchema or identity-source declaration when needed.",
+      "phase": "C_STATIC",
+      "severity": "ERROR",
+      "blocksBuild": true,
+      "sourceLocation": {
+        "primary": "The exact correlation key, duplicate policy or staleDelivery field; use the correlation object pointer for cross-field contradictions.",
+        "related": "The relevant armInputSchema or identity-source declaration when needed.",
+        "primaryPointerTemplate": [
+          "#/spec/operations/{index}/correlation/{field}"
+        ],
+        "relatedPointerTemplate": [
+          "#/spec/operations/{index}/correlation/armInputSchemaRef"
+        ]
+      },
+      "conformanceCases": [
+        "IN-023",
+        "IN-046",
+        "IN-047",
+        "IN-060"
+      ]
+    },
+    {
+      "code": "INGRESS_RESPONSE_CONTRACT_INVALID",
+      "precedence": 70,
+      "messageKey": "ingress.response.contract.invalid",
+      "messageTemplate": "Ingress export '{exportId}' has an invalid paired-response contract at '{fieldPath}'.",
+      "trigger": "Response mode, deadline policy reference, disposition set, early failure response policy or durable delivery-recovery declaration is missing, contradictory or unsupported. Missing actual deployment binding is Host Admission.",
+      "primaryLocation": "The exact response contract field; use the response object pointer for cross-field contradictions.",
+      "relatedLocation": "The referenced deadline policy or recovery contract location if resolvable.",
+      "phase": "C_STATIC",
+      "severity": "ERROR",
+      "blocksBuild": true,
+      "sourceLocation": {
+        "primary": "The exact response contract field; use the response object pointer for cross-field contradictions.",
+        "related": "The referenced deadline policy or recovery contract location if resolvable.",
+        "primaryPointerTemplate": [
+          "#/spec/operations/{index}/response/{field}"
+        ],
+        "relatedPointerTemplate": [
+          "#/spec/operations/{index}/response/deadlinePolicyRef"
+        ]
+      },
+      "conformanceCases": [
+        "IN-027",
+        "IN-033",
+        "IN-040",
+        "IN-061"
+      ]
+    },
+    {
+      "code": "INGRESS_RESPONSE_MAPPING_INVALID",
+      "precedence": 80,
+      "messageKey": "ingress.response.mapping.invalid",
+      "messageTemplate": "Ingress export '{exportId}' has an invalid protocol response representation or mapping at '{fieldPath}'.",
+      "trigger": "An Ingress-owned response representation, response Schema mapping, multipart part mapping or required protocol response field mapping is invalid. Missing/invalid Schema references remain SCHEMA_MISSING / SCHEMA_INVALID. A Skill Producer-to-response mapping failure is WAIT_RESPONSE_MAPPING_INVALID.",
+      "primaryLocation": "The exact Ingress response representation or mapping field; use the containing response/disposition object for a missing field.",
+      "relatedLocation": "The response Schema node or Producer declaration when independently resolvable.",
+      "phase": "C_STATIC",
+      "severity": "ERROR",
+      "blocksBuild": true,
+      "sourceLocation": {
+        "primary": "The exact Ingress response representation or mapping field; use the containing response/disposition object for a missing field.",
+        "related": "The response Schema node or Producer declaration when independently resolvable.",
+        "primaryPointerTemplate": [
+          "#/spec/operations/{index}/response/result/mappings/{mappingIndex}",
+          "#/spec/operations/{index}/response/dispositions/{dispositionIndex}/representations/{representationIndex}"
+        ],
+        "relatedPointerTemplate": [
+          "#/spec/operations/{index}/response/dispositions/{dispositionIndex}/representations/{representationIndex}/responseSchemaRef"
+        ]
+      },
+      "conformanceCases": [
+        "IN-032",
+        "IN-044",
+        "IN-045",
+        "IN-062"
+      ]
+    }
+  ]
+}
