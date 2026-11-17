@@ -137,6 +137,11 @@
               }
             }
           }
+        },
+        "not": {
+          "required": [
+            "n1SmMessage"
+          ]
         }
       }
     },
@@ -332,6 +337,27 @@
               ]
             }
           ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "procedureOutcome": {
+            "const": "n2-user-plane-setup-succeeded"
+          },
+          "n2SmInformation": {}
+        },
+        "required": [
+          "procedureOutcome",
+          "n2SmInformation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "n2SmInfoType": {
+            "const": "PDU_RES_SETUP_RSP"
+          }
         }
       }
     }
