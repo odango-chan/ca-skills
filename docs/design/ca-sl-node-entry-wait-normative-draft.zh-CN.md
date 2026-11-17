@@ -152,6 +152,7 @@ nodes:
       routes:
         SUCCEEDED: update-sm-context
         FAILED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
 
   update-sm-context:
     wait:
@@ -178,6 +179,7 @@ nodes:
         request: update-sm-context.wait.output
       routes:
         FAILED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
     postcondition:
       predicates:
         - predicate: session.ran_adoption.confirmed
@@ -196,6 +198,7 @@ nodes:
       routes:
         SUCCEEDED: verify-final-session
         FAILED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
 
   verify-final-session:
     postcondition:
@@ -215,6 +218,7 @@ nodes:
       routes:
         SUCCEEDED: SAFE_STOPPED
         FAILED: UNRESOLVED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
 ~~~
 
 This fragment is not a complete Skill: its referenced Nodes, schemas, Predicate declarations, dependency exports and final Goal Postcondition are intentionally omitted. It demonstrates only the Node-entry Wait shape, typed wait.output binding, timeout routing and the Step 17 response boundary. The Integration export MUST identify the triggering transfer callable and prove its pre-dispatch correlation binding. For a body-bearing Step 17 response, the Ingress export declares response.result.producer: operation and the typed responseResultSchema; Compiler derives modify-n4-session.operation.output from wait.response.after and validates that exact Output Schema before accepting the mapping.
