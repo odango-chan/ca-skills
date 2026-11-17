@@ -25,6 +25,19 @@ WAIT_DIAGNOSTICS = {
     "WAIT_RESPONSE_BOUNDARY_INVALID",
     "WAIT_RESPONSE_MAPPING_INVALID",
 }
+INGRESS_DIAGNOSTICS = {
+    "INGRESS_CATALOG_INVALID",
+    "INGRESS_EXPORT_ID_DUPLICATE",
+    "INGRESS_EVENT_SELECTOR_DUPLICATE",
+    "INGRESS_PROTOCOL_ARTIFACT_INVALID",
+    "INGRESS_PEER_PROFILE_REFERENCE_INVALID",
+    "INGRESS_NORMALIZATION_INVALID",
+    "INGRESS_CORRELATION_INVALID",
+    "INGRESS_RESPONSE_CONTRACT_INVALID",
+    "INGRESS_RESPONSE_MAPPING_INVALID",
+}
+INGRESS_REGISTRY_ID = "connectionagent.io/ingress-diagnostics/v1alpha1"
+
 EXISTING_DIAGNOSTICS = {
     "SOURCE_NOT_AVAILABLE",
     "ENTRY_PRECONDITION_BYPASSED",
@@ -106,7 +119,12 @@ def main() -> None:
     for message_key in EXPECTED_MESSAGE_KEYS:
         if message_key not in spec:
             fail(f"normative diagnostic message key is missing: {message_key}")
-    print("Wait conformance manifest integrity: PASS (36 obligations; execution NOT_RUN)")
+    for code in INGRESS_DIAGNOSTICS:
+        if spec.count(code) < 1:
+            fail(f"{code} is missing from the unified v1alpha5 diagnostic index")
+    if INGRESS_REGISTRY_ID not in spec:
+        fail("versioned Ingress diagnostic registry ID is missing from Appendix H")
+    print("Wait conformance manifest integrity: PASS (36 obligations; 9 Ingress identities indexed; execution NOT_RUN)")
 
 
 if __name__ == "__main__":
