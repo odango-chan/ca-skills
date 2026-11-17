@@ -730,6 +730,23 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     binary_mapping["from"] = "/smContextRef"
     expect_protocol_failure(wrong_response_binary_source, "binary response mapping cannot read smContextRef")
 
+    missing_n2_info_type_mapping = copy.deepcopy(example)
+    response_mappings = missing_n2_info_type_mapping["spec"]["operations"][0]["response"]["result"]["mappings"]
+    response_mappings[:] = [
+        item for item in response_mappings
+        if item["target"].get("pointer") != "/n2SmInfoType"
+    ]
+    expect_protocol_failure(missing_n2_info_type_mapping, "N2 binary response must map n2SmInfoType")
+
+    wrong_n2_info_type_source = copy.deepcopy(example)
+    response_mappings = wrong_n2_info_type_source["spec"]["operations"][0]["response"]["result"]["mappings"]
+    n2_type_mapping = next(
+        item for item in response_mappings
+        if item["target"].get("pointer") == "/n2SmInfoType"
+    )
+    n2_type_mapping["from"] = "/smContextRef"
+    expect_protocol_failure(wrong_n2_info_type_source, "N2SmInfoType must come from the typed response result")
+
     duplicate_response_mapping = copy.deepcopy(example)
     response_mappings = duplicate_response_mapping["spec"]["operations"][0]["response"]["result"]["mappings"]
     duplicate_mapping = copy.deepcopy(response_mappings[-1])
