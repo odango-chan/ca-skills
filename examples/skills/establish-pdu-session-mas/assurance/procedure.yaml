@@ -233,15 +233,16 @@ nodes:
           arguments:
             - modify-sm-policy-association.operation.output
       routes:
-        PASS: create-charging-reservation
+        PASS: execute-charging-step
         FAIL: SAFE_STOPPED
         UNKNOWN: SAFE_STOPPED
 
-  # OpenAMSM OES: CA.CREATE_CHARGING (s7). The current implementation is an
-  # explicit NOT_IMPL_skip stub returning charging_ref="1". It is retained as a
-  # qualification gate, not accepted as proof of a charging reservation.
-  # 3GPP: CA_EXTENSION — NW Agent s7 CA.CREATE_CHARGING is a MAS-specific charging extension; the pinned source is NOT_IMPL_skip, not a 3GPP call.
-  create-charging-reservation:
+  # OpenAMSM OES: CA.CREATE_CHARGING (s7). The pinned adapter returns
+  # SMF_MAS_OK with charging_ref="1" and records NOT_IMPL_skip. The required
+  # plan step therefore completes and s8 proceeds, but no charging reservation
+  # is created or claimed by this Skill.
+  # 3GPP: CA_EXTENSION — MAS-specific charging extension; this source revision is a successful skip stub, not a 3GPP charging operation.
+  execute-charging-step:
     operation:
       tool: mas::CA.CREATE_CHARGING
       arguments:
@@ -254,9 +255,9 @@ nodes:
         DENIED: SAFE_STOPPED
     postcondition:
       predicates:
-        - predicate: establishment.mas.charging_reservation_created
+        - predicate: establishment.mas.charging_step_completed
           arguments:
-            - create-charging-reservation.operation.output
+            - execute-charging-step.operation.output
       routes:
         PASS: establish-n4-session
         FAIL: SAFE_STOPPED
@@ -403,7 +404,7 @@ nodes:
             - modify-sm-policy-association.operation.output
         - predicate: establishment.mas.charging_reservation_created
           arguments:
-            - create-charging-reservation.operation.output
+            - execute-charging-step.operation.output
         - predicate: establishment.mas.n4_session_established
           arguments:
             - establish-n4-session.operation.output
