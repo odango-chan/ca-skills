@@ -587,7 +587,7 @@ Compiler 不执行协议认证，不调用真实 Integration adapter，不通过
 
 ## 11. 5GC 参考映射：TS 23.502 Step 15 / Step 17
 
-以下按 3GPP TS 23.502 V19.5.0 §4.3.2.2.1、TS 29.502 V19.5.0 §6.1.2.2/§6.1.2.4/§6.1.2.5 及 Annex A.2 OpenAPI、TS 29.571 V19.5.0 §5.4.4.14 对照说明责任和身份映射。TS 29.502 的正式来源为 ETSI 发布的 V19.5.0 PDF；Annex A.1 说明 Annex A 的 YAML OpenAPI 定义是正式 API 编码依据，并在编码不一致时优先。Annex A.2 标识 `Nsmf_PDUSession`、OpenAPI 3.0.0、API version `1.4.0`。GitLab `5G_APIs` 的 `REL-19` 文件副本仅作为 informative copy，不能直接视为 immutable artifact pin。源信息记录见 [TS 29.502 V19.5.0 OpenAPI source lock](artifacts/ts-29.502-v19.5.0-nsmf-pdusession-openapi-source-lock.yaml)。目前已固定官方 ETSI PDF URI 和发布文件大小，但尚未取得并核验精确 OpenAPI YAML 字节的 SHA-256；示例 `artifactDigest` 仍是占位符，Admission MUST remain blocked，不能宣称已具备可部署 Owner artifact。
+以下按 3GPP TS 23.502 V19.5.0 §4.3.2.2.1、TS 29.502 V19.5.0 §6.1.2.2/§6.1.2.4/§6.1.2.5 及 Annex A.2 OpenAPI、TS 29.571 V19.5.0 §5.4.4.14 对照说明责任和身份映射。TS 29.502 的正式来源为 ETSI 发布的 V19.5.0 PDF；Annex A.1 说明 Annex A 的 YAML OpenAPI 定义是正式 API 编码依据，并在编码不一致时优先。Annex A.2 标识 `Nsmf_PDUSession`、OpenAPI 3.0.0、API version `1.4.0`。已从 ETSI 官方 companion `p0.zip` 提取 `TS29502_Nsmf_PDUSession.yaml` 并固定其 SHA-256；官方 PDF、companion ZIP 与提取 YAML 的摘要均已通过 GitHub Actions 实际下载核验。GitLab `5G_APIs` 的 `REL-19` 分支文件摘要与 ETSI companion 文件不同，因此只记录为 informative copy，不作为规范 artifact。完整来源、字节长度和摘要见 [TS 29.502 V19.5.0 OpenAPI source lock](artifacts/ts-29.502-v19.5.0-nsmf-pdusession-openapi-source-lock.yaml)。示例 `artifactDigest` 现在绑定官方 YAML 字节摘要；但仍须将该文件纳入受信 dependency snapshot，并派生精确 source Schema digest、完成真实 Integration Adapter 和 Owner deployment qualification，因此 Admission 仍保持 blocked。
 
 - Step 11 Namf_Communication_N1N2MessageTransfer 是触发后续事件的出站 Operation。
 - Step 3 Nsmf_PDUSession_CreateSMContext 建立 SM Context；Step 5 成功响应的 Location resource URI 提供精确 smContextRef。
@@ -627,8 +627,8 @@ spec:
         release: "19.5.0"
         apiUriVersion: v1
         openapi:
-          artifactRef: urn:example:openapi:nsmf-pdusession
-          artifactDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+          artifactRef: urn:connectionagent:standard-artifact:3gpp-ts-29.502-v19.5.0-nsmf-pdusession
+          artifactDigest: sha256:ca5d94e296a334c85635715fc325167459d865f2c83a16c47926c979dab7545b
           operationId: UpdateSmContext
           method: POST
           path: /sm-contexts/{smContextRef}/modify
