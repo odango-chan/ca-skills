@@ -64,6 +64,8 @@ def validate_semantics(catalog: dict) -> None:
                     raise SystemExit(f"{operation['id']}: response mapping/selector references unknown disposition")
                 if len(selected) != len(result.get("dispositionSelector", {}).get("cases", [])):
                     raise SystemExit(f"{operation['id']}: duplicate disposition selector value")
+                if len(dispositions) > 1 and selected != declared:
+                    raise SystemExit(f"{operation['id']}: disposition selector must cover every disposition exactly once")
                 if any(item["body"] == "required" and item["id"] not in mapped for item in dispositions):
                     raise SystemExit(f"{operation['id']}: body-bearing disposition has no response mapping")
 
