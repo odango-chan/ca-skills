@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "docs/design/integration-ingress-operation-contract-vnext.zh-CN.md"
+      - "docs/design/artifacts/ts-29.502-v19.5.0-nsmf-pdusession-openapi-source-lock.yaml"
       - "docs/design/schemas/ingresscatalog.v1alpha1.schema.json"
       - "docs/design/schemas/update-sm-context-response-result.v1.schema.json"
       - "docs/design/schemas/response-binary-content-reference.v1.schema.json"
@@ -14,6 +15,7 @@ on:
     branches: [main]
     paths:
       - "docs/design/integration-ingress-operation-contract-vnext.zh-CN.md"
+      - "docs/design/artifacts/ts-29.502-v19.5.0-nsmf-pdusession-openapi-source-lock.yaml"
       - "docs/design/schemas/ingresscatalog.v1alpha1.schema.json"
       - "docs/design/schemas/update-sm-context-response-result.v1.schema.json"
       - "docs/design/schemas/response-binary-content-reference.v1.schema.json"
