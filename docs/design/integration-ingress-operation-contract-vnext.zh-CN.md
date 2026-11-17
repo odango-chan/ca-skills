@@ -780,7 +780,8 @@ spec:
 - response.result.producer 只允许 operation 或 observation；只有单一 bodyless disposition 时才可省略 typed result Producer；
 - 示例的 maximumLateArrival、clockSkewAllowance 和 tombstoneRetention 必须由受信协议/部署保证给出，且 tombstoneRetention 不得小于前两者之和；
 - 示例没有提供任何凭证、证书、网络地址或运行时私有句柄；示例采用 canonical-request-digest 作为重复识别占位策略，不宣称 TS 29.502 提供 protocol request ID；实际 Adapter 必须确认同一 Wait occurrence 内相同规范化请求应按重复处理；
-- 示例 maxBytes=3145728 和各 part maxBytes 仅为结构示例，必须按 pinned API 与部署限额设置；binaryContent.retention 是待部署策略绑定的占位符，必须覆盖最大 Invocation 生命周期及恢复宽限期。
+- 示例 maxBytes=3145728 和各 part maxBytes 仅为结构示例，必须按 pinned API 与部署限额设置；binaryContent.retention 是待部署策略绑定的占位符，必须覆盖最大 Invocation 生命周期及恢复宽限期；
+- 3GPP SBI 的 `3gpp-Sbi-Request-Info: idempotency-key=...` 是可选重复请求检测能力；示例不假定 AMF 一定提供它，因此使用 canonical-request-digest + single-flight/tombstone。若部署要求并验证该 Header 在每个请求中存在，可改用 authenticated-header-parameter wire discriminator。
 
 ## 13. 建议的诊断与拒绝分类
 
