@@ -1,0 +1,105 @@
+apiVersion: connectionagent.io/standard-artifact-lock/v1alpha1
+kind: StandardArtifactLock
+metadata:
+  id: 3gpp-ts-29.502-v19.7.0-nsmf-pdusession
+  status: PRODUCTION_PROFILE_SOURCE_LOCK
+spec:
+  standard:
+    name: 3GPP TS 29.502
+    version: 19.7.0
+    release: 19
+  api:
+    title: Nsmf_PDUSession
+    openapiVersion: 3.0.0
+    apiVersion: 1.4.1
+    annex: A.2
+    sourceFileName: TS29502_Nsmf_PDUSession.yaml
+  normativeSource:
+    publisher: ETSI
+    mediaType: application/pdf
+    uri: https://www.etsi.org/deliver/etsi_ts/129500_129599/129502/19.07.00_60/ts_129502v190700p.pdf
+    byteLength: 2075827
+    sha256: 546c1be9015b5995e655a46ac60959e1cb638586f9c3de392cf8b219cc7f7827
+    annexA2:
+      normative: true
+      openapiVersion: 3.0.0
+      apiVersion: 1.4.1
+  officialCompanionSource:
+    publisher: ETSI
+    mediaType: application/zip
+    uri: https://www.etsi.org/deliver/etsi_ts/129500_129599/129502/19.07.00_60/ts_129502v190700p0.zip
+    byteLength: 18013
+    sha256: c2d5fe7ed1d11b05fb5883f5843ba88e6094e42f4cf9906b1c71b7bb3ea9d434
+    extractedFile:
+      path: TS29502_Nsmf_PDUSession.yaml
+      byteLength: 209138
+      sha256: 465ba5f7302cc3dc493341123626dd22ba40ae9f5d3c1c7ec25f2fc3c4e4806c
+      role: exact-openapi-source-bytes-for-annex-a2
+  externalDependencies:
+    - standard:
+        name: 3GPP TS 29.571
+        version: 19.7.0
+        release: 19
+      api:
+        title: Common Data Types
+        openapiVersion: 3.0.0
+        apiVersion: 1.6.2
+        annex: A.2
+        sourceFileName: TS29571_CommonData.yaml
+      normativeSource:
+        publisher: ETSI
+        mediaType: application/pdf
+        uri: https://www.etsi.org/deliver/etsi_ts/129500_129599/129571/19.07.00_60/ts_129571v190700p.pdf
+        byteLength: 1194280
+        sha256: f15719c83dee732fe1bc7d5e7ed6cf3c09f82d7e642bf913c2c64d07a1dd98b1
+        annexA2:
+          normative: true
+          openapiVersion: 3.0.0
+          apiVersion: 1.6.2
+      officialCompanionSource:
+        publisher: ETSI
+        mediaType: application/zip
+        uri: https://www.etsi.org/deliver/etsi_ts/129500_129599/129571/19.07.00_60/ts_129571v190700p0.zip
+        byteLength: 38606
+        sha256: 1df31fd70efebba1983fc90009f4452cd3c48e1aa06d066160eff8aa4afc55e7
+        extractedFile:
+          path: TS29571_CommonData.yaml
+          byteLength: 255943
+          sha256: f637197cf9cc5c354c3dc6c64d111b6f2fcba584e440c2324ebb21ee168f3399
+          role: exact-openapi-source-bytes-for-annex-a2
+      operationSchemaClosure:
+        operationId: UpdateSmContext
+        httpMethod: POST
+        path: /sm-contexts/{smContextRef}/modify
+        scope: mapped-request-response-fields
+        requestExternalRefFields:
+          - n1SmMsg
+          - n2SmInfo
+          - n2SmInfoExt1
+        responseExternalRefFields:
+          - n1SmMsg
+          - n2SmInfo
+        externalDocuments:
+          - TS29571_CommonData.yaml
+        refSchema: /components/schemas/RefToBinaryData
+        refSchemaRequiredStringField: contentId
+        status: VERIFIED_BY_CI
+  verification:
+    status: OFFICIAL_SOURCE_BYTES_PINNED
+    verifiedAt: 2026-11-17
+    verifiedBy:
+      workflow: IngressCatalog Schema
+      run: 44058252873
+    evidence:
+      - Official ETSI V19.7.0 TS 29.502 PDF, companion ZIP and extracted Annex A.2 YAML byte lengths and SHA-256 values were checked by CI.
+      - Official ETSI V19.7.0 TS 29.571 PDF, companion ZIP and extracted Annex A.2 YAML byte lengths and SHA-256 values were checked by CI.
+      - TS 29.502 V19.7.0 Annex A.2 identifies Nsmf_PDUSession OpenAPI 3.0.0 API version 1.4.1.
+      - TS 29.571 V19.7.0 Annex A.2 identifies Common Data Types OpenAPI 3.0.0 API version 1.6.2.
+      - UpdateSmContext is POST /sm-contexts/{smContextRef}/modify; its request and 200 response include JSON and multipart/related representations.
+      - Request binary parts include N1, N2 and N2 extension; response binary parts include N1 and N2.
+      - The mapped request/response RefToBinaryData fields resolve to the pinned TS29571_CommonData.yaml RefToBinaryData schema; contentId is required and string-valued.
+    admissionAllowed: false
+    remainingQualification:
+      - Derive and publish exact Schema Closure Digest v1 values for the real trusted dependency snapshot and Owner Schema references. The algorithm is defined in ../schema-closure-digest-v1.md; the example's all-zero Schema digests remain placeholders and do not authorize Admission.
+      - Publish the real trusted Integration Owner Package, IngressCatalog, ToolCatalog binding and deployment profile.
+      - Implement and pass the real Integration Adapter wire conformance suite, including multipart/Content-ID, correlation, stale delivery, retries, response recovery and binary-content lifecycle.
