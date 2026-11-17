@@ -54,6 +54,8 @@ def unique(values: list, label: str) -> None:
 
 def validate_semantics(catalog: dict) -> None:
     operations = catalog["spec"]["operations"]
+    unique([operation["id"] for operation in operations], "duplicate ingress export id")
+    unique([operation["event"] for operation in operations], "duplicate ingress event selector")
     for operation in operations:
         op_id = operation["id"]
         if operation["security"]["authenticatedPeerType"] != operation["event"]["source"]:
@@ -61,9 +63,15 @@ def validate_semantics(catalog: dict) -> None:
 
         request = operation["request"]
         request_max = request["maxBytes"]
-        binary_max = request.get("binaryContent", {}).get("maxBytes")
+        binary_content = request.get("binaryContent")
+        binary_max = binary_content.get("maxBytes") if binary_content else None
         if binary_max is not None and binary_max > request_max:
             raise SystemExit(f"{op_id}: binaryContent.maxBytes exceeds request.maxBytes")
+        if binary_content:
+            retention = binary_content["retention"]
+            is_placeholder = retention.startswith("<") and retention.endswith(">")
+            if not is_placeholder:
+                fixed_duration_seconds(retention, f"{op_id}: binaryContent.retention")
         accepted = request["acceptedMediaTypes"]
         source_types = [item["mediaType"] for item in request["sourceSchemas"]]
         representations = request["normalization"]["representations"]
@@ -278,6 +286,12 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     del missing_binary_policy["spec"]["operations"][0]["request"]["binaryContent"]
     expect_schema_failure(validator, missing_binary_policy, "missing binary-content policy")
 
+    non_multipart_parts = copy.deepcopy(example)
+    non_multipart_parts["spec"]["operations"][0]["request"]["normalization"]["representations"][0]["parts"] = copy.deepcopy(
+        non_multipart_parts["spec"]["operations"][0]["request"]["normalization"]["representations"][1]["parts"]
+    )
+    expect_schema_failure(validator, non_multipart_parts, "multipart parts on application/json representation")
+
     missing_request_limit = copy.deepcopy(example)
     del missing_request_limit["spec"]["operations"][0]["request"]["maxBytes"]
     expect_schema_failure(validator, missing_request_limit, "missing total request byte limit")
@@ -369,6 +383,22 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     mismatched_sbi_identity = copy.deepcopy(example)
     mismatched_sbi_identity["spec"]["operations"][0]["correlation"]["duplicate"]["identitySource"] = "3gpp-sbi-idempotency-key"
     expect_semantic_failure(mismatched_sbi_identity, "SBI idempotency identity without wire discriminator")
+
+    invalid_binary_retention = copy.deepcopy(example)
+    invalid_binary_retention["spec"]["operations"][0]["request"]["binaryContent"]["retention"] = "P1M"
+    expect_semantic_failure(invalid_binary_retention, "calendar-month binary retention")
+
+    duplicate_export_id = copy.deepcopy(example)
+    duplicate_export = copy.deepcopy(duplicate_export_id["spec"]["operations"][0])
+    duplicate_export["event"]["operation"] = "AnotherOperation"
+    duplicate_export_id["spec"]["operations"].append(duplicate_export)
+    expect_semantic_failure(duplicate_export_id, "duplicate ingress export id")
+
+    duplicate_event_selector = copy.deepcopy(example)
+    duplicate_selector = copy.deepcopy(duplicate_event_selector["spec"]["operations"][0])
+    duplicate_selector["id"] = "another-export-id"
+    duplicate_event_selector["spec"]["operations"].append(duplicate_selector)
+    expect_semantic_failure(duplicate_event_selector, "duplicate event selector")
 
     short_tombstone = copy.deepcopy(example)
     stale = short_tombstone["spec"]["operations"][0]["correlation"]["staleDelivery"]
