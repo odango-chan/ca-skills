@@ -1,6 +1,6 @@
 # Current 5GC Skill Source Baseline
 
-**Version scope (2026-11-15): LEGACY 5GC SOURCE; NOT CA-SL v1alpha4-CONFORMING.** The two current Contracts still identify `connectionagent.io/v1alpha1`, while the imported `lib/tools/createdsession.tool.yaml` uses `ca-agent-demo.tool/v1`; neither meets the v1alpha4 F.0 exact profile. There is no verified trusted v1alpha4 CapabilityContracts/Owner publication here. The [CA-SL v1alpha4 language](skill-language-spec.v1alpha4.zh-CN.md) itself is FROZEN; Compiler/Studio/Host/Owner/5GC remain `NOT_QUALIFIED` under §45.2. Do not turn a legacy snapshot into a purported v1alpha4 publication by changing its version string.
+**Version scope (2026-11-17): LEGACY 5GC SOURCE; NOT CA-SL v1alpha5-CONFORMING.** The two current Contracts still identify `connectionagent.io/v1alpha1`, while the imported `lib/tools/createdsession.tool.yaml` uses `ca-agent-demo.tool/v1`; neither meets the v1alpha5 inherited exact external profile. There is no verified trusted CapabilityContracts/Owner publication here. The [CA-SL v1alpha5 language](skill-language-spec.v1alpha5.zh-CN.md) is FROZEN / RELEASED; Compiler/Studio/Host/Owner/5GC remain `NOT_QUALIFIED` under §45.2 / §L.13.2. Do not turn a legacy snapshot into a purported v1alpha5 publication by changing its version string.
 
 ## Source authority and behavior reference
 
