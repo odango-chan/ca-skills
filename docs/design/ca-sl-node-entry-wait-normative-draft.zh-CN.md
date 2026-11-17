@@ -1,11 +1,8 @@
 # CA-SL Node-level Event Wait — Normative Amendment Draft
 
-**Status:** Normative text draft for the language revision after CA-SL v1alpha4.  
-**Semantic baseline:** FROZEN by [ca-skills PR #60](https://github.com/odango-chan/ca-skills/pull/60), with the accepted-event tombstone/replay clarification tracked in [ca-skills PR #64](https://github.com/odango-chan/ca-skills/pull/64).  
-**Integration export contract:** under independent design review in [ca-skills PR #62](https://github.com/odango-chan/ca-skills/pull/62).  
-**Generic Host/Runtime continuation contract:** [ca-agent-demo PR #210](https://github.com/odango-chan/ca-agent-demo/pull/210).  
-**Normative publication status:** NOT FROZEN / NOT RELEASED.  
-**Version identity:** Unassigned. This draft MUST NOT be interpreted as v1alpha4 or used to infer the next language version identifier.
+**Primary review artifact:** [Complete CA-SL v1alpha5 single-file specification](../skill-language-spec.v1alpha5.zh-CN.md). The full specification is the only review target for normative integration; this file is retained as the source amendment and decision-history record.
+**Candidate language target:** `connectionagent.io/v1alpha5` (assigned candidate identifier; not released).
+**Status:** Delta source retained for traceability; superseded as the primary review artifact by the complete single-file specification.
 
 ## 0. Effect and compatibility
 
