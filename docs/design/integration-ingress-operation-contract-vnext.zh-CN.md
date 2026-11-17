@@ -1040,6 +1040,8 @@ IngressCatalog v1alpha1 使用独立、版本化的静态诊断注册表：[`con
 | IN-061 | Ingress response mode、deadline policy、disposition、failure response 或 delivery recovery 契约缺失/矛盾 | `INGRESS_RESPONSE_CONTRACT_INVALID / C_STATIC` |
 | IN-062 | Ingress-owned response representation、Schema mapping、multipart part mapping 或协议必需字段映射无效 | `INGRESS_RESPONSE_MAPPING_INVALID / C_STATIC`；Skill Producer mapping 失败用 `WAIT_RESPONSE_MAPPING_INVALID` |
 | IN-063 | Trigger ToolCatalog Operation 在精确 Package ID + Owner 范围内缺失或歧义 | 既有 `EXPORT_ID_MISSING` / `EXPORT_ID_AMBIGUOUS`；不得输出 Ingress 或 Wait selector diagnostic |
+| IN-064 | Step 15 的 N2 user-plane setup failure 分支已在 Step 17 前释放 N4 Session，之后进入 Step 18 cleanup | Step 18 仍执行 SM Context Status Notify (Release)，但只释放仍然存活的 N4 Session、PDU Session address 和 PCF association；不得重复发送 N4 Release，也不得延迟 Step 17 response |
+| IN-065 | PDU Session establishment 在 Step 4 后失败，但同一 UE 仍有其他相同 (DNN, HPLMN S-NSSAI) 的 PDU Session | Step 21 不执行 Nudm_SDM_Unsubscribe；仅在该 UE 不再处理此 (DNN, HPLMN S-NSSAI) 的任何 PDU Session 时才取消订阅；UDM 可进一步取消 UDR modification notification |
 
 ## 15. 契约冻结与产品准入门槛
 
@@ -1055,7 +1057,7 @@ IngressCatalog v1alpha1 使用独立、版本化的静态诊断注册表：[`con
 4. normalization、multipart/binary、content reference 和保留期限的协议语义评审；
 5. response result Producer、bodyless/body-bearing response、early-failure response 和恢复责任的协议评审；
 6. 与 CA-SL v1alpha5 Appendix L / H 完成字段、SourcePath、响应边界和诊断归属交叉核对；
-7. IngressCatalog Schema、Schema Closure Digest 和诊断注册表具有可执行的结构/算法验证；IN-001–IN-063 每项均明确条件与规范要求的诊断/处置，但符合性矩阵本身是规范义务清单，不得宣称 63 项已全部执行通过；
+7. IngressCatalog Schema、Schema Closure Digest 和诊断注册表具有可执行的结构/算法验证；IN-001–IN-065 每项均明确条件与规范要求的诊断/处置，但符合性矩阵本身是规范义务清单，不得宣称 63 项已全部执行通过；
 8. 完成独立审阅并明确该导出契约的发布版本和生效范围。
 
 以上是逻辑契约的冻结门槛。它们不要求真实 Owner 已发布生产包，也不要求 Host/Runtime/Integration 产品已取得资格。
