@@ -272,11 +272,11 @@ nodes:
             ROOT / "examples" / "skills" / "establish-pdu-session-mas"
             / "assurance" / "procedure.yaml"
         ).read_text(encoding="utf-8")
-        first = procedure.split("  validate-sm-subscription:\\n", 1)[1].split(
-            "\\n  # OpenAMSM OES: SAA.SECONDARY_AUTH", 1
+        first = procedure.split("  validate-sm-subscription:\n", 1)[1].split(
+            "\n  # OpenAMSM OES: SAA.SECONDARY_AUTH", 1
         )[0]
-        second = procedure.split("  skip-secondary-authentication:\\n", 1)[1].split(
-            "\\n  # OpenAMSM OES: SC.CREATE_SM_CONTEXT", 1
+        second = procedure.split("  skip-secondary-authentication:\n", 1)[1].split(
+            "\n  # OpenAMSM OES: SC.CREATE_SM_CONTEXT", 1
         )[0]
         self.assertIn("DENIED: FAILED", first)
         self.assertIn("FAIL: FAILED", first)
@@ -467,7 +467,7 @@ nodes:
         resources.sessionConfigurationDigest != ""
 """, encoding="utf-8")
             (root / "SKILL.md").write_text(
-                "| \x60establish-n4-session\x60 | step 8 native SMF session/UPF selection, then steps 10a–10b; §4.4.1.2 |\\n",
+                "| \x60establish-n4-session\x60 | step 8 native SMF session/UPF selection, then steps 10a–10b; §4.4.1.2 |\n",
                 encoding="utf-8",
             )
             errors: list[str] = []
@@ -494,9 +494,9 @@ nodes:
       arguments:
         selection: select-session-configuration.operation.output
 """, encoding="utf-8")
-            (root / "assurance" / "predicates.yaml").write_text("predicates: {}\\n", encoding="utf-8")
-            (root / "SKILL.md").write_text("| \x60select-session-configuration\x60 | step 8 |\\n", encoding="utf-8")
-            (root / "scripts" / "select-establishment-configuration.py").write_text("# obsolete\\n", encoding="utf-8")
+            (root / "assurance" / "predicates.yaml").write_text("predicates: {}\n", encoding="utf-8")
+            (root / "SKILL.md").write_text("| \x60select-session-configuration\x60 | step 8 |\n", encoding="utf-8")
+            (root / "scripts" / "select-establishment-configuration.py").write_text("# obsolete\n", encoding="utf-8")
             errors: list[str] = []
             validate_n4_owner_boundary(root, errors)
             self.assertTrue(any("must not be a separate Procedure Node" in e for e in errors), errors)
