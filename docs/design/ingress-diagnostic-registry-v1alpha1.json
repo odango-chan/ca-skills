@@ -82,7 +82,9 @@
         ],
         "relatedPointerTemplate": []
       },
-      "conformanceCase": "IN-055"
+      "conformanceCases": [
+        "IN-055"
+      ]
     },
     {
       "code": "INGRESS_EXPORT_ID_DUPLICATE",
@@ -105,7 +107,9 @@
           "#/spec/operations/{firstIndex}/id"
         ]
       },
-      "conformanceCase": "IN-005"
+      "conformanceCases": [
+        "IN-005"
+      ]
     },
     {
       "code": "INGRESS_EVENT_SELECTOR_DUPLICATE",
@@ -128,7 +132,9 @@
           "#/spec/operations/{firstIndex}/event"
         ]
       },
-      "conformanceCase": "IN-056"
+      "conformanceCases": [
+        "IN-056"
+      ]
     },
     {
       "code": "INGRESS_PROTOCOL_ARTIFACT_INVALID",
@@ -151,7 +157,10 @@
           "{resolvedOpenApiArtifactRef}#{openApiJsonPointer}"
         ]
       },
-      "conformanceCase": "IN-057"
+      "conformanceCases": [
+        "IN-007",
+        "IN-057"
+      ]
     },
     {
       "code": "INGRESS_PEER_PROFILE_REFERENCE_INVALID",
@@ -175,7 +184,9 @@
           "{resolvedProfileArtifactRef}#{profileJsonPointer}"
         ]
       },
-      "conformanceCase": "IN-058"
+      "conformanceCases": [
+        "IN-058"
+      ]
     },
     {
       "code": "INGRESS_NORMALIZATION_INVALID",
@@ -198,7 +209,38 @@
           "#/spec/operations/{index}/request/normalizedSchemaRef"
         ]
       },
-      "conformanceCase": "IN-059"
+      "conformanceCases": [
+        "IN-014",
+        "IN-015",
+        "IN-039",
+        "IN-059"
+      ]
+    },
+    {
+      "code": "INGRESS_BINARY_CONTENT_LIFECYCLE_INVALID",
+      "phase": "C_STATIC",
+      "severity": "ERROR",
+      "blocksBuild": true,
+      "precedence": 55,
+      "messageKey": "ingress.binary.content.lifecycle.invalid",
+      "messageTemplate": "Ingress export '{exportId}' has an invalid immutable binary-content reference or lifecycle contract at '{fieldPath}'.",
+      "trigger": "A request or response binaryContent declaration is missing or contradicts its required immutable content-reference Schema, digest algorithm, access policy, maxBytes, retention, or declared consumer/recovery window. Missing or invalid referenced Schema artifacts remain SCHEMA_MISSING / SCHEMA_INVALID; missing request/response wire-to-part mappings remain INGRESS_NORMALIZATION_INVALID / INGRESS_RESPONSE_MAPPING_INVALID.",
+      "conformanceCases": [
+        "IN-016",
+        "IN-042"
+      ],
+      "sourceLocation": {
+        "primary": "The exact request.binaryContent or response.binaryContent field that violates the immutable reference/lifecycle contract; use the containing binaryContent object for a missing field.",
+        "related": "The multipart request/response part or declared consumer/recovery boundary that establishes the required lifetime, when independently resolvable.",
+        "primaryPointerTemplate": [
+          "#/spec/operations/{index}/request/binaryContent/{field}",
+          "#/spec/operations/{index}/response/binaryContent/{field}"
+        ],
+        "relatedPointerTemplate": [
+          "#/spec/operations/{index}/request/normalization/representations/{representationIndex}/parts/{partIndex}",
+          "#/spec/operations/{index}/response/dispositions/{dispositionIndex}/representations/{representationIndex}/parts/{partIndex}"
+        ]
+      }
     },
     {
       "code": "INGRESS_CORRELATION_INVALID",
@@ -221,7 +263,12 @@
           "#/spec/operations/{index}/correlation/armInputSchemaRef"
         ]
       },
-      "conformanceCase": "IN-060"
+      "conformanceCases": [
+        "IN-023",
+        "IN-046",
+        "IN-047",
+        "IN-060"
+      ]
     },
     {
       "code": "INGRESS_RESPONSE_CONTRACT_INVALID",
@@ -244,7 +291,12 @@
           "#/spec/operations/{index}/response/deadlinePolicyRef"
         ]
       },
-      "conformanceCase": "IN-061"
+      "conformanceCases": [
+        "IN-027",
+        "IN-033",
+        "IN-040",
+        "IN-061"
+      ]
     },
     {
       "code": "INGRESS_RESPONSE_MAPPING_INVALID",
@@ -268,7 +320,12 @@
           "#/spec/operations/{index}/response/dispositions/{dispositionIndex}/representations/{representationIndex}/responseSchemaRef"
         ]
       },
-      "conformanceCase": "IN-062"
+      "conformanceCases": [
+        "IN-032",
+        "IN-044",
+        "IN-045",
+        "IN-062"
+      ]
     }
   ]
 }
