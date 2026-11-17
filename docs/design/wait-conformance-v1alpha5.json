@@ -1,0 +1,411 @@
+{
+  "schemaVersion": "connectionagent.io/wait-conformance-manifest/v1",
+  "languageTarget": "connectionagent.io/v1alpha5",
+  "status": "NORMATIVE_TEST_OBLIGATIONS_NOT_EXECUTED",
+  "cases": [
+    {
+      "id": "EW-001",
+      "layer": "runtime",
+      "kind": "positive",
+      "scenario": "Valid event after registration and after Node activation",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "disposition": "same_run_resumes_once"
+      }
+    },
+    {
+      "id": "EW-002",
+      "layer": "host_runtime",
+      "kind": "positive",
+      "scenario": "Valid event after registration but before target Node activation",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "disposition": "durably_buffer_then_consume_only_if_exact_node_selected"
+      }
+    },
+    {
+      "id": "EW-003",
+      "layer": "integration",
+      "kind": "negative",
+      "scenario": "Event arrives before any matching registration",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "disposition": "reject_unmatched_without_creating_invocation"
+      }
+    },
+    {
+      "id": "EW-004",
+      "layer": "integration",
+      "kind": "negative",
+      "scenario": "Invalid peer, API version, media type or normalized request Schema",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "disposition": "reject_or_quarantine_without_satisfying_or_resetting_wait"
+      }
+    },
+    {
+      "id": "EW-005",
+      "layer": "integration",
+      "kind": "negative",
+      "scenario": "Unsupported multipart or binary part without an exact pinned representation",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "disposition": "reject_or_quarantine_without_silent_drop"
+      }
+    },
+    {
+      "id": "EW-006",
+      "layer": "integration",
+      "kind": "negative",
+      "scenario": "Two active Runs match the same protocol correlation",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "disposition": "reject_ambiguous_without_choosing_a_run"
+      }
+    },
+    {
+      "id": "EW-007",
+      "layer": "integration_runtime",
+      "kind": "negative",
+      "scenario": "Prior Wait timed out and a later Wait reuses resource identity",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "disposition": "reject_stale_delivery_using_wire_discriminator_or_proven_single_flight_tombstone"
+      }
+    },
+    {
+      "id": "EW-008",
+      "layer": "runtime",
+      "kind": "race",
+      "scenario": "Event acceptance races with Wait timeout",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "disposition": "exactly_one_durable_atomic_winner"
+      }
+    },
+    {
+      "id": "EW-009",
+      "layer": "runtime",
+      "kind": "race",
+      "scenario": "Global Invocation deadline or cancellation wins before Wait timeout",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "disposition": "global_stop_semantics_without_timeout_route"
+      }
+    },
+    {
+      "id": "EW-010",
+      "layer": "host_runtime",
+      "kind": "idempotency",
+      "scenario": "Duplicate delivery after event acceptance",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "disposition": "idempotent_disposition_without_second_node_entry"
+      }
+    },
+    {
+      "id": "EW-011",
+      "layer": "runtime",
+      "kind": "negative",
+      "scenario": "Delivery arrives after TIMED_OUT, INVALIDATED or CANCELLED",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "disposition": "cannot_reopen_wait_or_populate_wait_output"
+      }
+    },
+    {
+      "id": "EW-012",
+      "layer": "compiler",
+      "kind": "negative",
+      "scenario": "wait.output is referenced on a timeout or bypass path",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "diagnostics": [
+          "SOURCE_NOT_AVAILABLE"
+        ]
+      }
+    },
+    {
+      "id": "EW-013",
+      "layer": "compiler",
+      "kind": "negative",
+      "scenario": "Wait-bearing Node declares no business stage",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "diagnostics": [
+          "WAIT_NODE_STAGE_REQUIRED"
+        ]
+      }
+    },
+    {
+      "id": "EW-014",
+      "layer": "compiler",
+      "kind": "negative",
+      "scenario": "Wait timeout route targets SUCCEEDED",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "diagnostics": [
+          "WAIT_TIMEOUT_ROUTE_INVALID"
+        ]
+      }
+    },
+    {
+      "id": "EW-015",
+      "layer": "compiler",
+      "kind": "negative_variants",
+      "scenario": "Selector resolves to zero or more than one trusted Ingress export",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "variants": [
+          {
+            "id": "zero_matches",
+            "diagnostics": [
+              "WAIT_INGRESS_EXPORT_NOT_FOUND"
+            ]
+          },
+          {
+            "id": "multiple_matches",
+            "diagnostics": [
+              "WAIT_INGRESS_EXPORT_AMBIGUOUS"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "EW-016",
+      "layer": "compiler",
+      "kind": "negative",
+      "scenario": "A required correlation value cannot be derived before the triggering Operation",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "diagnostics": [
+          "WAIT_CORRELATION_BINDING_INVALID"
+        ]
+      }
+    },
+    {
+      "id": "EW-017",
+      "layer": "integration_runtime",
+      "kind": "race",
+      "scenario": "EVENT_ACCEPTED closes occurrence N; a second Wait for same resource is attempted before tombstone expiry and a delayed retry of N arrives",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "disposition": "reject_second_arming_without_wire_discriminator_or_identify_old_request_as_consumed_never_deliver_to_n_plus_1"
+      }
+    },
+    {
+      "id": "EW-018",
+      "layer": "compiler",
+      "kind": "negative",
+      "scenario": "Different incoming paths resolve to different Ingress exports or normalized Schemas",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "diagnostics": [
+          "WAIT_CORRELATION_BINDING_INVALID"
+        ]
+      }
+    },
+    {
+      "id": "EW-019",
+      "layer": "compiler",
+      "kind": "negative",
+      "scenario": "A normal accepted path bypasses response.after",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "diagnostics": [
+          "WAIT_RESPONSE_BOUNDARY_INVALID"
+        ]
+      }
+    },
+    {
+      "id": "EW-020",
+      "layer": "integration",
+      "kind": "positive_failure_branch",
+      "scenario": "Accepted path terminates early with a declared failure disposition",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "disposition": "integration_emits_declared_failure_response_runtime_does_not_fabricate"
+      }
+    },
+    {
+      "id": "EW-021",
+      "layer": "compiler",
+      "kind": "negative",
+      "scenario": "Body-bearing paired response has no typed Producer mapping",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "diagnostics": [
+          "WAIT_RESPONSE_MAPPING_INVALID"
+        ]
+      }
+    },
+    {
+      "id": "EW-022",
+      "layer": "compiler_integration",
+      "kind": "positive",
+      "scenario": "Single fixed bodyless paired response disposition",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "disposition": "complete_response_without_response_result_producer"
+      }
+    },
+    {
+      "id": "EW-023",
+      "layer": "host_integration",
+      "kind": "recovery",
+      "scenario": "Process restarts after durable delivery persistence but before Runtime notification",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "disposition": "relay_same_delivery_ref_after_recovery_without_new_invocation"
+      }
+    },
+    {
+      "id": "EW-024",
+      "layer": "runtime",
+      "kind": "recovery",
+      "scenario": "Process restarts after event acceptance but before business Node execution",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "disposition": "resume_same_run_and_node_exactly_once_from_checkpoint"
+      }
+    },
+    {
+      "id": "EW-025",
+      "layer": "host_integration",
+      "kind": "recovery",
+      "scenario": "Process restarts after response boundary commit but before protocol response delivery",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "disposition": "recover_exact_response_obligation_or_apply_declared_failure_policy"
+      }
+    },
+    {
+      "id": "EW-026",
+      "layer": "compiler",
+      "kind": "negative_pattern",
+      "scenario": "Wait is used as an Observation polling loop",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "disposition": "non_conforming_event_wait_and_evidence_wait_remain_distinct"
+      }
+    },
+    {
+      "id": "EW-027",
+      "layer": "compiler",
+      "kind": "negative_variants",
+      "scenario": "Timeout uses malformed, fractional, zero, calendar-month or leading-zero duration",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "diagnostics": [
+          "WAIT_TIMEOUT_INVALID"
+        ]
+      }
+    },
+    {
+      "id": "EW-028",
+      "layer": "host_admission",
+      "kind": "negative",
+      "scenario": "Declared timeout exceeds deployment-published maximum",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "disposition": "reject_admission_before_invocation_without_clamping",
+        "hostDiagnostic": "WAIT_DURATION_LIMIT_EXCEEDED"
+      }
+    },
+    {
+      "id": "EW-029",
+      "layer": "compiler",
+      "kind": "negative",
+      "scenario": "Body-bearing response mapping selects wait.output, Context or raw request data instead of the declared boundary Producer",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "diagnostics": [
+          "WAIT_RESPONSE_MAPPING_INVALID"
+        ]
+      }
+    },
+    {
+      "id": "EW-030",
+      "layer": "compiler",
+      "kind": "negative",
+      "scenario": "response.after names an unknown or unreachable Node",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "diagnostics": [
+          "WAIT_RESPONSE_BOUNDARY_INVALID"
+        ]
+      }
+    },
+    {
+      "id": "EW-031",
+      "layer": "compiler_runtime",
+      "kind": "safety",
+      "scenario": "Contract global Precondition has not passed on every incoming path to a protected Mutation or success",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "diagnostics": [
+          "ENTRY_PRECONDITION_BYPASSED"
+        ]
+      }
+    },
+    {
+      "id": "EW-032",
+      "layer": "runtime_integration",
+      "kind": "negative",
+      "scenario": "Integration cannot acknowledge ExpectedIngress arming before triggering Operation dispatch",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "disposition": "do_not_dispatch_triggering_operation"
+      }
+    },
+    {
+      "id": "EW-033",
+      "layer": "compiler",
+      "kind": "negative",
+      "scenario": "Wait routes mapping or TIMEOUT key is missing",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "diagnostics": [
+          "WAIT_TIMEOUT_ROUTE_INVALID"
+        ]
+      }
+    },
+    {
+      "id": "EW-034",
+      "layer": "compiler",
+      "kind": "negative",
+      "scenario": "Author declares EVENT_RECEIVED or any extra key under wait.routes",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "diagnostics": [
+          "WAIT_TIMEOUT_ROUTE_INVALID"
+        ]
+      }
+    },
+    {
+      "id": "EW-035",
+      "layer": "compiler",
+      "kind": "negative",
+      "scenario": "event.source, event.service or event.operation is empty or wrong type",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "diagnostics": [
+          "WAIT_DECLARATION_INVALID"
+        ]
+      }
+    },
+    {
+      "id": "EW-036",
+      "layer": "compiler",
+      "kind": "negative_variants",
+      "scenario": "wait.timeout is missing or is not a YAML string",
+      "fixtureStatus": "SPECIFICATION_ONLY",
+      "expected": {
+        "diagnostics": [
+          "WAIT_TIMEOUT_INVALID"
+        ]
+      }
+    }
+  ]
+}
