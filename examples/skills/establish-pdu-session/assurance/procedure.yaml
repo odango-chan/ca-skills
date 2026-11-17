@@ -277,13 +277,14 @@ nodes:
 
   # Final business proof. Host/Runtime separately enforces its terminal resource-responsibility
   # gate before publishing SUCCEEDED; this is a §12.8 publish gate, not a Skill Node.
-  # This success-path example does not expand failure-only cleanup into business Nodes.
-  # Host/Runtime retains outstanding responsibility and gates terminal publication; it does
-  # not implement 3GPP cleanup or decide Step 21 eligibility. The failure path must evaluate
-  # Step 21 against the exact (SUPI, DNN, HPLMN S-NSSAI) session set in the SMF procedure,
-  # then invoke Nudm_SDM_Unsubscribe through the UDM Owner. UDM may further execute
-  # Nudr_DM_Unsubscribe. Step 18 and other resource cleanup are performed by responsible
-  # Owner contracts. SAFE_STOPPED preserves responsibility; it does not claim cleanup completed.
+  # This success-path example does not expand failure-only cleanup into business Nodes:
+  # Step 17 reject response, Step 18 SM Context Status Notify and Step 21 unsubscribe remain
+  # explicit protocol responsibilities. Host/Runtime retains outstanding responsibility and
+  # gates terminal publication; it does not implement 3GPP cleanup or decide Step 21 eligibility.
+  # The failure Procedure must evaluate Step 21 against the exact (SUPI, DNN, HPLMN S-NSSAI)
+  # session set, then invoke Nudm_SDM_Unsubscribe through the UDM Owner. UDM may further
+  # execute Nudr_DM_Unsubscribe; Step 18 and other resource cleanup use responsible Owner
+  # contracts. SAFE_STOPPED preserves responsibility; it does not claim cleanup completed.
   # 3GPP: CA_EXTENSION — final Goal proof over authoritative network and UDM registration facts.
   verify-pdu-session-establishment:
     postcondition:
