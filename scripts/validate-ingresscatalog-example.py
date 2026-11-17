@@ -92,6 +92,23 @@ def validate_semantics(catalog: dict) -> None:
             parts = {part["name"]: part for part in representation.get("parts", [])}
             if len(parts) != len(representation.get("parts", [])):
                 raise SystemExit(f"{op_id}: duplicate multipart part name")
+            if representation["mediaType"].startswith("multipart/"):
+                declared_binary_count = sum(part["kind"] == "binary" for part in parts.values())
+                minimum_binary = representation["minBinaryParts"]
+                maximum_binary = representation["maxBinaryParts"]
+                if minimum_binary > maximum_binary or maximum_binary > declared_binary_count:
+                    raise SystemExit(f"{op_id}: invalid multipart binary part cardinality")
+            for ignored in representation.get("ignoredSources", []):
+                source = ignored["source"]
+                if source["kind"] == "multipart-json":
+                    ignored_part = parts.get(source["part"])
+                    if ignored_part is None or ignored_part["kind"] != "json":
+                        raise SystemExit(f"{op_id}: ignored multipart-json source must reference a declared JSON part")
+                elif source["kind"] == "multipart-binary":
+                    ignored_part = parts.get(source["part"])
+                    if ignored_part is None or ignored_part["kind"] != "binary":
+                        raise SystemExit(f"{op_id}: ignored multipart-binary source must reference a declared binary part")
+            unique([item["source"] for item in representation.get("ignoredSources", [])], f"{op_id}: duplicate ignored source")
             for part in parts.values():
                 if part["maxBytes"] > request_max:
                     raise SystemExit(f"{op_id}: multipart part maxBytes exceeds request.maxBytes")
@@ -236,6 +253,11 @@ def validate_semantics(catalog: dict) -> None:
                     if representation["mediaType"] == "multipart/related":
                         if not parts or parts[0]["name"] != representation["rootPart"] or parts[0]["kind"] != "json":
                             raise SystemExit(f"{op_id}: multipart response rootPart must be the first JSON part")
+                        declared_binary_count = sum(part["kind"] == "binary" for part in parts)
+                        minimum_binary = representation["minBinaryParts"]
+                        maximum_binary = representation["maxBinaryParts"]
+                        if minimum_binary > maximum_binary or maximum_binary > declared_binary_count:
+                            raise SystemExit(f"{op_id}: invalid multipart response binary part cardinality")
                         if not any(part["kind"] == "binary" for part in parts):
                             raise SystemExit(f"{op_id}: multipart response must declare at least one binary part")
                         if sum(part["maxBytes"] for part in parts) > representation["maxBytes"]:
@@ -360,6 +382,8 @@ def validate_3gpp_reference_example(catalog: dict) -> None:
         item for item in operation["request"]["normalization"]["representations"]
         if item["mediaType"] == "multipart/related"
     )
+    if multipart["minBinaryParts"] != 1 or multipart["maxBinaryParts"] != 2:
+        raise SystemExit("TS 29.502 V19.5.0 multipart request must allow one or two actual binary parts")
     request_part_list = multipart["parts"]
     request_part_names = [part["name"] for part in request_part_list]
     required_parts = [
@@ -393,6 +417,17 @@ def validate_3gpp_reference_example(catalog: dict) -> None:
         if mapping["target"] != target or mapping["transform"] != "binary-content-ref":
             raise SystemExit(f"{part_name} is not mapped to its typed immutable binary content reference")
 
+    ignored_refs = {
+        (item["source"]["kind"], item["source"].get("part"), item["source"].get("pointer"))
+        for item in multipart.get("ignoredSources", [])
+    }
+    expected_ignored_refs = {
+        ("multipart-json", "jsonData", "/n1SmMsg"),
+        ("multipart-json", "jsonData", "/n2SmInfo"),
+        ("multipart-json", "jsonData", "/n2SmInfoExt1"),
+    }
+    if ignored_refs != expected_ignored_refs:
+        raise SystemExit("UpdateSMContext must mask all raw RefToBinaryData objects from normalized business data")
     normalized_targets = {item["target"] for item in multipart["mappings"]}
     if not {"/n1SmMessage", "/n2SmInformation", "/n2SmInformationExt1"} <= normalized_targets:
         raise SystemExit("UpdateSMContext binary parts are not mapped to normalized business fields")
@@ -419,6 +454,8 @@ def validate_3gpp_reference_example(catalog: dict) -> None:
         raise SystemExit("UpdateSMContext JSON representation must use application/json")
     if multipart_response["mediaType"] != "multipart/related" or multipart_response["rootPart"] != "jsonData":
         raise SystemExit("UpdateSMContext multipart response must use jsonData as its root part")
+    if multipart_response["minBinaryParts"] != 1 or multipart_response["maxBinaryParts"] != 2:
+        raise SystemExit("TS 29.502 V19.5.0 multipart response must allow one or two actual binary parts")
     response_part_list = multipart_response["parts"]
     response_parts = {part["name"]: part for part in response_part_list}
     expected_response_part_names = ["jsonData", "binaryDataN1SmMessage", "binaryDataN2SmInformation"]
