@@ -134,10 +134,6 @@
         },
         "openapi": {
           "$ref": "#/$defs/openapi"
-        },
-        "apiUriVersion": {
-          "type": "string",
-          "minLength": 1
         }
       }
     },
@@ -675,13 +671,81 @@
           "minLength": 1
         },
         "dispositionSelector": {
-          "$ref": "#/$defs/dispositionSelector"
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sourcePath",
+            "cases"
+          ],
+          "properties": {
+            "sourcePath": {
+              "type": "string",
+              "pattern": "^/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*$"
+            },
+            "cases": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "value",
+                  "dispositionId"
+                ],
+                "properties": {
+                  "value": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      }
+                    ]
+                  },
+                  "dispositionId": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
         },
         "mappings": {
           "type": "array",
           "minItems": 1,
+          "uniqueItems": true,
           "items": {
-            "$ref": "#/$defs/responseMapping"
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "dispositionId",
+              "from",
+              "to",
+              "transform"
+            ],
+            "properties": {
+              "dispositionId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "from": {
+                "type": "string",
+                "pattern": "^/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*$"
+              },
+              "to": {
+                "type": "string",
+                "pattern": "^/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*$"
+              },
+              "transform": {
+                "const": "identity"
+              }
+            }
           }
         }
       }
@@ -832,7 +896,12 @@
               "result": {
                 "required": [
                   "mappings"
-                ]
+                ],
+                "properties": {
+                  "mappings": {
+                    "minItems": 1
+                  }
+                }
               }
             }
           }
@@ -1038,160 +1107,81 @@
       ]
     },
     "sourceSelector": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "kind"
-      ],
-      "properties": {
-        "kind": {
-          "enum": [
-            "path",
-            "query",
-            "header",
-            "json-body",
-            "multipart-json",
-            "multipart-binary"
-          ]
-        },
-        "name": {
-          "type": "string",
-          "minLength": 1
-        },
-        "part": {
-          "type": "string",
-          "minLength": 1
-        },
-        "pointer": {
-          "anyOf": [
-            {
-              "const": ""
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "name"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "path",
+                "query",
+                "header"
+              ]
             },
-            {
+            "name": {
               "type": "string",
-              "pattern": "^/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*$"
-            }
-          ]
-        }
-      },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "enum": [
-                  "path",
-                  "query",
-                  "header"
-                ]
-              }
-            },
-            "required": [
-              "kind"
-            ]
-          },
-          "then": {
-            "required": [
-              "name"
-            ],
-            "not": {
-              "anyOf": [
-                {
-                  "required": [
-                    "part"
-                  ]
-                },
-                {
-                  "required": [
-                    "pointer"
-                  ]
-                }
-              ]
+              "minLength": 1
             }
           }
         },
         {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "json-body"
-              }
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "pointer"
+          ],
+          "properties": {
+            "kind": {
+              "const": "json-body"
             },
-            "required": [
-              "kind"
-            ]
-          },
-          "then": {
-            "required": [
-              "pointer"
-            ],
-            "not": {
-              "anyOf": [
-                {
-                  "required": [
-                    "name"
-                  ]
-                },
-                {
-                  "required": [
-                    "part"
-                  ]
-                }
-              ]
+            "pointer": {
+              "type": "string",
+              "pattern": "^(?:/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*)?$"
             }
           }
         },
         {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "multipart-json"
-              }
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "part",
+            "pointer"
+          ],
+          "properties": {
+            "kind": {
+              "const": "multipart-json"
             },
-            "required": [
-              "kind"
-            ]
-          },
-          "then": {
-            "required": [
-              "part",
-              "pointer"
-            ],
-            "not": {
-              "required": [
-                "name"
-              ]
+            "part": {
+              "type": "string",
+              "minLength": 1
+            },
+            "pointer": {
+              "type": "string",
+              "pattern": "^(?:/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*)?$"
             }
           }
         },
         {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "multipart-binary"
-              }
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "part"
+          ],
+          "properties": {
+            "kind": {
+              "const": "multipart-binary"
             },
-            "required": [
-              "kind"
-            ]
-          },
-          "then": {
-            "required": [
-              "part"
-            ],
-            "not": {
-              "anyOf": [
-                {
-                  "required": [
-                    "name"
-                  ]
-                },
-                {
-                  "required": [
-                    "pointer"
-                  ]
-                }
-              ]
+            "part": {
+              "type": "string",
+              "minLength": 1
             }
           }
         }
@@ -1335,6 +1325,7 @@
         },
         "parts": {
           "type": "array",
+          "minItems": 1,
           "uniqueItems": true,
           "items": {
             "$ref": "#/$defs/multipartPart"
@@ -1343,11 +1334,38 @@
         "mappings": {
           "type": "array",
           "minItems": 1,
+          "uniqueItems": true,
           "items": {
             "$ref": "#/$defs/normalizationMapping"
           }
+        },
+        "ignoredSources": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/ignoredSource"
+          }
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mediaType": {
+                "pattern": "^multipart/"
+              }
+            },
+            "required": [
+              "mediaType"
+            ]
+          },
+          "then": {
+            "required": [
+              "parts"
+            ]
+          }
+        }
+      ]
     },
     "binaryContent": {
       "type": "object",
@@ -1457,6 +1475,23 @@
         },
         "transform": {
           "const": "identity"
+        }
+      }
+    },
+    "ignoredSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "reason"
+      ],
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/sourceSelector"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
         }
       }
     }
