@@ -3,14 +3,20 @@
 # no trusted MAS ToolCatalog / CapabilityContracts publication exists yet.
 # Host/Owner owns admission, exact UE/PSI binding, pending-operation correlation,
 # mutation.reconcile and resource responsibility. No authored Wait or Reconcile Node.
-start: read-existing-sm-context
+start: validate-sm-subscription
 nodes:
-  # CA_EXTENSION — exact UE/PSI existence check before any session-creating or
-  # session-mutating operation. 404 SESSION_NOT_FOUND is normalized by the Host
-  # generic Observation adapter to sessionPresence=ABSENT. 200 AVAILABLE and
-  # 200 UNAVAILABLE both mean PRESENT. Query/transport errors remain UNKNOWN.
-  # 3GPP: CA_EXTENSION — supplementary exact UE/PSI SMF-context READ before any session mutation; no direct 3GPP NF Service Operation.
-  read-existing-sm-context:
+  # OpenAMSM OES: SC.VALIDATE_SUBSCRIPTION (NW Agent Plan s1).
+  # The Operation receives the source OES identity fields directly: `ue_identity` from 3GPP `supi` and `psi` from `pduSessionId`.
+  # The source output exposed by the plan is sub_summary ("ok" on validation).
+  # This is a CA adapter around the SMF's UDM SDM Get path, not a new 3GPP API.
+  # 3GPP: CA_ADAPTER — NW Agent s1 SC.VALIDATE_SUBSCRIPTION wraps the Step 4 UDM Nudm_SDM_Get path; callable publication is pending.
+  # OpenAMSM OES: SC.VALIDATE_SUBSCRIPTION (NW Agent Plan s1).
+  # The Operation receives the source OES identity fields directly: `ue_identity` from 3GPP `supi` and `psi` from `pduSessionId`.
+  # The source output exposed by the plan is sub_summary ("ok" on validation).
+  # This is a CA adapter around the SMF's UDM SDM Get path, not a new 3GPP API.
+  # The exact UE/PSI context Observation follows this read-only Operation in the same Node, before any mutation.
+  # 3GPP: CA_ADAPTER — NW Agent s1 SC.VALIDATE_SUBSCRIPTION wraps the Step 4 UDM Nudm_SDM_Get path; callable publication is pending.
+  validate-sm-subscription:
     precondition:
       predicates:
         - predicate: establishment.request.supported
@@ -21,30 +27,6 @@ nodes:
       routes:
         FAIL: FAILED
         UNKNOWN: UNRESOLVED
-    observation:
-      tool: ca-session-context::context.smf.session.read
-      arguments:
-        supi: context.supi
-        pduSessionId: context.request.pduSessionId
-      routes:
-        FAILED: UNRESOLVED
-        UNKNOWN: UNRESOLVED
-    postcondition:
-      predicates:
-        - predicate: establishment.smf.session_context_absent
-          arguments:
-            - read-existing-sm-context.observation.output
-      routes:
-        PASS: validate-sm-subscription
-        FAIL: SAFE_STOPPED
-        UNKNOWN: SAFE_STOPPED
-
-  # OpenAMSM OES: SC.VALIDATE_SUBSCRIPTION (NW Agent Plan s1).
-  # The Operation receives the source OES identity fields directly: `ue_identity` from 3GPP `supi` and `psi` from `pduSessionId`.
-  # The source output exposed by the plan is sub_summary ("ok" on validation).
-  # This is a CA adapter around the SMF's UDM SDM Get path, not a new 3GPP API.
-  # 3GPP: CA_ADAPTER — NW Agent s1 SC.VALIDATE_SUBSCRIPTION wraps the Step 4 UDM Nudm_SDM_Get path; callable publication is pending.
-  validate-sm-subscription:
     operation:
       tool: mas::SC.VALIDATE_SUBSCRIPTION
       arguments:
@@ -56,16 +38,26 @@ nodes:
         FAILED: FAILED
         OUTCOME_UNKNOWN: UNRESOLVED
         DENIED: SAFE_STOPPED
+    observation:
+      tool: ca-session-context::context.smf.session.read
+      arguments:
+        supi: context.supi
+        pduSessionId: context.request.pduSessionId
+      routes:
+        FAILED: UNRESOLVED
+        UNKNOWN: UNRESOLVED
     postcondition:
       predicates:
         - predicate: establishment.mas.subscription_validated
           arguments:
             - validate-sm-subscription.operation.output
+        - predicate: establishment.smf.session_context_absent
+          arguments:
+            - validate-sm-subscription.observation.output
       routes:
         PASS: skip-secondary-authentication
-        FAIL: FAILED
+        FAIL: SAFE_STOPPED
         UNKNOWN: SAFE_STOPPED
-
   # OpenAMSM OES: SAA.SECONDARY_AUTH (s2, optional). The current plan hard-codes
   # required="0"; this operation therefore returns phase=SKIPPED. It is not a
   # dynamic secondary-auth decision and this Skill excludes auth-required profiles.
