@@ -87,13 +87,18 @@ def main() -> None:
         if not entry.get("trigger") or not entry.get("messageTemplate"):
             fail(f"{entry['code']} is missing trigger or canonical message template")
         pointers = entry.get("sourceLocation", {})
-        for key in ("primaryPointerTemplate", "relatedPointerTemplate"):
-            values = pointers.get(key)
-            if not isinstance(values, list):
-                fail(f"{entry['code']} is missing {key}")
-            for pointer in values:
-                if not isinstance(pointer, str) or not pointer.startswith("#"):
-                    fail(f"{entry['code']} has a non-canonical source pointer template")
+        primary = pointers.get("primaryPointerTemplate")
+        related = pointers.get("relatedPointerTemplate")
+        if not isinstance(primary, list) or not primary:
+            fail(f"{entry['code']} is missing primaryPointerTemplate")
+        if not isinstance(related, list):
+            fail(f"{entry['code']} is missing relatedPointerTemplate")
+        for pointer in primary:
+            if not isinstance(pointer, str) or not pointer.startswith("#"):
+                fail(f"{entry['code']} has a non-canonical primary RFC 6901 pointer template")
+        for pointer in related:
+            if not isinstance(pointer, str) or not (pointer.startswith("#") or "}#" in pointer):
+                fail(f"{entry['code']} has a non-canonical related source pointer template")
 
     catalog_schema = json.loads(CATALOG_SCHEMA.read_text(encoding="utf-8"))
     if catalog_schema.get("properties", {}).get("apiVersion", {}).get("const") != applies_to["apiVersion"]:
