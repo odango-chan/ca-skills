@@ -291,7 +291,7 @@ Therefore, the future implementation requires a generic inbound-event continuati
 
 The language accepts positive fixed durations and rejects calendar years/months (for example `P1Y` and `P1M`), zero/negative values, fractional seconds and malformed durations. CA-SL does not impose one arbitrary global maximum. A deployment that admits a Skill with Event Wait must publish a generic maximum Event Wait duration; admission rejects a declared timeout above that limit rather than silently shortening it. The exact deployment field name belongs to the Host deployment contract, not this Skill syntax.
 
-The timer begins at target Node activation. The effective Wait deadline is the earlier of the Node activation time plus the declared timeout and the remaining Invocation deadline. If the Wait deadline wins, route `TIMEOUT`. If the global Invocation deadline or cancellation wins first, Runtime stops under its existing global stop semantics; it MUST NOT relabel that stop as the author's `TIMEOUT` outcome.
+The timer begins at target Node activation. The effective Wait deadline is the earlier of the Node activation time plus the declared timeout and the remaining Invocation deadline. If the authored Wait deadline is strictly earlier and its timeout transition wins the authoritative state transition, route `TIMEOUT`. If the global Invocation deadline is earlier than or equal to the authored Wait deadline, the global deadline takes precedence and Runtime stops under its existing global stop semantics; it MUST NOT relabel that stop as the author's `TIMEOUT` outcome. Cancellation likewise uses the existing global stop semantics. Event acceptance, timeout and global stop are serialized against the same authoritative Wait occurrence; only one durable transition may win.
 
 After the event is accepted, the inbound protocol request's response deadline (if defined by that API/transport contract) is a separate deadline for processing and responding to that request. The Integration adapter supplies that deadline to the Host/Runtime. It may further constrain execution, but its expiry is not the pre-event Wait `TIMEOUT`; the Integration adapter applies the published protocol failure/response mapping and Runtime preserves any unresolved business responsibility. Runtime emits response-ready only when the resolved `response.after` boundary (or default target-Node boundary) is committed, not when the whole Run becomes terminal.
 
@@ -444,7 +444,7 @@ The following may be refined without reopening the frozen semantics:
 - diagnostic identifiers, wording and Compiler conformance fixtures;
 - serialization of the trusted Integration export and generic Host/Runtime ports, including exact triggering Operation callable binding and pre-dispatch correlation materialization;
 - payload-reference representation for supported multipart/binary content;
-- deployment-specific maximum Wait duration and operational retry/backoff policy;
+- deployment-specific maximum Wait duration, deterministic precedence when the authored Wait deadline and Invocation deadline coincide, and operational retry/backoff policy;
 - persistence technology, inbox/outbox implementation and recovery test details.
 
 Such refinements MUST NOT change the frozen decisions above. Any proposed semantic change requires an explicit design amendment, impact analysis against CA-SL, Host/Runtime and 5GC authoring, and a new independent review. It must not be introduced as an implementation convenience or silently folded into the normative text.
