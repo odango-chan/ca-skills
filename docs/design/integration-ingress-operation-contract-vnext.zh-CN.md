@@ -278,7 +278,7 @@ Host 不重复执行协议级认证或解析；Host 只接受受信 Integration 
 
 ### 6.1 Correlation key
 
-correlation.keyFields[] 必须声明一组足以唯一匹配该协议事件的 normalized request 字段。每项至少包含：
+correlation.keyFields[] 必须声明一组足以唯一匹配该协议事件的 normalized request 字段。correlation.armInputSchemaRef 必须声明 Runtime 在预派发注册时提交给 Integration 的 typed correlationBinding Schema；它必须与 keyFields 一一对应，且只包含建立匹配所需的值。每项至少包含：
 
 - normalized request 内的精确 JSON Pointer；
 - 该字段的身份维度，例如 session、resource 或 correlation；
@@ -308,8 +308,7 @@ Compiler 必须验证该路径由 Skill 已声明的 Host Context Schema 或 Req
 - kind = operation；
 - 精确 Operation ID；
 - 该 Operation 的 Input Schema 身份；
-- 一个 armInputSchemaRef，用于校验 Runtime 提交的 typed correlation binding；
-- 将 correlation key 映射到 Operation arguments JSON Pointer 的绑定规则。
+- 将 correlation key 映射到 Operation arguments JSON Pointer 的绑定规则，并将其值绑定到同一个 correlation.armInputSchemaRef。
 
 触发 Operation 必须来自 Skill 已声明的可信依赖快照。Observation、Predicate、Script、Capability ID、Tool display name 或网络地址不能充当 triggering Operation identity。
 
@@ -584,6 +583,7 @@ spec:
           mappingDigest: sha256:<64-hex>
 
       correlation:
+        armInputSchemaRef: urn:example:schema:update-sm-context-arm-input
         keyFields:
           - requestPath: /smContextRef
             dimension: session
@@ -600,15 +600,13 @@ spec:
       arming:
         start:
           allowed: false
-          # If allowed=true, armInputSchemaRef and context bindings are required.
+          # If allowed=true, bindings map Context values into correlation.armInputSchemaRef.
         triggers:
           - operation:
               packageId: urn:example:package:amf-client-tools
               owner: example.amf-tool-owner
               kind: operation
               id: ca::amf.communication.n1n2_message_transfer
-              inputSchemaRef: urn:example:schema:n1n2-transfer-input
-            armInputSchemaRef: urn:example:schema:update-sm-context-arm-input
             bindings:
               - requestKey: /smContextRef
                 source:
@@ -645,7 +643,7 @@ spec:
 - sourceSchemas 和 normalizedSchemaRef 是不同契约，不得互相替代；
 - artifactDigest 绑定精确 OpenAPI 文件，mappingDigest 绑定归一化/响应映射实现；
 - operationId 不能替代 Service-Operation 名称；
-- arming.triggers[].operation 是出站 ToolCatalog Operation，不是 Ingress Operation；其 inputSchemaRef 与 armInputSchemaRef 是两个不同 Schema；
+- arming.triggers[].operation 是出站 ToolCatalog Operation，不是 Ingress Operation；Compiler 从该精确 ToolCatalog export 解析 Operation Input Schema，armInputSchemaRef 则定义单独的 correlationBinding Schema；
 - requestKey 指向 normalized request 的字段，operation-argument.path 指向出站 Operation 已物化输入；
 - response.result.producer 只允许 operation 或 observation；bodyless response 不声明该字段；
 - 示例的 maximumLateArrival 必须由受信协议/部署保证给出，不能照抄占位值；
