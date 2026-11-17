@@ -294,7 +294,7 @@ def validate_n4_owner_boundary(skill: Path, errors: list[str]) -> None:
         errors.append(f"{skill.name}: missing Step 4 subscription/request compatibility Predicate")
     if "script: scripts/validate-subscription-request.py" not in predicate_text:
         errors.append(f"{skill.name}: subscription compatibility must use a Step 4 Predicate Script")
-    if not re.search(r"(?m)^\| \x60establish-n4-session\x60 \| step 8 native SMF session/UPF selection, then steps 10a–10b;", skill_text):
+    if not re.search(r"(?m)^\| \x60establish-n4-session\x60 \| .*step 8 .*steps 10a–10b;.*\| `CA_ADAPTER`: SMF N4 Owner", skill_text):
         errors.append(f"{skill.name}: SKILL.md must map Step 8 to the SMF N4 Owner boundary")
 
 
@@ -431,13 +431,13 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
     for note in ("Step 17 reject response", "Step 18 SM Context Status Notify", "Step 21 unsubscribe", "SAFE_STOPPED preserves responsibility"):
         if note not in procedure_text:
             errors.append(f"{skill.name}: comment-only failure handling must document {note}")
-    if not re.search(r"(?m)^\| \x60get-sm-subscription-data\x60 \| step 4", skill_text):
+    if not re.search(r"(?m)^\| \x60get-sm-subscription-data\x60 \| .*step 4 .*SM Context presence read before any mutation", skill_text):
         errors.append(f"{skill.name}: SKILL.md must trace the Step 4 Node and its entry context Observation")
-    if not re.search(r"(?m)^\| \x60update-sm-context\x60 \| step 15", skill_text):
+    if not re.search(r"(?m)^\| \x60update-sm-context\x60 \| .*step 15 .*fresh SM Context read", skill_text):
         errors.append(f"{skill.name}: SKILL.md must trace update-sm-context to step 15 and its co-located Observation")
-    if not re.search(r"(?m)^\| \x60modify-n4-session\x60 \| steps 16a–16b", skill_text):
+    if not re.search(r"(?m)^\| \x60modify-n4-session\x60 \| .*steps 16a–16b;.*\| `CA_ADAPTER`: SMF N4 Owner", skill_text):
         errors.append(f"{skill.name}: SKILL.md must trace N4 Modification to the SMF N4 Owner Operation")
-    if not re.search(r"(?m)^\| \x60ensure-uecm-registration\x60 \| step 16c", skill_text):
+    if not re.search(r"(?m)^\| \x60ensure-uecm-registration\x60 \| .*step 16c .*Nudm_UECM_Registration", skill_text):
         errors.append(f"{skill.name}: SKILL.md must trace Step 16c UECM Registration")
     if "resumes the same Invocation" not in skill_text or "paired Step 17" not in skill_text:
         errors.append(f"{skill.name}: SKILL.md must define same-Invocation resume and paired Step 17 Host response")
