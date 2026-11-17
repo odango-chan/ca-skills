@@ -104,11 +104,13 @@ def validate_schema_closure_digest_vector() -> None:
     if schema_closure_digest(root, list(reversed(nodes))) != expected:
         raise SystemExit("Schema Closure Digest must be independent of input node order")
     changed = copy.deepcopy(nodes)
-    changed[0]["schema"]["properties"]["supi"]["type"] = "integer"
+    referenced = next(node for node in changed if node["artifactRef"] == "urn:test:schemas/common")
+    referenced["schema"]["properties"]["supi"]["type"] = "integer"
     if schema_closure_digest(root, changed) == expected:
         raise SystemExit("Schema Closure Digest did not change when a referenced Schema node changed")
     changed_identity = copy.deepcopy(nodes)
-    changed_identity[0]["artifactRef"] = "urn:test:schemas/common-renamed"
+    referenced_identity = next(node for node in changed_identity if node["artifactRef"] == "urn:test:schemas/common")
+    referenced_identity["artifactRef"] = "urn:test:schemas/common-renamed"
     if schema_closure_digest(root, changed_identity) == expected:
         raise SystemExit("Schema Closure Digest did not change when a referenced artifact identity changed")
 
