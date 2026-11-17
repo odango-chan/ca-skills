@@ -474,7 +474,7 @@ Representation 选择必须与 typed result 的内容一致：存在任一 binar
 
 Compiler 根据 `wait.response.after`（或默认 Wait-bearing Node）和 producer 类型推导唯一 SourcePath，并验证 boundary Producer Output 对 responseResultSchema 的可赋值性。responseResultSchema 必须符合 CA-SL 支持的 JSON Schema 子集；协议 responseSchemaRef 和每个 multipart JSON root part Schema 则按 pinned OpenAPI artifact 验证，由 Integration Adapter 负责实际 wire response validation。Compiler MUST 验证每条 mapping 的 `from` JSON Pointer 在 responseResultSchema 中存在、类型可赋值给目标字段，JSON target pointer 在对应 OpenAPI response Schema 中存在；对于 multipart-binary，`contentIdField` 必须指向 root Schema 中精确的 `RefToBinaryData.contentId` 字符串属性。Compiler 还必须验证每个 body-bearing representation 的 mapping 覆盖全部 required JSON fields，每个 binary part 恰有一条 mapping、每个 mapping target 不重复且无未声明 part；dispositionSelector 的源属性必须是闭合 enum，且其值集合与所有允许的 disposition/representation 组合完整且一一对应。初始 profile 不得执行脚本、CEL、任意表达式或读取历史 Run 输出。
 
-若仅声明一个 body: none 的 response disposition，则 response.result 可以省略；该 status 是固定的，不需要 Producer 来选择。若有多个 bodyless dispositions，也必须使用 typed result 和 mapping 明确选择，不能依赖运行时猜测。
+若仅声明一个 body: none 的 response disposition，则 response.result 可以省略；该 status 是固定的，不需要 Producer 来选择。若有多个 bodyless dispositions，则必须声明 typed response result 和 dispositionSelector，由 selector 从 typed result 中明确选择 disposition；因为 bodyless disposition 没有 Body，不得为它创建 response body mappings。
 
 映射由 Integration 拥有，不由 Skill 重复声明。若协议要求响应体，则不得以空 Body 或 Runtime Trace 代替。Integration 必须在持久接受请求前检查 HTTP Accept 与所有可能的 body-bearing disposition representation 是否兼容；若后续可能选择的响应表示不被请求方接受，必须在提交 Ingress delivery 前按协议/HTTP 规则拒绝（通常为 406），不得先触发业务执行再发现无法序列化响应。
 
