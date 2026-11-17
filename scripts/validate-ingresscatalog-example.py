@@ -565,6 +565,7 @@ def validate_standard_artifact_lock() -> None:
     lock = yaml.safe_load(STANDARD_ARTIFACT_LOCK.read_text(encoding="utf-8"))
     spec = lock["spec"]
     normative = spec["normativeSource"]
+    companion = spec["officialCompanionSource"]
     informative = spec["informativeSource"]
     api = spec["api"]
     if spec["standard"] != {
@@ -581,18 +582,34 @@ def validate_standard_artifact_lock() -> None:
         or api["sourceFileName"] != "TS29502_Nsmf_PDUSession.yaml"
     ):
         raise SystemExit("standard artifact lock does not identify the exact Annex A.2 API")
-    if normative["uri"] != "https://www.etsi.org/deliver/etsi_ts/129500_129599/129502/19.05.00_60/ts_129502v190500p.pdf":
-        raise SystemExit("normative source must use the official ETSI V19.5.0 PDF URI")
-    if normative["publisher"] != "ETSI" or normative["normative"] is not True or normative["byteLength"] != 2066717:
-        raise SystemExit("normative source metadata does not match the published ETSI deliverable")
-    if normative["digest"]["algorithm"] != "sha256" or normative["digest"]["value"] is not None or normative["digest"]["status"] != "NOT_COMPUTED":
-        raise SystemExit("do not claim a computed digest before the exact OpenAPI bytes are verified")
-    if informative["normative"] is not False or informative["immutableCommit"] is not None:
-        raise SystemExit("the REL-19 GitLab copy must remain explicitly informative until commit-pinned")
-    if informative["digest"]["value"] is not None or informative["digest"]["status"] != "NOT_COMPUTED":
-        raise SystemExit("the informative repository copy must not be presented as a verified artifact pin")
-    if spec["verification"]["status"] != "BLOCKED" or spec["verification"]["admissionAllowed"] is not False:
-        raise SystemExit("OpenAPI admission must remain blocked until the exact artifact digest is verified")
+    if (
+        normative["uri"] != "https://www.etsi.org/deliver/etsi_ts/129500_129599/129502/19.05.00_60/ts_129502v190500p.pdf"
+        or normative["publisher"] != "ETSI"
+        or normative["normative"] is not True
+        or normative["byteLength"] != 2066717
+        or normative["sha256"] != "5afc2745fb6baf6c1216b6c5f0873e0696c6aa1531eac462a73f32a80672c436"
+    ):
+        raise SystemExit("normative PDF metadata or SHA-256 does not match the published ETSI deliverable")
+    extracted = companion["extractedFile"]
+    if (
+        companion["uri"] != "https://www.etsi.org/deliver/etsi_ts/129500_129599/129502/19.05.00_60/ts_129502v190500p0.zip"
+        or companion["byteLength"] != 18012
+        or companion["sha256"] != "dca26e15363c01f37eac639305834d0359ae6b011f2c5adeac3c09f49300a883"
+        or extracted["path"] != "TS29502_Nsmf_PDUSession.yaml"
+        or extracted["byteLength"] != 209138
+        or extracted["sha256"] != "ca5d94e296a334c85635715fc325167459d865f2c83a16c47926c979dab7545b"
+    ):
+        raise SystemExit("official ETSI companion package or extracted OpenAPI SHA-256 does not match the artifact lock")
+    if (
+        informative["normative"] is not False
+        or informative["matchesOfficialCompanionSource"] is not False
+        or informative["observedCommit"] != "e4979d6e1d0d181b5a97cc4732855128a1772e64"
+        or informative["sha256"] != "1c01de5877b3d80178971a2b788473ea84a6ed6bd09f0a60cfa4fc96784bc9bf"
+    ):
+        raise SystemExit("the GitLab REL-19 informative copy must remain distinct from the ETSI-published source bytes")
+    verification = spec["verification"]
+    if verification["status"] != "OFFICIAL_SOURCE_BYTES_PINNED" or verification["admissionAllowed"] is not False:
+        raise SystemExit("source bytes may be pinned, but Owner admission must remain blocked until implementation qualification")
 
 
 def build_multipart_wire(root: dict, binary_parts: list[dict], boundary: str = "ca-step17-boundary") -> bytes:
