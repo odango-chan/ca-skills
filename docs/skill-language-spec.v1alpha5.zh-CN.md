@@ -4770,7 +4770,7 @@ gates:
 
 ## L.0 效力与兼容性
 
-本附录定义 CA-SL v1alpha5 的 Node-level Event Wait 规范性条款。它在 v1alpha4 冻结语义基线上增加 Node-entry 控制与配套 Ingress/Host/Runtime 契约；v1alpha4 原规范及其作者语法保持不可变。
+本附录定义 CA-SL v1alpha5 的 Node-level Event Wait 规范性条款。它在 v1alpha4 冻结语义基线上增加 Node-entry 控制与配套 Ingress/Host/Runtime 契约；v1alpha4 原规范及其作者语法保持不可变。本附录只定义已创建 Run 内由 Wait 消费的后续入站事件；不定义初始 Start Ingress 如何创建 Invocation/Run，也不定义该初始请求的配对响应（例如 CreateSMContext Step 3/5）。初始 Start Ingress / Service-exit 属于独立契约；不得将 wait.response.after 用作初始 Start 响应边界。
 
 The following v1alpha4 rules remain unchanged for connectionagent.io/v1alpha4:
 
