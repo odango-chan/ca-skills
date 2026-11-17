@@ -410,10 +410,13 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
         "basisRef": "urn:example:retry-window-guarantee",
     }
     validate_semantics(valid_sbi_discriminator)
+    if not validator.is_valid(valid_sbi_discriminator):
+        raise SystemExit("valid target-NF-scoped SBI idempotency fixture failed IngressCatalog schema")
     validate_3gpp_reference_example(valid_sbi_discriminator)
 
     mismatched_sbi_scope = copy.deepcopy(valid_sbi_discriminator)
     mismatched_sbi_scope["spec"]["operations"][0]["correlation"]["duplicate"]["scope"] = "expected-ingress"
+    expect_schema_failure(validator, mismatched_sbi_scope, "SBI idempotency scope narrowed to one ingress")
     expect_semantic_failure(mismatched_sbi_scope, "SBI idempotency scope narrowed to one ingress")
 
     invalid_timestamp_discriminator = copy.deepcopy(valid_sbi_discriminator)
