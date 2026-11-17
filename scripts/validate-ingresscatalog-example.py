@@ -10,10 +10,13 @@ from pathlib import Path
 
 import yaml
 from jsonschema import Draft202012Validator
+from referencing import Registry, Resource
 
 ROOT = Path(__file__).resolve().parents[1]
 DOC = ROOT / "docs/design/integration-ingress-operation-contract-vnext.zh-CN.md"
 SCHEMA = ROOT / "docs/design/schemas/ingresscatalog.v1alpha1.schema.json"
+RESPONSE_RESULT_SCHEMA = ROOT / "docs/design/schemas/update-sm-context-response-result.v1.schema.json"
+RESPONSE_BINARY_SCHEMA = ROOT / "docs/design/schemas/response-binary-content-reference.v1.schema.json"
 DURATION = re.compile(
     r"P(?:(?P<days>[1-9][0-9]*)D)?"
     r"(?:T(?:(?P<hours>[1-9][0-9]*)H)?"
@@ -398,6 +401,10 @@ def validate_3gpp_reference_example(catalog: dict) -> None:
         raise SystemExit("UpdateSMContext API URI version must be v1")
 
     response = operation["response"]
+    if response["result"]["responseResultSchemaRef"] != "urn:example:response-result:update-sm-context:v1":
+        raise SystemExit("UpdateSMContext response result must use the pinned Step 17 response-result Schema")
+    if response["binaryContent"]["referenceSchemaRef"] != "urn:example:response:binary-content-reference:v1":
+        raise SystemExit("UpdateSMContext response binary references must use the immutable payload-reference Schema")
     dispositions = {item["id"]: item for item in response["dispositions"]}
     status_by_id = {key: item["status"] for key, item in dispositions.items()}
     if status_by_id != {
@@ -495,6 +502,131 @@ def validate_3gpp_reference_example(catalog: dict) -> None:
         ("no-content", "update-completed-no-content", None),
     }:
         raise SystemExit("UpdateSMContext response selector must cover JSON, multipart and 204 bodyless outcomes")
+
+
+def validate_step15_failure_response_schema() -> None:
+    result_schema = json.loads(RESPONSE_RESULT_SCHEMA.read_text(encoding="utf-8"))
+    binary_schema = json.loads(RESPONSE_BINARY_SCHEMA.read_text(encoding="utf-8"))
+    Draft202012Validator.check_schema(result_schema)
+    Draft202012Validator.check_schema(binary_schema)
+    registry = Registry().with_resource(
+        binary_schema["$id"],
+        Resource.from_contents(binary_schema),
+    )
+    validator = Draft202012Validator(result_schema, registry=registry)
+
+    n1_reference = {
+        "payloadRef": "urn:connectionagent:payload:step17-n1-reject-01",
+        "mediaType": "application/vnd.3gpp.5gnas",
+        "byteLength": 32,
+        "sha256": "a" * 64,
+    }
+    n2_reference = {
+        "payloadRef": "urn:connectionagent:payload:step17-n2-response-01",
+        "mediaType": "application/vnd.3gpp.ngap",
+        "byteLength": 64,
+        "sha256": "b" * 64,
+    }
+
+    valid_failure = {
+        "procedureOutcome": "n2-user-plane-setup-failed",
+        "step16Outcome": {
+            "n4Action": "session-released",
+            "udmRegistration": "skipped",
+        },
+        "responseRepresentation": "multipart",
+        "n1SmMessage": n1_reference,
+    }
+    valid_success_json = {
+        "procedureOutcome": "n2-user-plane-setup-succeeded",
+        "step16Outcome": {
+            "n4Action": "session-modified",
+            "udmRegistration": "completed",
+        },
+        "responseRepresentation": "json",
+        "cause": "REQUEST_ACCEPTED",
+    }
+    valid_success_multipart = {
+        "procedureOutcome": "n2-user-plane-setup-succeeded",
+        "step16Outcome": {
+            "n4Action": "session-modified",
+            "udmRegistration": "not-required",
+        },
+        "responseRepresentation": "multipart",
+        "n2SmInformation": n2_reference,
+        "n2SmInfoType": "PDU_RES_SETUP_RSP",
+    }
+    valid_success_no_content = {
+        "procedureOutcome": "n2-user-plane-setup-succeeded",
+        "step16Outcome": {
+            "n4Action": "session-modified",
+            "udmRegistration": "not-required",
+        },
+        "responseRepresentation": "no-content",
+    }
+    for label, value in (
+        ("N2 setup failure with N4 release and multipart N1 reject", valid_failure),
+        ("successful N2 setup with JSON response", valid_success_json),
+        ("successful N2 setup with multipart N2 response", valid_success_multipart),
+        ("successful N2 setup with bodyless 204", valid_success_no_content),
+    ):
+        errors = list(validator.iter_errors(value))
+        if errors:
+            raise SystemExit(f"{label}: unexpectedly invalid: {errors[0].message}")
+
+    invalid_cases = []
+
+    invalid = copy.deepcopy(valid_failure)
+    invalid["responseRepresentation"] = "json"
+    invalid_cases.append(("N2 setup failure cannot use JSON without binary part", invalid))
+
+    invalid = copy.deepcopy(valid_failure)
+    del invalid["n1SmMessage"]
+    invalid_cases.append(("N2 setup failure requires N1 SM Reject", invalid))
+
+    invalid = copy.deepcopy(valid_failure)
+    invalid["step16Outcome"]["n4Action"] = "session-modified"
+    invalid_cases.append(("N2 setup failure must release N4 Session", invalid))
+
+    invalid = copy.deepcopy(valid_failure)
+    invalid["step16Outcome"]["udmRegistration"] = "completed"
+    invalid_cases.append(("Step 16c is skipped on the Step 15 N2 failure branch", invalid))
+
+    invalid = copy.deepcopy(valid_success_json)
+    invalid["step16Outcome"]["n4Action"] = "session-released"
+    invalid_cases.append(("successful N2 setup requires N4 Session Modification", invalid))
+
+    invalid = copy.deepcopy(valid_success_multipart)
+    del invalid["n2SmInfoType"]
+    invalid_cases.append(("N2 binary response requires n2SmInfoType", invalid))
+
+    invalid = copy.deepcopy(valid_success_multipart)
+    del invalid["n2SmInformation"]
+    invalid_cases.append(("n2SmInfoType cannot exist without N2 binary content", invalid))
+
+    invalid = copy.deepcopy(valid_success_no_content)
+    invalid["cause"] = "REQUEST_ACCEPTED"
+    invalid_cases.append(("204 response cannot discard a Cause body field", invalid))
+
+    invalid = copy.deepcopy(valid_failure)
+    invalid["n1SmMessage"]["mediaType"] = "application/vnd.3gpp.ngap"
+    invalid_cases.append(("N1 SM reject must use the 5G NAS media type", invalid))
+
+    invalid = copy.deepcopy(valid_failure)
+    invalid["n1SmMessage"]["payloadRef"] = "https://example.invalid/payload"
+    invalid_cases.append(("binary payload reference cannot be an arbitrary URL", invalid))
+
+    invalid = copy.deepcopy(valid_failure)
+    invalid["n1SmMessage"]["sha256"] = "not-a-digest"
+    invalid_cases.append(("binary payload reference requires SHA-256", invalid))
+
+    invalid = copy.deepcopy(valid_failure)
+    invalid["n1SmMessage"]["byteLength"] = 1048577
+    invalid_cases.append(("binary payload reference must respect the declared maxBytes", invalid))
+
+    for label, value in invalid_cases:
+        if validator.is_valid(value):
+            raise SystemExit(f"negative response-result fixture was unexpectedly accepted: {label}")
 
 
 def expect_schema_failure(validator: Draft202012Validator, value: dict, label: str) -> None:
@@ -843,7 +975,8 @@ def main() -> None:
     validate_semantics(example)
     validate_3gpp_reference_example(example)
     validate_negative_cases(schema, example)
-    print("IngressCatalog Draft 2020-12 schema, cross-field checks and negative fixtures: PASS")
+    validate_step15_failure_response_schema()
+    print("IngressCatalog and Step 17 response-result schemas, protocol checks and negative fixtures: PASS")
 
 
 if __name__ == "__main__":
