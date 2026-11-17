@@ -448,7 +448,7 @@ Integration export 必须定义：
 
 早期失败响应可以是协议允许的 bodyless response，或由 Integration Package 内不可变的 responseRef 定义、并经过协议 Schema 校验的固定错误响应。responseRef 必须绑定精确 status、media type、response Schema 和固定错误 Body；不得从任意 Run summary、Host 私有字段或未类型化历史输出拼接失败 Body。
 
-paired 模式的 deadlinePolicyRef 必须解析到受信部署策略，明确有限响应期限、起算事件、时钟基准和允许的最大时钟偏差。默认起算事件是 Integration 首次收到完整且最终被接受的有效 wire request 的时刻；若协议规定更早的起算点，则必须采用协议规定的起算点。Integration 在持久接受 delivery 时计算绝对 responseDeadline，并随 delivery 提交给 Host。Runtime 后续的 EVENT_ACCEPTED 不得重置或延长该期限；事件在 Node 激活前被缓冲时，期限仍持续流逝。
+paired 模式的 deadlinePolicyRef 必须解析到受信部署策略，明确有限响应期限、起算事件、时钟基准和允许的最大时钟偏差。默认起算事件是 Integration 首次收到完整且最终被接受的有效 wire request 的时刻；若协议规定更早的起算点，则必须采用协议规定的起算点。Integration 在持久接受 delivery 时计算绝对 responseDeadline，并随 delivery 提交给 Host。responseDeadline 在线格式为带 Z 后缀的 RFC 3339 UTC instant；Host 必须原样持久化和转交，不得重新计算或延长。Runtime/Host 的本地 deadline 比较必须遵守部署策略声明的时钟偏差；若无法满足时钟保证，Integration 仍是响应逾期的最终权威，其他组件不得自行延长 deadline。Runtime 后续的 EVENT_ACCEPTED 不得重置或延长该期限；事件在 Node 激活前被缓冲时，期限仍持续流逝。
 
 responseDeadline 与 Wait 的 pre-event timeout 是两个独立期限。Host 必须持久保存并原样转交 responseDeadline；Runtime 可以将其作为通用处理上界，但不得将其转换为 CA-SL TIMEOUT Outcome 或作者可路由的 Stage Outcome。Integration 是协议响应是否逾期及如何失败/恢复的最终权威。响应 deadline 到期时，Integration 执行协议规定的失败响应策略；Runtime 保留已接受事件的 checkpoint 和未解决的业务/资源责任。任何 Run cancellation 均使用既有全局 cancellation 语义。
 
