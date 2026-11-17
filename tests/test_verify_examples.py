@@ -267,6 +267,27 @@ nodes:
         errors = self.lint(producer="import os\n" + PRODUCER)
         self.assertTrue(any("forbidden external/ambient import" in e for e in errors), errors)
 
+    def test_mas_pre_mutation_failures_use_failed_or_unresolved(self) -> None:
+        procedure = (
+            ROOT / "examples" / "skills" / "establish-pdu-session-mas"
+            / "assurance" / "procedure.yaml"
+        ).read_text(encoding="utf-8")
+        first = procedure.split("  validate-sm-subscription:\\n", 1)[1].split(
+            "\\n  # OpenAMSM OES: SAA.SECONDARY_AUTH", 1
+        )[0]
+        second = procedure.split("  skip-secondary-authentication:\\n", 1)[1].split(
+            "\\n  # OpenAMSM OES: SC.CREATE_SM_CONTEXT", 1
+        )[0]
+        self.assertIn("DENIED: FAILED", first)
+        self.assertIn("FAIL: FAILED", first)
+        self.assertIn("UNKNOWN: UNRESOLVED", first)
+        self.assertNotIn("SAFE_STOPPED", first)
+        self.assertIn("OUTCOME_UNKNOWN: UNRESOLVED", second)
+        self.assertIn("DENIED: FAILED", second)
+        self.assertIn("FAIL: FAILED", second)
+        self.assertIn("UNKNOWN: UNRESOLVED", second)
+        self.assertNotIn("SAFE_STOPPED", second)
+
     def test_mas_entry_observation_is_co_located_with_first_read_only_operation(self) -> None:
         skill = ROOT / "examples" / "skills" / "establish-pdu-session-mas"
         procedure = (skill / "assurance" / "procedure.yaml").read_text(encoding="utf-8")
