@@ -667,7 +667,7 @@ spec:
                 - source:
                     kind: multipart-binary
                     part: binaryDataN2SmInformation
-                  target: /binaryDataN2SmInformationrmation
+                  target: /n2SmInformation
                   transform: binary-content-ref
         binaryContent:
           referenceSchemaRef: urn:example:normalized:binary-content-reference:v1
