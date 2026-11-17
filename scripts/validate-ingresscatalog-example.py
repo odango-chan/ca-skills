@@ -643,7 +643,7 @@ def validate_standard_artifact_lock() -> None:
     closure = common["operationSchemaClosure"]
     if closure != {
         "operationId": "UpdateSmContext",
-        "scope": "operation-request-and-responses",
+        "scope": "mapped-request-response-fields",
         "externalDocuments": ["TS29571_CommonData.yaml"],
         "status": "VERIFIED_BY_CI",
     }:
