@@ -295,9 +295,9 @@ Integration export 必须声明它支持的 Wait arming 模式。
 
 **A. 由入口 Invocation Context 启动**
 
-适用于 Wait-bearing Node 本身就是 Procedure start 的场景。Export 声明允许 start arming，并为每个 correlation key 字段指定一个 Invocation Context JSON Pointer。
+适用于 Wait-bearing Node 本身就是 Procedure start 的场景。Export 声明允许 start arming，并为每个 correlation key 字段指定一个 Invocation Context JSON Pointer，以及 correlation.armInputSchemaRef 中对应的 bindingPath。
 
-Compiler 必须验证该路径由 Skill 已声明的 Host Context Schema 或 Request Schema 提供，类型与 correlation key 兼容。Runtime 在 Node 激活之前从已准入 Context 物化绑定并注册。
+Compiler 必须验证该路径由 Skill 已声明的 Host Context Schema 或 Request Schema 提供，类型与 correlation key 兼容，并可赋值给 armInputSchemaRef 对应字段。Runtime 在 Node 激活之前从已准入 Context 物化绑定并注册。
 
 **B. 由前序 Tool Operation 触发**
 
@@ -307,8 +307,8 @@ Compiler 必须验证该路径由 Skill 已声明的 Host Context Schema 或 Req
 - 精确受信 Owner；
 - kind = operation；
 - 精确 Operation ID；
-- 该 Operation 的 Input Schema 身份；
-- 将 correlation key 映射到 Operation arguments JSON Pointer 的绑定规则，并将其值绑定到同一个 correlation.armInputSchemaRef。
+- 该 Operation 的 Input Schema 身份（由 Compiler 从精确 ToolCatalog export 解析，不在 IngressCatalog 中复制）；
+- 将 correlation key 映射到 Operation arguments JSON Pointer 和 correlation.armInputSchemaRef bindingPath 的绑定规则。
 
 触发 Operation 必须来自 Skill 已声明的可信依赖快照。Observation、Predicate、Script、Capability ID、Tool display name 或网络地址不能充当 triggering Operation identity。
 
@@ -609,6 +609,7 @@ spec:
               id: ca::amf.communication.n1n2_message_transfer
             bindings:
               - requestKey: /smContextRef
+                bindingPath: /smContextRef
                 source:
                   kind: operation-argument
                   path: /smContextRef
@@ -644,7 +645,7 @@ spec:
 - artifactDigest 绑定精确 OpenAPI 文件，mappingDigest 绑定归一化/响应映射实现；
 - operationId 不能替代 Service-Operation 名称；
 - arming.triggers[].operation 是出站 ToolCatalog Operation，不是 Ingress Operation；Compiler 从该精确 ToolCatalog export 解析 Operation Input Schema，armInputSchemaRef 则定义单独的 correlationBinding Schema；
-- requestKey 指向 normalized request 的字段，operation-argument.path 指向出站 Operation 已物化输入；
+- requestKey 指向 normalized request 的字段，bindingPath 指向 correlation.armInputSchemaRef 的字段，operation-argument.path 指向出站 Operation 已物化输入；
 - response.result.producer 只允许 operation 或 observation；bodyless response 不声明该字段；
 - 示例的 maximumLateArrival 必须由受信协议/部署保证给出，不能照抄占位值；
 - 示例没有提供任何凭证、证书、网络地址或运行时私有句柄。
