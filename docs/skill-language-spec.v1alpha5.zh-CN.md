@@ -16,7 +16,7 @@
 
 **v1alpha5 增补摘要（2026-11-17）。** v1alpha5 在不增加第五种业务阶段、不引入 Wait-only Node 的前提下，增加 Node-entry Event Wait；其事件选择器由可信、包级 Ingress Operation 导出解析，`wait.output` 是受路径支配约束的普通类型化输入，TIMEOUT 是独立控制结果，配对响应通过 Integration 声明的 Producer 边界提交。EVENT_ACCEPTED 的 occurrence 隔离、重复/迟到投递、同一 Run 持久化续接和逻辑响应 Deadline 已纳入跨契约设计。36 个 EW 用例是本版规范符合性义务，尚不等于 Compiler/Host/Runtime/Integration 已执行通过。
 
-**评审导航：** §0 确定效力与范围；§9–§14 检查 Owner 契约、DAG、SourcePath 和数据绑定；§17–§24 检查 Evidence、Reconcile、路由与诊断；§32–§45 检查 Script、可信依赖及产品门槛；**附录 E + G.9** 定义继承的 E01–E120 预期，**F/G** 为继承的规范性互操作和 Schema/CEL 规则，**H** 为 v1alpha5 统一诊断索引，**L** 为 Node-entry Event Wait 与 Ingress/Host/Runtime 规范性增补；**I/J/K** 为资料性材料。完整内容均在当前文件中。
+**评审导航：** §0 确定效力与范围；§9–§14 检查 Owner 契约、DAG、SourcePath 和数据绑定；§17–§24 检查 Evidence、Reconcile、路由与诊断；§32–§45 检查 Script、可信依赖及产品门槛；**附录 E + G.9** 定义继承的 E01–E120 预期，**F/G** 为继承的规范性互操作和 Schema/CEL 规则，**H** 为 v1alpha5 统一诊断索引（含版本化 Ingress 诊断注册表组合），**L** 为 Node-entry Event Wait 与 Ingress/Host/Runtime 规范性增补；**I/J/K** 为资料性材料。完整内容均在当前文件中。
 
 ---
 
@@ -3941,9 +3941,9 @@ G.1–G.9 的继承用例与新增 E115–E120 共同组成 v1alpha4 已冻结�
 
 
 
-# 附录 H：统一诊断索引（v1alpha5；继承 v1alpha4 并增加 Wait 诊断）
+# 附录 H：统一诊断索引（v1alpha5；继承 v1alpha4 并组合 Wait / Ingress 版本化诊断）
 
-**Normative：诊断身份、分类和控制流含义；Informative：关联 E/EW 用例及待补 Fixture。** v1alpha4 原有诊断身份保持不变；v1alpha5 另增加下列九个 `C_STATIC` Wait 诊断。 §24.1、§24.2 是具体触发规则，本索引是诊断**代码、阶段与分类**的唯一规范性入口，不是已执行 Fixture 的完整清单；E 用例列只引用能够证明该 `(Code, Phase)` 的已定义变体，尚未具备精确变体的项标记为 `待补独立 Fixture`。覆盖状态是资料性的测试追踪信息，**不构成 CI PASS 或实现符合性证明**。诊断记录的唯一分类键为 `(Code, Phase)`，`Phase=C_STATIC | C_WARNING | R_RUNTIME`，三者分别表示 Compiler 静态错误、Compiler 警告、Runtime 诊断。原始 Code 字符串不被改名，但相同 Code 在不同 Phase（例如 EFFECT_MISMATCH）是不同的诊断事件。Compiler/Runtime 的诊断记录、Trace、Studio 诊断与 CI 报告均须保留 `code`、`phase` 及对应的 `类别`；只传递 `code` 而无法确定阶段时，不能完整表达本附录定义的诊断身份。不得将两行 `EFFECT_MISMATCH` 合并为一个不区分阶段的处置规则。Compiler ERROR 必定阻断构建，Compiler WARNING 不自行阻断构建。Runtime DIAGNOSTIC 是事件原因，不是业务阶段 Outcome，不能直接把任一诊断名当作路由键。Runtime 按实际执行阶段与 §12.8 的资源/未决事实状态判定终态。
+**Normative：诊断身份、分类和控制流含义；Informative：关联 E/EW/IN 用例及待补 Fixture。** v1alpha4 原有诊断身份保持不变；v1alpha5 增加九个 `C_STATIC` Wait 诊断，并组合独立版本化的 IngressCatalog v1alpha1 诊断注册表（九个 `C_STATIC` Ingress 诊断）。Ingress 诊断仍由 `connectionagent.io/ingress-diagnostics/v1alpha1` 拥有；本附录给出统一索引视图和 Compiler Diagnostic[] 组合规则，不把该注册表并入 CA-SL 语言自身的版本身份。 §24.1、§24.2 是具体触发规则，本索引是诊断**代码、阶段与分类**的唯一规范性入口，不是已执行 Fixture 的完整清单；E 用例列只引用能够证明该 `(Code, Phase)` 的已定义变体，尚未具备精确变体的项标记为 `待补独立 Fixture`。覆盖状态是资料性的测试追踪信息，**不构成 CI PASS 或实现符合性证明**。诊断记录的唯一分类键为 `(Code, Phase)`，`Phase=C_STATIC | C_WARNING | R_RUNTIME`，三者分别表示 Compiler 静态错误、Compiler 警告、Runtime 诊断。原始 Code 字符串不被改名，但相同 Code 在不同 Phase（例如 EFFECT_MISMATCH）是不同的诊断事件。Compiler/Runtime 的诊断记录、Trace、Studio 诊断与 CI 报告均须保留 `code`、`phase` 及对应的 `类别`；只传递 `code` 而无法确定阶段时，不能完整表达本附录定义的诊断身份。不得将两行 `EFFECT_MISMATCH` 合并为一个不区分阶段的处置规则。Compiler ERROR 必定阻断构建，Compiler WARNING 不自行阻断构建。Runtime DIAGNOSTIC 是事件原因，不是业务阶段 Outcome，不能直接把任一诊断名当作路由键。Runtime 按实际执行阶段与 §12.8 的资源/未决事实状态判定终态。
 
 ## H.0 最终成功边诊断优先级（Normative；映射 §12.9 与 E11/E18）
 本表仅在源码/路由已满足更早的 YAML/结构合法性、且已构造 `start` 可达图之后判断 `SUCCEEDED` 请求；`FINAL_POSTCONDITION_MISSING` 与 `SUCCESS_BYPASSES_FINAL_POSTCONDITION` 对同一图的主诊断互斥。表内的“合法最终边”仅指可达 Postcondition 阶段的聚合 `PASS: SUCCEEDED`，不是任何此前局部 PASS。
@@ -3955,7 +3955,7 @@ G.1–G.9 的继承用例与新增 E115–E120 共同组成 v1alpha4 已冻结�
 | 有 | 有 | 无 | 不产生上述两项诊断；仍须通过全局门禁、Schema、Evidence、责任等检查 |
 | 无 | 无 | 无 | 不因缺少成功边而单独产生 FINAL_POSTCONDITION_MISSING；只要每个可达阶段满足 §22.1 且每条可达路径最终依 §12.8 到达合法停止终态，纯停止流程可按其停止路径处理（E11 停止对照） |
 
-**全局门禁主诊断区别：** Contract 引用不存在、类型错误或已存在但从 start 不可达的 Precondition，先按 `ENTRY_PRECONDITION_REF_INVALID / C_STATIC`；**引用可达**但某条实际可达路径绕过其聚合 PASS，则按 `ENTRY_PRECONDITION_BYPASSED / C_STATIC`。同 Node 隐式 PASS 自动边按 §12.9 视为已通过门禁（E52/E61），不能误报 BYPASSED。此表不新增诊断 Code；下表包含 107 个唯一 Code、108 条唯一 `(Code, Phase)` 复合诊断身份（`EFFECT_MISMATCH` 同名跨 `C_STATIC` / `R_RUNTIME` 为两个独立身份）。
+**全局门禁主诊断区别：** Contract 引用不存在、类型错误或已存在但从 start 不可达的 Precondition，先按 `ENTRY_PRECONDITION_REF_INVALID / C_STATIC`；**引用可达**但某条实际可达路径绕过其聚合 PASS，则按 `ENTRY_PRECONDITION_BYPASSED / C_STATIC`。同 Node 隐式 PASS 自动边按 §12.9 视为已通过门禁（E52/E61），不能误报 BYPASSED。此处 CA-SL 语言诊断主表包含 107 个唯一 Code、108 条唯一 `(Code, Phase)` 复合身份（`EFFECT_MISMATCH` 同名跨 `C_STATIC` / `R_RUNTIME` 为两个独立身份）。下方 H.1 的 IngressCatalog v1alpha1 伴随注册表增加九个全局唯一 Code；组合后的 v1alpha5 Compiler 诊断索引共 116 个唯一 Code、117 条唯一 `(Code, Phase)` 复合身份。
 
 | Code | Phase | 类别 | 阻断构建 | 触发位置 | Runtime 终态/路由影响 | 规范条款 | 代表用例 | 覆盖状态 |
 |---|---|---|---|---|---|---|---|---|
@@ -4067,6 +4067,26 @@ G.1–G.9 的继承用例与新增 E115–E120 共同组成 v1alpha4 已冻结�
 | RETRY_ADMISSION_DENIED | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 缺少未提交证明、无残留承诺或重试许可：禁止重发，按 §12.8 直接停止 | §20.2、§24.2 | 待补独立 Fixture | 待 Fixture |
 | SCOPE_POLICY_UNAVAILABLE | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | Runtime 授权 Scope 策略不可读取：普通 callable 有 DENIED 边则走边，否则停止；Reconcile 直接停止并保留原调用责任 | §9.3、§24.2 | E88 | 规范用例已定义 |
 | SCOPE_INTERSECTION_EMPTY | R_RUNTIME | Runtime DIAGNOSTIC | 不适用 | Admission / Dispatch / Validation / Stop | 派发时 Scope 交集为空：普通 callable 有 DENIED 边则走边，否则停止；Reconcile 直接停止并保留原调用责任 | §9.3、§24.2 | E88 | 规范用例已定义 |
+
+### H.1 IngressCatalog v1alpha1 伴随诊断注册表（Normative）
+
+IngressCatalog 自有静态诊断由独立版本化注册表 `connectionagent.io/ingress-diagnostics/v1alpha1` 定义，适用于 `connectionagent.io/ingresscatalog/v1alpha1`。其规范性来源为 [IngressCatalog Diagnostic Registry v1alpha1](design/ingress-diagnostic-registry-v1alpha1.md) 及对应机器清单 [ingress-diagnostic-registry-v1alpha1.json](design/ingress-diagnostic-registry-v1alpha1.json)。下表是本统一索引中的身份投影；Code、Phase、Severity、blocking、precedence、messageKey 和 source-location 规则以该版本化注册表为准。
+
+| Code | Phase | 类别 | 阻断构建 | 触发位置 | Runtime 终态/路由影响 | 诊断注册表 | 覆盖状态 |
+|---|---|---|---|---|---|---|---|
+| INGRESS_CATALOG_INVALID | C_STATIC | Compiler ERROR | 是 | Link / IngressCatalog root | 不启动 Invocation | ingress-diagnostics/v1alpha1 | 规范用例已定义，机器 Fixture 待执行 |
+| INGRESS_EXPORT_ID_DUPLICATE | C_STATIC | Compiler ERROR | 是 | Link / IngressCatalog operations[].id | 不启动 Invocation | ingress-diagnostics/v1alpha1 | 规范用例已定义，机器 Fixture 待执行 |
+| INGRESS_EVENT_SELECTOR_DUPLICATE | C_STATIC | Compiler ERROR | 是 | Link / IngressCatalog operations[].event | 不启动 Invocation | ingress-diagnostics/v1alpha1 | 规范用例已定义，机器 Fixture 待执行 |
+| INGRESS_PROTOCOL_ARTIFACT_INVALID | C_STATIC | Compiler ERROR | 是 | Link / IngressCatalog protocol artifact binding | 不启动 Invocation | ingress-diagnostics/v1alpha1 | 规范用例已定义，机器 Fixture 待执行 |
+| INGRESS_PEER_PROFILE_REFERENCE_INVALID | C_STATIC | Compiler ERROR | 是 | Link / IngressCatalog security profile reference | 不启动 Invocation | ingress-diagnostics/v1alpha1 | 规范用例已定义，机器 Fixture 待执行 |
+| INGRESS_NORMALIZATION_INVALID | C_STATIC | Compiler ERROR | 是 | Link / IngressCatalog request normalization | 不启动 Invocation | ingress-diagnostics/v1alpha1 | 规范用例已定义，机器 Fixture 待执行 |
+| INGRESS_CORRELATION_INVALID | C_STATIC | Compiler ERROR | 是 | Link / IngressCatalog correlation/stale-delivery declaration | 不启动 Invocation | ingress-diagnostics/v1alpha1 | 规范用例已定义，机器 Fixture 待执行 |
+| INGRESS_RESPONSE_CONTRACT_INVALID | C_STATIC | Compiler ERROR | 是 | Link / IngressCatalog response contract | 不启动 Invocation | ingress-diagnostics/v1alpha1 | 规范用例已定义，机器 Fixture 待执行 |
+| INGRESS_RESPONSE_MAPPING_INVALID | C_STATIC | Compiler ERROR | 是 | Link / IngressCatalog response representation/mapping | 不启动 Invocation | ingress-diagnostics/v1alpha1 | 规范用例已定义，机器 Fixture 待执行 |
+
+**组合规则。** Ingress 记录在 Compiler `Diagnostic[]` 中必须保留 `code`、`phase=C_STATIC`、`severity=ERROR`、`registryId=connectionagent.io/ingress-diagnostics/v1alpha1`、`messageKey`、`sourceLocation` 及可选 `relatedLocations`。其诊断身份仍是全局唯一的 `(Code, Phase)`；`registryId` 仅表示来源版本。每条 Ingress 记录均阻断 Build。主位置必须定位到受信 Catalog snapshot 的 dependency alias、snapshot path 和 RFC 6901 JSON Pointer；缺失字段定位最近存在的父对象，重复项定位后出现项并关联首次出现项。物理 envelope 序列化由 Compiler Artifact/Diagnostic protocol 管理，但不得丢失上述逻辑属性。
+
+**归属与优先级。** 本注册表不重定义 `YAML_PARSE_ERROR`、`DEPENDENCY_*`、`EXPORT_ID_MISSING`、`EXPORT_ID_AMBIGUOUS`、`SCHEMA_MISSING`、`SCHEMA_INVALID`、SourcePath/type diagnostics 或本附录的 `WAIT_*`。依赖/Owner 身份失败先于 Ingress 校验并抑制该不可信快照的级联诊断；Catalog root 无效先于 operation-level Ingress 诊断；Schema 解析失败先于依赖该 Schema 的 normalization/response mapping；Ingress 自身声明错误先于 Skill-specific Wait path/response 检查。完整 deterministic precedence、稳定排序、级联抑制和旧候选名称归属见版本化注册表 §3–§4。v1alpha4 冻结文件及其诊断索引不受本节修改。
 
 **代码归一化。** 缺失精确 Schema 的唯一诊断代码是 `SCHEMA_MISSING`；Schema 不满足 G.4 或自相矛盾的唯一诊断代码是 `SCHEMA_INVALID`。斜杠并列写法只用于说明两项错误类别，**不是诊断代码或合法别名**。诊断记录不得使用单独的 `INVALID` 或缺少 `Phase` 的不完整身份。§24.2 的 STALE、CONFLICT 必须写全名为 EVIDENCE_STALE、EVIDENCE_CONFLICT；SCOPE_MISMATCH、CORRELATION_MISMATCH、DEADLINE_EXCEEDED、CANCELLED 是四个独立诊断。OUTCOME_UNKNOWN 是 Mutation 的阶段 Outcome，不是诊断代码。RECONCILE 的 COMMITTED、NOT_COMMITTED、UNRESOLVED 也是阶段 Outcome；RECONCILE_UNRESOLVED 是记录该停止条件的诊断，二者不得互换。
 
