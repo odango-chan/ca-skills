@@ -64,7 +64,7 @@ def main() -> None:
         for entry in entries
     ]
     if actual != EXPECTED:
-        fail("registry must contain the exact nine diagnostic identities, order and precedence")
+        fail("registry must contain the exact ten diagnostic identities, order and precedence")
     if len({entry["code"] for entry in entries}) != len(entries):
         fail("duplicate diagnostic Code")
     if len({entry["precedence"] for entry in entries}) != len(entries):
