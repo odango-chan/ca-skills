@@ -41,6 +41,8 @@ def fixed_duration_seconds(value: str, label: str) -> int:
     parts = {key: int(part) if part else 0 for key, part in match.groupdict().items()}
     if not any(parts.values()):
         raise SystemExit(f"{label}: duration must be greater than zero")
+    if "T" in value and not any(parts[key] for key in ("hours", "minutes", "seconds")):
+        raise SystemExit(f"{label}: T must be followed by a time component")
     return parts["days"] * 86400 + parts["hours"] * 3600 + parts["minutes"] * 60 + parts["seconds"]
 
 
