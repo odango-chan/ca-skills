@@ -1,0 +1,42 @@
+apiVersion: connectionagent.io/standard-artifact-lock/v1alpha1
+kind: StandardArtifactLock
+metadata:
+  id: 3gpp-ts-29.502-v19.5.0-nsmf-pdusession
+spec:
+  standard:
+    name: 3GPP TS 29.502
+    version: 19.5.0
+    release: 19
+  api:
+    title: Nsmf_PDUSession
+    openapiVersion: 3.0.0
+    apiVersion: 1.4.0
+    annex: A.2
+    sourceFileName: TS29502_Nsmf_PDUSession.yaml
+  normativeSource:
+    publisher: ETSI
+    mediaType: application/pdf
+    uri: https://www.etsi.org/deliver/etsi_ts/129500_129599/129502/19.05.00_60/ts_129502v190500p.pdf
+    byteLength: 2066717
+    normative: true
+    digest:
+      algorithm: sha256
+      value: null
+      status: NOT_COMPUTED
+  informativeSource:
+    repository: https://forge.3gpp.org/rep/all/5G_APIs
+    ref: REL-19
+    path: TS29502_Nsmf_PDUSession.yaml
+    normative: false
+    immutableCommit: null
+    digest:
+      algorithm: sha256
+      value: null
+      status: NOT_COMPUTED
+  verification:
+    status: BLOCKED
+    reasons:
+      - The ETSI PDF is the authoritative deliverable; Annex A.1 states that Annex A defines the formal OpenAPI specification and takes precedence for API encoding.
+      - The GitLab REL-19 repository copy is informative and must not be treated as an immutable artifact pin.
+      - The SHA-256 of the exact OpenAPI YAML bytes has not been computed or verified against the normative Annex A.2.
+    admissionAllowed: false
