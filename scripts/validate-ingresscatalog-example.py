@@ -93,6 +93,10 @@ def validate_semantics(catalog: dict) -> None:
             if len(parts) != len(representation.get("parts", [])):
                 raise SystemExit(f"{op_id}: duplicate multipart part name")
             if representation["mediaType"].startswith("multipart/"):
+                part_list = representation["parts"]
+                json_parts = [part for part in part_list if part["kind"] == "json"]
+                if len(json_parts) != 1 or part_list[0]["kind"] != "json":
+                    raise SystemExit(f"{op_id}: multipart request must have exactly one first JSON root part")
                 declared_binary_count = sum(part["kind"] == "binary" for part in parts.values())
                 minimum_binary = representation["minBinaryParts"]
                 maximum_binary = representation["maxBinaryParts"]
@@ -251,8 +255,9 @@ def validate_semantics(catalog: dict) -> None:
                     part_names = [part["name"] for part in parts]
                     unique(part_names, f"{op_id}: duplicate response part name")
                     if representation["mediaType"] == "multipart/related":
-                        if not parts or parts[0]["name"] != representation["rootPart"] or parts[0]["kind"] != "json":
-                            raise SystemExit(f"{op_id}: multipart response rootPart must be the first JSON part")
+                        json_parts = [part for part in parts if part["kind"] == "json"]
+                        if len(json_parts) != 1 or not parts or parts[0]["name"] != representation["rootPart"] or parts[0]["kind"] != "json":
+                            raise SystemExit(f"{op_id}: multipart response rootPart must be the unique first JSON part")
                         declared_binary_count = sum(part["kind"] == "binary" for part in parts)
                         minimum_binary = representation["minBinaryParts"]
                         maximum_binary = representation["maxBinaryParts"]
@@ -397,6 +402,18 @@ def validate_3gpp_reference_example(catalog: dict) -> None:
     request_root = request_part_list[0]
     if request_root["kind"] != "json" or request_root["required"] is not True or request_root["mediaType"] != "application/json":
         raise SystemExit("UpdateSMContext request multipart root must be the first required application/json part")
+    expected_request_part_media_types = {
+        "binaryDataN1SmMessage": "application/vnd.3gpp.5gnas",
+        "binaryDataN2SmInformation": "application/vnd.3gpp.ngap",
+        "binaryDataN2SmInformationExt1": "application/vnd.3gpp.ngap",
+    }
+    for part_name, media_type in expected_request_part_media_types.items():
+        part = next(item for item in request_part_list if item["name"] == part_name)
+        if part["kind"] != "binary" or part["required"] is not False or part["mediaType"] != media_type:
+            raise SystemExit(f"{part_name} must be an optional binary part with media type {media_type}")
+    json_mapping = next((item for item in multipart["mappings"] if item["source"]["kind"] == "multipart-json"), None)
+    if json_mapping is None or json_mapping["source"] != {"kind": "multipart-json", "part": "jsonData", "pointer": ""} or json_mapping["target"] != "/updateData" or json_mapping["transform"] != "identity":
+        raise SystemExit("UpdateSMContext jsonData must map to updateData while ignoredSources mask transport-only RefToBinaryData")
 
     expected_binary_mappings = {
         "binaryDataN1SmMessage": ("/n1SmMsg/contentId", "/n1SmMessage"),
