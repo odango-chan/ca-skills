@@ -119,7 +119,7 @@ CA-SL v1alpha4 §21 remains authoritative for the current examples in this PR: n
 
 ### 8.2 Next-revision proposal: Node-level Wait
 
-[CA-SL Node-level Event Wait frozen semantic design baseline, Draft PR #60](https://github.com/odango-chan/ca-skills/pull/60) proposes a different model for the language revision after v1alpha4:
+[CA-SL Node-level Event Wait semantic design baseline, PR #60](https://github.com/odango-chan/ca-skills/pull/60), is now carried into the complete normative amendment draft in [PR #61](https://github.com/odango-chan/ca-skills/pull/61). This is a different model for the language revision after v1alpha4:
 
 1. The outbound Step 11 `Namf_Communication_N1N2MessageTransfer` Operation routes to the target `update-sm-context` Node.
 2. Before dispatching the triggering Operation, Runtime durably arms the expected Wait for the same Run. Host forwards the opaque registration to the 5GC Integration, which binds it to the exact protocol resource. Arming does not activate the Node or start its timeout. For the conventional initial-establishment flow, this binding uses the exact `smContextRef` established by Step 3 and returned in the Step 5 CreateSMContext response; it does not require a fresh context lookup merely to arm Step 15.
@@ -131,7 +131,7 @@ CA-SL v1alpha4 §21 remains authoritative for the current examples in this PR: n
 
 In this model, the Step 15 inbound request is the event that activates the target Node; it is not delivered to an Owner Operation that has been left pending merely to wait for that request. The Owner still implements the declared callable and owns its actual business effect, normalized Operation Result and Evidence.
 
-The proposed Wait is Node-entry control, not a fifth stage or a separate Wait Node. Its timeout uses the existing route shape as `wait.routes.TIMEOUT`; there is no `onTimeout`. The inbound request Schema is resolved from the trusted, version-pinned 3GPP API request contract through the declared Integration Ingress Operation export. Skill source does not repeat a `payloadSchema` and does not declare a separate EventCatalog. See PR #60 for the proposed grammar, SourcePath, validation and runtime rules.
+The proposed Wait is Node-entry control, not a fifth stage or a separate Wait Node. Its timeout uses the existing route shape as `wait.routes.TIMEOUT`; there is no `onTimeout`. The inbound request Schema is resolved from the trusted, version-pinned 3GPP API request contract through the declared Integration Ingress Operation export. Skill source does not repeat a `payloadSchema` and does not declare a separate EventCatalog. See the complete CA-SL v1alpha5 normative amendment in PR #61 for the grammar, SourcePath, validation and runtime rules; PR #62 defines the corresponding trusted Integration Ingress Operation export contract.
 
 This proposal is not v1alpha4 syntax. Do not migrate the current v1alpha4 example YAML until a new language version is explicitly frozen and its Compiler/Runtime/Generic Host/Integration contracts are qualified.
 
