@@ -34,7 +34,10 @@ Closure discovery is part of this algorithm's conformance, not an implementation
 - its normalized, snapshot-relative `snapshotPath`;
 - its canonical `documentUri`;
 - its source Schema dialect (`openapi-3.0` or `json-schema-2020-12`);
-- its complete source-artifact digest and parsed document.
+- the exact complete raw source-artifact bytes;
+- the parsed document derived from those same bytes.
+
+The resolver MUST compute `artifactDigest = SHA-256(raw source-artifact bytes)` itself. It MUST NOT trust a digest supplied by IngressCatalog, a caller, or a pre-resolved vector. The parsed document used for Schema discovery MUST be produced from those exact bytes by the parser for the declared source format. A separately supplied parsed document that does not equal the parse result MUST be rejected. This binds byte identity and parsed Schema identity to one immutable snapshot object; a formatting/comment-only source change therefore changes the artifact digest even when the selected Schema value is unchanged.
 
 The resolver MUST bind `artifactRef`, `snapshotPath` and `documentUri` one-to-one. The canonical `documentUri` MUST be derived by resolving the percent-encoded `snapshotPath` against the immutable snapshot base URI. The snapshot base URI MUST be absolute, hierarchical and end in `/`. A snapshot path MUST be relative and normalized; empty segments, `.`, `..`, leading slash and backslash are rejected.
 
@@ -111,5 +114,5 @@ A successful digest check does not establish that the Schema is valid for a prot
 
 ## 6. Golden vector
 
-The machine-readable vector is [schema-closure-digest-v1.vector.json](schemas/schema-closure-digest-v1.vector.json). It includes an OpenAPI 3.0 root, a JSON Schema Draft 2020-12 dependency with a nested relative `$id`, and a further transitive `$ref` through that nested resource base. The validator derives the closure from the complete parsed documents; it does not accept a caller-supplied list of already-resolved edges as proof. Implementations MUST prove exact artifactRef/path/document-URI binding, dialect-aware base resolution, nested-resource fragment translation, exact reachable-node closure, input-order-independent digest calculation, and digest change when a referenced Schema node or artifact identity changes. The resolution context is test input only and is not part of the JCS digest manifest.
+The machine-readable vector is [schema-closure-digest-v1.vector.json](schemas/schema-closure-digest-v1.vector.json). It includes an OpenAPI 3.0 root, a JSON Schema Draft 2020-12 dependency with a nested relative `$id`, and a further transitive `$ref` whose fragment is relative to a non-root nested resource and must translate to the exact artifact-relative pointer `#/$defs/Shared/$defs/Leaf`. Each resolution-context document carries its exact `rawArtifact` UTF-8 source bytes; the fixture uses compact JSON text, which is also valid YAML 1.2, so the validator can parse the same bytes and compare them with the supplied parsed document. The validator recomputes each artifact digest from those bytes. It does not accept a caller-supplied list of already-resolved edges or digest values as proof. Implementations MUST prove exact artifactRef/path/document-URI/raw-byte binding, dialect-aware base resolution, nested-resource fragment translation, exact reachable-node closure, input-order-independent digest calculation, rejection of stale declared digests, and a changed closure digest when raw artifact bytes change while parsed Schema values remain identical. The resolution context and raw source bytes are test inputs only and are not part of the JCS digest manifest.
 
