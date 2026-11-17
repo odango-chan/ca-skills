@@ -341,7 +341,7 @@ For the conventional SMF-owned initial PDU Session flow, the future-revision map
 
 ### 9.1 Exact API binding
 
-The 3GPP service-operation name used in the procedure is `UpdateSMContext`. In the 3GPP TS 29.502 OpenAPI source, the corresponding `operationId` spelling is `UpdateSmContext`; the operation is `POST /sm-contexts/{smContextRef}/modify` under the `nsmf-pdusession` API. These are two names at different layers and must not be silently conflated.
+The 3GPP service-operation name used in the procedure is `UpdateSMContext`. In the 3GPP TS 29.502 OpenAPI source, the corresponding `operationId` spelling is `UpdateSmContext`; the operation is `POST /sm-contexts/{smContextRef}/modify` under the `nsmf-pdusession` API. These are two names at different layers and must not be silently conflated. The current reference mapping is cross-checked against TS 23.502 V19.5.0 §4.3.2.2.1, TS 29.502 V19.5.0 §6.1.2.4/§6.1.2.5 and Annex A.2 OpenAPI, and TS 29.571 V19.5.0 §5.4.4.14; the exact production OpenAPI artifact and digest remain owned by the Integration export.
 
 The cited 3GPP SA5 OpenAPI source shows that this request can use `application/json` with `SmContextUpdateData` or `multipart/related` with `jsonData` and binary N1/N2 parts. Its success responses include `200` with `SmContextUpdatedData` and `204` without a response body. The exact release/OpenAPI artifact used by a deployment must be pinned by digest in the Integration Ingress Operation contract; this design note does not select an API release.
 
