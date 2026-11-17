@@ -51,6 +51,7 @@ nodes:
       routes:
         SUCCEEDED: update-sm-context
         FAILED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
 
   update-sm-context:
     wait:
@@ -77,6 +78,7 @@ nodes:
       routes:
         SUCCEEDED: modify-n4-session
         FAILED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
 
   modify-n4-session:
     operation:
@@ -86,6 +88,7 @@ nodes:
       routes:
         SUCCEEDED: <next-business-node>
         FAILED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
 
   handle-update-timeout:
     operation:
@@ -94,6 +97,7 @@ nodes:
       routes:
         SUCCEEDED: SAFE_STOPPED
         FAILED: UNRESOLVED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
 ```
 
 The callable IDs above are placeholders, not claims that corresponding Owner exports have been published. The `request` argument is illustrative; actual Operation argument names and paths must match the linked Owner Input Schema. The example does not define a new 3GPP API or change the semantics of Step 15.
