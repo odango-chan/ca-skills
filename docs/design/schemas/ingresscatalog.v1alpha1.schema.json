@@ -822,81 +822,14 @@
           "minLength": 1
         },
         "dispositionSelector": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "sourcePath",
-            "cases"
-          ],
-          "properties": {
-            "sourcePath": {
-              "type": "string",
-              "pattern": "^/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*$"
-            },
-            "cases": {
-              "type": "array",
-              "minItems": 1,
-              "uniqueItems": true,
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "value",
-                  "dispositionId"
-                ],
-                "properties": {
-                  "value": {
-                    "oneOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "number"
-                      },
-                      {
-                        "type": "boolean"
-                      }
-                    ]
-                  },
-                  "dispositionId": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                }
-              }
-            }
-          }
+          "$ref": "#/$defs/dispositionSelector"
         },
         "mappings": {
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
           "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "dispositionId",
-              "from",
-              "to",
-              "transform"
-            ],
-            "properties": {
-              "dispositionId": {
-                "type": "string",
-                "minLength": 1
-              },
-              "from": {
-                "type": "string",
-                "pattern": "^/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*$"
-              },
-              "to": {
-                "type": "string",
-                "pattern": "^/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*$"
-              },
-              "transform": {
-                "const": "identity"
-              }
-            }
+            "$ref": "#/$defs/responseMapping"
           }
         }
       }
@@ -1016,9 +949,47 @@
         },
         "deliveryRecovery": {
           "$ref": "#/$defs/deliveryRecovery"
+        },
+        "binaryContent": {
+          "$ref": "#/$defs/responseBinaryContent"
         }
       },
       "allOf": [
+        {
+          "if": {
+            "properties": {
+              "dispositions": {
+                "contains": {
+                  "properties": {
+                    "representations": {
+                      "contains": {
+                        "properties": {
+                          "mediaType": {
+                            "const": "multipart/related"
+                          }
+                        },
+                        "required": [
+                          "mediaType"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "representations"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "dispositions"
+            ]
+          },
+          "then": {
+            "required": [
+              "binaryContent"
+            ]
+          }
+        },
         {
           "if": {
             "properties": {
@@ -1059,13 +1030,36 @@
         },
         {
           "if": {
-            "properties": {
-              "dispositions": {
-                "minItems": 2
+            "anyOf": [
+              {
+                "properties": {
+                  "dispositions": {
+                    "minItems": 2
+                  }
+                },
+                "required": [
+                  "dispositions"
+                ]
+              },
+              {
+                "properties": {
+                  "dispositions": {
+                    "contains": {
+                      "properties": {
+                        "representations": {
+                          "minItems": 2
+                        }
+                      },
+                      "required": [
+                        "representations"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "dispositions"
+                ]
               }
-            },
-            "required": [
-              "dispositions"
             ]
           },
           "then": {
@@ -1189,25 +1183,13 @@
             "none"
           ]
         },
-        "mediaType": {
-          "type": "string",
-          "minLength": 1,
-          "pattern": "^[a-z0-9!#$&^_.+-]+/[a-z0-9!#$&^_.+-]+$",
-          "enum": [
-            "application/json"
-          ]
-        },
-        "responseSchemaRef": {
-          "type": "string",
-          "minLength": 1
-        },
-        "responseSchemaDigest": {
-          "type": "string",
-          "pattern": "^sha256:[0-9a-f]{64}$"
-        },
-        "maxBytes": {
-          "type": "integer",
-          "minimum": 1
+        "representations": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/responseRepresentation"
+          }
         }
       },
       "allOf": [
@@ -1224,10 +1206,7 @@
           },
           "then": {
             "required": [
-              "mediaType",
-              "responseSchemaRef",
-              "responseSchemaDigest",
-              "maxBytes"
+              "representations"
             ]
           }
         },
@@ -1244,27 +1223,8 @@
           },
           "then": {
             "not": {
-              "anyOf": [
-                {
-                  "required": [
-                    "mediaType"
-                  ]
-                },
-                {
-                  "required": [
-                    "responseSchemaRef"
-                  ]
-                },
-                {
-                  "required": [
-                    "responseSchemaDigest"
-                  ]
-                },
-                {
-                  "required": [
-                    "maxBytes"
-                  ]
-                }
+              "required": [
+                "representations"
               ]
             }
           }
@@ -1613,6 +1573,10 @@
         "dispositionId": {
           "type": "string",
           "minLength": 1
+        },
+        "representationId": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -1643,8 +1607,9 @@
       "additionalProperties": false,
       "required": [
         "dispositionId",
+        "representationId",
         "from",
-        "to",
+        "target",
         "transform"
       ],
       "properties": {
@@ -1652,18 +1617,81 @@
           "type": "string",
           "minLength": 1
         },
+        "representationId": {
+          "type": "string",
+          "minLength": 1
+        },
         "from": {
           "type": "string",
           "pattern": "^/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*$"
         },
-        "to": {
-          "type": "string",
-          "pattern": "^/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*$"
+        "target": {
+          "$ref": "#/$defs/responseTarget"
         },
         "transform": {
-          "const": "identity"
+          "enum": [
+            "identity",
+            "binary-content-ref"
+          ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "target": {
+                "properties": {
+                  "kind": {
+                    "const": "multipart-binary"
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              }
+            },
+            "required": [
+              "target"
+            ]
+          },
+          "then": {
+            "properties": {
+              "transform": {
+                "const": "binary-content-ref"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "target": {
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "json-body",
+                      "multipart-json"
+                    ]
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              }
+            },
+            "required": [
+              "target"
+            ]
+          },
+          "then": {
+            "properties": {
+              "transform": {
+                "const": "identity"
+              }
+            }
+          }
+        }
+      ]
     },
     "ignoredSource": {
       "type": "object",
@@ -1700,6 +1728,200 @@
         }
       },
       "description": "Binds a multipart binary part Content-ID to its RefToBinaryData property in the JSON root part."
+    },
+    "responseRepresentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "mediaType",
+        "responseSchemaRef",
+        "responseSchemaDigest",
+        "maxBytes"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mediaType": {
+          "enum": [
+            "application/json",
+            "multipart/related"
+          ]
+        },
+        "responseSchemaRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "responseSchemaDigest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "maxBytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "rootPart": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parts": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/multipartPart"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mediaType": {
+                "const": "multipart/related"
+              }
+            },
+            "required": [
+              "mediaType"
+            ]
+          },
+          "then": {
+            "required": [
+              "rootPart",
+              "parts"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mediaType": {
+                "const": "application/json"
+              }
+            },
+            "required": [
+              "mediaType"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "rootPart"
+                  ]
+                },
+                {
+                  "required": [
+                    "parts"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "responseTarget": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "pointer"
+          ],
+          "properties": {
+            "kind": {
+              "const": "json-body"
+            },
+            "pointer": {
+              "type": "string",
+              "pattern": "^/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "part",
+            "pointer"
+          ],
+          "properties": {
+            "kind": {
+              "const": "multipart-json"
+            },
+            "part": {
+              "type": "string",
+              "minLength": 1
+            },
+            "pointer": {
+              "type": "string",
+              "pattern": "^/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "part",
+            "contentIdField"
+          ],
+          "properties": {
+            "kind": {
+              "const": "multipart-binary"
+            },
+            "part": {
+              "type": "string",
+              "minLength": 1
+            },
+            "contentIdField": {
+              "$ref": "#/$defs/contentIdReference"
+            }
+          }
+        }
+      ]
+    },
+    "responseBinaryContent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "referenceSchemaRef",
+        "digestAlgorithm",
+        "immutable",
+        "access",
+        "retention",
+        "maxBytes"
+      ],
+      "properties": {
+        "referenceSchemaRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digestAlgorithm": {
+          "const": "sha-256"
+        },
+        "immutable": {
+          "const": true
+        },
+        "access": {
+          "const": "integration-response-only"
+        },
+        "retention": {
+          "type": "string",
+          "minLength": 1
+        },
+        "maxBytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
     }
   }
 }
