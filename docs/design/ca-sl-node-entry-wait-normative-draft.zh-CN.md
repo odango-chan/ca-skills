@@ -599,25 +599,25 @@ The following semantic cases are REQUIRED for future language/Host/Runtime/Integ
 | EW-015 | Wait selector resolves to zero/multiple exports | Compiler emits exact not-found/ambiguous diagnostic |
 | EW-016 | One incoming path cannot derive correlation before trigger | Compiler emits WAIT_CORRELATION_BINDING_INVALID |
 | EW-017 | Wait N reaches EVENT_ACCEPTED and a second Wait for the same resource key is attempted before tombstone expiry; a delayed retry of N then arrives | Without a wire discriminator, reject the second arming until tombstone expiry; with one, identify the old request as already consumed and never deliver it to Wait N+1 |
-| EW-017 | Multiple incoming paths resolve to different Ingress exports/Schemas | Compiler rejects; authors must use distinct Wait Nodes |
-| EW-018 | response.after is bypassed by a normal accepted path | Compiler emits WAIT_RESPONSE_BOUNDARY_INVALID |
-| EW-019 | Accepted path terminates early with a mapped failure disposition | Integration emits the declared failure response; no response is fabricated by Runtime |
-| EW-020 | Body-bearing paired response lacks typed Producer mapping | Compiler emits WAIT_RESPONSE_MAPPING_INVALID |
-| EW-021 | Bodyless paired response uses a declared bodyless status | Response may complete without a response-result Producer |
-| EW-022 | Process restarts after delivery persistence but before Runtime notification | Durable relay/recovery delivers same deliveryRef; no new Invocation |
-| EW-023 | Process restarts after event acceptance but before Agent Node execution | Runtime checkpoint resumes the same Node exactly once |
-| EW-024 | Process restarts after response boundary commit but before protocol response delivery | Host/Integration recover the exact response obligation or apply explicit failure policy |
-| EW-025 | Wait is used as an Observation polling loop | Non-conforming; Event Wait and Evidence Wait remain distinct |
-| EW-026 | Timeout uses a malformed, fractional, zero, calendar-month or leading-zero duration | Compiler emits WAIT_TIMEOUT_INVALID |
-| EW-027 | Declared timeout exceeds the deployment's published maximum | Host admission rejects before Invocation creation with WAIT_DURATION_LIMIT_EXCEEDED; no clamping |
-| EW-028 | Body-bearing response mapping selects wait.output, Context or raw request data | Compiler emits WAIT_RESPONSE_MAPPING_INVALID |
-| EW-029 | response.after names an unknown or unreachable Node | Compiler emits WAIT_RESPONSE_BOUNDARY_INVALID |
-| EW-030 | Event is accepted but the Contract-referenced global Precondition has not passed on every incoming path | Wait edge does not establish the gate; protected Mutation and success remain blocked |
-| EW-031 | Integration cannot acknowledge expected-ingress arming before the triggering Operation | Runtime MUST NOT dispatch the triggering Operation; no send-first/correlate-later fallback |
-| EW-032 | Wait routes mapping or TIMEOUT key is missing | Compiler emits WAIT_TIMEOUT_ROUTE_INVALID |
-| EW-033 | Author declares EVENT_RECEIVED or another key under wait.routes | Compiler emits WAIT_TIMEOUT_ROUTE_INVALID; normal event edge remains implicit |
-| EW-034 | event.source/service/operation is empty or has the wrong type | Compiler emits WAIT_DECLARATION_INVALID |
-| EW-035 | wait.timeout is missing or is not a YAML string | Compiler emits WAIT_TIMEOUT_INVALID |
+| EW-018 | Multiple incoming paths resolve to different Ingress exports/Schemas | Compiler rejects; authors must use distinct Wait Nodes |
+| EW-019 | response.after is bypassed by a normal accepted path | Compiler emits WAIT_RESPONSE_BOUNDARY_INVALID |
+| EW-020 | Accepted path terminates early with a mapped failure disposition | Integration emits the declared failure response; no response is fabricated by Runtime |
+| EW-021 | Body-bearing paired response lacks typed Producer mapping | Compiler emits WAIT_RESPONSE_MAPPING_INVALID |
+| EW-022 | Bodyless paired response uses a declared bodyless status | Response may complete without a response-result Producer |
+| EW-023 | Process restarts after delivery persistence but before Runtime notification | Durable relay/recovery delivers same deliveryRef; no new Invocation |
+| EW-024 | Process restarts after event acceptance but before Agent Node execution | Runtime checkpoint resumes the same Node exactly once |
+| EW-025 | Process restarts after response boundary commit but before protocol response delivery | Host/Integration recover the exact response obligation or apply explicit failure policy |
+| EW-026 | Wait is used as an Observation polling loop | Non-conforming; Event Wait and Evidence Wait remain distinct |
+| EW-027 | Timeout uses a malformed, fractional, zero, calendar-month or leading-zero duration | Compiler emits WAIT_TIMEOUT_INVALID |
+| EW-028 | Declared timeout exceeds the deployment's published maximum | Host admission rejects before Invocation creation with WAIT_DURATION_LIMIT_EXCEEDED; no clamping |
+| EW-029 | Body-bearing response mapping selects wait.output, Context or raw request data | Compiler emits WAIT_RESPONSE_MAPPING_INVALID |
+| EW-030 | response.after names an unknown or unreachable Node | Compiler emits WAIT_RESPONSE_BOUNDARY_INVALID |
+| EW-031 | Event is accepted but the Contract-referenced global Precondition has not passed on every incoming path | Wait edge does not establish the gate; protected Mutation and success remain blocked |
+| EW-032 | Integration cannot acknowledge expected-ingress arming before the triggering Operation | Runtime MUST NOT dispatch the triggering Operation; no send-first/correlate-later fallback |
+| EW-033 | Wait routes mapping or TIMEOUT key is missing | Compiler emits WAIT_TIMEOUT_ROUTE_INVALID |
+| EW-034 | Author declares EVENT_RECEIVED or another key under wait.routes | Compiler emits WAIT_TIMEOUT_ROUTE_INVALID; normal event edge remains implicit |
+| EW-035 | event.source/service/operation is empty or has the wrong type | Compiler emits WAIT_DECLARATION_INVALID |
+| EW-036 | wait.timeout is missing or is not a YAML string | Compiler emits WAIT_TIMEOUT_INVALID |
 
 ## 13. Publication gate
 
@@ -626,7 +626,7 @@ This draft is not a language release. Before normative publication, the followin
 1. independent review of the complete amendment against the full CA-SL normative text;
 2. final agreement on the logical Integration Ingress Operation export and response-result binding contract;
 3. exact diagnostic identities and messages added to the next-version diagnostic index;
-4. positive/negative conformance fixtures for EW-001–EW-035, including exact expected diagnostics;
+4. positive/negative conformance fixtures for EW-001–EW-036, including exact expected diagnostics;
 5. cross-review against the package-scoped Integration Ingress Operation export contract in [ca-skills PR #62](https://github.com/odango-chan/ca-skills/pull/62) and the Generic Host inbound-event continuation contract in [ca-agent-demo PR #210](https://github.com/odango-chan/ca-agent-demo/pull/210);
 6. a separately approved language version identifier and release decision.
 
