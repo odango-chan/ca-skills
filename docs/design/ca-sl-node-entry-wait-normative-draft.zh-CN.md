@@ -450,7 +450,7 @@ The Compiler resolves the exact response SourcePath deterministically from wait.
 
 If response data originates in an earlier Node, the Skill MUST pass the required values explicitly through the boundary Node's Operation/Observation arguments, and that Producer MUST expose the complete typed response result. Runtime/Integration MUST NOT read arbitrary historical Run outputs, infer the latest output or construct an untyped aggregate.
 
-A bodyless protocol response MAY declare no response-result Producer. A body-bearing response without a valid Producer stage, compatible Output Schema or complete mapping is rejected as WAIT_RESPONSE_MAPPING_INVALID. If the Producer has not produced an available result because the Run terminates before it, the declared early-failure response mapping applies. A completed Producer result may be mapped even when a later Postcondition does not prove the Skill Goal; protocol response mapping is not Goal proof.
+A single fixed bodyless protocol response disposition MAY declare no response-result Producer. If multiple normal response dispositions must be selected, or any disposition is body-bearing, the Integration export MUST declare a response-result Producer and mapping. A body-bearing disposition without a valid Producer stage, compatible Output Schema or complete mapping is rejected as WAIT_RESPONSE_MAPPING_INVALID. If the Producer has not produced an available result because the Run terminates before it, the declared early-failure response mapping applies. A completed Producer result may be mapped even when a later Postcondition does not prove the Skill Goal; protocol response mapping is not Goal proof.
 
 ### 8.3 Response completion and ownership
 
