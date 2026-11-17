@@ -114,6 +114,20 @@ def validate_semantics(catalog: dict) -> None:
                     raise SystemExit(f"{op_id}: SBI idempotency-key discriminator must also be the duplicate identity source")
             elif duplicate_source == "3gpp-sbi-idempotency-key":
                 raise SystemExit(f"{op_id}: 3GPP SBI idempotency-key identity requires its authenticated header discriminator")
+            durations = [
+                stale["maximumLateArrival"],
+                stale["clockSkewAllowance"],
+                stale["discriminatorRetention"],
+            ]
+            placeholders = [value.startswith("<") and value.endswith(">") for value in durations]
+            if any(placeholders) and not all(placeholders):
+                raise SystemExit(f"{op_id}: wire discriminator retention durations must be all concrete or all explicit placeholders")
+            if not any(placeholders):
+                maximum_late = fixed_duration_seconds(durations[0], "maximumLateArrival")
+                skew = fixed_duration_seconds(durations[1], "clockSkewAllowance")
+                retention = fixed_duration_seconds(durations[2], "discriminatorRetention")
+                if retention < maximum_late + skew:
+                    raise SystemExit(f"{op_id}: discriminatorRetention is shorter than maximumLateArrival + clockSkewAllowance")
         else:
             if duplicate_source == "3gpp-sbi-idempotency-key":
                 raise SystemExit(f"{op_id}: 3GPP SBI idempotency-key identity requires wire-discriminator strategy")
@@ -295,8 +309,16 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
             "header": "3gpp-Sbi-Request-Info",
             "parameter": "idempotency-key",
         },
+        "maximumLateArrival": "PT30S",
+        "clockSkewAllowance": "PT5S",
+        "discriminatorRetention": "PT35S",
+        "basisRef": "urn:example:retry-window-guarantee",
     }
     validate_semantics(valid_sbi_discriminator)
+
+    short_discriminator_retention = copy.deepcopy(valid_sbi_discriminator)
+    short_discriminator_retention["spec"]["operations"][0]["correlation"]["staleDelivery"]["discriminatorRetention"] = "PT30S"
+    expect_semantic_failure(short_discriminator_retention, "wire discriminator retention shorter than late-arrival plus skew")
 
     mismatched_sbi_header = copy.deepcopy(valid_sbi_discriminator)
     mismatched_sbi_header["spec"]["operations"][0]["correlation"]["duplicate"]["identitySource"] = "canonical-request-digest"
