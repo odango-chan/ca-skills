@@ -175,7 +175,8 @@
       "properties": {
         "mediaType": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "pattern": "^[a-z0-9!#$&^_.+-]+/[a-z0-9!#$&^_.+-]+$"
         },
         "schemaRef": {
           "type": "string",
@@ -222,7 +223,8 @@
           "uniqueItems": true,
           "items": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "pattern": "^[a-z0-9!#$&^_.+-]+/[a-z0-9!#$&^_.+-]+$"
           }
         },
         "sourceSchemas": {
@@ -1049,7 +1051,8 @@
         },
         "mediaType": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "pattern": "^[a-z0-9!#$&^_.+-]+/[a-z0-9!#$&^_.+-]+$"
         },
         "responseSchemaRef": {
           "type": "string",
@@ -1240,7 +1243,8 @@
         },
         "mediaType": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "pattern": "^[a-z0-9!#$&^_.+-]+/[a-z0-9!#$&^_.+-]+$"
         },
         "kind": {
           "enum": [
@@ -1326,7 +1330,8 @@
       "properties": {
         "mediaType": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "pattern": "^[a-z0-9!#$&^_.+-]+/[a-z0-9!#$&^_.+-]+$"
         },
         "parts": {
           "type": "array",
