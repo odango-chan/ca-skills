@@ -32,6 +32,7 @@ INGRESS_DIAGNOSTICS = {
     "INGRESS_PROTOCOL_ARTIFACT_INVALID",
     "INGRESS_PEER_PROFILE_REFERENCE_INVALID",
     "INGRESS_NORMALIZATION_INVALID",
+    "INGRESS_BINARY_CONTENT_LIFECYCLE_INVALID",
     "INGRESS_CORRELATION_INVALID",
     "INGRESS_RESPONSE_CONTRACT_INVALID",
     "INGRESS_RESPONSE_MAPPING_INVALID",
@@ -129,9 +130,9 @@ def main() -> None:
             fail(f"{code} must identify its versioned registry in Appendix H.1")
     if INGRESS_REGISTRY_ID not in spec:
         fail("versioned Ingress diagnostic registry ID is missing from Appendix H")
-    if "116 个唯一 Code、117 条唯一" not in spec:
+    if "117 个唯一 Code、118 条唯一" not in spec:
         fail("Appendix H combined diagnostic inventory count is inconsistent")
-    print("Wait conformance manifest integrity: PASS (36 Wait obligations; 9 Ingress identities indexed; execution NOT_RUN)")
+    print("Wait conformance manifest integrity: PASS (36 Wait obligations; 10 Ingress identities indexed; execution NOT_RUN)")
 
 
 if __name__ == "__main__":
