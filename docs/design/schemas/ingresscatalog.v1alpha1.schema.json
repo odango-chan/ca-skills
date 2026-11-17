@@ -1122,6 +1122,10 @@
         "responseSchemaDigest": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "maxBytes": {
+          "type": "integer",
+          "minimum": 1
         }
       },
       "allOf": [
@@ -1140,7 +1144,8 @@
             "required": [
               "mediaType",
               "responseSchemaRef",
-              "responseSchemaDigest"
+              "responseSchemaDigest",
+              "maxBytes"
             ]
           }
         },
@@ -1171,6 +1176,11 @@
                 {
                   "required": [
                     "responseSchemaDigest"
+                  ]
+                },
+                {
+                  "required": [
+                    "maxBytes"
                   ]
                 }
               ]
