@@ -285,6 +285,23 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     })
     expect_schema_failure(validator, invalid_sbi_discriminator, "UE correlation header is not a request idempotency discriminator")
 
+    valid_sbi_discriminator = copy.deepcopy(example)
+    operation = valid_sbi_discriminator["spec"]["operations"][0]
+    operation["correlation"]["duplicate"]["identitySource"] = "3gpp-sbi-idempotency-key"
+    operation["correlation"]["staleDelivery"] = {
+        "strategy": "wire-discriminator",
+        "discriminator": {
+            "kind": "authenticated-header-parameter",
+            "header": "3gpp-Sbi-Request-Info",
+            "parameter": "idempotency-key",
+        },
+    }
+    validate_semantics(valid_sbi_discriminator)
+
+    mismatched_sbi_header = copy.deepcopy(valid_sbi_discriminator)
+    mismatched_sbi_header["spec"]["operations"][0]["correlation"]["duplicate"]["identitySource"] = "canonical-request-digest"
+    expect_semantic_failure(mismatched_sbi_header, "SBI wire discriminator without matching duplicate identity source")
+
     duplicate_status = copy.deepcopy(example)
     dispositions = duplicate_status["spec"]["operations"][0]["response"]["dispositions"]
     dispositions[1]["status"] = dispositions[0]["status"]
