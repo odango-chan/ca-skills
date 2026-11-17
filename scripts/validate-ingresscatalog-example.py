@@ -407,6 +407,14 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     }
     expect_semantic_failure(invalid_timestamp_discriminator, "retry-updated timestamp is not a request discriminator")
 
+    invalid_max_rsp_time_discriminator = copy.deepcopy(valid_sbi_discriminator)
+    invalid_max_rsp_time_discriminator["spec"]["operations"][0]["correlation"]["staleDelivery"]["discriminator"] = {
+        "kind": "authenticated-header-parameter",
+        "header": "3gpp-Sbi-Max-Rsp-Time",
+        "parameter": "value",
+    }
+    expect_semantic_failure(invalid_max_rsp_time_discriminator, "response deadline header is not a request discriminator")
+
     invalid_resource_discriminator = copy.deepcopy(valid_sbi_discriminator)
     invalid_resource_discriminator["spec"]["operations"][0]["correlation"]["staleDelivery"]["discriminator"] = {
         "kind": "normalized-request-path",
