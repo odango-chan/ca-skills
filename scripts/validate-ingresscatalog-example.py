@@ -106,10 +106,17 @@ def validate_semantics(catalog: dict) -> None:
         key_paths = [field["requestPath"] for field in key_fields]
         unique(key_paths, f"{op_id}: duplicate correlation requestPath")
         stale = correlation["staleDelivery"]
+        duplicate_source = correlation["duplicate"]["identitySource"]
         if stale["strategy"] == "wire-discriminator":
-            if stale["discriminatorPath"] not in key_paths:
-                raise SystemExit(f"{op_id}: wire discriminator must be included in correlation keyFields")
+            discriminator = stale["discriminator"]
+            if discriminator["kind"] == "authenticated-header-parameter":
+                if duplicate_source != "3gpp-sbi-idempotency-key":
+                    raise SystemExit(f"{op_id}: SBI idempotency-key discriminator must also be the duplicate identity source")
+            elif duplicate_source == "3gpp-sbi-idempotency-key":
+                raise SystemExit(f"{op_id}: 3GPP SBI idempotency-key identity requires its authenticated header discriminator")
         else:
+            if duplicate_source == "3gpp-sbi-idempotency-key":
+                raise SystemExit(f"{op_id}: 3GPP SBI idempotency-key identity requires wire-discriminator strategy")
             if stale["resourceKey"] not in key_paths:
                 raise SystemExit(f"{op_id}: single-flight resourceKey must be included in correlation keyFields")
             durations = [
@@ -265,6 +272,19 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     multipart_response["spec"]["operations"][0]["response"]["dispositions"][0]["mediaType"] = "multipart/related"
     expect_schema_failure(validator, multipart_response, "v1alpha1 response body representation is JSON-only")
 
+    invalid_sbi_discriminator = copy.deepcopy(example)
+    stale = invalid_sbi_discriminator["spec"]["operations"][0]["correlation"]["staleDelivery"]
+    stale.clear()
+    stale.update({
+        "strategy": "wire-discriminator",
+        "discriminator": {
+            "kind": "authenticated-header-parameter",
+            "header": "3gpp-Sbi-Correlation-Info",
+            "parameter": "supi",
+        },
+    })
+    expect_schema_failure(validator, invalid_sbi_discriminator, "UE correlation header is not a request idempotency discriminator")
+
     duplicate_status = copy.deepcopy(example)
     dispositions = duplicate_status["spec"]["operations"][0]["response"]["dispositions"]
     dispositions[1]["status"] = dispositions[0]["status"]
@@ -298,6 +318,10 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     wrong_3gpp_response_path = copy.deepcopy(example)
     wrong_3gpp_response_path["spec"]["operations"][0]["response"]["result"]["mappings"][0]["from"] = "/smContextRef"
     expect_semantic_failure(wrong_3gpp_response_path, "incorrect SmContextUpdatedData response field")
+
+    mismatched_sbi_identity = copy.deepcopy(example)
+    mismatched_sbi_identity["spec"]["operations"][0]["correlation"]["duplicate"]["identitySource"] = "3gpp-sbi-idempotency-key"
+    expect_semantic_failure(mismatched_sbi_identity, "SBI idempotency identity without wire discriminator")
 
     short_tombstone = copy.deepcopy(example)
     stale = short_tombstone["spec"]["operations"][0]["correlation"]["staleDelivery"]
