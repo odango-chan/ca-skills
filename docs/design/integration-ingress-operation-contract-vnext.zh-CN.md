@@ -930,28 +930,43 @@ spec:
 - 示例 request.maxBytes=4194304、各 part maxBytes=1048576 和 binaryContent.maxBytes=1048576 仅为结构示例，必须按 pinned API 与部署限额设置；binaryContent.retention 是待部署策略绑定的占位符，必须覆盖最大 Invocation 生命周期及恢复宽限期；
 - 3GPP SBI 的 `3gpp-Sbi-Request-Info: idempotency-key=...` 是可选重复请求检测能力；示例不假定 AMF 一定提供它，因此使用 canonical-request-digest + single-flight/tombstone。若部署要求并验证该 Header 在每个请求中存在，可改用 authenticated-header-parameter wire discriminator。
 
-## 13. 建议的诊断与拒绝分类
+## 13. IngressCatalog 静态诊断归属与版本化注册表
 
-以下是待加入下一语言修订诊断索引的候选静态诊断。最终 Code/Phase/Message 仍须在规范发布前统一冻结。
+IngressCatalog v1alpha1 使用独立、版本化的静态诊断注册表：[`connectionagent.io/ingress-diagnostics/v1alpha1`](ingress-diagnostic-registry-v1alpha1.md)，机器可读清单为 [ingress-diagnostic-registry-v1alpha1.json](ingress-diagnostic-registry-v1alpha1.json)。该注册表与 CA-SL 语言版本独立；本节与注册表共同定义 IngressCatalog 自身声明错误的唯一诊断身份。当前均为候选规范条款，尚未 FROZEN。
+
+**Ingress 自有诊断。** 以下九个 Code 是本版 IngressCatalog v1alpha1 自有的完整静态诊断集合。每项均为 `(Code, Phase=C_STATIC)`、Severity `ERROR`，阻断 Build。精确 precedence、messageKey、canonical message template、sourceLocation 及 relatedLocations 规则以机器可读注册表为准。
 
 | Code | 触发条件 |
 |---|---|
-| INGRESS_CATALOG_INVALID | IngressCatalog 结构或版本不受支持 |
-| INGRESS_EXPORT_ID_DUPLICATE | 同一受信快照中 export ID 重复 |
-| INGRESS_OWNER_UNVERIFIED | Catalog Owner 与 trusted dependency Owner binding 不一致或缺失 |
-| INGRESS_PROTOCOL_ARTIFACT_INVALID | OpenAPI artifact、digest、release、method、path 或 operationId 不匹配 |
-| INGRESS_REQUEST_SCHEMA_INVALID | 源 Schema、normalized Schema 或 Schema 闭包无效 |
-| INGRESS_NORMALIZATION_INVALID | mapping 缺失、digest 不匹配、字段映射不完整或目标路径无效 |
-| INGRESS_PEER_PROFILE_REFERENCE_INVALID | Peer authentication/authorization profile 引用格式无效或引用了未声明的资源；实际部署未绑定属于 Admission 拒绝 |
-| INGRESS_CORRELATION_INVALID | key 字段不是可比较标量、无法唯一匹配或比较规则不确定 |
-| INGRESS_TRIGGER_OPERATION_NOT_FOUND | 指定的触发 Operation 不在可信依赖闭包中 |
-| INGRESS_TRIGGER_OPERATION_AMBIGUOUS | 触发 Operation 身份不唯一 |
-| INGRESS_TRIGGER_BINDING_INVALID | 参数缺失、类型不兼容或不能在派发前取得 |
-| INGRESS_STALE_DELIVERY_UNSAFE | 无 wire discriminator 且无法证明 single-flight/tombstone 安全性 |
-| INGRESS_RESPONSE_CONTRACT_INVALID | response mode、deadline、failure response 或恢复契约不完整 |
-| INGRESS_RESPONSE_MAPPING_INVALID | boundary Producer 缺失、输出不可用或无法映射到协议响应 Schema |
+| INGRESS_CATALOG_INVALID | 已安全解析的 Catalog 根结构、kind、apiVersion 或 Catalog 级结构无效/不受支持 |
+| INGRESS_EXPORT_ID_DUPLICATE | 同一受信 Catalog 中 `operations[].id` 重复 |
+| INGRESS_EVENT_SELECTOR_DUPLICATE | 同一受信 Catalog 中精确 `event.source + event.service + event.operation` 元组重复 |
+| INGRESS_PROTOCOL_ARTIFACT_INVALID | 已通过源字节摘要和可信依赖身份验证的 OpenAPI artifact，其 release、API URI version、method、path 或 operationId 与 Catalog 声明不一致 |
+| INGRESS_PEER_PROFILE_REFERENCE_INVALID | Peer authentication/authorization profile 引用格式错误，或在已声明的受信依赖快照中无法解析到预期资源 |
+| INGRESS_NORMALIZATION_INVALID | 请求 normalization representation/mapping 缺失、重复、字段覆盖不完整、transform 或目标路径无效 |
+| INGRESS_CORRELATION_INVALID | Ingress 自身的 key、duplicate identity/scope 或 stale-delivery 声明不合法或不能保证 occurrence 隔离 |
+| INGRESS_RESPONSE_CONTRACT_INVALID | response mode、deadline policy、disposition、failure response 或 delivery recovery 声明不完整/矛盾 |
+| INGRESS_RESPONSE_MAPPING_INVALID | Ingress 自身的协议响应 representation、Schema 映射、multipart part 映射或必需响应字段映射无效 |
 
-运行时认证失败、无匹配注册、重复交付、迟到交付和响应传输失败属于 Integration/Host/Runtime 独立版本化的运行时诊断，不得伪装成 Skill Stage Outcome，也不得由 Skill 作者路由。
+**明确复用的既有诊断。** 下列情况不得再创建宽泛的 `INGRESS_*` 别名：
+
+| 条件 | 唯一诊断归属 |
+|---|---|
+| YAML 无法安全解析，包括重复 YAML mapping key | `YAML_PARSE_ERROR` |
+| Package、snapshot、trusted identity 或 Owner binding 缺失/不匹配/歧义 | 既有 `DEPENDENCY_*`，特别是 `DEPENDENCY_EXPORT_OWNER_UNVERIFIED`、`DEPENDENCY_OWNER_MISMATCH`、`DEPENDENCY_IDENTITY_UNVERIFIED` |
+| Trigger ToolCatalog Operation 在精确 Package ID + Owner 范围内不存在/歧义 | `EXPORT_ID_MISSING` / `EXPORT_ID_AMBIGUOUS` |
+| Source、normalized、arm-input 或 response Schema 缺失/无效，含 Schema Closure 无法解析 | `SCHEMA_MISSING` / `SCHEMA_INVALID` |
+| 参数/SourcePath/Producer 输入无法绑定或类型不兼容 | 既有 SourcePath、input、provenance、type diagnostics |
+| Wait selector 对受信 Ingress export 零匹配/多匹配 | CA-SL `WAIT_INGRESS_EXPORT_NOT_FOUND` / `WAIT_INGRESS_EXPORT_AMBIGUOUS` |
+| Skill incoming path 无法物化所选 `armInputSchema`，或不能证明该 Skill 路径的 stale-delivery safety | CA-SL `WAIT_CORRELATION_BINDING_INVALID` |
+| Skill 的 `response.after` 缺失/不可达 | CA-SL `WAIT_RESPONSE_BOUNDARY_INVALID` |
+| Skill Producer 到协议响应的映射无效 | CA-SL `WAIT_RESPONSE_MAPPING_INVALID` |
+
+旧候选名称 `INGRESS_OWNER_UNVERIFIED`、`INGRESS_REQUEST_SCHEMA_INVALID`、`INGRESS_TRIGGER_OPERATION_NOT_FOUND`、`INGRESS_TRIGGER_OPERATION_AMBIGUOUS`、`INGRESS_TRIGGER_BINDING_INVALID` 和 `INGRESS_STALE_DELIVERY_UNSAFE` 不属于本注册表；其错误条件按上表归入既有或更精确的 Ingress/Wait 诊断，不得作为兼容别名输出。
+
+**诊断组合与优先级。** Compiler 必须先安全解析 YAML，再验证依赖快照、Package ID、trusted identity 与 Owner binding；这些前置检查失败时，对受影响的不可信快照抑制所有 Ingress 自有诊断。随后依次检查 Catalog 根结构/version、export ID/event selector 唯一性、精确 Trigger Operation 链接、源 artifact 身份、Schema 闭包、协议元数据、Peer Profile、normalization、Ingress correlation/stale-delivery、response contract、response mapping，最后才检查 Skill Wait 的 selector/path/response 边界。依赖身份失败优先于 protocol metadata mismatch；Schema 失败优先于依赖该 Schema 的 normalization/response mapping 错误。相互独立的错误可以共同报告；不得在先决条件失败后生成依赖其结果的级联诊断。相同优先级的诊断按 dependency alias、snapshot path、RFC 6901 JSON Pointer、Code 的 UTF-8 字节序稳定排序。
+
+**Compiler Diagnostic[] 组合。** Ingress 诊断仍使用全局唯一的 `(Code, Phase)` 身份；`registryId` 是来源版本元数据，不是第二套 identity key。Compiler 的逻辑 Diagnostic record 必须保留 `code`、`phase`、`severity`、`registryId`、`messageKey`、`sourceLocation` 和可选 `relatedLocations`。Ingress 记录的 `registryId` 固定为 `connectionagent.io/ingress-diagnostics/v1alpha1`，`phase=C_STATIC`、`severity=ERROR`，故必须阻断 Build。主 source location 必须定位到受信 Catalog snapshot 的 `dependencyAlias + snapshotPath + RFC 6901 jsonPointer`；缺失字段指向最近存在的父对象，重复项主位置指向后出现项并把首次出现项放入 relatedLocations。可选行列号仅是显示提示，不参与身份或排序。Compiler Diagnostic envelope 的物理序列化仍由 Compiler Artifact/Diagnostic protocol 管理，但不得丢弃或合并上述逻辑属性。
 
 ## 14. 最小跨组件符合性矩阵
 
