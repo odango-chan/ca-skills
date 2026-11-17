@@ -1,4 +1,4 @@
-"""Regression tests for the v1alpha4 documentation structure gate."""
+"""Regression tests for v1alpha4 baseline and v1alpha5 release documentation gates."""
 
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ class SpecMarkdownTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.spec = verify_docs.SPEC.read_text(encoding="utf-8")
+        cls.spec_v1a5 = verify_docs.SPEC_V1A5.read_text(encoding="utf-8")
 
     def lint(self, text: str) -> list[str]:
         errors: list[str] = []
@@ -68,6 +69,12 @@ class SpecMarkdownTests(unittest.TestCase):
         broken = re.sub(pattern, r"\g<1>97\g<2>99\g<3>", self.spec, count=1)
         errors = self.lint(broken)
         self.assertTrue(any("textual" in x for x in errors), errors)
+
+
+    def test_v1alpha5_release_status_and_ingress_diagnostic_projection(self) -> None:
+        errors: list[str] = []
+        verify_docs.check_v1alpha5(self.spec_v1a5, errors)
+        self.assertEqual(errors, [])
 
     def test_pipe_text_inside_fence_is_not_a_table(self) -> None:
         errors: list[str] = []

@@ -1,4 +1,4 @@
-# CA-SL Node-level Event Wait — Normative Amendment Draft
+# CA-SL Node-level Event Wait — Normative Amendment History (superseded by v1alpha5)
 
 **Primary review artifact:** [Complete CA-SL v1alpha5 single-file specification](../skill-language-spec.v1alpha5.zh-CN.md). The full specification is the only review target for normative integration; this file is retained as the source amendment and decision-history record.
 **Candidate language target:** `connectionagent.io/v1alpha5` (assigned candidate identifier; not released).
@@ -6,7 +6,7 @@
 
 ## 0. Effect and compatibility
 
-This document translates the frozen Node-level Event Wait semantic baseline into proposed normative clauses. It is a delta against the published CA-SL v1alpha4 specification, not a replacement for that specification and not a new released language version.
+This document translates the frozen Node-level Event Wait semantic baseline into proposed normative clauses. It is a delta against the published CA-SL v1alpha4 specification, not a replacement for that specification and not a new released language version. It covers only inbound protocol events consumed by a Wait in an already-created Run; it does not define initial Start Ingress admission or the paired response for that initial request (for example CreateSMContext Steps 3/5). Initial Start Ingress / Service-exit is a separate contract, and `wait.response.after` MUST NOT be reused as its response boundary.
 
 The following v1alpha4 rules remain unchanged for connectionagent.io/v1alpha4:
 
@@ -263,14 +263,18 @@ nodes:
         SUCCEEDED: classify-step17-result
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: UNRESOLVED
-    # This Observation runs after one of three Step 16 outcomes: successful N4
-    # Modification plus optional UDM registration; N2 resource-setup failure
-    # with the mandated pre-response N4 Release; or required UPE unavailable,
-    # where Step 16 is skipped without that pre-response Release. It queries the
-    # exact SM Context identified by wait.output.smContextRef and returns the
-    # typed Step 17 response DTO. On either rejection branch, the Operation
-    # output carries the prepared N1 SM Reject binary reference. This Node is
-    # the response boundary; Step 18 cleanup is deliberately later.
+    # This is an intentional standalone Observation-only Node under the
+    # paired protocol-response-boundary exception: no single adjacent Operation
+    # can own this read without moving Step 17 before the branch-specific Step 16
+    # actions. It runs after successful N4 Modification plus optional UDM
+    # registration, the required pre-response N4 Release for N2 setup failure,
+    # or the required-UPE branch that skips Step 16 without that Release.
+    # It queries only the exact SM Context identified by wait.output.smContextRef.
+    # The earlier update-sm-context Operation supplies the N1 SM Reject binary
+    # reference on either rejection branch; this Observation combines that
+    # explicit result with current SMF state into the complete typed Step 17
+    # response DTO. It is the Ingress response Producer, not polling or a
+    # generic context-read Node. Step 18 cleanup is deliberately later.
 
   classify-step17-result:
     precondition:
@@ -552,6 +556,8 @@ The trusted Integration export MUST declare:
 
 The Compiler resolves the exact response SourcePath deterministically from wait.response.after (or the default Wait-bearing Node) and the export's Producer stage type: <response-boundary-node>.<producer>.output. It MUST NOT accept a Skill-specific NodeId or SourcePath embedded in the reusable Integration export. The selected Producer MUST exist at the response-boundary Node, MUST be available on every normal path reaching that boundary, and its Output Schema MUST be assignable to responseResultSchema. The Compiler MUST verify that the Integration mapping supplies each required protocol response field.
 
+A response-boundary Node whose selected Producer is an Observation MAY be Observation-only only as a narrow paired-protocol-response exception: it MUST be the exact boundary selected by the trusted Ingress contract; the Observation MUST run after every branch-required business Operation on every accepted path; no single adjacent Operation may own the read without moving the response before required work or misrepresenting the 3GPP interaction; and the Observation MUST return the complete typed response-result Schema. It MUST NOT be used for a generic context read, Host admission/lifecycle check or polling loop. This exception does not change the normal rule that supplementary Observations belong in the same Node as the Operation they support.
+
 If response data originates in an earlier Node, the Skill MUST pass the required values explicitly through the boundary Node's Operation/Observation arguments, and that Producer MUST expose the complete typed response result. Runtime/Integration MUST NOT read arbitrary historical Run outputs, infer the latest output or construct an untyped aggregate.
 
 A single fixed bodyless protocol response disposition MAY declare no response-result Producer. If multiple normal response dispositions must be selected, or any disposition is body-bearing, the Integration export MUST declare a response-result Producer and mapping. A body-bearing disposition without a valid Producer stage, compatible Output Schema or complete mapping is rejected as WAIT_RESPONSE_MAPPING_INVALID. If the Producer has not produced an available result because the Run terminates before it, the declared early-failure response mapping applies. A completed Producer result may be mapped even when a later Postcondition does not prove the Skill Goal; protocol response mapping is not Goal proof.
@@ -718,7 +724,7 @@ The following semantic cases are REQUIRED for future language/Host/Runtime/Integ
 
 ## 13. Publication gate
 
-This draft is not a language release. Before normative publication, the following MUST be completed:
+This document is retained as the historical amendment/review record. Its normative clauses were integrated into the released CA-SL v1alpha5 single-file specification at `docs/skill-language-spec.v1alpha5.zh-CN.md`; it is not an independent or competing normative source.
 
 1. independent review of the complete amendment against the full CA-SL normative text;
 2. final agreement on the logical Integration Ingress Operation export and response-result binding contract;
@@ -727,4 +733,4 @@ This draft is not a language release. Before normative publication, the followin
 5. cross-review against the package-scoped Integration Ingress Operation export contract in [ca-skills PR #62](https://github.com/odango-chan/ca-skills/pull/62) and the Generic Host inbound-event continuation contract in [ca-agent-demo PR #210](https://github.com/odango-chan/ca-agent-demo/pull/210);
 6. a separately approved language version identifier and release decision.
 
-Until then, v1alpha4 remains the only applicable published authoring contract. No implementation or product-conformance claim follows from this draft.
+The current authoring contract is `connectionagent.io/v1alpha5`. Product qualification remains independent and is not implied by language publication.

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:example:response:binary-content-reference:v1",
+  "title": "Immutable Integration response binary content reference",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "payloadRef",
+    "mediaType",
+    "byteLength",
+    "sha256"
+  ],
+  "properties": {
+    "payloadRef": {
+      "type": "string",
+      "pattern": "^urn:connectionagent:payload:[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "description": "Opaque Integration/Host-resolvable capability reference; never a URL or filesystem path."
+    },
+    "mediaType": {
+      "enum": [
+        "application/vnd.3gpp.5gnas",
+        "application/vnd.3gpp.ngap"
+      ]
+    },
+    "byteLength": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1048576
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

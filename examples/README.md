@@ -1,14 +1,10 @@
-# CA-SL v1alpha5 candidate PDU/MAS Skills
+# CA-SL v1alpha5 PDU Session examples
 
-**Language target:** `connectionagent.io/v1alpha5`  
-**Normative source:** `odango-chan/ca-skills@12a9512a9eae006ad4578daf37ebe0bdf3070642`  
-**Status:** Draft candidate; language not frozen; product and Owner qualification NOT_QUALIFIED.
+- **Language target** `connectionagent.io/v1alpha5`
+- **Normative source** [CA-SL v1alpha5 release record](../docs/releases/ca-sl-v1alpha5.md)
+- **Status** Illustrative authoring examples. Product and Owner qualification remains `NOT_QUALIFIED`.
 
-This directory contains two candidate Skills:
+- [establish-pdu-session](skills/establish-pdu-session/SKILL.md) models the conventional 5GC success path. The Step 11 transfer Operation triggers the Step 15 Node-entry Wait. The accepted request is available as `wait.output`, the authored timeout goes to `SAFE_STOPPED`, and Step 17 has its own typed response boundary after Step 16.
+- [establish-pdu-session-mas](skills/establish-pdu-session-mas/SKILL.md) follows the OpenAMSM MAS source plan. The composite MAS Operation handles its own event correlation.
 
-- `establish-pdu-session`: conventional 5GC PDU Session establishment. Step 15 is represented by the v1alpha5 Node-entry Wait, with the Step 11 transfer Operation as its trigger, normalized `wait.output`, a fixed timeout branch, and a typed Step 17 response boundary after Step 16.
-- `establish-pdu-session-mas`: source-aligned OpenAMSM MAS example. Its composite MAS Operation retains its own event correlation; it does not claim 3GPP semantics or end-to-end qualification.
-
-The 5GC Skill declares an ordinary `integration` dependency as a placeholder for the trusted, version-pinned IngressCatalog package. The actual Ingress Operation export, request/response Schemas, Owner identity, trigger binding, correlation, and response mapping are not yet published. All `urn:example:` values are illustrative. Compiler linking and Build must fail closed until the exact trusted exports and deployment bindings exist.
-
-This candidate is based on the v1alpha5 normative draft and the PDU/MAS example source. It is a source migration candidate, not a qualification report or a claim that all 36 EW conformance obligations have been executed.
+The conventional Skill's `integration` dependency stands in for the deployment's trusted IngressCatalog package. Building the examples requires the exact Owner exports and trusted bindings. The Ingress Operation, its Schemas and response mappings, and the MAS ToolCatalog remain unpublished for these examples. All `urn:example:` values are illustrative.

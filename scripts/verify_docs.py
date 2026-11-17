@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Structural lint for the frozen CA-SL v1alpha4 single-file specification.
+"""Structural lint for the immutable v1alpha4 baseline and released v1alpha5 specification.
 
-Checks Markdown structure and frozen index counts only. This is NOT a
-Compiler/Studio/Runtime/Owner/5GC conformance or fixture runner.
+Checks Markdown structure, diagnostic-index composition and publication routing.
+This is NOT a Compiler/Studio/Runtime/Owner/5GC conformance or fixture runner.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = ROOT / "docs" / "skill-language-spec.v1alpha4.zh-CN.md"
+SPEC_V1A5 = ROOT / "docs" / "skill-language-spec.v1alpha5.zh-CN.md"
 ENTRY = ROOT / "docs" / "skill-language-spec.md"
 
 
@@ -196,24 +197,95 @@ def check_counts(text: str, errors: list[str]) -> None:
     require(dfx == ["DFX-" + str(n).zfill(3) for n in range(1, 42)], "K.2 must enumerate DFX-001–041 once, in order", errors)
 
 
+
+def check_v1alpha5(text: str, errors: list[str]) -> None:
+    """Check the released v1alpha5 publication boundary and H.1 projection."""
+    require(
+        "`connectionagent.io/v1alpha5`" in text and re.search(r"(?m)^\*\*状态：\*\*.*FROZEN / RELEASED", text) is not None,
+        "v1alpha5 must identify the released frozen language target",
+        errors,
+    )
+    require(
+        text.rstrip().endswith("**全文结束。**"),
+        "v1alpha5 complete-spec end marker must be the final document line",
+        errors,
+    )
+    require(text.count("# 附录 L：v1alpha5 Node-entry Event Wait 规范性增补") == 1,
+            "v1alpha5 must contain exactly one normative Appendix L", errors)
+    for heading in ("## L.0 效力与兼容性", "## L.13 规范发布与产品资格门槛", "### 45.3 CA-SL v1alpha5 语言冻结与发布裁决"):
+        require(heading in text, "missing v1alpha5 publication section: " + heading, errors)
+
+    def rows_after(header: str) -> list[str]:
+        if text.count(header) != 1:
+            errors.append("expected exactly one diagnostic table header: " + header)
+            return []
+        after = text.split(header, 1)[1].splitlines()
+        rows: list[str] = []
+        for line in after[2:]:
+            if not line.startswith("|"):
+                break
+            rows.append(line)
+        return rows
+
+    language_header = "| Code | Phase | 类别 | 阻断构建 | 触发位置 | Runtime 终态/路由影响 | 规范条款 | 代表用例 | 覆盖状态 |"
+    language_rows = rows_after(language_header)
+    language_pairs = []
+    for row in language_rows:
+        cells = [cell.strip() for cell in row.strip("|").split("|")]
+        if len(cells) >= 2:
+            language_pairs.append((cells[0], cells[1]))
+    require(len(language_rows) == 108, "v1alpha5 language diagnostic table must have 108 rows", errors)
+    require(len(set(language_pairs)) == 108, "v1alpha5 language diagnostic (Code, Phase) identities must be unique", errors)
+    require(len({code for code, _ in language_pairs}) == 107, "v1alpha5 language diagnostic table must have 107 unique Codes", errors)
+
+    ingress_header = "| Code | Phase | 类别 | 阻断构建 | 触发位置 | Runtime 终态/路由影响 | 诊断注册表 | 覆盖状态 |"
+    ingress_rows = rows_after(ingress_header)
+    ingress_codes = []
+    for row in ingress_rows:
+        cells = [cell.strip() for cell in row.strip("|").split("|")]
+        if len(cells) >= 2:
+            ingress_codes.append(cells[0])
+    expected_ingress = {
+        "INGRESS_CATALOG_INVALID",
+        "INGRESS_EXPORT_ID_DUPLICATE",
+        "INGRESS_EVENT_SELECTOR_DUPLICATE",
+        "INGRESS_PROTOCOL_ARTIFACT_INVALID",
+        "INGRESS_PEER_PROFILE_REFERENCE_INVALID",
+        "INGRESS_NORMALIZATION_INVALID",
+        "INGRESS_BINARY_CONTENT_LIFECYCLE_INVALID",
+        "INGRESS_CORRELATION_INVALID",
+        "INGRESS_RESPONSE_CONTRACT_INVALID",
+        "INGRESS_RESPONSE_MAPPING_INVALID",
+    }
+    require(len(ingress_rows) == 10 and set(ingress_codes) == expected_ingress,
+            "v1alpha5 Appendix H.1 must project the exact ten Ingress diagnostic identities", errors)
+    require(
+        "组合后的 v1alpha5 Compiler 诊断索引共 117 个唯一 Code、118 条唯一" in text,
+        "v1alpha5 combined diagnostic count claim is missing or inconsistent",
+        errors,
+    )
+    require("Until release, v1alpha4 remains the only applicable published authoring contract." not in text,
+            "v1alpha5 release text still claims that v1alpha4 is the only published authoring contract", errors)
+
 def main() -> None:
     errors: list[str] = []
-    if not SPEC.is_file() or not ENTRY.is_file():
+    if not SPEC.is_file() or not SPEC_V1A5.is_file() or not ENTRY.is_file():
         raise SystemExit("DOC_STRUCTURE_FAIL: normative specification or index is missing")
     text = SPEC.read_text(encoding="utf-8")
     index = ENTRY.read_text(encoding="utf-8")
     require(
-        "skill-language-spec.v1alpha4.zh-CN.md" in index and "connectionagent.io/v1alpha4" in index,
-        "current language index must reference frozen v1alpha4, not v1alpha3",
+        "skill-language-spec.v1alpha5.zh-CN.md" in index and "connectionagent.io/v1alpha5" in index,
+        "current language index must reference released v1alpha5",
         errors,
     )
     check_fences(text.splitlines(), errors)
     check_sections(text, errors)
     check_all_markdown_tables(text, errors)
     check_counts(text, errors)
+    check_v1alpha5(SPEC_V1A5.read_text(encoding="utf-8"), errors)
     if errors:
         raise SystemExit("DOC_STRUCTURE_FAIL\n" + "\n".join(errors))
-    print("DOC_STRUCTURE_PASS (fences / headings / § references / all Markdown tables / H and K counts)")
+    print("DOC_STRUCTURE_PASS (v1alpha4 baseline + v1alpha5 release / H.1 / tables / manifest routing)")
     print("Note: document structure checks are not Compiler, Studio, Host or Owner qualification.")
 
 

@@ -1,6 +1,6 @@
 # Skill-owned Python Script Contract
 
-**Status: historical/legacy Script implementation companion, NOT a standalone CA-SL v1alpha4 grammar or product qualification.** The current sole normative language authority is the [frozen CA-SL v1alpha4 single-file specification](skill-language-spec.v1alpha4.zh-CN.md). This note documents prior v0 Script conventions and may be used only where consistent with that frozen specification; it does not make unported 5GC sources or a previous Script profile v1alpha4-qualified.
+**Status: historical/legacy Script implementation companion, NOT a standalone CA-SL v1alpha5 grammar or product qualification.** The current sole normative language authority is the [frozen CA-SL v1alpha5 single-file specification](skill-language-spec.v1alpha5.zh-CN.md). This note documents prior v0 Script conventions and may be used only where consistent with that frozen specification; it does not make unported 5GC sources or a previous Script profile v1alpha5-qualified.
 
 Skill-owned Python is restricted deterministic local computation. It has two roles. Neither role is a Tool, external Operation, Capability, or general-purpose execution environment.
 

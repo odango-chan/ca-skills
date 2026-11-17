@@ -1,12 +1,12 @@
 # Authoring Model — Companion Notes
 
-**Status:** Non-normative companion to the [CA-SL v1alpha4 Specification](skill-language-spec.v1alpha4.zh-CN.md).
+**Status:** Non-normative companion to the [CA-SL v1alpha5 Specification](skill-language-spec.v1alpha5.zh-CN.md).
 
 The comprehensive specification is the sole normative language authority. If this file conflicts with it, the specification takes precedence.
 
 ## Author-maintained source
 
-v1alpha4 retains three assurance source files with distinct responsibilities:
+v1alpha5 retains the same three assurance source files with distinct responsibilities; Node-entry Wait is defined separately in normative Appendix L:
 
 - `assurance/contract.yaml`: Skill's public contract — Goal, global Precondition references, public Request Schema, the Host Invocation Context Schema, shared dependency identities and Capability Grants.
 - `assurance/procedure.yaml`: the single deterministic execution graph — start, nodes, routes, reconciliation and final Postcondition.
@@ -30,7 +30,13 @@ A business Node may declare `precondition`, `operation`, `observation`, and `pos
 
 Contract may declare **one** global gate using `precondition: <node-id>.precondition`. That stage may evaluate multiple ordered `predicates`, and its **aggregate PASS** must precede every business Mutation or SUCCEEDED request. Each final success path uses a Postcondition aggregate `PASS: SUCCEEDED` edge directly; there is no `postcondition.goal`, Contract `preconditions` list or Goal proof carried across Nodes (§12.9).
 
-CA-SL v1alpha4 has one entry Procedure graph per Skill and does not define nested ProcedureCall or graph cycles. Branches and recovery are explicit nodes and routes.
+CA-SL v1alpha5 has one entry Procedure graph per Skill and does not define nested ProcedureCall or graph cycles. Branches and recovery are explicit nodes and routes.
+
+## Node-entry Wait (v1alpha5)
+
+The optional `wait` declaration is attached to an existing Procedure Node and is evaluated at Node entry. It does not create a fifth business stage or a Wait-only Node. The target Node still executes its declared Precondition / Operation / Observation / Postcondition stages in order. An accepted event exposes only its normalized typed value through `wait.output` on the accepted-event path; TIMEOUT is a Wait-scoped route outcome. `wait.response.after` identifies a paired protocol response boundary, not the final Goal proof or Invocation terminal state.
+
+The trusted IngressCatalog contract owns wire validation, normalization, correlation and response disposition. Host / Runtime retain their respective durable admission and same-Run continuation responsibilities. v1alpha4 remains immutable and does not accept the v1alpha5 Wait syntax.
 
 ## Arguments and dataflow
 
