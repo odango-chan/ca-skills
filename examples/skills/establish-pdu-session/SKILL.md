@@ -64,7 +64,7 @@ The Skill's global Contract Precondition validates only the admitted business re
 
 ## 3GPP Traceability — SMF view
 
-**Pinned reference:** 3GPP TS 23.502 V18.14.0 (Release 18), §4.3.2.2.1; N4 procedures §4.4.1.2–§4.4.1.3. This table describes intended mapping, not Owner approval or product conformance.
+**Pinned reference:** 3GPP TS 23.502 V18.12.0 (Release 18), §4.3.2.2.1; N4 procedures §4.4.1.2–§4.4.1.3. This table describes intended mapping, not Owner approval or product conformance.
 
 | Procedure Node | 3GPP source / interaction | Classification and SMF responsibility |
 |---|---|---|
