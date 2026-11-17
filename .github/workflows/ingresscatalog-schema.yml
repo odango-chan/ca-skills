@@ -12,6 +12,9 @@ on:
       - "docs/design/schemas/schema-closure-digest-v1.vector.json"
       - "docs/design/schema-closure-digest-v1.md"
       - "scripts/validate-ingresscatalog-example.py"
+      - "scripts/validate_ingress_diagnostic_registry.py"
+      - "docs/design/ingress-diagnostic-registry-v1alpha1.json"
+      - "docs/design/ingress-diagnostic-registry-v1alpha1.md"
       - ".github/workflows/ingresscatalog-schema.yml"
   push:
     branches: [main]
@@ -234,3 +237,5 @@ jobs:
           PY
       - name: Validate IngressCatalog example
         run: python scripts/validate-ingresscatalog-example.py
+      - name: Validate Ingress diagnostic registry
+        run: python scripts/validate_ingress_diagnostic_registry.py
