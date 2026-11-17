@@ -479,7 +479,11 @@ StrictSchemaArtifactLoader.add_constructor(
 
 
 def _assert_json_compatible(value, path="$") -> None:
-    if value is None or isinstance(value, (str, bool, int)):
+    if value is None or isinstance(value, (str, bool)):
+        return
+    if isinstance(value, int):
+        if abs(value) > 9007199254740991:
+            _resolver_error(f"integer is outside the exact JCS/I-JSON safe range at {path}")
         return
     if isinstance(value, float):
         if not math.isfinite(value):
@@ -792,6 +796,13 @@ def validate_schema_closure_resolution_vector(vector: dict) -> None:
         pass
     else:
         _resolver_error("non-finite YAML number was accepted")
+
+    try:
+        _assert_json_compatible({"value": 9007199254740992})
+    except SystemExit:
+        pass
+    else:
+        _resolver_error("integer outside the exact JCS/I-JSON safe range was accepted")
 
     nested_missing = copy.deepcopy(vector)
     nested_missing["resolutionContext"]["documents"][2]["document"]["$defs"]["Shared"]["properties"]["leaf"]["$ref"] = "#/$defs/Missing"
