@@ -600,6 +600,48 @@ def validate_standard_artifact_lock() -> None:
         or extracted["sha256"] != "ca5d94e296a334c85635715fc325167459d865f2c83a16c47926c979dab7545b"
     ):
         raise SystemExit("official ETSI companion package or extracted OpenAPI SHA-256 does not match the artifact lock")
+    dependencies = spec["externalDependencies"]
+    if len(dependencies) != 1:
+        raise SystemExit("TS 29.502 artifact lock must pin exactly one external OpenAPI dependency")
+    common = dependencies[0]
+    if common["standard"] != {
+        "name": "3GPP TS 29.571",
+        "version": "19.5.0",
+        "release": 19,
+    }:
+        raise SystemExit("external CommonData dependency must be TS 29.571 V19.5.0 Release 19")
+    common_api = common["api"]
+    if common_api != {
+        "title": "Common Data Types",
+        "openapiVersion": "3.0.0",
+        "apiVersion": "1.6.0",
+        "annex": "A.2",
+        "sourceFileName": "TS29571_CommonData.yaml",
+    }:
+        raise SystemExit("external dependency must identify the exact TS 29.571 Annex A.2 CommonData artifact")
+    common_pdf = common["normativeSource"]
+    if (
+        common_pdf["uri"] != "https://www.etsi.org/deliver/etsi_ts/129500_129599/129571/19.05.00_60/ts_129571v190500p.pdf"
+        or common_pdf["publisher"] != "ETSI"
+        or common_pdf["byteLength"] != 1191071
+        or common_pdf["sha256"] != "a608887aa19de1c28fdef8b3ae02d015fe8ccbaa8db52b3fa7defe48d5ff7c84"
+        or common_pdf["annexA2"]["normative"] is not True
+    ):
+        raise SystemExit("TS 29.571 normative PDF metadata or SHA-256 does not match ETSI V19.5.0")
+    common_companion = common["officialCompanionSource"]
+    common_extracted = common_companion["extractedFile"]
+    if (
+        common_companion["uri"] != "https://www.etsi.org/deliver/etsi_ts/129500_129599/129571/19.05.00_60/ts_129571v190500p0.zip"
+        or common_companion["publisher"] != "ETSI"
+        or common_companion["byteLength"] != 38569
+        or common_companion["sha256"] != "5bc10332b197f1df131908cc236ca7c6ab97b0d3c908e7825f1d701c9d56e978"
+        or common_extracted["path"] != "TS29571_CommonData.yaml"
+        or common_extracted["byteLength"] != 255480
+        or common_extracted["sha256"] != "8632cbab60c73e9c3ba9be26577057144255f21aef7430a1990bdf113c1e7bd4"
+    ):
+        raise SystemExit("official TS 29.571 companion package or extracted CommonData SHA-256 does not match the artifact lock")
+    if common["externalReferences"] != []:
+        raise SystemExit("TS 29.571 CommonData lock must explicitly declare a closed external-reference set")
     if (
         informative["normative"] is not False
         or informative["matchesOfficialCompanionSource"] is not False
