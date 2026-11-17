@@ -14,7 +14,8 @@
     "procedureOutcome": {
       "enum": [
         "n2-user-plane-setup-succeeded",
-        "n2-user-plane-setup-failed"
+        "n2-user-plane-setup-failed",
+        "user-plane-enforcement-required-unavailable"
       ]
     },
     "step16Outcome": {
@@ -28,7 +29,8 @@
         "n4Action": {
           "enum": [
             "session-modified",
-            "session-released"
+            "session-released",
+            "not-performed"
           ]
         },
         "udmRegistration": {
@@ -273,6 +275,52 @@
                 "n1SmMessage"
               ]
             },
+            {
+              "required": [
+                "n2SmInformation"
+              ]
+            },
+            {
+              "required": [
+                "n2SmInfoType"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "procedureOutcome": {
+            "const": "user-plane-enforcement-required-unavailable"
+          }
+        },
+        "required": [
+          "procedureOutcome"
+        ]
+      },
+      "then": {
+        "required": [
+          "n1SmMessage"
+        ],
+        "properties": {
+          "responseRepresentation": {
+            "const": "multipart"
+          },
+          "step16Outcome": {
+            "properties": {
+              "n4Action": {
+                "const": "not-performed"
+              },
+              "udmRegistration": {
+                "const": "skipped"
+              }
+            }
+          }
+        },
+        "not": {
+          "anyOf": [
             {
               "required": [
                 "n2SmInformation"
