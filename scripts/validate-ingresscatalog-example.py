@@ -506,13 +506,17 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     media_type_with_parameters["spec"]["operations"][0]["request"]["acceptedMediaTypes"][0] = "application/json; charset=utf-8"
     expect_schema_failure(validator, media_type_with_parameters, "media type essence must not contain parameters")
 
-    multipart_response = copy.deepcopy(example)
-    multipart_response["spec"]["operations"][0]["response"]["dispositions"][0]["mediaType"] = "multipart/related"
-    expect_schema_failure(validator, multipart_response, "v1alpha1 response body representation is JSON-only")
+    multipart_response_missing_parts = copy.deepcopy(example)
+    multipart_response_missing_parts["spec"]["operations"][0]["response"]["dispositions"][0]["representations"][1].pop("parts")
+    expect_schema_failure(validator, multipart_response_missing_parts, "multipart response missing root/parts declaration")
 
     missing_response_limit = copy.deepcopy(example)
-    del missing_response_limit["spec"]["operations"][0]["response"]["dispositions"][0]["maxBytes"]
-    expect_schema_failure(validator, missing_response_limit, "missing response body byte limit")
+    del missing_response_limit["spec"]["operations"][0]["response"]["dispositions"][0]["representations"][0]["maxBytes"]
+    expect_schema_failure(validator, missing_response_limit, "missing response representation byte limit")
+
+    missing_response_binary_policy = copy.deepcopy(example)
+    del missing_response_binary_policy["spec"]["operations"][0]["response"]["binaryContent"]
+    expect_schema_failure(validator, missing_response_binary_policy, "multipart response missing binary-content policy")
 
     invalid_sbi_discriminator = copy.deepcopy(example)
     invalid_sbi_discriminator["spec"]["operations"][0]["correlation"]["duplicate"]["identitySource"] = "3gpp-sbi-idempotency-key"
@@ -656,6 +660,20 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     wrong_3gpp_response_path = copy.deepcopy(example)
     wrong_3gpp_response_path["spec"]["operations"][0]["response"]["result"]["mappings"][0]["from"] = "/smContextRef"
     expect_protocol_failure(wrong_3gpp_response_path, "incorrect SmContextUpdatedData response field")
+
+    wrong_response_content_id = copy.deepcopy(example)
+    response_mappings = wrong_response_content_id["spec"]["operations"][0]["response"]["result"]["mappings"]
+    binary_mapping = next(item for item in response_mappings if item["target"]["kind"] == "multipart-binary")
+    binary_mapping["target"]["contentIdField"]["pointer"] = "/smContextRef"
+    expect_protocol_failure(wrong_response_content_id, "response Content-ID must bind RefToBinaryData.contentId")
+
+    missing_response_binary_mapping = copy.deepcopy(example)
+    response_mappings = missing_response_binary_mapping["spec"]["operations"][0]["response"]["result"]["mappings"]
+    response_mappings[:] = [
+        item for item in response_mappings
+        if not (item["target"]["kind"] == "multipart-binary" and item["target"]["part"] == "binaryDataN1SmMessage")
+    ]
+    expect_semantic_failure(missing_response_binary_mapping, "multipart response binary part without mapping")
 
     mismatched_sbi_identity = copy.deepcopy(example)
     mismatched_sbi_identity["spec"]["operations"][0]["correlation"]["duplicate"]["identitySource"] = "3gpp-sbi-idempotency-key"
