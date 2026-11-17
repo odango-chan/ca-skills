@@ -178,6 +178,49 @@ def validate_semantics(catalog: dict) -> None:
                 raise SystemExit(f"{op_id}: body-bearing or multiple dispositions require a typed response result")
 
 
+def validate_3gpp_reference_example(catalog: dict) -> None:
+    operation = catalog["spec"]["operations"][0]
+    if operation["id"] != "nsmf-pdusession.update-sm-context":
+        raise SystemExit("expected the documented UpdateSMContext reference operation")
+    if operation["event"] != {
+        "source": "AMF",
+        "service": "Nsmf_PDUSession",
+        "operation": "UpdateSMContext",
+    }:
+        raise SystemExit("UpdateSMContext event identity does not match the 3GPP reference")
+    openapi = operation["protocol"]["openapi"]
+    if (openapi["method"], openapi["path"], openapi["operationId"]) != (
+        "POST",
+        "/sm-contexts/{smContextRef}/modify",
+        "UpdateSmContext",
+    ):
+        raise SystemExit("UpdateSMContext OpenAPI method/path/operationId mismatch")
+
+    multipart = next(
+        item for item in operation["request"]["normalization"]["representations"]
+        if item["mediaType"] == "multipart/related"
+    )
+    part_names = {part["name"] for part in multipart["parts"]}
+    required_parts = {"jsonData", "binaryDataN1SmMessage", "binaryDataN2SmInformation"}
+    if not required_parts <= part_names:
+        raise SystemExit("UpdateSMContext multipart part names do not match the 3GPP OpenAPI reference")
+
+    normalized_targets = {item["target"] for item in multipart["mappings"]}
+    if not {"/n1SmMessage", "/n2SmInformation"} <= normalized_targets:
+        raise SystemExit("UpdateSMContext binary parts are not mapped to normalized business fields")
+
+    response = operation["response"]
+    status_by_id = {item["id"]: item["status"] for item in response["dispositions"]}
+    if status_by_id != {
+        "update-accepted": 200,
+        "update-completed-no-content": 204,
+    }:
+        raise SystemExit("UpdateSMContext success response dispositions must be 200 and 204")
+    mappings = response["result"]["mappings"]
+    if not any(item["from"] == "/upCnxState" and item["to"] == "/upCnxState" for item in mappings):
+        raise SystemExit("UpdateSMContext response mapping must use SmContextUpdatedData.upCnxState")
+
+
 def expect_schema_failure(validator: Draft202012Validator, value: dict, label: str) -> None:
     if validator.is_valid(value):
         raise SystemExit(f"negative fixture was unexpectedly accepted by schema: {label}")
@@ -218,6 +261,10 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     media_type_with_parameters["spec"]["operations"][0]["request"]["acceptedMediaTypes"][0] = "application/json; charset=utf-8"
     expect_schema_failure(validator, media_type_with_parameters, "media type essence must not contain parameters")
 
+    multipart_response = copy.deepcopy(example)
+    multipart_response["spec"]["operations"][0]["response"]["dispositions"][0]["mediaType"] = "multipart/related"
+    expect_schema_failure(validator, multipart_response, "v1alpha1 response body representation is JSON-only")
+
     duplicate_status = copy.deepcopy(example)
     dispositions = duplicate_status["spec"]["operations"][0]["response"]["dispositions"]
     dispositions[1]["status"] = dispositions[0]["status"]
@@ -243,6 +290,14 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     missing_trigger_key = copy.deepcopy(example)
     missing_trigger_key["spec"]["operations"][0]["arming"]["triggers"][0]["bindings"].pop()
     expect_semantic_failure(missing_trigger_key, "trigger missing a correlation key binding")
+
+    wrong_3gpp_part_name = copy.deepcopy(example)
+    wrong_3gpp_part_name["spec"]["operations"][0]["request"]["normalization"]["representations"][1]["parts"][1]["name"] = "n1SmMsg"
+    expect_semantic_failure(wrong_3gpp_part_name, "incorrect 3GPP multipart part name")
+
+    wrong_3gpp_response_path = copy.deepcopy(example)
+    wrong_3gpp_response_path["spec"]["operations"][0]["response"]["result"]["mappings"][0]["from"] = "/smContextRef"
+    expect_semantic_failure(wrong_3gpp_response_path, "incorrect SmContextUpdatedData response field")
 
     short_tombstone = copy.deepcopy(example)
     stale = short_tombstone["spec"]["operations"][0]["correlation"]["staleDelivery"]
@@ -280,6 +335,7 @@ def main() -> None:
             print(f"{path}: {error.message}")
         raise SystemExit(f"IngressCatalog example failed with {len(errors)} schema error(s)")
     validate_semantics(example)
+    validate_3gpp_reference_example(example)
     validate_negative_cases(schema, example)
     print("IngressCatalog Draft 2020-12 schema, cross-field checks and negative fixtures: PASS")
 
