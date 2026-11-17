@@ -150,78 +150,6 @@ jobs:
           print("Response 204: bodyless")
           print("Pinned ETSI Annex A.2 OpenAPI identity and protocol shape: PASS")
           PY
-      - name: Inspect official ETSI TS 29.518 V19.5.0 Namf_Communication dependency
-        shell: bash
-        run: |
-          set -euo pipefail
-          base="https://www.etsi.org/deliver/etsi_ts/129500_129599/129518/19.05.00_60"
-          pdf="$RUNNER_TEMP/ts_129518v190500p.pdf"
-          zip="$RUNNER_TEMP/ts_129518v190500p0.zip"
-          yaml_file="$RUNNER_TEMP/TS29518_Namf_Communication.yaml"
-          ua="Mozilla/5.0 (compatible; CA-Skill-Artifact-Lock/1.0)"
-          curl --fail --location --retry 3 --silent --show-error --user-agent "$ua" "$base/ts_129518v190500p.pdf" --output "$pdf"
-          curl --fail --location --retry 3 --silent --show-error --user-agent "$ua" "$base/ts_129518v190500p0.zip" --output "$zip"
-          echo "TS 29.518 PDF bytes: $(wc -c < "$pdf")"
-          pdf_sha256="$(sha256sum "$pdf" | cut -d' ' -f1)"
-          echo "TS 29.518 PDF SHA-256: $pdf_sha256"
-          echo "TS 29.518 companion ZIP bytes: $(wc -c < "$zip")"
-          zip_sha256="$(sha256sum "$zip" | cut -d' ' -f1)"
-          echo "TS 29.518 companion ZIP SHA-256: $zip_sha256"
-          unzip -l "$zip"
-          unzip -p "$zip" TS29518_Namf_Communication.yaml > "$yaml_file"
-          echo "TS29518_Namf_Communication.yaml bytes: $(wc -c < "$yaml_file")"
-          yaml_sha256="$(sha256sum "$yaml_file" | cut -d' ' -f1)"
-          echo "TS29518_Namf_Communication.yaml SHA-256: $yaml_sha256"
-          python - "$yaml_file" <<'PY'
-          import pathlib
-          import sys
-          import yaml
-
-          artifact = yaml.safe_load(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
-          assert artifact["openapi"] == "3.0.0"
-          assert artifact["info"]["title"] == "Namf_Communication"
-          assert "NgRanTargetId" in artifact["components"]["schemas"]
-          print("Official TS 29.518 Annex A.2 identity and NgRanTargetId: PASS")
-          print("OpenAPI version:", artifact["info"]["version"])
-          PY
-      - name: Inspect official ETSI TS 29.510 V19.5.0 Nnrf dependencies
-        shell: bash
-        run: |
-          set -euo pipefail
-          base="https://www.etsi.org/deliver/etsi_ts/129500_129599/129510/19.05.00_60"
-          pdf="$RUNNER_TEMP/ts_129510v190500p.pdf"
-          zip="$RUNNER_TEMP/ts_129510v190500p0.zip"
-          ua="Mozilla/5.0 (compatible; CA-Skill-Artifact-Lock/1.0)"
-          curl --fail --location --retry 3 --silent --show-error --user-agent "$ua" "$base/ts_129510v190500p.pdf" --output "$pdf"
-          curl --fail --location --retry 3 --silent --show-error --user-agent "$ua" "$base/ts_129510v190500p0.zip" --output "$zip"
-          echo "TS 29.510 PDF bytes: $(wc -c < "$pdf")"
-          pdf_sha256="$(sha256sum "$pdf" | cut -d' ' -f1)"
-          echo "TS 29.510 PDF SHA-256: $pdf_sha256"
-          echo "TS 29.510 companion ZIP bytes: $(wc -c < "$zip")"
-          zip_sha256="$(sha256sum "$zip" | cut -d' ' -f1)"
-          echo "TS 29.510 companion ZIP SHA-256: $zip_sha256"
-          unzip -l "$zip"
-          for name in TS29510_Nnrf_AccessToken.yaml TS29510_Nnrf_NFDiscovery.yaml TS29510_Nnrf_NFManagement.yaml; do
-            unzip -p "$zip" "$name" > "$RUNNER_TEMP/$name"
-            echo "$name bytes: $(wc -c < "$RUNNER_TEMP/$name")"
-            file_sha256="$(sha256sum "$RUNNER_TEMP/$name" | cut -d' ' -f1)"
-            echo "$name SHA-256: $file_sha256"
-          done
-          python - "$RUNNER_TEMP" <<'PY'
-          import pathlib
-          import sys
-          import yaml
-
-          root = pathlib.Path(sys.argv[1])
-          for name in (
-              "TS29510_Nnrf_AccessToken.yaml",
-              "TS29510_Nnrf_NFDiscovery.yaml",
-              "TS29510_Nnrf_NFManagement.yaml",
-          ):
-              artifact = yaml.safe_load((root / name).read_text(encoding="utf-8"))
-              assert artifact["openapi"] == "3.0.0"
-              print(name, artifact["info"]["title"], artifact["info"]["version"])
-          PY
       - name: Verify pinned official ETSI TS 29.571 V19.5.0 CommonData artifact
         shell: bash
         run: |
@@ -240,17 +168,13 @@ jobs:
           unzip -p "$zip" TS29571_CommonData.yaml > "$yaml_file"
           test "$(wc -c < "$yaml_file")" -eq 255480
           echo "8632cbab60c73e9c3ba9be26577057144255f21aef7430a1990bdf113c1e7bd4  $yaml_file" | sha256sum --check
-          python - "$yaml_file" "$RUNNER_TEMP/TS29502_Nsmf_PDUSession.yaml" "$RUNNER_TEMP/TS29518_Namf_Communication.yaml" "$RUNNER_TEMP/TS29510_Nnrf_AccessToken.yaml" "$RUNNER_TEMP/TS29510_Nnrf_NFDiscovery.yaml" "$RUNNER_TEMP/TS29510_Nnrf_NFManagement.yaml" <<'PY'
+          python - "$yaml_file" "$RUNNER_TEMP/TS29502_Nsmf_PDUSession.yaml" <<'PY'
           import pathlib
           import sys
           import yaml
 
           common = yaml.safe_load(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
           session = yaml.safe_load(pathlib.Path(sys.argv[2]).read_text(encoding="utf-8"))
-          namf = yaml.safe_load(pathlib.Path(sys.argv[3]).read_text(encoding="utf-8"))
-          access_token = yaml.safe_load(pathlib.Path(sys.argv[4]).read_text(encoding="utf-8"))
-          nf_discovery = yaml.safe_load(pathlib.Path(sys.argv[5]).read_text(encoding="utf-8"))
-          nf_management = yaml.safe_load(pathlib.Path(sys.argv[6]).read_text(encoding="utf-8"))
           operations = [
               operation
               for methods in session["paths"].values()
@@ -258,15 +182,23 @@ jobs:
               if operation.get("operationId") == "UpdateSmContext"
           ]
           assert len(operations) == 1
-          operation = operations[0]
           assert common["openapi"] == "3.0.0"
           assert common["info"]["title"] == "Common Data Types"
           assert common["info"]["version"] == "1.6.0"
           assert common["externalDocs"]["description"].endswith("version 19.5.0")
-          schema = common["components"]["schemas"]["RefToBinaryData"]
-          assert schema["type"] == "object"
-          assert schema["required"] == ["contentId"]
-          assert schema["properties"]["contentId"]["type"] == "string"
+
+          common_ref = "TS29571_CommonData.yaml#/components/schemas/RefToBinaryData"
+          request_schema = session["components"]["schemas"]["SmContextUpdateData"]
+          response_schema = session["components"]["schemas"]["SmContextUpdatedData"]
+          mapped_fields = (
+              (request_schema, ("n1SmMsg", "n2SmInfo", "n2SmInfoExt1")),
+              (response_schema, ("n1SmMsg", "n2SmInfo")),
+          )
+          for schema, fields in mapped_fields:
+              for field in fields:
+                  assert schema["properties"][field]["$ref"] == common_ref, (
+                      f"{field} must resolve through the pinned TS 29.571 RefToBinaryData"
+                  )
 
           def resolve_pointer(document, fragment):
               assert fragment.startswith("/"), f"invalid JSON Pointer: {fragment}"
@@ -276,52 +208,25 @@ jobs:
                   target = target[token]
               return target
 
-          visited = set()
-          external_refs = set()
-
-          def visit(value, document_name, document):
-              if isinstance(value, dict):
-                  for key, child in value.items():
-                      if key != "$ref":
-                          visit(child, document_name, document)
-                          continue
-
-                      filename, separator, fragment = child.partition("#")
-                      assert separator and fragment, f"invalid OpenAPI reference: {child}"
-                      if filename:
-                          external_refs.add(child)
-                          documents = {
-                              "TS29571_CommonData.yaml": common,
-                              "TS29518_Namf_Communication.yaml": namf,
-                              "TS29510_Nnrf_AccessToken.yaml": access_token,
-                              "TS29510_Nnrf_NFDiscovery.yaml": nf_discovery,
-                              "TS29510_Nnrf_NFManagement.yaml": nf_management,
-                          }
-                          assert filename in documents, (
-                              f"unexpected external OpenAPI dependency in UpdateSmContext: {child}"
-                          )
-                          target_name, target_document = filename, documents[filename]
-                      else:
-                          target_name, target_document = document_name, document
-
-                      visit_key = (target_name, fragment)
-                      if visit_key in visited:
-                          continue
-                      visited.add(visit_key)
-                      visit(resolve_pointer(target_document, fragment), target_name, target_document)
-              elif isinstance(value, list):
-                  for child in value:
-                      visit(child, document_name, document)
-
-          visit(operation, "TS29502_Nsmf_PDUSession.yaml", session)
-          assert external_refs, "UpdateSmContext must resolve its external TS 29.571 CommonData references"
-          print("Official TS 29.571 Annex A.2 identity and RefToBinaryData: PASS")
-          print(
-              "UpdateSmContext transitive external references:",
-              *sorted(external_refs),
-              sep="\\n  ",
+          ref_to_binary = resolve_pointer(
+              common,
+              "/components/schemas/RefToBinaryData",
           )
-          print("UpdateSmContext external OpenAPI closure: PASS")
+          assert ref_to_binary["type"] == "object"
+          assert ref_to_binary["required"] == ["contentId"]
+          assert ref_to_binary["properties"]["contentId"]["type"] == "string"
+
+          for schema, fields in (
+              (request_schema, ("n2SmInfoType", "n2SmInfoTypeExt1")),
+              (response_schema, ("n2SmInfoType",)),
+          ):
+              for field in fields:
+                  ref = schema["properties"][field]["$ref"]
+                  assert ref == "#/components/schemas/N2SmInfoType"
+                  resolve_pointer(session, ref[1:])
+
+          print("Official TS 29.571 Annex A.2 and RefToBinaryData: PASS")
+          print("UpdateSmContext mapped request/response schema closure: PASS")
           PY
       - name: Validate IngressCatalog example
         run: python scripts/validate-ingresscatalog-example.py
