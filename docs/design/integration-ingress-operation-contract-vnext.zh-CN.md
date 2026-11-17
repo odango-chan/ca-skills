@@ -381,7 +381,7 @@ Integration 必须证明一个经过认证、验证和归一化的请求最多�
 
 Wire discriminator 是外部请求身份，不是用于预派发匹配 Run/Wait 的 correlation key；它不要求在 arming 时预先知道，也不要求加入 normalized business Schema。Integration 在接收请求时提取 discriminator，并在匹配/提交 delivery 前检查它是否已被消费。消费记录必须按源协议定义的唯一性作用域持久化，不能擅自用 authenticated peer 或 Ingress export identity 缩小该作用域；`basisRef` 必须支持该作用域及其有限保留期。缺失、重复复用或格式不合法时必须拒绝/隔离，不得退回到猜测或选择 newest。
 
-wire-discriminator 策略还必须声明 maximumLateArrival、clockSkewAllowance、discriminatorRetention 和 basisRef。Integration 必须按 (authenticated peer, Ingress export identity, discriminator value) 持久记录已消费的 discriminator；discriminatorRetention 不得小于 maximumLateArrival + clockSkewAllowance。迟到副本在该保留期内到达时必须识别为已消费请求，不得分配给新 Wait。若无法证明有限迟到窗口或提供可审计依据，则不得使用 wire-discriminator 策略。
+wire-discriminator 策略还必须声明 maximumLateArrival、clockSkewAllowance、discriminatorRetention 和 basisRef。Integration 持久化已消费 discriminator 时，索引键必须遵循源协议定义的唯一性作用域，不能机械地统一加上 authenticated peer、Ingress export identity 或 expectedIngressRef。对于 3GPP SBI `idempotency-key`，索引必须使用 TS 29.500 定义的目标 NF 重复检测作用域；同一目标 NF 的不同 Ingress Operation export，以及同一 NF Set 中可替代处理该请求的实例，必须共享同一判重视图。不得把 AMF peer、单个 Ingress export 或 expectedIngressRef 加入该协议身份键而缩小作用域。记录值应保留首次接受请求的 Ingress export、expectedIngressRef、deliveryRef 及其响应责任，以便同一请求重试时只重放到原 occurrence，而不分配给新 Wait。其他 wire discriminator 使用其 pinned protocol artifact 定义的作用域，并由 basisRef 支持。discriminatorRetention 不得小于 maximumLateArrival + clockSkewAllowance。迟到副本在该保留期内到达时必须识别为已消费请求，不得分配给新 Wait。若无法证明有限迟到窗口或提供可审计依据，则不得使用 wire-discriminator 策略。
 
 3GPP 的 `3gpp-Sbi-Request-Info: idempotency-key=...` 在客户端/服务端启用 TS 29.500 V19.5.0 §5.2.8 的重复请求检测时可提供这一保证；该机制是可选能力，因此不能假定所有 AMF 都会发送。SCP 若参与转发，必须按 TS 29.500 将该 key 原样转发。该 key 的唯一性作用域是目标 NF，而不是单个 AMF peer 或单个 Ingress export；同一目标 NF 的多个 Operation export 以及同一 NF Set 内的替代实例必须共享已消费 key 的判重视图。若不要求并验证该 Header，则必须使用 single-flight/tombstone 策略。只在 Host/Runtime 内生成的 generation counter 不能区分外部迟到请求，除非该 generation 也能由入站协议请求可靠证明。
 
@@ -407,11 +407,11 @@ wire-discriminator 策略还必须声明 maximumLateArrival、clockSkewAllowance
 
 Integration 为一次已接受的 normalized delivery 生成稳定 deliveryRef，并在重试时保持不变。Host 按 deliveryRef 幂等持久化。
 
-Integration 必须声明其协议请求去重身份来源。允许的来源为 protocol-request-id、trusted-gateway-request-id、3gpp-sbi-idempotency-key，或在同一 expectedIngressRef 范围内的 canonical-request-digest。去重作用域必须至少包含 authenticated peer、Ingress export identity 和 expectedIngressRef；协议 request ID / SBI idempotency-key 还必须按协议定义的唯一性范围校验。重试同一请求时必须复用同一个 deliveryRef。
+Integration 必须声明其协议请求去重身份来源及其身份作用域。允许的来源为 protocol-request-id、trusted-gateway-request-id、3gpp-sbi-idempotency-key，或在同一 expectedIngressRef 范围内的 canonical-request-digest。作用域必须与该身份来源的权威定义一致：canonical-request-digest 使用 expected-ingress；3gpp-sbi-idempotency-key 使用 target-nf；protocol-request-id 与 trusted-gateway-request-id 使用各自协议/网关定义的作用域。不得把所有来源强制缩小为 authenticated peer + Ingress export identity + expectedIngressRef。该协议身份去重与 Host 对稳定 deliveryRef 的幂等持久化是两个不同层次；重试同一已接受请求时必须复用同一个 deliveryRef，并继续关联首次接受的 expectedIngressRef / response obligation。
 
 对 3GPP SBI，`3gpp-Sbi-Request-Info` 中的 `idempotency-key` 仅在客户端启用 TS 29.500 §5.2.8 的重复请求检测时才存在；同一重传必须复用同一 key，独立请求不得复用。该 key 可同时作为 staleDelivery 的 authenticated-header-parameter discriminator。不要使用 `3gpp-Sbi-Correlation-Info` 代替：它承载 UE/subscriber correlation information，不是每个请求唯一的事务身份。
 
-duplicate.identitySource 用于识别一次 Ingress delivery 的重试，不自动构成 successive Wait generation 的 wire discriminator。只有当 request ID 可从已验证的入站请求或受信 Header 中稳定取得、在协议规定范围内对每个原始请求唯一并在重传时保持不变时，它才可以同时用于 staleDelivery.strategy=wire-discriminator；wire discriminator 不需要加入 correlation.keyFields，因为 correlation.keyFields 负责把请求匹配到资源/Wait，而 discriminator 负责排除旧请求副本。
+duplicate.identitySource 用于识别一次协议请求的重试，不自动构成 successive Wait generation 的 wire discriminator。只有当 request ID 可从已验证的入站请求或受信 Header 中稳定取得、在协议规定范围内对每个原始请求唯一并在重传时保持不变时，它才可以同时用于 staleDelivery.strategy=wire-discriminator；wire discriminator 不需要加入 correlation.keyFields，因为 correlation.keyFields 负责把请求匹配到资源/Wait，而 discriminator 负责排除旧请求副本。若 identitySource 同时用于 staleDelivery，duplicate.scope 与 discriminator 的持久化作用域必须完全一致；Host 的 deliveryRef 去重仍按原 delivery 记录幂等执行，不能改变协议身份的唯一性作用域。
 
 若使用 canonical request digest，初始 profile 定义为对 normalized business value 执行 RFC 8785 JSON Canonicalization，再将每个 binary content reference 替换为其 media type、长度和 SHA-256 内容摘要描述，最后对该确定性字节序列计算 SHA-256。不得把 payload-store URL、临时引用句柄或其他传输元数据纳入摘要。摘要只在同一个 expectedIngressRef 范围内用于识别重复；同一 Wait occurrence 内两个内容完全相同的独立请求将被视为重复。若业务协议允许同一 Wait 下出现两个内容相同但语义独立的请求，而 Integration 无法区分二者，必须拒绝/隔离歧义情形，不得声称 exactly-once 网络投递。
 
