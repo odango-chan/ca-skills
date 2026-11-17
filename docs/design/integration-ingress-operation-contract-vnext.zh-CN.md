@@ -163,8 +163,7 @@ Compiler MUST NOT：
 - id：非空、稳定、包内唯一的精确 export ID；
 - event：精确的 source/service/operation 三元组；
 - owner：与受信 dependency Owner binding 一致；
-- contractVersion：Ingress Operation contract schema 版本；
-- contractDigest：对该 export 的规范化内容计算的完整性摘要，且必须受 dependency snapshot digest 覆盖。
+Catalog 的 apiVersion 固定该 export 的结构版本；export identity 由受信 Package ID、Owner、exportKind、export ID 和 snapshot digest 共同确定，不再引入第二套可漂移的 contractVersion。
 
 同一 id 的任何协议版本、Schema、归一化、Correlation、响应或安全语义变化都必须产生新的不可变快照；不得原地改变已被 Skill pin 的内容。
 
@@ -309,6 +308,7 @@ Compiler 必须验证该路径由 Skill 已声明的 Host Context Schema 或 Req
 - kind = operation；
 - 精确 Operation ID；
 - 该 Operation 的 Input Schema 身份；
+- 一个 armInputSchemaRef，用于校验 Runtime 提交的 typed correlation binding；
 - 将 correlation key 映射到 Operation arguments JSON Pointer 的绑定规则。
 
 触发 Operation 必须来自 Skill 已声明的可信依赖快照。Observation、Predicate、Script、Capability ID、Tool display name 或网络地址不能充当 triggering Operation identity。
@@ -424,7 +424,7 @@ Integration export 必须定义：
 - response deadline 的来源与到期处置；
 - response obligation 的持久化、重放、重复响应和失去原传输通道后的恢复策略。
 
-早期失败响应可以是协议允许的 bodyless response，或由 Integration 固定定义、并经过协议 Schema 校验的错误响应。不得从任意 Run summary、Host 私有字段或未类型化历史输出拼接失败 Body。
+早期失败响应可以是协议允许的 bodyless response，或由 Integration Package 内不可变的 responseRef 定义、并经过协议 Schema 校验的固定错误响应。responseRef 必须绑定精确 status、media type、response Schema 和固定错误 Body；不得从任意 Run summary、Host 私有字段或未类型化历史输出拼接失败 Body。
 
 入站请求被接受后，协议响应 deadline 与 Wait 的 pre-event timeout 是两个独立期限。响应 deadline 到期不得被重标为 CA-SL Wait 的 TIMEOUT Outcome。Integration 执行协议规定的失败响应策略；Runtime 保留已接受事件的 checkpoint 和未解决的业务/资源责任。任何 Run cancellation 均使用既有全局 cancellation 语义。
 
@@ -600,6 +600,7 @@ spec:
       arming:
         start:
           allowed: false
+          # If allowed=true, armInputSchemaRef and context bindings are required.
         triggers:
           - operation:
               packageId: urn:example:package:amf-client-tools
@@ -607,6 +608,7 @@ spec:
               kind: operation
               id: ca::amf.communication.n1n2_message_transfer
               inputSchemaRef: urn:example:schema:n1n2-transfer-input
+            armInputSchemaRef: urn:example:schema:update-sm-context-arm-input
             bindings:
               - requestKey: /smContextRef
                 source:
@@ -643,7 +645,7 @@ spec:
 - sourceSchemas 和 normalizedSchemaRef 是不同契约，不得互相替代；
 - artifactDigest 绑定精确 OpenAPI 文件，mappingDigest 绑定归一化/响应映射实现；
 - operationId 不能替代 Service-Operation 名称；
-- arming.triggers[].operation 是出站 ToolCatalog Operation，不是 Ingress Operation；
+- arming.triggers[].operation 是出站 ToolCatalog Operation，不是 Ingress Operation；其 inputSchemaRef 与 armInputSchemaRef 是两个不同 Schema；
 - requestKey 指向 normalized request 的字段，operation-argument.path 指向出站 Operation 已物化输入；
 - response.result.producer 只允许 operation 或 observation；bodyless response 不声明该字段；
 - 示例的 maximumLateArrival 必须由受信协议/部署保证给出，不能照抄占位值；
