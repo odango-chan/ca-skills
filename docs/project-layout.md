@@ -2,7 +2,7 @@
 
 This document defines the Skill source package, not a workspace or package-manager layout. Skill Studio owns dependency selection and project configuration. Compiler consumes a virtual file set and does not require a physical project `lib/` or `output/` directory.
 
-## Canonical v1alpha4 Skill source
+## Canonical v1alpha5 Skill source
 
 ~~~text
 skills/<skill-name>/
@@ -41,7 +41,7 @@ Do not repeat machine wrapper fields that are determined elsewhere:
 
 - No authored `apiVersion` or `kind`; BuildRequest / Compiler Target selects the language version, and file paths determine source kinds.
 - No authored `metadata.name`; the Package root determines Skill identity.
-- No `entryProcedure`; a Skill has one entry Procedure graph in v1alpha4.
+- No `entryProcedure`; a Skill has one entry Procedure graph in v1alpha5.
 - No Contract-level `postconditions` and no `postcondition.goal`; final Postcondition aggregate `PASS: SUCCEEDED` directly proves the Contract Goal.
 - No dependency download URL, branch, version lock, digest or registry instruction in the Skill Contract. Studio resolves exact snapshots in project/build configuration.
 
