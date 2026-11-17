@@ -93,6 +93,6 @@ spec:
       - GitLab REL-19 branch file hash differs from the official ETSI companion YAML and is not used as the artifact.
     admissionAllowed: false
     remainingQualification:
-      - Define a canonical per-source-Schema digest contract, then derive exact Schema digests for the trusted dependency snapshot. The existing dependency-snapshot digest covers the complete file set; generated-Schema JCS serialization does not define digests for imported OpenAPI Schema nodes.
+      - Derive and publish the exact Schema Closure Digest v1 values for the real trusted dependency snapshot and Owner Schema references. The algorithm is defined in `../schema-closure-digest-v1.md`; the current example's all-zero Schema digests remain placeholders and do not authorize Admission.
       - Implement and pass the real Integration Adapter wire conformance suite against the resolved, digest-pinned schema closure.
       - Verify the deployed Owner binding and deployment profile.
