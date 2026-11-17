@@ -657,6 +657,14 @@ def validate_step15_failure_response_schema() -> None:
     invalid_cases.append(("Step 16c is skipped on the Step 15 N2 failure branch", invalid))
 
     invalid = copy.deepcopy(valid_enforcement_failure)
+    invalid["responseRepresentation"] = "json"
+    invalid_cases.append(("required UPE failure cannot use JSON without the N1 Reject binary part", invalid))
+
+    invalid = copy.deepcopy(valid_enforcement_failure)
+    del invalid["n1SmMessage"]
+    invalid_cases.append(("required UPE failure requires N1 SM Reject", invalid))
+
+    invalid = copy.deepcopy(valid_enforcement_failure)
     invalid["step16Outcome"]["n4Action"] = "session-released"
     invalid_cases.append(("required UPE failure must not model Step 16 N4 release before Step 17", invalid))
 
