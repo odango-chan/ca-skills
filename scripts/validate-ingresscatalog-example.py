@@ -17,6 +17,7 @@ DOC = ROOT / "docs/design/integration-ingress-operation-contract-vnext.zh-CN.md"
 SCHEMA = ROOT / "docs/design/schemas/ingresscatalog.v1alpha1.schema.json"
 RESPONSE_RESULT_SCHEMA = ROOT / "docs/design/schemas/update-sm-context-response-result.v1.schema.json"
 RESPONSE_BINARY_SCHEMA = ROOT / "docs/design/schemas/response-binary-content-reference.v1.schema.json"
+STANDARD_ARTIFACT_LOCK = ROOT / "docs/design/artifacts/ts-29.502-v19.5.0-nsmf-pdusession-openapi-source-lock.yaml"
 DURATION = re.compile(
     r"P(?:(?P<days>[1-9][0-9]*)D)?"
     r"(?:T(?:(?P<hours>[1-9][0-9]*)H)?"
@@ -558,6 +559,40 @@ def validate_3gpp_reference_example(catalog: dict) -> None:
         raise SystemExit("UpdateSMContext response selector must cover JSON, multipart and 204 bodyless outcomes")
 
 
+def validate_standard_artifact_lock() -> None:
+    lock = yaml.safe_load(STANDARD_ARTIFACT_LOCK.read_text(encoding="utf-8"))
+    spec = lock["spec"]
+    normative = spec["normativeSource"]
+    informative = spec["informativeSource"]
+    api = spec["api"]
+    if spec["standard"] != {
+        "name": "3GPP TS 29.502",
+        "version": "19.5.0",
+        "release": 19,
+    }:
+        raise SystemExit("standard artifact lock must identify TS 29.502 V19.5.0 Release 19")
+    if (
+        api["title"] != "Nsmf_PDUSession"
+        or api["openapiVersion"] != "3.0.0"
+        or api["apiVersion"] != "1.4.0"
+        or api["annex"] != "A.2"
+        or api["sourceFileName"] != "TS29502_Nsmf_PDUSession.yaml"
+    ):
+        raise SystemExit("standard artifact lock does not identify the exact Annex A.2 API")
+    if normative["uri"] != "https://www.etsi.org/deliver/etsi_ts/129500_129599/129502/19.05.00_60/ts_129502v190500p.pdf":
+        raise SystemExit("normative source must use the official ETSI V19.5.0 PDF URI")
+    if normative["publisher"] != "ETSI" or normative["normative"] is not True or normative["byteLength"] != 2066717:
+        raise SystemExit("normative source metadata does not match the published ETSI deliverable")
+    if normative["digest"]["algorithm"] != "sha256" or normative["digest"]["value"] is not None or normative["digest"]["status"] != "NOT_COMPUTED":
+        raise SystemExit("do not claim a computed digest before the exact OpenAPI bytes are verified")
+    if informative["normative"] is not False or informative["immutableCommit"] is not None:
+        raise SystemExit("the REL-19 GitLab copy must remain explicitly informative until commit-pinned")
+    if informative["digest"]["value"] is not None or informative["digest"]["status"] != "NOT_COMPUTED":
+        raise SystemExit("the informative repository copy must not be presented as a verified artifact pin")
+    if lock["verification"]["status"] != "BLOCKED" or lock["verification"]["admissionAllowed"] is not False:
+        raise SystemExit("OpenAPI admission must remain blocked until the exact artifact digest is verified")
+
+
 def validate_step15_failure_response_schema() -> None:
     result_schema = json.loads(RESPONSE_RESULT_SCHEMA.read_text(encoding="utf-8"))
     binary_schema = json.loads(RESPONSE_BINARY_SCHEMA.read_text(encoding="utf-8"))
@@ -1085,7 +1120,8 @@ def main() -> None:
     validate_3gpp_reference_example(example)
     validate_negative_cases(schema, example)
     validate_step15_failure_response_schema()
-    print("IngressCatalog and Step 17 response-result schemas, protocol checks and negative fixtures: PASS")
+    validate_standard_artifact_lock()
+    print("IngressCatalog, Step 17 response-result schemas, protocol checks, artifact source lock and negative fixtures: PASS")
 
 
 if __name__ == "__main__":
