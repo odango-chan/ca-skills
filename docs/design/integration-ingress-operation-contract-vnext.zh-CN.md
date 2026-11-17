@@ -402,23 +402,27 @@ Compiler 根据 Skill 的 wait.response.after 和 Ingress export 的 producer �
 
 ### 8.3 响应 Schema 与映射
 
-body-bearing paired response 必须声明：
+paired response 必须声明非空的 response.dispositions[]。每个 disposition 至少声明唯一 id、精确 HTTP status 和 body 模式：
 
-- responseResultSchemaRef：Integration response encoder 接受的类型化输入 Schema；
-- responseSchemaRef：精确协议响应 Body Schema；
-- 精确响应 media type；
-- 确定性、版本化的 response mapping artifact 及摘要；
-- required response fields 的完整映射。
+- body: required 时，必须声明精确 mediaType、responseSchemaRef 和 responseSchemaDigest；
+- body: none 时，不得声明 Body Schema 或 response mapping。
 
-Compiler 必须验证 boundary Producer Output 对 responseResultSchema 的可赋值性，并验证 response mapping 所需字段与协议响应 Schema 一致。responseResultSchema 必须符合 CA-SL 支持的 JSON Schema 子集；协议 responseSchemaRef 则按 pinned OpenAPI artifact 验证，由 Integration Adapter 负责实际 wire response validation。映射由 Integration 拥有，不由 Skill 重复声明。
+response.result 是可选的 typed result 绑定，但在以下任一条件成立时 REQUIRED：
 
-bodyless paired response 必须明确声明 bodyless response disposition，且不得声明 result Producer。若协议要求响应体，则不得以空 Body 或 Runtime Trace 代替。
+- 至少一个 response disposition 为 body: required；
+- 声明多个 response dispositions，需要依据业务结果确定所选 status/disposition。
+
+此时必须声明 responseResultSchemaRef、response.result.producer（operation 或 observation）以及确定性、版本化的 response mapping artifact 和摘要。Compiler 根据 wait.response.after（或默认 Wait-bearing Node）和 producer 类型推导唯一 SourcePath，并验证 boundary Producer Output 对 responseResultSchema 的可赋值性。responseResultSchema 必须符合 CA-SL 支持的 JSON Schema 子集；协议 responseSchemaRef 则按 pinned OpenAPI artifact 验证，由 Integration Adapter 负责实际 wire response validation。response mapping 必须选择一个已声明 disposition，并为 body-bearing disposition 提供全部 required response fields。
+
+若仅声明一个 body: none 的 response disposition，则 response.result 可以省略；该 status 是固定的，不需要 Producer 来选择。若有多个 bodyless dispositions，也必须使用 typed result 和 mapping 明确选择，不能依赖运行时猜测。
+
+映射由 Integration 拥有，不由 Skill 重复声明。若协议要求响应体，则不得以空 Body 或 Runtime Trace 代替。
 
 ### 8.4 成功、早期失败和响应超时
 
 Integration export 必须定义：
 
-- 正常 response boundary 的响应状态、media type 和 Schema，以及 typed response result 到协议响应的映射；该映射表达协议响应，不代表 Skill Goal 已 PASS；
+- response.dispositions[] 中每个允许的响应状态、body 模式、media type 和 Schema，以及 typed response result 到所选 disposition/Body 的映射；该映射表达协议响应，不代表 Skill Goal 已 PASS；
 - 在响应 Producer 尚未产生可用结果前，Run 提前以 FAILED、UNRESOLVED 或 SAFE_STOPPED 结束时的显式 failure response mapping；
 - response deadline 的来源与到期处置；
 - response obligation 的持久化、重放、重复响应和失去原传输通道后的恢复策略。
@@ -617,14 +621,20 @@ spec:
         mode: paired
         deadlinePolicyRef: deployment-deadline::nsmf-update-sm-context
         result:
-          body: required
           producer: operation
           responseResultSchemaRef: urn:example:response-result:update-sm-context:v1
-          responseSchemaRef: urn:example:openapi:update-sm-context-response
-          responseSchemaDigest: sha256:<64-hex>
-          mediaType: application/json
           mappingRef: urn:example:mapping:update-sm-context-response
           mappingDigest: sha256:<64-hex>
+        dispositions:
+          - id: update-accepted
+            status: 200
+            body: required
+            mediaType: application/json
+            responseSchemaRef: urn:example:openapi:update-sm-context-response
+            responseSchemaDigest: sha256:<64-hex>
+          - id: update-completed-no-content
+            status: 204
+            body: none
         earlyFailureResponses:
           FAILED:
             responseRef: urn:example:protocol-error:failed
@@ -645,7 +655,7 @@ spec:
 - operationId 不能替代 Service-Operation 名称；
 - arming.triggers[].operation 是出站 ToolCatalog Operation，不是 Ingress Operation；Compiler 从该精确 ToolCatalog export 解析 Operation Input Schema，armInputSchemaRef 则定义单独的 correlationBinding Schema；
 - requestKey 指向 normalized request 的字段，bindingPath 指向 correlation.armInputSchemaRef 的字段，operation-argument.path 指向出站 Operation 已物化输入；
-- response.result.producer 只允许 operation 或 observation；bodyless response 不声明该字段；
+- response.result.producer 只允许 operation 或 observation；只有单一 bodyless disposition 时才可省略 typed result Producer；
 - 示例的 maximumLateArrival 必须由受信协议/部署保证给出，不能照抄占位值；
 - 示例没有提供任何凭证、证书、网络地址或运行时私有句柄。
 
