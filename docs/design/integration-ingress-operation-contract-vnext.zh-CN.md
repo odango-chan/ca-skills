@@ -722,17 +722,17 @@ spec:
           dispositionSelector:
             sourcePath: /responseDisposition
             cases:
-              - value: update-accepted
-                dispositionId: update-accepted
+              - value: update-with-json-cause
+                dispositionId: update-with-json-cause
               - value: update-completed-no-content
                 dispositionId: update-completed-no-content
           mappings:
-            - dispositionId: update-accepted
-              from: /upCnxState
-              to: /upCnxState
+            - dispositionId: update-with-json-cause
+              from: /cause
+              to: /cause
               transform: identity
         dispositions:
-          - id: update-accepted
+          - id: update-with-json-cause
             status: 200
             body: required
             mediaType: application/json
@@ -759,7 +759,9 @@ spec:
 - sourceSchemas 和 normalizedSchemaRef 是不同契约，不得互相替代；
 - artifactDigest 绑定精确 OpenAPI 文件；内联 normalization/response mappings 由整个 IngressCatalog dependency snapshot digest 固定；
 - operationId 不能替代 Service-Operation 名称；UpdateSMContext 的 multipart part 名称使用 pinned OpenAPI 中的 binaryDataN1SmMessage / binaryDataN2SmInformation，不能缩写成 n1SmMsg / n2SmInfo；
-- 示例 200 JSON response 仅映射 SmContextUpdatedData 的条件属性 upCnxState；smContextRef 是 request path 参数，不是 SmContextUpdatedData response body 字段；示例不覆盖含 N1/N2 binary response parts 的 multipart/related 200 representation；
+- 示例 200 JSON response 仅映射 SmContextUpdatedData 的条件属性 cause；smContextRef 是 request path 参数，不是 SmContextUpdatedData response body 字段；示例不覆盖含 N1/N2 binary response parts 的 multipart/related 200 representation；
+- TS 23.502 Step 15 的 N2 setup failure 分支可能要求 Step 17 返回包含 PDU Session Establishment Reject 的 N1 SM binary container；本版 JSON-only response profile 不支持该 multipart failure response，不能把它伪装成 204 或通用 JSON 错误，必须保持 NOT LINKABLE，直到 response multipart 映射扩展完成；
+- 具体 TS 29.502 release 可能增加 multipart part（例如 N2 SM Information extension part）；示例仅列出当前引用的两个常见 part，正式 pinned OpenAPI 的完整 part 集必须逐项覆盖或明确拒绝，不能静默丢弃；
 - arming.triggers[].operation 是出站 ToolCatalog Operation，不是 Ingress Operation；Compiler 从该精确 ToolCatalog export 解析 Operation Input Schema，armInputSchemaRef 则定义单独的 correlationBinding Schema；
 - requestKey 指向 normalized request 的字段，bindingPath 指向 correlation.armInputSchemaRef 的字段，operation-argument.path 指向出站 Operation 已物化输入；
 - response.result.producer 只允许 operation 或 observation；只有单一 bodyless disposition 时才可省略 typed result Producer；
@@ -840,6 +842,7 @@ spec:
 | IN-042 | binaryContent retention 早于最后一个声明 Consumer 的最晚访问/恢复时间 | Compiler/Admission 拒绝不安全的内容生命周期 |
 | IN-043 | multipart body 或单个 part 超过其声明 maxBytes | Integration 在无界缓冲前拒绝请求，不提交 normalized delivery |
 | IN-044 | pinned OpenAPI response 需要 multipart/related binary parts，但 v1alpha1 export 仅声明 JSON response mapping | Compiler/Admission 拒绝不完整响应表示；不得丢弃或字符串化 binary parts |
+| IN-045 | Step 15 N2 setup failure 要求 Step 17 携带 N1 SM Reject binary container，而 export 仅声明 JSON response | Integration/Admission 不得以 204 或通用 JSON error 替代；该失败分支保持 NOT LINKABLE |
 
 ## 15. 冻结与发布门槛
 
