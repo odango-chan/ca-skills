@@ -1,12 +1,12 @@
-# CA Integration Ingress Operation Contract — 设计提案
+# CA Integration Ingress Operation Contract v1alpha1
 
-**状态：** 设计提案；尚未冻结、尚未发布。  
-**适用范围：** CA-SL v1alpha4 之后的语言修订，以及与之配套的可信 Integration 依赖导出。  
-**语义依据：** Node-level Event Wait 语义基线见 [PR #60](https://github.com/odango-chan/ca-skills/pull/60)；完整 v1alpha5 规范性增补见 [PR #61](https://github.com/odango-chan/ca-skills/pull/61)；accepted-event tombstone/replay 澄清见 [PR #64](https://github.com/odango-chan/ca-skills/pull/64)。  
-**相关文档：** [CA-SL Wait 规范化草案 PR #61](https://github.com/odango-chan/ca-skills/pull/61)、[Generic Host/Runtime Inbound Event 契约 PR #210](https://github.com/odango-chan/ca-agent-demo/pull/210)。  
-**版本边界：** 本文提出独立的 Integration 导出契约版本，不分配 CA-SL 语言版本，也不改变 v1alpha4。
+**状态：** NORMATIVE — FROZEN / RELEASED（2026-11-17；仅指逻辑契约）。  
+**适用范围：** CA-SL v1alpha5 Node-entry Event Wait 使用的可信 Integration 依赖导出。  
+**语义依据：** Node-level Event Wait 语义基线见 [PR #60](https://github.com/odango-chan/ca-skills/pull/60)；完整 v1alpha5 规范见 [CA-SL v1alpha5](../skill-language-spec.v1alpha5.zh-CN.md)；accepted-event tombstone/replay 澄清见 [PR #64](https://github.com/odango-chan/ca-skills/pull/64)。  
+**相关契约：** [Generic Host/Runtime Inbound Event 契约 PR #210](https://github.com/odango-chan/ca-agent-demo/pull/210)。  
+**精确版本：** `connectionagent.io/ingresscatalog/v1alpha1`；诊断注册表为 `connectionagent.io/ingress-diagnostics/v1alpha1`。二者独立于 CA-SL 语言版本。
 
-本文中的 MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT 和 MAY 均为规范性用语。本文是待评审设计，不构成现有 Compiler、Host、Runtime 或 Integration 产品已经符合的声明。
+本文中的 MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT 和 MAY 均为规范性用语。本文冻结的是 Integration Ingress 的逻辑导出契约，不表示现有 Compiler、Host、Runtime、真实 Integration Owner 或 Adapter 已通过产品符合性验收。
 
 ## 1. 目标与非目标
 
@@ -63,7 +63,7 @@
 
 一个 Integration dependency snapshot MAY 发布一个或多个 IngressCatalog 资源。IngressCatalog 是包内的、受信的、版本化导出；不是全局 EventCatalog。
 
-建议的独立资源版本为：
+规范性资源版本为：
 
 ~~~yaml
 apiVersion: connectionagent.io/ingresscatalog/v1alpha1
@@ -74,9 +74,9 @@ spec:
   operations: []
 ~~~
 
-上述 API 标识是本文提出的契约版本，不代表已存在可下载的正式发布物。资源的物理文件路径由 Integration Package 决定，不成为 Skill 作者可见的身份。每个 operations[] 元素是一个 exportKind=ingressOperation 的独立导出；Catalog 文件本身不取代 trusted dependency binding。
+上述 API 标识是本规范冻结的精确资源版本。它定义逻辑导出契约，不代表真实 Owner 已发布生产 Package 或产品已取得资格。资源的物理文件路径由 Integration Package 决定，不成为 Skill 作者可见的身份。每个 operations[] 元素是一个 exportKind=ingressOperation 的独立导出；Catalog 文件本身不取代 trusted dependency binding。
 
-建议的结构校验 Schema 位于 [ingresscatalog.v1alpha1.schema.json](schemas/ingresscatalog.v1alpha1.schema.json)。它只校验 IngressCatalog 的结构、字段类型和局部条件；Package ID / Owner binding、跨快照唯一性、Schema 引用闭包、Trigger Operation 链接、Procedure path analysis、部署 profile binding 和真实协议行为仍由 Compiler、Admission 与 Integration conformance tests 分别验证。该 JSON Schema 与本文一样保持 NOT FROZEN。
+规范性结构校验 Schema 位于 [ingresscatalog.v1alpha1.schema.json](schemas/ingresscatalog.v1alpha1.schema.json)。它只校验 IngressCatalog 的结构、字段类型和局部条件；Package ID / Owner binding、跨快照唯一性、Schema 引用闭包、Trigger Operation 链接、Procedure path analysis、部署 profile binding 和真实协议行为仍由 Compiler、Admission 与 Integration conformance tests 分别验证。该 JSON Schema 是 IngressCatalog v1alpha1 的规范性结构定义；跨资源身份、摘要闭包、图分析、协议符合性和部署绑定仍由各自的语义校验负责。
 
 ### 2.3 四种不同身份
 
@@ -612,7 +612,7 @@ Compiler 不执行协议认证，不调用真实 Integration adapter，不通过
 
 此模型是传统 3GPP SMF 对外协议边界。不得把 OpenAMSM 内部模块名写成 3GPP 协议身份，不得把 AMF/(R)AN/UE 行为描述为 SMF 自身的 Operation。不得在 Step 3 尚未创建 SM Context 时查询一个不存在的 smContextRef 来注册 Step 15。
 
-## 12. 建议的最小 IngressCatalog 结构
+## 12. IngressCatalog v1alpha1 的规范性最小结构
 
 以下为字段归属示意，不是可直接部署的 3GPP 发布物。对应结构约束见 [IngressCatalog v1alpha1 structural schema](schemas/ingresscatalog.v1alpha1.schema.json)。所有 urn:example、摘要、Package ID、profile 和 Schema ID 都是占位符。
 
@@ -934,7 +934,7 @@ spec:
 
 ## 13. IngressCatalog 静态诊断归属与版本化注册表
 
-IngressCatalog v1alpha1 使用独立、版本化的静态诊断注册表：[`connectionagent.io/ingress-diagnostics/v1alpha1`](ingress-diagnostic-registry-v1alpha1.md)，机器可读清单为 [ingress-diagnostic-registry-v1alpha1.json](ingress-diagnostic-registry-v1alpha1.json)。该注册表与 CA-SL 语言版本独立；本节与注册表共同定义 IngressCatalog 自身声明错误的唯一诊断身份。当前均为候选规范条款，尚未 FROZEN。
+IngressCatalog v1alpha1 使用独立、版本化且已冻结的静态诊断注册表：[`connectionagent.io/ingress-diagnostics/v1alpha1`](ingress-diagnostic-registry-v1alpha1.md)，机器可读清单为 [ingress-diagnostic-registry-v1alpha1.json](ingress-diagnostic-registry-v1alpha1.json)。该注册表与 CA-SL 语言版本独立；本节与注册表共同定义 IngressCatalog 自身声明错误的唯一诊断身份。该契约及其诊断身份于 2026-11-17 冻结。
 
 **Ingress 自有诊断。** 以下十个 Code 是本版 IngressCatalog v1alpha1 自有的完整静态诊断集合。每项均为 `(Code, Phase=C_STATIC)`、Severity `ERROR`，阻断 Build。精确 precedence、messageKey、canonical message template、sourceLocation 及 relatedLocations 规则以机器可读注册表为准。
 
@@ -1047,11 +1047,11 @@ IngressCatalog v1alpha1 使用独立、版本化的静态诊断注册表：[`con
 
 ## 15. 契约冻结与产品准入门槛
 
-本文区分 **逻辑契约冻结** 与 **真实产品/Owner 准入**。不得要求真实 Integration Adapter 或 Host 产品先通过 E2E，才允许冻结可独立评审的声明式契约；也不得从契约冻结推断产品已经符合。
+本文区分 **逻辑契约冻结** 与 **真实产品/Owner 准入**。本节记录 2026-11-17 的逻辑冻结裁决；不得要求真实 Integration Adapter 或 Host 产品先通过 E2E，才允许冻结可独立评审的声明式契约；也不得从契约冻结推断产品已经符合。
 
 ### 15.1 Ingress Operation Contract 逻辑冻结
 
-正式冻结本契约前必须完成：
+截至 2026-11-17，以下逻辑冻结门槛均已完成：
 
 1. IngressCatalog v1alpha1 资源结构、字段类型、版本标识和 export identity 的独立 Schema 评审；
 2. trusted dependency binding 新增 `exportKind: ingressOperation` 的逻辑身份、Package/Owner/snapshot 绑定及 Compiler link 规则评审；
@@ -1062,7 +1062,7 @@ IngressCatalog v1alpha1 使用独立、版本化的静态诊断注册表：[`con
 7. IngressCatalog Schema、Schema Closure Digest 和诊断注册表具有可执行的结构/算法验证；IN-001–IN-066 每项均明确条件与规范要求的诊断/处置，但符合性矩阵本身是规范义务清单，不得宣称 66 项已全部执行通过；
 8. 完成独立审阅并明确该导出契约的发布版本和生效范围。
 
-以上是逻辑契约的冻结门槛。它们不要求真实 Owner 已发布生产包，也不要求 Host/Runtime/Integration 产品已取得资格。
+**冻结裁决：** `connectionagent.io/ingresscatalog/v1alpha1` 及其诊断注册表 `connectionagent.io/ingress-diagnostics/v1alpha1` 自 2026-11-17 起为 **FROZEN / RELEASED**。冻结范围包括本文件的逻辑字段、身份与链接规则、Schema/Schema Closure 规则、Correlation、归一化、二进制内容生命周期、配对响应、诊断身份及规范性符合性义务。真实 Owner 发布物、部署绑定和产品资格不在本次冻结声明内。\n\n以上是逻辑契约的冻结门槛。它们不要求真实 Owner 已发布生产包，也不要求 Host/Runtime/Integration 产品已取得资格。
 
 ### 15.2 产品与 Owner 准入（独立资格门槛）
 
@@ -1078,7 +1078,7 @@ Generic Host/Runtime 的跨仓实现评审（包括 ca-agent-demo 的配套 PR�
 
 ## 16. 已冻结语义与允许的后续工作
 
-以下语义由 PR #60 冻结，不在本文重新设计：
+以下语义由 PR #60/#64 冻结，并由本契约具体化；本节不重新设计 CA-SL 的 Wait 语义：
 
 - Wait 是 Node-entry control，不是第五种 Stage；
 - Event Wait 是 push-driven ingress，不是 Observation polling；
@@ -1088,6 +1088,6 @@ Generic Host/Runtime 的跨仓实现评审（包括 ca-agent-demo 的配套 PR�
 - 事件到达本身不是 Predicate PASS、Evidence 或 Goal proof；
 - correlation 必须区分并发 Run 和连续 Wait generation；
 - paired response 在声明的 Node boundary 提交，不等待整个 Run terminal；
-- Generic Host、Runtime、Integration 和 Tool Owner 的职责分离。
+- Generic Host、Runtime、Integration 和 Tool Owner 的职责分离。\n\n本 Ingress 契约另外冻结以下导出属性：精确 `apiVersion` / `exportKind` / export identity；trusted Package / Owner / immutable snapshot 绑定；3GPP Service-Operation 与 OpenAPI `operationId` 的分层身份；source-wire 与 normalized request Schema；预派发 correlation 和 occurrence/tombstone 规则；multipart/binary reference 生命周期；typed response result、disposition、deadline 与 recovery 映射；十项 Ingress 静态诊断的身份、优先级和来源位置。
 
 本文允许继续细化的内容仅包括：精确 Schema 序列化、诊断消息、BuildRequest 物理传输、deployment profile binding、DTO、持久化、恢复实现和机器 Fixture。任何改变上述冻结语义的提议必须单独进行影响分析和重新裁决。
