@@ -9,6 +9,8 @@ on:
       - "docs/design/schemas/ingresscatalog.v1alpha1.schema.json"
       - "docs/design/schemas/update-sm-context-response-result.v1.schema.json"
       - "docs/design/schemas/response-binary-content-reference.v1.schema.json"
+      - "docs/design/schemas/schema-closure-digest-v1.vector.json"
+      - "docs/design/schema-closure-digest-v1.md"
       - "scripts/validate-ingresscatalog-example.py"
       - ".github/workflows/ingresscatalog-schema.yml"
   push:
@@ -37,7 +39,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install validators
-        run: python -m pip install PyYAML jsonschema referencing
+        run: python -m pip install PyYAML jsonschema referencing rfc8785==0.1.4
       - name: Verify pinned official ETSI TS 29.502 V19.5.0 OpenAPI artifact
         shell: bash
         run: |
