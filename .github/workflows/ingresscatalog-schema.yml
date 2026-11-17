@@ -1,0 +1,36 @@
+name: IngressCatalog Schema
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/design/integration-ingress-operation-contract-vnext.zh-CN.md"
+      - "docs/design/schemas/ingresscatalog.v1alpha1.schema.json"
+      - "scripts/validate-ingresscatalog-example.py"
+      - ".github/workflows/ingresscatalog-schema.yml"
+  push:
+    branches: [main]
+    paths:
+      - "docs/design/integration-ingress-operation-contract-vnext.zh-CN.md"
+      - "docs/design/schemas/ingresscatalog.v1alpha1.schema.json"
+      - "scripts/validate-ingresscatalog-example.py"
+      - ".github/workflows/ingresscatalog-schema.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-ingresscatalog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install validators
+        run: python -m pip install PyYAML jsonschema
+      - name: Validate IngressCatalog example
+        run: python scripts/validate-ingresscatalog-example.py
