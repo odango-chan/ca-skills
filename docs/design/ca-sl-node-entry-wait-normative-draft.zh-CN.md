@@ -598,6 +598,12 @@ The following semantic cases are REQUIRED for future language/Host/Runtime/Integ
 | EW-023 | Process restarts after event acceptance but before Agent Node execution | Runtime checkpoint resumes the same Node exactly once |
 | EW-024 | Process restarts after response boundary commit but before protocol response delivery | Host/Integration recover the exact response obligation or apply explicit failure policy |
 | EW-025 | Wait is used as an Observation polling loop | Non-conforming; Event Wait and Evidence Wait remain distinct |
+| EW-026 | Timeout uses a malformed, fractional, zero, calendar-month or leading-zero duration | Compiler emits WAIT_TIMEOUT_INVALID |
+| EW-027 | Declared timeout exceeds the deployment's published maximum | Host admission rejects before Invocation creation with WAIT_DURATION_LIMIT_EXCEEDED; no clamping |
+| EW-028 | Body-bearing response mapping selects wait.output, Context or raw request data | Compiler emits WAIT_RESPONSE_MAPPING_INVALID |
+| EW-029 | response.after names an unknown or unreachable Node | Compiler emits WAIT_RESPONSE_BOUNDARY_INVALID |
+| EW-030 | Event is accepted but the Contract-referenced global Precondition has not passed on every incoming path | Wait edge does not establish the gate; protected Mutation and success remain blocked |
+| EW-031 | Integration cannot acknowledge expected-ingress arming before the triggering Operation | Runtime MUST NOT dispatch the triggering Operation; no send-first/correlate-later fallback |
 
 ## 13. Publication gate
 
