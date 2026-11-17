@@ -4,3 +4,4 @@ verify:
 	python3 -B scripts/verify_docs.py
 	python3 -B -m unittest discover -s tests -p 'test_verify_docs.py'
 	python3 -B -m unittest discover -s tests -p 'test_verify_examples.py'
+	python3 -B -m unittest discover -s tests -p 'test_verify_yaml.py'
