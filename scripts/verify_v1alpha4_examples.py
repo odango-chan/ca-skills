@@ -361,6 +361,8 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
             errors.append(f"{skill.name}: entry Predicate must distinguish evidenced ABSENT from PRESENT and malformed results")
         if "SMF_SESSION_CONTEXT_CONFIRMED_ABSENT" not in entry_script_text:
             errors.append(f"{skill.name}: ABSENT must be an explicit business outcome, not generic query success")
+    if "ca-session-context::context.smf.session.read" in procedure_text:
+        errors.append(f"{skill.name}: retired generic context callable ID; use ca-session-context::smf.session.context.query")
     update = re.search(r"(?ms)^  update-sm-context:\n(.*?)(?=^  [A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)", procedure_text)
     if not update:
         errors.append(f"{skill.name}: missing step-15 update-sm-context continuation Node")
@@ -370,7 +372,7 @@ def validate_async_update_sm_context_boundary(skill: Path, errors: list[str]) ->
             errors.append(f"{skill.name}: update-sm-context must use the public SMF UpdateSMContext Owner Operation")
         if re.search(r"(?m)^\s*transferOperationRef:", block):
             errors.append(f"{skill.name}: Step 15 transfer correlation must remain Host/Owner-private")
-        if not re.search(r"(?m)^      tool: ca-session-context::context\.smf\.session\.read\s*$", block):
+        if not re.search(r"(?m)^      tool: ca-session-context::smf\.session\.context\.query\s*$", block):
             errors.append(f"{skill.name}: fresh post-Step-15 Observation must be co-located in update-sm-context")
         if not re.search(r"(?m)^        supi: context\.supi\s*$", block) or not re.search(r"(?m)^        pduSessionId: context\.request\.pduSessionId\s*$", block):
             errors.append(f"{skill.name}: post-Step-15 Observation must be scoped by exact UE and PDU Session ID")
