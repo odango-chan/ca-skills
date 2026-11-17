@@ -8,9 +8,13 @@ ConnectionAgent 官方 Skill 源码与语言契约仓库。
 
 **本仓库是官方 Skill 源码和语言语义的唯一输入权威。** `ca-agent-demo` 用于核对当前实际运行行为、刷新样例；Compiler 和 Studio 应消费本仓库的正式源码。
 
-## 当前 5GC 源码（v0.2/v1alpha1 旧版源码，非 CA-SL v1alpha4）
+## CA-SL v1alpha5 示例
 
-**版本边界：** CA-SL v1alpha4 是当前冻结语言。下列源码和 ToolCatalog 仍是旧业务基线，尚未迁移，不代表 v1alpha4 Owner 发布物或任何产品符合性已通过。
+[PDU 会话建立示例](examples/README.md)包含传统 5GC 和 OpenAMSM MAS 两套流程，均以[已冻结的 CA-SL v1alpha5](docs/releases/ca-sl-v1alpha5.md)为准。示例仍待可信 Owner 契约与集成验收，状态为 `NOT_QUALIFIED`。
+
+## 历史 5GC 源码（v0.2/v1alpha1）
+
+`skills/` 下的两套 5GC 源码及对应 ToolCatalog 保留为旧业务基线。
 
 | Skill | 业务范围 | 源码状态 |
 | --- | --- | --- |
@@ -23,7 +27,8 @@ ConnectionAgent 官方 Skill 源码与语言契约仓库。
 
 ## 语言与编写规范
 
-- [当前 CA-SL v1alpha4 语言规范](docs/skill-language-spec.v1alpha4.zh-CN.md)
+- [当前 CA-SL v1alpha5 语言规范](docs/skill-language-spec.md)
+- [历史 CA-SL v1alpha4 语言规范](docs/skill-language-spec.v1alpha4.zh-CN.md)
 - [Script 契约 v0](docs/script-contract.md)
 - [Schema 所有权](docs/schema-ownership.md)
 - [Authoring Model](docs/authoring-model.md)
@@ -43,6 +48,6 @@ Compiler **不**负责获取或管理依赖、不连接 Git/Upload/MCP、不维�
 - [ca-skill-compiler PR #3](https://github.com/odango-chan/ca-skill-compiler/pull/3)：v0 Closeout 已准备 Review；完整 v0 实现仍为 PARTIAL。
 - [ca-skill-compiler PR #4](https://github.com/odango-chan/ca-skill-compiler/pull/4)：已收敛为仅 Compiler 的 v0.1 设计，尚未实施。
 
-`make verify` 执行旧源码卫生检查和 v1alpha4 规范文档结构 lint/负例回归，不调用旧 Toolchain，也不代表 Compiler/Runtime/Owner 验收通过。
+`make verify` 检查源码、v1alpha4 继承基线、v1alpha5 规范和诊断索引，以及 Wait 和 Ingress 登记表。Compiler、Runtime 和 Owner 另行验收。
 
 `skills/` 下其他历史 Skill 保持原样，不属于当前 5GC 语法基线。

@@ -6,7 +6,7 @@
 
 ## Normative identity
 
-- **Complete normative source:** `docs/skill-language-spec.v1alpha5.zh-CN.md`
+- **Complete normative source:** [`docs/skill-language-spec.v1alpha5.zh-CN.md`](https://github.com/odango-chan/ca-skills/blob/0abfd0e1ab99f481a4ae01f3f47efc54783dd5e5/docs/skill-language-spec.v1alpha5.zh-CN.md)
 - **Immutable normative commit:** `0abfd0e1ab99f481a4ae01f3f47efc54783dd5e5`
 - **Publication PR:** [ca-skills #66](https://github.com/odango-chan/ca-skills/pull/66)
 - **Merge commit:** `0abfd0e1ab99f481a4ae01f3f47efc54783dd5e5`
@@ -17,7 +17,7 @@ The normative source is the complete single file at the commit above, including 
 
 - **IngressCatalog:** `connectionagent.io/ingresscatalog/v1alpha1`
 - **Diagnostic registry:** `connectionagent.io/ingress-diagnostics/v1alpha1`
-- **Companion contract:** `docs/design/integration-ingress-operation-contract-vnext.zh-CN.md`
+- **Companion contract:** [`docs/design/integration-ingress-operation-contract-vnext.zh-CN.md`](https://github.com/odango-chan/ca-skills/blob/9412be9894ef36acf846c757a5870dc0c48b33ac/docs/design/integration-ingress-operation-contract-vnext.zh-CN.md)
 - **Diagnostic registry:** `docs/design/ingress-diagnostic-registry-v1alpha1.md` and `docs/design/ingress-diagnostic-registry-v1alpha1.json`
 - **Immutable companion release commit:** `9412be9894ef36acf846c757a5870dc0c48b33ac`
 - **Publication PR:** [ca-skills #62](https://github.com/odango-chan/ca-skills/pull/62)
@@ -35,6 +35,10 @@ Appendix H.1 composes the ten Ingress diagnostic identities into the CA-SL v1alp
 - **Ingress Source Hygiene:** PASS — [run 44103361387](https://github.com/odango-chan/ca-skills/actions/runs/44103361387)
 
 The repository checks validate source hygiene, normative document structure and registry integrity. They are not Compiler, Studio/LSP, Host, Runtime, Integration Adapter, Owner or live 5GC product-conformance tests.
+
+## Editorial erratum
+
+In the §L.2.4 authoring example, the `prepare-step17-response` Observation's `OUTCOME_UNKNOWN: UNRESOLVED` route should read `UNKNOWN: UNRESOLVED`. Section 22.1 defines `UNKNOWN` for READ Operations and Observations and reserves `OUTCOME_UNKNOWN` for Mutation Operations. The published specification is identified by the same immutable commit above.
 
 ## Compatibility and qualification
 
