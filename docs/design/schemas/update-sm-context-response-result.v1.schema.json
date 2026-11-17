@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:example:response-result:update-sm-context:v1",
   "title": "Typed Step 17 UpdateSMContext response result",
-  "description": "Internal typed Producer output for the TS 23.502 V19.5.0 Step 15–17 reference flow. It distinguishes N2 user-plane resource setup failure (N4 Release before Step 17) from required User Plane Enforcement Policy failure (Step 16 skipped without that pre-response Release). Step 18 cleanup occurs after the Step 17 response boundary and is intentionally not part of this DTO. Only mapped SmContextUpdatedData fields are serialized on the wire.",
+  "description": "Internal typed Producer output for the TS 23.502 V19.5.0 Step 15–17 reference flow. It distinguishes N2 user-plane resource setup failure (N4 Release before Step 17) from required User Plane Enforcement Policy failure (Step 16 skipped without that pre-response Release). Step 18 cleanup occurs after the Step 17 response boundary and is intentionally not part of this DTO. Only mapped SmContextUpdatedData fields are serialized on the wire. On the successful establishment branch, an N1 SM Reject is forbidden; when an N2 response binary is present its N2SmInfoType is PDU_RES_SETUP_RSP.",
   "type": "object",
   "additionalProperties": false,
   "required": [
