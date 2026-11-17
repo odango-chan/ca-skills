@@ -195,7 +195,7 @@ request 必须声明：
 - normalizedSchemaRef 和 normalizedSchemaDigest：唯一的 Skill-facing normalized request Schema；
 - normalization：确定性归一化实现身份、摘要及可审计的 source-to-normalized mapping。
 
-源 Schema 必须与 pinned OpenAPI artifact 中的 Request Body / multipart part 声明一致。若 OpenAPI 使用组合或引用，Compiler 必须按受支持的 Schema 规则解析闭包，不得仅凭 Schema 名称匹配。
+源 Schema 必须与 pinned OpenAPI artifact 中的 Request Body / multipart part 声明一致。Integration Adapter 按该精确 OpenAPI artifact 的方言验证 wire request；Compiler 验证源 Schema 引用及其 artifact/digest 归属，但不要求完整 OpenAPI Schema 方言落入 CA-SL 的 JSON Schema 子集，也不在 Compiler 中执行协议 wire validation。normalizedSchemaRef 才是 Compiler 用于 wait.output 路径、类型赋值和 CA-SL 静态分析的 Schema，必须符合 CA-SL 支持的 JSON Schema Draft 2020-12 子集。
 
 ### 4.4 归一化规则
 
@@ -295,7 +295,7 @@ Integration export 必须声明它支持的 Wait arming 模式。
 
 **A. 由入口 Invocation Context 启动**
 
-适用于 Wait-bearing Node 本身就是 Procedure start 的场景。Export 声明允许 start arming，并为每个 correlation key 字段指定一个 Invocation Context JSON Pointer，以及 correlation.armInputSchemaRef 中对应的 bindingPath。
+适用于 Wait-bearing Node 本身就是 Procedure start 的场景。Export 声明允许 start arming，并为每个 correlation key 字段指定一个 Invocation Context JSON Pointer，以及 correlation.armInputSchemaRef 中对应的 bindingPath。arming.start.bindings[] 的每项包含 requestKey、bindingPath 和 source；source.kind 固定为 invocation-context，source.path 为 Context JSON Pointer。
 
 Compiler 必须验证该路径由 Skill 已声明的 Host Context Schema 或 Request Schema 提供，类型与 correlation key 兼容，并可赋值给 armInputSchemaRef 对应字段。Runtime 在 Node 激活之前从已准入 Context 物化绑定并注册。
 
@@ -308,7 +308,7 @@ Compiler 必须验证该路径由 Skill 已声明的 Host Context Schema 或 Req
 - kind = operation；
 - 精确 Operation ID；
 - 该 Operation 的 Input Schema 身份（由 Compiler 从精确 ToolCatalog export 解析，不在 IngressCatalog 中复制）；
-- 将 correlation key 映射到 Operation arguments JSON Pointer 和 correlation.armInputSchemaRef bindingPath 的绑定规则。
+- 将 correlation key 映射到 Operation arguments JSON Pointer 和 correlation.armInputSchemaRef bindingPath 的绑定规则。arming.triggers[].bindings[] 的每项包含 requestKey、bindingPath 和 source；source.kind 固定为 operation-argument，source.path 为该 Operation 已物化 arguments 的 JSON Pointer。
 
 触发 Operation 必须来自 Skill 已声明的可信依赖快照。Observation、Predicate、Script、Capability ID、Tool display name 或网络地址不能充当 triggering Operation identity。
 
@@ -351,7 +351,7 @@ Integration 必须证明一个经过认证、验证和归一化的请求最多�
 
 ### 7.2 Wire discriminator
 
-若协议提供 request ID、transaction ID、generation 或其他可验证 discriminator，Integration 必须校验其作用域、唯一性和生命周期，并将其纳入 correlation。只在 Host/Runtime 内生成的 generation counter 不能区分外部迟到请求，除非该 generation 也能由入站协议请求可靠证明。
+若协议提供 request ID、transaction ID、generation 或其他可验证 discriminator，Ingress export 的 staleDelivery 必须声明 strategy=wire-discriminator 和 normalized request 中的精确 discriminatorPath；该路径必须是 normalized Schema 中可验证的字段，并纳入 correlation。Integration 必须校验其作用域、唯一性和生命周期。只在 Host/Runtime 内生成的 generation counter 不能区分外部迟到请求，除非该 generation 也能由入站协议请求可靠证明。
 
 ### 7.3 无 Wire discriminator 时的 Single-flight
 
@@ -410,7 +410,7 @@ body-bearing paired response 必须声明：
 - 确定性、版本化的 response mapping artifact 及摘要；
 - required response fields 的完整映射。
 
-Compiler 必须验证 boundary Producer Output 对 responseResultSchema 的可赋值性，并验证 response mapping 所需字段与协议响应 Schema 一致。映射由 Integration 拥有，不由 Skill 重复声明。
+Compiler 必须验证 boundary Producer Output 对 responseResultSchema 的可赋值性，并验证 response mapping 所需字段与协议响应 Schema 一致。responseResultSchema 必须符合 CA-SL 支持的 JSON Schema 子集；协议 responseSchemaRef 则按 pinned OpenAPI artifact 验证，由 Integration Adapter 负责实际 wire response validation。映射由 Integration 拥有，不由 Skill 重复声明。
 
 bodyless paired response 必须明确声明 bodyless response disposition，且不得声明 result Producer。若协议要求响应体，则不得以空 Body 或 Runtime Trace 代替。
 
@@ -419,7 +419,6 @@ bodyless paired response 必须明确声明 bodyless response disposition，且�
 Integration export 必须定义：
 
 - 正常 response boundary 的响应状态、media type 和 Schema，以及 typed response result 到协议响应的映射；该映射表达协议响应，不代表 Skill Goal 已 PASS；
-- 若 boundary Producer 已成功产生 typed result，即使后续 Postcondition 的业务判定未通过，Integration 仍按该 typed result 和协议映射处理响应；
 - 在响应 Producer 尚未产生可用结果前，Run 提前以 FAILED、UNRESOLVED 或 SAFE_STOPPED 结束时的显式 failure response mapping；
 - response deadline 的来源与到期处置；
 - response obligation 的持久化、重放、重复响应和失去原传输通道后的恢复策略。
