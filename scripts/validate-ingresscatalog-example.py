@@ -287,6 +287,8 @@ def schema_children(schema: dict, dialect: str):
         child = schema[keyword]
         if dialect == "openapi-3.0" and keyword == "additionalProperties" and isinstance(child, bool):
             continue
+        if dialect == "openapi-3.0" and keyword == "items" and isinstance(child, list):
+            continue
         if not isinstance(child, dict):
             _resolver_error(f"boolean/non-object subschemas are unsupported at {keyword}")
         yield [keyword], child
