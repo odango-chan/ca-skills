@@ -199,8 +199,9 @@ nodes:
       routes:
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
-    # A complete Skill may add a post-Operation Observation here to produce
-    # the typed Step 17 response DTO; wait.response.after covers the whole Node.
+    # The abbreviated fragment omits the response-producing Observation.
+    # In the complete Skill it follows this Operation and routes success onward;
+    # wait.response.after covers the whole Node, including that Observation.
 
   verify-final-session:
     postcondition:
