@@ -468,145 +468,21 @@ def main(input: PredicateInput) -> PredicateEvaluationResult:
             self.assertIn((root / "scripts" / "check.py").resolve(), refs)
 
     def test_update_sm_context_resumes_same_invocation_and_reads_generic_smf_context(self) -> None:
+        source_skill = ROOT / "examples" / "skills" / "establish-pdu-session"
         with tempfile.TemporaryDirectory() as d:
             root = Path(d) / "establish-pdu-session"
-            (root / "assurance").mkdir(parents=True)
-            (root / "scripts").mkdir()
-            (root / "assurance" / "procedure.yaml").write_text("""start: get-sm-subscription-data
-nodes:
-  get-sm-subscription-data:
-    precondition:
-      predicates:
-        - predicate: establishment.request.supported
-          arguments:
-            - context.request.requestType
-    operation:
-      tool: ca::sbi.udm.sm_data.get
-    observation:
-      tool: ca-session-context::context.smf.session.read
-      arguments:
-        supi: context.supi
-        pduSessionId: context.request.pduSessionId
-    postcondition:
-      predicates:
-        - predicate: establishment.smf.session_context_absent
-          arguments:
-            - get-sm-subscription-data.observation.output
-      routes:
-        PASS: subscribe-sm-data
-        FAIL: SAFE_STOPPED
-        UNKNOWN: SAFE_STOPPED
-  transfer-n1n2-message:
-    operation:
-      tool: ca::sbi.amf.n1n2.transfer
-    postcondition:
-      predicates:
-        - predicate: establishment.amf.transfer_initiated
-          arguments:
-            - transfer-n1n2-message.operation.output
-      routes:
-        PASS: update-sm-context
-  update-sm-context:
-    operation:
-      tool: ssm::SSM.SIGNAL_UE_AN
-      arguments:
-        transferOperationRef: transfer-n1n2-message.operation.output.operationRef
-    observation:
-      tool: ca-session-context::context.smf.session.read
-      arguments:
-        supi: context.supi
-        pduSessionId: context.request.pduSessionId
-    postcondition:
-      predicates:
-        - predicate: establishment.ran.adopted
-          arguments:
-            - update-sm-context.operation.output
-        - predicate: establishment.smf.session_context_profile_ready
-          arguments:
-            - update-sm-context.observation.output
-      routes:
-        PASS: modify-n4-session
-  modify-n4-session:
-    operation:
-      tool: upn::UPN.MODIFY_UP_SESSION
-      arguments:
-        initialN4Result: establish-n4-session.operation.output
-        ranResult: update-sm-context.operation.output
-    postcondition:
-      predicates:
-        - predicate: establishment.n4.forwarding_ready
-          arguments:
-            - modify-n4-session.operation.output
-      routes:
-        PASS: ca-transfer-resource-responsibility
-  ca-transfer-failed-resource-responsibility:
-    operation:
-      tool: ca::ca.session.resource_responsibility.transfer
-      arguments:
-        disposition: "failed"
-      routes:
-        FAILED: SAFE_STOPPED
-        OUTCOME_UNKNOWN: SAFE_STOPPED
-        DENIED: SAFE_STOPPED
-    postcondition:
-      predicates:
-        - predicate: establishment.resources.managed
-          arguments:
-            - ca-transfer-failed-resource-responsibility.operation.output
-      routes:
-        PASS: FAILED
-        FAIL: SAFE_STOPPED
-        UNKNOWN: UNRESOLVED
-  verify-pdu-session-establishment:
-    postcondition:
-      predicates:
-        - predicate: establishment.ran.adopted
-          arguments:
-            - update-sm-context.operation.output
-        - predicate: establishment.n4.forwarding_ready
-          arguments:
-            - modify-n4-session.operation.output
-""", encoding="utf-8")
-            (root / "assurance" / "contract.yaml").write_text("""precondition: get-sm-subscription-data.precondition
-dependencies:
-  ca-session-context: urn:connectionagent:ca:host:smf-session-context
-capabilities:
-  - urn:example:connectionagent:capability:ca:smf-session-context-read:v1
-""", encoding="utf-8")
-            (root / "assurance" / "predicates.yaml").write_text("""predicates:
-  establishment.smf.session_context_absent:
-    parameters:
-      - sessionContext: ca-session-context::urn:connectionagent:ca:observation:smf-session-context-read-result:v1
-    evidence:
-      requires:
-        sessionContext: [ca-session-context::smf.session-context.read-evidence]
-    evaluator:
-      type: script
-      script: scripts/validate-smf-session-context-entry.py
-  establishment.smf.session_context_profile_ready:
-    parameters:
-      - sessionContext: ca-session-context::urn:connectionagent:ca:observation:smf-session-context-read-result:v1
-    evidence:
-      requires:
-        sessionContext: [ca-session-context::smf.session-context.read-evidence]
-    evaluator:
-      type: script
-      script: scripts/validate-smf-session-context.py
-""", encoding="utf-8")
-            for script_name in (
-                "validate-smf-session-context-entry.py",
-                "validate-smf-session-context.py",
+            for relative in (
+                "assurance/procedure.yaml",
+                "assurance/predicates.yaml",
+                "assurance/contract.yaml",
+                "SKILL.md",
+                "scripts/validate-smf-session-context-entry.py",
+                "scripts/validate-smf-session-context.py",
             ):
-                (root / "scripts" / script_name).write_text(
-                    (ROOT / "examples" / "skills" / "establish-pdu-session" / "scripts" / script_name).read_text(encoding="utf-8"),
-                    encoding="utf-8",
-                )
-            (root / "SKILL.md").write_text("""| `get-sm-subscription-data` | step 4 — `Nudm_SDM_Get` with co-located entry context Observation |
-| `establish-n4-session` | step 8 native SMF selection plus steps 10a–10b — N4 Session Establishment |
-| `update-sm-context` | step 15 — `Nsmf_PDUSession_UpdateSMContext Request` with co-located fresh context Observation |
-| `modify-n4-session` | steps 16a–16b — N4 Session Modification |
-Runtime resumes the same Invocation; Host returns the paired step 17 response.
-""", encoding="utf-8")
+                source = source_skill / relative
+                target = root / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
             errors: list[str] = []
             validate_async_update_sm_context_boundary(root, errors)
             self.assertEqual(errors, [])
@@ -746,9 +622,8 @@ capabilities:
             (root / "SKILL.md").write_text("## 3GPP Traceability\n", encoding="utf-8")
             errors: list[str] = []
             validate_async_update_sm_context_boundary(root, errors)
-            self.assertTrue(any("canonical update-sm-context" in e for e in errors), errors)
-            self.assertTrue(any("missing step-15 update-sm-context" in e for e in errors), errors)
-            self.assertTrue(any("Host ingress, lifecycle and transport response metadata" in e for e in errors), errors)
+            self.assertTrue(any("missing step-15 update-sm-context continuation Node" in e for e in errors), errors)
+            self.assertTrue(any("Host ingress, lifecycle and transport response metadata or Owner handles must remain private" in e for e in errors), errors)
 
 if __name__ == "__main__":
     unittest.main()
