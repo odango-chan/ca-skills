@@ -26,6 +26,21 @@ Before computing the digest, the trusted Schema resolver MUST resolve the exact 
 
 The resolver MUST follow every `$ref` reachable from the root Schema node, including references nested in properties, items, compositions and other Schema substructures supported by the source dialect. Every target MUST resolve to an artifact in the same explicitly declared trusted dependency closure. Network retrieval, floating URLs, undeclared files and resolver fallback are forbidden.
 
+### 2.1 Deterministic reference resolution
+
+Closure discovery is part of this algorithm's conformance, not an implementation-defined pre-step.
+
+- `artifactRef` is an opaque, exact identity assigned by the trusted dependency-snapshot resolver to one artifact in the immutable BuildRequest snapshot. It MUST be bound one-to-one to that artifact's normalized snapshot-relative path and canonical document URI by the same pinned dependency resolver used for trusted dependency linking. It MUST NOT be inferred from a filename, dependency alias, OpenAPI `operationId` or network URL. The path/URI binding MUST be covered by the trusted dependency snapshot and Owner binding used by the Build.
+- The root `schemaRef` MUST first resolve through the exact trusted Schema export binding to one `(artifactRef, pointer)`. No name search, fallback path, floating registry lookup or version negotiation is allowed.
+- For an OpenAPI 3.0 source Schema, a relative `$ref` is resolved as an RFC 3986 URI-reference against the canonical document URI of the containing OpenAPI artifact. For a JSON Schema Draft 2020-12 Schema, the effective base URI follows the dialect's `$id` rules, then RFC 3986 URI-reference resolution is applied. Any effective base URI / alias MUST resolve through the same immutable snapshot resolver; it MUST NOT trigger network retrieval.
+- After URI resolution, the document URI MUST map to exactly one `artifactRef` in the same trusted dependency closure. An unmapped or ambiguous URI, an attempt to escape the snapshot, or a target outside the declared closure is rejected.
+- A reference fragment MUST be empty (the target document root) or a JSON Pointer fragment. The resolver percent-decodes the URI fragment exactly once, validates RFC 6901 escaping, and canonicalizes it to `#` for the root or `#/` followed by canonical JSON Pointer tokens (`~` encoded as `~0`, then `/` encoded as `~1`). This canonical decoded pointer is the `pointer` value included in the digest manifest. Equivalent percent-encoded fragment spellings therefore identify the same Schema node.
+- Named anchors, `$anchor` references, `$dynamicRef`, `$dynamicAnchor` and `$recursiveRef` are not supported by Schema Closure Digest v1 and MUST fail closed. A future algorithm may add them under a new algorithm identifier.
+- The resolved pointer MUST identify a Schema node valid under the containing artifact's declared dialect. References to non-Schema OpenAPI objects or arbitrary non-Schema JSON values are rejected.
+
+The resolver's artifact-URI map and the source `$ref` strings are inputs to closure discovery, but are not additional fields in the JCS manifest. The manifest binds the resulting exact artifact identities, pointers, source artifact digests and parsed Schema values. The machine vector includes a separate resolution context to test this discovery step; that context is not hashed.
+
+
 Each distinct resolved Schema node is identified by the pair `(artifactRef, pointer)` and MUST appear exactly once in the closure. The root node MUST be included. Recursive/cyclic references are permitted in the graph and MUST be visited once per identity; they MUST NOT cause unbounded traversal.
 
 Each node's `schema` value is the exact parsed JSON-compatible object at that pointer. YAML/JSON parsing MUST reject duplicate mapping keys, non-string object keys, unsupported custom tags, non-finite numbers and values that cannot be represented as JSON. The original `$ref` strings remain unchanged in the node value; the corresponding resolved target node is also included in the closure.
@@ -84,5 +99,5 @@ A successful digest check does not establish that the Schema is valid for a prot
 
 ## 6. Golden vector
 
-The machine-readable vector is [schema-closure-digest-v1.vector.json](schemas/schema-closure-digest-v1.vector.json). It covers a root Schema that references a Schema in a second artifact. Implementations MUST produce the same digest when the input node list is supplied in a different order, and MUST produce a different digest when a referenced Schema node or its artifact identity changes.
+The machine-readable vector is [schema-closure-digest-v1.vector.json](schemas/schema-closure-digest-v1.vector.json). It covers a root Schema that references a Schema in a second artifact and includes the canonical artifact-URI map / reference-resolution expectation. Implementations MUST prove that the relative `$ref` resolves to the exact target `(artifactRef, pointer)` in the closure, produce the same digest when the input node list is supplied in a different order, and produce a different digest when a referenced Schema node or its artifact identity changes. The resolution context is test input only and is not part of the JCS digest manifest.
 
