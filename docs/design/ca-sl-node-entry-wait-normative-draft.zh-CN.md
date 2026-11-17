@@ -64,7 +64,7 @@ NonEmptyExactString is a non-empty YAML string compared exactly, including case 
 
 event.source is the canonical authenticated peer NF type. event.service is the 3GPP service name. event.operation is the 3GPP service-operation name. For example, UpdateSMContext is the service-operation spelling; an OpenAPI operationId such as UpdateSmContext is a distinct artifact field and MUST NOT be substituted for it.
 
-The event mapping MUST contain exactly source, service and operation. response, when present, MUST contain only after. routes MUST contain exactly one key, TIMEOUT. Unknown keys are rejected by the normal unknown-field rule. Missing required fields, wrong field types, empty selector strings or malformed Wait object shapes are rejected as WAIT_DECLARATION_INVALID.
+The event mapping MUST contain exactly source, service and operation. response, when present, MUST contain only after. routes MUST contain exactly one key, TIMEOUT. Unknown structural fields are rejected by the normal unknown-field rule; a route key other than TIMEOUT is rejected as WAIT_TIMEOUT_ROUTE_INVALID. Missing required event/response fields, an invalid selector/response object shape or empty selector strings are rejected as WAIT_DECLARATION_INVALID. A timeout that is not a YAML string or does not match the duration grammar is rejected as WAIT_TIMEOUT_INVALID.
 
 A Node containing wait MUST also declare at least one of the four existing business stages. wait does not count as a business stage. A Wait-only Node is invalid. The order of execution remains:
 
@@ -114,7 +114,7 @@ Its value MUST be either:
 
 SUCCEEDED is forbidden. A timeout cannot prove the business Goal. The timeout branch MAY enter ordinary business Nodes to inspect or safely handle state, but the Invocation can become SUCCEEDED only through the existing final Postcondition aggregate PASS edge directly targeting SUCCEEDED.
 
-No other Wait route key is permitted. Missing TIMEOUT, an extra key, a terminal target other than the three permitted stopping terminals, or a dangling Node target is rejected as WAIT_TIMEOUT_ROUTE_INVALID. The Wait route does not extend the §22 Stage Outcome set.
+No other Wait route key is permitted. Missing TIMEOUT, an extra route key, a non-Node/non-terminal value or a terminal target other than the three permitted stopping terminals is rejected as WAIT_TIMEOUT_ROUTE_INVALID. A value that is a syntactically valid NodeId but does not identify a declared Node is rejected by the existing CONTROL_FLOW_DANGLING diagnostic. The Wait route does not extend the §22 Stage Outcome set.
 
 ### 2.3 Wait output
 
@@ -545,7 +545,7 @@ The following are proposed future-revision diagnostics. They do not alter the v1
 | WAIT_INGRESS_EXPORT_NOT_FOUND | No exact trusted Ingress Operation export matches the selector in declared dependency snapshots |
 | WAIT_INGRESS_EXPORT_AMBIGUOUS | More than one trusted Ingress Operation export matches the selector |
 | WAIT_CORRELATION_BINDING_INVALID | Correlation cannot be derived before the trigger; matching is not unique; generation/stale-delivery safety cannot be proven; an incoming path is not covered |
-| WAIT_TIMEOUT_ROUTE_INVALID | TIMEOUT is missing, an extra Wait route key is present, or its target is not a declared Node / permitted stopping terminal |
+| WAIT_TIMEOUT_ROUTE_INVALID | TIMEOUT is missing, an extra Wait route key is present, the target is not a NodeId or permitted stopping terminal, or a forbidden terminal is selected; an undeclared NodeId uses CONTROL_FLOW_DANGLING |
 | WAIT_NODE_STAGE_REQUIRED | Wait-bearing Node declares none of the four business stages |
 | WAIT_RESPONSE_BOUNDARY_INVALID | response.after is unknown/unreachable, a normal accepted path bypasses it, a success terminal occurs before it, or the export-required later boundary is omitted |
 | WAIT_RESPONSE_MAPPING_INVALID | A body-bearing response has no valid typed Producer source/mapping, or the mapped output is not assignable to the response input Schema |
@@ -555,9 +555,9 @@ Existing diagnostics are reused for existing categories:
 - malformed YAML and duplicate keys: YAML_PARSE_ERROR;
 - unknown fields: UNKNOWN_FIELD;
 - malformed Node/route graph and cycles: existing CONTROL_FLOW_DANGLING, CONTROL_FLOW_CYCLE and applicable graph diagnostics;
-- undeclared Wait output property: SOURCE_PATH_INVALID;
+- undeclared Wait output or response-result Producer property: SOURCE_PATH_INVALID;
 - Wait output unavailable on a path: SOURCE_NOT_AVAILABLE;
-- ordinary Producer/Consumer type mismatch: INPUT_TYPE_MISMATCH or the applicable existing type diagnostic;
+- ordinary Producer/Consumer type mismatch, including response-result Schema incompatibility: INPUT_TYPE_MISMATCH or the applicable existing type diagnostic;
 - invalid dependency identity, Owner identity or Schema: the existing dependency/Schema diagnostics.
 
 WAIT_TIMEOUT is a control outcome, not a diagnostic. EVENT_RECEIVED is an implicit control edge, not an Outcome or diagnostic. Event arrival MUST NOT be represented by PASS, SUCCEEDED, UNKNOWN, FAILED or OUTCOME_UNKNOWN.
