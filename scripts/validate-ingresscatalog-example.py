@@ -1008,6 +1008,14 @@ def validate_step15_failure_response_schema() -> None:
     invalid_cases.append(("successful N2 setup requires N4 Session Modification", invalid))
 
     invalid = copy.deepcopy(valid_success_multipart)
+    invalid["n1SmMessage"] = n1_reference
+    invalid_cases.append(("successful Step 17 response cannot also carry an N1 SM Reject", invalid))
+
+    invalid = copy.deepcopy(valid_success_multipart)
+    invalid["n2SmInfoType"] = "PDU_RES_SETUP_FAIL"
+    invalid_cases.append(("successful PDU Session establishment requires PDU_RES_SETUP_RSP", invalid))
+
+    invalid = copy.deepcopy(valid_success_multipart)
     del invalid["n2SmInfoType"]
     invalid_cases.append(("N2 binary response requires n2SmInfoType", invalid))
 
