@@ -10,6 +10,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+TS_23_502_BASELINE = "TS 23.502 V19.9.0"
+
 NODE = re.compile(r"^  ([A-Za-z][A-Za-z0-9_-]*):\s*$")
 SCRIPT = re.compile(r"^      script:\s+(\S+)\s*$")
 ARGUMENT = re.compile(r"^        ([A-Za-z][A-Za-z0-9_]*):\s*(\S.*)\s*$")
@@ -156,12 +158,15 @@ def validate_3gpp_traceability(skill: Path, errors: list[str]) -> None:
         elif not any(tag in previous for tag in
                      ("3GPP_NATIVE", "3GPP_LOCAL", "CA_ADAPTER", "CA_EXTENSION")):
             errors.append(f"{skill.name}/{node}: mapping comment lacks a valid classification")
+        elif re.search(r"\b(?:steps?)\s*\d|Nudm_|Npcf_|Namf_|Nsmf_|N4 Session", previous, flags=re.IGNORECASE):
+            if TS_23_502_BASELINE not in previous:
+                errors.append(f"{skill.name}/{node}: 3GPP step/API mapping comment must pin {TS_23_502_BASELINE}")
 
     doc = skill_doc.read_text(encoding="utf-8")
     if "## 3GPP Traceability" not in doc:
         errors.append(f"{skill.name}: missing '## 3GPP Traceability' table")
         return
-    if "TS 23.502 V18.12.0" not in doc:
+    if TS_23_502_BASELINE not in doc:
         errors.append(f"{skill.name}: 3GPP reference version is not pinned")
     documented = set(re.findall(r"^\|\s*\x60([A-Za-z][A-Za-z0-9_-]*)\x60\s*\|",
                                 doc, flags=re.MULTILINE))
