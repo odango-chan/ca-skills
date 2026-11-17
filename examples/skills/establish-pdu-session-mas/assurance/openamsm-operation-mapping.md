@@ -10,6 +10,26 @@
 - OES dispatch: `upstream/openamsm/src/smf/mas/common/mas-facade.c`
 - OES plan identity: `wf-certified-pdu-est-policy-first-v1`, MAS capability `sm-mas-ops/3.2`, OES DSL `1.3`
 
+## 3GPP reference baseline
+
+The MAS-to-3GPP comparisons in this mapping use the following independently pinned Release 19 references, checked on 2026-11-17:
+
+| Specification | Version | Relevant mapping |
+|---|---|---|
+| TS 23.501 | V19.9.0 | SMF/UPF selection, SSC and session-address allocation |
+| TS 23.502 | V19.9.0 | §4.3.2.2.1 PDU Session Establishment; §4.4.1.2–§4.4.1.3 N4 procedures |
+| TS 23.503 | V19.8.0 | PCC and SM Policy framework |
+| TS 29.502 | V19.8.0 | Nsmf CreateSMContext / UpdateSMContext API; OpenAPI Annex A.2 |
+| TS 29.503 | V19.7.0 | UDM SDM / UECM APIs; OpenAPI Annex A.2 / A.3 |
+| TS 29.512 | V19.6.0 | Npcf_SMPolicyControl API; OpenAPI Annex A.2 |
+| TS 29.518 | V19.8.0 | Namf_Communication API; OpenAPI Annex A.2 |
+| TS 29.244 | V19.6.0 | PFCP/N4 protocol |
+
+The version numbers are per-specification pins, not one common Release 19 version. These references classify the standard interactions that the MAS OES source resembles; they do not turn the MAS plan into a normative 3GPP procedure or qualify its candidate callable identities. In particular, the MAS early UECM registration remains an explicit ordering deviation from conventional TS 23.502 V19.9.0 §4.3.2.2.1 step 16c.
+
+Primary ETSI documents: [TS 23.502 V19.9.0](https://www.etsi.org/deliver/etsi_ts/123500_123599/123502/19.09.00_60/ts_123502v190900p.pdf), [TS 29.503 V19.7.0](https://www.etsi.org/deliver/etsi_ts/129500_129599/129503/19.07.00_60/ts_129503v190700p.pdf), [TS 29.512 V19.6.0](https://www.etsi.org/deliver/etsi_ts/129500_129599/129512/19.06.00_60/ts_129512v190600p.pdf), and [TS 29.244 V19.6.0](https://www.etsi.org/deliver/etsi_ts/129200_129299/129244/19.06.00_60/ts_129244v190600p.pdf).
+
+
 The Skill uses source-derived candidate callable IDs such as `mas::SC.VALIDATE_SUBSCRIPTION`. These are **not** trusted ToolCatalog exports. The `mas` dependency is an `urn:example:` placeholder, so Compiler linking must fail closed until the actual Owner publishes exact callable IDs, Effects, input/output Schemas, outcomes and Evidence.
 
 ## Input and identity binding
@@ -47,7 +67,7 @@ Therefore, the Skill's `ue_identity` is source-aligned with the plan's `ue_ident
 | s1 | SC / `VALIDATE_SUBSCRIPTION` | `sub_summary` | Calls the SMF UDM SDM Get path and marks the SC subscription state validated. The current source writes summary `"ok"`; this is a CA adapter around UDM, not a separately published 3GPP callable. |
 | s2 | SAA / `SECONDARY_AUTH` (optional) | `phase` | Plan hard-codes `required='0'`; source returns `SKIPPED`. This does not perform or dynamically decide secondary authentication. Auth-required profiles are out of scope and the legacy case 06 is not covered by this plan. |
 | s3 | SC / `CREATE_SM_CONTEXT` | `session_keys`, `lifecycle`, `sm_context_ref` | Creates/binds the SMF context and sends the early CreateSMContext response when a stream is supplied. `lifecycle` becomes `OPERATIONAL`. The step-5 response is early, not final session success. `sm_context_ref` is an internal source reference and must not be exposed as a 3GPP Location or Host correlation ID. |
-| s3r | SC / `REGISTER_UECM` | `uecm_registered` | Performs UDM UECM registration. The MAS plan places it before PCF/N4, earlier than the conventional TS 23.502 step-16c position; this is an explicit MAS ordering deviation. |
+| s3r | SC / `REGISTER_UECM` | `uecm_registered` | Performs UDM UECM registration. The MAS plan places it before PCF/N4, earlier than the conventional TS 23.502 V19.9.0 §4.3.2.2.1 step 16c position; this is an explicit MAS ordering deviation. |
 | s3p | PA / `CREATE_SM_POLICY` | `up_intent`, `authorized_qos`, `policy_assoc_id` | Performs PCF association creation/binding. The adapter output must be backed by the real PCF result; source fallback `policy_assoc_id="bound"` is not a usable association identity. |
 | s4 | UPS / `DECIDE_ANCHOR` | `up_anchor` | Selects the PFCP node internally. Output is a `"1"/"0"` decision marker, not an anchor identifier. |
 | s5 | IAM / `ALLOCATE_ADDRESS` | `ue_addr` | With `LOCAL_POOL`, allocates on the SMF session. Output is a `"1"/"0"` allocation marker, not the UE IP address. The actual address stays in SMF session state for UPN/SSM. |
@@ -57,7 +77,7 @@ Therefore, the Skill's `ue_identity` is source-aligned with the plan's `ue_ident
 | s9 | IAM / `CONFIRM_ADDRESS` (optional) | `ue_addr` | Needed for `allocator=UPF` after PFCP establishment. The current Skill fixes `LOCAL_POOL`, so this optional operation is omitted. |
 | s10 | SSM / `SIGNAL_UE_AN` | `an_tunnel_teid`, `an_tunnel_ip`, `an_tunnel` | Sends the N1/N2 establishment transfer and remains pending for the exact access-network result/F-TEID. Host correlates the later step-15 UpdateSMContext request to this pending Owner Operation; Runtime resumes the same Invocation. |
 | s11 | UPN / `MODIFY_UP_SESSION` | `n3_synced` | Performs the separate N4 Session Modification using the returned RAN F-TEID. This is distinct from initial N4 establishment. |
-| s13 | SE / `EMIT_EVENTS` | `last_event` | Records a local MAS event and returns presence marker `"1"`. It is not proof that TS 23.502 step-18 SM Context Status Notify was sent. |
+| s13 | SE / `EMIT_EVENTS` | `last_event` | Records a local MAS event and returns presence marker `"1"`. It is not proof that TS 23.502 V19.9.0 §4.3.2.2.1 step 18 SM Context Status Notify was sent. |
 | s14 | SC / `COMPENSATE_RELEASE` | none | The NW plan marks this step `execute: skip` and configures `compensate_then_replan_once`. The source operation exists, but CA-SL must not copy automatic replan or author a compensation Node. It may be used only through a trusted Host/Owner `mutation.reconcile` contract for the exact original mutation. |
 
 ## Corrections applied to the Skill source
@@ -74,7 +94,7 @@ Therefore, the Skill's `ue_identity` is source-aligned with the plan's `ue_ident
 
 ## 3GPP and lifecycle deviations
 
-- UECM registration occurs at s3r before PCF and N4, unlike the conventional TS 23.502 step-16c placement.
+- UECM registration occurs at s3r before PCF and N4, unlike the conventional TS 23.502 V19.9.0 §4.3.2.2.1 step 16c placement.
 - The SAA step is always skipped by the current plan input. The six-case legacy suite's secondary-auth-required case is not covered.
 - Charging is currently stubbed. No full happy-path qualification is possible until real charging behavior and Evidence are supplied or the business Owner approves a different profile.
 - The event record is local MAS state. Do not claim it is step 18.
