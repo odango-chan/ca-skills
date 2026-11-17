@@ -369,12 +369,16 @@ Integration 必须证明一个经过认证、验证和归一化的请求最多�
 如果协议没有可区分连续 Wait occurrence 的 on-wire discriminator，Integration 必须证明等价的 single-flight + stale-delivery/tombstone 策略：
 
 - 对相同 correlation resource key，同一时刻最多允许一个有效 Wait occurrence；
-- Wait timeout、cancel 或 invalidation 后，该 key 必须进入 tombstone/quarantine；
+- 每个 Wait occurrence 无论以 EVENT_ACCEPTED、TIMEOUT、CANCELLED 还是 INVALIDATED 结束，该 key 都必须进入 tombstone/quarantine；
 - export 必须声明 maximumLateArrival、clockSkewAllowance 和 tombstoneRetention 三个固定时长；
 - tombstoneRetention MUST NOT 小于 maximumLateArrival + clockSkewAllowance；
 - 在 tombstoneRetention 到期前，不得为相同 key 建立下一 Wait；
 - maximumLateArrival 与 clockSkewAllowance 的依据必须由可审计的协议或部署保证支持，不得由 Skill 作者随意声明；
 - maximumLateArrival 使用 CA-SL 固定正时长的同一词法子集；若无法证明有限的迟到窗口，则不得复用该 key；Compiler/Admission 必须 fail-closed。
+
+当一个有效请求首次匹配到 armed expectedIngressRef 并被 Integration 持久接受时，Integration 必须原子地消费该 correlation resource key 并立即启动 tombstone；不得等 Runtime 消费事件、业务 Node 完成或 paired response 交付后才启动。这样同一请求的重试/副本不能落入下一 Wait。若 Wait 在没有匹配请求的情况下因 TIMEOUT、CANCELLED 或 INVALIDATED 关闭，则在该关闭状态提交时启动 tombstone。tombstone 到期前到达的请求必须作为旧请求副本/迟到请求处理，不得匹配新 Wait。
+
+如果协议允许同一 resource key 在 tombstone 窗口内出现合法的下一条独立请求，而又没有可验证的 wire discriminator，则 single-flight-tombstone 策略不适用于该接口；Compiler/Admission 必须拒绝该绑定，要求更强的 wire discriminator 或其他协议级可验证区分依据。
 
 不得只用 Runtime 内部 generation counter、expectedIngressRef 随机性或数据库行版本声称解决外部消息的迟到歧义。
 
@@ -439,12 +443,14 @@ Integration export 必须定义：
 
 - response.dispositions[] 中每个允许的响应状态、body 模式、media type 和 Schema，以及 typed response result 到所选 disposition/Body 的映射；disposition id 和 HTTP status 在该 Ingress export 内必须唯一；该映射表达协议响应，不代表 Skill Goal 已 PASS；
 - 在响应 Producer 尚未产生可用结果前，Run 提前以 FAILED、UNRESOLVED 或 SAFE_STOPPED 结束时的显式 failure response mapping；
-- response deadline 的来源与到期处置；
+- response deadline 的来源、起算点、时钟语义与到期处置；
 - response obligation 的持久化、重放、重复响应和失去原传输通道后的恢复策略。
 
 早期失败响应可以是协议允许的 bodyless response，或由 Integration Package 内不可变的 responseRef 定义、并经过协议 Schema 校验的固定错误响应。responseRef 必须绑定精确 status、media type、response Schema 和固定错误 Body；不得从任意 Run summary、Host 私有字段或未类型化历史输出拼接失败 Body。
 
-入站请求被接受后，协议响应 deadline 与 Wait 的 pre-event timeout 是两个独立期限。响应 deadline 到期不得被重标为 CA-SL Wait 的 TIMEOUT Outcome。Integration 执行协议规定的失败响应策略；Runtime 保留已接受事件的 checkpoint 和未解决的业务/资源责任。任何 Run cancellation 均使用既有全局 cancellation 语义。
+paired 模式的 deadlinePolicyRef 必须解析到受信部署策略，明确有限响应期限、起算事件、时钟基准和允许的最大时钟偏差。默认起算事件是 Integration 首次收到完整且最终被接受的有效 wire request 的时刻；若协议规定更早的起算点，则必须采用协议规定的起算点。Integration 在持久接受 delivery 时计算绝对 responseDeadline，并随 delivery 提交给 Host。Runtime 后续的 EVENT_ACCEPTED 不得重置或延长该期限；事件在 Node 激活前被缓冲时，期限仍持续流逝。
+
+responseDeadline 与 Wait 的 pre-event timeout 是两个独立期限。Host 必须持久保存并原样转交 responseDeadline；Runtime 可以将其作为通用处理上界，但不得将其转换为 CA-SL TIMEOUT Outcome 或作者可路由的 Stage Outcome。Integration 是协议响应是否逾期及如何失败/恢复的最终权威。响应 deadline 到期时，Integration 执行协议规定的失败响应策略；Runtime 保留已接受事件的 checkpoint 和未解决的业务/资源责任。任何 Run cancellation 均使用既有全局 cancellation 语义。
 
 ### 8.5 响应交付和恢复
 
@@ -493,20 +499,21 @@ Host -> Runtime:
     deliveryRef,
     expectedIngressRef,
     ingressContractRef,
-    normalizedPayloadRef
+    normalizedPayloadRef,
+    responseDeadline?
   )
 
 Runtime -> Host:
   ResponseBoundaryCommitted(
     expectedIngressRef,
     ingressContractRef,
-    typedResponseResultRef?
+    responseResultRef?
   )
 ~~~
 
 Host 对 expectedIngressRef、ingressContractRef 和 Integration 私有 response obligation 做不透明转交和持久关联；Host 不解释协议 correlation。Integration 不接收 runId 或 waitOccurrenceRef。
 
-responseObligationRef 当且仅当 Ingress export 声明 paired response 时提供。typedResponseResultRef 仅在 body-bearing response 需要 typed Producer result 时提供；bodyless response 可省略。
+responseObligationRef 当且仅当 Ingress export 声明 paired response 时提供；paired 模式下 responseDeadline 必须提供，并且在 Host → Runtime 的 delivery envelope 中原样转交。responseResultRef 当且仅当需要 typed Producer result 时提供：至少一个 disposition 为 body: required，或存在多个必须选择的 disposition；仅单一固定 body: none disposition 可以省略。responseResultRef 指向精确 boundary Producer output 的不可变、受保护 typed value；Host 不解释内容，Integration 只能通过授权的结果读取接口访问。
 
 ### 9.2 可靠性语义
 
@@ -813,6 +820,7 @@ spec:
 | IN-038 | 同一资源的旧 Wait 关闭后立即重新 armed，tombstone 尚未到期 | Integration 必须拒绝重新注册 |
 | IN-039 | acceptedMediaTypes 与 sourceSchemas 不一一对应 | Compiler/Integration 拒绝不完整协议契约 |
 | IN-040 | 同一 Ingress export 的 response disposition id 或 HTTP status 重复 | Compiler 拒绝歧义响应映射 |
+| IN-041 | EVENT_ACCEPTED 后同一 resource key 的旧请求副本在 tombstone 到期前到达，或尝试提前 arm 下一 Wait | Integration 必须返回既有重复处置或拒绝/隔离；不得将旧请求分配给下一 Wait |
 
 ## 15. 冻结与发布门槛
 
