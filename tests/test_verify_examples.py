@@ -57,7 +57,6 @@ CONSUMER_MATCHED = CONSUMER_CLOSED_MISMATCH.replace(
 
 class V1Alpha4ScriptTests(unittest.TestCase):
     def test_s_nssai_sd_uses_the_3gpp_hex_string_in_both_skills(self) -> None:
-    def test_s_nssai_sd_uses_the_3gpp_hex_string_in_both_skills(self) -> None:
         for skill in ("establish-pdu-session", "establish-pdu-session-mas"):
             schema = ROOT / "examples" / "skills" / skill / "schemas" / "establishment-request.schema.yaml"
             source = schema.read_text(encoding="utf-8")
