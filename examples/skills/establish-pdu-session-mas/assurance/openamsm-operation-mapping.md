@@ -86,7 +86,7 @@ Therefore, the Skill's `ue_identity` is source-aligned with the plan's `ue_ident
 
 - Publish the exact MAS ToolCatalog and CapabilityContracts with the source-derived callable IDs, Effects, input/output Schemas, declared outcomes and Evidence Guarantees.
 - Publish typed Owner output Schemas for the exact fields in the table; do not copy Owner schemas into Skill-owned files.
-- Resolve the `sNssai.sd` integer-to-`s_nssai_sd` string representation at the Owner/Skill Schema boundary with a tested, lossless 24-bit mapping.
+- Publish and test the Owner's exact mapping from the six-hex-digit `sNssai.sd` string to OES `s_nssai_sd`, including the plan's empty-string default when SD is absent.
 - Replace every `urn:example:` Schema, ToolCatalog and Capability placeholder with trusted Owner exports.
 - Close the generic SMF context Observation's source-authority and temporal/freshness contract. v0.10 does not supply source timestamps; source inspection alone is not Owner publication.
 - Implement real charging or explicitly approve a profile that excludes charging; do not accept the current `NOT_IMPL_skip` marker.
