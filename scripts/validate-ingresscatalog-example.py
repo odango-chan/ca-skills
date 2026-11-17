@@ -6,6 +6,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import math
 import re
 import posixpath
 from urllib.parse import quote, urldefrag, unquote, urljoin, urlsplit, urlunsplit
@@ -265,7 +266,9 @@ def resolve_json_pointer(document, pointer: str):
 def schema_children(schema: dict, dialect: str):
     if dialect == "openapi-3.0":
         map_keywords = ("properties",)
-        single_keywords = ("items", "not")
+        # OpenAPI 3.0 Schema Object additionalProperties may itself be a
+        # Schema Object. Boolean additionalProperties remains a scalar rule.
+        single_keywords = ("items", "not", "additionalProperties")
         array_keywords = ("allOf", "anyOf", "oneOf")
     else:
         map_keywords = ("$defs", "properties", "patternProperties", "dependentSchemas")
@@ -442,6 +445,68 @@ def schema_nodes_for_document(document: dict, dialect: str) -> dict[str, dict]:
     return found
 
 
+class StrictSchemaArtifactLoader(yaml.SafeLoader):
+    """Safe YAML loader that rejects duplicate/non-string mapping keys."""
+
+
+def _construct_strict_mapping(loader, node, deep=False):
+    loader.flatten_mapping(node)
+    result = {}
+    for key_node, value_node in node.value:
+        key = loader.construct_object(key_node, deep=deep)
+        if not isinstance(key, str):
+            raise yaml.constructor.ConstructorError(
+                "while constructing a Schema artifact mapping",
+                node.start_mark,
+                f"mapping key must be a string, got {type(key).__name__}",
+                key_node.start_mark,
+            )
+        if key in result:
+            raise yaml.constructor.ConstructorError(
+                "while constructing a Schema artifact mapping",
+                node.start_mark,
+                f"duplicate mapping key {key!r}",
+                key_node.start_mark,
+            )
+        result[key] = loader.construct_object(value_node, deep=deep)
+    return result
+
+
+StrictSchemaArtifactLoader.add_constructor(
+    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+    _construct_strict_mapping,
+)
+
+
+def _assert_json_compatible(value, path="$") -> None:
+    if value is None or isinstance(value, (str, bool, int)):
+        return
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            _resolver_error(f"non-finite number is not JSON-compatible at {path}")
+        return
+    if isinstance(value, list):
+        for index, child in enumerate(value):
+            _assert_json_compatible(child, f"{path}/{index}")
+        return
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if not isinstance(key, str):
+                _resolver_error(f"non-string object key is not JSON-compatible at {path}")
+            _assert_json_compatible(child, f"{path}/{key}")
+        return
+    _resolver_error(f"unsupported non-JSON YAML value {type(value).__name__} at {path}")
+
+
+def _parse_schema_artifact(raw_artifact: str):
+    try:
+        parsed = yaml.load(raw_artifact, Loader=StrictSchemaArtifactLoader)
+    except yaml.YAMLError as exc:
+        _resolver_error(f"raw source bytes cannot be parsed strictly: {exc}")
+    _assert_json_compatible(parsed)
+    return parsed
+
+
 def validate_schema_closure_resolution(vector: dict) -> set[tuple[str, str]]:
     context = vector.get("resolutionContext")
     if not isinstance(context, dict):
@@ -489,9 +554,9 @@ def validate_schema_closure_resolution(vector: dict) -> set[tuple[str, str]]:
         if computed_digest != digest:
             _resolver_error(f"artifact {artifact} artifactDigest does not match its raw source bytes")
         try:
-            parsed_raw_artifact = yaml.safe_load(raw_artifact)
-        except yaml.YAMLError as exc:
-            _resolver_error(f"artifact {artifact} raw source bytes cannot be parsed: {exc}")
+            parsed_raw_artifact = _parse_schema_artifact(raw_artifact)
+        except SystemExit as exc:
+            _resolver_error(f"artifact {artifact}: {exc}")
         if parsed_raw_artifact != document:
             _resolver_error(f"artifact {artifact} parsed document is not derived from its exact raw source bytes")
         schema_nodes = schema_nodes_for_document(document, dialect)
@@ -664,6 +729,69 @@ def validate_schema_closure_resolution_vector(vector: dict) -> None:
     escaped_path = copy.deepcopy(vector)
     escaped_path["resolutionContext"]["documents"][2]["snapshotPath"] = "../shared.json"
     must_reject(escaped_path, "snapshot-relative path escape")
+
+    # OpenAPI 3.0 additionalProperties is Schema-valued when it is an
+    # object. Its transitive $ref must be part of the exact closure.
+    additional_properties_ref = copy.deepcopy(vector)
+    root_document = additional_properties_ref["resolutionContext"]["documents"][0]
+    root_schema = root_document["document"]["components"]["schemas"]["Request"]
+    root_schema.pop("properties")
+    root_schema.pop("required")
+    root_schema["additionalProperties"] = {"$ref": "common.yaml#/$defs/Context"}
+    root_document["rawArtifact"] = json.dumps(
+        root_document["document"], sort_keys=True, separators=(",", ":")
+    )
+    root_digest = "sha256:" + hashlib.sha256(
+        root_document["rawArtifact"].encode("utf-8")
+    ).hexdigest()
+    root_document["artifactDigest"] = root_digest
+    for node in additional_properties_ref["nodes"]:
+        if node["artifactRef"] == root_document["artifactRef"]:
+            node["artifactDigest"] = root_digest
+            if node["pointer"] == "#/components/schemas/Request":
+                node["schema"] = root_schema
+    additional_properties_ref["root"]["artifactDigest"] = root_digest
+    resolved_additional = validate_schema_closure_resolution(additional_properties_ref)
+    if resolved_additional != {
+        (node["artifactRef"], node["pointer"])
+        for node in additional_properties_ref["nodes"]
+    }:
+        _resolver_error("OpenAPI 3.0 additionalProperties reference was not included in the exact closure")
+    if schema_closure_digest(
+        additional_properties_ref["root"], additional_properties_ref["nodes"]
+    ) == vector["expectedDigest"]:
+        _resolver_error("additionalProperties reference did not affect the Schema Closure Digest")
+
+    # The resolver's actual parser must reject duplicate YAML keys even when
+    # the last value would otherwise reproduce the supplied parsed document.
+    duplicate_key = copy.deepcopy(vector)
+    duplicate_document = duplicate_key["resolutionContext"]["documents"][0]
+    duplicate_document["rawArtifact"] = duplicate_document["rawArtifact"].replace(
+        '"type":"object"', '"type":"object","type":"object"', 1
+    )
+    duplicate_digest = "sha256:" + hashlib.sha256(
+        duplicate_document["rawArtifact"].encode("utf-8")
+    ).hexdigest()
+    duplicate_document["artifactDigest"] = duplicate_digest
+    for node in duplicate_key["nodes"]:
+        if node["artifactRef"] == duplicate_document["artifactRef"]:
+            node["artifactDigest"] = duplicate_digest
+    duplicate_key["root"]["artifactDigest"] = duplicate_digest
+    must_reject(duplicate_key, "duplicate YAML mapping key in raw Schema artifact")
+
+    # JSON-compatible parsing rejects non-string keys and non-finite values.
+    try:
+        _assert_json_compatible({1: "not a JSON object key"})
+    except SystemExit:
+        pass
+    else:
+        _resolver_error("non-string YAML mapping key was accepted")
+    try:
+        _assert_json_compatible({"value": float("nan")})
+    except SystemExit:
+        pass
+    else:
+        _resolver_error("non-finite YAML number was accepted")
 
     nested_missing = copy.deepcopy(vector)
     nested_missing["resolutionContext"]["documents"][2]["document"]["$defs"]["Shared"]["properties"]["leaf"]["$ref"] = "#/$defs/Missing"
