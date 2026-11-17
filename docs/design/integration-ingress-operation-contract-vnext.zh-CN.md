@@ -195,9 +195,12 @@ OpenAPI artifact digest 必须覆盖被链接的 paths、operation、requestBody
 request 必须声明：
 
 - acceptedMediaTypes[]：精确允许的 wire media types；
+- maxBytes：单个 wire request body 的总字节上限，包含 multipart framing 和所有 parts；
 - sourceSchemas[]：每种请求媒体类型对应的源 Schema 身份及摘要；
 - normalizedSchemaRef 和 normalizedSchemaDigest：唯一的 Skill-facing normalized request Schema；
 - normalization：按每种 accepted media type 声明的确定性、内联、可静态检查的 source-to-normalized mapping。
+
+acceptedMediaTypes/sourceSchemas/normalization.representations 中的 mediaType 固定记录规范化后的 type/subtype essence（小写，不包含参数）。Integration 必须独立解析并校验 Content-Type parameters；例如 multipart/related 的 boundary 参数必须存在且符合受限长度/词法要求，参数不得被误认为另一种 media type。除 pinned OpenAPI/部署 profile 明确允许的参数外，未知参数必须拒绝。
 
 sourceSchemas 必须与 acceptedMediaTypes 一一对应：每个允许的 media type 恰有一个源 Schema，不得存在缺失或多余的源 Schema。源 Schema 必须与 pinned OpenAPI artifact 中的 Request Body / multipart part 声明一致。Integration Adapter 按该精确 OpenAPI artifact 的方言验证 wire request；Compiler 验证源 Schema 引用及其 artifact/digest 归属，但不要求完整 OpenAPI Schema 方言落入 CA-SL 的 JSON Schema 子集，也不在 Compiler 中执行协议 wire validation。normalizedSchemaRef 才是 Compiler 用于 wait.output 路径、类型赋值和 CA-SL 静态分析的 Schema，必须符合 CA-SL 支持的 JSON Schema Draft 2020-12 子集。
 
@@ -234,13 +237,18 @@ transform 的初始封闭集合仅为 identity、parse-integer、parse-number、
 - part 名称及媒体类型；
 - 对应源 Schema / OpenAPI part 定义；
 - normalized request 中的目标字段；
-- 最大长度与允许的内容类型；
+- 每个 part 的最大长度与允许的内容类型；
+- 整个 wire request body（包含 multipart framing 和所有 parts）的总 maxBytes；
 - normalized Schema 中对应的 binary reference Schema 身份；
 - 二进制内容的不可变引用表示及其生命周期。
 
 二进制内容不得因方便而转为未校验的任意字符串，也不得被静默丢弃。若 normalized request 暴露二进制引用，该引用是受限的业务数据引用，不是 normalizedPayloadRef、expectedIngressRef 或 responseObligationRef。
 
-二进制业务引用必须绑定内容摘要、媒体类型、长度、不可变性、授权范围和保留期限；不得是任意 URL 或本地文件路径。Skill 只能通过声明的 Tool/Owner 能力消费该引用，不能直接访问 Host 的内部 Payload Store。若 Integration 无法安全表达某个 part，必须拒绝该请求。
+二进制业务引用必须绑定内容摘要、媒体类型、长度、不可变性、授权范围和保留期限；不得是任意 URL 或本地文件路径。每个 multipart part 的 maxBytes 是该 part 的独立上限，request.maxBytes 是整个 wire request body（含 framing）的总上限，binaryContent.maxBytes 是单个不可变 binary object 的上限。Integration 必须在读取/缓冲完整 Body 前执行可用的流式总长度限制。
+
+binaryContent.retention 从 delivery 持久接受时起算，必须覆盖所有可能引用该内容的 Skill Consumer 的最后一次访问，包括 Run 暂停、Host/Runtime 恢复和 Tool 重试窗口。Admission 必须将 retention 与部署允许的最大 Invocation 生命周期及恢复宽限期比较；若无法证明内容在最后一个声明 Consumer 完成前不会过期，则不得链接该二进制 Schema。不得仅以 HTTP response deadline 或某个 Node 的预期耗时替代完整 Consumer 生命周期。
+
+Skill 只能通过声明的 Tool/Owner 能力消费该引用，不能直接访问 Host 的内部 Payload Store。若 Integration 无法安全表达某个 part，必须拒绝该请求。
 
 ### 4.6 规范化数据与私有传输元数据隔离
 
@@ -594,6 +602,7 @@ spec:
         acceptedMediaTypes:
           - application/json
           - multipart/related
+        maxBytes: 3145728
         sourceSchemas:
           - mediaType: application/json
             schemaRef: urn:example:openapi:update-sm-context-request
@@ -625,6 +634,7 @@ spec:
                   required: true
                   schemaRef: urn:example:openapi:update-sm-context-json-part
                   schemaDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+                  maxBytes: 262144
                 - name: n1SmMsg
                   mediaType: application/vnd.3gpp.5gnas
                   kind: binary
@@ -662,7 +672,7 @@ spec:
           digestAlgorithm: sha-256
           immutable: true
           access: authorized-tool-only
-          retention: PT10M
+          retention: "<max-invocation-lifetime-plus-recovery-window>"
           maxBytes: 1048576
 
       correlation:
@@ -749,7 +759,8 @@ spec:
 - requestKey 指向 normalized request 的字段，bindingPath 指向 correlation.armInputSchemaRef 的字段，operation-argument.path 指向出站 Operation 已物化输入；
 - response.result.producer 只允许 operation 或 observation；只有单一 bodyless disposition 时才可省略 typed result Producer；
 - 示例的 maximumLateArrival、clockSkewAllowance 和 tombstoneRetention 必须由受信协议/部署保证给出，且 tombstoneRetention 不得小于前两者之和；
-- 示例没有提供任何凭证、证书、网络地址或运行时私有句柄；示例采用 canonical-request-digest 作为重复识别占位策略，不宣称 TS 29.502 提供 protocol request ID；实际 Adapter 必须确认同一 Wait occurrence 内相同规范化请求应按重复处理。
+- 示例没有提供任何凭证、证书、网络地址或运行时私有句柄；示例采用 canonical-request-digest 作为重复识别占位策略，不宣称 TS 29.502 提供 protocol request ID；实际 Adapter 必须确认同一 Wait occurrence 内相同规范化请求应按重复处理；
+- 示例 maxBytes=3145728 和各 part maxBytes 仅为结构示例，必须按 pinned API 与部署限额设置；binaryContent.retention 是待部署策略绑定的占位符，必须覆盖最大 Invocation 生命周期及恢复宽限期。
 
 ## 13. 建议的诊断与拒绝分类
 
@@ -821,6 +832,8 @@ spec:
 | IN-039 | acceptedMediaTypes 与 sourceSchemas 不一一对应 | Compiler/Integration 拒绝不完整协议契约 |
 | IN-040 | 同一 Ingress export 的 response disposition id 或 HTTP status 重复 | Compiler 拒绝歧义响应映射 |
 | IN-041 | EVENT_ACCEPTED 后同一 resource key 的旧请求副本在 tombstone 到期前到达，或尝试提前 arm 下一 Wait | Integration 必须返回既有重复处置或拒绝/隔离；不得将旧请求分配给下一 Wait |
+| IN-042 | binaryContent retention 早于最后一个声明 Consumer 的最晚访问/恢复时间 | Compiler/Admission 拒绝不安全的内容生命周期 |
+| IN-043 | multipart body 或单个 part 超过其声明 maxBytes | Integration 在无界缓冲前拒绝请求，不提交 normalized delivery |
 
 ## 15. 冻结与发布门槛
 
