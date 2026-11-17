@@ -84,6 +84,18 @@ jobs:
           response_schema = components["SmContextUpdatedData"]
           assert {"n1SmMsg", "n2SmInfo", "n2SmInfoType", "n2SmInfoExt1", "n2SmInfoTypeExt1"} <= set(request_schema["properties"])
           assert {"n1SmMsg", "n2SmInfo", "n2SmInfoType", "cause"} <= set(response_schema["properties"])
+          common_ref = "TS29571_CommonData.yaml#/components/schemas/RefToBinaryData"
+          for schema, fields in (
+              (request_schema, ("n1SmMsg", "n2SmInfo", "n2SmInfoExt1")),
+              (response_schema, ("n1SmMsg", "n2SmInfo")),
+          ):
+              for field in fields:
+                  assert schema["properties"][field]["$ref"] == common_ref, (
+                      f"{field} must resolve through the pinned TS 29.571 CommonData artifact"
+                  )
+          for field in ("n2SmInfoType", "n2SmInfoTypeExt1"):
+              assert request_schema["properties"][field]["$ref"] == "#/components/schemas/N2SmInfoType"
+          assert response_schema["properties"]["n2SmInfoType"]["$ref"] == "#/components/schemas/N2SmInfoType"
 
           request_content = operation["requestBody"]["content"]
           assert set(request_content) == {"application/json", "multipart/related"}
