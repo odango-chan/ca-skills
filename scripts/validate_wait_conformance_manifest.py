@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+"""Validate the machine-readable CA-SL v1alpha5 Wait conformance obligation register.
+
+This checks register integrity only. SPECIFICATION_ONLY cases are not executable
+Compiler/Host/Runtime/Integration fixtures and must never be reported as PASS.
+"""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+MANIFEST = ROOT / "docs" / "design" / "wait-conformance-v1alpha5.json"
+SPEC = ROOT / "docs" / "skill-language-spec.v1alpha5.zh-CN.md"
+EXPECTED_IDS = [f"EW-{index:03d}" for index in range(1, 37)]
+WAIT_DIAGNOSTICS = {
+    "WAIT_DECLARATION_INVALID",
+    "WAIT_TIMEOUT_INVALID",
+    "WAIT_INGRESS_EXPORT_NOT_FOUND",
+    "WAIT_INGRESS_EXPORT_AMBIGUOUS",
+    "WAIT_CORRELATION_BINDING_INVALID",
+    "WAIT_TIMEOUT_ROUTE_INVALID",
+    "WAIT_NODE_STAGE_REQUIRED",
+    "WAIT_RESPONSE_BOUNDARY_INVALID",
+    "WAIT_RESPONSE_MAPPING_INVALID",
+}
+EXISTING_DIAGNOSTICS = {
+    "SOURCE_NOT_AVAILABLE",
+    "ENTRY_PRECONDITION_BYPASSED",
+}
+
+
+def fail(message: str) -> None:
+    raise SystemExit(message)
+
+
+def main() -> None:
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    if manifest.get("schemaVersion") != "connectionagent.io/wait-conformance-manifest/v1":
+        fail("unexpected Wait conformance manifest schemaVersion")
+    if manifest.get("languageTarget") != "connectionagent.io/v1alpha5":
+        fail("manifest languageTarget must be connectionagent.io/v1alpha5")
+    if manifest.get("status") != "NORMATIVE_TEST_OBLIGATIONS_NOT_EXECUTED":
+        fail("manifest must not claim execution or PASS")
+    cases = manifest.get("cases")
+    if not isinstance(cases, list):
+        fail("manifest cases must be an array")
+    ids = [case.get("id") for case in cases]
+    if ids != EXPECTED_IDS:
+        fail("manifest must contain EW-001 through EW-036 exactly once and in order")
+    for case in cases:
+        if case.get("fixtureStatus") != "SPECIFICATION_ONLY":
+            fail(f"{case['id']} must remain SPECIFICATION_ONLY until executable evidence exists")
+        if not case.get("layer") or not case.get("kind") or not case.get("scenario"):
+            fail(f"{case['id']} is missing layer, kind or scenario")
+        expected = case.get("expected")
+        if not isinstance(expected, dict) or len(expected) != 1:
+            fail(f"{case['id']} must declare exactly one expected result shape")
+        diagnostics = expected.get("diagnostics")
+        if diagnostics is not None:
+            if not isinstance(diagnostics, list) or not diagnostics:
+                fail(f"{case['id']} diagnostics must be a non-empty list")
+            for code in diagnostics:
+                if code not in WAIT_DIAGNOSTICS | EXISTING_DIAGNOSTICS:
+                    fail(f"{case['id']} references an unregistered diagnostic: {code}")
+        elif not isinstance(expected.get("disposition"), str):
+            fail(f"{case['id']} must declare diagnostics or a disposition")
+
+    spec = SPEC.read_text(encoding="utf-8")
+    for case_id in EXPECTED_IDS:
+        if spec.count(case_id) < 1:
+            fail(f"{case_id} is missing from the single-file normative specification")
+    print("Wait conformance manifest integrity: PASS (36 obligations; execution NOT_RUN)")
+
+
+if __name__ == "__main__":
+    main()
