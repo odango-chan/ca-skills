@@ -303,7 +303,7 @@ The Integration export's triggering Operation identity is trusted dependency met
 
 Before dispatching a triggering Operation, Runtime MUST:
 
-1. create an opaque expectedIngressRef;
+1. create a fresh, unpredictable, collision-resistant opaque expectedIngressRef that is never reused for another Wait occurrence and is never accepted from the external protocol request;
 2. bind it privately to the exact Run, target Node and Wait occurrence/generation in the authoritative Runtime registry;
 3. ask Generic Host to durably arm the expected ingress and forward the registration to the responsible Integration adapter;
 4. receive an acknowledged ARMED disposition before dispatching the triggering Operation.
