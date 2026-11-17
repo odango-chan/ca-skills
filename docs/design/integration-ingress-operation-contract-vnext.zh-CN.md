@@ -756,7 +756,7 @@ spec:
         mode: paired
         deadlinePolicyRef: deployment-deadline::nsmf-update-sm-context
         result:
-          producer: operation
+          producer: observation
           responseResultSchemaRef: urn:example:response-result:update-sm-context:v1
           dispositionSelector:
             sourcePath: /responseDisposition
@@ -805,7 +805,7 @@ spec:
 - TS 23.502 Step 15 的 N2 setup failure 分支可能要求 Step 17 返回包含 PDU Session Establishment Reject 的 N1 SM binary container；本版 JSON-only response profile 不支持该 multipart failure response，不能把它伪装成 204 或通用 JSON 错误，必须保持 NOT LINKABLE，直到 response multipart 映射扩展完成；
 - arming.triggers[].operation 是出站 ToolCatalog Operation，不是 Ingress Operation；Compiler 从该精确 ToolCatalog export 解析 Operation Input Schema，armInputSchemaRef 则定义单独的 correlationBinding Schema；
 - requestKey 指向 normalized request 的字段，bindingPath 指向 correlation.armInputSchemaRef 的字段，operation-argument.path 指向出站 Operation 已物化输入；
-- response.result.producer 只允许 operation 或 observation；只有单一 bodyless disposition 时才可省略 typed result Producer；
+- response.result.producer 只允许 operation 或 observation；本示例使用 boundary Node 中 Operation 之后的 Observation 输出完整 typed Step 17 response result，不能把 N4 Tool 的原始输出未经类型验证直接当作 SBI response；只有单一 bodyless disposition 时才可省略 typed result Producer；
 - 示例的 maximumLateArrival、clockSkewAllowance 和 tombstoneRetention 必须由受信协议/部署保证给出，且 tombstoneRetention 不得小于前两者之和；
 - 示例没有提供任何凭证、证书、网络地址或运行时私有句柄；示例采用 canonical-request-digest 作为重复识别占位策略，不宣称 TS 29.502 提供 protocol request ID；实际 Adapter 必须确认同一 Wait occurrence 内相同规范化请求应按重复处理；
 - 示例 request.maxBytes=4194304、各 part maxBytes=1048576 和 binaryContent.maxBytes=1048576 仅为结构示例，必须按 pinned API 与部署限额设置；binaryContent.retention 是待部署策略绑定的占位符，必须覆盖最大 Invocation 生命周期及恢复宽限期；
