@@ -464,6 +464,8 @@ paired response 必须声明非空的 `response.dispositions[]`。Disposition �
 
 Representation 选择必须与 typed result 的内容一致：存在任一 binary reference 时只能选择 multipart/related；不存在 binary reference 时只能选择 application/json；bodyless disposition 不得丢弃仍存在的 JSON 或 binary response data。Integration MUST 在序列化时再次检查这一条件，不能因为 selector 选错而静默丢弃二进制内容。每个 representation 的 maxBytes 是完整 wire Body 上限，必须容纳所有实际 parts、boundary、part headers 和 framing；每个 part 的 maxBytes 不得超过 representation.maxBytes。
 
+对 TS 29.502 `SmContextUpdatedData`，若响应包含 `n2SmInfo`，JSON root MUST 同时包含 `n2SmInfoType`，其值必须符合 pinned OpenAPI 中的 `N2SmInfoType` enum。该字段不是二进制 part，也不能由 Content-ID 推导；responseResultSchema 必须显式声明并绑定它。此示例的 typed DTO 采用 N2 字段 all-or-nothing：`n2SmInformation` 与 `n2SmInfoType` 同时存在或同时省略；multipart JSON mapping 必须显式输出 `n2SmInfoType`。
+
 若任一 response representation 是 multipart/related，必须声明 `response.binaryContent`：其 `referenceSchemaRef` 必须与 responseResultSchema 中的 typed binary reference 类型一致，且必须绑定 SHA-256、immutable、`access: integration-response-only`、有限 retention 和 maxBytes。Integration 只能通过授权的不可变 Payload resolver 读取该引用，不得将任意 URL、文件路径或原始字节字符串作为引用。Retention 必须覆盖 response boundary、响应序列化、协议重试/重放及最大恢复窗口。每个 binary part 的 maxBytes 不得超过 response.binaryContent.maxBytes。
 
 Compiler 根据 `wait.response.after`（或默认 Wait-bearing Node）和 producer 类型推导唯一 SourcePath，并验证 boundary Producer Output 对 responseResultSchema 的可赋值性。responseResultSchema 必须符合 CA-SL 支持的 JSON Schema 子集；协议 responseSchemaRef 和每个 multipart JSON root part Schema 则按 pinned OpenAPI artifact 验证，由 Integration Adapter 负责实际 wire response validation。Compiler MUST 验证每条 mapping 的 `from` JSON Pointer 在 responseResultSchema 中存在、类型可赋值给目标字段，JSON target pointer 在对应 OpenAPI response Schema 中存在；对于 multipart-binary，`contentIdField` 必须指向 root Schema 中精确的 `RefToBinaryData.contentId` 字符串属性。Compiler 还必须验证每个 body-bearing representation 的 mapping 覆盖全部 required JSON fields，每个 binary part 恰有一条 mapping、每个 mapping target 不重复且无未声明 part；dispositionSelector 的源属性必须是闭合 enum，且其值集合与所有允许的 disposition/representation 组合完整且一一对应。初始 profile 不得执行脚本、CEL、任意表达式或读取历史 Run 输出。
@@ -794,6 +796,14 @@ spec:
                 kind: multipart-json
                 part: jsonData
                 pointer: /cause
+              transform: identity
+            - dispositionId: update-completed
+              representationId: multipart
+              from: /n2SmInfoType
+              target:
+                kind: multipart-json
+                part: jsonData
+                pointer: /n2SmInfoType
               transform: identity
             - dispositionId: update-completed
               representationId: multipart
