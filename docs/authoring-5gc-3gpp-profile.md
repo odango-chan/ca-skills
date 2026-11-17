@@ -187,7 +187,8 @@ The following Stage 2 and Stage 3 references were checked against ETSI publicati
 | TS 23.501 | V19.9.0 | 5GS architecture, SMF/UPF selection, SSC and address-allocation context |
 | TS 23.502 | V19.9.0 | PDU Session Establishment and N4 procedure steps |
 | TS 23.503 | V19.8.0 | PCC / SM Policy framework and policy-trigger context |
-| TS 29.502 | V19.8.0 | `Nsmf_PDUSession` service, CreateSMContext and UpdateSMContext API; OpenAPI Annex A.2 |
+| TS 29.502 | V19.7.0 | `Nsmf_PDUSession` service, CreateSMContext and UpdateSMContext API; OpenAPI Annex A.2 |
+| TS 29.500 | V19.7.1 | SBI technical realization, common HTTP/2 retry and request-deadline behavior |
 | TS 29.503 | V19.7.0 | UDM SDM and UECM services; OpenAPI Annex A.2 and A.3 |
 | TS 29.512 | V19.6.0 | `Npcf_SMPolicyControl` service; OpenAPI Annex A.2 |
 | TS 29.518 | V19.8.0 | `Namf_Communication` service and N1N2 Message Transfer; OpenAPI Annex A.2 |
@@ -198,7 +199,7 @@ Primary ETSI PDFs:
 - [TS 23.501 V19.9.0](https://www.etsi.org/deliver/etsi_ts/123500_123599/123501/19.09.00_60/ts_123501v190900p.pdf)
 - [TS 23.502 V19.9.0](https://www.etsi.org/deliver/etsi_ts/123500_123599/123502/19.09.00_60/ts_123502v190900p.pdf)
 - [TS 23.503 V19.8.0](https://www.etsi.org/deliver/etsi_ts/123500_123599/123503/19.08.00_60/ts_123503v190800p.pdf)
-- [TS 29.502 V19.8.0](https://www.etsi.org/deliver/etsi_ts/129500_129599/129502/19.08.00_60/ts_129502v190800p.pdf)
+- [TS 29.502 V19.7.0](https://www.etsi.org/deliver/etsi_ts/129500_129599/129502/19.07.00_60/ts_129502v190700p.pdf)
 - [TS 29.503 V19.7.0](https://www.etsi.org/deliver/etsi_ts/129500_129599/129503/19.07.00_60/ts_129503v190700p.pdf)
 - [TS 29.512 V19.6.0](https://www.etsi.org/deliver/etsi_ts/129500_129599/129512/19.06.00_60/ts_129512v190600p.pdf)
 - [TS 29.518 V19.8.0](https://www.etsi.org/deliver/etsi_ts/129500_129599/129518/19.08.00_60/ts_129518v190800p.pdf)
