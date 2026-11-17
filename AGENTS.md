@@ -9,7 +9,7 @@
 
 ## Source scope
 
-- The present 5GC packages `skills/establish-pdu-session/` and `skills/establish-pdu-session-mas/` are legacy v0.2/v1alpha1 behavioral/source examples, NOT v1alpha4 author syntax authority.
+- The present 5GC packages `skills/establish-pdu-session/` and `skills/establish-pdu-session-mas/` are legacy v0.2/v1alpha1 behavioral/source examples, NOT v1alpha5 author syntax authority.
 - Other historical Skill directories remain outside this refresh and must not be treated as current syntax authority.
 - Preserve current business Procedure and Operation identities unless an explicit business-owner decision changes them.
 - The MAS Skill's 16 `ca.pdu_session.*` Operation references remain unresolved. Do not invent or approve a ToolCatalog.
@@ -17,23 +17,23 @@
 ## Language contracts
 
 Read before editing:
-1. `docs/skill-language-spec.v1alpha4.zh-CN.md` (the current frozen v1alpha4 normative text)
-2. `docs/script-contract.md` (legacy v0 source companion; cannot override v1alpha4)
+1. `docs/skill-language-spec.v1alpha5.zh-CN.md` (the current frozen v1alpha5 normative text; v1alpha4 is historical)
+2. `docs/script-contract.md` (legacy v0 source companion; cannot override v1alpha5)
 3. `docs/schema-ownership.md`
 4. `docs/authoring-model.md`
 5. `docs/current-5gc-skill-baseline.md`
-6. `language/semantic-tokens.v1.json` (legacy v0.2 selectors, not v1alpha4 syntax)
+6. `language/semantic-tokens.v1.json` (legacy v0.2 selectors, not v1alpha5 syntax)
 
 Key rules:
-- Current v1alpha4 Node stages are `precondition`, `operation`, `observation`, `postcondition`; Pre/Post stages have one nonempty ordered `predicates` list each.
+- Current v1alpha5 Node stages are `precondition`, `operation`, `observation`, `postcondition`; Pre/Post stages have one nonempty ordered `predicates` list each. Optional Node-entry `wait` is control at Node entry, not a fifth stage or Wait-only Node; the target Node still executes its declared business stages.
 - Contract has one `goal` and may declare a **singular** `precondition: <node-id>.precondition`. Do NOT author Contract `preconditions`/`postconditions` or a `postcondition.goal` field.
 - Exact external callable references use `operation.tool` / `observation.tool`; author `operation.reconcile` / `resolve` is forbidden. Trusted Owner `mutation.reconcile` belongs to the common Host safety boundary.
 - Only a final Postcondition aggregate `PASS` routed directly to `SUCCEEDED` proves the Goal; PASS is not carried across Nodes.
-- Source Schemas, Evidence and v1alpha4 ToolCatalog/CapabilityContracts require trusted Owner publications. Missing sources are blockers; a legacy `call`/`with` Script or Owner metadata snapshot cannot be silently relabeled as v1alpha4.
+- Source Schemas, Evidence and inherited v1alpha4 ToolCatalog/CapabilityContracts require trusted Owner publications. Missing sources are blockers; a legacy `call`/`with` Script or Owner metadata snapshot cannot be silently relabeled as v1alpha5.
 - Cases are source obligations only. Do not add a Qualification engine or claim Case execution.
 
 ## Validation
 
-`make verify` performs repository-local **legacy source hygiene plus v1alpha4 documentation structure lint and its negative regression tests**. It does not invoke an old Toolchain, Compiler, Runtime or Qualification gate. Compiler conformance is verified in `ca-skill-compiler`; Runtime and live 5GC evidence belong to their owners.
+`make verify` performs repository-local **legacy source hygiene plus v1alpha4 inherited-baseline lint, v1alpha5 publication/diagnostic checks and registry integrity tests**. It does not invoke an old Toolchain, Compiler, Runtime or Qualification gate. Compiler conformance is verified in `ca-skill-compiler`; Runtime and live 5GC evidence belong to their owners.
 
 Never claim Compiler/Runtime/Qualification/Live PASS from source hygiene.

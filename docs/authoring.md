@@ -1,12 +1,12 @@
 # ConnectionAgent Skill Authoring Guide
 
-This guide follows the [CA-SL v1alpha4 Specification](skill-language-spec.v1alpha4.zh-CN.md), the sole normative language authority. The author syntax and interoperability profile are frozen; product conformance and executable 5GC migration are separate §45.2 gates.
+This guide follows the [CA-SL v1alpha5 Specification](skill-language-spec.v1alpha5.zh-CN.md), the sole normative language authority. v1alpha4 remains an immutable historical target. The author syntax and interoperability profile are frozen; product conformance and executable 5GC migration are separate §45.2 / §L.13.2 gates.
 
 ## 1. Current source baseline
 
-The runnable 5GC Skills remain on the v0.2 business/source baseline and have not yet been migrated to v1alpha4. MAS is a design candidate, not the first live execution acceptance baseline. Do not rewrite the current runnable packages before a separately reviewed migration.
+The runnable 5GC Skills remain on the v0.2 business/source baseline and have not yet been migrated to v1alpha5. MAS is a design candidate, not the first live execution acceptance baseline. Do not rewrite the current runnable packages before a separately reviewed migration.
 
-## 2. Canonical v1alpha4 Skill package
+## 2. Canonical v1alpha5 Skill package
 
 ~~~text
 skills/<name>/
@@ -28,6 +28,12 @@ The three assurance files have separate responsibilities:
 - `predicates.yaml`: reusable Predicate parameter signatures and CEL / Python evaluators.
 
 The Contract remains author-maintained source. Only redundant wrapper fields and values derivable elsewhere are removed; the public declarations it owns are not deleted. Compiler may derive a normalized Runtime contract from Contract, Procedure, Predicates and dependency snapshots, but that artifact does not replace the source Contract.
+
+### Node-entry Wait (v1alpha5)
+
+Node-entry Wait is optional control evaluated before a target Node's existing business stages. It is not a fifth stage and does not create a Wait-only Node. The accepted event supplies a typed normalized value through that Node's `wait.output` Producer path; it is available only on the accepted-event control-flow path. Timeout is routed through the Wait-scoped `TIMEOUT` route. A paired protocol response boundary is declared separately from the Invocation's terminal Goal proof.
+
+The selected Ingress Operation must come from the exact trusted IngressCatalog dependency. Authors do not declare raw HTTP envelopes, delivery identifiers, correlation handles, tombstones or private response-obligation state. CA-SL v1alpha4 remains unchanged and rejects the v1alpha5 `wait` syntax.
 
 ## 3. Contract ownership
 
