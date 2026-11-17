@@ -204,6 +204,8 @@ acceptedMediaTypes/sourceSchemas/normalization.representations 中的 mediaType 
 
 sourceSchemas 必须与 acceptedMediaTypes 一一对应：每个允许的 media type 恰有一个源 Schema，不得存在缺失或多余的源 Schema。源 Schema 必须与 pinned OpenAPI artifact 中的 Request Body / multipart part 声明一致。Integration Adapter 按该精确 OpenAPI artifact 的方言验证 wire request；Compiler 验证源 Schema 引用及其 artifact/digest 归属，但不要求完整 OpenAPI Schema 方言落入 CA-SL 的 JSON Schema 子集，也不在 Compiler 中执行协议 wire validation。normalizedSchemaRef 才是 Compiler 用于 wait.output 路径、类型赋值和 CA-SL 静态分析的 Schema，必须符合 CA-SL 支持的 JSON Schema Draft 2020-12 子集。
 
+所有 `schemaDigest` / `normalizedSchemaDigest` / `responseSchemaDigest` 字段统一使用 [Schema Closure Digest v1](schema-closure-digest-v1.md)。Schema resolver 必须将 `schemaRef` 解析为精确的 `(artifactRef, artifactDigest, JSON Pointer)` 根身份，并遍历该 Schema 的完整传递 `$ref` 闭包；所有目标必须位于声明的受信 dependency snapshot 内。摘要使用 JCS RFC 8785 和域分隔符 `CA-SKILL-SCHEMA-CLOSURE\\0v1\\0`，不允许远程解析或按文件名猜测。该摘要绑定 Schema 根及其闭包，不替代完整 dependency snapshot digest、Owner 信任验证或协议 Schema 校验。机器可执行 golden vector 由 CI 验证。示例中的全零摘要仍是明确的未准入占位符。
+
 ### 4.4 归一化规则
 
 Integration Adapter 按以下顺序处理入站请求：
@@ -489,13 +491,18 @@ Integration export 必须定义：
 
 早期失败响应可以是协议允许的 bodyless response，或由 Integration Package 内不可变的 responseRef 定义、并经过协议 Schema 校验的固定错误响应。responseRef 必须绑定精确 status、media type、response Schema 和固定错误 Body；不得从任意 Run summary、Host 私有字段或未类型化历史输出拼接失败 Body。
 
-paired 模式的 deadlinePolicyRef 必须解析到受信部署策略，明确有限响应期限、起算事件、时钟基准和允许的最大时钟偏差。没有客户端 deadline header 时，默认起算事件是 Integration 首次收到完整且最终被接受的有效 wire request 的时刻；若协议规定更早的起算点，则必须采用协议规定的起算点。Integration 在持久接受 delivery 时计算绝对 responseDeadline，并随 delivery 提交给 Host。
+paired 模式的 deadlinePolicyRef 必须解析到受信部署策略，并分别声明两个期限：
 
-对于 3GPP SBI，deadlinePolicyRef 必须按 pinned TS 29.500 V19.5.0 §5.2.3.3.2/§5.2.3.3.3/§6.11.2 与 TS 29.502 V19.5.0 §5.2.3.3.2.1/§6.1.2.5 解释客户端响应期限 Header：当 `3gpp-Sbi-Max-Rsp-Time` 与请求起算时间 Header 同时存在时，起算时间优先使用 `3gpp-Sbi-Sender-Timestamp`；该 Header 不存在时，按 TS 29.502 该 API release 的规定使用 `3gpp-Sbi-Origination-Timestamp`。客户端 deadline 为该起算时间加 Max-Rsp-Time 毫秒；若只提供 Max-Rsp-Time 而没有适用起算时间，必须按 profile 拒绝不完整 Header，不能猜测。有效 responseDeadline 取客户端 deadline 与部署有限处理上限中较早者。客户端 Header 缺失时使用部署上限。若计算出的 deadline 已经超过允许时钟偏差范围，则必须在持久接受 delivery 前拒绝/隔离。
+1. **逻辑 responseDeadline**：一次已接受业务请求及其 response obligation 的有限处理上限。Integration 在首次持久接受该逻辑请求时计算一次，起算点为首次完整、有效且最终被接受的 wire request；若 pinned 协议/部署另有更早的逻辑级绝对 deadline，则采用更早者。该 deadline 随原始 delivery 持久化并传递给 Host/Runtime。它是该逻辑请求的固定上限，不因事件接受、HTTP 重试或新传输流而重置或延长。
+2. **attemptResponseDeadline**：单次 HTTP/协议传输尝试的客户端响应期限，由该 attempt 的协议 Header 和部署单次尝试上限计算。它只由 Integration 持有，不进入 Host/Runtime delivery envelope。
 
-对同一逻辑请求的重传，3GPP SBI 可按协议更新 Sender-Timestamp / Origination-Timestamp / Max-Rsp-Time，但必须复用相同 idempotency-key。重传是新的 HTTP transport attempt，不是新的 Wait occurrence 或新的业务 response obligation。Integration 可以使用本次 attempt 的 Header 校验该 attempt 的客户端期限，并可立即重放已完成的响应或返回协议允许的超时/失败响应；但不得因重传而延长首次持久接受时提交的逻辑 responseDeadline。若本次 attempt 的客户端 deadline 更早，Integration 可以缩短当前响应期限，不能延长既有业务处理时限。responseDeadline 在线格式为带 Z 后缀的 RFC 3339 UTC instant；Host 必须原样持久化和转交，不得重新计算或延长。Runtime/Host 的本地 deadline 比较必须遵守部署策略声明的时钟偏差；若无法满足时钟保证，Integration 仍是响应逾期的最终权威，其他组件不得自行延长 deadline。Runtime 后续的 EVENT_ACCEPTED 不得重置或延长该期限；事件在 Node 激活前被缓冲时，期限仍持续流逝。
+对于 3GPP SBI，deadlinePolicyRef 必须按 pinned TS 29.500 V19.5.0 §5.2.3.3.2/§5.2.3.3.3/§6.11.2 与 TS 29.502 V19.5.0 §5.2.3.3.2.1/§6.1.2.5 计算每次 attempt 的客户端期限：当 `3gpp-Sbi-Max-Rsp-Time` 与起算时间 Header 同时存在时，起算时间优先使用 `3gpp-Sbi-Sender-Timestamp`；该 Header 不存在时，使用该 API release 规定的 `3gpp-Sbi-Origination-Timestamp`。attemptResponseDeadline 为该起算时间加 Max-Rsp-Time 毫秒，并受部署单次尝试上限及逻辑 responseDeadline 双重约束。若只提供 Max-Rsp-Time 而没有适用起算时间，必须按 profile 拒绝不完整 Header，不能猜测。Header 缺失时使用部署单次尝试上限。若计算出的 attempt deadline 已超过允许时钟偏差范围，则必须在该 attempt 被接受前拒绝/隔离。
 
-responseDeadline 与 Wait 的 pre-event timeout 是两个独立期限。Host 必须持久保存并原样转交 responseDeadline；Runtime 可以将其作为通用处理上界，但不得将其转换为 CA-SL TIMEOUT Outcome 或作者可路由的 Stage Outcome。Integration 是协议响应是否逾期及如何失败/恢复的最终权威。响应 deadline 到期时，Integration 执行协议规定的失败响应策略；Runtime 保留已接受事件的 checkpoint 和未解决的业务/资源责任。任何 Run cancellation 均使用既有全局 cancellation 语义。
+对同一逻辑请求的 3GPP SBI 重传，TS 29.502 §6.1.2.5 允许 AMF 在新 TCP 连接上重试，并要求更新 Origination-Timestamp 与（若存在）Sender-Timestamp；TS 29.500 §6.11.2.2 规定重传 attempt 使用新的 Sender-Timestamp / Max-Rsp-Time。重传必须复用相同 idempotency-key（当该去重机制被部署启用时），并始终关联原来的 responseObligationRef、deliveryRef 和 expectedIngressRef。Integration 必须为新 attempt 按新 Header 重新计算 attemptResponseDeadline：若原响应已完成，立即向该 attempt 重放既有响应；若仍在处理中，将该 attempt 附加到同一 response obligation，并最多等待到该 attemptResponseDeadline 或固定逻辑 responseDeadline 中较早者。不得创建新 delivery、Run、Wait occurrence 或第二次业务执行。单次 attempt 超时只结束该传输尝试，不自动终止尚未到期的逻辑 response obligation；逻辑 responseDeadline 到期时才执行该 obligation 的最终失败/恢复策略。
+
+逻辑 responseDeadline 在线格式为带 Z 后缀的 RFC 3339 UTC instant；Host 必须原样持久化和转交，不得重新计算或延长。attemptResponseDeadline 保持 Integration 私有。Runtime/Host 对逻辑 responseDeadline 的本地比较必须遵守部署策略声明的时钟偏差；若无法满足时钟保证，Integration 仍是逻辑响应是否逾期及当前 attempt 是否超时的最终权威。Runtime 后续的 EVENT_ACCEPTED 不得重置或延长逻辑 responseDeadline；事件在 Node 激活前被缓冲时，该逻辑预算仍持续流逝。
+
+逻辑 responseDeadline 与每次 attemptResponseDeadline、Wait 的 pre-event timeout 是三个独立期限。Host 必须持久保存并原样转交逻辑 responseDeadline；Runtime 可以将其作为通用处理上界，但不得将其转换为 CA-SL TIMEOUT Outcome 或作者可路由的 Stage Outcome。Integration 是协议响应是否逾期及如何恢复的最终权威。逻辑响应期限到期时，Integration 执行协议规定的失败响应策略；Runtime 保留已接受事件的 checkpoint 和未解决的业务/资源责任。任何 Run cancellation 均使用既有全局 cancellation 语义。
 
 ### 8.5 响应交付和恢复
 
@@ -587,7 +594,7 @@ Compiler 不执行协议认证，不调用真实 Integration adapter，不通过
 
 ## 11. 5GC 参考映射：TS 23.502 Step 15 / Step 17
 
-以下按 3GPP TS 23.502 V19.5.0 §4.3.2.2.1、TS 29.502 V19.5.0 §6.1.2.2/§6.1.2.4/§6.1.2.5 及 Annex A.2 OpenAPI、TS 29.571 V19.5.0 §5.4.4.14 对照说明责任和身份映射。TS 29.502 的正式来源为 ETSI 发布的 V19.5.0 PDF；Annex A.1 说明 Annex A 的 YAML OpenAPI 定义是正式 API 编码依据，并在编码不一致时优先。Annex A.2 标识 `Nsmf_PDUSession`、OpenAPI 3.0.0、API version `1.4.0`。已从 ETSI 官方 companion `p0.zip` 提取 `TS29502_Nsmf_PDUSession.yaml` 并固定其 SHA-256；官方 PDF、companion ZIP 与提取 YAML 的摘要均已通过 GitHub Actions 实际下载核验。GitLab `5G_APIs` 的 `REL-19` 分支文件摘要与 ETSI companion 文件不同，因此只记录为 informative copy，不作为规范 artifact。TS 29.571 V19.5.0 Annex A.2 的 `Common Data Types`（OpenAPI 1.6.0）也已从 ETSI 官方 PDF 和 companion ZIP 提取并固定 SHA-256。完整来源、字节长度、摘要及依赖范围见 [TS 29.502 V19.5.0 OpenAPI source lock](artifacts/ts-29.502-v19.5.0-nsmf-pdusession-openapi-source-lock.yaml)。CI 对本 IngressCatalog 实际映射的请求/响应字段执行引用解析：N1/N2/N2 扩展的 `RefToBinaryData` 均解析到已固定的 `TS29571_CommonData.yaml`，并验证 `contentId` 必需且为字符串；N2 类型字段解析到 TS 29.502 本地 Schema。这里的依赖闭包有意限定为本映射读取和生成的字段，不声称递归导入 TS 29.571 中所有未使用的可选数据类型及其其他 3GPP API 依赖。示例 `artifactDigest` 绑定官方 TS 29.502 YAML 字节摘要；示例中的 `responseSchemaDigest` 和 `schemaDigest` 全零值是明确的未准入占位符，不是有效 Schema digest。当前 Compiler v1alpha4 定义的是完整 dependency file-set digest；生成 Schema 使用 JCS，但尚未定义导入 OpenAPI Schema 节点的独立 digest 算法。因此必须先冻结 canonical per-source-Schema digest 契约，再计算并写入受信 dependency snapshot，不能把整份 YAML 的 artifactDigest 冒充单个 Schema digest。真实 Integration Adapter wire conformance 和 Owner deployment qualification 尚未完成，因此 Admission 仍保持 blocked。
+以下按 3GPP TS 23.502 V19.5.0 §4.3.2.2.1、TS 29.502 V19.5.0 §6.1.2.2/§6.1.2.4/§6.1.2.5 及 Annex A.2 OpenAPI、TS 29.571 V19.5.0 §5.4.4.14 对照说明责任和身份映射。TS 29.502 的正式来源为 ETSI 发布的 V19.5.0 PDF；Annex A.1 说明 Annex A 的 YAML OpenAPI 定义是正式 API 编码依据，并在编码不一致时优先。Annex A.2 标识 `Nsmf_PDUSession`、OpenAPI 3.0.0、API version `1.4.0`。已从 ETSI 官方 companion `p0.zip` 提取 `TS29502_Nsmf_PDUSession.yaml` 并固定其 SHA-256；官方 PDF、companion ZIP 与提取 YAML 的摘要均已通过 GitHub Actions 实际下载核验。GitLab `5G_APIs` 的 `REL-19` 分支文件摘要与 ETSI companion 文件不同，因此只记录为 informative copy，不作为规范 artifact。TS 29.571 V19.5.0 Annex A.2 的 `Common Data Types`（OpenAPI 1.6.0）也已从 ETSI 官方 PDF 和 companion ZIP 提取并固定 SHA-256。完整来源、字节长度、摘要及依赖范围见 [TS 29.502 V19.5.0 OpenAPI source lock](artifacts/ts-29.502-v19.5.0-nsmf-pdusession-openapi-source-lock.yaml)。CI 对本 IngressCatalog 实际映射的请求/响应字段执行引用解析：N1/N2/N2 扩展的 `RefToBinaryData` 均解析到已固定的 `TS29571_CommonData.yaml`，并验证 `contentId` 必需且为字符串；N2 类型字段解析到 TS 29.502 本地 Schema。这里的依赖闭包有意限定为本映射读取和生成的字段，不声称递归导入 TS 29.571 中所有未使用的可选数据类型及其其他 3GPP API 依赖。示例 `artifactDigest` 绑定官方 TS 29.502 YAML 字节摘要；示例中的 `responseSchemaDigest` 和 `schemaDigest` 全零值是明确的未准入占位符，不是有效 Schema digest。本 PR 新增 [Schema Closure Digest v1](schema-closure-digest-v1.md)，以 JCS RFC 8785、精确 Schema 根身份和传递 `$ref` 闭包定义导入 OpenAPI Schema 节点摘要，并由 golden vector/CI 校验；它与 Compiler v1alpha4 的完整 dependency file-set digest 分工不同，不能相互冒充。真实 Owner snapshot 仍须按该算法计算并发布实际摘要；真实 Integration Adapter wire conformance 和 Owner deployment qualification 尚未完成，因此 Admission 仍保持 blocked。
 
 - Step 11 Namf_Communication_N1N2MessageTransfer 是触发后续事件的出站 Operation。
 - Step 3 Nsmf_PDUSession_CreateSMContext 建立 SM Context；Step 5 成功响应的 Location resource URI 提供精确 smContextRef。
@@ -1004,6 +1011,8 @@ spec:
 | IN-050 | application/json representation 包含无法由 multipart binary part 解析的 RefToBinaryData | Integration 拒绝/隔离，不生成伪造 binary content reference |
 | IN-051 | 同一 3GPP SBI idempotency-key 在同一目标 NF 的不同 Ingress export 或替代实例间被复用/重复出现 | Integration 按目标 NF 作用域识别为已消费 key；不得因 peer/export 不同而将其当作新请求 |
 | IN-052 | 将 `3gpp-Sbi-Max-Rsp-Time` 或发送时间戳用作 request discriminator / maximumLateArrival | Integration 拒绝该配置；这些字段只参与响应期限计算，不证明请求身份或迟到窗口 |
+| IN-053 | 同一 3GPP SBI 请求以相同 idempotency-key 重传，但按 TS 29.502 更新 Sender/Origination Timestamp 与 Max-Rsp-Time | Integration 为新 transport attempt 重算私有 attemptResponseDeadline；保留原 responseObligationRef、deliveryRef、expectedIngressRef，不创建新 Wait 或业务执行 |
+| IN-054 | attemptResponseDeadline 先于逻辑 responseDeadline 到期，之后同一请求在逻辑期限内重传 | 当前 HTTP attempt 按协议超时；原 response obligation 和 Run 不因单次 attempt 超时而重置/重复；新 attempt 可附加原 obligation，仍受固定逻辑 responseDeadline 限制 |
 
 ## 15. 冻结与发布门槛
 
@@ -1016,7 +1025,7 @@ spec:
 5. 对 response result producer、bodyless/body-bearing response、early-failure response 和恢复责任的协议评审；
 6. 与 CA-SL Wait 规范化草案 PR #61 完成字段和诊断一致性核对；
 7. 与 Generic Host/Runtime 契约 PR #210 完成端口、私有身份和持久化责任核对；
-8. 为 IN-001–IN-052 建立机器可执行的正反例与实际 Integration adapter conformance tests；
+8. 为 IN-001–IN-054 建立机器可执行的正反例与实际 Integration adapter conformance tests；
 9. 完成独立审阅并明确该导出契约的发布版本和生效范围。
 
 本文不要求当前 v1alpha4 产品支持 IngressCatalog。当前实现仍是 NOT_QUALIFIED；缺少真实、受信、版本固定的 Ingress export 时必须 fail-closed。
