@@ -1062,7 +1062,9 @@ IngressCatalog v1alpha1 使用独立、版本化且已冻结的静态诊断注�
 7. IngressCatalog Schema、Schema Closure Digest 和诊断注册表具有可执行的结构/算法验证；IN-001–IN-066 每项均明确条件与规范要求的诊断/处置，但符合性矩阵本身是规范义务清单，不得宣称 66 项已全部执行通过；
 8. 完成独立审阅并明确该导出契约的发布版本和生效范围。
 
-**冻结裁决：** `connectionagent.io/ingresscatalog/v1alpha1` 及其诊断注册表 `connectionagent.io/ingress-diagnostics/v1alpha1` 自 2026-11-17 起为 **FROZEN / RELEASED**。冻结范围包括本文件的逻辑字段、身份与链接规则、Schema/Schema Closure 规则、Correlation、归一化、二进制内容生命周期、配对响应、诊断身份及规范性符合性义务。真实 Owner 发布物、部署绑定和产品资格不在本次冻结声明内。\n\n以上是逻辑契约的冻结门槛。它们不要求真实 Owner 已发布生产包，也不要求 Host/Runtime/Integration 产品已取得资格。
+**冻结裁决：** `connectionagent.io/ingresscatalog/v1alpha1` 及其诊断注册表 `connectionagent.io/ingress-diagnostics/v1alpha1` 自 2026-11-17 起为 **FROZEN / RELEASED**。冻结范围包括本文件的逻辑字段、身份与链接规则、Schema/Schema Closure 规则、Correlation、归一化、二进制内容生命周期、配对响应、诊断身份及规范性符合性义务。真实 Owner 发布物、部署绑定和产品资格不在本次冻结声明内。
+
+以上是逻辑契约的冻结门槛。它们不要求真实 Owner 已发布生产包，也不要求 Host/Runtime/Integration 产品已取得资格。
 
 ### 15.2 产品与 Owner 准入（独立资格门槛）
 
@@ -1088,6 +1090,8 @@ Generic Host/Runtime 的跨仓实现评审（包括 ca-agent-demo 的配套 PR�
 - 事件到达本身不是 Predicate PASS、Evidence 或 Goal proof；
 - correlation 必须区分并发 Run 和连续 Wait generation；
 - paired response 在声明的 Node boundary 提交，不等待整个 Run terminal；
-- Generic Host、Runtime、Integration 和 Tool Owner 的职责分离。\n\n本 Ingress 契约另外冻结以下导出属性：精确 `apiVersion` / `exportKind` / export identity；trusted Package / Owner / immutable snapshot 绑定；3GPP Service-Operation 与 OpenAPI `operationId` 的分层身份；source-wire 与 normalized request Schema；预派发 correlation 和 occurrence/tombstone 规则；multipart/binary reference 生命周期；typed response result、disposition、deadline 与 recovery 映射；十项 Ingress 静态诊断的身份、优先级和来源位置。
+- Generic Host、Runtime、Integration 和 Tool Owner 的职责分离。
+
+本 Ingress 契约另外冻结以下导出属性：精确 `apiVersion` / `exportKind` / export identity；trusted Package / Owner / immutable snapshot 绑定；3GPP Service-Operation 与 OpenAPI `operationId` 的分层身份；source-wire 与 normalized request Schema；预派发 correlation 和 occurrence/tombstone 规则；multipart/binary reference 生命周期；typed response result、disposition、deadline 与 recovery 映射；十项 Ingress 静态诊断的身份、优先级和来源位置。
 
 本文允许继续细化的内容仅包括：精确 Schema 序列化、诊断消息、BuildRequest 物理传输、deployment profile binding、DTO、持久化、恢复实现和机器 Fixture。任何改变上述冻结语义的提议必须单独进行影响分析和重新裁决。
