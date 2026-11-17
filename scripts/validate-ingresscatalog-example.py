@@ -257,9 +257,9 @@ def validate_3gpp_reference_example(catalog: dict) -> None:
         raise SystemExit("UpdateSMContext multipart part names do not match TS 29.502 V19.5.0")
 
     expected_binary_mappings = {
-        "binaryDataN1SmMessage": ("/n1SmMsg", "/n1SmMessage"),
-        "binaryDataN2SmInformation": ("/n2SmInfo", "/n2SmInformation"),
-        "binaryDataN2SmInformationExt1": ("/n2SmInfoExt1", "/n2SmInformationExt1"),
+        "binaryDataN1SmMessage": ("/n1SmMsg/contentId", "/n1SmMessage"),
+        "binaryDataN2SmInformation": ("/n2SmInfo/contentId", "/n2SmInformation"),
+        "binaryDataN2SmInformationExt1": ("/n2SmInfoExt1/contentId", "/n2SmInformationExt1"),
     }
     mappings_by_part = {
         item["source"]["part"]: item
