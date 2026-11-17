@@ -60,6 +60,10 @@ def validate_semantics(catalog: dict) -> None:
             raise SystemExit(f"{op_id}: authenticatedPeerType must equal event.source")
 
         request = operation["request"]
+        request_max = request["maxBytes"]
+        binary_max = request.get("binaryContent", {}).get("maxBytes")
+        if binary_max is not None and binary_max > request_max:
+            raise SystemExit(f"{op_id}: binaryContent.maxBytes exceeds request.maxBytes")
         accepted = request["acceptedMediaTypes"]
         source_types = [item["mediaType"] for item in request["sourceSchemas"]]
         representations = request["normalization"]["representations"]
@@ -77,6 +81,11 @@ def validate_semantics(catalog: dict) -> None:
             parts = {part["name"]: part for part in representation.get("parts", [])}
             if len(parts) != len(representation.get("parts", [])):
                 raise SystemExit(f"{op_id}: duplicate multipart part name")
+            for part in parts.values():
+                if part["maxBytes"] > request_max:
+                    raise SystemExit(f"{op_id}: multipart part maxBytes exceeds request.maxBytes")
+                if part["kind"] == "binary" and binary_max is not None and part["maxBytes"] > binary_max:
+                    raise SystemExit(f"{op_id}: binary part maxBytes exceeds binaryContent.maxBytes")
             targets = [mapping["target"] for mapping in representation["mappings"]]
             unique(targets, f"{op_id}: duplicate normalization target")
             for mapping in representation["mappings"]:
@@ -197,6 +206,14 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     del missing_binary_policy["spec"]["operations"][0]["request"]["binaryContent"]
     expect_schema_failure(validator, missing_binary_policy, "missing binary-content policy")
 
+    missing_request_limit = copy.deepcopy(example)
+    del missing_request_limit["spec"]["operations"][0]["request"]["maxBytes"]
+    expect_schema_failure(validator, missing_request_limit, "missing total request byte limit")
+
+    missing_part_limit = copy.deepcopy(example)
+    del missing_part_limit["spec"]["operations"][0]["request"]["normalization"]["representations"][1]["parts"][0]["maxBytes"]
+    expect_schema_failure(validator, missing_part_limit, "missing multipart part byte limit")
+
     duplicate_status = copy.deepcopy(example)
     dispositions = duplicate_status["spec"]["operations"][0]["response"]["dispositions"]
     dispositions[1]["status"] = dispositions[0]["status"]
@@ -236,6 +253,13 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     stale["clockSkewAllowance"] = "PT5S"
     stale["tombstoneRetention"] = "PT35S"
     expect_semantic_failure(zero_duration, "zero maximumLateArrival duration")
+
+    invalid_duration = copy.deepcopy(example)
+    stale = invalid_duration["spec"]["operations"][0]["correlation"]["staleDelivery"]
+    stale["maximumLateArrival"] = "P1DT"
+    stale["clockSkewAllowance"] = "PT5S"
+    stale["tombstoneRetention"] = "P1DT5S"
+    expect_semantic_failure(invalid_duration, "duration with empty time component")
 
 
 def main() -> None:
