@@ -123,6 +123,17 @@ def validate_semantics(catalog: dict) -> None:
         unique(key_paths, f"{op_id}: duplicate correlation requestPath")
         stale = correlation["staleDelivery"]
         duplicate_source = correlation["duplicate"]["identitySource"]
+        duplicate_scope = correlation["duplicate"]["scope"]
+        expected_scope = {
+            "protocol-request-id": "protocol-defined",
+            "trusted-gateway-request-id": "protocol-defined",
+            "canonical-request-digest": "expected-ingress",
+            "3gpp-sbi-idempotency-key": "target-nf",
+        }[duplicate_source]
+        if duplicate_scope != expected_scope:
+            raise SystemExit(
+                f"{op_id}: duplicate identity scope must be {expected_scope} for {duplicate_source}"
+            )
         if stale["strategy"] == "wire-discriminator":
             discriminator = stale["discriminator"]
             if discriminator["kind"] == "authenticated-header-parameter":
@@ -365,6 +376,7 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
 
     invalid_sbi_discriminator = copy.deepcopy(example)
     invalid_sbi_discriminator["spec"]["operations"][0]["correlation"]["duplicate"]["identitySource"] = "3gpp-sbi-idempotency-key"
+    invalid_sbi_discriminator["spec"]["operations"][0]["correlation"]["duplicate"]["scope"] = "target-nf"
     stale = invalid_sbi_discriminator["spec"]["operations"][0]["correlation"]["staleDelivery"]
     stale.clear()
     stale.update({
@@ -384,6 +396,7 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     valid_sbi_discriminator = copy.deepcopy(example)
     operation = valid_sbi_discriminator["spec"]["operations"][0]
     operation["correlation"]["duplicate"]["identitySource"] = "3gpp-sbi-idempotency-key"
+    operation["correlation"]["duplicate"]["scope"] = "target-nf"
     operation["correlation"]["staleDelivery"] = {
         "strategy": "wire-discriminator",
         "discriminator": {
@@ -398,6 +411,10 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     }
     validate_semantics(valid_sbi_discriminator)
     validate_3gpp_reference_example(valid_sbi_discriminator)
+
+    mismatched_sbi_scope = copy.deepcopy(valid_sbi_discriminator)
+    mismatched_sbi_scope["spec"]["operations"][0]["correlation"]["duplicate"]["scope"] = "expected-ingress"
+    expect_semantic_failure(mismatched_sbi_scope, "SBI idempotency scope narrowed to one ingress")
 
     invalid_timestamp_discriminator = copy.deepcopy(valid_sbi_discriminator)
     invalid_timestamp_discriminator["spec"]["operations"][0]["correlation"]["staleDelivery"]["discriminator"] = {
@@ -428,6 +445,7 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
 
     mismatched_sbi_header = copy.deepcopy(valid_sbi_discriminator)
     mismatched_sbi_header["spec"]["operations"][0]["correlation"]["duplicate"]["identitySource"] = "canonical-request-digest"
+    mismatched_sbi_header["spec"]["operations"][0]["correlation"]["duplicate"]["scope"] = "expected-ingress"
     expect_semantic_failure(mismatched_sbi_header, "SBI wire discriminator without matching duplicate identity source")
 
     duplicate_status = copy.deepcopy(example)
@@ -494,6 +512,7 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
 
     mismatched_sbi_identity = copy.deepcopy(example)
     mismatched_sbi_identity["spec"]["operations"][0]["correlation"]["duplicate"]["identitySource"] = "3gpp-sbi-idempotency-key"
+    mismatched_sbi_identity["spec"]["operations"][0]["correlation"]["duplicate"]["scope"] = "target-nf"
     expect_semantic_failure(mismatched_sbi_identity, "SBI idempotency identity without wire discriminator")
 
     invalid_binary_retention = copy.deepcopy(example)
