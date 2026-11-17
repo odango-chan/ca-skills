@@ -156,9 +156,19 @@
       "scenario": "Selector resolves to zero or more than one trusted Ingress export",
       "fixtureStatus": "SPECIFICATION_ONLY",
       "expected": {
-        "diagnostics": [
-          "WAIT_INGRESS_EXPORT_NOT_FOUND",
-          "WAIT_INGRESS_EXPORT_AMBIGUOUS"
+        "variants": [
+          {
+            "id": "zero_matches",
+            "diagnostics": [
+              "WAIT_INGRESS_EXPORT_NOT_FOUND"
+            ]
+          },
+          {
+            "id": "multiple_matches",
+            "diagnostics": [
+              "WAIT_INGRESS_EXPORT_AMBIGUOUS"
+            ]
+          }
         ]
       }
     },
@@ -299,7 +309,8 @@
       "scenario": "Declared timeout exceeds deployment-published maximum",
       "fixtureStatus": "SPECIFICATION_ONLY",
       "expected": {
-        "disposition": "reject_admission_before_invocation_without_clamping"
+        "disposition": "reject_admission_before_invocation_without_clamping",
+        "hostDiagnostic": "WAIT_DURATION_LIMIT_EXCEEDED"
       }
     },
     {
