@@ -184,6 +184,44 @@ jobs:
           print("Official TS 29.518 Annex A.2 identity and NgRanTargetId: PASS")
           print("OpenAPI version:", artifact["info"]["version"])
           PY
+      - name: Inspect official ETSI TS 29.510 V19.5.0 Nnrf dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://www.etsi.org/deliver/etsi_ts/129500_129599/129510/19.05.00_60"
+          pdf="$RUNNER_TEMP/ts_129510v190500p.pdf"
+          zip="$RUNNER_TEMP/ts_129510v190500p0.zip"
+          ua="Mozilla/5.0 (compatible; CA-Skill-Artifact-Lock/1.0)"
+          curl --fail --location --retry 3 --silent --show-error --user-agent "$ua" "$base/ts_129510v190500p.pdf" --output "$pdf"
+          curl --fail --location --retry 3 --silent --show-error --user-agent "$ua" "$base/ts_129510v190500p0.zip" --output "$zip"
+          echo "TS 29.510 PDF bytes: $(wc -c < "$pdf")"
+          pdf_sha256="$(sha256sum "$pdf" | cut -d' ' -f1)"
+          echo "TS 29.510 PDF SHA-256: $pdf_sha256"
+          echo "TS 29.510 companion ZIP bytes: $(wc -c < "$zip")"
+          zip_sha256="$(sha256sum "$zip" | cut -d' ' -f1)"
+          echo "TS 29.510 companion ZIP SHA-256: $zip_sha256"
+          unzip -l "$zip"
+          for name in TS29510_Nnrf_AccessToken.yaml TS29510_Nnrf_NFDiscovery.yaml TS29510_Nnrf_NFManagement.yaml; do
+            unzip -p "$zip" "$name" > "$RUNNER_TEMP/$name"
+            echo "$name bytes: $(wc -c < "$RUNNER_TEMP/$name")"
+            file_sha256="$(sha256sum "$RUNNER_TEMP/$name" | cut -d' ' -f1)"
+            echo "$name SHA-256: $file_sha256"
+          done
+          python - "$RUNNER_TEMP" <<'PY'
+          import pathlib
+          import sys
+          import yaml
+
+          root = pathlib.Path(sys.argv[1])
+          for name in (
+              "TS29510_Nnrf_AccessToken.yaml",
+              "TS29510_Nnrf_NFDiscovery.yaml",
+              "TS29510_Nnrf_NFManagement.yaml",
+          ):
+              artifact = yaml.safe_load((root / name).read_text(encoding="utf-8"))
+              assert artifact["openapi"] == "3.0.0"
+              print(name, artifact["info"]["title"], artifact["info"]["version"])
+          PY
       - name: Verify pinned official ETSI TS 29.571 V19.5.0 CommonData artifact
         shell: bash
         run: |
