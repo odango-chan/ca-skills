@@ -287,7 +287,7 @@ correlation.keyFields[] 必须声明一组足以唯一匹配该协议事件的 n
 - 精确比较/规范化规则；
 - 字段的静态类型约束。
 
-Correlation key 的每个字段必须是可稳定比较的标量。默认使用精确值比较；若协议要求规范化，必须由 Integration export 明确声明确定性规范化规则。不得按字段名相似、前缀、模糊字符串、时间接近或“最新 Run”推断匹配。
+Correlation key 的每个字段必须是可稳定比较的标量。归一化完成后只允许精确值比较。若协议要求大小写、编码或标识格式规范化，该处理必须在 pinned normalization mapping 中完成并受其 digest 约束；Correlation 阶段不得再执行隐式转换。不得按字段名相似、前缀、模糊字符串、时间接近或“最新 Run”推断匹配。
 
 Peer identity、API export identity 和 correlation key 共同限定匹配范围。仅凭 SUPI、DNN、S-NSSAI 或一个不具备唯一性的资源标识，不能推断某个 Wait occurrence。
 
@@ -371,7 +371,7 @@ Integration 必须证明一个经过认证、验证和归一化的请求最多�
 
 Integration 为一次已接受的 normalized delivery 生成稳定 deliveryRef，并在重试时保持不变。Host 按 deliveryRef 幂等持久化。
 
-Integration 必须声明其协议请求去重身份来源。允许的来源为协议 request ID、受信 Gateway request ID，或在同一 expectedIngressRef 范围内的 canonical request digest。去重作用域必须至少包含 authenticated peer、Ingress export identity 和 expectedIngressRef；协议 request ID 还必须按协议定义的唯一性范围校验。重试同一请求时必须复用同一个 deliveryRef。
+Integration 必须声明其协议请求去重身份来源。允许的来源为 protocol-request-id、trusted-gateway-request-id，或在同一 expectedIngressRef 范围内的 canonical-request-digest。去重作用域必须至少包含 authenticated peer、Ingress export identity 和 expectedIngressRef；协议 request ID 还必须按协议定义的唯一性范围校验。重试同一请求时必须复用同一个 deliveryRef。
 
 若使用 canonical request digest，则同一 Wait occurrence 内两个内容完全相同的请求将被视为重复；Integration 必须明确该语义。若业务协议允许同一 Wait 下出现两个内容相同但语义独立的请求，而 Integration 无法区分二者，必须拒绝/隔离歧义情形，不得声称 exactly-once 网络投递。
 
