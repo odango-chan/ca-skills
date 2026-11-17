@@ -212,7 +212,8 @@
         "sourceSchemas",
         "normalizedSchemaRef",
         "normalizedSchemaDigest",
-        "normalization"
+        "normalization",
+        "maxBytes"
       ],
       "properties": {
         "acceptedMediaTypes": {
@@ -245,6 +246,10 @@
         },
         "binaryContent": {
           "$ref": "#/$defs/binaryContent"
+        },
+        "maxBytes": {
+          "type": "integer",
+          "minimum": 1
         }
       },
       "allOf": [
@@ -1225,7 +1230,8 @@
         "name",
         "mediaType",
         "kind",
-        "required"
+        "required",
+        "maxBytes"
       ],
       "properties": {
         "name": {
@@ -1274,12 +1280,7 @@
             "required": [
               "schemaRef",
               "schemaDigest"
-            ],
-            "not": {
-              "required": [
-                "maxBytes"
-              ]
-            }
+            ]
           }
         },
         {
