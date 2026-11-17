@@ -18,7 +18,7 @@ SCHEMA = ROOT / "docs/design/schemas/ingresscatalog.v1alpha1.schema.json"
 def load_example() -> dict:
     text = DOC.read_text(encoding="utf-8")
     blocks = re.findall(r"~~~yaml\s*\n(.*?)\n~~~", text, flags=re.DOTALL)
-    candidates = [block for block in blocks if "kind: IngressCatalog" in block]
+    candidates = [block for block in blocks if "id: nsmf-pdusession.update-sm-context" in block]
     if len(candidates) != 1:
         raise SystemExit(f"expected exactly one IngressCatalog YAML example, found {len(candidates)}")
     value = yaml.safe_load(candidates[0])
