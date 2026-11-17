@@ -82,7 +82,7 @@ The MAS graph is a CA policy-first implementation profile, not a normative 3GPP 
 | `select-upf-anchor` | TS 23.502 V19.9.0 §4.3.2.2.1 step 8 — s4 `UPS.DECIDE_ANCHOR` | `CA_ADAPTER` — SMF-local UPF selection; selected PFCP node remains internal. |
 | `allocate-pdu-session-address` | TS 23.502 V19.9.0 §4.3.2.2.1 step 8 — s5 `IAM.ALLOCATE_ADDRESS`, `LOCAL_POOL` | `CA_ADAPTER` — SMF-local address allocation; the source marker is not the UE IP address. |
 | `modify-sm-policy-association` | TS 23.502 V19.9.0 §4.3.2.2.1 step 9 (conditional); PCF API TS 29.512 V19.6.0 / OpenAPI Annex A.2 — s6u `PA.UPDATE_SM_POLICY` | `3GPP_NATIVE` — PCF `Npcf_SMPolicyControl_Update`. |
-| `create-charging-reservation` | s7 — `CA.CREATE_CHARGING` | `CA_EXTENSION` — MAS-specific charging extension; current source is a stub, not a 3GPP charging operation. |
+| `execute-charging-step` | s7 — `CA.CREATE_CHARGING` | `CA_EXTENSION` — MAS-specific charging extension; current source is a stub, not a 3GPP charging operation. |
 | `establish-n4-session` | TS 23.502 V19.9.0 §4.3.2.2.1 steps 10a–10b and §4.4.1.2; PFCP/N4 TS 29.244 V19.6.0 — s8 `UPN.CREATE_UP_SESSION` | `3GPP_NATIVE` — N4 Session Establishment. |
 | `signal-ue-and-access-network` | TS 23.502 V19.9.0 §4.3.2.2.1 steps 11 and 15; TS 29.518 V19.8.0 §5.2 / §6.1.2.4 / OpenAPI Annex A.2; TS 29.502 V19.7.0 §5.2/§6.1/§6.1.2.4 / OpenAPI Annex A.2; TS 29.571 V19.7.0 §5.4.4.14 — s10 `SSM.SIGNAL_UE_AN` | `CA_ADAPTER` — orchestrates AMF N1/N2 transfer and the pending UpdateSMContext completion. |
 | `modify-n4-session` | TS 23.502 V19.9.0 §4.3.2.2.1 steps 16a–16b and §4.4.1.3; PFCP/N4 TS 29.244 V19.6.0 — s11 `UPN.MODIFY_UP_SESSION` | `3GPP_NATIVE` — N4 Session Modification. |
