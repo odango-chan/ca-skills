@@ -390,7 +390,8 @@ wire-discriminator 策略还必须声明 maximumLateArrival、clockSkewAllowance
 如果协议没有可区分连续 Wait occurrence 的 on-wire discriminator，Integration 必须证明等价的 single-flight + stale-delivery/tombstone 策略：
 
 - 对相同 correlation resource key，同一时刻最多允许一个有效 Wait occurrence；
-- 每个 Wait occurrence 无论以 EVENT_ACCEPTED、TIMEOUT、CANCELLED 还是 INVALIDATED 结束，该 key 都必须进入 tombstone/quarantine；
+- 当有效请求首次与已 armed Wait 匹配并被持久接受时，Integration MUST 原子消费该 correlation resource key，并在向 Host/Runtime 投递前立即建立 tombstone；
+- 后续 `EVENT_ACCEPTED` 只关闭该 Wait occurrence，不释放 tombstone。无论该 occurrence 最终以 `EVENT_ACCEPTED`、`TIMEOUT`、`CANCELLED` 还是 `INVALIDATED` 结束，tombstone 都必须持续到 retention 到期；
 - export 必须声明 maximumLateArrival、clockSkewAllowance 和 tombstoneRetention 三个固定时长；
 - tombstoneRetention MUST strictly exceed maximumLateArrival + clockSkewAllowance；相等不接受，以避免边界时刻的过期/匹配竞态；
 - 在 tombstoneRetention 到期前，不得为相同 key 建立下一 Wait；
