@@ -73,7 +73,7 @@ spec:
   operations: []
 ~~~
 
-上述 API 标识是本文提出的契约版本，不代表已存在可下载的正式发布物。资源的物理文件路径由 Integration Package 决定，不成为 Skill 作者可见的身份。
+上述 API 标识是本文提出的契约版本，不代表已存在可下载的正式发布物。资源的物理文件路径由 Integration Package 决定，不成为 Skill 作者可见的身份。每个 operations[] 元素是一个 exportKind=ingressOperation 的独立导出；Catalog 文件本身不取代 trusted dependency binding。
 
 ### 2.3 四种不同身份
 
@@ -505,7 +505,7 @@ Compiler 必须对一个被引用的 Ingress Operation 执行以下链接：
 3. 验证 3GPP/OpenAPI provenance、artifact digest、method、path、operationId 和 API release；
 4. 验证 accepted media types、source Schema、normalized Schema 和 mapping artifact 均在可信依赖闭包中；
 5. 验证 normalized Schema 属于 CA-SL 支持的 JSON Schema 子集；
-6. 验证 peer type 与 wait.event.source 一致，并验证部署 profile 引用是非秘密标识；
+6. 验证 peer type 与 wait.event.source 一致，并验证部署 profile 引用是非秘密标识；实际 profile 是否已绑定到部署配置由 Admission/Deployment 校验，不能由 Compiler 仅凭字符串声称通过；
 7. 验证 correlation key 路径、标量类型和比较规则；
 8. 验证每个 Wait 入边上的 start Context 或 triggering Operation 绑定；
 9. 验证 triggering Operation 是精确 ToolCatalog Operation export，且全部 correlation 参数在 dispatch 前可用；
@@ -543,6 +543,8 @@ metadata:
 spec:
   operations:
     - id: nsmf-pdusession.update-sm-context
+      contractVersion: connectionagent.io/ingresscatalog/v1alpha1
+      contractDigest: sha256:<64-hex>
       event:
         source: AMF
         service: Nsmf_PDUSession
@@ -572,6 +574,9 @@ spec:
           - mediaType: application/json
             schemaRef: urn:example:openapi:update-sm-context-request
             schemaDigest: sha256:<64-hex>
+          - mediaType: multipart/related
+            schemaRef: urn:example:openapi:update-sm-context-multipart-request
+            schemaDigest: sha256:<64-hex>
         normalizedSchemaRef: urn:example:normalized:update-sm-context:v1
         normalizedSchemaDigest: sha256:<64-hex>
         normalization:
@@ -589,7 +594,7 @@ spec:
         staleDelivery:
           strategy: single-flight-tombstone
           resourceKey: /smContextRef
-          maximumLateArrival: PT<positive-seconds>S
+          maximumLateArrival: "<exact-positive-duration>"
           basisRef: urn:example:protocol-or-deployment-guarantee
 
       arming:
@@ -601,6 +606,7 @@ spec:
               owner: example.amf-tool-owner
               kind: operation
               id: ca::amf.communication.n1n2_message_transfer
+              inputSchemaRef: urn:example:schema:n1n2-transfer-input
             bindings:
               - requestKey: /smContextRef
                 source:
@@ -655,7 +661,7 @@ spec:
 | INGRESS_PROTOCOL_ARTIFACT_INVALID | OpenAPI artifact、digest、release、method、path 或 operationId 不匹配 |
 | INGRESS_REQUEST_SCHEMA_INVALID | 源 Schema、normalized Schema 或 Schema 闭包无效 |
 | INGRESS_NORMALIZATION_INVALID | mapping 缺失、digest 不匹配、字段映射不完整或目标路径无效 |
-| INGRESS_PEER_PROFILE_UNBOUND | Peer authentication/authorization profile 未由部署绑定 |
+| INGRESS_PEER_PROFILE_REFERENCE_INVALID | Peer authentication/authorization profile 引用格式无效或引用了未声明的资源；实际部署未绑定属于 Admission 拒绝 |
 | INGRESS_CORRELATION_INVALID | key 字段不是可比较标量、无法唯一匹配或比较规则不确定 |
 | INGRESS_TRIGGER_OPERATION_NOT_FOUND | 指定的触发 Operation 不在可信依赖闭包中 |
 | INGRESS_TRIGGER_OPERATION_AMBIGUOUS | 触发 Operation 身份不唯一 |
