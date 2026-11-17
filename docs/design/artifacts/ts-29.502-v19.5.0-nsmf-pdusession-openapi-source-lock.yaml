@@ -68,7 +68,7 @@ spec:
           role: exact-openapi-source-bytes-for-annex-a2
       operationSchemaClosure:
         operationId: UpdateSmContext
-        scope: operation-request-and-responses
+        scope: mapped-request-response-fields
         externalDocuments:
           - TS29571_CommonData.yaml
         status: VERIFIED_BY_CI
