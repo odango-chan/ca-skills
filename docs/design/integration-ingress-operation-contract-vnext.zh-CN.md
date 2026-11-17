@@ -1,0 +1,744 @@
+# CA Integration Ingress Operation Contract — 设计提案
+
+**状态：** 设计提案；尚未冻结、尚未发布。  
+**适用范围：** CA-SL v1alpha4 之后的语言修订，以及与之配套的可信 Integration 依赖导出。  
+**语义依据：** [Node-level Event Wait 冻结语义 PR #60](https://github.com/odango-chan/ca-skills/pull/60)。  
+**相关文档：** [CA-SL Wait 规范化草案 PR #61](https://github.com/odango-chan/ca-skills/pull/61)、[Generic Host/Runtime Inbound Event 契约 PR #210](https://github.com/odango-chan/ca-agent-demo/pull/210)。  
+**版本边界：** 本文提出独立的 Integration 导出契约版本，不分配 CA-SL 语言版本，也不改变 v1alpha4。
+
+本文中的 MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT 和 MAY 均为规范性用语。本文是待评审设计，不构成现有 Compiler、Host、Runtime 或 Integration 产品已经符合的声明。
+
+## 1. 目标与非目标
+
+### 1.1 目标
+
+定义一个可由 Compiler 静态链接、由 Generic Host 可靠转交、由 Runtime 精确消费、由 Domain Integration 实际执行的可信入站协议契约。
+
+该契约必须回答：
+
+1. 入站消息究竟是哪一个协议/API 操作；
+2. 由哪个受信 Integration Owner 实现和负责；
+3. 使用哪一份精确的协议规范、OpenAPI artifact、请求 Schema 和响应 Schema；
+4. 如何将 wire request 确定性地归一化为 Skill 可消费的 typed request；
+5. 如何在触发外部动作之前，建立唯一、可验证的 correlation binding；
+6. 如何区分并发 Run、连续 Wait occurrence、重复消息和迟到消息；
+7. 如何定义配对协议响应、响应结果数据来源、响应期限和恢复责任；
+8. 如何在不把协议细节泄漏给 Generic Host / Runtime 的前提下完成上述流程。
+
+### 1.2 非目标
+
+本文不定义：
+
+- 新的 CA-SL Node、Stage、Outcome 或 Wait 语义；
+- Skill 作者自定义 payloadSchema、correlationKey、callbackToken 或 HTTP 路由；
+- 全局 EventCatalog、运行时全局事件发现或按名称猜测 API；
+- Generic Host 对 3GPP、HTTP/2、SBI 路径或协议 Payload 的解析；
+- Runtime 对原始 HTTP request 的解析或协议身份推导；
+- 新 Invocation、Root selection、Skill selection 或 Run；
+- 出站 SBI Tool 的调用契约。出站 Tool 仍使用 ToolCatalog Operation；
+- TLS/OAuth 密钥、证书、令牌、服务发现地址等部署秘密；
+- Integration 的具体 HTTP Server、队列、数据库、持久化产品或 DTO 线格式。
+
+## 2. 核心模型与术语
+
+### 2.1 Ingress Operation
+
+**Ingress Operation** 是 Integration Owner 发布的、描述一个精确入站协议操作的可信契约导出。
+
+它描述“外部协议请求如何进入 CA”，不是一个由 Agent 主动调用的 Tool Operation。
+
+因此：
+
+- Ingress Operation 不属于 ToolCatalog 的 operation 或 observation callable；
+- Ingress Operation 不属于 Skill 的 Capability Grant；
+- Ingress Operation 不增加 Tool Action Budget；
+- 它不能由 Skill 的 operation.tool 调用；
+- 它不能产生 Tool Operation Result 或 Evidence；
+- 它只为 CA-SL Node-entry Event Wait 提供事件身份、请求 Schema、归一化、Correlation 和可选响应契约。
+
+触发入站事件的出站动作仍然是一个普通、精确链接的 ToolCatalog Operation。Ingress Operation 通过可信引用声明允许哪些出站 Operation 触发它。
+
+### 2.2 IngressCatalog
+
+一个 Integration dependency snapshot MAY 发布一个或多个 IngressCatalog 资源。IngressCatalog 是包内的、受信的、版本化导出；不是全局 EventCatalog。
+
+建议的独立资源版本为：
+
+~~~yaml
+apiVersion: connectionagent.io/ingresscatalog/v1alpha1
+kind: IngressCatalog
+metadata:
+  owner: example.integration-owner
+spec:
+  operations: []
+~~~
+
+上述 API 标识是本文提出的契约版本，不代表已存在可下载的正式发布物。资源的物理文件路径由 Integration Package 决定，不成为 Skill 作者可见的身份。
+
+### 2.3 四种不同身份
+
+| 身份 | 权威 Owner | 用途 | 是否暴露给 Skill |
+|---|---|---|---|
+| Ingress Operation export identity | Integration Package / trusted dependency binding | 精确链接协议入站契约 | 仅通过 wait.event 选择，不暴露内部句柄 |
+| expectedIngressRef | Runtime | 一个 Run 内一个 Wait occurrence 的不透明注册句柄 | 否 |
+| deliveryRef | Integration | 一次归一化交付的幂等身份 | 否 |
+| responseObligationRef | Integration | 一个配对协议响应的私有责任记录 | 否 |
+
+它们不能互换。尤其是，协议 Resource ID、SUPI、smContextRef、deliveryRef 和 expectedIngressRef 不是同一种身份。
+
+### 2.4 事件选择器
+
+CA-SL wait.event 使用三个精确字段：
+
+~~~yaml
+event:
+  source: AMF
+  service: Nsmf_PDUSession
+  operation: UpdateSMContext
+~~~
+
+字段语义：
+
+- source：由 Integration 从已认证对端身份得出的规范 NF 类型，不是请求 Body 中的自报字段，也不是 NF 实例地址；
+- service：3GPP Service 名称；
+- operation：该 Service 下的规范 Service-Operation 名称。
+
+三个字段按区分大小写的精确字符串匹配。它们不等同于 OpenAPI 的 operationId。例如，3GPP Service-Operation UpdateSMContext 与 OpenAPI artifact 中的 UpdateSmContext 是两个不同层次的字段，均须由契约分别记录。
+
+## 3. 发布、依赖和可信身份
+
+### 3.1 依赖方式
+
+Skill 通过普通、版本固定的 contract.yaml dependencies 声明 Integration Package。Studio / trusted caller 负责取得不可变快照并将确切字节交给 Compiler；Compiler 不联网下载、不自动升级，也不选择 latest。
+
+IngressCatalog、OpenAPI artifact、源请求 Schema、归一化 Schema、映射清单和响应 Schema 均必须包含在该快照闭包内，或由该快照明确声明的其他受信依赖提供。不得引用任意 URL、工作区路径或未锁定的远端资源。
+
+### 3.2 新增的可信导出类别
+
+下一语言修订的依赖装配契约必须新增精确的 exportKind: ingressOperation。
+
+每个 Ingress Operation 的受信 Owner 绑定至少包含：
+
+- dependency alias；
+- 精确 Package ID；
+- 精确 Owner ID；
+- exportKind = ingressOperation；
+- 精确 export ID；
+- 所属 snapshot digest。
+
+Owner 身份必须来自 trusted dependency binding，不能只相信 IngressCatalog 的 metadata.owner 自述。Catalog 中的 owner 必须与受信绑定一致。
+
+export ID 在一个 dependency snapshot 的 ingressOperation 命名空间内唯一。整个 Skill dependency closure 中，重复的 (exportKind, exportId) 或重复的事件选择器均不得被静默覆盖。
+
+### 3.3 与 v1alpha4 的隔离
+
+v1alpha4 的依赖互操作集合保持不变。v1alpha4 不接受 IngressCatalog、ingressOperation export kind 或本文的 Event Wait 语法。
+
+下一语言修订必须显式增加该 export kind 和对应版本规则。不能通过修改 v1alpha4 ToolCatalog 的 apiVersion、将 Ingress Operation 伪装成 ToolCatalog callable，或在旧版本中增加 fallback 来实现。
+
+### 3.4 精确解析
+
+Compiler 在 Skill 声明的精确 dependency snapshots 中解析 wait.event：
+
+- 零个匹配：WAIT_INGRESS_EXPORT_NOT_FOUND；
+- 多个匹配：WAIT_INGRESS_EXPORT_AMBIGUOUS；
+- 恰好一个匹配：继续校验该 export 的完整身份、Owner、Schema 和触发绑定。
+
+Compiler MUST NOT：
+
+- 从相似名称、OpenAPI operationId 或自然语言描述猜测；
+- 根据入站 Body 选择 Schema 或 API 版本；
+- 选择最新发布物或自动版本协商；
+- 使用未声明依赖中的全局 IngressCatalog；
+- 仅凭 source/service/operation 三个字符串就声称已经完成 Owner 身份验证。
+
+依赖存在只允许 Compiler 链接该契约，不授予任意外部 NF 访问权限，也不代表部署已启用对应 Integration。实际准入仍由受信部署策略授权。
+
+## 4. Ingress Operation 的逻辑字段
+
+每个 Ingress Operation export 必须提供以下逻辑字段。具体 YAML 序列化由本契约版本固定；不得由每个 Integration Owner 自行发明不兼容的字段含义。
+
+### 4.1 稳定导出身份
+
+- id：非空、稳定、包内唯一的精确 export ID；
+- event：精确的 source/service/operation 三元组；
+- owner：与受信 dependency Owner binding 一致；
+- contractVersion：Ingress Operation contract schema 版本；
+- contractDigest：对该 export 的规范化内容计算的完整性摘要，且必须受 dependency snapshot digest 覆盖。
+
+同一 id 的任何协议版本、Schema、归一化、Correlation、响应或安全语义变化都必须产生新的不可变快照；不得原地改变已被 Skill pin 的内容。
+
+### 4.2 协议来源与 API 身份
+
+protocol 至少声明：
+
+| 字段 | 要求 |
+|---|---|
+| specification | 精确标准身份，例如 3GPP TS 29.502 |
+| release | 精确发布版本；不得使用 latest、范围或浮动标签 |
+| apiVersion | API URI 版本 |
+| openapi.artifactRef | dependency snapshot 内精确 OpenAPI artifact 身份 |
+| openapi.artifactDigest | 对应 artifact 的 SHA-256 摘要 |
+| openapi.operationId | 精确 OpenAPI operationId |
+| openapi.method | 精确 HTTP method |
+| openapi.path | 精确 path template，不允许 wildcard route |
+
+OpenAPI artifact digest 必须覆盖被链接的 paths、operation、requestBody、responses 和 Schema 引用。外部 $ref 必须被解析到同一受信快照闭包中的精确内容；禁止运行时远程解析。
+
+一个 Ingress Operation export 只代表一个精确的协议操作。相同的 Service-Operation 名称在不同 API release、API version、HTTP method 或路径下，不得被当作同一个 wire contract。
+
+### 4.3 请求媒体类型与源 Schema
+
+request 必须声明：
+
+- acceptedMediaTypes[]：精确允许的 wire media types；
+- sourceSchemas[]：每种请求媒体类型对应的源 Schema 身份及摘要；
+- normalizedSchemaRef 和 normalizedSchemaDigest：唯一的 Skill-facing normalized request Schema；
+- normalization：确定性归一化实现身份、摘要及可审计的 source-to-normalized mapping。
+
+源 Schema 必须与 pinned OpenAPI artifact 中的 Request Body / multipart part 声明一致。若 OpenAPI 使用组合或引用，Compiler 必须按受支持的 Schema 规则解析闭包，不得仅凭 Schema 名称匹配。
+
+### 4.4 归一化规则
+
+Integration Adapter 按以下顺序处理入站请求：
+
+1. 识别精确 API route、method 和 API version；
+2. 验证已认证对端身份及授权；
+3. 验证请求媒体类型；
+4. 按 pinned source Schema 验证 wire request；
+5. 按 pinned normalization mapping 转换为 normalized request；
+6. 按 normalized Schema 验证转换结果；
+7. 从已验证的 normalized request 和可信对端身份派生 correlation；
+8. 将该请求关联到唯一的 armed expectedIngressRef；
+9. 创建或恢复 delivery / response obligation 记录，再向 Host 提交。
+
+Schema 选择不能依赖未验证的 Body 字段。未经认证的 source、UE 标识、Session 标识或回调字段不得用于选择 Run。
+
+归一化必须确定、可复现、可审计。每个必需的源字段必须有明确目标字段；可选或忽略字段必须在 mapping 中明确标注。未知的语义字段、缺失的必需字段、类型不符和不支持的 media type 必须拒绝或隔离，不能静默丢弃、猜测或截断。
+
+Normalization mapping 必须被精确版本化并由 Integration Owner 负责。Compiler 至少验证 mapping artifact 身份、摘要、Schema 路径和完整性；Integration conformance tests 负责证明真实 adapter 的转换与 mapping 一致。禁止以 Skill Script、CEL 或 LLM 在运行时临时完成协议归一化。
+
+### 4.5 Multipart 与二进制内容
+
+对 multipart 或二进制 part，Integration export 必须明确：
+
+- part 名称及媒体类型；
+- 对应源 Schema / OpenAPI part 定义；
+- normalized request 中的目标字段；
+- 最大长度与允许的内容类型；
+- 二进制内容的不可变引用表示及其生命周期。
+
+二进制内容不得因方便而转为未校验的任意字符串，也不得被静默丢弃。若 normalized request 暴露二进制引用，该引用是受限的业务数据引用，不是 normalizedPayloadRef、expectedIngressRef 或 responseObligationRef。
+
+二进制业务引用必须绑定内容摘要、媒体类型、长度、不可变性、授权范围和保留期限；不得是任意 URL 或本地文件路径。Skill 只能通过声明的 Tool/Owner 能力消费该引用，不能直接访问 Host 的内部 Payload Store。若 Integration 无法安全表达某个 part，必须拒绝该请求。
+
+### 4.6 规范化数据与私有传输元数据隔离
+
+normalized request Schema 只包含明确声明的业务输入。默认不得包含：
+
+- Authorization、Cookie、TLS 证书或访问令牌；
+- Host 内部 correlation index；
+- runId、waitOccurrenceRef；
+- expectedIngressRef、deliveryRef；
+- responseObligationRef、HTTP/2 stream 或 socket handle；
+- Host/Runtime 内部持久化路径或数据库主键。
+
+若某个协议字段确实属于业务输入，Integration 必须在 normalized Schema 中显式定义，并说明其业务语义；不能因为它出现在 HTTP Header 或 transport envelope 中就自动暴露。
+
+## 5. 对端身份与协议安全
+
+### 5.1 认证身份
+
+Integration 必须使用受信传输认证结果确定 peer identity，并验证其 NF type 与 event.source 一致。
+
+认证方式由部署安全配置决定，可使用受信 TLS/mTLS、OAuth 2.0 或部署认可的组合。IngressCatalog 只引用非秘密的 profile identity；证书、私钥、client secret、token、JWKS 内容和运行时凭证不得写入 Skill、IngressCatalog 或公开 mapping。
+
+### 5.2 授权
+
+认证成功不等于授权成功。Integration 必须验证：
+
+- peer NF type 是否允许调用该 Service-Operation；
+- peer identity 是否属于部署配置允许的实例/信任域；
+- API version、route、method、media type 是否在该 export 的允许范围；
+- 当前 deployment 是否启用了该 Ingress Operation；
+- 请求是否满足协议要求的目标资源与授权范围。
+
+Host 不重复执行协议级认证或解析；Host 只接受受信 Integration Adapter 的交付。Runtime 不从原始 HTTP 请求推导授权。
+
+### 5.3 失败处理
+
+认证失败、授权失败、API version 不匹配、路径/method 不匹配、媒体类型不支持、源 Schema 无效或 normalized Schema 校验失败的请求：
+
+- 不得满足任何 Wait；
+- 不得重置 Wait timeout；
+- 不得创建新的 Invocation；
+- 不得通过猜测关联到其他 Run；
+- 必须由 Integration 按部署和协议策略拒绝或隔离，并留下可审计的拒绝记录。
+
+## 6. Correlation 与预派发注册
+
+### 6.1 Correlation key
+
+correlation.keyFields[] 必须声明一组足以唯一匹配该协议事件的 normalized request 字段。每项至少包含：
+
+- normalized request 内的精确 JSON Pointer；
+- 该字段的身份维度，例如 session、resource 或 correlation；
+- 精确比较/规范化规则；
+- 字段的静态类型约束。
+
+Correlation key 的每个字段必须是可稳定比较的标量。默认使用精确值比较；若协议要求规范化，必须由 Integration export 明确声明确定性规范化规则。不得按字段名相似、前缀、模糊字符串、时间接近或“最新 Run”推断匹配。
+
+Peer identity、API export identity 和 correlation key 共同限定匹配范围。仅凭 SUPI、DNN、S-NSSAI 或一个不具备唯一性的资源标识，不能推断某个 Wait occurrence。
+
+### 6.2 预派发绑定的两种来源
+
+Integration export 必须声明它支持的 Wait arming 模式。
+
+**A. 由入口 Invocation Context 启动**
+
+适用于 Wait-bearing Node 本身就是 Procedure start 的场景。Export 声明允许 start arming，并为每个 correlation key 字段指定一个 Invocation Context JSON Pointer。
+
+Compiler 必须验证该路径由 Skill 已声明的 Host Context Schema 或 Request Schema 提供，类型与 correlation key 兼容。Runtime 在 Node 激活之前从已准入 Context 物化绑定并注册。
+
+**B. 由前序 Tool Operation 触发**
+
+适用于前序出站 Operation 可能导致外部 NF 后续发送该入站请求的场景。Export 必须声明允许的触发 Operation 集合。每个触发项至少包含：
+
+- 精确 ToolCatalog Package ID；
+- 精确受信 Owner；
+- kind = operation；
+- 精确 Operation ID；
+- 该 Operation 的 Input Schema 身份；
+- 将 correlation key 映射到 Operation arguments JSON Pointer 的绑定规则。
+
+触发 Operation 必须来自 Skill 已声明的可信依赖快照。Observation、Predicate、Script、Capability ID、Tool display name 或网络地址不能充当 triggering Operation identity。
+
+Compiler 必须从 Procedure 图中解析触发 Operation 的实际调用点，并验证每个 correlation 值都能从该 Operation 的已物化 arguments 中取得。Runtime 必须在 Operation 派发前使用同一份已物化 arguments 建立 correlation binding；不得等 Operation 返回后再推导。
+
+### 6.3 每条入边的唯一触发关系
+
+对每个 Wait-bearing Node 的每条可达入边，Compiler 必须证明以下二者之一：
+
+- 若该 Node 是 Procedure start，存在完整且可用的 start Context binding；
+- 否则，该路径在进入 Wait Node 之前恰好经过一个与该 Ingress export 匹配的 triggering Operation 调用点，并且该调用点能在派发前物化所有 correlation key。
+
+不同入边可以对应 export 中声明的不同 triggering Operation，但每条实际路径必须唯一。某条路径缺少触发器、出现多个无法消歧的触发器、参数缺失、参数不可用或参数类型不匹配时，Compiler 必须拒绝该 Wait 绑定。
+
+所有入边仍必须解析到同一个精确 Ingress Operation export、normalized request Schema、Correlation contract 和 response contract。若事件身份或契约不同，作者必须使用不同 Wait-bearing Node，再通过普通 Procedure 图汇合。
+
+### 6.4 注册顺序
+
+Runtime 在派发 triggering Operation 之前必须：
+
+1. 创建新的 opaque expectedIngressRef；
+2. 将其私有绑定到精确 Run、目标 Node、Wait occurrence/generation 和已解析 Ingress export；
+3. 通过 Generic Host 持久化注册请求；
+4. 要求 Integration Adapter 验证 correlation binding 并建立唯一匹配槽；
+5. 只有收到持久化的 ARMED acknowledgement 后，才允许派发 triggering Operation。
+
+若 arm 失败或 acknowledgement 状态不确定，Runtime 必须使用相同幂等请求恢复/确认注册；在确认前不得派发。不得“先发送再关联”。
+
+注册不等于 Node 激活，不启动 Wait timeout，也不使 wait.output 可用。事件若在注册后、目标 Node 激活前到达，Integration/Host 必须按同一个 opaque expectedIngressRef 持久缓冲；只有 Runtime 实际选中该 Node 时才可消费。若其他路由被选中，未激活的注册必须失效，缓冲事件不得重新分配给其他 Wait。
+
+## 7. 并发、重复与迟到消息
+
+### 7.1 并发唯一性
+
+Integration 必须证明一个经过认证、验证和归一化的请求最多匹配一个仍有效的 armed expectedIngressRef。
+
+若匹配结果为零或多个，必须拒绝/隔离。不得选择创建时间最新、最近活跃、SUPI 相同或其他启发式候选。
+
+同一 UE 可以有多个并发 Run；同一资源也可能出现连续 Wait occurrence。Correlation 必须区分这些情形。
+
+### 7.2 Wire discriminator
+
+若协议提供 request ID、transaction ID、generation 或其他可验证 discriminator，Integration 必须校验其作用域、唯一性和生命周期，并将其纳入 correlation。只在 Host/Runtime 内生成的 generation counter 不能区分外部迟到请求，除非该 generation 也能由入站协议请求可靠证明。
+
+### 7.3 无 Wire discriminator 时的 Single-flight
+
+如果协议没有可区分连续 Wait occurrence 的 on-wire discriminator，Integration 必须证明等价的 single-flight + stale-delivery/tombstone 策略：
+
+- 对相同 correlation resource key，同一时刻最多允许一个有效 Wait occurrence；
+- Wait timeout、cancel 或 invalidation 后，该 key 必须进入 tombstone/quarantine；
+- 在协议或受信入口设施可证明的最大迟到消息窗口内，不得为相同 key 建立下一 Wait；
+- tombstone 到期依据必须是可审计的协议或部署保证，不得由 Skill 作者随意声明；
+- 若无法证明有限的迟到窗口，则不得复用该 key；Compiler/Admission 必须 fail-closed。
+
+不得只用 Runtime 内部 generation counter、expectedIngressRef 随机性或数据库行版本声称解决外部消息的迟到歧义。
+
+### 7.4 重复交付
+
+Integration 为一次已接受的 normalized delivery 生成稳定 deliveryRef，并在重试时保持不变。Host 按 deliveryRef 幂等持久化。
+
+Integration 必须声明其协议请求去重身份来源。若协议有可靠 request ID，使用该 ID 及其作用域；若没有，必须使用受信入口设施提供的请求身份或对同一 Wait occurrence 定义明确的重复处理规则。
+
+若 Integration 无法区分“同一请求重试”与“同一 Wait 下两个内容相同但语义独立的请求”，必须拒绝/隔离歧义情形，不得声称 exactly-once 网络投递。
+
+## 8. 配对协议响应
+
+### 8.1 响应模式
+
+每个 Ingress Operation 必须明确声明以下之一：
+
+- response.mode: none：该协议操作不要求由本次 Ingress delivery 配对返回协议响应；
+- response.mode: paired：每次接受的入站请求都产生一个由 Integration 管理的 response obligation。
+
+不得仅根据 HTTP method 或 API operationId 猜测响应模式。
+
+paired 模式下，Integration 在接受协议请求时创建私有 responseObligationRef，并将其与 expectedIngressRef 关联。该引用由 Integration/Host 保存，Runtime 和 Skill 不得接收。
+
+### 8.2 响应边界与 Producer 来源
+
+CA-SL 的 wait.response.after 只选择一个 Node completion boundary；省略时默认为 Wait-bearing Node。它不声明协议 Schema，也不携带响应句柄。
+
+为避免 Integration Package 依赖 Skill 专属 Node ID，**Producer 来源由 Ingress export 声明阶段类型，而不是声明 Skill SourcePath**：
+
+- response.result.producer: operation：响应结果来自 <response.after>.operation.output；
+- response.result.producer: observation：响应结果来自 <response.after>.observation.output；
+- bodyless 响应不声明 result Producer。
+
+Compiler 根据 Skill 的 wait.response.after 和 Ingress export 的 producer 类型，确定唯一 SourcePath。该 Producer 必须存在、其输出必须在每条正常到达 response boundary 的路径上可用，并且其 Output Schema 必须可赋值给 Integration export 声明的 responseResultSchema。
+
+若响应需要早前 Node 的数据，Skill 必须通过 boundary Node 的 Operation/Observation arguments 显式传递这些值，并由该 Producer 输出完整、类型化的 response result。Integration export 不得引用某个 Skill 的 Node ID；Runtime/Integration 不得读取任意历史 Run 输出或猜测 latest output。
+
+### 8.3 响应 Schema 与映射
+
+body-bearing paired response 必须声明：
+
+- responseResultSchemaRef：Integration response encoder 接受的类型化输入 Schema；
+- responseSchemaRef：精确协议响应 Body Schema；
+- 精确响应 media type；
+- 确定性、版本化的 response mapping artifact 及摘要；
+- required response fields 的完整映射。
+
+Compiler 必须验证 boundary Producer Output 对 responseResultSchema 的可赋值性，并验证 response mapping 所需字段与协议响应 Schema 一致。映射由 Integration 拥有，不由 Skill 重复声明。
+
+bodyless paired response 必须明确声明 bodyless response disposition，且不得声明 result Producer。若协议要求响应体，则不得以空 Body 或 Runtime Trace 代替。
+
+### 8.4 成功、早期失败和响应超时
+
+Integration export 必须定义：
+
+- 正常 response boundary 的成功响应状态、media type 和 Schema；
+- 在响应 Producer 尚未产生可用结果前，Run 提前以 FAILED、UNRESOLVED 或 SAFE_STOPPED 结束时的显式 failure response mapping；
+- response deadline 的来源与到期处置；
+- response obligation 的持久化、重放、重复响应和失去原传输通道后的恢复策略。
+
+早期失败响应可以是协议允许的 bodyless response，或由 Integration 固定定义、并经过协议 Schema 校验的错误响应。不得从任意 Run summary、Host 私有字段或未类型化历史输出拼接失败 Body。
+
+入站请求被接受后，协议响应 deadline 与 Wait 的 pre-event timeout 是两个独立期限。响应 deadline 到期不得被重标为 CA-SL Wait 的 TIMEOUT Outcome。Integration 执行协议规定的失败响应策略；Runtime 保留已接受事件的 checkpoint 和未解决的业务/资源责任。任何 Run cancellation 均使用既有全局 cancellation 语义。
+
+### 8.5 响应交付和恢复
+
+Integration 负责协议状态码、Headers、Body/media serialization、HTTP/2 stream 和 wire response。Host 负责持久保存私有 response obligation association，并可靠转交 Runtime 的 typed response-ready result。Runtime 只在声明的 response boundary commit 时报告结果，不等待整个 Run 终止。
+
+Integration 必须声明响应交付是可重放还是连接绑定：
+
+- 可重放：必须定义协议 request identity、响应缓存/重放和重复请求处理；
+- 连接绑定：必须定义连接丢失、进程重启或 deadline 到期时的明确失败响应/恢复策略。
+
+不得假设 HTTP/2 stream handle 能跨进程重启存活，也不得声称跨网络 exactly-once。
+
+## 9. 与 Generic Host / Runtime 的边界
+
+| 责任方 | 必须负责 | 不得负责 |
+|---|---|---|
+| Domain Integration | 协议认证/授权、API 版本与路由校验、wire Schema、归一化、Correlation、重复/迟到消息处理、协议响应编码与恢复 | 通过启发式选择 Run/Node；接收 Runtime 的 runId / waitOccurrenceRef |
+| Generic Host | 持久保存并转交 arm/delivery/response obligation；durable inbox/outbox；deliveryRef 幂等；保护 Payload 引用 | 解析 3GPP API、解析原始 HTTP Body、推导协议 correlation、选择 Run/Node |
+| Runtime | 创建/解析 expectedIngressRef；拥有 Wait occurrence 状态、deadline race、checkpoint 和同一 Run continuation；按 linked normalized Schema 消费输入 | 解析原始 HTTP/SBI；推导 peer NF 或协议资源身份 |
+| Tool Owner / Agent | 执行声明的业务 Operation/Observation；提供其 Owner Output 和 Evidence | 接管协议 response obligation、监听外部 SBI 请求、拥有 Run correlation |
+
+### 9.1 逻辑端口
+
+以下是逻辑操作，不冻结物理方法名或 DTO：
+
+~~~text
+Runtime -> Host -> Integration:
+  ArmExpectedIngress(
+    expectedIngressRef,
+    ingressContractRef,
+    typedCorrelationBinding
+  ) -> ARMED | REJECTED
+
+Integration -> Host:
+  SubmitInboundDelivery(
+    deliveryRef,
+    expectedIngressRef,
+    ingressContractRef,
+    normalizedPayloadRef,
+    responseObligationRef?,
+    responseDeadline?
+  ) -> ACCEPTED | DUPLICATE | REJECTED
+
+Host -> Runtime:
+  InboundDeliveryAvailable(
+    deliveryRef,
+    expectedIngressRef,
+    ingressContractRef,
+    normalizedPayloadRef
+  )
+
+Runtime -> Host:
+  ResponseBoundaryCommitted(
+    expectedIngressRef,
+    ingressContractRef,
+    typedResponseResultRef?
+  )
+~~~
+
+Host 对 expectedIngressRef、ingressContractRef 和 Integration 私有 response obligation 做不透明转交和持久关联；Host 不解释协议 correlation。Integration 不接收 runId 或 waitOccurrenceRef。
+
+responseObligationRef 当且仅当 Ingress export 声明 paired response 时提供。typedResponseResultRef 仅在 body-bearing response 需要 typed Producer result 时提供；bodyless response 可省略。
+
+### 9.2 可靠性语义
+
+Delivery 采用 durable at-least-once + idempotent acceptance。网络层不承诺 exactly-once。对一个 Wait occurrence 的 exactly-once Node entry 由 Runtime 的 authoritative atomic state transition 和 durable checkpoint 保证。
+
+若 Host 与 Runtime 使用不同持久化存储，必须使用 durable inbox/outbox、幂等命令和可恢复状态；不得声称存在实际上不具备的跨存储原子事务。
+
+## 10. Compiler 链接与静态检查
+
+Compiler 必须对一个被引用的 Ingress Operation 执行以下链接：
+
+1. 验证 dependency alias、Package ID、snapshot digest、Owner binding、exportKind 和 IngressCatalog apiVersion；
+2. 验证 export ID 唯一，并对 wait.event 得到恰好一个匹配；
+3. 验证 3GPP/OpenAPI provenance、artifact digest、method、path、operationId 和 API release；
+4. 验证 accepted media types、source Schema、normalized Schema 和 mapping artifact 均在可信依赖闭包中；
+5. 验证 normalized Schema 属于 CA-SL 支持的 JSON Schema 子集；
+6. 验证 peer type 与 wait.event.source 一致，并验证部署 profile 引用是非秘密标识；
+7. 验证 correlation key 路径、标量类型和比较规则；
+8. 验证每个 Wait 入边上的 start Context 或 triggering Operation 绑定；
+9. 验证 triggering Operation 是精确 ToolCatalog Operation export，且全部 correlation 参数在 dispatch 前可用；
+10. 验证 single-flight/tombstone 或 wire discriminator 能防止连续 occurrence 的迟到消息串用；
+11. 验证 response mode、response.after boundary、result Producer 类型和 Output Schema 赋值；
+12. 验证正常响应 mapping 和所有允许的提前失败响应 mapping 完整。
+
+Compiler 不执行协议认证，不调用真实 Integration adapter，不通过网络请求证明 API 可用，也不替代 Integration conformance tests。
+
+## 11. 5GC 参考映射：TS 23.502 Step 15 / Step 17
+
+以下仅说明责任和身份映射，不选择具体 3GPP release，也不声称当前 Owner 已发布对应 IngressCatalog。
+
+- Step 11 Namf_Communication_N1N2MessageTransfer 是触发后续事件的出站 Operation。
+- Step 3 Nsmf_PDUSession_CreateSMContext 建立 SM Context；Step 5 成功响应的 Location resource URI 提供精确 smContextRef。
+- Runtime 在 Step 11 派发前注册 Step 15 的预期入站事件。Integration export 声明触发 Operation 的精确 ToolCatalog callable，并把其已物化 arguments 中的 smContextRef 绑定到入站请求 path 中的 smContextRef。
+- Step 15 是 AMF 发起的 Nsmf_PDUSession.UpdateSMContext Request。Ingress selector 为 source=AMF、service=Nsmf_PDUSession、operation=UpdateSMContext；OpenAPI artifact 的 operationId UpdateSmContext 独立记录。
+- Integration 认证 AMF、校验精确 TS 29.502 API artifact、解析 path/body/media parts、验证源 Schema、归一化请求并以精确 smContextRef 关联已 armed Wait。
+- Host 持久提交 normalized delivery；Runtime 接受事件并继续同一个 Run，wait.output 提供 typed UpdateSMContext request。
+- Agent 执行声明的 SMF 业务 Operation。补充的只读 SMF Context Observation（若需要）仍在同一个 Node 的 Operation 之后执行，不转移协议响应责任。
+- Step 17 Nsmf_PDUSession.UpdateSMContext Response 在 modify-n4-session Node 的声明 response boundary commit 后由 Integration 编码。Ingress export 指定 response result 来自该 boundary Node 的 operation.output，Compiler 校验该输出与 responseResultSchema 的兼容性。
+- 若响应需要更早 Node 的值，Skill 必须将其显式传入 modify-n4-session Operation arguments，并由该 Operation 输出完整 response result。
+
+此模型是传统 3GPP SMF 对外协议边界。不得把 OpenAMSM 内部模块名写成 3GPP 协议身份，不得把 AMF/(R)AN/UE 行为描述为 SMF 自身的 Operation。不得在 Step 3 尚未创建 SM Context 时查询一个不存在的 smContextRef 来注册 Step 15。
+
+## 12. 建议的最小 IngressCatalog 结构
+
+以下为字段归属示意，不是可直接部署的 3GPP 发布物。所有 urn:example、摘要、Package ID、profile 和 Schema ID 都是占位符。
+
+~~~yaml
+apiVersion: connectionagent.io/ingresscatalog/v1alpha1
+kind: IngressCatalog
+metadata:
+  owner: example.smf-integration
+spec:
+  operations:
+    - id: nsmf-pdusession.update-sm-context
+      event:
+        source: AMF
+        service: Nsmf_PDUSession
+        operation: UpdateSMContext
+
+      protocol:
+        specification: 3GPP TS 29.502
+        release: "<exact-pinned-release>"
+        apiVersion: v1
+        openapi:
+          artifactRef: urn:example:openapi:nsmf-pdusession
+          artifactDigest: sha256:<64-hex>
+          operationId: UpdateSmContext
+          method: POST
+          path: /sm-contexts/{smContextRef}/modify
+
+      security:
+        authenticatedPeerType: AMF
+        authenticationProfileRef: deployment-auth::amf-peer
+        authorizationPolicyRef: deployment-auth::nsmf-update-sm-context
+
+      request:
+        acceptedMediaTypes:
+          - application/json
+          - multipart/related
+        sourceSchemas:
+          - mediaType: application/json
+            schemaRef: urn:example:openapi:update-sm-context-request
+            schemaDigest: sha256:<64-hex>
+        normalizedSchemaRef: urn:example:normalized:update-sm-context:v1
+        normalizedSchemaDigest: sha256:<64-hex>
+        normalization:
+          mappingRef: urn:example:mapping:update-sm-context
+          mappingDigest: sha256:<64-hex>
+
+      correlation:
+        keyFields:
+          - requestPath: /smContextRef
+            dimension: session
+            comparison: exact
+        duplicate:
+          identitySource: protocol-request-id
+          scope: expected-ingress
+        staleDelivery:
+          strategy: single-flight-tombstone
+          resourceKey: /smContextRef
+          maximumLateArrival: PT<positive-seconds>S
+          basisRef: urn:example:protocol-or-deployment-guarantee
+
+      arming:
+        start:
+          allowed: false
+        triggers:
+          - operation:
+              packageId: urn:example:package:amf-client-tools
+              owner: example.amf-tool-owner
+              kind: operation
+              id: ca::amf.communication.n1n2_message_transfer
+            bindings:
+              - requestKey: /smContextRef
+                source:
+                  kind: operation-argument
+                  path: /smContextRef
+
+      response:
+        mode: paired
+        deadlinePolicyRef: deployment-deadline::nsmf-update-sm-context
+        result:
+          body: required
+          producer: operation
+          responseResultSchemaRef: urn:example:response-result:update-sm-context:v1
+          responseSchemaRef: urn:example:openapi:update-sm-context-response
+          responseSchemaDigest: sha256:<64-hex>
+          mediaType: application/json
+          mappingRef: urn:example:mapping:update-sm-context-response
+          mappingDigest: sha256:<64-hex>
+        earlyFailureResponses:
+          FAILED:
+            responseRef: urn:example:protocol-error:failed
+          UNRESOLVED:
+            responseRef: urn:example:protocol-error:unresolved
+          SAFE_STOPPED:
+            responseRef: urn:example:protocol-error:safe-stopped
+        deliveryRecovery:
+          mode: protocol-replay
+          requestIdentity: protocol-request-id
+          lostChannelDisposition: protocol-defined-retry
+~~~
+
+注意：
+
+- sourceSchemas 和 normalizedSchemaRef 是不同契约，不得互相替代；
+- artifactDigest 绑定精确 OpenAPI 文件，mappingDigest 绑定归一化/响应映射实现；
+- operationId 不能替代 Service-Operation 名称；
+- arming.triggers[].operation 是出站 ToolCatalog Operation，不是 Ingress Operation；
+- requestKey 指向 normalized request 的字段，operation-argument.path 指向出站 Operation 已物化输入；
+- response.result.producer 只允许 operation 或 observation；bodyless response 不声明该字段；
+- 示例的 maximumLateArrival 必须由受信协议/部署保证给出，不能照抄占位值；
+- 示例没有提供任何凭证、证书、网络地址或运行时私有句柄。
+
+## 13. 建议的诊断与拒绝分类
+
+以下是待加入下一语言修订诊断索引的候选静态诊断。最终 Code/Phase/Message 仍须在规范发布前统一冻结。
+
+| Code | 触发条件 |
+|---|---|
+| INGRESS_CATALOG_INVALID | IngressCatalog 结构或版本不受支持 |
+| INGRESS_EXPORT_ID_DUPLICATE | 同一受信快照中 export ID 重复 |
+| INGRESS_OWNER_UNVERIFIED | Catalog Owner 与 trusted dependency Owner binding 不一致或缺失 |
+| INGRESS_PROTOCOL_ARTIFACT_INVALID | OpenAPI artifact、digest、release、method、path 或 operationId 不匹配 |
+| INGRESS_REQUEST_SCHEMA_INVALID | 源 Schema、normalized Schema 或 Schema 闭包无效 |
+| INGRESS_NORMALIZATION_INVALID | mapping 缺失、digest 不匹配、字段映射不完整或目标路径无效 |
+| INGRESS_PEER_PROFILE_UNBOUND | Peer authentication/authorization profile 未由部署绑定 |
+| INGRESS_CORRELATION_INVALID | key 字段不是可比较标量、无法唯一匹配或比较规则不确定 |
+| INGRESS_TRIGGER_OPERATION_NOT_FOUND | 指定的触发 Operation 不在可信依赖闭包中 |
+| INGRESS_TRIGGER_OPERATION_AMBIGUOUS | 触发 Operation 身份不唯一 |
+| INGRESS_TRIGGER_BINDING_INVALID | 参数缺失、类型不兼容或不能在派发前取得 |
+| INGRESS_STALE_DELIVERY_UNSAFE | 无 wire discriminator 且无法证明 single-flight/tombstone 安全性 |
+| INGRESS_RESPONSE_CONTRACT_INVALID | response mode、deadline、failure response 或恢复契约不完整 |
+| INGRESS_RESPONSE_MAPPING_INVALID | boundary Producer 缺失、输出不可用或无法映射到协议响应 Schema |
+
+运行时认证失败、无匹配注册、重复交付、迟到交付和响应传输失败属于 Integration/Host/Runtime 独立版本化的运行时诊断，不得伪装成 Skill Stage Outcome，也不得由 Skill 作者路由。
+
+## 14. 最小跨组件符合性矩阵
+
+以下为 Integration export、Compiler、Host、Runtime 的联合验收要求。它们是设计用例 ID，不代表当前产品已执行。
+
+| Case | 条件 | 必须结果 |
+|---|---|---|
+| IN-001 | 未声明 Integration dependency | Compiler 不得从全局目录猜测 Ingress export |
+| IN-002 | selector 无匹配 export | WAIT_INGRESS_EXPORT_NOT_FOUND |
+| IN-003 | selector 匹配多个 export | WAIT_INGRESS_EXPORT_AMBIGUOUS |
+| IN-004 | Owner binding 缺失或不匹配 | 构建拒绝 |
+| IN-005 | export ID 重复 | 构建拒绝 |
+| IN-006 | OpenAPI digest 与实际 artifact 不匹配 | 构建拒绝 |
+| IN-007 | Service-Operation 与 operationId 混用 | 构建拒绝 |
+| IN-008 | method/path/API release 不匹配 | Integration 拒绝请求 |
+| IN-009 | 未认证 peer 或 peer NF type 不等于 event.source | Integration 拒绝，不满足 Wait |
+| IN-010 | 未授权 peer 调用已认证 API | Integration 拒绝，不满足 Wait |
+| IN-011 | media type 不在 acceptedMediaTypes | Integration 拒绝 |
+| IN-012 | 源 request Schema 校验失败 | Integration 拒绝，不重置 Wait timeout |
+| IN-013 | normalized Schema 缺失或超出支持子集 | Compiler 拒绝 |
+| IN-014 | normalization mapping digest 不匹配 | 构建/部署拒绝 |
+| IN-015 | required wire field 未映射到 normalized Schema | 构建拒绝 |
+| IN-016 | multipart/binary part 没有受限不可变引用表示 | Integration 拒绝或隔离 |
+| IN-017 | Host correlation metadata 泄漏进 wait.output | Integration conformance 失败 |
+| IN-018 | trigger callable 不是精确 ToolCatalog Operation | Compiler 拒绝 |
+| IN-019 | trigger argument 依赖 trigger 自身 output | Compiler 拒绝 |
+| IN-020 | start Wait 缺少可验证 Context binding | Compiler 拒绝 |
+| IN-021 | 多条入边中有一条没有唯一触发关系 | Compiler 拒绝 |
+| IN-022 | 同一请求匹配两个 active expectedIngressRef | Integration 拒绝/隔离，不得选择 newest |
+| IN-023 | 无 wire discriminator 且无可证明的 single-flight/tombstone | Compiler/Admission fail-closed |
+| IN-024 | Wait 已 timeout 后收到旧消息 | 不得满足旧或新 Wait |
+| IN-025 | 重试提交同一 deliveryRef | Host 返回幂等 disposition，不重复 Node entry |
+| IN-026 | 同一 Wait 下两个不可区分的独立请求 | Integration 拒绝/隔离歧义 |
+| IN-027 | paired response 被声明但无 response obligation | Integration/Host 拒绝不完整交付 |
+| IN-028 | bodyless paired response | 不要求 response-result Producer |
+| IN-029 | body-bearing response 缺少 result Producer | Compiler 拒绝 |
+| IN-030 | response.after Node 缺少 export 指定的 Producer stage | Compiler 拒绝 |
+| IN-031 | boundary Producer Output 不可赋值给 responseResultSchema | Compiler 拒绝 |
+| IN-032 | response mapping 未覆盖协议响应必需字段 | Compiler 拒绝 |
+| IN-033 | Run 在 response boundary 前以允许的失败终态结束 | Integration 使用显式 early-failure response mapping |
+| IN-034 | response deadline 到期 | 不得路由为 CA-SL Wait TIMEOUT |
+| IN-035 | 原 HTTP/2 stream 在进程重启后不可恢复 | Integration 按声明的 recovery/failure policy 处理，不假设句柄仍有效 |
+| IN-036 | Host/Runtime 试图解析原始 3GPP HTTP request | 架构符合性失败 |
+| IN-037 | Integration 试图通过启发式选择 Run/Node | 架构符合性失败 |
+| IN-038 | 同一资源的旧 Wait 关闭后立即重新 armed，tombstone 尚未到期 | Integration 必须拒绝重新注册 |
+
+## 15. 冻结与发布门槛
+
+本文完成独立评审前，Ingress Operation Contract 保持 NOT FROZEN。正式冻结前必须完成：
+
+1. 对 IngressCatalog 资源结构、字段类型、版本标识和 export identity 的独立 Schema 评审；
+2. 对 trusted dependency binding 新增 exportKind: ingressOperation 的 BuildRequest/Compiler 评审；
+3. 对 correlation key、trigger argument binding、start Context binding 和 stale-delivery 证明规则的安全评审；
+4. 对 normalization、multipart/binary、content reference 和保留期限的 Owner 评审；
+5. 对 response result producer、bodyless/body-bearing response、early-failure response 和恢复责任的协议评审；
+6. 与 CA-SL Wait 规范化草案 PR #61 完成字段和诊断一致性核对；
+7. 与 Generic Host/Runtime 契约 PR #210 完成端口、私有身份和持久化责任核对；
+8. 为 IN-001–IN-038 建立机器可执行的正反例与实际 Integration adapter conformance tests；
+9. 完成独立审阅并明确该导出契约的发布版本和生效范围。
+
+本文不要求当前 v1alpha4 产品支持 IngressCatalog。当前实现仍是 NOT_QUALIFIED；缺少真实、受信、版本固定的 Ingress export 时必须 fail-closed。
+
+## 16. 已冻结语义与允许的后续工作
+
+以下语义由 PR #60 冻结，不在本文重新设计：
+
+- Wait 是 Node-entry control，不是第五种 Stage；
+- Event Wait 是 push-driven ingress，不是 Observation polling；
+- accepted event 继续同一个 Run；
+- timeout 使用 wait.routes.TIMEOUT；
+- wait.output 是 Integration normalized request 的 typed Producer source；
+- 事件到达本身不是 Predicate PASS、Evidence 或 Goal proof；
+- correlation 必须区分并发 Run 和连续 Wait generation；
+- paired response 在声明的 Node boundary 提交，不等待整个 Run terminal；
+- Generic Host、Runtime、Integration 和 Tool Owner 的职责分离。
+
+本文允许继续细化的内容仅包括：精确 Schema 序列化、诊断消息、BuildRequest 物理传输、mapping artifact 编码、deployment profile binding、DTO、持久化、恢复实现和机器 Fixture。任何改变上述冻结语义的提议必须单独进行影响分析和重新裁决。
