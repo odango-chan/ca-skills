@@ -56,6 +56,8 @@ HourComponent          = PositiveInteger, "H"
 MinuteComponent        = PositiveInteger, "M"
 SecondComponent        = PositiveInteger, "S"
 PositiveInteger        = NonZeroDigit, { Digit }
+NonZeroDigit           = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
+Digit                  = "0" | NonZeroDigit
 ~~~
 
 NonEmptyExactString is a non-empty YAML string compared exactly, including case and punctuation, against a trusted Integration Ingress Operation export. It is not a free-form runtime filter.
@@ -85,7 +87,7 @@ A FixedDuration MUST be a YAML string matching the grammar above.
 - Examples accepted: PT30S, PT1M, PT5M, PT2H, P1D, P1DT2H30M.
 - Examples rejected: P1M (calendar month), P1Y, P1W, PT0S, PT-1S, PT0.5S, PT01M, P.
 
-The deployment MUST publish a maximum Event Wait duration. Admission MUST reject a declared duration greater than that maximum. A deployment limit MUST NOT be implemented by silently shortening the authored duration. The physical deployment-setting name is outside the Skill grammar.
+The deployment MUST publish a maximum Event Wait duration. Admission MUST reject a declared duration greater than that maximum. A deployment limit MUST NOT be implemented by silently shortening the authored duration. A malformed duration is a C_STATIC error; exceeding a deployment-specific maximum is an admission rejection before Invocation creation (WAIT_DURATION_LIMIT_EXCEEDED in the Host/Runtime deployment contract). The physical deployment-setting name is outside the Skill grammar.
 
 ## 2. Amendment to §12 — Node-entry control semantics
 
@@ -356,13 +358,13 @@ The trusted Integration export MUST declare:
 
 - the protocol response Schema and media type for each supported success disposition;
 - a typed responseResultSchema consumed by its response encoder;
-- an exact responseResultSource relative to the resolved response-boundary Node, selecting either that Node's operation.output or observation.output;
-- a deterministic field mapping from that Producer output to the protocol response Schema;
+- an exact set of responseResultSources, each an ordinary typed ProducerOutputPath in the Skill's resolved Procedure graph;
+- a deterministic field mapping from those typed Producer outputs to the protocol response Schema;
 - explicit failure-response mappings for any permitted early terminal disposition.
 
-The Compiler resolves responseResultSource against the exact Producer and Output Schema in the selected boundary Node and verifies that the mapped value is assignable to responseResultSchema and that each required protocol response field is supplied.
+The Compiler resolves every responseResultSource against the exact Producer and Output Schema in the Skill graph. Each source MUST be available on every path reaching the response boundary, MUST dominate that boundary, and MUST be assignable to the declared responseResultSchema mapping. The Compiler MUST verify that each required protocol response field is supplied.
 
-If response data originates in an earlier Node, the Skill MUST pass the required values explicitly through the ordinary arguments of the boundary Node's Operation/Observation, and that Producer MUST expose the response-ready typed output. The response encoder MUST NOT reach backwards through arbitrary prior Nodes or infer the "latest" output.
+A responseResultSource MAY identify an earlier Node's Operation or Observation output when that Producer dominates the response boundary and its output remains valid and available there. The Integration export's binding MUST identify the exact SourcePath; the response encoder MUST NOT infer the "latest" output, inspect arbitrary Run state or construct an untyped aggregate. This preserves explicit dataflow without adding a Skill-authored response mapping field.
 
 A bodyless protocol response (for example, a contractually defined 204 disposition) MAY declare no responseResultSource. The response contract MUST distinguish bodyless and body-bearing outcomes; a body-bearing outcome without a valid typed result binding is rejected as WAIT_RESPONSE_MAPPING_INVALID.
 
@@ -459,7 +461,7 @@ The following are proposed future-revision diagnostics. They do not alter the v1
 | Code | Trigger |
 |---|---|
 | WAIT_DECLARATION_INVALID | Required Wait field missing; selector field empty/wrong type; Wait object shape invalid |
-| WAIT_TIMEOUT_INVALID | Timeout is not a positive fixed duration in the exact accepted lexical subset or exceeds the published deployment maximum |
+| WAIT_TIMEOUT_INVALID | Timeout is not a positive fixed duration in the exact accepted lexical subset |
 | WAIT_INGRESS_EXPORT_NOT_FOUND | No exact trusted Ingress Operation export matches the selector in declared dependency snapshots |
 | WAIT_INGRESS_EXPORT_AMBIGUOUS | More than one trusted Ingress Operation export matches the selector |
 | WAIT_CORRELATION_BINDING_INVALID | Correlation cannot be derived before the trigger; matching is not unique; generation/stale-delivery safety cannot be proven; an incoming path is not covered |
