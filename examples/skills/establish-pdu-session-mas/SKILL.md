@@ -11,7 +11,7 @@ description: CA-SL v1alpha4 illustrative OpenAMSM MAS policy-first initial PDU S
 
 ## Scope
 
-One admitted, initial IPv4 / SSC1, local non-roaming PDU Session request with `allocator=LOCAL_POOL` and no secondary authentication. The first business Node performs an exact UE/PSI SMF context lookup. Only an evidence-backed `ABSENT` result enters the initial creation chain. `PRESENT` (including a projection with `UNAVAILABLE`) and `UNKNOWN` do not.
+One admitted, initial IPv4 / SSC1, local non-roaming PDU Session request with `allocator=LOCAL_POOL` and no secondary authentication. The first business Node performs the read-only subscription-validation Operation and then a supplementary exact UE/PSI SMF context Observation in the same Node. Only when the subscription is validated and the Observation proves `ABSENT` may the initial creation chain begin. `PRESENT` (including a projection with `UNAVAILABLE`) and `UNKNOWN` do not.
 
 The Skill is deliberately a policy-first MAS compatibility profile. It is not the conventional 3GPP-first `establish-pdu-session` Skill and does not change that Skill's terminology or business flow.
 
@@ -74,8 +74,7 @@ The MAS graph is a CA policy-first implementation profile, not a normative 3GPP 
 
 | Procedure Node | NW Agent / OES source | 3GPP interaction and classification |
 |---|---|---|
-| `read-existing-sm-context` | CA exact UE/PSI context Observation before mutation | `CA_EXTENSION` — supplementary SMF context READ; no direct 3GPP NF Service Operation. |
-| `validate-sm-subscription` | s1 — `SC.VALIDATE_SUBSCRIPTION` | `CA_ADAPTER` — wraps the Step 4 UDM `Nudm_SDM_Get` path. |
+| `validate-sm-subscription` | s1 — `SC.VALIDATE_SUBSCRIPTION`, followed by exact UE/PSI SMF context Observation | `CA_ADAPTER` — wraps the Step 4 UDM `Nudm_SDM_Get` path; the supplementary `CA_EXTENSION` Observation is co-located before Postcondition and before any mutation. |
 | `skip-secondary-authentication` | s2 — `SAA.SECONDARY_AUTH`, fixed `required=0` | `CA_ADAPTER` — source-plan skip only; no secondary-authentication exchange is executed. |
 | `create-sm-context` | s3 — `SC.CREATE_SM_CONTEXT` | `CA_ADAPTER` — SM Context creation at the Step 3/5 service boundary; the early Step 5 response is not final Goal proof. |
 | `register-uecm` | s3r — `SC.REGISTER_UECM` | `3GPP_NATIVE` — UDM `Nudm_UECM_Registration`; MAS ordering is earlier than conventional Step 16c. |
