@@ -226,6 +226,27 @@ nodes:
         errors = self.lint(producer="import os\n" + PRODUCER)
         self.assertTrue(any("forbidden external/ambient import" in e for e in errors), errors)
 
+    def test_mas_entry_observation_is_co_located_with_first_read_only_operation(self) -> None:
+        skill = ROOT / "examples" / "skills" / "establish-pdu-session-mas"
+        procedure = (skill / "assurance" / "procedure.yaml").read_text(encoding="utf-8")
+        contract = (skill / "assurance" / "contract.yaml").read_text(encoding="utf-8")
+        self.assertIn("start: validate-sm-subscription", procedure)
+        self.assertNotIn("  read-existing-sm-context:", procedure)
+        node = procedure.split("  validate-sm-subscription:\n", 1)[1].split(
+            "\n  skip-secondary-authentication:", 1
+        )[0]
+        stages = [
+            node.find("    precondition:"),
+            node.find("    operation:"),
+            node.find("    observation:"),
+            node.find("    postcondition:"),
+        ]
+        self.assertTrue(all(position >= 0 for position in stages), stages)
+        self.assertEqual(stages, sorted(stages), stages)
+        self.assertIn("validate-sm-subscription.operation.output", node)
+        self.assertIn("validate-sm-subscription.observation.output", node)
+        self.assertIn("precondition: validate-sm-subscription.precondition", contract)
+
     def test_host_business_precondition_is_on_first_node(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d) / "establish-pdu-session"
