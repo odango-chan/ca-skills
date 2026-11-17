@@ -146,6 +146,26 @@ nodes:
             self.assertEqual(errors, [])
 
 
+    def test_stage3_api_version_is_required_per_node(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "assurance").mkdir()
+            (root / "assurance" / "procedure.yaml").write_text("""nodes:
+  # 3GPP: CA_ADAPTER — TS 23.502 V19.9.0 step 15; Nsmf_PDUSession_UpdateSMContext
+  update-sm-context:
+    operation: {}
+""", encoding="utf-8")
+            tick = chr(96)
+            doc = "\\n".join([
+                "## 3GPP Traceability", "TS 23.502 V19.9.0",
+                "| Procedure Node | Mapping |", "|---|---|",
+                "| " + tick + "update-sm-context" + tick + " | Step 15 |",
+            ])
+            (root / "SKILL.md").write_text(doc, encoding="utf-8")
+            errors: list[str] = []
+            validate_3gpp_traceability(root, errors)
+            self.assertTrue(any("must pin TS 29.502 V19.7.0" in error for error in errors), errors)
+
     def test_stale_per_node_3gpp_release_reference_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
