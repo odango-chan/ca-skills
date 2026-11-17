@@ -78,7 +78,7 @@ Therefore, the Skill's `ue_identity` is source-aligned with the plan's `ue_ident
 | s4 | UPS / `DECIDE_ANCHOR` | `up_anchor` | Selects the PFCP node internally. Output is a `"1"/"0"` decision marker, not an anchor identifier. |
 | s5 | IAM / `ALLOCATE_ADDRESS` | `ue_addr` | With `LOCAL_POOL`, allocates on the SMF session. Output is a `"1"/"0"` allocation marker, not the UE IP address. The actual address stays in SMF session state for UPN/SSM. |
 | s6u | PA / `UPDATE_SM_POLICY` | `up_intent`, `authorized_qos`, `policy_assoc_id` | Performs the PCF policy update after address allocation. It is a separate operation from PCF Create and must have its own result/Evidence. |
-| s7 | CA / `CREATE_CHARGING` | `charging_ref` | **Current source stub.** `charge_adapter.c` records `NOT_IMPL_skip` and returns marker `charging_ref="1"`; this is not a charging reservation and cannot satisfy a business success Predicate. This is a hard qualification blocker. |
+| s7 | CA / `CREATE_CHARGING` | `charging_ref` | **Required plan step; successful skip stub in the pinned source.** `mas_charge_adapter_create_invoke` returns `SMF_MAS_OK`, outputs `charging_ref="1"` and records `NOT_IMPL_skip`. The Skill verifies that exact step-completion marker and continues to s8. This is not a charging reservation and is never described as one. |
 | s8 | UPN / `CREATE_UP_SESSION` | `n4_seid`, `est_done` | Performs N4 Session Establishment. `n4_seid` is one UPF SEID, not an SMF/UPF pair. `est_done` is the source completion marker. |
 | s9 | IAM / `CONFIRM_ADDRESS` (optional) | `ue_addr` | Needed for `allocator=UPF` after PFCP establishment. The current Skill fixes `LOCAL_POOL`, so this optional operation is omitted. |
 | s10 | SSM / `SIGNAL_UE_AN` | `an_tunnel_teid`, `an_tunnel_ip`, `an_tunnel` | Sends the N1/N2 establishment transfer and remains pending for the exact access-network result/F-TEID. Host correlates the later step-15 UpdateSMContext request to this pending Owner Operation; Runtime resumes the same Invocation. |
@@ -95,14 +95,14 @@ Therefore, the Skill's `ue_identity` is source-aligned with the plan's `ue_ident
 5. Removed the mandatory address-confirm stage for this fixed `LOCAL_POOL` profile.
 6. Renamed the SSM stage to `signal-ue-and-access-network`; it owns the pending N1/N2-to-step-15 completion boundary. There is no extra callback or Wait Node.
 7. Removed invented `resources.finalize` and `ca-compensate-confirmed-failure` Tool calls. Resource responsibility and exact-original compensation remain Host/Owner responsibilities.
-8. Kept charging as an explicit qualification gate. The current stub's `"1"` marker cannot pass the charging Predicate; therefore this Skill cannot reach `SUCCEEDED` against the current source implementation.
+8. Aligned charging with the pinned NW Agent behavior: the required s7 Operation succeeds with `charging_ref="1"` and `NOT_IMPL_skip`; the Skill verifies that skip disposition and continues to s8 without claiming a charging reservation.
 9. Classified `SE.EMIT_EVENTS` as a local CA/MAS extension, not as a 3GPP notification.
 
 ## 3GPP and lifecycle deviations
 
 - UECM registration occurs at s3r before PCF and N4, unlike the conventional TS 23.502 V19.9.0 §4.3.2.2.1 step 16c placement.
 - The SAA step is always skipped by the current plan input. The six-case legacy suite's secondary-auth-required case is not covered.
-- Charging is currently stubbed. No full happy-path qualification is possible until real charging behavior and Evidence are supplied or the business Owner approves a different profile.
+- Charging is currently a successful `NOT_IMPL_skip` stub. This is part of the pinned NW Agent behavior and is not a blocker to functional equivalence with that source revision. Any future claim of actual charging requires a separately implemented and published charging capability; it must not be inferred from `charging_ref="1"`.
 - The event record is local MAS state. Do not claim it is step 18.
 - The step-3 ingress and paired step-5 early response are Host/SMF service-boundary concerns; the step-5 response is not final Goal proof.
 - The later step-15 request completes the pending SSM Owner Operation in the same Invocation. The paired step-17 response remains a Host service-exit obligation after N4 Modification.
@@ -115,7 +115,7 @@ Therefore, the Skill's `ue_identity` is source-aligned with the plan's `ue_ident
 - Publish and test the Owner's exact mapping from the six-hex-digit `sNssai.sd` string to OES `s_nssai_sd`, including the plan's empty-string default when SD is absent.
 - Replace every `urn:example:` Schema, ToolCatalog and Capability placeholder with trusted Owner exports.
 - Close the generic SMF context Observation's source-authority and temporal/freshness contract. v0.10 does not supply source timestamps; source inspection alone is not Owner publication.
-- Implement real charging or explicitly approve a profile that excludes charging; do not accept the current `NOT_IMPL_skip` marker.
+- Preserve the pinned s7 behavior: accept `charging_ref="1"` only as the source-defined successful skip marker, never as a real charging resource identity. A future charging implementation requires a new source/profile revision and new Owner contract.
 - Publish Host/Owner correlation, Deadline, duplicate/late-result and paired step-17 response contracts for the pending SSM operation.
 - Define Host-owned exact-original Reconcile semantics for `SC.COMPENSATE_RELEASE`; do not inherit `compensate_then_replan_once`.
 - Revalidate all six legacy MAS Cases. Case 06 is currently unsupported by the fixed `secondary_auth_required='0'` plan.
