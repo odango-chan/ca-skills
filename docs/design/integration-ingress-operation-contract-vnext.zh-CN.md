@@ -1063,8 +1063,8 @@ IngressCatalog v1alpha1 使用独立、版本化的静态诊断注册表：[`con
 
 以下事项不阻止逻辑契约冻结，但在完成前，真实生产 Admission 必须保持 blocked / NOT_QUALIFIED：
 
-1. 按当前 5GC production profile 锁定并验证 TS 29.502 V19.7.0 与 TS 29.571 V19.7.0 的官方 ETSI PDF、companion ZIP、提取 OpenAPI YAML 字节摘要及实际 Schema Closure；本 PR 的 V19.5.0 artifact 仅为可复现 fixture，不得冒充生产 pin；
-2. 发布真实、受信、版本固定的 Integration Owner Package、IngressCatalog、ToolCatalog Operation、Schema、Capability/Peer Profile 和可信 Owner binding；
+1. 从真实受信 Owner dependency snapshot 计算并发布与已锁定 TS 29.502 V19.7.0 / TS 29.571 V19.7.0 artifact 对应的 Schema Closure Digest v1；本 PR 的 V19.7.0 官方字节锁已由 IngressCatalog Schema CI 验证，但不能替代真实 Owner Package 的闭包摘要；
+2. 发布真实、受信、版本固定的 Integration Owner Package、IngressCatalog、ToolCatalog Operation、Schema、Capability/Peer Profile 和可信 Owner binding；本 PR 的 V19.5.0 artifact 仅为可复现 fixture，不得冒充生产 pin；
 3. 真实 Integration Adapter 通过协议 wire、multipart/Content-ID、Correlation、重复/迟到投递、响应恢复及二进制生命周期测试；
 4. Host/Runtime 对同一 Run 续接、expectedIngressRef 私有身份、幂等 handoff 和 response obligation 的实现通过独立产品验收；
 5. 部署 profile binding、真实环境准入和端到端验收通过。
