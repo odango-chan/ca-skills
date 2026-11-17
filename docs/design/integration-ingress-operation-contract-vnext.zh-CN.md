@@ -934,7 +934,7 @@ spec:
 
 IngressCatalog v1alpha1 使用独立、版本化的静态诊断注册表：[`connectionagent.io/ingress-diagnostics/v1alpha1`](ingress-diagnostic-registry-v1alpha1.md)，机器可读清单为 [ingress-diagnostic-registry-v1alpha1.json](ingress-diagnostic-registry-v1alpha1.json)。该注册表与 CA-SL 语言版本独立；本节与注册表共同定义 IngressCatalog 自身声明错误的唯一诊断身份。当前均为候选规范条款，尚未 FROZEN。
 
-**Ingress 自有诊断。** 以下九个 Code 是本版 IngressCatalog v1alpha1 自有的完整静态诊断集合。每项均为 `(Code, Phase=C_STATIC)`、Severity `ERROR`，阻断 Build。精确 precedence、messageKey、canonical message template、sourceLocation 及 relatedLocations 规则以机器可读注册表为准。
+**Ingress 自有诊断。** 以下十个 Code 是本版 IngressCatalog v1alpha1 自有的完整静态诊断集合。每项均为 `(Code, Phase=C_STATIC)`、Severity `ERROR`，阻断 Build。精确 precedence、messageKey、canonical message template、sourceLocation 及 relatedLocations 规则以机器可读注册表为准。
 
 | Code | 触发条件 |
 |---|---|
@@ -943,8 +943,8 @@ IngressCatalog v1alpha1 使用独立、版本化的静态诊断注册表：[`con
 | INGRESS_EVENT_SELECTOR_DUPLICATE | 同一受信 Catalog 中精确 `event.source + event.service + event.operation` 元组重复 |
 | INGRESS_PROTOCOL_ARTIFACT_INVALID | 已通过源字节摘要和可信依赖身份验证的 OpenAPI artifact，其 release、API URI version、method、path 或 operationId 与 Catalog 声明不一致 |
 | INGRESS_PEER_PROFILE_REFERENCE_INVALID | Peer authentication/authorization profile 引用格式错误，或在已声明的受信依赖快照中无法解析到预期资源 |
-| INGRESS_NORMALIZATION_INVALID | 请求 normalization representation/mapping 缺失、重复、字段覆盖不完整、transform 或目标路径无效 |
-| INGRESS_CORRELATION_INVALID | Ingress 自身的 key、duplicate identity/scope 或 stale-delivery 声明不合法或不能保证 occurrence 隔离 |
+| INGRESS_NORMALIZATION_INVALID | 请求 media type/source Schema/normalization representation 对应关系不完整，或 mapping 缺失、重复、字段覆盖不完整、transform/目标路径无效 |
+| INGRESS_BINARY_CONTENT_LIFECYCLE_INVALID | 请求/响应 binaryContent 的不可变引用、摘要、访问策略、最大长度或保留/恢复期限声明不完整或不安全 |\n| INGRESS_CORRELATION_INVALID | Ingress 自身的 key、duplicate identity/scope 或 stale-delivery 声明不合法或不能保证 occurrence 隔离 |
 | INGRESS_RESPONSE_CONTRACT_INVALID | response mode、deadline policy、disposition、failure response 或 delivery recovery 声明不完整/矛盾 |
 | INGRESS_RESPONSE_MAPPING_INVALID | Ingress 自身的协议响应 representation、Schema 映射、multipart part 映射或必需响应字段映射无效 |
 
@@ -964,7 +964,7 @@ IngressCatalog v1alpha1 使用独立、版本化的静态诊断注册表：[`con
 
 旧候选名称 `INGRESS_OWNER_UNVERIFIED`、`INGRESS_REQUEST_SCHEMA_INVALID`、`INGRESS_TRIGGER_OPERATION_NOT_FOUND`、`INGRESS_TRIGGER_OPERATION_AMBIGUOUS`、`INGRESS_TRIGGER_BINDING_INVALID` 和 `INGRESS_STALE_DELIVERY_UNSAFE` 不属于本注册表；其错误条件按上表归入既有或更精确的 Ingress/Wait 诊断，不得作为兼容别名输出。
 
-**诊断组合与优先级。** Compiler 必须先安全解析 YAML，再验证依赖快照、Package ID、trusted identity 与 Owner binding；这些前置检查失败时，对受影响的不可信快照抑制所有 Ingress 自有诊断。随后依次检查 Catalog 根结构/version、export ID/event selector 唯一性、精确 Trigger Operation 链接、源 artifact 身份、Schema 闭包、协议元数据、Peer Profile、normalization、Ingress correlation/stale-delivery、response contract、response mapping，最后才检查 Skill Wait 的 selector/path/response 边界。依赖身份失败优先于 protocol metadata mismatch；Schema 失败优先于依赖该 Schema 的 normalization/response mapping 错误。相互独立的错误可以共同报告；不得在先决条件失败后生成依赖其结果的级联诊断。相同优先级的诊断按 dependency alias、snapshot path、RFC 6901 JSON Pointer、Code 的 UTF-8 字节序稳定排序。
+**诊断组合与优先级。** Compiler 必须先安全解析 YAML，再验证依赖快照、Package ID、trusted identity 与 Owner binding；这些前置检查失败时，对受影响的不可信快照抑制所有 Ingress 自有诊断。随后依次检查 Catalog 根结构/version、export ID/event selector 唯一性、精确 Trigger Operation 链接、源 artifact 身份、Schema 闭包、协议元数据、Peer Profile、request normalization、request/response binary-content reference 与生命周期、Ingress correlation/stale-delivery、response contract、response mapping，最后才检查 Skill Wait 的 selector/path/response 边界。依赖身份失败优先于 protocol metadata mismatch；Schema 失败优先于依赖该 Schema 的 normalization/response mapping 错误。相互独立的错误可以共同报告；不得在先决条件失败后生成依赖其结果的级联诊断。相同优先级的诊断按 dependency alias、snapshot path、RFC 6901 JSON Pointer、Code 的 UTF-8 字节序稳定排序。
 
 **Compiler Diagnostic[] 组合。** Ingress 诊断仍使用全局唯一的 `(Code, Phase)` 身份；`registryId` 是来源版本元数据，不是第二套 identity key。Compiler 的逻辑 Diagnostic record 必须保留 `code`、`phase`、`severity`、`registryId`、`messageKey`、`sourceLocation` 和可选 `relatedLocations`。Ingress 记录的 `registryId` 固定为 `connectionagent.io/ingress-diagnostics/v1alpha1`，`phase=C_STATIC`、`severity=ERROR`，故必须阻断 Build。主 source location 必须定位到受信 Catalog snapshot 的 `dependencyAlias + snapshotPath + RFC 6901 jsonPointer`；缺失字段指向最近存在的父对象，重复项主位置指向后出现项并把首次出现项放入 relatedLocations。可选行列号仅是显示提示，不参与身份或排序。Compiler Diagnostic envelope 的物理序列化仍由 Compiler Artifact/Diagnostic protocol 管理，但不得丢弃或合并上述逻辑属性。
 
@@ -974,50 +974,50 @@ IngressCatalog v1alpha1 使用独立、版本化的静态诊断注册表：[`con
 
 | Case | 条件 | 必须结果 |
 |---|---|---|
-| IN-001 | 未声明 Integration dependency | Compiler 不得从全局目录猜测 Ingress export |
+| IN-001 | 未声明 Integration dependency | 只在已声明依赖中解析；零匹配时报告 `WAIT_INGRESS_EXPORT_NOT_FOUND / C_STATIC`，不得从全局目录猜测 |
 | IN-002 | selector 无匹配 export | WAIT_INGRESS_EXPORT_NOT_FOUND |
 | IN-003 | selector 匹配多个 export | WAIT_INGRESS_EXPORT_AMBIGUOUS |
 | IN-004 | Owner binding 缺失或不匹配 | `DEPENDENCY_EXPORT_OWNER_UNVERIFIED` / `DEPENDENCY_OWNER_MISMATCH`，不产生 Ingress alias |
 | IN-005 | export ID 重复 | `INGRESS_EXPORT_ID_DUPLICATE / C_STATIC` |
 | IN-006 | OpenAPI artifact 原始字节 digest 与可信 snapshot identity 不匹配 | 既有 `DEPENDENCY_IDENTITY_UNVERIFIED` / 对应 dependency identity diagnostic；不产生 `INGRESS_PROTOCOL_ARTIFACT_INVALID` |
 | IN-007 | Catalog 将 3GPP Service-Operation 名称与 pinned OpenAPI operationId 混用 | `INGRESS_PROTOCOL_ARTIFACT_INVALID / C_STATIC` |
-| IN-008 | method/path/API release 不匹配 | Integration 拒绝请求 |
+| IN-008 | 实际 wire request 的 method/path/API URI version 与已链接的 pinned route 不匹配 | Integration 拒绝请求；若是 Catalog 元数据与可信 OpenAPI artifact 不一致，则报告 `INGRESS_PROTOCOL_ARTIFACT_INVALID / C_STATIC`（IN-057） |
 | IN-009 | 未认证 peer 或 peer NF type 不等于 event.source | Integration 拒绝，不满足 Wait |
 | IN-010 | 未授权 peer 调用已认证 API | Integration 拒绝，不满足 Wait |
 | IN-011 | media type 不在 acceptedMediaTypes | Integration 拒绝 |
 | IN-012 | 源 request Schema 校验失败 | Integration 拒绝，不重置 Wait timeout |
 | IN-013 | normalized Schema 缺失或超出 CA-SL 支持子集 | `SCHEMA_MISSING` / `SCHEMA_INVALID` |
 | IN-014 | normalization mapping 或其固定快照声明不一致 | `INGRESS_NORMALIZATION_INVALID / C_STATIC`；dependency snapshot identity 失败时先报既有 dependency diagnostic |
-| IN-015 | required wire field 未映射到 normalized Schema | 构建拒绝 |
-| IN-016 | multipart/binary part 没有受限不可变引用表示 | Integration 拒绝或隔离 |
+| IN-015 | required wire field 未映射到 normalized Schema | `INGRESS_NORMALIZATION_INVALID / C_STATIC` |
+| IN-016 | multipart/binary part 没有受限不可变引用及其生命周期声明 | `INGRESS_BINARY_CONTENT_LIFECYCLE_INVALID / C_STATIC`；运行时实际 payload 引用不匹配仍由 Integration 拒绝/隔离 |
 | IN-017 | Host correlation metadata 泄漏进 wait.output | Integration conformance 失败 |
 | IN-018 | trigger callable 不是精确 ToolCatalog Operation | `EXPORT_ID_MISSING` / `EXPORT_ID_AMBIGUOUS`（精确 Package ID + Owner 范围） |
-| IN-019 | trigger argument 依赖 trigger 自身 output | Compiler 拒绝 |
-| IN-020 | start Wait 缺少可验证 Context binding | Compiler 拒绝 |
-| IN-021 | 多条入边中有一条没有唯一触发关系 | Compiler 拒绝 |
+| IN-019 | trigger argument 依赖 trigger 自身尚未执行的 output | `SOURCE_NOT_AVAILABLE / C_STATIC` |
+| IN-020 | start Wait 缺少可验证的 correlation Context binding | `WAIT_CORRELATION_BINDING_INVALID / C_STATIC` |
+| IN-021 | 多条入边中有一条不能唯一推导触发 Operation/correlation binding | `WAIT_CORRELATION_BINDING_INVALID / C_STATIC` |
 | IN-022 | 同一请求匹配两个 active expectedIngressRef | Integration 拒绝/隔离，不得选择 newest |
 | IN-023 | Ingress 自身未声明可证明的 wire discriminator 或 single-flight/tombstone stale-delivery 策略 | `INGRESS_CORRELATION_INVALID / C_STATIC`；若是所选 Skill path 无法证明绑定，则为 `WAIT_CORRELATION_BINDING_INVALID` |
 | IN-024 | Wait 已 timeout 后收到旧消息 | 不得满足旧或新 Wait |
 | IN-025 | 重试提交同一 deliveryRef | Host 返回幂等 disposition，不重复 Node entry |
 | IN-026 | 同一 Wait 下两个不可区分的独立请求 | Integration 拒绝/隔离歧义 |
-| IN-027 | paired response 被声明但无 response obligation | Integration/Host 拒绝不完整交付 |
+| IN-027 | paired response 缺少 deadline/recovery/disposition 等必需的响应责任声明 | `INGRESS_RESPONSE_CONTRACT_INVALID / C_STATIC`；声明完整但 Adapter 未创建私有 response obligation 属于 Integration conformance failure |
 | IN-028 | 单一固定 bodyless paired response disposition | 不要求 response-result Producer；多个 disposition 仍须 typed result 选择 |
 | IN-029 | Skill 声明 body-bearing paired response 但缺少 result Producer | `WAIT_RESPONSE_MAPPING_INVALID / C_STATIC` |
 | IN-030 | Skill 的 response.after Node 缺少 export 指定的 Producer stage | `WAIT_RESPONSE_BOUNDARY_INVALID / C_STATIC` |
-| IN-031 | Skill boundary Producer Output 不可赋值给 responseResultSchema | `WAIT_RESPONSE_MAPPING_INVALID / C_STATIC`（普通 Schema 类型错误按既有 type diagnostic） |
+| IN-031 | Skill boundary Producer Output 不可赋值给 responseResultSchema | `INPUT_TYPE_MISMATCH / C_STATIC`；Producer SourcePath 不可用时为 `SOURCE_NOT_AVAILABLE`，不得以 `WAIT_RESPONSE_MAPPING_INVALID` 替代普通类型诊断 |
 | IN-032 | Ingress-owned response mapping 未覆盖协议响应必需字段 | `INGRESS_RESPONSE_MAPPING_INVALID / C_STATIC`；Skill Producer mapping 缺字段则为 `WAIT_RESPONSE_MAPPING_INVALID` |
-| IN-033 | Run 在 response boundary 前以允许的失败终态结束 | Integration 使用显式 early-failure response mapping |
+| IN-033 | Run 在 response boundary 前以允许的失败终态结束，但 export 未声明有效 early-failure response mapping | `INGRESS_RESPONSE_CONTRACT_INVALID / C_STATIC`；声明完整时 Integration 按映射执行，运行时未执行属于 Integration conformance failure |
 | IN-034 | response deadline 到期 | 不得路由为 CA-SL Wait TIMEOUT |
 | IN-035 | 原 HTTP/2 stream 在进程重启后不可恢复 | Integration 按声明的 recovery/failure policy 处理，不假设句柄仍有效 |
 | IN-036 | Host/Runtime 试图解析原始 3GPP HTTP request | 架构符合性失败 |
 | IN-037 | Integration 试图通过启发式选择 Run/Node | 架构符合性失败 |
 | IN-038 | 同一资源的旧 Wait 关闭后立即重新 armed，tombstone 尚未到期 | Integration 必须拒绝重新注册 |
-| IN-039 | acceptedMediaTypes 与 sourceSchemas 不一一对应 | Compiler/Integration 拒绝不完整协议契约 |
+| IN-039 | acceptedMediaTypes、sourceSchemas 与 normalization.representations 不一一对应 | `INGRESS_NORMALIZATION_INVALID / C_STATIC` |
 | IN-040 | 同一 Ingress export 的 response disposition id 或 HTTP status 重复 | `INGRESS_RESPONSE_CONTRACT_INVALID / C_STATIC` |
 | IN-041 | EVENT_ACCEPTED 后同一 resource key 的旧请求副本在 tombstone 到期前到达，或尝试提前 arm 下一 Wait | Integration 必须返回既有重复处置或拒绝/隔离；不得将旧请求分配给下一 Wait |
-| IN-042 | binaryContent retention 早于最后一个声明 Consumer 的最晚访问/恢复时间 | Compiler/Admission 拒绝不安全的内容生命周期 |
+| IN-042 | request/response binaryContent retention 早于最后一个声明 Consumer 的最晚访问/恢复时间 | `INGRESS_BINARY_CONTENT_LIFECYCLE_INVALID / C_STATIC` |
 | IN-043 | multipart body 或单个 part 超过其声明 maxBytes | Integration 在无界缓冲前拒绝请求，不提交 normalized delivery |
-| IN-044 | pinned OpenAPI response 需要 multipart/related binary parts，但 v1alpha1 export 仅声明 JSON response mapping | Compiler/Admission 拒绝不完整响应表示；不得丢弃或字符串化 binary parts |
+| IN-044 | pinned OpenAPI response 需要 multipart/related binary parts，但 v1alpha1 export 仅声明 JSON response mapping | `INGRESS_RESPONSE_MAPPING_INVALID / C_STATIC`；不得丢弃或字符串化 binary parts |
 | IN-045 | Step 15 任一规范定义的 user-plane setup rejection 要求 Step 17 携带 N1 SM Reject binary container，而 export 仅声明 JSON response 或 204 | `INGRESS_RESPONSE_MAPPING_INVALID / C_STATIC`；Integration/Admission 不得以 204 或通用 JSON error 替代；缺少 N1 binary mapping 时保持 NOT LINKABLE |
 | IN-046 | staleDelivery 使用 3gpp-Sbi-Request-Info.idempotency-key，但 Catalog 未正确声明其来源/作用域或重复身份策略 | `INGRESS_CORRELATION_INVALID / C_STATIC`；运行时实际缺失/复用该 key 时由 Integration runtime disposition 拒绝/隔离，不退回 canonical digest |
 | IN-047 | wire-discriminator 的 discriminatorRetention 小于或等于 maximumLateArrival + clockSkewAllowance | `INGRESS_CORRELATION_INVALID / C_STATIC`，拒绝不足以覆盖迟到重传窗口及边界竞态的身份保留策略 |
@@ -1039,21 +1039,36 @@ IngressCatalog v1alpha1 使用独立、版本化的静态诊断注册表：[`con
 | IN-062 | Ingress-owned response representation、Schema mapping、multipart part mapping 或协议必需字段映射无效 | `INGRESS_RESPONSE_MAPPING_INVALID / C_STATIC`；Skill Producer mapping 失败用 `WAIT_RESPONSE_MAPPING_INVALID` |
 | IN-063 | Trigger ToolCatalog Operation 在精确 Package ID + Owner 范围内缺失或歧义 | 既有 `EXPORT_ID_MISSING` / `EXPORT_ID_AMBIGUOUS`；不得输出 Ingress 或 Wait selector diagnostic |
 
-## 15. 冻结与发布门槛
+## 15. 契约冻结与产品准入门槛
 
-本文完成独立评审前，Ingress Operation Contract 保持 NOT FROZEN。正式冻结前必须完成：
+本文区分 **逻辑契约冻结** 与 **真实产品/Owner 准入**。不得要求真实 Integration Adapter 或 Host 产品先通过 E2E，才允许冻结可独立评审的声明式契约；也不得从契约冻结推断产品已经符合。
 
-1. 对 IngressCatalog 资源结构、字段类型、版本标识和 export identity 的独立 Schema 评审；
-2. 对 trusted dependency binding 新增 exportKind: ingressOperation 的 BuildRequest/Compiler 评审；
-3. 对 correlation key、trigger argument binding、start Context binding 和 stale-delivery 证明规则的安全评审；
-4. 对 normalization、multipart/binary、content reference 和保留期限的 Owner 评审；
-5. 对 response result producer、bodyless/body-bearing response、early-failure response 和恢复责任的协议评审；
-6. 与 CA-SL Wait 规范化草案 PR #61 完成字段和诊断一致性核对；
-7. 与 Generic Host/Runtime 契约 PR #210 完成端口、私有身份和持久化责任核对；
-8. 为 IN-001–IN-054 建立机器可执行的正反例与实际 Integration adapter conformance tests；
-9. 完成独立审阅并明确该导出契约的发布版本和生效范围。
+### 15.1 Ingress Operation Contract 逻辑冻结
 
-本文不要求当前 v1alpha4 产品支持 IngressCatalog。当前实现仍是 NOT_QUALIFIED；缺少真实、受信、版本固定的 Ingress export 时必须 fail-closed。
+正式冻结本契约前必须完成：
+
+1. IngressCatalog v1alpha1 资源结构、字段类型、版本标识和 export identity 的独立 Schema 评审；
+2. trusted dependency binding 新增 `exportKind: ingressOperation` 的逻辑身份、Package/Owner/snapshot 绑定及 Compiler link 规则评审；
+3. correlation key、trigger argument binding、start Context binding 和 stale-delivery 证明规则的安全评审；
+4. normalization、multipart/binary、content reference 和保留期限的协议语义评审；
+5. response result Producer、bodyless/body-bearing response、early-failure response 和恢复责任的协议评审；
+6. 与 CA-SL v1alpha5 Appendix L / H 完成字段、SourcePath、响应边界和诊断归属交叉核对；
+7. IngressCatalog Schema、Schema Closure Digest、诊断注册表及 IN-001–IN-063 的正反例具有精确预期结果，并通过仓库内结构/算法验证；
+8. 完成独立审阅并明确该导出契约的发布版本和生效范围。
+
+以上是逻辑契约的冻结门槛。它们不要求真实 Owner 已发布生产包，也不要求 Host/Runtime/Integration 产品已取得资格。
+
+### 15.2 产品与 Owner 准入（独立资格门槛）
+
+以下事项不阻止逻辑契约冻结，但在完成前，真实生产 Admission 必须保持 blocked / NOT_QUALIFIED：
+
+1. 按当前 5GC production profile 锁定并验证 TS 29.502 V19.7.0 与 TS 29.571 V19.7.0 的官方 ETSI PDF、companion ZIP、提取 OpenAPI YAML 字节摘要及实际 Schema Closure；本 PR 的 V19.5.0 artifact 仅为可复现 fixture，不得冒充生产 pin；
+2. 发布真实、受信、版本固定的 Integration Owner Package、IngressCatalog、ToolCatalog Operation、Schema、Capability/Peer Profile 和可信 Owner binding；
+3. 真实 Integration Adapter 通过协议 wire、multipart/Content-ID、Correlation、重复/迟到投递、响应恢复及二进制生命周期测试；
+4. Host/Runtime 对同一 Run 续接、expectedIngressRef 私有身份、幂等 handoff 和 response obligation 的实现通过独立产品验收；
+5. 部署 profile binding、真实环境准入和端到端验收通过。
+
+Generic Host/Runtime 的跨仓实现评审（包括 ca-agent-demo 的配套 PR）属于上述产品资格工作，不作为本逻辑契约冻结的前置条件。缺少真实 Owner 或产品证据时必须 fail-closed，不得把 NOT_QUALIFIED 改写成 PASS。
 
 ## 16. 已冻结语义与允许的后续工作
 
