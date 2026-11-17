@@ -19,7 +19,8 @@ The MAS-to-3GPP comparisons in this mapping use the following independently pinn
 | TS 23.501 | V19.9.0 | SMF/UPF selection, SSC and session-address allocation |
 | TS 23.502 | V19.9.0 | §4.3.2.2.1 PDU Session Establishment; §4.4.1.2–§4.4.1.3 N4 procedures |
 | TS 23.503 | V19.8.0 | PCC and SM Policy framework |
-| TS 29.502 | V19.8.0 | Nsmf CreateSMContext / UpdateSMContext API; OpenAPI Annex A.2 |
+| TS 29.502 | V19.7.0 | Nsmf CreateSMContext / UpdateSMContext API; OpenAPI Annex A.2 |
+| TS 29.500 | V19.7.1 | SBI retry and HTTP deadline semantics |
 | TS 29.503 | V19.7.0 | UDM SDM / UECM APIs; OpenAPI Annex A.2 / A.3 |
 | TS 29.512 | V19.6.0 | Npcf_SMPolicyControl API; OpenAPI Annex A.2 |
 | TS 29.518 | V19.8.0 | Namf_Communication API; OpenAPI Annex A.2 |
