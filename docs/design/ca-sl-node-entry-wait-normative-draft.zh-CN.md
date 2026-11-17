@@ -288,9 +288,13 @@ nodes:
 
   # step18-failed-establishment-cleanup is a later Node (omitted from this
   # abbreviated fragment). It performs the conditional Step 18 release
-  # notification and cleanup of resources created during establishment. It
-  # MUST remain after wait.response.after: Step 17 response delivery must not
-  # wait for this later cleanup.
+  # notification and cleanup of resources created during establishment. The
+  # cleanup MUST observe prior branch actions: the N2-resource-setup-failure
+  # branch has already released N4 before Step 17, so Step 18 MUST NOT issue a
+  # second N4 Release; the required-UPE branch may release any N4 Session still
+  # present as part of post-response cleanup. Cleanup is idempotent/conditional
+  # and MUST remain after wait.response.after: Step 17 response delivery must
+  # not wait for this later cleanup.
 
   verify-final-session:
     postcondition:
@@ -313,7 +317,7 @@ nodes:
         OUTCOME_UNKNOWN: SAFE_STOPPED
 ~~~
 
-This fragment is not a complete Skill: its referenced Nodes, schemas, Predicate declarations, dependency exports and final Goal Postcondition are intentionally omitted. It demonstrates Node-entry Wait, typed wait.output binding, timeout routing and the Step 15/16/17 response branches. A successful N2 user-plane setup proceeds through N4 Session Modification and then the conditional UDM registration; if registration is not required, the Precondition routes directly to the common response Node. TS 23.502 distinguishes two Step 15 rejection cases: (1) N2 user-plane resource setup failure skips Step 16 and requires N4 Session Release before Step 17; (2) a User Plane Enforcement Policy Notification reporting no resources established while policy is `required` also skips Step 16 and returns the N1 SM Reject at Step 17, but does not specify that same pre-response N4 Release. Both are business results, not Operation failures, and both require the typed Step 17 response DTO with the N1 SM Reject binary reference. The common response Node is the `wait.response.after` boundary. Step 18 failure cleanup (including SM Context Status Notify Release and release of resources created during establishment) is a later Node and MUST NOT delay that paired response. The Integration maps either rejection DTO to the same TS 29.502 200 disposition using `multipart/related`, with `binaryDataN1SmMessage` required; it must not map these business failures to 204 or a generic HTTP error. The Integration export MUST identify the triggering transfer callable and prove its pre-dispatch correlation binding. The Compiler derives the exact Observation output from `wait.response.after` and validates it against the pinned responseResultSchema before accepting the mapping.
+This fragment is not a complete Skill: its referenced Nodes, schemas, Predicate declarations, dependency exports and final Goal Postcondition are intentionally omitted. It demonstrates Node-entry Wait, typed wait.output binding, timeout routing and the Step 15/16/17 response branches. A successful N2 user-plane setup proceeds through N4 Session Modification and then the conditional UDM registration; if registration is not required, the Precondition routes directly to the common response Node. TS 23.502 distinguishes two Step 15 rejection cases: (1) N2 user-plane resource setup failure skips Step 16 and requires N4 Session Release before Step 17; (2) a User Plane Enforcement Policy Notification reporting no resources established while policy is `required` also skips Step 16 and returns the N1 SM Reject at Step 17, but does not specify that same pre-response N4 Release. Both are business results, not Operation failures, and both require the typed Step 17 response DTO with the N1 SM Reject binary reference. The common response Node is the `wait.response.after` boundary. Step 18 failure cleanup (including SM Context Status Notify Release and release of resources created during establishment) is a later Node and MUST NOT delay that paired response. It is conditional on the selected Step 15 branch: after the N2-resource-setup-failure branch has already released N4 before Step 17, Step 18 MUST NOT issue a duplicate N4 Release; after the required-UPE-unavailable branch, it may release any N4 Session still present. The cleanup must be idempotent and operate only on resources still owned by the failed establishment. The Integration maps either rejection DTO to the same TS 29.502 200 disposition using `multipart/related`, with `binaryDataN1SmMessage` required; it must not map these business failures to 204 or a generic HTTP error. The Integration export MUST identify the triggering transfer callable and prove its pre-dispatch correlation binding. The Compiler derives the exact Observation output from `wait.response.after` and validates it against the pinned responseResultSchema before accepting the mapping.
 
 ## 3. Integration Ingress Operation export
 
