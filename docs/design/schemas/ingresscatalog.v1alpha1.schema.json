@@ -1265,6 +1265,9 @@
             "part": {
               "type": "string",
               "minLength": 1
+            },
+            "contentIdReference": {
+              "$ref": "#/$defs/contentIdReference"
             }
           }
         }
@@ -1596,6 +1599,25 @@
           "minLength": 1
         }
       }
+    },
+    "contentIdReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "part",
+        "pointer"
+      ],
+      "properties": {
+        "part": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pointer": {
+          "type": "string",
+          "pattern": "^/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*$"
+        }
+      },
+      "description": "Binds a multipart binary part Content-ID to its RefToBinaryData property in the JSON root part."
     }
   }
 }
