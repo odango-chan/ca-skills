@@ -32,7 +32,7 @@ nodes:
       routes:
         FAILED: FAILED
         OUTCOME_UNKNOWN: UNRESOLVED
-        DENIED: SAFE_STOPPED
+        DENIED: FAILED
     observation:
       tool: ca-session-context::context.smf.session.read
       arguments:
@@ -51,8 +51,8 @@ nodes:
             - validate-sm-subscription.observation.output
       routes:
         PASS: skip-secondary-authentication
-        FAIL: SAFE_STOPPED
-        UNKNOWN: SAFE_STOPPED
+        FAIL: FAILED
+        UNKNOWN: UNRESOLVED
   # OpenAMSM OES: SAA.SECONDARY_AUTH (s2, optional). The current plan hard-codes
   # required="0"; this operation therefore returns phase=SKIPPED. It is not a
   # dynamic secondary-auth decision and this Skill excludes auth-required profiles.
@@ -65,8 +65,8 @@ nodes:
         required: "0"
       routes:
         FAILED: FAILED
-        OUTCOME_UNKNOWN: SAFE_STOPPED
-        DENIED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: UNRESOLVED
+        DENIED: FAILED
     postcondition:
       predicates:
         - predicate: establishment.mas.secondary_auth_skipped
@@ -75,7 +75,7 @@ nodes:
       routes:
         PASS: create-sm-context
         FAIL: FAILED
-        UNKNOWN: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
 
   # OpenAMSM OES: SC.CREATE_SM_CONTEXT (s3). This is the internal context
   # creation that supports the paired CreateSMContext service boundary; the
