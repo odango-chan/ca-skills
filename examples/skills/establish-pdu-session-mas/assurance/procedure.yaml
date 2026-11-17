@@ -34,7 +34,7 @@ nodes:
         OUTCOME_UNKNOWN: UNRESOLVED
         DENIED: FAILED
     observation:
-      tool: ca-session-context::context.smf.session.read
+      tool: ca-session-context::smf.session.context.query
       arguments:
         supi: context.supi
         pduSessionId: context.request.pduSessionId
