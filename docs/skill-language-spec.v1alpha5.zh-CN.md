@@ -16,7 +16,7 @@
 
 **v1alpha5 增补摘要（2026-11-17）。** v1alpha5 在不增加第五种业务阶段、不引入 Wait-only Node 的前提下，增加 Node-entry Event Wait；其事件选择器由可信、包级 Ingress Operation 导出解析，`wait.output` 是受路径支配约束的普通类型化输入，TIMEOUT 是独立控制结果，配对响应通过 Integration 声明的 Producer 边界提交。EVENT_ACCEPTED 的 occurrence 隔离、重复/迟到投递、同一 Run 持久化续接和逻辑响应 Deadline 已纳入跨契约设计。36 个 EW 用例是本版规范符合性义务，尚不等于 Compiler/Host/Runtime/Integration 已执行通过。
 
-**评审导航：** §0 确定效力与范围；§9–§14 检查 Owner 契约、DAG、SourcePath 和数据绑定；§17–§24 检查 Evidence、Reconcile、路由与诊断；§32–§45 检查 Script、可信依赖及产品门槛；**附录 E + G.9** 合计定义 E01–E120 预期（E01–E104 在 E，E105–E120 在 G.9），**F/G** 为规范性互操作和 Schema/CEL 规则，**H** 为统一诊断索引；**I/J/K** 分别是作者指南、最终裁决与待实施验收材料（资料性）。所有内容均在当前文件中。
+**评审导航：** §0 确定效力与范围；§9–§14 检查 Owner 契约、DAG、SourcePath 和数据绑定；§17–§24 检查 Evidence、Reconcile、路由与诊断；§32–§45 检查 Script、可信依赖及产品门槛；**附录 E + G.9** 定义继承的 E01–E120 预期，**F/G** 为继承的规范性互操作和 Schema/CEL 规则，**H** 为 v1alpha5 统一诊断索引，**L** 为 Node-entry Event Wait 与 Ingress/Host/Runtime 规范性增补；**I/J/K** 为资料性材料。完整内容均在当前文件中。
 
 ---
 
@@ -33,7 +33,8 @@ v1alpha4 的作者源码语法、静态语义、运行语义及附录 F/G/H 已 
 | `vNext` | 本规范对应的演进版语言系列名称，不独立指定机器可解析版本 | 资料性别名 |
 | `connectionagent.io/v1alpha4` | 本版语言目标的精确标识；构建时仍由 BuildRequest 明确指定 | 规范性目标 |
 | `connectionagent.io/v1alpha5` | 本文件拟发布的下一语言目标；完整规范和 EW 符合性材料通过独立评审及发布裁决前不得作为生产目标 | 候选目标，尚未发布 |
-| `API v1alpha4` | 本文规定的抽象互操作语言版本，不等于所有外部 Owner、BuildRequest 或 Artifact 协议均采用同一版本 | 规范性语义边界 |
+| `API v1alpha4` | v1alpha4 继承基线的抽象互操作语言版本 | 规范性语义边界 |
+| `API v1alpha5` | 本候选的作者语言与 Node-entry Wait 语义目标；ToolCatalog、CapabilityContracts、IngressCatalog、BuildRequest 和 Artifact 仍按各自独立的精确版本契约解析，不因语言目标升级而自动改写 | 候选语义边界 |
 | `FROZEN` | v1alpha4 规范性语言语义冻结；v1alpha3 原版独立保持冻结；v1alpha5 在正式发布前不继承该状态 | v1alpha4 状态 |
 | `语言冻结 ≠ 产品符合` | §45.1 语言语义裁决与 §45.2 产品/Owner 验收属于独立层次 | 状态边界 |
 | `NOT QUALIFIED` | §45.2 的独立产品符合性门槛尚未完成，不得推断 Compiler、Studio、Host、Tool Owner 或真实 5GC 已通过验收 | 产品状态 |
@@ -65,9 +66,9 @@ v1alpha4 的作者源码语法、静态语义、运行语义及附录 F/G/H 已 
 
 **声明规则：** 在报告中按实际执行层分别注明 `claimScope`、规范提交、所用外部协议版本、确切 Fixture/测试套件版本、已执行变体、失败/未覆盖、原始结果与发布者授权；未覆盖的层写 `NOT_TESTED` 或 `NOT_QUALIFIED`。其中 `claimScope` 等名称只描述附录 K 的**资料性报告视图**，不是本语言新增的线协议字段。E01–E114 的**用例编号**从旧版继承，其中涉及恢复/路由/成功优先级的预期已按本次 v1alpha4 **明确 C 类复审**更新，不再声称与 v1alpha3 的旧语义相同；E115–E120 是本版新增预期。完整 E 列表和 H 的诊断集合均**不意味着已存在可执行套件**；套件的具体版本、覆盖率与执行证据须单独登记（§45.2、K.4）。
 
-**规范文件完整性。** 附录 E（测试预期）、F（互操作字段）、G（闭合性补充）、H（诊断索引），以及 §30–§45 均属于**本文件的组成部分**；第十一部分 §46–§91 为资料性技术问答/设计说明。附录 I/J/K 已收编原先另行维护的作者指南、决策追踪、勘误裁决及测试/报告辅助材料，全部为 Informative；它们不增加字段或放宽 Normative 条款。v1alpha4 唯一中文冻结文本仍为 `docs/skill-language-spec.v1alpha4.zh-CN.md`；本文件 `docs/skill-language-spec.v1alpha5.zh-CN.md` 是 v1alpha5 的完整单文件评审候选。v1alpha5 全文评审须以本文件的**同一受审提交**为准，不得通过跨文件拼合或单独审阅 Appendix L 代替全文审查。
+**规范文件完整性。** v1alpha4 的附录 E/F/G/H 与 §0–§91 保持原冻结文本效力；本文件在同一完整单文件中继承这些条款，并以附录 L 作为 v1alpha5 的规范性增补、以更新后的附录 H 作为 v1alpha5 诊断索引。第十一部分 §46–§91 为继承的资料性技术问答/设计说明。附录 I/J/K 为 Informative；它们不增加字段或放宽 Normative 条款。v1alpha4 唯一中文冻结文本仍为 `docs/skill-language-spec.v1alpha4.zh-CN.md`；本文件 `docs/skill-language-spec.v1alpha5.zh-CN.md` 是 v1alpha5 的完整单文件评审候选。v1alpha5 全文评审须以本文件的**同一受审提交**为准，不得通过跨文件拼合或单独审阅 Appendix L 代替全文审查。
 
-BuildRequest 传输格式、Compiler Artifact、Runtime Trace 及 Tool Owner 发布物分别受其自身的版本契约管理。本文件的冻结状态不构成上述产品或发布物通过符合性验收的证明。历史 v1alpha2 冻结记录及 v1alpha4 修订记录不覆盖本文件；互操作字段以附录 F/G 为准。
+BuildRequest 传输格式、Compiler Artifact、Runtime Trace 及 Tool Owner 发布物分别受其自身的版本契约管理。本文件的评审状态不构成上述产品或发布物通过符合性验收的证明。历史 v1alpha2 冻结记录及 v1alpha4 修订记录不覆盖本文件；互操作字段以附录 F/G 为准。
 
 ### 作者使用说明（资料性）
 
@@ -1609,7 +1610,7 @@ Environment
 | SCRIPT_CONTRACT_INVALID | Script 入口 / TypedDict 不合规 | 阻止构建 |
 | CEL_INVALID | CEL 使用未允许的结构、类型或缺失字段守卫（G.4） | 阻止构建 |
 | PACKAGE_PATH_INVALID | Skill 逻辑根或任意输入文件路径不满足 G.7 | 阻止构建 |
-| UNSUPPORTED_WAIT | 出现 Wait / Await | 阻止构建 |
+| UNSUPPORTED_WAIT | 仅在 BuildRequest 目标为 v1alpha4 时出现旧式 Wait / Await；v1alpha5 合法 Node.wait 不触发 | 阻止构建 |
 | UNSUPPORTED_V02_SYNTAX | 使用旧版隐式语法 | 阻止构建 |
 
 `UNUSED_DEPENDENCY` 是警告，定位合法但未使用的 Contract 依赖。
@@ -5417,7 +5418,7 @@ At Runtime, malformed, unauthenticated, unsupported-version, unsupported-media o
 
 ## L.12 最小符合性矩阵
 
-The following semantic cases are REQUIRED for v1alpha5 language/Host/Runtime/Integration conformance. They are the EW-001–EW-036 design test identifiers and do not renumber or alter the v1alpha4 E01–E120 set.
+The following semantic cases are REQUIRED for v1alpha5 language/Host/Runtime/Integration conformance. They are the EW-001–EW-036 design test identifiers and do not renumber or alter the v1alpha4 E01–E120 set. The machine-readable obligation register is [wait-conformance-v1alpha5.json](design/wait-conformance-v1alpha5.json). All entries currently have `fixtureStatus: SPECIFICATION_ONLY`; its CI validator checks register integrity only, not language execution. It is not an executable Compiler/Host/Runtime/Integration fixture suite and does not establish PASS.
 
 | Case | Input / condition | Required result |
 |---|---|---|
