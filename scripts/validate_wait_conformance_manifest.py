@@ -29,6 +29,18 @@ EXISTING_DIAGNOSTICS = {
     "SOURCE_NOT_AVAILABLE",
     "ENTRY_PRECONDITION_BYPASSED",
 }
+HOST_ADMISSION_DIAGNOSTICS = {"WAIT_DURATION_LIMIT_EXCEEDED"}
+EXPECTED_MESSAGE_KEYS = {
+    "wait.declaration.invalid",
+    "wait.timeout.invalid",
+    "wait.ingress.export.not_found",
+    "wait.ingress.export.ambiguous",
+    "wait.correlation.binding.invalid",
+    "wait.timeout.route.invalid",
+    "wait.node.stage_required",
+    "wait.response.boundary.invalid",
+    "wait.response.mapping.invalid",
+}
 
 
 def fail(message: str) -> None:
@@ -55,22 +67,45 @@ def main() -> None:
         if not case.get("layer") or not case.get("kind") or not case.get("scenario"):
             fail(f"{case['id']} is missing layer, kind or scenario")
         expected = case.get("expected")
-        if not isinstance(expected, dict) or len(expected) != 1:
-            fail(f"{case['id']} must declare exactly one expected result shape")
+        if not isinstance(expected, dict):
+            fail(f"{case['id']} must declare an expected result object")
         diagnostics = expected.get("diagnostics")
         if diagnostics is not None:
-            if not isinstance(diagnostics, list) or not diagnostics:
-                fail(f"{case['id']} diagnostics must be a non-empty list")
+            if set(expected) != {"diagnostics"} or not isinstance(diagnostics, list) or not diagnostics:
+                fail(f"{case['id']} diagnostics must be the sole non-empty expected result")
             for code in diagnostics:
                 if code not in WAIT_DIAGNOSTICS | EXISTING_DIAGNOSTICS:
                     fail(f"{case['id']} references an unregistered diagnostic: {code}")
-        elif not isinstance(expected.get("disposition"), str):
-            fail(f"{case['id']} must declare diagnostics or a disposition")
+        elif "variants" in expected:
+            if set(expected) != {"variants"} or not isinstance(expected["variants"], list) or not expected["variants"]:
+                fail(f"{case['id']} variants must be a non-empty expected result list")
+            variant_ids = [variant.get("id") for variant in expected["variants"]]
+            if len(variant_ids) != len(set(variant_ids)):
+                fail(f"{case['id']} has duplicate expected variant IDs")
+            for variant in expected["variants"]:
+                codes = variant.get("diagnostics")
+                if not isinstance(codes, list) or not codes:
+                    fail(f"{case['id']} variant {variant.get('id')} requires exact diagnostics")
+                for code in codes:
+                    if code not in WAIT_DIAGNOSTICS | EXISTING_DIAGNOSTICS:
+                        fail(f"{case['id']} variant references an unregistered diagnostic: {code}")
+        elif "hostDiagnostic" in expected:
+            if set(expected) != {"disposition", "hostDiagnostic"}:
+                fail(f"{case['id']} host admission expectation has unexpected fields")
+            if expected.get("hostDiagnostic") not in HOST_ADMISSION_DIAGNOSTICS or not isinstance(expected.get("disposition"), str):
+                fail(f"{case['id']} references an unregistered Host admission diagnostic")
+        elif set(expected) == {"disposition"} and isinstance(expected.get("disposition"), str):
+            pass
+        else:
+            fail(f"{case['id']} has an unsupported expected result shape")
 
     spec = SPEC.read_text(encoding="utf-8")
     for case_id in EXPECTED_IDS:
         if spec.count(case_id) < 1:
             fail(f"{case_id} is missing from the single-file normative specification")
+    for message_key in EXPECTED_MESSAGE_KEYS:
+        if message_key not in spec:
+            fail(f"normative diagnostic message key is missing: {message_key}")
     print("Wait conformance manifest integrity: PASS (36 obligations; execution NOT_RUN)")
 
 
