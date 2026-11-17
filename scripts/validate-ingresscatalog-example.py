@@ -255,6 +255,14 @@ def expect_semantic_failure(value: dict, label: str) -> None:
     raise SystemExit(f"negative fixture was unexpectedly accepted by semantic checks: {label}")
 
 
+def expect_protocol_failure(value: dict, label: str) -> None:
+    try:
+        validate_3gpp_reference_example(value)
+    except SystemExit:
+        return
+    raise SystemExit(f"negative fixture was unexpectedly accepted by 3GPP protocol checks: {label}")
+
+
 def validate_negative_cases(schema: dict, example: dict) -> None:
     validator = Draft202012Validator(schema)
 
@@ -356,7 +364,7 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
 
     wrong_3gpp_response_path = copy.deepcopy(example)
     wrong_3gpp_response_path["spec"]["operations"][0]["response"]["result"]["mappings"][0]["from"] = "/smContextRef"
-    expect_semantic_failure(wrong_3gpp_response_path, "incorrect SmContextUpdatedData response field")
+    expect_protocol_failure(wrong_3gpp_response_path, "incorrect SmContextUpdatedData response field")
 
     mismatched_sbi_identity = copy.deepcopy(example)
     mismatched_sbi_identity["spec"]["operations"][0]["correlation"]["duplicate"]["identitySource"] = "3gpp-sbi-idempotency-key"
