@@ -7,7 +7,8 @@ import copy
 import hashlib
 import json
 import re
-from urllib.parse import urldefrag, unquote, urljoin
+import posixpath
+from urllib.parse import quote, urldefrag, unquote, urljoin, urlsplit, urlunsplit
 from email.parser import BytesParser
 from email.policy import default as email_policy
 from pathlib import Path
@@ -108,16 +109,87 @@ def validate_schema_closure_digest_vector() -> None:
         raise SystemExit("Schema Closure Digest did not change when a referenced Schema node changed")
 
 
+def _resolver_error(message: str) -> None:
+    raise SystemExit(f"Schema Closure resolver: {message}")
+
+
+def _normalize_percent_encoding(value: str) -> str:
+    if re.search(r"%(?![0-9A-Fa-f]{2})", value):
+        _resolver_error("malformed percent escape")
+    unreserved = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
+
+    def replace(match: re.Match[str]) -> str:
+        octet = int(match.group(1), 16)
+        character = chr(octet)
+        return character if character in unreserved else f"%{octet:02X}"
+
+    return re.sub(r"%([0-9A-Fa-f]{2})", replace, value)
+
+
+def canonical_document_uri(value: str) -> str:
+    if not isinstance(value, str) or not value or not value.isascii():
+        _resolver_error("document URI must be a non-empty ASCII URI")
+    if any(ord(character) <= 0x20 for character in value) or "\\" in value:
+        _resolver_error("document URI contains whitespace or a backslash")
+    try:
+        parts = urlsplit(value)
+        port = parts.port
+    except ValueError as error:
+        _resolver_error(f"invalid document URI authority: {error}")
+    if not parts.scheme or not parts.netloc or parts.query or parts.fragment:
+        _resolver_error("document URI must be absolute and contain no query or fragment")
+    if parts.username is not None or parts.password is not None:
+        _resolver_error("document URI user-info is forbidden")
+    host = parts.hostname
+    if not host or not host.isascii():
+        _resolver_error("document URI must contain an ASCII host")
+    scheme = parts.scheme.lower()
+    host = host.lower()
+    if ":" in host and not host.startswith("["):
+        host = f"[{host}]"
+    if (scheme, port) in (("https", 443), ("http", 80)):
+        port = None
+    authority = host if port is None else f"{host}:{port}"
+    raw_path = _normalize_percent_encoding(parts.path or "/")
+    if not raw_path.startswith("/") or "//" in raw_path:
+        _resolver_error("document URI path must be absolute and contain no repeated slash")
+    trailing_slash = raw_path.endswith("/")
+    normalized_path = posixpath.normpath(raw_path)
+    if not normalized_path.startswith("/"):
+        normalized_path = "/" + normalized_path
+    if trailing_slash and not normalized_path.endswith("/"):
+        normalized_path += "/"
+    return urlunsplit((scheme, authority, normalized_path, "", ""))
+
+
+def resolve_uri_reference(base_uri: str, reference: str) -> tuple[str, str]:
+    if not isinstance(reference, str) or not reference or not reference.isascii():
+        _resolver_error("URI reference must be a non-empty ASCII string")
+    if any(ord(character) <= 0x20 for character in reference) or "\\" in reference:
+        _resolver_error("URI reference contains whitespace or a backslash")
+    _normalize_percent_encoding(reference)
+    try:
+        resolved = urljoin(base_uri, reference)
+        resource_uri, fragment = urldefrag(resolved)
+        return canonical_document_uri(resource_uri), fragment
+    except ValueError as error:
+        _resolver_error(f"invalid URI reference: {error}")
+
+
 def canonical_pointer_from_uri_fragment(fragment: str) -> str:
     if fragment == "":
         return "#"
     if re.search(r"%(?![0-9A-Fa-f]{2})", fragment):
-        raise SystemExit("Schema Closure resolver: malformed percent escape in JSON Pointer fragment")
-    decoded = unquote(fragment, encoding="utf-8", errors="strict")
+        _resolver_error("malformed percent escape in JSON Pointer fragment")
+    try:
+        decoded = unquote(fragment, encoding="utf-8", errors="strict")
+    except UnicodeDecodeError:
+        _resolver_error("JSON Pointer fragment is not valid UTF-8")
     if not decoded.startswith("/"):
-        raise SystemExit("Schema Closure resolver: only JSON Pointer fragments are supported")
+        _resolver_error("only empty or JSON Pointer fragments are supported")
+    tokens = decoded[1:].split("/")
     canonical_tokens = []
-    for token in decoded[1:].split("/"):
+    for token in tokens:
         decoded_token = []
         index = 0
         while index < len(token):
@@ -126,81 +198,459 @@ def canonical_pointer_from_uri_fragment(fragment: str) -> str:
                 index += 1
                 continue
             if index + 1 >= len(token) or token[index + 1] not in "01":
-                raise SystemExit("Schema Closure resolver: invalid RFC 6901 escape")
+                _resolver_error("invalid RFC 6901 escape")
             decoded_token.append("~" if token[index + 1] == "0" else "/")
             index += 2
         canonical_tokens.append("".join(decoded_token).replace("~", "~0").replace("/", "~1"))
     return "#/" + "/".join(canonical_tokens)
 
 
-def collect_schema_refs(value):
-    if isinstance(value, dict):
-        if isinstance(value.get("$ref"), str):
-            yield value["$ref"]
-        for child in value.values():
-            yield from collect_schema_refs(child)
-    elif isinstance(value, list):
-        for child in value:
-            yield from collect_schema_refs(child)
+def pointer_tokens(pointer: str) -> list[str]:
+    if pointer == "#":
+        return []
+    if not isinstance(pointer, str) or not pointer.startswith("#/"):
+        _resolver_error("canonical pointer must be # or begin with #/")
+    result = []
+    for token in pointer[2:].split("/"):
+        decoded = []
+        index = 0
+        while index < len(token):
+            if token[index] != "~":
+                decoded.append(token[index])
+                index += 1
+                continue
+            if index + 1 >= len(token) or token[index + 1] not in "01":
+                _resolver_error("canonical pointer contains an invalid RFC 6901 escape")
+            decoded.append("~" if token[index + 1] == "0" else "/")
+            index += 2
+        result.append("".join(decoded))
+    return result
+
+
+def pointer_from_tokens(tokens: list[str]) -> str:
+    if not tokens:
+        return "#"
+    return "#/" + "/".join(token.replace("~", "~0").replace("/", "~1") for token in tokens)
+
+
+def append_pointer(resource_pointer: str, fragment_pointer: str) -> str:
+    return pointer_from_tokens(pointer_tokens(resource_pointer) + pointer_tokens(fragment_pointer))
+
+
+def resolve_json_pointer(document, pointer: str):
+    current = document
+    for token in pointer_tokens(pointer):
+        if isinstance(current, dict):
+            if token not in current:
+                _resolver_error(f"JSON Pointer target does not exist: {pointer}")
+            current = current[token]
+        elif isinstance(current, list):
+            if not re.fullmatch(r"0|[1-9][0-9]*", token):
+                _resolver_error(f"JSON Pointer array index is invalid: {pointer}")
+            index = int(token)
+            if index >= len(current):
+                _resolver_error(f"JSON Pointer array index is out of range: {pointer}")
+            current = current[index]
+        else:
+            _resolver_error(f"JSON Pointer traverses a scalar value: {pointer}")
+    return current
+
+
+def schema_children(schema: dict, dialect: str):
+    if dialect == "openapi-3.0":
+        map_keywords = ("properties",)
+        single_keywords = ("items", "not")
+        array_keywords = ("allOf", "anyOf", "oneOf")
+    else:
+        map_keywords = ("$defs", "properties", "patternProperties", "dependentSchemas")
+        single_keywords = (
+            "additionalProperties", "unevaluatedProperties", "unevaluatedItems",
+            "items", "contains", "propertyNames", "not", "if", "then", "else",
+            "contentSchema",
+        )
+        array_keywords = ("allOf", "anyOf", "oneOf", "prefixItems")
+
+    for keyword in map_keywords:
+        value = schema.get(keyword)
+        if value is None:
+            continue
+        if not isinstance(value, dict):
+            _resolver_error(f"{dialect} Schema keyword {keyword} must be an object")
+        for name, child in value.items():
+            if not isinstance(child, dict):
+                _resolver_error(f"boolean/non-object subschemas are unsupported at {keyword}/{name}")
+            yield [keyword, str(name)], child
+
+    for keyword in single_keywords:
+        if keyword not in schema or schema[keyword] is None:
+            continue
+        child = schema[keyword]
+        if dialect == "openapi-3.0" and keyword == "additionalProperties" and isinstance(child, bool):
+            continue
+        if not isinstance(child, dict):
+            _resolver_error(f"boolean/non-object subschemas are unsupported at {keyword}")
+        yield [keyword], child
+
+    for keyword in array_keywords:
+        if keyword not in schema or schema[keyword] is None:
+            continue
+        children = schema[keyword]
+        if not isinstance(children, list):
+            _resolver_error(f"Schema keyword {keyword} must be an array")
+        for index, child in enumerate(children):
+            if not isinstance(child, dict):
+                _resolver_error(f"boolean/non-object subschemas are unsupported at {keyword}/{index}")
+            yield [keyword, str(index)], child
+
+    if dialect == "openapi-3.0" and isinstance(schema.get("items"), list):
+        for index, child in enumerate(schema["items"]):
+            if not isinstance(child, dict):
+                _resolver_error(f"tuple item Schema {index} must be an object")
+            yield ["items", str(index)], child
+
+
+def openapi_schema_roots(document: dict):
+    roots: list[tuple[list[str], dict]] = []
+
+    def add_schema(value, tokens: list[str]) -> None:
+        if not isinstance(value, dict):
+            _resolver_error(f"OpenAPI 3.0 Schema at {pointer_from_tokens(tokens)} must be an object")
+        roots.append((tokens, value))
+
+    def add_content(content, tokens: list[str]) -> None:
+        if not isinstance(content, dict):
+            return
+        for media_type, media in content.items():
+            if isinstance(media, dict) and "schema" in media:
+                add_schema(media["schema"], tokens + ["content", str(media_type), "schema"])
+
+    def add_parameter(parameter, tokens: list[str]) -> None:
+        if not isinstance(parameter, dict):
+            return
+        if "schema" in parameter:
+            add_schema(parameter["schema"], tokens + ["schema"])
+        add_content(parameter.get("content"), tokens)
+
+    def add_header(header, tokens: list[str]) -> None:
+        if not isinstance(header, dict):
+            return
+        if "schema" in header:
+            add_schema(header["schema"], tokens + ["schema"])
+        add_content(header.get("content"), tokens)
+
+    def add_request_body(body, tokens: list[str]) -> None:
+        if isinstance(body, dict):
+            add_content(body.get("content"), tokens)
+
+    def add_response(response, tokens: list[str]) -> None:
+        if not isinstance(response, dict):
+            return
+        add_content(response.get("content"), tokens)
+        headers = response.get("headers", {})
+        if isinstance(headers, dict):
+            for name, header in headers.items():
+                add_header(header, tokens + ["headers", str(name)])
+
+    def add_callback(callback, tokens: list[str]) -> None:
+        if not isinstance(callback, dict):
+            return
+        for expression, path_item in callback.items():
+            if isinstance(path_item, dict):
+                add_path_item(path_item, tokens + [str(expression)])
+
+    def add_operation(operation, tokens: list[str]) -> None:
+        if not isinstance(operation, dict):
+            return
+        for index, parameter in enumerate(operation.get("parameters", []) or []):
+            add_parameter(parameter, tokens + ["parameters", str(index)])
+        if isinstance(operation.get("requestBody"), dict):
+            add_request_body(operation["requestBody"], tokens + ["requestBody"])
+        responses = operation.get("responses", {})
+        if isinstance(responses, dict):
+            for status, response in responses.items():
+                add_response(response, tokens + ["responses", str(status)])
+        callbacks = operation.get("callbacks", {})
+        if isinstance(callbacks, dict):
+            for name, callback in callbacks.items():
+                add_callback(callback, tokens + ["callbacks", str(name)])
+
+    def add_path_item(path_item, tokens: list[str]) -> None:
+        if not isinstance(path_item, dict):
+            return
+        for index, parameter in enumerate(path_item.get("parameters", []) or []):
+            add_parameter(parameter, tokens + ["parameters", str(index)])
+        for method in ("get", "put", "post", "delete", "options", "head", "patch", "trace"):
+            if method in path_item:
+                add_operation(path_item[method], tokens + [method])
+
+    components = document.get("components", {})
+    if isinstance(components, dict):
+        for name, schema in components.get("schemas", {}).items() if isinstance(components.get("schemas"), dict) else []:
+            add_schema(schema, ["components", "schemas", str(name)])
+        for name, parameter in components.get("parameters", {}).items() if isinstance(components.get("parameters"), dict) else []:
+            add_parameter(parameter, ["components", "parameters", str(name)])
+        for name, body in components.get("requestBodies", {}).items() if isinstance(components.get("requestBodies"), dict) else []:
+            add_request_body(body, ["components", "requestBodies", str(name)])
+        for name, response in components.get("responses", {}).items() if isinstance(components.get("responses"), dict) else []:
+            add_response(response, ["components", "responses", str(name)])
+        for name, header in components.get("headers", {}).items() if isinstance(components.get("headers"), dict) else []:
+            add_header(header, ["components", "headers", str(name)])
+        for name, callback in components.get("callbacks", {}).items() if isinstance(components.get("callbacks"), dict) else []:
+            add_callback(callback, ["components", "callbacks", str(name)])
+
+    paths = document.get("paths", {})
+    if isinstance(paths, dict):
+        for path_name, path_item in paths.items():
+            add_path_item(path_item, ["paths", str(path_name)])
+    return roots
+
+
+def schema_nodes_for_document(document: dict, dialect: str) -> dict[str, dict]:
+    if dialect == "json-schema-2020-12":
+        if document.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+            _resolver_error("JSON Schema artifact must declare the Draft 2020-12 dialect")
+        roots = [([], document)]
+    elif dialect == "openapi-3.0":
+        if not str(document.get("openapi", "")).startswith("3.0."):
+            _resolver_error("OpenAPI artifact must declare OpenAPI 3.0.x")
+        roots = openapi_schema_roots(document)
+    else:
+        _resolver_error(f"unsupported source Schema dialect: {dialect}")
+
+    found: dict[str, dict] = {}
+
+    def visit(tokens: list[str], schema: dict) -> None:
+        pointer = pointer_from_tokens(tokens)
+        if pointer in found:
+            _resolver_error(f"Schema pointer was discovered more than once: {pointer}")
+        if not isinstance(schema, dict):
+            _resolver_error(f"Schema node must be an object: {pointer}")
+        found[pointer] = schema
+        for suffix, child in schema_children(schema, dialect):
+            visit(tokens + suffix, child)
+
+    for tokens, schema in roots:
+        visit(tokens, schema)
+    return found
+
+
+def validate_schema_closure_resolution(vector: dict) -> set[tuple[str, str]]:
+    context = vector.get("resolutionContext")
+    if not isinstance(context, dict):
+        _resolver_error("missing resolutionContext")
+    snapshot_base = canonical_document_uri(context.get("snapshotBaseUri", ""))
+    if not snapshot_base.endswith("/"):
+        _resolver_error("snapshotBaseUri must end with /")
+
+    documents = context.get("documents")
+    if not isinstance(documents, list) or not documents:
+        _resolver_error("resolutionContext.documents must be a non-empty array")
+
+    document_by_artifact = {}
+    document_uri_by_artifact = {}
+    artifact_by_document_uri = {}
+    schema_nodes_by_artifact = {}
+    for item in documents:
+        artifact = item.get("artifactRef")
+        snapshot_path = item.get("snapshotPath")
+        uri = canonical_document_uri(item.get("documentUri", ""))
+        dialect = item.get("dialect")
+        digest = item.get("artifactDigest")
+        document = item.get("document")
+        if not isinstance(artifact, str) or not artifact:
+            _resolver_error("artifactRef must be a non-empty exact identity")
+        if not isinstance(snapshot_path, str) or not snapshot_path or snapshot_path.startswith("/") or "\\" in snapshot_path:
+            _resolver_error("snapshotPath must be a normalized relative path")
+        path_parts = snapshot_path.split("/")
+        if any(part in ("", ".", "..") for part in path_parts) or posixpath.normpath(snapshot_path) != snapshot_path:
+            _resolver_error("snapshotPath is not normalized or escapes the immutable snapshot")
+        expected_uri = canonical_document_uri(urljoin(snapshot_base, quote(snapshot_path, safe="/-._~")))
+        if uri != expected_uri:
+            _resolver_error(f"artifactRef {artifact} URI does not match its snapshot-relative path")
+        if artifact in document_by_artifact or uri in artifact_by_document_uri:
+            _resolver_error("artifactRef and canonical document URI bindings must be one-to-one")
+        if not isinstance(digest, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
+            _resolver_error(f"artifact {artifact} has an invalid artifactDigest")
+        if not isinstance(document, dict):
+            _resolver_error(f"artifact {artifact} parsed document must be an object")
+        schema_nodes = schema_nodes_for_document(document, dialect)
+        document_by_artifact[artifact] = item
+        document_uri_by_artifact[artifact] = uri
+        artifact_by_document_uri[uri] = artifact
+        schema_nodes_by_artifact[artifact] = schema_nodes
+
+    aliases: dict[str, tuple[str, str]] = {
+        uri: (artifact, "#") for uri, artifact in artifact_by_document_uri.items()
+    }
+    base_uri_by_node: dict[tuple[str, str], str] = {}
+
+    def register_alias(uri: str, identity: tuple[str, str]) -> None:
+        previous = aliases.get(uri)
+        if previous is not None and previous != identity:
+            _resolver_error(f"base URI alias is ambiguous: {uri}")
+        aliases[uri] = identity
+
+    def register_schema_resources(artifact: str, pointer: str, schema: dict, base_uri: str, dialect: str) -> None:
+        current_base = base_uri
+        if dialect == "json-schema-2020-12" and "$id" in schema:
+            identifier = schema["$id"]
+            if not isinstance(identifier, str) or not identifier or "#" in identifier:
+                _resolver_error(f"JSON Schema $id must be a non-empty URI-reference without a fragment at {pointer}")
+            current_base, fragment = resolve_uri_reference(current_base, identifier)
+            if fragment:
+                _resolver_error(f"JSON Schema $id must not contain a fragment at {pointer}")
+            register_alias(current_base, (artifact, pointer))
+        base_uri_by_node[(artifact, pointer)] = current_base
+        for suffix, child in schema_children(schema, dialect):
+            child_pointer = pointer_from_tokens(pointer_tokens(pointer) + suffix)
+            register_schema_resources(artifact, child_pointer, child, current_base, dialect)
+
+    for artifact, item in document_by_artifact.items():
+        dialect = item["dialect"]
+        for pointer, schema in schema_nodes_by_artifact[artifact].items():
+            if pointer == "#" or pointer in schema_nodes_by_artifact[artifact]:
+                # Every schema node is visited below from its containing root. This
+                # guard is only used to seed roots and avoid duplicate recursion.
+                pass
+        roots = [pointer for pointer in schema_nodes_by_artifact[artifact] if not any(
+            pointer.startswith(parent + "/") for parent in schema_nodes_by_artifact[artifact]
+            if parent != pointer
+        )]
+        for root_pointer in roots:
+            register_schema_resources(
+                artifact,
+                root_pointer,
+                schema_nodes_by_artifact[artifact][root_pointer],
+                document_uri_by_artifact[artifact],
+                dialect,
+            )
+
+    def collect_references(artifact: str, pointer: str):
+        schema = schema_nodes_by_artifact[artifact][pointer]
+        dialect = document_by_artifact[artifact]["dialect"]
+        if dialect == "openapi-3.0" and "$id" in schema:
+            _resolver_error(f"$id is not a base-URI mechanism in OpenAPI 3.0 Schema Objects: {pointer}")
+        for unsupported in ("$anchor", "$dynamicRef", "$dynamicAnchor", "$recursiveRef"):
+            if unsupported in schema:
+                _resolver_error(f"{unsupported} is unsupported by Schema Closure Digest v1: {pointer}")
+        base_uri = base_uri_by_node[(artifact, pointer)]
+        if "$ref" in schema:
+            reference = schema["$ref"]
+            if not isinstance(reference, str) or not reference:
+                _resolver_error(f"$ref must be a non-empty URI-reference: {pointer}")
+            yield reference, base_uri
+        for suffix, child in schema_children(schema, dialect):
+            child_pointer = pointer_from_tokens(pointer_tokens(pointer) + suffix)
+            yield from collect_references(artifact, child_pointer)
+
+    nodes = vector.get("nodes")
+    if not isinstance(nodes, list):
+        _resolver_error("digest nodes must be an array")
+    expected_nodes = {}
+    for node in nodes:
+        identity = (node.get("artifactRef"), node.get("pointer"))
+        if identity in expected_nodes:
+            _resolver_error(f"duplicate digest node identity: {identity}")
+        artifact, pointer = identity
+        if artifact not in document_by_artifact or pointer not in schema_nodes_by_artifact[artifact]:
+            _resolver_error(f"digest node is not a Schema node in the pinned artifact: {identity}")
+        if node.get("artifactDigest") != document_by_artifact[artifact]["artifactDigest"]:
+            _resolver_error(f"digest node artifactDigest does not match the pinned artifact: {identity}")
+        actual_schema = schema_nodes_by_artifact[artifact][pointer]
+        if node.get("schema") != actual_schema:
+            _resolver_error(f"digest node Schema value does not match the exact artifact pointer: {identity}")
+        expected_nodes[identity] = node
+
+    root = vector.get("root")
+    if not isinstance(root, dict):
+        _resolver_error("root identity must be an object")
+    root_identity = (root.get("artifactRef"), root.get("pointer"))
+    if root_identity not in expected_nodes:
+        _resolver_error("root identity is missing from the digest nodes")
+    if root.get("artifactDigest") != expected_nodes[root_identity].get("artifactDigest"):
+        _resolver_error("root artifactDigest is inconsistent")
+
+    visited: set[tuple[str, str]] = set()
+    pending = [root_identity]
+    while pending:
+        identity = pending.pop()
+        if identity in visited:
+            continue
+        artifact, pointer = identity
+        if artifact not in schema_nodes_by_artifact or pointer not in schema_nodes_by_artifact[artifact]:
+            _resolver_error(f"resolved target is not a Schema node: {identity}")
+        visited.add(identity)
+        for reference, base_uri in collect_references(artifact, pointer):
+            target_resource_uri, fragment = resolve_uri_reference(base_uri, reference)
+            resource = aliases.get(target_resource_uri)
+            if resource is None:
+                _resolver_error(f"$ref target is outside the immutable dependency snapshot: {reference}")
+            target_artifact, resource_pointer = resource
+            fragment_pointer = canonical_pointer_from_uri_fragment(fragment)
+            target_pointer = append_pointer(resource_pointer, fragment_pointer)
+            if target_artifact not in schema_nodes_by_artifact or target_pointer not in schema_nodes_by_artifact[target_artifact]:
+                _resolver_error(f"$ref does not identify a Schema Object: {reference}")
+            pending.append((target_artifact, target_pointer))
+
+    if visited != set(expected_nodes):
+        missing = sorted(visited - set(expected_nodes))
+        extra = sorted(set(expected_nodes) - visited)
+        _resolver_error(f"digest nodes are not the exact transitive closure; missing={missing}, extra={extra}")
+    return visited
 
 
 def validate_schema_closure_resolution_vector(vector: dict) -> None:
-    context = vector.get("resolutionContext")
-    if not isinstance(context, dict):
-        raise SystemExit("Schema Closure resolver vector: missing resolutionContext")
-    uri_by_artifact = {}
-    artifact_by_uri = {}
-    for item in context.get("documentUris", []):
-        artifact = item["artifactRef"]
-        uri = item["uri"]
-        if artifact in uri_by_artifact or uri in artifact_by_uri:
-            raise SystemExit("Schema Closure resolver vector: artifact/URI mapping must be one-to-one")
-        uri_by_artifact[artifact] = uri
-        artifact_by_uri[uri] = artifact
+    validate_schema_closure_resolution(vector)
 
-    nodes = vector["nodes"]
-    node_by_identity = {(node["artifactRef"], node["pointer"]): node for node in nodes}
-    for reference in context.get("references", []):
-        source_artifact = reference["fromArtifactRef"]
-        target_artifact = reference["toArtifactRef"]
-        ref_value = reference["ref"]
-        source_uri = uri_by_artifact.get(source_artifact)
-        if source_uri is None:
-            raise SystemExit("Schema Closure resolver vector: source artifact has no canonical URI")
-        source_nodes = [node for node in nodes if node["artifactRef"] == source_artifact]
-        if not any(ref_value in list(collect_schema_refs(node["schema"])) for node in source_nodes):
-            raise SystemExit("Schema Closure resolver vector: source Schema does not contain the declared $ref")
-        resolved = urljoin(source_uri, ref_value)
-        resource_uri, fragment = urldefrag(resolved)
-        resolved_artifact = artifact_by_uri.get(resource_uri)
-        if resolved_artifact != target_artifact:
-            raise SystemExit("Schema Closure resolver vector: $ref did not resolve to the declared artifact")
-        pointer = canonical_pointer_from_uri_fragment(fragment)
-        if pointer != reference["pointer"]:
-            raise SystemExit("Schema Closure resolver vector: $ref did not resolve to the canonical pointer")
-        if (target_artifact, pointer) not in node_by_identity:
-            raise SystemExit("Schema Closure resolver vector: resolved target is missing from the digest closure")
+    def must_reject(mutated: dict, label: str) -> None:
+        try:
+            validate_schema_closure_resolution(mutated)
+        except SystemExit:
+            return
+        raise SystemExit(f"Schema Closure resolver negative vector was accepted: {label}")
 
-    if canonical_pointer_from_uri_fragment("/components/schemas/%43ontext") != "#/components/schemas/Context":
-        raise SystemExit("Schema Closure resolver: percent-encoded pointer did not canonicalize")
+    missing = copy.deepcopy(vector)
+    missing["nodes"] = [node for node in missing["nodes"] if node["artifactRef"] != "urn:test:schemas/shared"]
+    must_reject(missing, "incomplete transitive closure")
+
+    outside = copy.deepcopy(vector)
+    outside["resolutionContext"]["documents"][1]["document"]["$defs"]["Context"]["properties"]["shared"]["$ref"] = "../../../../outside.yaml#/$defs/Shared"
+    must_reject(outside, "reference outside the snapshot")
+
+    missing_pointer = copy.deepcopy(vector)
+    missing_pointer["resolutionContext"]["documents"][1]["document"]["$defs"]["Context"]["properties"]["shared"]["$ref"] = "../shared.json#/$defs/Missing"
+    must_reject(missing_pointer, "reference to a missing Schema pointer")
+
+    anchor = copy.deepcopy(vector)
+    anchor["resolutionContext"]["documents"][1]["document"]["$defs"]["Context"]["properties"]["shared"]["$ref"] = "../shared.json#Shared"
+    must_reject(anchor, "unsupported named anchor")
+
+    invalid_id = copy.deepcopy(vector)
+    invalid_id["resolutionContext"]["documents"][1]["document"]["$defs"]["Context"]["$id"] = "resources/context#fragment"
+    must_reject(invalid_id, "$id with a fragment")
+
+    openapi_id = copy.deepcopy(vector)
+    openapi_id["resolutionContext"]["documents"][0]["document"]["components"]["schemas"]["Request"]["$id"] = "https://schemas.invalid/request"
+    must_reject(openapi_id, "$id in an OpenAPI 3.0 Schema Object")
+
+    dynamic_ref = copy.deepcopy(vector)
+    dynamic_ref["resolutionContext"]["documents"][2]["document"]["$defs"]["Shared"]["$dynamicRef"] = "#/$defs/Shared"
+    must_reject(dynamic_ref, "unsupported $dynamicRef")
+
+    escaped_path = copy.deepcopy(vector)
+    escaped_path["resolutionContext"]["documents"][2]["snapshotPath"] = "../shared.json"
+    must_reject(escaped_path, "snapshot-relative path escape")
+
+    if canonical_pointer_from_uri_fragment("/components/schemas/%52equest") != "#/components/schemas/Request":
+        _resolver_error("percent-encoded JSON Pointer token did not canonicalize")
     if canonical_pointer_from_uri_fragment("/a~1b") != "#/a~1b":
-        raise SystemExit("Schema Closure resolver: RFC 6901 token escaping did not canonicalize")
-    for invalid_fragment in ("NamedAnchor", "/bad~2escape", "/bad%2"):
+        _resolver_error("RFC 6901 token escaping did not canonicalize")
+    for invalid_fragment in ("NamedAnchor", "/bad~2escape", "/bad%2", "/bad%E0%A4%A"):
         try:
             canonical_pointer_from_uri_fragment(invalid_fragment)
         except SystemExit:
             continue
-        raise SystemExit("Schema Closure resolver: unsupported/invalid fragment was accepted")
-
-    outside = copy.deepcopy(vector)
-    outside["resolutionContext"]["references"][0]["ref"] = "../../../../outside.yaml#/components/schemas/Context"
-    try:
-        validate_schema_closure_resolution_vector(outside)
-    except SystemExit:
-        pass
-    else:
-        raise SystemExit("Schema Closure resolver: reference escaping the pinned artifact set was accepted")
-
+        _resolver_error("unsupported/invalid JSON Pointer fragment was accepted")
 
 def validate_semantics(catalog: dict) -> None:
     operations = catalog["spec"]["operations"]
