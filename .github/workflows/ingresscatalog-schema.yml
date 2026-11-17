@@ -70,9 +70,16 @@ jobs:
               for method, operation in methods.items():
                   if operation.get("operationId") == "UpdateSmContext":
                       print("UpdateSmContext path:", path, method.upper())
-                      print("Request media types:", sorted(operation["requestBody"]["content"]))
+                      for media_type, media in operation["requestBody"]["content"].items():
+                          print("Request", media_type, "schema properties:", sorted(media.get("schema", {}).get("properties", {})))
                       for status, response in operation["responses"].items():
                           print("Response", status, "media types:", sorted(response.get("content", {})))
+                          for media_type, media in response.get("content", {}).items():
+                              print("Response", status, media_type, "schema properties:", sorted(media.get("schema", {}).get("properties", {})))
+                      for schema_name in ("SmContextUpdateData", "SmContextUpdatedData"):
+                          schema = artifact.get("components", {}).get("schemas", {}).get(schema_name)
+                          if schema:
+                              print(schema_name, "properties:", sorted(schema.get("properties", {})))
                       break
           print("Pinned ETSI Annex A.2 OpenAPI identity: PASS")
           PY
