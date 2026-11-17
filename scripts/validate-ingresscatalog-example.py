@@ -408,31 +408,65 @@ def validate_3gpp_reference_example(catalog: dict) -> None:
         raise SystemExit("UpdateSMContext JSON representation must use application/json")
     if multipart_response["mediaType"] != "multipart/related" or multipart_response["rootPart"] != "jsonData":
         raise SystemExit("UpdateSMContext multipart response must use jsonData as its root part")
-    response_parts = {part["name"]: part for part in multipart_response["parts"]}
-    if set(response_parts) != {"jsonData", "binaryDataN1SmMessage", "binaryDataN2SmInformation"}:
-        raise SystemExit("UpdateSMContext V19.5.0 multipart response parts do not match the pinned OpenAPI")
-    if response_parts["jsonData"]["kind"] != "json" or response_parts["jsonData"]["schemaRef"] != multipart_response["responseSchemaRef"]:
-        raise SystemExit("UpdateSMContext multipart root JSON part must use the response Schema")
+    response_part_list = multipart_response["parts"]
+    response_parts = {part["name"]: part for part in response_part_list}
+    expected_response_part_names = ["jsonData", "binaryDataN1SmMessage", "binaryDataN2SmInformation"]
+    if [part["name"] for part in response_part_list] != expected_response_part_names:
+        raise SystemExit("UpdateSMContext V19.5.0 multipart response parts must be unique and start with jsonData")
+    if multipart_response["rootPart"] != "jsonData":
+        raise SystemExit("UpdateSMContext multipart response rootPart must be jsonData")
+    root_part = response_parts["jsonData"]
+    if (
+        root_part["kind"] != "json"
+        or root_part["required"] is not True
+        or root_part["mediaType"] != "application/json"
+        or root_part["schemaRef"] != multipart_response["responseSchemaRef"]
+        or root_part["schemaDigest"] != multipart_response["responseSchemaDigest"]
+    ):
+        raise SystemExit("UpdateSMContext multipart root JSON part must be first and use the exact response Schema and digest")
+    if (
+        json_response["responseSchemaRef"] != multipart_response["responseSchemaRef"]
+        or json_response["responseSchemaDigest"] != multipart_response["responseSchemaDigest"]
+    ):
+        raise SystemExit("UpdateSMContext JSON and multipart representations must share the same response Schema and digest")
+    if response_parts["binaryDataN1SmMessage"]["kind"] != "binary" or response_parts["binaryDataN1SmMessage"]["required"] is not False:
+        raise SystemExit("UpdateSMContext N1 SM response part must be optional binary")
     if response_parts["binaryDataN1SmMessage"]["mediaType"] != "application/vnd.3gpp.5gnas":
         raise SystemExit("UpdateSMContext N1 SM response part media type mismatch")
+    if response_parts["binaryDataN2SmInformation"]["kind"] != "binary" or response_parts["binaryDataN2SmInformation"]["required"] is not False:
+        raise SystemExit("UpdateSMContext N2 SM response part must be optional binary")
     if response_parts["binaryDataN2SmInformation"]["mediaType"] != "application/vnd.3gpp.ngap":
         raise SystemExit("UpdateSMContext N2 SM response part media type mismatch")
     if bodyless_response["body"] != "none" or bodyless_response.get("representations"):
         raise SystemExit("UpdateSMContext 204 success response must be bodyless")
     binary_policy = response.get("binaryContent", {})
-    if binary_policy.get("access") != "integration-response-only" or binary_policy.get("immutable") is not True:
-        raise SystemExit("UpdateSMContext multipart response requires immutable Integration-only binary references")
+    if (
+        binary_policy.get("access") != "integration-response-only"
+        or binary_policy.get("immutable") is not True
+        or binary_policy.get("maxBytes", 0) < max(response_parts[name]["maxBytes"] for name in expected_response_part_names[1:])
+    ):
+        raise SystemExit("UpdateSMContext multipart response requires bounded immutable Integration-only binary references")
+    total_part_limit = sum(part["maxBytes"] for part in response_part_list)
+    if multipart_response["maxBytes"] <= total_part_limit:
+        raise SystemExit("UpdateSMContext multipart response maxBytes must leave room for MIME framing overhead")
+
     mappings = response["result"]["mappings"]
-    expected_targets = {
-        ("json", "json-body", None, "/cause"),
-        ("multipart", "multipart-json", "jsonData", "/cause"),
-        ("multipart", "multipart-binary", "binaryDataN1SmMessage", None),
-        ("multipart", "multipart-binary", "binaryDataN2SmInformation", None),
+    expected_mappings = {
+        ("json", "json-body", None, "/cause"): ("/cause", "identity"),
+        ("multipart", "multipart-json", "jsonData", "/cause"): ("/cause", "identity"),
+        ("multipart", "multipart-binary", "binaryDataN1SmMessage", None): ("/n1SmMessage", "binary-content-ref"),
+        ("multipart", "multipart-binary", "binaryDataN2SmInformation", None): ("/n2SmInformation", "binary-content-ref"),
     }
-    actual_targets = set()
+    actual_mapping_keys = []
     for mapping in mappings:
         target = mapping["target"]
-        actual_targets.add((mapping["representationId"], target["kind"], target.get("part"), target.get("pointer")))
+        key = (mapping["representationId"], target["kind"], target.get("part"), target.get("pointer"))
+        actual_mapping_keys.append(key)
+        if key not in expected_mappings:
+            raise SystemExit(f"Unexpected UpdateSMContext response mapping target: {key}")
+        expected_from, expected_transform = expected_mappings[key]
+        if mapping["from"] != expected_from or mapping["transform"] != expected_transform:
+            raise SystemExit(f"UpdateSMContext response mapping {key} must read {expected_from} using {expected_transform}")
         if target["kind"] == "multipart-binary":
             expected_pointer = {
                 "binaryDataN1SmMessage": "/n1SmMsg/contentId",
@@ -440,14 +474,20 @@ def validate_3gpp_reference_example(catalog: dict) -> None:
             }[target["part"]]
             if target["contentIdField"] != {"part": "jsonData", "pointer": expected_pointer}:
                 raise SystemExit(f"{target['part']} response part must be linked through {expected_pointer}")
-    if actual_targets != expected_targets:
-        raise SystemExit("UpdateSMContext response representations must map cause and both binary response parts")
-    selector = response["result"]["dispositionSelector"]["cases"]
-    selected = {(item["dispositionId"], item.get("representationId")) for item in selector}
+    if len(actual_mapping_keys) != len(expected_mappings) or len(set(actual_mapping_keys)) != len(actual_mapping_keys):
+        raise SystemExit("UpdateSMContext response mappings must cover every declared response field and binary part exactly once")
+
+    selector = response["result"]["dispositionSelector"]
+    if selector["sourcePath"] != "/responseRepresentation":
+        raise SystemExit("UpdateSMContext response selector must read the typed responseRepresentation field")
+    selected = {
+        (item["value"], item["dispositionId"], item.get("representationId"))
+        for item in selector["cases"]
+    }
     if selected != {
-        ("update-completed", "json"),
-        ("update-completed", "multipart"),
-        ("update-completed-no-content", None),
+        ("json", "update-completed", "json"),
+        ("multipart", "update-completed", "multipart"),
+        ("no-content", "update-completed-no-content", None),
     }:
         raise SystemExit("UpdateSMContext response selector must cover JSON, multipart and 204 bodyless outcomes")
 
