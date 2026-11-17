@@ -6,6 +6,8 @@ from __future__ import annotations
 import copy
 import json
 import re
+from email.parser import BytesParser
+from email.policy import default as email_policy
 from pathlib import Path
 
 import yaml
@@ -593,6 +595,233 @@ def validate_standard_artifact_lock() -> None:
         raise SystemExit("OpenAPI admission must remain blocked until the exact artifact digest is verified")
 
 
+def build_multipart_wire(root: dict, binary_parts: list[dict], boundary: str = "ca-step17-boundary") -> bytes:
+    chunks = [
+        f"--{boundary}\\r\\n".encode(),
+        b"Content-Type: application/json\\r\\n",
+        b"Content-ID: <root@connectionagent>\\r\\n\\r\\n",
+        json.dumps(root, separators=(",", ":")).encode("utf-8"),
+        b"\\r\\n",
+    ]
+    for item in binary_parts:
+        chunks.extend([
+            f"--{boundary}\\r\\n".encode(),
+            f"Content-Type: {item['mediaType']}\\r\\n".encode(),
+            f"Content-ID: {item['contentId']}\\r\\n".encode(),
+        ])
+        if item.get("duplicateContentId"):
+            chunks.append(f"Content-ID: {item['duplicateContentId']}\\r\\n".encode())
+        chunks.extend([b"\\r\\n", item.get("body", b"binary"), b"\\r\\n"])
+    chunks.append(f"--{boundary}--\\r\\n".encode())
+    headers = (
+        f'Content-Type: multipart/related; boundary="{boundary}"; type="application/json"\\r\\n'
+        "MIME-Version: 1.0\\r\\n\\r\\n"
+    ).encode("ascii")
+    return headers + b"".join(chunks)
+
+
+def parse_3gpp_multipart_reference(raw: bytes, role_map: dict[str, tuple[str, str]]) -> tuple[dict, dict]:
+    message = BytesParser(policy=email_policy).parsebytes(raw)
+    if not message.is_multipart() or message.get_content_type() != "multipart/related":
+        raise ValueError("wire body is not multipart/related")
+    if message.get_param("type") != "application/json":
+        raise ValueError("multipart/related type parameter must be application/json")
+    parts = list(message.iter_parts())
+    if len(parts) < 2 or parts[0].get_content_type() != "application/json":
+        raise ValueError("multipart message must begin with one JSON root part")
+    if sum(part.get_content_type() == "application/json" for part in parts) != 1:
+        raise ValueError("multipart message must contain exactly one JSON root part")
+    binary_parts = parts[1:]
+    if not 1 <= len(binary_parts) <= 2:
+        raise ValueError("TS 29.502 multipart message must contain one or two binary parts")
+
+    root_payload = parts[0].get_payload(decode=True)
+    try:
+        root = json.loads(root_payload.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("multipart JSON root is invalid") from error
+    if not isinstance(root, dict):
+        raise ValueError("multipart JSON root must be an object")
+
+    type_pairs = (
+        ("n2SmInfo", "n2SmInfoType"),
+        ("n2SmInfoExt1", "n2SmInfoTypeExt1"),
+    )
+    for binary_field, type_field in type_pairs:
+        if (binary_field in root) != (type_field in root):
+            raise ValueError(f"{binary_field} and {type_field} must be present together")
+
+    references = {}
+    for field, (role, media_type) in role_map.items():
+        if field not in root:
+            continue
+        reference = root[field]
+        if not isinstance(reference, dict) or not isinstance(reference.get("contentId"), str) or not reference["contentId"]:
+            raise ValueError(f"{field} must contain a non-empty RefToBinaryData.contentId")
+        content_id = reference["contentId"]
+        if content_id in references:
+            raise ValueError("RefToBinaryData contentId values must be unique")
+        references[content_id] = (field, role, media_type)
+
+    seen_content_ids = set()
+    for part in binary_parts:
+        content_id_headers = part.get_all("Content-ID", [])
+        if len(content_id_headers) != 1:
+            raise ValueError("each binary part must have exactly one Content-ID header")
+        content_id = str(content_id_headers[0])
+        if content_id in seen_content_ids:
+            raise ValueError("binary Content-ID values must be unique")
+        seen_content_ids.add(content_id)
+        reference = references.get(content_id)
+        if reference is None:
+            raise ValueError("binary part has no matching RefToBinaryData.contentId")
+        if part.get_content_type() != reference[2]:
+            raise ValueError("binary part media type does not match its RefToBinaryData role")
+
+    if seen_content_ids != set(references):
+        raise ValueError("RefToBinaryData contains a missing or dangling binary part reference")
+
+    normalized = {key: value for key, value in root.items() if key not in role_map}
+    binary_roles = {value[1]: content_id for content_id, value in references.items()}
+    if any(field in normalized for field in role_map):
+        raise ValueError("raw RefToBinaryData must not leak into normalized business data")
+    return normalized, binary_roles
+
+
+def validate_json_only_update(root: dict) -> None:
+    for field in ("n1SmMsg", "n2SmInfo", "n2SmInfoExt1"):
+        if field in root:
+            raise ValueError("application/json cannot contain an unresolved RefToBinaryData")
+
+
+def validate_multipart_wire_reference_vectors() -> None:
+    request_roles = {
+        "n1SmMsg": ("binaryDataN1SmMessage", "application/vnd.3gpp.5gnas"),
+        "n2SmInfo": ("binaryDataN2SmInformation", "application/vnd.3gpp.ngap"),
+        "n2SmInfoExt1": ("binaryDataN2SmInformationExt1", "application/vnd.3gpp.ngap"),
+    }
+    response_roles = {
+        "n1SmMsg": ("binaryDataN1SmMessage", "application/vnd.3gpp.5gnas"),
+        "n2SmInfo": ("binaryDataN2SmInformation", "application/vnd.3gpp.ngap"),
+    }
+
+    one_n1 = {
+        "n1SmMsg": {"contentId": "<n1@ca>"},
+        "cause": "REQUEST_REJECTED",
+    }
+    normalized, roles = parse_3gpp_multipart_reference(
+        build_multipart_wire(one_n1, [{
+            "contentId": "<n1@ca>",
+            "mediaType": "application/vnd.3gpp.5gnas",
+        }]),
+        request_roles,
+    )
+    if "n1SmMsg" in normalized or roles.get("binaryDataN1SmMessage") != "<n1@ca>":
+        raise SystemExit("single N1 request part did not normalize to a transport-only binary reference")
+
+    two_parts = {
+        "n1SmMsg": {"contentId": "<n1@ca>"},
+        "n2SmInfo": {"contentId": "<n2@ca>"},
+        "n2SmInfoType": "PDU_RES_SETUP_REQ",
+        "servingNetwork": {"mcc": "001", "mnc": "01"},
+    }
+    normalized, roles = parse_3gpp_multipart_reference(
+        build_multipart_wire(two_parts, [
+            {"contentId": "<n1@ca>", "mediaType": "application/vnd.3gpp.5gnas"},
+            {"contentId": "<n2@ca>", "mediaType": "application/vnd.3gpp.ngap"},
+        ]),
+        request_roles,
+    )
+    if "n1SmMsg" in normalized or "n2SmInfo" in normalized or normalized.get("n2SmInfoType") != "PDU_RES_SETUP_REQ":
+        raise SystemExit("two-part request did not preserve business N2 type while masking RefToBinaryData")
+    if set(roles) != {"binaryDataN1SmMessage", "binaryDataN2SmInformation"}:
+        raise SystemExit("two-part request binary roles were not resolved exactly")
+
+    ext1 = {
+        "n2SmInfoExt1": {"contentId": "<n2ext1@ca>"},
+        "n2SmInfoTypeExt1": "PDU_RES_SETUP_REQ",
+    }
+    parse_3gpp_multipart_reference(
+        build_multipart_wire(ext1, [{
+            "contentId": "<n2ext1@ca>",
+            "mediaType": "application/vnd.3gpp.ngap",
+        }]),
+        request_roles,
+    )
+
+    response_reject = {"n1SmMsg": {"contentId": "<reject@ca>"}}
+    parse_3gpp_multipart_reference(
+        build_multipart_wire(response_reject, [{
+            "contentId": "<reject@ca>",
+            "mediaType": "application/vnd.3gpp.5gnas",
+        }]),
+        response_roles,
+    )
+
+    invalid_vectors = [
+        ("zero binary parts", {"n1SmMsg": {"contentId": "<n1@ca>"}}, []),
+        ("three binary parts", {
+            "n1SmMsg": {"contentId": "<n1@ca>"},
+            "n2SmInfo": {"contentId": "<n2@ca>"},
+            "n2SmInfoType": "PDU_RES_SETUP_REQ",
+            "n2SmInfoExt1": {"contentId": "<n2ext1@ca>"},
+            "n2SmInfoTypeExt1": "PDU_RES_SETUP_REQ",
+        }, [
+            {"contentId": "<n1@ca>", "mediaType": "application/vnd.3gpp.5gnas"},
+            {"contentId": "<n2@ca>", "mediaType": "application/vnd.3gpp.ngap"},
+            {"contentId": "<n2ext1@ca>", "mediaType": "application/vnd.3gpp.ngap"},
+        ]),
+        ("mismatched Content-ID", {"n1SmMsg": {"contentId": "<expected@ca>"}}, [
+            {"contentId": "<actual@ca>", "mediaType": "application/vnd.3gpp.5gnas"},
+        ]),
+        ("unreferenced binary part", {"n1SmMsg": {"contentId": "<n1@ca>"}}, [
+            {"contentId": "<n1@ca>", "mediaType": "application/vnd.3gpp.5gnas"},
+            {"contentId": "<orphan@ca>", "mediaType": "application/vnd.3gpp.ngap"},
+        ]),
+        ("N2 info without N2 type", {"n2SmInfo": {"contentId": "<n2@ca>"}}, [
+            {"contentId": "<n2@ca>", "mediaType": "application/vnd.3gpp.ngap"},
+        ]),
+        ("N2 type without N2 info", {"n2SmInfoType": "PDU_RES_SETUP_REQ"}, [
+            {"contentId": "<n1@ca>", "mediaType": "application/vnd.3gpp.5gnas"},
+        ]),
+        ("wrong N1 media type", {"n1SmMsg": {"contentId": "<n1@ca>"}}, [
+            {"contentId": "<n1@ca>", "mediaType": "application/vnd.3gpp.ngap"},
+        ]),
+        ("duplicate binary Content-ID", {"n1SmMsg": {"contentId": "<n1@ca>"}}, [
+            {"contentId": "<n1@ca>", "mediaType": "application/vnd.3gpp.5gnas"},
+            {"contentId": "<n1@ca>", "mediaType": "application/vnd.3gpp.5gnas"},
+        ]),
+    ]
+    for label, root, binary_parts in invalid_vectors:
+        try:
+            parse_3gpp_multipart_reference(build_multipart_wire(root, binary_parts), request_roles)
+        except ValueError:
+            continue
+        raise SystemExit(f"invalid multipart reference vector was unexpectedly accepted: {label}")
+
+    try:
+        validate_json_only_update({"n1SmMsg": {"contentId": "<n1@ca>"}})
+    except ValueError:
+        pass
+    else:
+        raise SystemExit("application/json request with RefToBinaryData was unexpectedly accepted")
+
+    duplicate_header_wire = build_multipart_wire(
+        {"n1SmMsg": {"contentId": "<n1@ca>"}},
+        [{
+            "contentId": "<n1@ca>",
+            "duplicateContentId": "<duplicate@ca>",
+            "mediaType": "application/vnd.3gpp.5gnas",
+        }],
+    )
+    try:
+        parse_3gpp_multipart_reference(duplicate_header_wire, request_roles)
+    except ValueError:
+        pass
+    else:
+        raise SystemExit("binary part with duplicate Content-ID headers was unexpectedly accepted")
+
+
 def validate_step15_failure_response_schema() -> None:
     result_schema = json.loads(RESPONSE_RESULT_SCHEMA.read_text(encoding="utf-8"))
     binary_schema = json.loads(RESPONSE_BINARY_SCHEMA.read_text(encoding="utf-8"))
@@ -1120,8 +1349,9 @@ def main() -> None:
     validate_3gpp_reference_example(example)
     validate_negative_cases(schema, example)
     validate_step15_failure_response_schema()
+    validate_multipart_wire_reference_vectors()
     validate_standard_artifact_lock()
-    print("IngressCatalog, Step 17 response-result schemas, protocol checks, artifact source lock and negative fixtures: PASS")
+    print("IngressCatalog, Step 17 response-result schemas, multipart wire reference vectors, artifact source lock and negative fixtures: PASS")
 
 
 if __name__ == "__main__":
