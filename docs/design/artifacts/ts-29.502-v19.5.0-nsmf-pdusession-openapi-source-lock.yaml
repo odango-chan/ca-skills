@@ -34,6 +34,39 @@ spec:
       byteLength: 209138
       sha256: ca5d94e296a334c85635715fc325167459d865f2c83a16c47926c979dab7545b
       role: exact-openapi-source-bytes-for-annex-a2
+  externalDependencies:
+    - standard:
+        name: 3GPP TS 29.571
+        version: 19.5.0
+        release: 19
+      api:
+        title: Common Data Types
+        openapiVersion: 3.0.0
+        apiVersion: 1.6.0
+        annex: A.2
+        sourceFileName: TS29571_CommonData.yaml
+      normativeSource:
+        publisher: ETSI
+        mediaType: application/pdf
+        uri: https://www.etsi.org/deliver/etsi_ts/129500_129599/129571/19.05.00_60/ts_129571v190500p.pdf
+        byteLength: 1191071
+        sha256: a608887aa19de1c28fdef8b3ae02d015fe8ccbaa8db52b3fa7defe48d5ff7c84
+        annexA2:
+          normative: true
+          openapiVersion: 3.0.0
+          apiVersion: 1.6.0
+      officialCompanionSource:
+        publisher: ETSI
+        mediaType: application/zip
+        uri: https://www.etsi.org/deliver/etsi_ts/129500_129599/129571/19.05.00_60/ts_129571v190500p0.zip
+        byteLength: 38569
+        sha256: 5bc10332b197f1df131908cc236ca7c6ab97b0d3c908e7825f1d701c9d56e978
+        extractedFile:
+          path: TS29571_CommonData.yaml
+          byteLength: 255480
+          sha256: 8632cbab60c73e9c3ba9be26577057144255f21aef7430a1990bdf113c1e7bd4
+          role: exact-openapi-source-bytes-for-annex-a2
+      externalReferences: []
   informativeSource:
     repository: https://forge.3gpp.org/rep/all/5G_APIs
     ref: REL-19
@@ -48,11 +81,13 @@ spec:
     verifiedAt: 2026-11-17
     evidence:
       - Official ETSI V19.5.0 PDF SHA-256 verified from the published deliverable URI.
-      - Official ETSI p0.zip SHA-256 verified; archive contains TS29502_Nsmf_PDUSession.yaml.
+      - Official ETSI TS 29.571 V19.5.0 PDF and companion ZIP SHA-256 verified; archive contains TS29571_CommonData.yaml with OpenAPI 1.6.0 and no further external OpenAPI references.
+      - TS 29.502 external RefToBinaryData references resolve against the pinned TS 29.571 Common Data Types artifact.
+      - Official ETSI TS 29.502 V19.5.0 p0.zip SHA-256 verified; archive contains TS29502_Nsmf_PDUSession.yaml.
       - Extracted YAML SHA-256 verified independently.
       - GitLab REL-19 branch file hash differs from the official ETSI companion YAML and is not used as the artifact.
     admissionAllowed: false
     remainingQualification:
-      - Pin the extracted TS29502_Nsmf_PDUSession.yaml and its transitive external OpenAPI references in the trusted dependency snapshot; in particular, obtain and pin the official ETSI TS 29.571 V19.5.0 Annex A.2 Common Data Types artifact (TS29571_CommonData.yaml), then derive exact source Schema digests.
+      - Admit both exact OpenAPI artifacts and derive the exact source Schema digests for the trusted dependency snapshot.
       - Implement and pass the real Integration Adapter wire conformance suite against the resolved, digest-pinned schema closure.
       - Verify the deployed Owner binding and deployment profile.
