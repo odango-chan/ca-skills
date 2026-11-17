@@ -86,8 +86,8 @@ spec:
     verifiedAt: 2026-11-17
     evidence:
       - Official ETSI V19.5.0 PDF SHA-256 verified from the published deliverable URI.
-      - Official ETSI TS 29.571 V19.5.0 PDF and companion ZIP SHA-256 verified; archive contains TS29571_CommonData.yaml with OpenAPI 1.6.0 and no further external OpenAPI references.
-      - TS 29.502 external RefToBinaryData references resolve against the pinned TS 29.571 Common Data Types artifact.
+      - Official ETSI TS 29.571 V19.5.0 PDF and companion ZIP SHA-256 verified; archive contains TS29571_CommonData.yaml with OpenAPI 1.6.0.
+      - The RefToBinaryData references used by this IngressCatalog mapping resolve against the pinned TS 29.571 Common Data Types artifact; unrelated optional CommonData types may reference other 3GPP APIs and are outside this mapping-scoped closure.
       - Official ETSI TS 29.502 V19.5.0 p0.zip SHA-256 verified; archive contains TS29502_Nsmf_PDUSession.yaml.
       - Extracted YAML SHA-256 verified independently.
       - GitLab REL-19 branch file hash differs from the official ETSI companion YAML and is not used as the artifact.
