@@ -12,7 +12,7 @@
 
 **规范性用语。** MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT、MAY、OPTIONAL 按 RFC 2119 和 RFC 8174 解释。相应中文规范性措辞包括“必须”“不得”“应当”“不建议”“可以”。
 
-**v1alpha4 继承基线摘要（2026-11-15）。** 本版在 v1alpha3 独立冻结基线之上，以单数 `precondition` / `postcondition` 阶段和阶段内非空有序 `predicates` 列表统一多 Predicate；Contract 仍以单个 `goal` 和可选单数 `precondition: <node>.precondition` 表达目标与全局门禁；最终成功只接受 Postcondition 聚合 PASS 直达 SUCCEEDED。**复审另外关闭 G.1 标量词法、单路径 DAG 执行、E11/E18 错误优先级和 DUPLICATE_ID 内部不变量四个阻塞项**，并作出显式 C 类架构裁决：**不再暴露作者级 `operation.reconcile` / `resolve`**，Owner 仍发布 `mutation.reconcile`，Host 公共 Tool 安全边界统一处理 LLM/确定性执行的结果确认；业务重试显式 `retryOf`，默认 0、每原始 Mutation 家族最多 1 次新派发。E01–E120 为更新后本版规范预期，机器 Fixture/产品符合性仍 NOT_QUALIFIED；规范发布身份按 §45.1.5 的不可变提交沿革逐版核对；不能用 #45 的早期冻结文本代替经过 #47 C 类版本统一与后续勘误的现行文本。
+**v1alpha4 继承基线摘要（2026-11-15）。** v1alpha4 在 v1alpha3 独立冻结基线之上，以单数 `precondition` / `postcondition` 阶段和阶段内非空有序 `predicates` 列表统一多 Predicate；Contract 仍以单个 `goal` 和可选单数 `precondition: <node>.precondition` 表达目标与全局门禁；最终成功只接受 Postcondition 聚合 PASS 直达 SUCCEEDED。**复审另外关闭 G.1 标量词法、单路径 DAG 执行、E11/E18 错误优先级和 DUPLICATE_ID 内部不变量四个阻塞项**，并作出显式 C 类架构裁决：**不再暴露作者级 `operation.reconcile` / `resolve`**，Owner 仍发布 `mutation.reconcile`，Host 公共 Tool 安全边界统一处理 LLM/确定性执行的结果确认；业务重试显式 `retryOf`，默认 0、每原始 Mutation 家族最多 1 次新派发。E01–E120 为更新后 v1alpha4 规范预期，机器 Fixture/产品符合性仍 NOT_QUALIFIED；规范发布身份按 §45.1.5 的不可变提交沿革逐版核对；不能用 #45 的早期冻结文本代替经过 #47 C 类版本统一与后续勘误的现行文本。
 
 **v1alpha5 增补摘要（2026-11-17）。** v1alpha5 在不增加第五种业务阶段、不引入 Wait-only Node 的前提下，增加 Node-entry Event Wait；其事件选择器由可信、包级 Ingress Operation 导出解析，`wait.output` 是受路径支配约束的普通类型化输入，TIMEOUT 是独立控制结果，配对响应通过 Integration 声明的 Producer 边界提交。EVENT_ACCEPTED 的 occurrence 隔离、重复/迟到投递、同一 Run 持久化续接和逻辑响应 Deadline 已纳入跨契约设计。36 个 EW 用例是本版规范符合性义务，尚不等于 Compiler/Host/Runtime/Integration 已执行通过。
 
@@ -31,7 +31,7 @@ v1alpha4 的作者源码语法、静态语义、运行语义及附录 F/G/H 已 
 | 术语或状态 | 含义 | 效力 |
 |---|---|---|
 | `vNext` | 本规范对应的演进版语言系列名称，不独立指定机器可解析版本 | 资料性别名 |
-| `connectionagent.io/v1alpha4` | 本版语言目标的精确标识；构建时仍由 BuildRequest 明确指定 | 规范性目标 |
+| `connectionagent.io/v1alpha4` | v1alpha4 继承基线的精确语言标识；构建时仍由 BuildRequest 明确指定 | 已发布规范性目标 |
 | `connectionagent.io/v1alpha5` | 本文件拟发布的下一语言目标；完整规范和 EW 符合性材料通过独立评审及发布裁决前不得作为生产目标 | 候选目标，尚未发布 |
 | `API v1alpha4` | v1alpha4 继承基线的抽象互操作语言版本 | 规范性语义边界 |
 | `API v1alpha5` | 本候选的作者语言与 Node-entry Wait 语义目标；ToolCatalog、CapabilityContracts、IngressCatalog、BuildRequest 和 Artifact 仍按各自独立的精确版本契约解析，不因语言目标升级而自动改写 | 候选语义边界 |
@@ -4757,7 +4757,7 @@ The following v1alpha4 rules remain unchanged for connectionagent.io/v1alpha4:
 - §13.2 does not admit wait as a Producer source.
 - §21 continues to prohibit author-level wait, await and polling Nodes.
 - The v1alpha4 §52 authoring guidance remains scoped to v1alpha4. This complete v1alpha5 specification qualifies §52 with an explicit version boundary and Node-entry Event Wait model; the frozen v1alpha4 source file remains unchanged.
-- UNSUPPORTED_WAIT / C_STATIC remains the required diagnostic only when the selected language target is v1alpha4, as defined by v1alpha4 §24.1/H. A future-version Compiler MUST NOT emit UNSUPPORTED_WAIT for a valid Node-level Wait declaration.
+- UNSUPPORTED_WAIT / C_STATIC remains the required diagnostic only when the selected language target is v1alpha4, as defined by v1alpha4 §24.1/H. A v1alpha5 Compiler MUST NOT emit UNSUPPORTED_WAIT for a valid Node-level Wait declaration.
 - Existing v1alpha4 pending-Operation continuation semantics remain authoritative.
 
 A Compiler MUST select exactly one language target before parsing. It MUST NOT accept v1alpha5 grammar when compiling a v1alpha4 package, and MUST NOT silently reinterpret a v1alpha4 package as v1alpha5.
@@ -5402,6 +5402,28 @@ The following are normative v1alpha5 diagnostics. They do not alter the v1alpha4
 | WAIT_RESPONSE_BOUNDARY_INVALID | response.after is unknown/unreachable, a normal accepted path bypasses it, a success terminal occurs before it, or the export-required later boundary is omitted |
 | WAIT_RESPONSE_MAPPING_INVALID | A body-bearing response or multi-disposition response that requires a typed result has no valid boundary Producer/mapping, or the mapping does not supply every required response field; undeclared/unavailable paths and ordinary Schema incompatibility use their existing SourcePath/type diagnostics |
 
+### L.11.1 Normative diagnostic message templates
+
+The following message keys and templates are normative. A renderer MAY localize the displayed text, but MUST preserve the stable message key and diagnostic identity. Placeholders are replaced with the exact source identifiers and canonical field paths; they MUST NOT be populated from untrusted request text.
+
+| Code | Message key | Canonical message template |
+|---|---|---|
+| WAIT_DECLARATION_INVALID | wait.declaration.invalid | Node '{nodeId}' has an invalid wait declaration at '{fieldPath}'. |
+| WAIT_TIMEOUT_INVALID | wait.timeout.invalid | Node '{nodeId}' has an invalid wait.timeout; expected a positive fixed ISO-8601 duration in the v1alpha5 subset. |
+| WAIT_INGRESS_EXPORT_NOT_FOUND | wait.ingress.export.not_found | Node '{nodeId}' wait selector '{selector}' does not resolve to a trusted Ingress Operation export. |
+| WAIT_INGRESS_EXPORT_AMBIGUOUS | wait.ingress.export.ambiguous | Node '{nodeId}' wait selector '{selector}' resolves to more than one trusted Ingress Operation export. |
+| WAIT_CORRELATION_BINDING_INVALID | wait.correlation.binding.invalid | Node '{nodeId}' cannot derive one exact correlation binding on every reachable entry path. |
+| WAIT_TIMEOUT_ROUTE_INVALID | wait.timeout.route.invalid | Node '{nodeId}' wait.routes must contain exactly TIMEOUT with a valid non-success target. |
+| WAIT_NODE_STAGE_REQUIRED | wait.node.stage_required | Node '{nodeId}' declares wait but has no business stage. |
+| WAIT_RESPONSE_BOUNDARY_INVALID | wait.response.boundary.invalid | Node '{nodeId}' wait.response.after does not identify one reachable response boundary on every accepted-event path. |
+| WAIT_RESPONSE_MAPPING_INVALID | wait.response.mapping.invalid | Node '{nodeId}' response boundary has no valid typed Producer-to-response mapping. |
+
+### L.11.2 Host admission diagnostic (not C_STATIC)
+
+| Boundary | Code | Disposition | Canonical message template |
+|---|---|---|---|
+| Host admission | WAIT_DURATION_LIMIT_EXCEEDED | Reject before Invocation creation; never clamp the authored timeout | Wait timeout for Node '{nodeId}' exceeds the deployment maximum '{maximumDuration}'. |
+
 Existing diagnostics are reused for existing categories:
 
 - malformed YAML and duplicate keys: YAML_PARSE_ERROR;
@@ -5463,11 +5485,10 @@ The following semantic cases are REQUIRED for v1alpha5 language/Host/Runtime/Int
 
 This v1alpha5 candidate is not yet a language release. Before normative publication, the following MUST be completed:
 
-1. independent review of the complete amendment against the full CA-SL normative text;
-2. final agreement on the logical Integration Ingress Operation export and response-result binding contract;
-3. exact diagnostic identities and messages added to the next-version diagnostic index;
-4. positive/negative conformance fixtures for EW-001–EW-036, including exact expected diagnostics;
-5. cross-review against the package-scoped Integration Ingress Operation export contract in [ca-skills PR #62](https://github.com/odango-chan/ca-skills/pull/62) and the Generic Host inbound-event continuation contract in [ca-agent-demo PR #210](https://github.com/odango-chan/ca-agent-demo/pull/210);
-6. the explicit release decision for the assigned candidate identifier `connectionagent.io/v1alpha5`.
+1. independent full-spec review of this complete v1alpha5 single-file candidate, including every inherited clause and Appendix L;
+2. independent final cross-review of the package-scoped Integration Ingress Operation export and response-result binding contract in [ca-skills PR #62](https://github.com/odango-chan/ca-skills/pull/62), including the production-profile companion artifact lock and trusted Owner publication boundary;
+3. executable positive/negative Compiler, Host, Runtime and Integration fixtures for EW-001–EW-036, with exact expected diagnostics and recovery assertions. The JSON obligation register is not a substitute for these fixtures;
+4. cross-review and consistency sign-off against the Generic Host inbound-event continuation contract in [ca-agent-demo PR #210](https://github.com/odango-chan/ca-agent-demo/pull/210) and the 5GC Step 15/17 integration contract in [ca-agent-demo PR #213](https://github.com/odango-chan/ca-agent-demo/pull/213);
+5. the explicit release decision for the assigned candidate identifier `connectionagent.io/v1alpha5`.
 
 Until release, v1alpha4 remains the only applicable published authoring contract. No implementation or product-conformance claim follows from this candidate.
