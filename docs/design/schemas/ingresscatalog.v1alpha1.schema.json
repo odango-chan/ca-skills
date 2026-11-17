@@ -134,6 +134,10 @@
         },
         "openapi": {
           "$ref": "#/$defs/openapi"
+        },
+        "apiUriVersion": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
