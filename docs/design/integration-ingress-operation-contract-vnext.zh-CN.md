@@ -445,17 +445,26 @@ Compiler 根据 Skill 的 wait.response.after 和 Ingress export 的 producer �
 
 ### 8.3 响应 Schema 与映射
 
-paired response 必须声明非空的 response.dispositions[]。每个 disposition 至少声明唯一 id、精确 HTTP status 和 body 模式：
+paired response 必须声明非空的 `response.dispositions[]`。Disposition 表示 HTTP 状态语义，而不是媒体类型；每个 disposition 至少声明唯一 `id`、精确 HTTP `status` 和 `body` 模式。同一 status 只能有一个 disposition，但一个 body-bearing disposition 可以包含多个可协商的 representation。因此 UpdateSmContext 的 200 JSON 与 200 multipart 是同一个 `status: 200` disposition 下的两个 representation，不能伪造为两个不同 disposition。
 
-- body: required 时，必须声明精确 mediaType、responseSchemaRef、responseSchemaDigest 和 maxBytes（整个 wire response body 的字节上限，不含 HTTP headers）；v1alpha1 的 body-bearing representation 仅允许 application/json；
-- body: none 时，不得声明 Body Schema 或 response mapping。
+- `body: required` 时，必须声明非空 `representations[]`；每个 representation 有其作用域内唯一的 `id`、精确 `mediaType`、`responseSchemaRef`、`responseSchemaDigest` 和 `maxBytes`。`maxBytes` 是该 representation 整个 wire body 的总字节上限，不含 HTTP headers。
+- `application/json` representation 不得声明 multipart parts；`responseSchemaRef` 指向完整 JSON response body Schema。
+- `multipart/related` representation 必须声明 `rootPart` 和 `parts[]`。`rootPart` 必须是 parts 中第一个且唯一的 JSON part（UpdateSmContext 固定为 `jsonData`），其 Schema 必须与 representation 的 `responseSchemaRef`/digest 一致；至少声明一个 binary part。每个 part 都必须声明精确名称、媒体类型、kind、required、maxBytes；JSON part 另须绑定其 Schema/digest。part maxBytes 不得超过 representation.maxBytes。
+- `body: none` 时，不得声明 representations、Body Schema 或 Body mapping。204 是这种 disposition，不得附带空 JSON 或 multipart framing。
 
-response.result 是可选的 typed result 绑定，但在以下任一条件成立时 REQUIRED：
+`response.result` 是 typed result 绑定。只要任一 disposition 为 `body: required`，就必须声明 `responseResultSchemaRef`、`response.result.producer`（operation 或 observation）和非空 `response.result.mappings[]`。若有多个 dispositions，或任一 disposition 有多个 representations，还必须声明 `dispositionSelector`。Selector 每个 case 选择一个 disposition；对于 body-bearing disposition，还必须同时选择该 disposition 下精确的 `representationId`；bodyless disposition 不得选择 representation。所有允许的 disposition/representation 组合必须被精确覆盖，不能依赖 Accept header 或运行时猜测替代业务结果选择。
 
-- 至少一个 response disposition 为 body: required；
-- 声明多个 response dispositions，需要依据业务结果确定所选 status/disposition。
+每条 response mapping 必须声明 `dispositionId`、`representationId`、`from`（responseResultSchema 内的 JSON Pointer）、`target` 和 `transform`。target 是以下封闭集合之一：
 
-此时必须声明 responseResultSchemaRef、response.result.producer（operation 或 observation）以及 response.result.mappings[]。本版 body-bearing response mapping 僅支持 application/json representation；若 pinned OpenAPI response 需要 multipart/related binary parts，当前 v1alpha1 不得假装仅靠 JSON Pointer mapping 已覆盖，必须拒绝该导出，直到后续版本定义显式 response-part/content-reference mapping。若存在多个 response dispositions，还必须声明 dispositionSelector，从 responseResultSchema 的一个受限 enum 属性将每个值精确映射到一个 disposition id。每条 response mapping 必须声明 dispositionId、from（responseResultSchema 内的 JSON Pointer）、to（对应 disposition 的 protocol responseSchema 内的 JSON Pointer）和 transform。初始 profile 的 transform 仅允许 identity；不得执行脚本、CEL、任意表达式或读取历史 Run 输出。
+- `json-body`：写入 `application/json` representation 的 JSON Pointer，transform 仅允许 `identity`；
+- `multipart-json`：写入 multipart representation 中指定 JSON part 的 JSON Pointer，transform 仅允许 `identity`；
+- `multipart-binary`：从 typed immutable binary content reference 读取内容，写入指定 binary part，并声明 `contentIdField`（JSON root part + 指向 `RefToBinaryData.contentId` 字符串属性的 JSON Pointer），transform 固定为 `binary-content-ref`。
+
+对于 multipart response，Integration MUST 为每个实际输出的 binary part 生成该消息内唯一、符合 Content-ID 语法的值，将其写入 `contentIdField` 指定的 JSON root 属性，并在对应 binary part 的 `Content-ID` header 中写入同一个值。Skill/Producer 不得自行提供或复用 wire Content-ID。每个已声明 binary part 必须恰有一条映射；每个 `contentIdField` 必须唯一且位于 `rootPart`；不得存在未映射的 binary part、悬空引用、重复 Content-ID 或无对应 binary part 的 RefToBinaryData。multipart response 至少实际输出一个 binary part；可选 part 只有在对应 typed reference 存在时才输出。
+
+若任一 response representation 是 multipart/related，必须声明 `response.binaryContent`：其 `referenceSchemaRef` 必须与 responseResultSchema 中的 typed binary reference 类型一致，且必须绑定 SHA-256、immutable、`access: integration-response-only`、有限 retention 和 maxBytes。Integration 只能通过授权的不可变 Payload resolver 读取该引用，不得将任意 URL、文件路径或原始字节字符串作为引用。Retention 必须覆盖 response boundary、响应序列化、协议重试/重放及最大恢复窗口。每个 binary part 的 maxBytes 不得超过 response.binaryContent.maxBytes。
+
+Compiler 根据 `wait.response.after`（或默认 Wait-bearing Node）和 producer 类型推导唯一 SourcePath，并验证 boundary Producer Output 对 responseResultSchema 的可赋值性。responseResultSchema 必须符合 CA-SL 支持的 JSON Schema 子集；协议 responseSchemaRef 和每个 multipart JSON part Schema 则按 pinned OpenAPI artifact 验证，由 Integration Adapter 负责实际 wire response validation。Compiler 必须验证 dispositionSelector 的源属性为闭合 enum、其值集合与所有允许的 disposition/representation 组合完整且一一对应，并验证每个 body-bearing representation 的 mapping 覆盖全部 required JSON fields，且每个 binary part 都有且仅有一条 binary-content-ref mapping。初始 profile 不得执行脚本、CEL、任意表达式或读取历史 Run 输出。
 
 Compiler 根据 wait.response.after（或默认 Wait-bearing Node）和 producer 类型推导唯一 SourcePath，并验证 boundary Producer Output 对 responseResultSchema 的可赋值性。responseResultSchema 必须符合 CA-SL 支持的 JSON Schema 子集；协议 responseSchemaRef 则按 pinned OpenAPI artifact 验证，由 Integration Adapter 负责实际 wire response validation。Compiler 必须验证 dispositionSelector 的源属性为闭合 enum、其值集合与 dispositions 完整且一一对应，并验证每个 body-bearing disposition 的 response mapping 覆盖全部 required response fields。
 
@@ -469,7 +478,7 @@ v1alpha1 目前只定义 JSON body response mapping。若 pinned OpenAPI 的 200
 
 Integration export 必须定义：
 
-- response.dispositions[] 中每个允许的响应状态、body 模式、media type 和 Schema，以及 typed response result 到所选 disposition/Body 的映射；disposition id 和 HTTP status 在该 Ingress export 内必须唯一；该映射表达协议响应，不代表 Skill Goal 已 PASS；
+- response.dispositions[] 中每个允许的 HTTP status/body 模式及其 representations、Schema、multipart parts，以及 typed response result 到 disposition/representation/Body 的映射；disposition id 和 HTTP status 在该 Ingress export 内必须唯一，同一 status 的不同媒体类型应建模为同一 disposition 下的 representations；该映射表达协议响应，不代表 Skill Goal 已 PASS；
 - 在响应 Producer 尚未产生可用结果前，Run 提前以 FAILED、UNRESOLVED 或 SAFE_STOPPED 结束时的显式 failure response mapping；
 - response deadline 的来源、起算点、时钟语义与到期处置；
 - response obligation 的持久化、重放、重复响应和失去原传输通道后的恢复策略。
