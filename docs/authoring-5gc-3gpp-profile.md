@@ -2,7 +2,8 @@
 
 **Status:** Normative repository-level authoring profile for 5GC examples.  
 **Language:** CA-SL v1alpha4, pinned at `7f84393ee8c395e4d8c39a74cb5000a1f896588d`.  
-**3GPP baseline for the current PDU Session examples:** 3GPP TS 23.502 V18.12.0 (Release 18), especially §4.3.2.2.1 and §4.4.1.2–§4.4.1.3.  
+**3GPP baseline for the current PDU Session examples:** Release 19; TS 23.502 V19.9.0 for §4.3.2.2.1 and §4.4.1.2–§4.4.1.3. Supporting Stage 2/Stage 3 specifications are independently pinned in §9.1.  
+**Baseline review date:** 2026-11-17. The versions are per-specification pins; Release 19 specifications do not share one common version number.  
 **Effect:** This profile constrains how this repository authors 5GC Skills. It does not change the frozen CA-SL grammar or replace any 3GPP specification.
 
 ## 1. Governing principle
@@ -152,29 +153,71 @@ Neither model permits an adapter to collapse distinct 3GPP proof boundaries. In 
 
 ## 9. Current PDU Session reference map
 
-For the current local/non-roaming, UE-requested initial PDU Session example, the pinned reference is 3GPP TS 23.502 V18.12.0 (Release 18):
+The conventional `establish-pdu-session` example is limited to one admitted, initial, IPv4 / SSC1, local non-roaming request. Its normative procedure reference is 3GPP TS 23.502 V19.9.0 (Release 19), §4.3.2.2.1. It does not claim coverage of emergency requests, existing PDU Session access switching, home-routed roaming, IPv6/IPv4v6 Router Advertisement, Bridge/Router information or conditional secondary authentication / policy-modification branches.
 
 | 3GPP step | SMF-side interaction | Canonical name / boundary |
 |---|---|---|
 | 3 | AMF → SMF | `Nsmf_PDUSession_CreateSMContext Request` (Host ingress trigger; outside the Skill Procedure) |
-| 4 | SMF ↔ UDM | Session Management Subscription retrieval and subscription for updates; `Nudm_SDM_Get` and `Nudm_SDM_Subscribe` |
-| 5 | SMF → AMF | `Nsmf_PDUSession_CreateSMContext Response` (early context response; not final Goal proof) |
-| 6 | SMF ↔ DN-AAA (optional) | PDU Session authentication/authorization; only if the admitted profile requires it |
-| 7b | SMF ↔ PCF | SM Policy Association Establishment; `Npcf_SMPolicyControl_Create` |
-| 8 | SMF local processing / UPF selection | Native Step 8 selection is internal to the SMF N4 Owner boundary for N4 Session Establishment; it is not a separate Skill Node |
-| 9 | SMF ↔ PCF (conditional) | SMF-initiated SM Policy Association Modification |
-| 10a–10b | SMF ↔ UPF | N4 Session Establishment Request/Response; the same establish-n4-session Node also owns Step 8 selection |
+| 4 | SMF ↔ UDM | When matching Session Management Subscription data is not already available: `Nudm_SDM_Get`, then `Nudm_SDM_Subscribe`; the example selects this retrieval/subscription path |
+| 5 | SMF → AMF | `Nsmf_PDUSession_CreateSMContext Response` (early context response paired with Step 3; not final Goal proof) |
+| 6 | SMF ↔ DN-AAA (optional) | PDU Session authentication/authorization; this example excludes profiles requiring secondary authentication |
+| 7a–7b | SMF ↔ PCF | PCF selection and SM Policy Association Establishment; `Npcf_SMPolicyControl_Create` is the Step 7b service operation |
+| 8 | SMF local processing / UPF selection | Native Step 8 SSC/UPF/session-address selection is owned inside the SMF N4 Owner Operation for this example; it is not a separate Skill Node or SBI callable |
+| 9 | SMF ↔ PCF (conditional) | SMF-initiated SM Policy Association Modification; this example admits only the no-trigger result |
+| 10a–10b | SMF ↔ UPF | N4 Session Establishment Request/Response; the same `establish-n4-session` business interaction owns Step 8 selection and this N4 exchange |
 | 11 | SMF → AMF | `Namf_Communication_N1N2MessageTransfer` carrying N1 SM and N2 SM information |
 | 12–14 | AMF ↔ (R)AN ↔ UE | Access-network resource setup and N2 PDU Session Response; not an SMF-owned service call |
-| 15 | AMF → SMF | `Nsmf_PDUSession_UpdateSMContext Request` carrying the access-network result; v1alpha4 source correlates it to the pending Owner Operation, while the next-revision proposal correlates it to the target Node's Wait in the same Run |
+| 15 | AMF → SMF | `Nsmf_PDUSession_UpdateSMContext Request` carrying the access-network result; v1alpha4 correlates it to the pending Owner Operation in the same Invocation |
 | 16a–16b | SMF ↔ UPF | N4 Session Modification Request/Response |
-| 16c | SMF ↔ UDM (conditional) | `Nudm_UECM_Registration` for the PDU Session when required |
-| 17 | SMF → AMF | `Nsmf_PDUSession_UpdateSMContext Response`; the Integration response adapter fulfills the paired response for the exact Step 15 request at the `prepare-step17-response` boundary after all applicable Step 16 actions |
-| 18 | SMF → AMF | `Nsmf_PDUSession_SMContextStatusNotify` when applicable |
-| 21 | SMF ↔ UDM | Unsubscription when applicable |
+| 16c | SMF ↔ UDM (conditional) | `Nudm_UECM_Registration` if Request Type is neither Emergency Request nor Existing Emergency PDU Session and the SMF has not already registered this PDU Session |
+| 17 | SMF → AMF | `Nsmf_PDUSession_UpdateSMContext Response`, paired with the exact Step 15 request after all applicable Step 16 actions; Host/Integration owns this response boundary |
+| 18 | SMF → AMF (conditional failure path) | `Nsmf_PDUSession_SMContextStatusNotify (Release)` when establishment fails after Step 5; release any created N4 sessions, allocated PDU Session address and PCF association; Step 19 is skipped |
+| 19 | SMF → UE (conditional) | IPv6 Router Advertisement for IPv6 or IPv4v6 PDU Session types; excluded by this IPv4-only example |
+| 20 | SMF ↔ PCF (conditional) | SM Policy Association Modification when the 5GS Bridge/Router information trigger is armed; excluded by this example |
+| 21 | SMF ↔ UDM (conditional failure path) | After failure following Step 4, unsubscribe only if the SMF no longer handles another PDU Session for the same `(SUPI, DNN, HPLMN S-NSSAI)` |
 
-This table is a reference map, not a statement that every optional or conditional step is present in every admitted Skill profile. The profile and each Skill must state which steps are in scope and why omitted steps are not required.
+The table is a reference map, not a statement that every optional or conditional step is present in every Skill. Each Skill must state its admitted request profile and why omitted branches are not required. The conventional example's Step 4 Get/Subscribe path assumes that matching subscription data is not already available; it is not a claim that every initial request must always repeat both calls.
 
+### 9.1 Independently pinned Release 19 specifications
+
+The following Stage 2 and Stage 3 references were checked against ETSI publications on 2026-11-17. Each specification has its own version number; do not normalize them to a single shared `V19.x.0`.
+
+| Specification | Pinned version | Used for |
+|---|---|---|
+| TS 23.501 | V19.9.0 | 5GS architecture, SMF/UPF selection, SSC and address-allocation context |
+| TS 23.502 | V19.9.0 | PDU Session Establishment and N4 procedure steps |
+| TS 23.503 | V19.8.0 | PCC / SM Policy framework and policy-trigger context |
+| TS 29.502 | V19.8.0 | `Nsmf_PDUSession` service, CreateSMContext and UpdateSMContext API; OpenAPI Annex A.2 |
+| TS 29.503 | V19.7.0 | UDM SDM and UECM services; OpenAPI Annex A.2 and A.3 |
+| TS 29.512 | V19.6.0 | `Npcf_SMPolicyControl` service; OpenAPI Annex A.2 |
+| TS 29.518 | V19.8.0 | `Namf_Communication` service and N1N2 Message Transfer; OpenAPI Annex A.2 |
+| TS 29.244 | V19.6.0 | PFCP / N4 Session Establishment, Modification and Release |
+
+Primary ETSI PDFs:
+
+- [TS 23.501 V19.9.0](https://www.etsi.org/deliver/etsi_ts/123500_123599/123501/19.09.00_60/ts_123501v190900p.pdf)
+- [TS 23.502 V19.9.0](https://www.etsi.org/deliver/etsi_ts/123500_123599/123502/19.09.00_60/ts_123502v190900p.pdf)
+- [TS 23.503 V19.8.0](https://www.etsi.org/deliver/etsi_ts/123500_123599/123503/19.08.00_60/ts_123503v190800p.pdf)
+- [TS 29.502 V19.8.0](https://www.etsi.org/deliver/etsi_ts/129500_129599/129502/19.08.00_60/ts_129502v190800p.pdf)
+- [TS 29.503 V19.7.0](https://www.etsi.org/deliver/etsi_ts/129500_129599/129503/19.07.00_60/ts_129503v190700p.pdf)
+- [TS 29.512 V19.6.0](https://www.etsi.org/deliver/etsi_ts/129500_129599/129512/19.06.00_60/ts_129512v190600p.pdf)
+- [TS 29.518 V19.8.0](https://www.etsi.org/deliver/etsi_ts/129500_129599/129518/19.08.00_60/ts_129518v190800p.pdf)
+- [TS 29.244 V19.6.0](https://www.etsi.org/deliver/etsi_ts/129200_129299/129244/19.06.00_60/ts_129244v190600p.pdf)
+
+For Stage 3 API traceability, use the exact OpenAPI files named by the applicable TS annex. A TS document version pin does not qualify a Tool Owner implementation, its ToolCatalog export, Schema, CapabilityContracts, Evidence or Deployment binding.
+
+### 9.2 Failure-path distinctions
+
+The normal success path must not collapse the standard's failure branches:
+
+- If establishment fails between Step 5 and Step 11, Step 11 carries the PDU Session Establishment Reject and Steps 12–17 are skipped.
+- If Step 15 reports failure of user-plane resource setup, the SMF rejects the establishment, releases the N4 Session with the UPF and skips Step 16 before returning the paired Step 17 response.
+- If the User Plane Enforcement Policy requires resources and the N2 result says no user-plane resources could be established, the SMF rejects and skips Step 16. Do not invent the N4-release action from the preceding failure branch unless its own trigger is present.
+- On a failure after Step 5, Step 18 notifies the AMF and releases any N4 sessions created, any allocated PDU Session address and the PCF association, if present.
+- Step 21 is not unconditional cleanup: it applies after failure following Step 4 only when the SMF no longer handles another PDU Session of the same UE for the same DNN and HPLMN S-NSSAI.
+
+Step 17 is the paired protocol response for Step 15, not the Skill Goal proof. The final CA-SL Postcondition and Host/Runtime resource-responsibility gate remain authoritative.
+ 
 ## 10. Review and validation
 
 A 5GC migration is not ready for review closure until:
