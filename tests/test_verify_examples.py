@@ -151,7 +151,7 @@ nodes:
             root = Path(d)
             (root / "assurance").mkdir()
             (root / "assurance" / "procedure.yaml").write_text("""nodes:
-  # 3GPP: CA_ADAPTER — TS 23.502 V19.9.0 step 15; Nsmf_PDUSession_UpdateSMContext
+  # 3GPP: CA_ADAPTER — TS 23.502 V19.9.0 step 15; TS 29.502 V19.7.0 Nsmf_PDUSession_UpdateSMContext
   update-sm-context:
     operation: {}
 """, encoding="utf-8")
@@ -164,7 +164,7 @@ nodes:
             (root / "SKILL.md").write_text(doc, encoding="utf-8")
             errors: list[str] = []
             validate_3gpp_traceability(root, errors)
-            self.assertTrue(any("must pin TS 29.502 V19.7.0" in error for error in errors), errors)
+            self.assertTrue(any("must pin TS 29.571 V19.7.0" in error for error in errors), errors)
 
     def test_stale_per_node_3gpp_release_reference_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as d:
