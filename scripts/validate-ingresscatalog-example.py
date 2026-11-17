@@ -296,8 +296,6 @@ def schema_children(schema: dict, dialect: str):
         child = schema[keyword]
         if dialect == "openapi-3.0" and keyword == "additionalProperties" and isinstance(child, bool):
             continue
-        if dialect == "openapi-3.0" and keyword == "items" and isinstance(child, list):
-            continue
         if not isinstance(child, dict):
             _resolver_error(f"boolean/non-object subschemas are unsupported at {keyword}")
         yield [keyword], child
@@ -312,12 +310,6 @@ def schema_children(schema: dict, dialect: str):
             if not isinstance(child, dict):
                 _resolver_error(f"boolean/non-object subschemas are unsupported at {keyword}/{index}")
             yield [keyword, str(index)], child
-
-    if dialect == "openapi-3.0" and isinstance(schema.get("items"), list):
-        for index, child in enumerate(schema["items"]):
-            if not isinstance(child, dict):
-                _resolver_error(f"tuple item Schema {index} must be an object")
-            yield ["items", str(index)], child
 
 
 def openapi_schema_roots(document: dict):
@@ -783,6 +775,27 @@ def validate_schema_closure_resolution_vector(vector: dict) -> None:
     duplicate_key["root"]["artifactDigest"] = duplicate_digest
     must_reject(duplicate_key, "duplicate YAML mapping key in raw Schema artifact")
 
+    # OpenAPI 3.0 Schema Object items is a single Schema Object, not the
+    # tuple-array form used by older/other Schema dialects.
+    tuple_items = copy.deepcopy(vector)
+    tuple_document = tuple_items["resolutionContext"]["documents"][0]
+    tuple_schema = tuple_document["document"]["components"]["schemas"]["Request"]
+    tuple_schema["items"] = [{"type": "string"}]
+    tuple_document["rawArtifact"] = json.dumps(
+        tuple_document["document"], sort_keys=True, separators=(",", ":")
+    )
+    tuple_digest = "sha256:" + hashlib.sha256(
+        tuple_document["rawArtifact"].encode("utf-8")
+    ).hexdigest()
+    tuple_document["artifactDigest"] = tuple_digest
+    for node in tuple_items["nodes"]:
+        if node["artifactRef"] == tuple_document["artifactRef"]:
+            node["artifactDigest"] = tuple_digest
+            if node["pointer"] == "#/components/schemas/Request":
+                node["schema"] = tuple_schema
+    tuple_items["root"]["artifactDigest"] = tuple_digest
+    must_reject(tuple_items, "OpenAPI 3.0 tuple-form items is not a Schema Object")
+
     # JSON-compatible parsing rejects non-string keys and non-finite values.
     try:
         _assert_json_compatible({1: "not a JSON object key"})
@@ -803,6 +816,17 @@ def validate_schema_closure_resolution_vector(vector: dict) -> None:
         pass
     else:
         _resolver_error("integer outside the exact JCS/I-JSON safe range was accepted")
+
+    for raw, label in (
+        ("1: value", "non-string YAML mapping key"),
+        ("value: .nan", "non-finite YAML number"),
+        ("value: !custom value", "unsupported YAML custom tag"),
+    ):
+        try:
+            _parse_schema_artifact(raw)
+        except SystemExit:
+            continue
+        _resolver_error(f"{label} was accepted by the strict Schema artifact parser")
 
     nested_missing = copy.deepcopy(vector)
     nested_missing["resolutionContext"]["documents"][2]["document"]["$defs"]["Shared"]["properties"]["leaf"]["$ref"] = "#/$defs/Missing"
