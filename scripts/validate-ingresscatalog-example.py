@@ -7,6 +7,7 @@ import copy
 import hashlib
 import json
 import re
+from urllib.parse import urldefrag, unquote, urljoin
 from email.parser import BytesParser
 from email.policy import default as email_policy
 from pathlib import Path
@@ -105,6 +106,80 @@ def validate_schema_closure_digest_vector() -> None:
     changed[0]["schema"]["properties"]["supi"]["type"] = "integer"
     if schema_closure_digest(root, changed) == expected:
         raise SystemExit("Schema Closure Digest did not change when a referenced Schema node changed")
+
+
+def canonical_pointer_from_uri_fragment(fragment: str) -> str:
+    if fragment == "":
+        return "#"
+    if re.search(r"%(?![0-9A-Fa-f]{2})", fragment):
+        raise SystemExit("Schema Closure resolver: malformed percent escape in JSON Pointer fragment")
+    decoded = unquote(fragment, encoding="utf-8", errors="strict")
+    if not decoded.startswith("/"):
+        raise SystemExit("Schema Closure resolver: only JSON Pointer fragments are supported")
+    canonical_tokens = []
+    for token in decoded[1:].split("/"):
+        decoded_token = []
+        index = 0
+        while index < len(token):
+            if token[index] != "~":
+                decoded_token.append(token[index])
+                index += 1
+                continue
+            if index + 1 >= len(token) or token[index + 1] not in "01":
+                raise SystemExit("Schema Closure resolver: invalid RFC 6901 escape")
+            decoded_token.append("~" if token[index + 1] == "0" else "/")
+            index += 2
+        canonical_tokens.append("".join(decoded_token).replace("~", "~0").replace("/", "~1"))
+    return "#/" + "/".join(canonical_tokens)
+
+
+def collect_schema_refs(value):
+    if isinstance(value, dict):
+        if isinstance(value.get("$ref"), str):
+            yield value["$ref"]
+        for child in value.values():
+            yield from collect_schema_refs(child)
+    elif isinstance(value, list):
+        for child in value:
+            yield from collect_schema_refs(child)
+
+
+def validate_schema_closure_resolution_vector(vector: dict) -> None:
+    context = vector.get("resolutionContext")
+    if not isinstance(context, dict):
+        raise SystemExit("Schema Closure resolver vector: missing resolutionContext")
+    uri_by_artifact = {}
+    artifact_by_uri = {}
+    for item in context.get("documentUris", []):
+        artifact = item["artifactRef"]
+        uri = item["uri"]
+        if artifact in uri_by_artifact or uri in artifact_by_uri:
+            raise SystemExit("Schema Closure resolver vector: artifact/URI mapping must be one-to-one")
+        uri_by_artifact[artifact] = uri
+        artifact_by_uri[uri] = artifact
+
+    nodes = vector["nodes"]
+    node_by_identity = {(node["artifactRef"], node["pointer"]): node for node in nodes}
+    for reference in context.get("references", []):
+        source_artifact = reference["fromArtifactRef"]
+        target_artifact = reference["toArtifactRef"]
+        ref_value = reference["ref"]
+        source_uri = uri_by_artifact.get(source_artifact)
+        if source_uri is None:
+            raise SystemExit("Schema Closure resolver vector: source artifact has no canonical URI")
+        source_nodes = [node for node in nodes if node["artifactRef"] == source_artifact]
+        if not any(ref_value in list(collect_schema_refs(node["schema"])) for node in source_nodes):
+            raise SystemExit("Schema Closure resolver vector: source Schema does not contain the declared $ref")
+        resolved = urljoin(source_uri, ref_value)
+        resource_uri, fragment = urldefrag(resolved)
+        resolved_artifact = artifact_by_uri.get(resource_uri)
+        if resolved_artifact != target_artifact:
+            raise SystemExit("Schema Closure resolver vector: $ref did not resolve to the declared artifact")
+        pointer = canonical_pointer_from_uri_fragment(fragment)
+        if pointer != reference["pointer"]:
+            raise SystemExit("Schema Closure resolver vector: $ref did not resolve to the canonical pointer")
+        if (target_artifact, pointer) not in node_by_identity:
+            raise SystemExit("Schema Closure resolver vector: resolved target is missing from the digest closure")
 
 
 def validate_semantics(catalog: dict) -> None:
@@ -1476,6 +1551,7 @@ def main() -> None:
     validate_multipart_wire_reference_vectors()
     validate_standard_artifact_lock()
     validate_schema_closure_digest_vector()
+    validate_schema_closure_resolution_vector(json.loads(SCHEMA_CLOSURE_VECTOR.read_text(encoding="utf-8")))
     print("IngressCatalog, Step 17 response-result schemas, multipart wire reference vectors, artifact source lock and negative fixtures: PASS")
 
 
