@@ -464,7 +464,9 @@ paired response 必须声明非空的 `response.dispositions[]`。Disposition �
 
 Representation 选择必须与 typed result 的内容一致：存在任一 binary reference 时只能选择 multipart/related；不存在 binary reference 时只能选择 application/json；bodyless disposition 不得丢弃仍存在的 JSON 或 binary response data。Integration MUST 在序列化时再次检查这一条件，不能因为 selector 选错而静默丢弃二进制内容。每个 representation 的 maxBytes 是完整 wire Body 上限，必须容纳所有实际 parts、boundary、part headers 和 framing；每个 part 的 maxBytes 不得超过 representation.maxBytes。
 
-对 TS 29.502 `SmContextUpdatedData`，若响应包含 `n2SmInfo`，JSON root MUST 同时包含 `n2SmInfoType`，其值必须符合 pinned OpenAPI 中的 `N2SmInfoType` enum。该字段不是二进制 part，也不能由 Content-ID 推导；responseResultSchema 必须显式声明并绑定它。此示例的 typed DTO 采用 N2 字段 all-or-nothing：`n2SmInformation` 与 `n2SmInfoType` 同时存在或同时省略；multipart JSON mapping 必须显式输出 `n2SmInfoType`。
+对 TS 29.502 `SmContextUpdatedData`，若响应包含 `n2SmInfo`，JSON root MUST 同时包含 `n2SmInfoType`，其值必须符合 pinned OpenAPI 中的 `N2SmInfoType` 定义。该字段不是二进制 part，也不能由 Content-ID 推导；responseResultSchema 必须显式声明并绑定它。此示例的 typed DTO 采用 N2 字段 all-or-nothing：`n2SmInformation` 与 `n2SmInfoType` 同时存在或同时省略；multipart JSON mapping 必须显式输出 `n2SmInfoType`。
+
+本 5GC Step 15–17 示例的 `responseResultSchemaRef` 解析到 `schemas/update-sm-context-response-result.v1.schema.json`；`response.binaryContent.referenceSchemaRef` 解析到 `schemas/response-binary-content-reference.v1.schema.json`。前者将 Step 16 分支结果作为内部 typed Producer 数据：N2 用户面资源建立成功时要求 `n4Action=session-modified`，并要求 UDM 注册为 `completed` 或 `not-required`；N2 用户面资源建立失败时要求 `n4Action=session-released`、`udmRegistration=skipped`、`responseRepresentation=multipart` 且 `n1SmMessage` 存在。失败分支禁止带 N2 响应 binary part。`step16Outcome` 和 `procedureOutcome` 仅用于内部类型/分支校验，不序列化进 `SmContextUpdatedData`。后者定义不可变的 opaque payload reference、media type、长度和 SHA-256；payloadRef 不是 URL 或文件路径。
 
 若任一 response representation 是 multipart/related，必须声明 `response.binaryContent`：其 `referenceSchemaRef` 必须与 responseResultSchema 中的 typed binary reference 类型一致，且必须绑定 SHA-256、immutable、`access: integration-response-only`、有限 retention 和 maxBytes。Integration 只能通过授权的不可变 Payload resolver 读取该引用，不得将任意 URL、文件路径或原始字节字符串作为引用。Retention 必须覆盖 response boundary、响应序列化、协议重试/重放及最大恢复窗口。每个 binary part 的 maxBytes 不得超过 response.binaryContent.maxBytes。
 
@@ -594,9 +596,10 @@ Compiler 不执行协议认证，不调用真实 Integration adapter，不通过
 - Integration 认证 AMF、校验精确 TS 29.502 API artifact、解析 path/body/media parts、验证源 Schema、归一化请求并以精确 smContextRef 关联已 armed Wait。
 - Host 持久提交 normalized delivery；Runtime 接受事件并继续同一个 Run，wait.output 提供 typed UpdateSMContext request。
 - Agent 执行声明的 SMF 业务 Operation。补充的只读 SMF Context Observation（若需要）仍在同一个 Node 的 Operation 之后执行，不转移协议响应责任。
-- Step 16a/16b 是 SMF 与 UPF 之间的 N4 Session Modification Request/Response；Step 16c 是条件性的 UDM 注册动作，是否执行取决于该过程中的注册状态。
-- Step 17 Nsmf_PDUSession.UpdateSMContext Response 必须在适用的 Step 16 动作全部完成后编码。当前 `modify-n4-session` response boundary 仅代表 16c 不需要执行或已在该边界前完成的成功分支；若 16c 仍需执行，boundary 必须移至包含该动作的后续 Node。
-- 若响应需要更早 Node 的值，Skill 必须将其显式传入最终 response-boundary Node 的 Operation arguments，并由该 Operation 输出完整 response result。
+- Step 16a/16b 是 SMF 与 UPF 之间的 N4 Session Modification Request/Response；成功分支随后可能执行条件性的 Step 16c UDM 注册动作。
+- 若 Step 15 的 N2 SM information 表示用户面资源建立失败，或 User Plane Enforcement Policy 要求建立但无法建立，TS 23.502 明确要求跳过 Step 16，并由 SMF 释放 N4 Session；该失败分支不得执行 16a/16b/16c。
+- Step 17 Nsmf_PDUSession.UpdateSMContext Response 必须在所选分支的 Step 16 动作完成后编码：成功分支完成 N4 Session Modification 及适用的 UDM 注册；失败分支完成 N4 Session Release。该失败业务结果通过 200 multipart 返回 N1 SM PDU Session Establishment Reject。
+- 若响应需要更早 Node 的值，Skill 必须将其显式传入最终 response-boundary Node 的 Operation/Observation arguments，并由该 Producer 输出完整 response result。
 
 此模型是传统 3GPP SMF 对外协议边界。不得把 OpenAMSM 内部模块名写成 3GPP 协议身份，不得把 AMF/(R)AN/UE 行为描述为 SMF 自身的 Operation。不得在 Step 3 尚未创建 SM Context 时查询一个不存在的 smContextRef 来注册 Step 15。
 
@@ -890,7 +893,7 @@ spec:
 - TS 29.502 V19.5.0 的 UpdateSmContext 请求 multipart parts 包含 `binaryDataN1SmMessage`、`binaryDataN2SmInformation` 和 `binaryDataN2SmInformationExt1`；三者分别通过 `jsonData` 中的 `n1SmMsg.contentId`、`n2SmInfo.contentId` 和 `n2SmInfoExt1.contentId` 关联 Content-ID。示例必须逐项映射并校验这些引用；
 - UpdateSmContext 的 200 响应在协议上可使用 `application/json` 或 `multipart/related`，204 则没有响应体。V19.5.0 的 200 multipart response parts 为 `jsonData`、`binaryDataN1SmMessage` 和 `binaryDataN2SmInformation`；示例在同一个 200 disposition 下分别声明 JSON 与 multipart representations，并将 binary parts 通过 `SmContextUpdatedData.n1SmMsg.contentId` / `n2SmInfo.contentId` 绑定到 Content-ID。v1alpha1 的 multipart response mapping 通过 typed immutable binary reference、root JSON part、显式 Content-ID field 和有限 retention 表达，不允许省略或字符串化二进制内容；
 - 示例 200 JSON representation maxBytes=65536，仅映射 SmContextUpdatedData 的条件属性 cause；smContextRef 是 request path 参数，不是 SmContextUpdatedData response body 字段；若响应需要 N1/N2 binary part 或 JSON root 含 RefToBinaryData 引用，必须选择 multipart representation，不能把 Content-ID 当成业务身份；
-- TS 23.502 V19.5.0 §4.3.2.2.1 Step 15 的 N2 setup failure 分支要求按失败流程释放 N4 Session，并在 Step 17 返回包含 PDU Session Establishment Reject 的 N1 SM binary container；该分支只有在 boundary Producer 提供可信、不可变的 N1 SM binary reference 且选择 multipart representation 时才可链接。若缺少该引用或映射，必须保持 NOT LINKABLE；不得伪装成 204 或通用 JSON 错误。示例中的 `earlyFailureResponses` 仅处理 Producer 尚未产生结果时的其他早期终止情形，绝不能替代该协议定义的业务失败响应；
+- TS 23.502 V19.5.0 §4.3.2.2.1 Step 15 的 N2 user-plane resource setup failure 分支要求跳过 Step 16a/16b/16c，改为释放 N4 Session，并在 Step 17 返回包含 PDU Session Establishment Reject 的 N1 SM binary container。该业务失败仍使用 TS 29.502 `UpdateSmContext` 的 200 成功响应 disposition，但必须选择 `multipart/related` representation；它不是 HTTP 4xx/5xx，也不是 204。此示例的 `update-sm-context-response-result.v1.schema.json` 强制 `n4Action=session-released`、`udmRegistration=skipped`、`responseRepresentation=multipart` 和 `n1SmMessage` 必需，并禁止 N2 response part。若缺少可信、不可变的 N1 SM binary reference 或其 Content-ID mapping，必须保持 NOT LINKABLE；不得伪装成 204 或通用 JSON 错误。示例中的 `earlyFailureResponses` 仅处理 Producer 尚未产生结果时的其他早期终止情形，绝不能替代该协议定义的业务失败响应；
 - arming.triggers[].operation 是出站 ToolCatalog Operation，不是 Ingress Operation；Compiler 从该精确 ToolCatalog export 解析 Operation Input Schema，armInputSchemaRef 则定义单独的 correlationBinding Schema；
 - requestKey 指向 normalized request 的字段，bindingPath 指向 correlation.armInputSchemaRef 的字段，operation-argument.path 指向出站 Operation 已物化输入；
 - response.result.producer 只允许 operation 或 observation；本示例使用 boundary Node 中 Operation 之后的 Observation 输出完整 typed Step 17 response result，不能把 N4 Tool 的原始输出未经类型验证直接当作 SBI response；只有单一 bodyless disposition 时才可省略 typed result Producer；
