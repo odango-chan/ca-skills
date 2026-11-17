@@ -308,6 +308,10 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     multipart_response["spec"]["operations"][0]["response"]["dispositions"][0]["mediaType"] = "multipart/related"
     expect_schema_failure(validator, multipart_response, "v1alpha1 response body representation is JSON-only")
 
+    missing_response_limit = copy.deepcopy(example)
+    del missing_response_limit["spec"]["operations"][0]["response"]["dispositions"][0]["maxBytes"]
+    expect_schema_failure(validator, missing_response_limit, "missing response body byte limit")
+
     invalid_sbi_discriminator = copy.deepcopy(example)
     stale = invalid_sbi_discriminator["spec"]["operations"][0]["correlation"]["staleDelivery"]
     stale.clear()
