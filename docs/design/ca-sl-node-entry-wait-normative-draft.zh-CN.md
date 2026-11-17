@@ -162,8 +162,7 @@ nodes:
         operation: UpdateSMContext
       timeout: PT30S
       response:
-        # This sample covers the success branch only when Step 16c is not required or is already complete.
-        after: modify-n4-session
+        after: prepare-step17-response
       routes:
         TIMEOUT: handle-update-timeout
     precondition:
@@ -182,13 +181,15 @@ nodes:
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
     postcondition:
+      # FAIL here means the N2 user-plane setup result was a protocol-level
+      # rejection, not that the Operation itself failed. Route to N4 Release.
       predicates:
-        - predicate: session.ran_adoption.confirmed
+        - predicate: session.n2_user_plane_setup_succeeded
           arguments:
             - update-sm-context.operation.output
       routes:
         PASS: modify-n4-session
-        FAIL: SAFE_STOPPED
+        FAIL: release-n4-session
         UNKNOWN: UNRESOLVED
 
   modify-n4-session:
@@ -197,18 +198,63 @@ nodes:
       arguments:
         request: update-sm-context.operation.output
       routes:
+        SUCCEEDED: register-udm-session
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
-    # The abbreviated fragment omits the response-producing Observation.
-    # In the complete Skill it follows this Operation and routes success onward;
-    # wait.response.after covers the whole Node, including that Observation.
+
+  release-n4-session:
+    operation:
+      tool: ca::upn.session.release
+      arguments:
+        request: update-sm-context.operation.output
+      routes:
+        SUCCEEDED: prepare-step17-response
+        FAILED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
+
+  register-udm-session:
+    precondition:
+      predicates:
+        - predicate: session.udm_registration_required
+          arguments:
+            - update-sm-context.wait.output
+      routes:
+        PASS: perform-udm-registration
+        FAIL: prepare-step17-response
+        UNKNOWN: UNRESOLVED
+
+  perform-udm-registration:
+    operation:
+      tool: ca::udm.uecm.register_pdu_session
+      arguments:
+        request: update-sm-context.wait.output
+      routes:
+        SUCCEEDED: prepare-step17-response
+        FAILED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
+
+  prepare-step17-response:
+    observation:
+      tool: ca::smf.session.observe_step17_response
+      arguments:
+        request: update-sm-context.wait.output
+        update: update-sm-context.operation.output
+      routes:
+        SUCCEEDED: verify-final-session
+        FAILED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: UNRESOLVED
+    # This Observation runs after either N4 Modification + optional UDM
+    # Registration, or the N2-failure N4 Release. It returns the typed Step 17
+    # response DTO; on N2 failure, update.operation.output carries the prepared
+    # N1 SM Reject binary reference.
+
 
   verify-final-session:
     postcondition:
       predicates:
         - predicate: session.goal_satisfied
           arguments:
-            - modify-n4-session.operation.output
+            - prepare-step17-response.observation.output
       routes:
         PASS: SUCCEEDED
         FAIL: SAFE_STOPPED
@@ -224,7 +270,7 @@ nodes:
         OUTCOME_UNKNOWN: SAFE_STOPPED
 ~~~
 
-This fragment is not a complete Skill: its referenced Nodes, schemas, Predicate declarations, dependency exports and final Goal Postcondition are intentionally omitted. It demonstrates only the Node-entry Wait shape, typed wait.output binding, timeout routing and the Step 17 response boundary. The `modify-n4-session` boundary is valid only for the success branch where conditional Step 16c UDM registration is not required or has already completed; if Step 16c remains required, `wait.response.after` MUST identify a later Node after that registration. If Step 15 reports N2 user-plane resource setup failure, Step 16 is skipped, the SMF releases the N4 Session, and Step 17 carries a PDU Session Establishment Reject in the N1 SM Container; this failure branch requires multipart response support and is not represented by this JSON-only sample. The Integration export MUST identify the triggering transfer callable and prove its pre-dispatch correlation binding. For a body-bearing Step 17 response, the Ingress export declares the exact boundary Producer stage and typed responseResultSchema. Prefer an Observation after the boundary Node's business Operation when the raw Operation output is not already the complete response DTO; the Skill passes earlier Node outputs explicitly through the Observation arguments. The Compiler derives the exact Producer output from `wait.response.after` and validates that Output Schema before accepting the mapping.
+This fragment is not a complete Skill: its referenced Nodes, schemas, Predicate declarations, dependency exports and final Goal Postcondition are intentionally omitted. It demonstrates Node-entry Wait, typed wait.output binding, timeout routing and both Step 16 branches. A successful N2 user-plane setup proceeds through N4 Session Modification and then the conditional UDM registration; if registration is not required, the Precondition routes directly to the common response Node. An N2 user-plane setup failure is a business result, not an Operation failure: Step 16a/16b/16c are skipped, the N4 Session is released, and the common response Node is reached only after that Release succeeds. The response Node's Observation reads the exact Wait request and the Step 15 Operation result, including the prepared N1 SM Reject reference on the failure branch, and returns the typed `update-sm-context-response-result.v1` DTO. `wait.response.after` names this common post-dominating Node, so Step 17 cannot be emitted before either branch has completed. The Integration maps the failure DTO to the same TS 29.502 200 disposition using `multipart/related`, with `binaryDataN1SmMessage` required by the result Schema; it must not map this business failure to 204 or a generic HTTP error. The Integration export MUST identify the triggering transfer callable and prove its pre-dispatch correlation binding. The Compiler derives the exact Observation output from `wait.response.after` and validates it against the pinned responseResultSchema before accepting the mapping.
 
 ## 3. Integration Ingress Operation export
 
