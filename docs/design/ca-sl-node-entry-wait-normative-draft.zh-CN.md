@@ -217,7 +217,7 @@ nodes:
         FAILED: UNRESOLVED
 ~~~
 
-This fragment is not a complete Skill: its referenced Nodes, schemas, Predicate declarations, dependency exports and final Goal Postcondition are intentionally omitted. It demonstrates only the Node-entry Wait shape, typed wait.output binding, timeout routing and the Step 17 response boundary. The Integration export MUST identify the triggering transfer callable and prove its pre-dispatch correlation binding. For a body-bearing Step 17 response, its responseResultSources binding may select modify-n4-session.operation.output and MUST validate that exact output against the pinned protocol response Schema.
+This fragment is not a complete Skill: its referenced Nodes, schemas, Predicate declarations, dependency exports and final Goal Postcondition are intentionally omitted. It demonstrates only the Node-entry Wait shape, typed wait.output binding, timeout routing and the Step 17 response boundary. The Integration export MUST identify the triggering transfer callable and prove its pre-dispatch correlation binding. For a body-bearing Step 17 response, the Ingress export declares response.result.producer: operation and the typed responseResultSchema; Compiler derives modify-n4-session.operation.output from wait.response.after and validates that exact Output Schema before accepting the mapping.
 
 ## 3. Integration Ingress Operation export
 
