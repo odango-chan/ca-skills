@@ -197,9 +197,10 @@ nodes:
       arguments:
         request: update-sm-context.operation.output
       routes:
-        SUCCEEDED: verify-final-session
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
+    # A complete Skill may add a post-Operation Observation here to produce
+    # the typed Step 17 response DTO; wait.response.after covers the whole Node.
 
   verify-final-session:
     postcondition:
