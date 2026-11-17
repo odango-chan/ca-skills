@@ -887,7 +887,7 @@ spec:
 | IN-044 | pinned OpenAPI response 需要 multipart/related binary parts，但 v1alpha1 export 仅声明 JSON response mapping | Compiler/Admission 拒绝不完整响应表示；不得丢弃或字符串化 binary parts |
 | IN-045 | Step 15 N2 setup failure 要求 Step 17 携带 N1 SM Reject binary container，而 export 仅声明 JSON response | Integration/Admission 不得以 204 或通用 JSON error 替代；该失败分支保持 NOT LINKABLE |
 | IN-046 | staleDelivery 使用 3gpp-Sbi-Request-Info.idempotency-key，但请求缺少该参数或独立请求复用该 key | Integration 拒绝/隔离；不得退回 canonical digest 或重新分配到其他 Wait |
-| IN-047 | wire-discriminator 的 discriminatorRetention 小于 maximumLateArrival + clockSkewAllowance | Compiler/Admission 拒绝不足以覆盖迟到重传窗口的身份保留策略 |
+| IN-047 | wire-discriminator 的 discriminatorRetention 小于或等于 maximumLateArrival + clockSkewAllowance | Compiler/Admission 拒绝不足以覆盖迟到重传窗口及边界竞态的身份保留策略 |
 | IN-048 | body-bearing response serialization 超过 disposition.maxBytes | Integration 不得发送超限 Body；按明确的协议失败策略处理，不得截断或静默省略字段 |
 | IN-049 | 3GPP multipart binary part 的 Content-ID 与根 JSON 中 RefToBinaryData 不匹配、缺失、重复或悬空 | Integration 拒绝/隔离，不生成 normalized delivery |
 | IN-050 | application/json representation 包含无法由 multipart binary part 解析的 RefToBinaryData | Integration 拒绝/隔离，不生成伪造 binary content reference |
@@ -905,7 +905,7 @@ spec:
 5. 对 response result producer、bodyless/body-bearing response、early-failure response 和恢复责任的协议评审；
 6. 与 CA-SL Wait 规范化草案 PR #61 完成字段和诊断一致性核对；
 7. 与 Generic Host/Runtime 契约 PR #210 完成端口、私有身份和持久化责任核对；
-8. 为 IN-001–IN-050 建立机器可执行的正反例与实际 Integration adapter conformance tests；
+8. 为 IN-001–IN-052 建立机器可执行的正反例与实际 Integration adapter conformance tests；
 9. 完成独立审阅并明确该导出契约的发布版本和生效范围。
 
 本文不要求当前 v1alpha4 产品支持 IngressCatalog。当前实现仍是 NOT_QUALIFIED；缺少真实、受信、版本固定的 Ingress export 时必须 fail-closed。
