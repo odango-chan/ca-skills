@@ -222,9 +222,9 @@ Schema 选择不能依赖未验证的 Body 字段。未经认证的 source、UE 
 
 归一化必须确定、可复现、可审计。每个必需的源字段必须有明确目标字段；可选或忽略字段必须在 mapping 中明确标注。未知的语义字段、缺失的必需字段、类型不符和不支持的 media type 必须拒绝或隔离，不能静默丢弃、猜测或截断。
 
-request.normalization.representations[] 必须对每个 accepted media type 恰好声明一个映射配置。每个配置至少包含精确 mediaType、multipart parts（适用时）和 mappings[]。每条 mapping 必须包含 source selector、normalized target JSON Pointer 和 transform。Normalization mapping 是 IngressCatalog operations[] 中的内联声明式数据，随整个 dependency snapshot digest 一起固定；本版不再引入独立 mappingRef/mappingDigest。
+request.normalization.representations[] 必须对每个 accepted media type 恰好声明一个映射配置。每个配置至少包含精确 mediaType、multipart parts（适用时）和 mappings[]。multipart 配置还必须声明 `minBinaryParts` 与 `maxBinaryParts`，分别约束实际 wire message 中 binary parts 的数量下限和上限；它们不是 Catalog 中可声明的 part 定义数量。每条 mapping 必须包含 source selector、normalized target JSON Pointer 和 transform。Normalization mapping 是 IngressCatalog operations[] 中的内联声明式数据，随整个 dependency snapshot digest 一起固定；本版不再引入独立 mappingRef/mappingDigest。
 
-source selector 的 kind 仅允许 path、query、header、json-body、multipart-json 和 multipart-binary。path/query/header 必须带精确参数名；json-body 必须带 JSON Pointer；multipart-json 必须带精确 part 名及 JSON Pointer；multipart-binary 必须带精确 part 名。对于源协议使用 `RefToBinaryData` 关联 multipart `Content-ID` 的情况，multipart-binary source 还必须声明 `contentIdReference: { part, pointer }`，指向根 JSON part 中对应的引用属性。header 只有在源协议明确将其定义为业务输入且 normalized Schema 显式声明对应属性时才允许映射，认证和传输控制 Header 不得映射。
+source selector 的 kind 仅允许 path、query、header、json-body、multipart-json 和 multipart-binary。path/query/header 必须带精确参数名；json-body 必须带 JSON Pointer；multipart-json 必须带精确 part 名及 JSON Pointer；multipart-binary 必须带精确 part 名。对于源协议使用 `RefToBinaryData` 关联 multipart `Content-ID` 的情况，multipart-binary source 还必须声明 `contentIdReference: { part, pointer }`，指向根 JSON part 中对应的引用属性。`ignoredSources[]` 用于从被整体映射的 JSON object 中屏蔽明确列出的传输字段；屏蔽在映射前执行，祖先对象的 identity mapping 不得重新暴露这些字段。3GPP 的 `n1SmMsg`、`n2SmInfo`、`n2SmInfoExt1` 都是 RefToBinaryData，必须从 JSON 业务映射中屏蔽，再分别以验证后的不可变 binary reference 暴露；不得把原始 `contentId` 留在 Skill-facing normalized request 中。`n2SmInfoType` 与 `n2SmInfoTypeExt1` 是业务协议字段，不得一并屏蔽。header 只有在源协议明确将其定义为业务输入且 normalized Schema 显式声明对应属性时才允许映射，认证和传输控制 Header 不得映射。
 
 transform 的初始封闭集合仅为 identity、parse-integer、parse-number、parse-boolean 和 binary-content-ref。identity 要求来源 Schema 类型可直接赋值给目标属性；parse-integer 只接受规范十进制整数词法且不得溢出；parse-number 只接受规范十进制有限数值且不得舍入或产生非有限值；parse-boolean 只接受精确小写 true/false；binary-content-ref 只适用于 multipart-binary 并生成 normalized Schema 声明的受限不可变内容引用。不得执行任意 CEL、Python、表达式、反射、网络查询、隐式字符串化、locale 转换、截断或有损转换。
 
@@ -449,7 +449,7 @@ paired response 必须声明非空的 `response.dispositions[]`。Disposition �
 
 - `body: required` 时，必须声明非空 `representations[]`；每个 representation 有其作用域内唯一的 `id`、精确 `mediaType`、`responseSchemaRef`、`responseSchemaDigest` 和 `maxBytes`。`maxBytes` 是该 representation 整个 wire body 的总字节上限，不含 HTTP headers。
 - `application/json` representation 不得声明 multipart parts；`responseSchemaRef` 指向完整 JSON response body Schema。
-- `multipart/related` representation 必须声明 `rootPart` 和 `parts[]`。`rootPart` 必须是 parts 中第一个且唯一的 JSON part（UpdateSmContext 固定为 `jsonData`），其 Schema 必须与 representation 的 `responseSchemaRef`/digest 一致；至少声明一个 binary part。每个 part 都必须声明精确名称、媒体类型、kind、required、maxBytes；JSON part 另须绑定其 Schema/digest。part maxBytes 不得超过 representation.maxBytes。
+- `multipart/related` representation 必须声明 `rootPart`、`parts[]`、`minBinaryParts` 和 `maxBinaryParts`。`rootPart` 必须是 parts 中第一个且唯一的 JSON part（UpdateSmContext 固定为 `jsonData`），其 Schema 必须与 representation 的 `responseSchemaRef`/digest 一致；至少声明一个 binary part。每个 part 都必须声明精确名称、媒体类型、kind、required、maxBytes；JSON part 另须绑定其 Schema/digest。实际 wire message 中 binary part 的数量必须落在 min/max 范围内；part maxBytes 不得超过 representation.maxBytes。
 - `body: none` 时，不得声明 representations、Body Schema 或 Body mapping。204 是这种 disposition，不得附带空 JSON 或 multipart framing。
 
 `response.result` 是 typed result 绑定。只要任一 disposition 为 `body: required`，就必须声明 `responseResultSchemaRef`、`response.result.producer`（operation 或 observation）和非空 `response.result.mappings[]`。若有多个 dispositions，或任一 disposition 有多个 representations，还必须声明 `dispositionSelector`。Selector 每个 case 选择一个 disposition；对于 body-bearing disposition，还必须同时选择该 disposition 下精确的 `representationId`；bodyless disposition 不得选择 representation。所有允许的 disposition/representation 组合必须被精确覆盖，不能依赖 Accept header 或运行时猜测替代业务结果选择。
@@ -666,6 +666,8 @@ spec:
                   target: /updateData
                   transform: identity
             - mediaType: multipart/related
+              minBinaryParts: 1
+              maxBinaryParts: 2
               parts:
                 - name: jsonData
                   mediaType: application/json
@@ -725,6 +727,22 @@ spec:
                       pointer: /n2SmInfoExt1/contentId
                   target: /n2SmInformationExt1
                   transform: binary-content-ref
+              ignoredSources:
+                - source:
+                    kind: multipart-json
+                    part: jsonData
+                    pointer: /n1SmMsg
+                  reason: RefToBinaryData is transport-only; its verified binary part is exposed as n1SmMessage.
+                - source:
+                    kind: multipart-json
+                    part: jsonData
+                    pointer: /n2SmInfo
+                  reason: RefToBinaryData is transport-only; its verified binary part is exposed as n2SmInformation.
+                - source:
+                    kind: multipart-json
+                    part: jsonData
+                    pointer: /n2SmInfoExt1
+                  reason: RefToBinaryData is transport-only; its verified binary part is exposed as n2SmInformationExt1.
         binaryContent:
           referenceSchemaRef: urn:example:normalized:binary-content-reference:v1
           digestAlgorithm: sha-256
@@ -840,6 +858,8 @@ spec:
                 maxBytes: 65536
               - id: multipart
                 mediaType: multipart/related
+                minBinaryParts: 1
+                maxBinaryParts: 2
                 responseSchemaRef: urn:example:openapi:update-sm-context-response
                 responseSchemaDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
                 maxBytes: 2228224
@@ -890,8 +910,8 @@ spec:
 - sourceSchemas 和 normalizedSchemaRef 是不同契约，不得互相替代；
 - artifactDigest 绑定精确 OpenAPI 文件；内联 normalization/response mappings 由整个 IngressCatalog dependency snapshot digest 固定；
 - operationId 不能替代 Service-Operation 名称；UpdateSMContext 的 multipart part 名称使用 pinned OpenAPI 中的 binaryDataN1SmMessage / binaryDataN2SmInformation，不能缩写成 n1SmMsg / n2SmInfo；
-- TS 29.502 V19.5.0 的 UpdateSmContext 请求 multipart parts 包含 `binaryDataN1SmMessage`、`binaryDataN2SmInformation` 和 `binaryDataN2SmInformationExt1`；三者分别通过 `jsonData` 中的 `n1SmMsg.contentId`、`n2SmInfo.contentId` 和 `n2SmInfoExt1.contentId` 关联 Content-ID。示例必须逐项映射并校验这些引用；
-- UpdateSmContext 的 200 响应在协议上可使用 `application/json` 或 `multipart/related`，204 则没有响应体。V19.5.0 的 200 multipart response parts 为 `jsonData`、`binaryDataN1SmMessage` 和 `binaryDataN2SmInformation`；示例在同一个 200 disposition 下分别声明 JSON 与 multipart representations，并将 binary parts 通过 `SmContextUpdatedData.n1SmMsg.contentId` / `n2SmInfo.contentId` 绑定到 Content-ID。v1alpha1 的 multipart response mapping 通过 typed immutable binary reference、root JSON part、显式 Content-ID field 和有限 retention 表达，不允许省略或字符串化二进制内容；
+- TS 29.502 V19.5.0 的 UpdateSmContext 请求 OpenAPI 声明三个可选 binary part：`binaryDataN1SmMessage`、`binaryDataN2SmInformation` 和 `binaryDataN2SmInformationExt1`；三者分别通过 `jsonData` 中的 `n1SmMsg.contentId`、`n2SmInfo.contentId` 和 `n2SmInfoExt1.contentId` 关联 Content-ID。但 TS 29.502 §6.1.2.4 限制每个实际 multipart message 只能包含一个或两个 binary parts；Catalog 声明三个可选 part 并不允许实际请求同时携带三个。示例用 `minBinaryParts: 1`、`maxBinaryParts: 2` 表达该约束，并用 `ignoredSources` 防止原始 Content-ID 进入 normalized request；`n2SmInfoTypeExt1` 保留在 `updateData` 中，与 ext1 binary part 一一对应；
+- UpdateSmContext 的 200 响应在协议上可使用 `application/json` 或 `multipart/related`，204 则没有响应体。V19.5.0 的 200 multipart response parts 为 `jsonData`、`binaryDataN1SmMessage` 和 `binaryDataN2SmInformation`；每个实际 multipart response 必须包含一至两个 binary parts。示例在同一个 200 disposition 下分别声明 JSON 与 multipart representations，并将 binary parts 通过 `SmContextUpdatedData.n1SmMsg.contentId` / `n2SmInfo.contentId` 绑定到 Content-ID。v1alpha1 的 multipart response mapping 通过 typed immutable binary reference、root JSON part、显式 Content-ID field、binary part cardinality 和有限 retention 表达，不允许省略或字符串化二进制内容；
 - 示例 200 JSON representation maxBytes=65536，仅映射 SmContextUpdatedData 的条件属性 cause；smContextRef 是 request path 参数，不是 SmContextUpdatedData response body 字段；若响应需要 N1/N2 binary part 或 JSON root 含 RefToBinaryData 引用，必须选择 multipart representation，不能把 Content-ID 当成业务身份；
 - TS 23.502 V19.5.0 §4.3.2.2.1 Step 15 的 N2 user-plane resource setup failure 分支要求跳过 Step 16a/16b/16c，改为释放 N4 Session，并在 Step 17 返回包含 PDU Session Establishment Reject 的 N1 SM binary container。该业务失败仍使用 TS 29.502 `UpdateSmContext` 的 200 成功响应 disposition，但必须选择 `multipart/related` representation；它不是 HTTP 4xx/5xx，也不是 204。此示例的 `update-sm-context-response-result.v1.schema.json` 强制 `n4Action=session-released`、`udmRegistration=skipped`、`responseRepresentation=multipart` 和 `n1SmMessage` 必需，并禁止 N2 response part。若缺少可信、不可变的 N1 SM binary reference 或其 Content-ID mapping，必须保持 NOT LINKABLE；不得伪装成 204 或通用 JSON 错误。示例中的 `earlyFailureResponses` 仅处理 Producer 尚未产生结果时的其他早期终止情形，绝不能替代该协议定义的业务失败响应；
 - arming.triggers[].operation 是出站 ToolCatalog Operation，不是 Ingress Operation；Compiler 从该精确 ToolCatalog export 解析 Operation Input Schema，armInputSchemaRef 则定义单独的 correlationBinding Schema；
