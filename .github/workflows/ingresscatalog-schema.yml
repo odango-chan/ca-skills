@@ -21,6 +21,8 @@ on:
       - "docs/design/schemas/ingresscatalog.v1alpha1.schema.json"
       - "docs/design/schemas/update-sm-context-response-result.v1.schema.json"
       - "docs/design/schemas/response-binary-content-reference.v1.schema.json"
+      - "docs/design/schemas/schema-closure-digest-v1.vector.json"
+      - "docs/design/schema-closure-digest-v1.md"
       - "scripts/validate-ingresscatalog-example.py"
       - ".github/workflows/ingresscatalog-schema.yml"
 
