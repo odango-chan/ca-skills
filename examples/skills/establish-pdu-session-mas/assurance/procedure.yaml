@@ -402,7 +402,7 @@ nodes:
         - predicate: establishment.mas.policy_updated
           arguments:
             - modify-sm-policy-association.operation.output
-        - predicate: establishment.mas.charging_reservation_created
+        - predicate: establishment.mas.charging_step_completed
           arguments:
             - execute-charging-step.operation.output
         - predicate: establishment.mas.n4_session_established
