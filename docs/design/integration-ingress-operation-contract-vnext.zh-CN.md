@@ -381,7 +381,7 @@ Integration 必须证明一个经过认证、验证和归一化的请求最多�
 
 Wire discriminator 是外部请求身份，不是用于预派发匹配 Run/Wait 的 correlation key；它不要求在 arming 时预先知道，也不要求加入 normalized business Schema。Integration 在接收请求时提取 discriminator，并在匹配/提交 delivery 前检查它是否已被消费。消费记录必须按源协议定义的唯一性作用域持久化，不能擅自用 authenticated peer 或 Ingress export identity 缩小该作用域；`basisRef` 必须支持该作用域及其有限保留期。缺失、重复复用或格式不合法时必须拒绝/隔离，不得退回到猜测或选择 newest。
 
-wire-discriminator 策略还必须声明 maximumLateArrival、clockSkewAllowance、discriminatorRetention 和 basisRef。Integration 持久化已消费 discriminator 时，索引键必须遵循源协议定义的唯一性作用域，不能机械地统一加上 authenticated peer、Ingress export identity 或 expectedIngressRef。对于 3GPP SBI `idempotency-key`，索引必须使用 TS 29.500 定义的目标 NF 重复检测作用域；同一目标 NF 的不同 Ingress Operation export，以及同一 NF Set 中可替代处理该请求的实例，必须共享同一判重视图。不得把 AMF peer、单个 Ingress export 或 expectedIngressRef 加入该协议身份键而缩小作用域。记录值应保留首次接受请求的 Ingress export、expectedIngressRef、deliveryRef 及其响应责任，以便同一请求重试时只重放到原 occurrence，而不分配给新 Wait。其他 wire discriminator 使用其 pinned protocol artifact 定义的作用域，并由 basisRef 支持。discriminatorRetention 不得小于 maximumLateArrival + clockSkewAllowance。迟到副本在该保留期内到达时必须识别为已消费请求，不得分配给新 Wait。若无法证明有限迟到窗口或提供可审计依据，则不得使用 wire-discriminator 策略。
+wire-discriminator 策略还必须声明 maximumLateArrival、clockSkewAllowance、discriminatorRetention 和 basisRef。Integration 持久化已消费 discriminator 时，索引键必须遵循源协议定义的唯一性作用域，不能机械地统一加上 authenticated peer、Ingress export identity 或 expectedIngressRef。对于 3GPP SBI `idempotency-key`，索引必须使用 TS 29.500 定义的目标 NF 重复检测作用域；同一目标 NF 的不同 Ingress Operation export，以及同一 NF Set 中可替代处理该请求的实例，必须共享同一判重视图。不得把 AMF peer、单个 Ingress export 或 expectedIngressRef 加入该协议身份键而缩小作用域。记录值应保留首次接受请求的 Ingress export、expectedIngressRef、deliveryRef 及其响应责任，以便同一请求重试时只重放到原 occurrence，而不分配给新 Wait。其他 wire discriminator 使用其 pinned protocol artifact 定义的作用域，并由 basisRef 支持。discriminatorRetention MUST strictly exceed maximumLateArrival + clockSkewAllowance；相等不接受，以避免边界时刻的过期/匹配竞态。迟到副本在该保留期内到达时必须识别为已消费请求，不得分配给新 Wait。若无法证明有限迟到窗口或提供可审计依据，则不得使用 wire-discriminator 策略。
 
 3GPP 的 `3gpp-Sbi-Request-Info: idempotency-key=...` 在客户端/服务端启用 TS 29.500 V19.5.0 §5.2.8 的重复请求检测时可提供这一保证；该机制是可选能力，因此不能假定所有 AMF 都会发送。SCP 若参与转发，必须按 TS 29.500 将该 key 原样转发。该 key 的唯一性作用域是目标 NF，而不是单个 AMF peer 或单个 Ingress export；同一目标 NF 的多个 Operation export 以及同一 NF Set 内的替代实例必须共享已消费 key 的判重视图。若不要求并验证该 Header，则必须使用 single-flight/tombstone 策略。只在 Host/Runtime 内生成的 generation counter 不能区分外部迟到请求，除非该 generation 也能由入站协议请求可靠证明。
 
@@ -392,7 +392,7 @@ wire-discriminator 策略还必须声明 maximumLateArrival、clockSkewAllowance
 - 对相同 correlation resource key，同一时刻最多允许一个有效 Wait occurrence；
 - 每个 Wait occurrence 无论以 EVENT_ACCEPTED、TIMEOUT、CANCELLED 还是 INVALIDATED 结束，该 key 都必须进入 tombstone/quarantine；
 - export 必须声明 maximumLateArrival、clockSkewAllowance 和 tombstoneRetention 三个固定时长；
-- tombstoneRetention MUST NOT 小于 maximumLateArrival + clockSkewAllowance；
+- tombstoneRetention MUST strictly exceed maximumLateArrival + clockSkewAllowance；相等不接受，以避免边界时刻的过期/匹配竞态；
 - 在 tombstoneRetention 到期前，不得为相同 key 建立下一 Wait；
 - maximumLateArrival 与 clockSkewAllowance 的依据必须由可审计的协议或部署保证支持，不得由 Skill 作者随意声明；
 - maximumLateArrival 使用 CA-SL 固定正时长的同一词法子集；若无法证明有限的迟到窗口，则不得复用该 key；Compiler/Admission 必须 fail-closed。
@@ -732,7 +732,7 @@ spec:
           resourceKey: /smContextRef
           maximumLateArrival: "<exact-positive-duration>"
           clockSkewAllowance: "<exact-positive-duration>"
-          tombstoneRetention: "<at-least-maximumLateArrival-plus-clockSkewAllowance>"
+          tombstoneRetention: "<strictly-greater-than-maximumLateArrival-plus-clockSkewAllowance>"
           basisRef: urn:example:protocol-or-deployment-guarantee
 
       arming:
@@ -806,7 +806,7 @@ spec:
 - arming.triggers[].operation 是出站 ToolCatalog Operation，不是 Ingress Operation；Compiler 从该精确 ToolCatalog export 解析 Operation Input Schema，armInputSchemaRef 则定义单独的 correlationBinding Schema；
 - requestKey 指向 normalized request 的字段，bindingPath 指向 correlation.armInputSchemaRef 的字段，operation-argument.path 指向出站 Operation 已物化输入；
 - response.result.producer 只允许 operation 或 observation；本示例使用 boundary Node 中 Operation 之后的 Observation 输出完整 typed Step 17 response result，不能把 N4 Tool 的原始输出未经类型验证直接当作 SBI response；只有单一 bodyless disposition 时才可省略 typed result Producer；
-- 示例的 maximumLateArrival、clockSkewAllowance 和 tombstoneRetention 必须由受信协议/部署保证给出，且 tombstoneRetention 不得小于前两者之和；
+- 示例的 maximumLateArrival、clockSkewAllowance 和 tombstoneRetention 必须由受信协议/部署保证给出，且 tombstoneRetention 必须严格大于前两者之和；
 - 示例没有提供任何凭证、证书、网络地址或运行时私有句柄；示例采用 canonical-request-digest 作为重复识别占位策略，不宣称 TS 29.502 提供 protocol request ID；实际 Adapter 必须确认同一 Wait occurrence 内相同规范化请求应按重复处理；
 - 示例 request.maxBytes=4194304、各 part maxBytes=1048576 和 binaryContent.maxBytes=1048576 仅为结构示例，必须按 pinned API 与部署限额设置；binaryContent.retention 是待部署策略绑定的占位符，必须覆盖最大 Invocation 生命周期及恢复宽限期；
 - 3GPP SBI 的 `3gpp-Sbi-Request-Info: idempotency-key=...` 是可选重复请求检测能力；示例不假定 AMF 一定提供它，因此使用 canonical-request-digest + single-flight/tombstone。若部署要求并验证该 Header 在每个请求中存在，可改用 authenticated-header-parameter wire discriminator。
