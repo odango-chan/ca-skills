@@ -73,7 +73,14 @@
       "blocksBuild": true,
       "sourceLocation": {
         "primary": "Exact invalid field; use '#' for an invalid root and the containing object pointer for a missing required field.",
-        "related": "None unless a second catalog field is needed to explain the contradiction."
+        "related": "None unless a second catalog field is needed to explain the contradiction.",
+        "primaryPointerTemplate": [
+          "#/",
+          "#/apiVersion",
+          "#/kind",
+          "#/spec"
+        ],
+        "relatedPointerTemplate": []
       }
     },
     {
@@ -89,7 +96,13 @@
       "blocksBuild": true,
       "sourceLocation": {
         "primary": "The id field of the later duplicate operation.",
-        "related": "The id field of the first occurrence."
+        "related": "The id field of the first occurrence.",
+        "primaryPointerTemplate": [
+          "#/spec/operations/{index}/id"
+        ],
+        "relatedPointerTemplate": [
+          "#/spec/operations/{firstIndex}/id"
+        ]
       }
     },
     {
@@ -105,7 +118,13 @@
       "blocksBuild": true,
       "sourceLocation": {
         "primary": "The event object of the later duplicate operation.",
-        "related": "The event object of the first occurrence."
+        "related": "The event object of the first occurrence.",
+        "primaryPointerTemplate": [
+          "#/spec/operations/{index}/event"
+        ],
+        "relatedPointerTemplate": [
+          "#/spec/operations/{firstIndex}/event"
+        ]
       }
     },
     {
@@ -121,7 +140,13 @@
       "blocksBuild": true,
       "sourceLocation": {
         "primary": "The exact protocol metadata field in the Catalog that conflicts; use the protocol object pointer when the conflict is cross-field.",
-        "related": "The corresponding OpenAPI operation or info field when it can be resolved unambiguously."
+        "related": "The corresponding OpenAPI operation or info field when it can be resolved unambiguously.",
+        "primaryPointerTemplate": [
+          "#/spec/operations/{index}/protocol/{field}"
+        ],
+        "relatedPointerTemplate": [
+          "{resolvedOpenApiArtifactRef}#{openApiJsonPointer}"
+        ]
       }
     },
     {
@@ -137,7 +162,14 @@
       "blocksBuild": true,
       "sourceLocation": {
         "primary": "The authenticationProfileRef or authorizationPolicyRef field.",
-        "related": "The dependency resource location if resolution found a conflicting or wrong-kind resource."
+        "related": "The dependency resource location if resolution found a conflicting or wrong-kind resource.",
+        "primaryPointerTemplate": [
+          "#/spec/operations/{index}/security/authenticationProfileRef",
+          "#/spec/operations/{index}/security/authorizationPolicyRef"
+        ],
+        "relatedPointerTemplate": [
+          "{resolvedProfileArtifactRef}#{profileJsonPointer}"
+        ]
       }
     },
     {
@@ -153,7 +185,13 @@
       "blocksBuild": true,
       "sourceLocation": {
         "primary": "The exact normalization representation or mapping field; use the containing representation/mapping object for a missing field.",
-        "related": "The source/target Schema location when it is independently resolvable."
+        "related": "The source/target Schema location when it is independently resolvable.",
+        "primaryPointerTemplate": [
+          "#/spec/operations/{index}/request/normalization/representations/{representationIndex}/mappings/{mappingIndex}"
+        ],
+        "relatedPointerTemplate": [
+          "#/spec/operations/{index}/request/normalizedSchemaRef"
+        ]
       }
     },
     {
@@ -169,7 +207,13 @@
       "blocksBuild": true,
       "sourceLocation": {
         "primary": "The exact correlation key, duplicate policy or staleDelivery field; use the correlation object pointer for cross-field contradictions.",
-        "related": "The relevant armInputSchema or identity-source declaration when needed."
+        "related": "The relevant armInputSchema or identity-source declaration when needed.",
+        "primaryPointerTemplate": [
+          "#/spec/operations/{index}/correlation/{field}"
+        ],
+        "relatedPointerTemplate": [
+          "#/spec/operations/{index}/correlation/armInputSchemaRef"
+        ]
       }
     },
     {
@@ -185,7 +229,13 @@
       "blocksBuild": true,
       "sourceLocation": {
         "primary": "The exact response contract field; use the response object pointer for cross-field contradictions.",
-        "related": "The referenced deadline policy or recovery contract location if resolvable."
+        "related": "The referenced deadline policy or recovery contract location if resolvable.",
+        "primaryPointerTemplate": [
+          "#/spec/operations/{index}/response/{field}"
+        ],
+        "relatedPointerTemplate": [
+          "#/spec/operations/{index}/response/deadlinePolicyRef"
+        ]
       }
     },
     {
@@ -201,7 +251,14 @@
       "blocksBuild": true,
       "sourceLocation": {
         "primary": "The exact Ingress response representation or mapping field; use the containing response/disposition object for a missing field.",
-        "related": "The response Schema node or Producer declaration when independently resolvable."
+        "related": "The response Schema node or Producer declaration when independently resolvable.",
+        "primaryPointerTemplate": [
+          "#/spec/operations/{index}/response/result/mappings/{mappingIndex}",
+          "#/spec/operations/{index}/response/dispositions/{dispositionIndex}/representations/{representationIndex}"
+        ],
+        "relatedPointerTemplate": [
+          "#/spec/operations/{index}/response/dispositions/{dispositionIndex}/representations/{representationIndex}/responseSchemaRef"
+        ]
       }
     }
   ]
