@@ -223,7 +223,9 @@ The normal success path must not collapse the standard's failure branches:
 - If Step 15 reports failure of user-plane resource setup, the SMF rejects the establishment, releases the N4 Session with the UPF and skips Step 16 before returning the paired Step 17 response.
 - If the User Plane Enforcement Policy requires resources and the N2 result says no user-plane resources could be established, the SMF rejects and skips Step 16. Do not invent the N4-release action from the preceding failure branch unless its own trigger is present.
 - On a failure after Step 5, Step 18 notifies the AMF and releases any N4 sessions created, any allocated PDU Session address and the PCF association, if present.
-- Step 21 is not unconditional cleanup: it applies after failure following Step 4 only when the SMF no longer handles another PDU Session of the same UE for the same DNN and HPLMN S-NSSAI.
+- Step 21 is not unconditional cleanup: after a failure following Step 4, the SMF calls `Nudm_SDM_Unsubscribe` only when it no longer handles another PDU Session for the same `(SUPI, DNN, HPLMN S-NSSAI)`; the UDM may then execute `Nudr_DM_Unsubscribe`.
+
+Step 21 is a conditional SMF business action, not generic Host cleanup. A failure Procedure must evaluate the exact session set for the same SUPI, DNN and HPLMN S-NSSAI, then invoke `Nudm_SDM_Unsubscribe` through the UDM Owner when the condition is satisfied. Host/Runtime only retain outstanding responsibility, coordinate recovery and enforce the terminal publication gate; they must not infer the session set or perform the SBI action themselves. The current conventional example intentionally models the supported success path and does not claim failure-only cleanup has completed when it reaches `SAFE_STOPPED`.
 
 Step 17 is the paired protocol response for Step 15, not the Skill Goal proof. The final CA-SL Postcondition and Host/Runtime resource-responsibility gate remain authoritative.
 
