@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import re
 from email.parser import BytesParser
@@ -13,6 +14,7 @@ from pathlib import Path
 import yaml
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
+import rfc8785
 
 ROOT = Path(__file__).resolve().parents[1]
 DOC = ROOT / "docs/design/integration-ingress-operation-contract-vnext.zh-CN.md"
@@ -20,6 +22,7 @@ SCHEMA = ROOT / "docs/design/schemas/ingresscatalog.v1alpha1.schema.json"
 RESPONSE_RESULT_SCHEMA = ROOT / "docs/design/schemas/update-sm-context-response-result.v1.schema.json"
 RESPONSE_BINARY_SCHEMA = ROOT / "docs/design/schemas/response-binary-content-reference.v1.schema.json"
 STANDARD_ARTIFACT_LOCK = ROOT / "docs/design/artifacts/ts-29.502-v19.5.0-nsmf-pdusession-openapi-source-lock.yaml"
+SCHEMA_CLOSURE_VECTOR = ROOT / "docs/design/schemas/schema-closure-digest-v1.vector.json"
 DURATION = re.compile(
     r"P(?:(?P<days>[1-9][0-9]*)D)?"
     r"(?:T(?:(?P<hours>[1-9][0-9]*)H)?"
@@ -56,6 +59,52 @@ def unique(values: list, label: str) -> None:
     encoded = [json.dumps(value, sort_keys=True, separators=(",", ":")) for value in values]
     if len(encoded) != len(set(encoded)):
         raise SystemExit(f"{label}: duplicate values are not allowed")
+
+
+def schema_closure_digest(root: dict, nodes: list[dict]) -> str:
+    identities = [(node["artifactRef"], node["pointer"]) for node in nodes]
+    if len(identities) != len(set(identities)):
+        raise SystemExit("Schema Closure Digest: duplicate node identity")
+    root_matches = [
+        node for node in nodes
+        if (node["artifactRef"], node["pointer"]) == (root["artifactRef"], root["pointer"])
+    ]
+    if len(root_matches) != 1 or root_matches[0]["artifactDigest"] != root["artifactDigest"]:
+        raise SystemExit("Schema Closure Digest: root identity is missing or inconsistent")
+    for node in nodes:
+        if not re.fullmatch(r"sha256:[0-9a-f]{64}", node["artifactDigest"]):
+            raise SystemExit("Schema Closure Digest: invalid artifact digest")
+        if not node["artifactRef"] or not (node["pointer"] == "#" or node["pointer"].startswith("#/")):
+            raise SystemExit("Schema Closure Digest: invalid artifact reference or JSON Pointer")
+        if not isinstance(node["schema"], dict):
+            raise SystemExit("Schema Closure Digest: each Schema node must be an object")
+    ordered_nodes = sorted(
+        nodes,
+        key=lambda node: (node["artifactRef"].encode("utf-8"), node["pointer"].encode("utf-8")),
+    )
+    manifest = {
+        "algorithm": "connectionagent.io/schema-closure/v1",
+        "root": root,
+        "nodes": ordered_nodes,
+    }
+    preimage = b"CA-SKILL-SCHEMA-CLOSURE\\x00v1\\x00" + rfc8785.dumps(manifest)
+    return "sha256:" + hashlib.sha256(preimage).hexdigest()
+
+
+def validate_schema_closure_digest_vector() -> None:
+    vector = json.loads(SCHEMA_CLOSURE_VECTOR.read_text(encoding="utf-8"))
+    root = vector["root"]
+    nodes = vector["nodes"]
+    expected = vector["expectedDigest"]
+    actual = schema_closure_digest(root, nodes)
+    if actual != expected:
+        raise SystemExit(f"Schema Closure Digest vector mismatch: {actual} != {expected}")
+    if schema_closure_digest(root, list(reversed(nodes))) != expected:
+        raise SystemExit("Schema Closure Digest must be independent of input node order")
+    changed = copy.deepcopy(nodes)
+    changed[0]["schema"]["properties"]["supi"]["type"] = "integer"
+    if schema_closure_digest(root, changed) == expected:
+        raise SystemExit("Schema Closure Digest did not change when a referenced Schema node changed")
 
 
 def validate_semantics(catalog: dict) -> None:
@@ -1426,6 +1475,7 @@ def main() -> None:
     validate_step15_failure_response_schema()
     validate_multipart_wire_reference_vectors()
     validate_standard_artifact_lock()
+    validate_schema_closure_digest_vector()
     print("IngressCatalog, Step 17 response-result schemas, multipart wire reference vectors, artifact source lock and negative fixtures: PASS")
 
 
