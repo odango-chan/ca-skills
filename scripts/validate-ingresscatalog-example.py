@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import re
 from pathlib import Path
@@ -70,6 +71,43 @@ def validate_semantics(catalog: dict) -> None:
                     raise SystemExit(f"{operation['id']}: body-bearing disposition has no response mapping")
 
 
+def expect_semantic_failure(value: dict, label: str) -> None:
+    try:
+        validate_semantics(value)
+    except SystemExit:
+        return
+    raise SystemExit(f"negative fixture was unexpectedly accepted: {label}")
+
+
+def validate_negative_cases(schema: dict, example: dict) -> None:
+    validator = Draft202012Validator(schema)
+
+    missing_adapter = copy.deepcopy(example)
+    del missing_adapter["spec"]["operations"][0]["adapter"]
+    if validator.is_valid(missing_adapter):
+        raise SystemExit("schema accepted an Ingress Operation without adapter identity")
+
+    invalid_api_version = copy.deepcopy(example)
+    invalid_api_version["spec"]["operations"][0]["protocol"]["apiUriVersion"] = 1
+    if validator.is_valid(invalid_api_version):
+        raise SystemExit("schema accepted a non-string apiUriVersion")
+
+    missing_binary_policy = copy.deepcopy(example)
+    del missing_binary_policy["spec"]["operations"][0]["request"]["binaryContent"]
+    if validator.is_valid(missing_binary_policy):
+        raise SystemExit("schema accepted binary-content-ref mappings without binaryContent policy")
+
+    duplicate_status = copy.deepcopy(example)
+    dispositions = duplicate_status["spec"]["operations"][0]["response"]["dispositions"]
+    dispositions[1]["status"] = dispositions[0]["status"]
+    expect_semantic_failure(duplicate_status, "duplicate response HTTP status")
+
+    incomplete_selector = copy.deepcopy(example)
+    cases = incomplete_selector["spec"]["operations"][0]["response"]["result"]["dispositionSelector"]["cases"]
+    cases.pop()
+    expect_semantic_failure(incomplete_selector, "incomplete response disposition selector")
+
+
 def main() -> None:
     schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
     Draft202012Validator.check_schema(schema)
@@ -84,7 +122,8 @@ def main() -> None:
             print(f"{path}: {error.message}")
         raise SystemExit(f"IngressCatalog example failed with {len(errors)} schema error(s)")
     validate_semantics(example)
-    print("IngressCatalog schema and cross-field example checks: PASS")
+    validate_negative_cases(schema, example)
+    print("IngressCatalog Draft 2020-12 schema, cross-field checks and negative fixtures: PASS")
 
 
 if __name__ == "__main__":
