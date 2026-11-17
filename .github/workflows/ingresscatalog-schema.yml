@@ -240,5 +240,39 @@ jobs:
           )
           print("UpdateSmContext external OpenAPI closure: PASS")
           PY
+      - name: Inspect official ETSI TS 29.518 V19.5.0 Namf_Communication dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://www.etsi.org/deliver/etsi_ts/129500_129599/129518/19.05.00_60"
+          pdf="$RUNNER_TEMP/ts_129518v190500p.pdf"
+          zip="$RUNNER_TEMP/ts_129518v190500p0.zip"
+          yaml_file="$RUNNER_TEMP/TS29518_Namf_Communication.yaml"
+          ua="Mozilla/5.0 (compatible; CA-Skill-Artifact-Lock/1.0)"
+          curl --fail --location --retry 3 --silent --show-error --user-agent "$ua" "$base/ts_129518v190500p.pdf" --output "$pdf"
+          curl --fail --location --retry 3 --silent --show-error --user-agent "$ua" "$base/ts_129518v190500p0.zip" --output "$zip"
+          echo "TS 29.518 PDF bytes: $(wc -c < "$pdf")"
+          pdf_sha256="$(sha256sum "$pdf" | cut -d' ' -f1)"
+          echo "TS 29.518 PDF SHA-256: $pdf_sha256"
+          echo "TS 29.518 companion ZIP bytes: $(wc -c < "$zip")"
+          zip_sha256="$(sha256sum "$zip" | cut -d' ' -f1)"
+          echo "TS 29.518 companion ZIP SHA-256: $zip_sha256"
+          unzip -l "$zip"
+          unzip -p "$zip" TS29518_Namf_Communication.yaml > "$yaml_file"
+          echo "TS29518_Namf_Communication.yaml bytes: $(wc -c < "$yaml_file")"
+          yaml_sha256="$(sha256sum "$yaml_file" | cut -d' ' -f1)"
+          echo "TS29518_Namf_Communication.yaml SHA-256: $yaml_sha256"
+          python - "$yaml_file" <<'PY'
+          import pathlib
+          import sys
+          import yaml
+
+          artifact = yaml.safe_load(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+          assert artifact["openapi"] == "3.0.0"
+          assert artifact["info"]["title"] == "Namf_Communication"
+          assert "NgRanTargetId" in artifact["components"]["schemas"]
+          print("Official TS 29.518 Annex A.2 identity and NgRanTargetId: PASS")
+          print("OpenAPI version:", artifact["info"]["version"])
+          PY
       - name: Validate IngressCatalog example
         run: python scripts/validate-ingresscatalog-example.py
