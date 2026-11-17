@@ -16,7 +16,9 @@
             "type": "string"
           }
         },
-        "required": ["supi"],
+        "required": [
+          "supi"
+        ],
         "additionalProperties": false
       }
     },
@@ -31,9 +33,31 @@
             "$ref": "common.yaml#/components/schemas/Context"
           }
         },
-        "required": ["context"]
+        "required": [
+          "context"
+        ]
       }
     }
   ],
-  "expectedDigest": "sha256:52f6da3e6fdeb19ac7450890baf94fa2428af80dd713a370c2bd8b561803aa0d"
+  "expectedDigest": "sha256:52f6da3e6fdeb19ac7450890baf94fa2428af80dd713a370c2bd8b561803aa0d",
+  "resolutionContext": {
+    "documentUris": [
+      {
+        "artifactRef": "urn:test:schemas/root",
+        "uri": "https://snapshot.invalid/package/openapi/root.yaml"
+      },
+      {
+        "artifactRef": "urn:test:schemas/common",
+        "uri": "https://snapshot.invalid/package/openapi/common.yaml"
+      }
+    ],
+    "references": [
+      {
+        "fromArtifactRef": "urn:test:schemas/root",
+        "ref": "common.yaml#/components/schemas/Context",
+        "toArtifactRef": "urn:test:schemas/common",
+        "pointer": "#/components/schemas/Context"
+      }
+    ]
+  }
 }
