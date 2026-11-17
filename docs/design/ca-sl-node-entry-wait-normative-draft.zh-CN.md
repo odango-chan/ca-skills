@@ -2,6 +2,8 @@
 
 **Status:** Normative text draft for the language revision after CA-SL v1alpha4.  
 **Semantic baseline:** FROZEN by the design record in [ca-skills PR #60](https://github.com/odango-chan/ca-skills/pull/60).  
+**Integration export contract:** under independent design review in [ca-skills PR #62](https://github.com/odango-chan/ca-skills/pull/62).  
+**Generic Host/Runtime continuation contract:** [ca-agent-demo PR #210](https://github.com/odango-chan/ca-agent-demo/pull/210).  
 **Normative publication status:** NOT FROZEN / NOT RELEASED.  
 **Version identity:** Unassigned. This draft MUST NOT be interpreted as v1alpha4 or used to infer the next language version identifier.
 
@@ -234,7 +236,7 @@ The Integration export, not the Skill, owns the protocol-specific request contra
 
 ### 3.2 Required logical properties
 
-The trusted Ingress Operation export MUST bind, at minimum:
+The trusted Ingress Operation export, serialized as a package-scoped IngressCatalog with proposed apiVersion connectionagent.io/ingresscatalog/v1alpha1 and trusted exportKind ingressOperation, MUST bind, at minimum:
 
 1. canonical peer/source NF type, 3GPP service name and service-operation name;
 2. source specification identity and release;
@@ -247,9 +249,10 @@ The trusted Ingress Operation export MUST bind, at minimum:
 9. deterministic correlation derivation, including the exact permitted triggering Operation callable identity/identities and the pre-dispatch binding required to arm the Wait;
 10. duplicate, stale-delivery, generation-reuse and unmatched-request handling;
 11. whether a paired protocol response exists, its response Schema/media types, success and failure mapping, and response-obligation lifecycle;
-12. when a response body is required, the typed response-result input Schema and exact mapping from a set of typed Producer output SourcePaths available at the resolved response boundary, including earlier Node outputs where applicable.
+12. when a response body is required, the typed response-result input Schema, the response-boundary Producer stage type (operation or observation), the protocol response Schema and a deterministic mapping between them;
+13. a typed armInputSchema for the pre-dispatch correlationBinding, plus exact bindings from either admitted Invocation Context or triggering Operation arguments.
 
-These are logical contract requirements. Their physical package serialization is owned by the Integration contract and is not prescribed as a new global CA-SL catalog.
+The package-scoped IngressCatalog field structure, normalization contract, trigger binding shape, stale-delivery policy and response mapping are defined by the independent [Integration Ingress Operation Contract design PR #62](https://github.com/odango-chan/ca-skills/pull/62). This is not a global EventCatalog and does not alter v1alpha4 export kinds.
 
 event.source MUST match the authenticated peer NF type established by the Integration adapter. It MUST NOT be inferred from a body field or an unauthenticated header.
 
@@ -278,7 +281,7 @@ If the wire protocol carries a generation, transaction or request discriminator,
 
 ### 4.2 Trigger and arming point
 
-The Integration export MUST identify the trusted triggering Operation callable(s), if any, that can cause the declared inbound event, and MUST define how the correlation binding is materialized before dispatch of each such callable. Each triggering identity MUST resolve to exactly one trusted ToolCatalog Operation callable export in the declared dependency snapshots; a Capability ID, free-form label, Observation export or network address is not a triggering Operation identity.
+The Integration export MUST identify the trusted triggering Operation callable(s), if any, that can cause the declared inbound event, and MUST define how each correlation key is materialized into its typed armInputSchema before dispatch. Each triggering identity MUST resolve to exactly one trusted ToolCatalog Operation callable export in the declared dependency snapshots, identified by exact Package ID, Owner, kind=operation and Operation ID; the Compiler resolves its Input Schema from that ToolCatalog export. A Capability ID, free-form label, Observation export or network address is not a triggering Operation identity.
 
 For each reachable incoming path to a Wait-bearing Node:
 
@@ -288,7 +291,7 @@ For each reachable incoming path to a Wait-bearing Node:
 - all incoming paths MUST resolve to the same exact Ingress Operation export, normalized request Schema and correlation contract;
 - the concrete correlation value MAY differ by Run/path, but each path MUST prove a unique match.
 
-If the Wait-bearing Node is the Procedure start Node, the binding MUST be derivable from already-admitted Invocation/Host Context and Runtime MUST arm it before entering the Node. A non-start incoming path with no resolvable triggering Operation/binding is invalid. If different incoming paths require different event identities, API versions, normalized Schemas or incompatible correlation contracts, authors MUST use distinct Wait-bearing Nodes and converge later through the ordinary Procedure graph.
+If the Wait-bearing Node is the Procedure start Node, the Integration export MUST declare start arming and bind every correlation key from a path in the already-admitted Invocation Context into the same typed armInputSchema; Runtime MUST arm it before entering the Node. A non-start incoming path with no resolvable triggering Operation/binding is invalid. If different incoming paths require different event identities, API versions, normalized Schemas or incompatible correlation contracts, authors MUST use distinct Wait-bearing Nodes and converge later through the ordinary Procedure graph.
 
 The Integration export's triggering Operation identity is trusted dependency metadata; the Skill does not add a trigger, correlationKey, ueRef, callback token or Host handle field.
 
@@ -437,17 +440,17 @@ A paired response with a body MUST NOT be synthesized from raw inbound request d
 
 The trusted Integration export MUST declare:
 
-- the protocol response Schema and media type for each supported success disposition;
-- a typed responseResultSchema consumed by its response encoder;
-- an exact set of responseResultSources, each an ordinary typed ProducerOutputPath in the Skill's resolved Procedure graph;
-- a deterministic field mapping from those typed Producer outputs to the protocol response Schema;
-- explicit failure-response mappings for any permitted early terminal disposition.
+- the protocol response Schema and media type for each supported response disposition;
+- whether the response is bodyless or body-bearing;
+- for a body-bearing response, a typed responseResultSchema and the response-boundary Producer stage type, operation or observation;
+- a deterministic Integration-owned mapping from that typed response result to the protocol response Schema;
+- explicit fixed failure-response mappings for any permitted early terminal disposition before the selected Producer has produced a result.
 
-The Compiler resolves every responseResultSource against the exact Producer and Output Schema in the Skill graph. Each source MUST be an operation.output or observation.output SourcePath; wait.output, Context paths and raw request fields MUST NOT be used as protocol response-result sources. Each source MUST be available on every path reaching the response boundary, MUST dominate that boundary, and MUST be assignable to the declared responseResultSchema mapping. The Compiler MUST verify that each required protocol response field is supplied.
+The Compiler resolves the exact response SourcePath deterministically from wait.response.after (or the default Wait-bearing Node) and the export's Producer stage type: <response-boundary-node>.<producer>.output. It MUST NOT accept a Skill-specific NodeId or SourcePath embedded in the reusable Integration export. The selected Producer MUST exist at the response-boundary Node, MUST be available on every normal path reaching that boundary, and its Output Schema MUST be assignable to responseResultSchema. The Compiler MUST verify that the Integration mapping supplies each required protocol response field.
 
-A responseResultSource MAY identify an earlier Node's Operation or Observation output when that Producer dominates the response boundary and its output remains valid and available there. The Integration export's binding MUST identify the exact SourcePath; the response encoder MUST NOT infer the "latest" output, inspect arbitrary Run state or construct an untyped aggregate. This preserves explicit dataflow without adding a Skill-authored response mapping field.
+If response data originates in an earlier Node, the Skill MUST pass the required values explicitly through the boundary Node's Operation/Observation arguments, and that Producer MUST expose the complete typed response result. Runtime/Integration MUST NOT read arbitrary historical Run outputs, infer the latest output or construct an untyped aggregate.
 
-A bodyless protocol response (for example, a contractually defined 204 disposition) MAY declare no responseResultSource. The response contract MUST distinguish bodyless and body-bearing outcomes; a body-bearing outcome without a valid typed result binding is rejected as WAIT_RESPONSE_MAPPING_INVALID.
+A bodyless protocol response MAY declare no response-result Producer. A body-bearing response without a valid Producer stage, compatible Output Schema or complete mapping is rejected as WAIT_RESPONSE_MAPPING_INVALID. If the Producer has not produced an available result because the Run terminates before it, the declared early-failure response mapping applies. A completed Producer result may be mapped even when a later Postcondition does not prove the Skill Goal; protocol response mapping is not Goal proof.
 
 ### 8.3 Response completion and ownership
 
@@ -615,7 +618,7 @@ This draft is not a language release. Before normative publication, the followin
 2. final agreement on the logical Integration Ingress Operation export and response-result binding contract;
 3. exact diagnostic identities and messages added to the next-version diagnostic index;
 4. positive/negative conformance fixtures for EW-001–EW-025, including exact expected diagnostics;
-5. cross-review against the Generic Host inbound-event continuation contract in [ca-agent-demo PR #210](https://github.com/odango-chan/ca-agent-demo/pull/210);
+5. cross-review against the package-scoped Integration Ingress Operation export contract in [ca-skills PR #62](https://github.com/odango-chan/ca-skills/pull/62) and the Generic Host inbound-event continuation contract in [ca-agent-demo PR #210](https://github.com/odango-chan/ca-agent-demo/pull/210);
 6. a separately approved language version identifier and release decision.
 
 Until then, v1alpha4 remains the only applicable published authoring contract. No implementation or product-conformance claim follows from this draft.
