@@ -181,6 +181,26 @@ def validate_schema_closure_resolution_vector(vector: dict) -> None:
         if (target_artifact, pointer) not in node_by_identity:
             raise SystemExit("Schema Closure resolver vector: resolved target is missing from the digest closure")
 
+    if canonical_pointer_from_uri_fragment("/components/schemas/%43ontext") != "#/components/schemas/Context":
+        raise SystemExit("Schema Closure resolver: percent-encoded pointer did not canonicalize")
+    if canonical_pointer_from_uri_fragment("/a~1b") != "#/a~1b":
+        raise SystemExit("Schema Closure resolver: RFC 6901 token escaping did not canonicalize")
+    for invalid_fragment in ("NamedAnchor", "/bad~2escape", "/bad%2"):
+        try:
+            canonical_pointer_from_uri_fragment(invalid_fragment)
+        except SystemExit:
+            continue
+        raise SystemExit("Schema Closure resolver: unsupported/invalid fragment was accepted")
+
+    outside = copy.deepcopy(vector)
+    outside["resolutionContext"]["references"][0]["ref"] = "../../../../outside.yaml#/components/schemas/Context"
+    try:
+        validate_schema_closure_resolution_vector(outside)
+    except SystemExit:
+        pass
+    else:
+        raise SystemExit("Schema Closure resolver: reference escaping the pinned artifact set was accepted")
+
 
 def validate_semantics(catalog: dict) -> None:
     operations = catalog["spec"]["operations"]
