@@ -202,14 +202,14 @@ jobs:
           unzip -p "$zip" TS29571_CommonData.yaml > "$yaml_file"
           test "$(wc -c < "$yaml_file")" -eq 255480
           echo "8632cbab60c73e9c3ba9be26577057144255f21aef7430a1990bdf113c1e7bd4  $yaml_file" | sha256sum --check
-          python - "$yaml_file" "$RUNNER_TEMP/TS29502_Nsmf_PDUSession.yaml" <<'PY'
+          python - "$yaml_file" "$RUNNER_TEMP/TS29502_Nsmf_PDUSession.yaml" "$RUNNER_TEMP/TS29518_Namf_Communication.yaml" <<'PY'
           import pathlib
           import sys
           import yaml
 
           common = yaml.safe_load(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
           session = yaml.safe_load(pathlib.Path(sys.argv[2]).read_text(encoding="utf-8"))
-          namf = yaml.safe_load(pathlib.Path("$RUNNER_TEMP/TS29518_Namf_Communication.yaml").read_text(encoding="utf-8"))
+          namf = yaml.safe_load(pathlib.Path(sys.argv[3]).read_text(encoding="utf-8"))
           operations = [
               operation
               for methods in session["paths"].values()
