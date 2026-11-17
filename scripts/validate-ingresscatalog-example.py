@@ -458,6 +458,7 @@ def validate_3gpp_reference_example(catalog: dict) -> None:
     expected_mappings = {
         ("json", "json-body", None, "/cause"): ("/cause", "identity"),
         ("multipart", "multipart-json", "jsonData", "/cause"): ("/cause", "identity"),
+        ("multipart", "multipart-json", "jsonData", "/n2SmInfoType"): ("/n2SmInfoType", "identity"),
         ("multipart", "multipart-binary", "binaryDataN1SmMessage", None): ("/n1SmMessage", "binary-content-ref"),
         ("multipart", "multipart-binary", "binaryDataN2SmInformation", None): ("/n2SmInformation", "binary-content-ref"),
     }
