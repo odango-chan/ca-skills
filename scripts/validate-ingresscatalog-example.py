@@ -209,26 +209,126 @@ def validate_semantics(catalog: dict) -> None:
             statuses = [item["status"] for item in dispositions]
             unique(ids, f"{op_id}: duplicate response disposition id")
             unique(statuses, f"{op_id}: duplicate response HTTP status")
+            representations_by_key = {}
+            required_combinations = set()
+            for disposition in dispositions:
+                disposition_id = disposition["id"]
+                representations = disposition.get("representations", [])
+                if disposition["body"] == "none":
+                    if representations:
+                        raise SystemExit(f"{op_id}: bodyless disposition must not declare representations")
+                    required_combinations.add((disposition_id, None))
+                    continue
+                representation_ids = [item["id"] for item in representations]
+                unique(representation_ids, f"{op_id}: duplicate representation id for {disposition_id}")
+                if not representations:
+                    raise SystemExit(f"{op_id}: body-bearing disposition must declare representations")
+                for representation in representations:
+                    key = (disposition_id, representation["id"])
+                    representations_by_key[key] = representation
+                    required_combinations.add(key)
+                    parts = representation.get("parts", [])
+                    part_names = [part["name"] for part in parts]
+                    unique(part_names, f"{op_id}: duplicate response part name")
+                    if representation["mediaType"] == "multipart/related":
+                        if not parts or parts[0]["name"] != representation["rootPart"] or parts[0]["kind"] != "json":
+                            raise SystemExit(f"{op_id}: multipart response rootPart must be the first JSON part")
+                        if not any(part["kind"] == "binary" for part in parts):
+                            raise SystemExit(f"{op_id}: multipart response must declare at least one binary part")
+                        if sum(part["maxBytes"] for part in parts) > representation["maxBytes"]:
+                            raise SystemExit(f"{op_id}: multipart part byte limits exceed representation.maxBytes")
+                    elif parts or "rootPart" in representation:
+                        raise SystemExit(f"{op_id}: application/json response representation cannot declare multipart parts")
             result = response.get("result")
+            multipart_representations = [
+                representation
+                for representation in representations_by_key.values()
+                if representation["mediaType"] == "multipart/related"
+            ]
+            binary_policy = response.get("binaryContent")
+            if multipart_representations and not binary_policy:
+                raise SystemExit(f"{op_id}: multipart response requires response.binaryContent")
+            if binary_policy:
+                retention = binary_policy["retention"]
+                if not (retention.startswith("<") and retention.endswith(">")):
+                    fixed_duration_seconds(retention, f"{op_id}: response.binaryContent.retention")
+                for representation in multipart_representations:
+                    for part in representation["parts"]:
+                        if part["kind"] == "binary" and part["maxBytes"] > binary_policy["maxBytes"]:
+                            raise SystemExit(f"{op_id}: response binary part exceeds response.binaryContent.maxBytes")
             if result:
-                declared = set(ids)
-                body_by_id = {item["id"]: item["body"] for item in dispositions}
                 mappings = result.get("mappings", [])
-                mapped = {item["dispositionId"] for item in mappings}
+                mapping_pairs = [(item["dispositionId"], item["representationId"]) for item in mappings]
+                if any(pair not in representations_by_key for pair in mapping_pairs):
+                    raise SystemExit(f"{op_id}: response mapping references unknown disposition/representation")
                 cases = result.get("dispositionSelector", {}).get("cases", [])
-                selected = {item["dispositionId"] for item in cases}
                 unique([item["value"] for item in cases], f"{op_id}: duplicate disposition selector value")
-                if not mapped <= declared or not selected <= declared:
-                    raise SystemExit(f"{op_id}: response mapping/selector references unknown disposition")
-                if len(dispositions) > 1 and selected != declared:
-                    raise SystemExit(f"{op_id}: disposition selector must cover every disposition exactly once")
-                if any(body_by_id[item] != "required" for item in mapped):
-                    raise SystemExit(f"{op_id}: bodyless disposition must not declare a response-body mapping")
-                if any(item["body"] == "required" and item["id"] not in mapped for item in dispositions):
-                    raise SystemExit(f"{op_id}: body-bearing disposition has no response mapping")
-                for disposition_id in declared:
-                    targets = [item["to"] for item in mappings if item["dispositionId"] == disposition_id]
-                    unique(targets, f"{op_id}: duplicate response mapping target for {disposition_id}")
+                selected = set()
+                for case in cases:
+                    disposition_id = case["dispositionId"]
+                    disposition = next((item for item in dispositions if item["id"] == disposition_id), None)
+                    if disposition is None:
+                        raise SystemExit(f"{op_id}: response selector references unknown disposition")
+                    representation_id = case.get("representationId")
+                    if disposition["body"] == "none":
+                        if representation_id is not None:
+                            raise SystemExit(f"{op_id}: bodyless disposition must not select a representation")
+                        selected.add((disposition_id, None))
+                    else:
+                        if representation_id is None or (disposition_id, representation_id) not in representations_by_key:
+                            raise SystemExit(f"{op_id}: body-bearing disposition must select an exact representation")
+                        selected.add((disposition_id, representation_id))
+                needs_selector = len(dispositions) > 1 or any(
+                    len(item.get("representations", [])) > 1 for item in dispositions
+                )
+                if needs_selector and selected != required_combinations:
+                    raise SystemExit(f"{op_id}: disposition selector must cover every disposition/representation combination exactly once")
+                mapped_pairs = set(mapping_pairs)
+                if any(pair not in mapped_pairs for pair in representations_by_key):
+                    raise SystemExit(f"{op_id}: body-bearing response representation has no mapping")
+                target_keys = []
+                for mapping in mappings:
+                    target = mapping["target"]
+                    target_key = (
+                        mapping["dispositionId"],
+                        mapping["representationId"],
+                        target["kind"],
+                        target.get("part"),
+                        target.get("pointer"),
+                        json.dumps(target.get("contentIdField"), sort_keys=True),
+                    )
+                    target_keys.append(target_key)
+                    if target["kind"] == "multipart-json":
+                        representation = representations_by_key[(mapping["dispositionId"], mapping["representationId"])]
+                        if representation["mediaType"] != "multipart/related" or target["part"] not in {
+                            part["name"] for part in representation["parts"] if part["kind"] == "json"
+                        }:
+                            raise SystemExit(f"{op_id}: multipart-json target must reference a declared JSON part")
+                    elif target["kind"] == "multipart-binary":
+                        representation = representations_by_key[(mapping["dispositionId"], mapping["representationId"])]
+                        part = next((part for part in representation.get("parts", []) if part["name"] == target["part"]), None)
+                        content_id_field = target["contentIdField"]
+                        if representation["mediaType"] != "multipart/related" or part is None or part["kind"] != "binary":
+                            raise SystemExit(f"{op_id}: multipart-binary target must reference a declared binary part")
+                        if content_id_field["part"] != representation["rootPart"] or not content_id_field["pointer"].endswith("/contentId"):
+                            raise SystemExit(f"{op_id}: response Content-ID field must point to root RefToBinaryData.contentId")
+                    elif target["kind"] == "json-body":
+                        representation = representations_by_key[(mapping["dispositionId"], mapping["representationId"])]
+                        if representation["mediaType"] != "application/json":
+                            raise SystemExit(f"{op_id}: json-body target requires application/json representation")
+                unique(target_keys, f"{op_id}: duplicate response mapping target")
+                for pair, representation in representations_by_key.items():
+                    if representation["mediaType"] == "multipart/related":
+                        for part in representation["parts"]:
+                            if part["kind"] == "binary":
+                                matches = [
+                                    item for item in mappings
+                                    if (item["dispositionId"], item["representationId"]) == pair
+                                    and item["target"]["kind"] == "multipart-binary"
+                                    and item["target"]["part"] == part["name"]
+                                ]
+                                if len(matches) != 1:
+                                    raise SystemExit(f"{op_id}: each multipart binary part must have exactly one mapping")
             elif any(item["body"] == "required" for item in dispositions) or len(dispositions) > 1:
                 raise SystemExit(f"{op_id}: body-bearing or multiple dispositions require a typed response result")
 
@@ -297,19 +397,59 @@ def validate_3gpp_reference_example(catalog: dict) -> None:
     dispositions = {item["id"]: item for item in response["dispositions"]}
     status_by_id = {key: item["status"] for key, item in dispositions.items()}
     if status_by_id != {
-        "update-with-json-cause": 200,
+        "update-completed": 200,
         "update-completed-no-content": 204,
     }:
         raise SystemExit("UpdateSMContext success response dispositions must be 200 and 204")
-    json_response = dispositions["update-with-json-cause"]
+    json_response = next(item for item in dispositions["update-completed"]["representations"] if item["id"] == "json")
+    multipart_response = next(item for item in dispositions["update-completed"]["representations"] if item["id"] == "multipart")
     bodyless_response = dispositions["update-completed-no-content"]
-    if json_response["body"] != "required" or json_response["mediaType"] != "application/json":
-        raise SystemExit("v1alpha1 reference profile supports the 200 JSON response representation only")
-    if bodyless_response["body"] != "none" or "mediaType" in bodyless_response:
+    if json_response["mediaType"] != "application/json":
+        raise SystemExit("UpdateSMContext JSON representation must use application/json")
+    if multipart_response["mediaType"] != "multipart/related" or multipart_response["rootPart"] != "jsonData":
+        raise SystemExit("UpdateSMContext multipart response must use jsonData as its root part")
+    response_parts = {part["name"]: part for part in multipart_response["parts"]}
+    if set(response_parts) != {"jsonData", "binaryDataN1SmMessage", "binaryDataN2SmInformation"}:
+        raise SystemExit("UpdateSMContext V19.5.0 multipart response parts do not match the pinned OpenAPI")
+    if response_parts["jsonData"]["kind"] != "json" or response_parts["jsonData"]["schemaRef"] != multipart_response["responseSchemaRef"]:
+        raise SystemExit("UpdateSMContext multipart root JSON part must use the response Schema")
+    if response_parts["binaryDataN1SmMessage"]["mediaType"] != "application/vnd.3gpp.5gnas":
+        raise SystemExit("UpdateSMContext N1 SM response part media type mismatch")
+    if response_parts["binaryDataN2SmInformation"]["mediaType"] != "application/vnd.3gpp.ngap":
+        raise SystemExit("UpdateSMContext N2 SM response part media type mismatch")
+    if bodyless_response["body"] != "none" or bodyless_response.get("representations"):
         raise SystemExit("UpdateSMContext 204 success response must be bodyless")
+    binary_policy = response.get("binaryContent", {})
+    if binary_policy.get("access") != "integration-response-only" or binary_policy.get("immutable") is not True:
+        raise SystemExit("UpdateSMContext multipart response requires immutable Integration-only binary references")
     mappings = response["result"]["mappings"]
-    if not any(item["from"] == "/cause" and item["to"] == "/cause" for item in mappings):
-        raise SystemExit("UpdateSMContext response mapping must use SmContextUpdatedData.cause")
+    expected_targets = {
+        ("json", "json-body", None, "/cause"),
+        ("multipart", "multipart-json", "jsonData", "/cause"),
+        ("multipart", "multipart-binary", "binaryDataN1SmMessage", None),
+        ("multipart", "multipart-binary", "binaryDataN2SmInformation", None),
+    }
+    actual_targets = set()
+    for mapping in mappings:
+        target = mapping["target"]
+        actual_targets.add((mapping["representationId"], target["kind"], target.get("part"), target.get("pointer")))
+        if target["kind"] == "multipart-binary":
+            expected_pointer = {
+                "binaryDataN1SmMessage": "/n1SmMsg/contentId",
+                "binaryDataN2SmInformation": "/n2SmInfo/contentId",
+            }[target["part"]]
+            if target["contentIdField"] != {"part": "jsonData", "pointer": expected_pointer}:
+                raise SystemExit(f"{target['part']} response part must be linked through {expected_pointer}")
+    if actual_targets != expected_targets:
+        raise SystemExit("UpdateSMContext response representations must map cause and both binary response parts")
+    selector = response["result"]["dispositionSelector"]["cases"]
+    selected = {(item["dispositionId"], item.get("representationId")) for item in selector}
+    if selected != {
+        ("update-completed", "json"),
+        ("update-completed", "multipart"),
+        ("update-completed-no-content", None),
+    }:
+        raise SystemExit("UpdateSMContext response selector must cover JSON, multipart and 204 bodyless outcomes")
 
 
 def expect_schema_failure(validator: Draft202012Validator, value: dict, label: str) -> None:
