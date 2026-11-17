@@ -35,6 +35,7 @@
 - Generic Host 对 3GPP、HTTP/2、SBI 路径或协议 Payload 的解析；
 - Runtime 对原始 HTTP request 的解析或协议身份推导；
 - 新 Invocation、Root selection、Skill selection 或 Run；
+- 创建初始 Invocation/Run 的 Start Ingress，以及该初始请求的配对响应（例如 CreateSMContext Step 3/5）。它们属于独立的 Start Ingress / Service-exit 契约；本文的 IngressCatalog 只绑定已创建 Run 中的 Node-entry Wait 事件及其配对响应；
 - 出站 SBI Tool 的调用契约。出站 Tool 仍使用 ToolCatalog Operation；
 - TLS/OAuth 密钥、证书、令牌、服务发现地址等部署秘密；
 - Integration 的具体 HTTP Server、队列、数据库、持久化产品或 DTO 线格式。
