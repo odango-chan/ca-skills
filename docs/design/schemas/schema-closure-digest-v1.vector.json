@@ -1,13 +1,13 @@
 {
   "root": {
     "artifactRef": "urn:test:schemas/root",
-    "artifactDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "artifactDigest": "sha256:f51a9eb5c36cafa2a13ec90cd7506ac9ef6760c634a43e6dda7d59db8904334b",
     "pointer": "#/components/schemas/Request"
   },
   "nodes": [
     {
       "artifactRef": "urn:test:schemas/root",
-      "artifactDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "artifactDigest": "sha256:f51a9eb5c36cafa2a13ec90cd7506ac9ef6760c634a43e6dda7d59db8904334b",
       "pointer": "#/components/schemas/Request",
       "schema": {
         "type": "object",
@@ -23,7 +23,7 @@
     },
     {
       "artifactRef": "urn:test:schemas/common",
-      "artifactDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "artifactDigest": "sha256:df32fafdd787b9a6f198a752e625fac3440c8c4ad5ea330dcb7228869074a851",
       "pointer": "#/$defs/Context",
       "schema": {
         "$id": "resources/context",
@@ -43,15 +43,35 @@
     },
     {
       "artifactRef": "urn:test:schemas/shared",
-      "artifactDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "artifactDigest": "sha256:f280abc9a774145f570456800b98fde326194effd575a83f5bf6f867080bd207",
       "pointer": "#/$defs/Shared",
+      "schema": {
+        "$id": "resources/shared",
+        "type": "object",
+        "properties": {
+          "leaf": {
+            "$ref": "#/$defs/Leaf"
+          }
+        },
+        "$defs": {
+          "Leaf": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    {
+      "artifactRef": "urn:test:schemas/shared",
+      "artifactDigest": "sha256:f280abc9a774145f570456800b98fde326194effd575a83f5bf6f867080bd207",
+      "pointer": "#/$defs/Shared/$defs/Leaf",
       "schema": {
         "type": "string",
         "minLength": 1
       }
     }
   ],
-  "expectedDigest": "sha256:bed6154a9c5149a9f019641151be2dc74f960880b7486434915822e590a18ddf",
+  "expectedDigest": "sha256:ee0952a9ee8e7c14c83716cc101a6776556214f6d701f8e4e1517a89b8e5b74c",
   "resolutionContext": {
     "snapshotBaseUri": "https://snapshot.invalid/package/",
     "documents": [
@@ -59,7 +79,7 @@
         "artifactRef": "urn:test:schemas/root",
         "snapshotPath": "openapi/root.yaml",
         "documentUri": "https://snapshot.invalid/package/openapi/root.yaml",
-        "artifactDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "artifactDigest": "sha256:f51a9eb5c36cafa2a13ec90cd7506ac9ef6760c634a43e6dda7d59db8904334b",
         "dialect": "openapi-3.0",
         "document": {
           "openapi": "3.0.0",
@@ -78,13 +98,14 @@
               }
             }
           }
-        }
+        },
+        "rawArtifact": "{\"components\":{\"schemas\":{\"Request\":{\"properties\":{\"context\":{\"$ref\":\"common.yaml#/$defs/Context\"}},\"required\":[\"context\"],\"type\":\"object\"}}},\"openapi\":\"3.0.0\"}"
       },
       {
         "artifactRef": "urn:test:schemas/common",
         "snapshotPath": "openapi/common.yaml",
         "documentUri": "https://snapshot.invalid/package/openapi/common.yaml",
-        "artifactDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "artifactDigest": "sha256:df32fafdd787b9a6f198a752e625fac3440c8c4ad5ea330dcb7228869074a851",
         "dialect": "json-schema-2020-12",
         "document": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -106,24 +127,37 @@
               ]
             }
           }
-        }
+        },
+        "rawArtifact": "{\"$defs\":{\"Context\":{\"$id\":\"resources/context\",\"properties\":{\"shared\":{\"$ref\":\"../shared.json#/$defs/Shared\"},\"supi\":{\"type\":\"string\"}},\"required\":[\"supi\"],\"type\":\"object\"}},\"$id\":\"https://schemas.invalid/common\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\"}"
       },
       {
         "artifactRef": "urn:test:schemas/shared",
         "snapshotPath": "openapi/shared.json",
         "documentUri": "https://snapshot.invalid/package/openapi/shared.json",
-        "artifactDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "artifactDigest": "sha256:f280abc9a774145f570456800b98fde326194effd575a83f5bf6f867080bd207",
         "dialect": "json-schema-2020-12",
         "document": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://schemas.invalid/shared.json",
           "$defs": {
             "Shared": {
-              "type": "string",
-              "minLength": 1
+              "$id": "resources/shared",
+              "type": "object",
+              "properties": {
+                "leaf": {
+                  "$ref": "#/$defs/Leaf"
+                }
+              },
+              "$defs": {
+                "Leaf": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
             }
           }
-        }
+        },
+        "rawArtifact": "{\"$defs\":{\"Shared\":{\"$defs\":{\"Leaf\":{\"minLength\":1,\"type\":\"string\"}},\"$id\":\"resources/shared\",\"properties\":{\"leaf\":{\"$ref\":\"#/$defs/Leaf\"}},\"type\":\"object\"}},\"$id\":\"https://schemas.invalid/shared.json\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\"}"
       }
     ]
   }
