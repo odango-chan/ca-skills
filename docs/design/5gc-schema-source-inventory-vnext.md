@@ -38,7 +38,7 @@ Primary sources:
 - `skills/establish-pdu-session/schemas/establishment-request.schema.yaml`
 - `skills/establish-pdu-session/scripts/*.py` and their adjacent `*-input.schema.yaml` / output schemas
 
-The current request schema requires `pduSessionId` (1..15), `pti` (1..254), `requestType` (=1), `dnn`, `sNssai`, `servingPlmn`, `requestedPduSessionType` (=IPV4), and `requestedSscMode` (=1). The Procedure explicitly sources its UE reference from `context.subject.ueRef`, request values from `context.request.*`, and ingress/lifecycle refs from `context.facts.*`. These context paths are dependencies on Host/owner material; they are not Skill-owned schema definitions.
+The current request schema requires `pduSessionId` (1..15), `pti` (1..254), `requestType` (=1), `dnn`, `sNssai`, `servingPlmn`, `requestedPduSessionType` (=IPV4), and `requestedSscMode` (=1). The Procedure explicitly sources the admitted 3GPP identity from `context.supi`, request values from `context.request.*`, and keeps ingress/lifecycle refs in private Host execution metadata rather than Skill-visible context. These context paths are dependencies on Host/owner material; they are not Skill-owned schema definitions.
 
 ## 4. Operation / Capability schemas
 
