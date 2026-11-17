@@ -598,6 +598,7 @@ The following semantic cases are REQUIRED for future language/Host/Runtime/Integ
 | EW-014 | Wait timeout route targets SUCCEEDED | Compiler emits WAIT_TIMEOUT_ROUTE_INVALID |
 | EW-015 | Wait selector resolves to zero/multiple exports | Compiler emits exact not-found/ambiguous diagnostic |
 | EW-016 | One incoming path cannot derive correlation before trigger | Compiler emits WAIT_CORRELATION_BINDING_INVALID |
+| EW-017 | Wait N reaches EVENT_ACCEPTED and a second Wait for the same resource key is attempted before tombstone expiry; a delayed retry of N then arrives | Without a wire discriminator, reject the second arming until tombstone expiry; with one, identify the old request as already consumed and never deliver it to Wait N+1 |
 | EW-017 | Multiple incoming paths resolve to different Ingress exports/Schemas | Compiler rejects; authors must use distinct Wait Nodes |
 | EW-018 | response.after is bypassed by a normal accepted path | Compiler emits WAIT_RESPONSE_BOUNDARY_INVALID |
 | EW-019 | Accepted path terminates early with a mapped failure disposition | Integration emits the declared failure response; no response is fabricated by Runtime |
