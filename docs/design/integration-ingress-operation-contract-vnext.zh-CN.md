@@ -751,6 +751,7 @@ spec:
             status: 200
             body: required
             mediaType: application/json
+            maxBytes: 65536
             responseSchemaRef: urn:example:openapi:update-sm-context-response
             responseSchemaDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
           - id: update-completed-no-content
