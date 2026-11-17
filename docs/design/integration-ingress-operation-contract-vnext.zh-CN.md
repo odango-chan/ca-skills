@@ -377,6 +377,8 @@ Integration 必须证明一个经过认证、验证和归一化的请求最多�
 
 Wire discriminator 是外部请求身份，不是用于预派发匹配 Run/Wait 的 correlation key；它不要求在 arming 时预先知道，也不要求加入 normalized business Schema。Integration 在接收请求时提取 discriminator，并在匹配/提交 delivery 前检查它是否已被其他 Wait occurrence 消费。其值必须在 authenticated peer + Ingress export 的范围内对每个原始请求唯一，并在该请求的所有重传中保持不变。缺失、重复复用或格式不合法时必须拒绝/隔离，不得退回到猜测或选择 newest。
 
+wire-discriminator 策略还必须声明 maximumLateArrival、clockSkewAllowance、discriminatorRetention 和 basisRef。Integration 必须按 (authenticated peer, Ingress export identity, discriminator value) 持久记录已消费的 discriminator；discriminatorRetention 不得小于 maximumLateArrival + clockSkewAllowance。迟到副本在该保留期内到达时必须识别为已消费请求，不得分配给新 Wait。若无法证明有限迟到窗口或提供可审计依据，则不得使用 wire-discriminator 策略。
+
 3GPP 的 `3gpp-Sbi-Request-Info: idempotency-key=...` 在客户端/服务端启用重复请求检测时可提供这一保证；该机制是可选能力，因此不能假定所有 AMF 都会发送。若不要求并验证该 Header，则必须使用 single-flight/tombstone 策略。只在 Host/Runtime 内生成的 generation counter 不能区分外部迟到请求，除非该 generation 也能由入站协议请求可靠证明。
 
 ### 7.3 无 Wire discriminator 时的 Single-flight
@@ -858,6 +860,7 @@ spec:
 | IN-044 | pinned OpenAPI response 需要 multipart/related binary parts，但 v1alpha1 export 仅声明 JSON response mapping | Compiler/Admission 拒绝不完整响应表示；不得丢弃或字符串化 binary parts |
 | IN-045 | Step 15 N2 setup failure 要求 Step 17 携带 N1 SM Reject binary container，而 export 仅声明 JSON response | Integration/Admission 不得以 204 或通用 JSON error 替代；该失败分支保持 NOT LINKABLE |
 | IN-046 | staleDelivery 使用 3gpp-Sbi-Request-Info.idempotency-key，但请求缺少该参数或独立请求复用该 key | Integration 拒绝/隔离；不得退回 canonical digest 或重新分配到其他 Wait |
+| IN-047 | wire-discriminator 的 discriminatorRetention 小于 maximumLateArrival + clockSkewAllowance | Compiler/Admission 拒绝不足以覆盖迟到重传窗口的身份保留策略 |
 
 ## 15. 冻结与发布门槛
 
