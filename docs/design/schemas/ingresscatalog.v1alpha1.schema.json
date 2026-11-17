@@ -340,7 +340,8 @@
           "enum": [
             "protocol-request-id",
             "trusted-gateway-request-id",
-            "canonical-request-digest"
+            "canonical-request-digest",
+            "3gpp-sbi-idempotency-key"
           ]
         },
         "scope": {
@@ -353,15 +354,52 @@
       "additionalProperties": false,
       "required": [
         "strategy",
-        "discriminatorPath"
+        "discriminator"
       ],
       "properties": {
         "strategy": {
           "const": "wire-discriminator"
         },
-        "discriminatorPath": {
-          "type": "string",
-          "pattern": "^/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*$"
+        "discriminator": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "path"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "normalized-request-path"
+                },
+                "path": {
+                  "type": "string",
+                  "pattern": "^/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "header",
+                "parameter"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "authenticated-header-parameter"
+                },
+                "header": {
+                  "const": "3gpp-Sbi-Request-Info"
+                },
+                "parameter": {
+                  "const": "idempotency-key"
+                }
+              }
+            }
+          ]
         }
       }
     },
