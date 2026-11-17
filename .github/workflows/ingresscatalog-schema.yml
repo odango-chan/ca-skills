@@ -58,10 +58,21 @@ jobs:
           import pathlib
           import sys
           import yaml
-          artifact = yaml.safe_load(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+          artifact_path = pathlib.Path(sys.argv[1])
+          artifact = yaml.safe_load(artifact_path.read_text(encoding="utf-8"))
           assert artifact["openapi"] == "3.0.0"
           assert artifact["info"]["title"] == "Nsmf_PDUSession"
           assert artifact["info"]["version"] == "1.4.0"
+          with open("$GITHUB_ENV", "a", encoding="utf-8") as env_file:
+              env_file.write(f"TS29502_OPENAPI_PATH={artifact_path}\\n")
+          for path, methods in artifact["paths"].items():
+              for method, operation in methods.items():
+                  if operation.get("operationId") == "UpdateSmContext":
+                      print("UpdateSmContext path:", path, method.upper())
+                      print("Request media types:", sorted(operation["requestBody"]["content"]))
+                      for status, response in operation["responses"].items():
+                          print("Response", status, "media types:", sorted(response.get("content", {})))
+                      break
           print("Pinned ETSI Annex A.2 OpenAPI identity: PASS")
           PY
       - name: Validate IngressCatalog example
