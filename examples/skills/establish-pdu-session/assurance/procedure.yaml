@@ -153,7 +153,7 @@ nodes:
   # The AMF Tool consumes the exact effective configuration returned by the N4 Owner.
   # Its Evidence binds the transferred N1/N2 payload to that configuration digest.
   # An AMF transfer acknowledgement is initiation only; it never proves RAN adoption.
-  # 3GPP: 3GPP_NATIVE — TS 23.502 V19.9.0 §4.3.2.2.1 step 11; Namf_Communication_N1N2MessageTransfer. AMF API: TS 29.518 V19.8.0, Namf_Communication §5.2 / OpenAPI Annex A.2.
+  # 3GPP: 3GPP_NATIVE — TS 23.502 V19.9.0 §4.3.2.2.1 step 11; Namf_Communication_N1N2MessageTransfer. AMF API: TS 29.518 V19.8.0, Namf_Communication §5.2 / OpenAPI Annex A.2; TS 29.571 V19.7.0 §5.4.4.14 `RefToBinaryData` for referenced N1/N2 binary body parts.
   transfer-n1n2-message:
     operation:
       tool: ca::sbi.amf.n1n2.transfer
@@ -184,7 +184,7 @@ nodes:
   # Runtime resumes this same Invocation when the Owner returns the result. The paired Step 17
   # response remains a private Host service-exit obligation.
   # After completion, this Node performs a fresh exact UE/PSI SM Context Observation.
-  # 3GPP: CA_ADAPTER — TS 23.502 V19.9.0 §4.3.2.2.1 step 15; Nsmf_PDUSession_UpdateSMContext. SMF API: TS 29.502 V19.7.0, Nsmf_PDUSession §5.2/§6.1 / OpenAPI Annex A.2.
+  # 3GPP: CA_ADAPTER — TS 23.502 V19.9.0 §4.3.2.2.1 step 15; Nsmf_PDUSession_UpdateSMContext. SMF API: TS 29.502 V19.7.0, Nsmf_PDUSession §5.2/§6.1 / OpenAPI Annex A.2; TS 29.571 V19.7.0 §5.4.4.14 `RefToBinaryData` for referenced N1/N2 binary body parts.
   update-sm-context:
     operation:
       tool: smf::nsmf.pdu_session.update_sm_context
