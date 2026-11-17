@@ -214,7 +214,7 @@ nodes:
         FAILED: UNRESOLVED
 ~~~
 
-This fragment is not a complete Skill: its referenced Nodes, schemas, Predicate declarations, dependency exports and final Goal Postcondition are intentionally omitted. It demonstrates only the Node-entry Wait shape, typed wait.output binding, timeout routing and the Step 17 response boundary. The Integration export MUST identify the triggering transfer callable and prove its pre-dispatch correlation binding.
+This fragment is not a complete Skill: its referenced Nodes, schemas, Predicate declarations, dependency exports and final Goal Postcondition are intentionally omitted. It demonstrates only the Node-entry Wait shape, typed wait.output binding, timeout routing and the Step 17 response boundary. The Integration export MUST identify the triggering transfer callable and prove its pre-dispatch correlation binding. For a body-bearing Step 17 response, its responseResultSources binding may select modify-n4-session.operation.output and MUST validate that exact output against the pinned protocol response Schema.
 
 ## 3. Integration Ingress Operation export
 
@@ -511,7 +511,7 @@ Runtime -> Host:
 
 Runtime creates expectedIngressRef and privately binds it to the exact Run, Node and Wait occurrence. Host and Integration carry it only as an opaque handle. Neither may resolve it to a Run or Node. Integration MUST NOT receive runId or waitOccurrenceRef.
 
-deliveryRef is an Integration-owned idempotency identity for one normalized delivery. responseObligationRef is Integration-owned and remains private to Integration/Host. normalizedPayloadRef is a protected immutable reference; the typed request value is exposed to Skill code only through wait.output.
+deliveryRef is an Integration-owned idempotency identity for one normalized delivery. responseObligationRef is Integration-owned and remains private to Integration/Host. It MUST be present if and only if the pinned Ingress Operation export declares a paired response. responseResultRef is required only for a body-bearing response disposition; it MAY be absent for a bodyless response. normalizedPayloadRef is a protected immutable reference; the typed request value is exposed to Skill code only through wait.output.
 
 Delivery is durable at-least-once plus idempotent acceptance. No distributed exactly-once transport guarantee is implied. Runtime's atomic state transition and durable checkpoint enforce exactly-once Node entry for one Wait occurrence.
 
