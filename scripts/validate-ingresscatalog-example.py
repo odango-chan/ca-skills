@@ -589,7 +589,7 @@ def validate_standard_artifact_lock() -> None:
         raise SystemExit("the REL-19 GitLab copy must remain explicitly informative until commit-pinned")
     if informative["digest"]["value"] is not None or informative["digest"]["status"] != "NOT_COMPUTED":
         raise SystemExit("the informative repository copy must not be presented as a verified artifact pin")
-    if lock["verification"]["status"] != "BLOCKED" or lock["verification"]["admissionAllowed"] is not False:
+    if spec["verification"]["status"] != "BLOCKED" or spec["verification"]["admissionAllowed"] is not False:
         raise SystemExit("OpenAPI admission must remain blocked until the exact artifact digest is verified")
 
 
