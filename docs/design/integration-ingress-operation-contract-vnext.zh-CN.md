@@ -407,7 +407,7 @@ CA-SL 的 wait.response.after 只选择一个 Node completion boundary；省略�
 
 - response.result.producer: operation：响应结果来自 <response.after>.operation.output；
 - response.result.producer: observation：响应结果来自 <response.after>.observation.output；
-- bodyless 响应不声明 result Producer。
+- 仅当唯一的 response disposition 是固定的 body: none 时，才不声明 result Producer；多个 bodyless dispositions 仍须通过 typed result 和 dispositionSelector 明确选择。
 
 Compiler 根据 Skill 的 wait.response.after 和 Ingress export 的 producer 类型，确定唯一 SourcePath。该 Producer 必须存在、其输出必须在每条正常到达 response boundary 的路径上可用，并且其 Output Schema 必须可赋值给 Integration export 声明的 responseResultSchema。
 
