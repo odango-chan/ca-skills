@@ -184,40 +184,53 @@ jobs:
           assert schema["required"] == ["contentId"]
           assert schema["properties"]["contentId"]["type"] == "string"
 
-          def walk(value):
-              if isinstance(value, dict):
-                  for key, child in value.items():
-                      if key == "$ref":
-                          yield child
-                      yield from walk(child)
-              elif isinstance(value, list):
-                  for child in value:
-                      yield from walk(child)
-
-          common_external_refs = [ref for ref in walk(common) if not ref.startswith("#/")]
-          assert not common_external_refs, (
-              f"TS 29.571 CommonData must be self-contained: {common_external_refs}"
-          )
-
-          session_external_refs = sorted({
-              ref for ref in walk(session) if not ref.startswith("#/")
-          })
-          assert session_external_refs, "expected TS 29.502 to expose its external CommonData references"
-          for ref in session_external_refs:
-              filename, fragment = ref.split("#", 1)
-              assert filename == "TS29571_CommonData.yaml", (
-                  f"unexpected external OpenAPI dependency: {ref}"
-              )
-              target = common
+          def resolve_pointer(document, fragment):
+              assert fragment.startswith("/"), f"invalid JSON Pointer: {fragment}"
+              target = document
               for token in fragment.lstrip("/").split("/"):
                   token = token.replace("~1", "/").replace("~0", "~")
                   target = target[token]
-          print("Official TS 29.571 Annex A.2 identity, RefToBinaryData and closed schema: PASS")
+              return target
+
+          visited = set()
+          external_refs = set()
+
+          def visit(value, document_name, document):
+              if isinstance(value, dict):
+                  for key, child in value.items():
+                      if key != "$ref":
+                          visit(child, document_name, document)
+                          continue
+
+                      filename, separator, fragment = child.partition("#")
+                      assert separator and fragment, f"invalid OpenAPI reference: {child}"
+                      if filename:
+                          external_refs.add(child)
+                          assert filename == "TS29571_CommonData.yaml", (
+                              f"unexpected external OpenAPI dependency in UpdateSmContext: {child}"
+                          )
+                          target_name, target_document = filename, common
+                      else:
+                          target_name, target_document = document_name, document
+
+                      visit_key = (target_name, fragment)
+                      if visit_key in visited:
+                          continue
+                      visited.add(visit_key)
+                      visit(resolve_pointer(target_document, fragment), target_name, target_document)
+              elif isinstance(value, list):
+                  for child in value:
+                      visit(child, document_name, document)
+
+          visit(operation, "TS29502_Nsmf_PDUSession.yaml", session)
+          assert external_refs, "UpdateSmContext must resolve its external TS 29.571 CommonData references"
+          print("Official TS 29.571 Annex A.2 identity and RefToBinaryData: PASS")
           print(
-              "TS 29.502 external OpenAPI references resolved:",
-              len(session_external_refs),
-              "against pinned TS 29.571 CommonData: PASS",
+              "UpdateSmContext transitive external references:",
+              *sorted(external_refs),
+              sep="\\n  ",
           )
+          print("UpdateSmContext external OpenAPI closure: PASS")
           PY
       - name: Validate IngressCatalog example
         run: python scripts/validate-ingresscatalog-example.py
