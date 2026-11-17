@@ -370,7 +370,14 @@ Integration 必须证明一个经过认证、验证和归一化的请求最多�
 
 ### 7.2 Wire discriminator
 
-若协议提供 request ID、transaction ID、generation 或其他可验证 discriminator，Ingress export 的 staleDelivery 必须声明 strategy=wire-discriminator 和 normalized request 中的精确 discriminatorPath；该路径必须是 normalized Schema 中可验证的字段，并纳入 correlation。Integration 必须校验其作用域、唯一性和生命周期。只在 Host/Runtime 内生成的 generation counter 不能区分外部迟到请求，除非该 generation 也能由入站协议请求可靠证明。
+若协议提供 request ID、transaction ID、generation 或其他可验证 discriminator，Ingress export 的 staleDelivery 必须声明 strategy=wire-discriminator，并声明 discriminator 的来源。v1alpha1 支持两种来源：
+
+- `normalized-request-path`：从已验证的 normalized request 中读取精确 JSON Pointer；该字段必须在源 Schema、归一化映射和受信协议定义中闭合；
+- `authenticated-header-parameter`：当前仅支持 3GPP SBI 的 `3gpp-Sbi-Request-Info` header 中的 `idempotency-key` 参数。Peer profile 必须要求该参数在每个请求中提供；Integration 必须按 TS 29.500 解析参数，而不是把整个 Header 字符串当作 ID。
+
+Wire discriminator 是外部请求身份，不是用于预派发匹配 Run/Wait 的 correlation key；它不要求在 arming 时预先知道，也不要求加入 normalized business Schema。Integration 在接收请求时提取 discriminator，并在匹配/提交 delivery 前检查它是否已被其他 Wait occurrence 消费。其值必须在 authenticated peer + Ingress export 的范围内对每个原始请求唯一，并在该请求的所有重传中保持不变。缺失、重复复用或格式不合法时必须拒绝/隔离，不得退回到猜测或选择 newest。
+
+3GPP 的 `3gpp-Sbi-Request-Info: idempotency-key=...` 在客户端/服务端启用重复请求检测时可提供这一保证；该机制是可选能力，因此不能假定所有 AMF 都会发送。若不要求并验证该 Header，则必须使用 single-flight/tombstone 策略。只在 Host/Runtime 内生成的 generation counter 不能区分外部迟到请求，除非该 generation 也能由入站协议请求可靠证明。
 
 ### 7.3 无 Wire discriminator 时的 Single-flight
 
@@ -394,9 +401,11 @@ Integration 必须证明一个经过认证、验证和归一化的请求最多�
 
 Integration 为一次已接受的 normalized delivery 生成稳定 deliveryRef，并在重试时保持不变。Host 按 deliveryRef 幂等持久化。
 
-Integration 必须声明其协议请求去重身份来源。允许的来源为 protocol-request-id、trusted-gateway-request-id，或在同一 expectedIngressRef 范围内的 canonical-request-digest。去重作用域必须至少包含 authenticated peer、Ingress export identity 和 expectedIngressRef；协议 request ID 还必须按协议定义的唯一性范围校验。重试同一请求时必须复用同一个 deliveryRef。
+Integration 必须声明其协议请求去重身份来源。允许的来源为 protocol-request-id、trusted-gateway-request-id、3gpp-sbi-idempotency-key，或在同一 expectedIngressRef 范围内的 canonical-request-digest。去重作用域必须至少包含 authenticated peer、Ingress export identity 和 expectedIngressRef；协议 request ID / SBI idempotency-key 还必须按协议定义的唯一性范围校验。重试同一请求时必须复用同一个 deliveryRef。
 
-duplicate.identitySource 用于识别一次 Ingress delivery 的重试，不自动构成 successive Wait generation 的 wire discriminator。只有当 request ID 可从已验证的入站请求中稳定取得、在协议规定范围内跨 Wait occurrence 唯一，并且被声明为 normalized request 的 correlation.keyFields 时，它才可以同时用于 staleDelivery.strategy=wire-discriminator；否则仍必须使用独立的 stale-delivery 证明。
+对 3GPP SBI，`3gpp-Sbi-Request-Info` 中的 `idempotency-key` 仅在客户端启用 TS 29.500 §5.2.8 的重复请求检测时才存在；同一重传必须复用同一 key，独立请求不得复用。该 key 可同时作为 staleDelivery 的 authenticated-header-parameter discriminator。不要使用 `3gpp-Sbi-Correlation-Info` 代替：它承载 UE/subscriber correlation information，不是每个请求唯一的事务身份。
+
+duplicate.identitySource 用于识别一次 Ingress delivery 的重试，不自动构成 successive Wait generation 的 wire discriminator。只有当 request ID 可从已验证的入站请求或受信 Header 中稳定取得、在协议规定范围内对每个原始请求唯一并在重传时保持不变时，它才可以同时用于 staleDelivery.strategy=wire-discriminator；wire discriminator 不需要加入 correlation.keyFields，因为 correlation.keyFields 负责把请求匹配到资源/Wait，而 discriminator 负责排除旧请求副本。
 
 若使用 canonical request digest，初始 profile 定义为对 normalized business value 执行 RFC 8785 JSON Canonicalization，再将每个 binary content reference 替换为其 media type、长度和 SHA-256 内容摘要描述，最后对该确定性字节序列计算 SHA-256。不得把 payload-store URL、临时引用句柄或其他传输元数据纳入摘要。摘要只在同一个 expectedIngressRef 范围内用于识别重复；同一 Wait occurrence 内两个内容完全相同的独立请求将被视为重复。若业务协议允许同一 Wait 下出现两个内容相同但语义独立的请求，而 Integration 无法区分二者，必须拒绝/隔离歧义情形，不得声称 exactly-once 网络投递。
 
@@ -843,6 +852,7 @@ spec:
 | IN-043 | multipart body 或单个 part 超过其声明 maxBytes | Integration 在无界缓冲前拒绝请求，不提交 normalized delivery |
 | IN-044 | pinned OpenAPI response 需要 multipart/related binary parts，但 v1alpha1 export 仅声明 JSON response mapping | Compiler/Admission 拒绝不完整响应表示；不得丢弃或字符串化 binary parts |
 | IN-045 | Step 15 N2 setup failure 要求 Step 17 携带 N1 SM Reject binary container，而 export 仅声明 JSON response | Integration/Admission 不得以 204 或通用 JSON error 替代；该失败分支保持 NOT LINKABLE |
+| IN-046 | staleDelivery 使用 3gpp-Sbi-Request-Info.idempotency-key，但请求缺少该参数或独立请求复用该 key | Integration 拒绝/隔离；不得退回 canonical digest 或重新分配到其他 Wait |
 
 ## 15. 冻结与发布门槛
 
