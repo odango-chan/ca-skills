@@ -1,12 +1,12 @@
 # ConnectionAgent Skill 编写指南
 
-**语言权威：** [CA-SL v1alpha4 完整规范](skill-language-spec.v1alpha4.zh-CN.md)。本指南只做导航，不另行定义语法。语言及互操作规范已冻结；Compiler / Runtime / Studio / 5GC 产品符合性仍需按 §45.2 验收。
+**语言权威：** [CA-SL v1alpha5 完整规范](skill-language-spec.v1alpha5.zh-CN.md)。本指南只做导航，不另行定义语法。v1alpha4 保持不可变历史版本；v1alpha5 语言及互操作规范已冻结。Compiler / Runtime / Studio / Integration / 5GC 产品符合性仍需按 §45.2 / §L.13.2 独立验收。
 
 ## 1. 当前正式源码基线
 
-当前 5GC 可执行 Skill 仍以 v0.2 为业务行为基线，尚未完成 v1alpha4 迁移。MAS 是设计候选，不是第一阶段真实执行验收基线。迁移前不改写现有可运行源码。
+当前 `skills/` 下的 5GC 可执行 Skill 仍以 v0.2 为业务行为基线，尚未完成 v1alpha5 迁移。MAS 是设计候选，不是第一阶段真实执行验收基线。迁移前不改写现有可运行源码。
 
-## 2. v1alpha4 Skill Package
+## 2. v1alpha5 Skill Package
 
 ~~~text
 skills/<name>/
@@ -28,6 +28,12 @@ skills/<name>/
 - `predicates.yaml`：可复用 Predicate 的参数签名和 CEL / Python evaluator。
 
 **Contract 保留为作者维护的源码。** 只移除冗余包装字段和可由其他信息确定的字段，不删除它承载的公共声明。Compiler 可从 Contract、Procedure、Predicate 和依赖快照生成规范化 Runtime 契约，但不以生成物取代作者源文件。
+
+### Node-entry Wait（v1alpha5）
+
+Node-entry Wait 是目标 Node 入口处的可选控制，不是第五种业务阶段，也不创建 Wait-only Node。事件被接受后，归一化请求通过该 Node 的 `wait.output` Producer 路径提供，且只在事件接受分支上可用。超时通过 Wait 自身的 `TIMEOUT` Route 处理。配对协议响应边界独立于 Invocation 最终 Goal 证明声明。
+
+Wait 必须选择可信 IngressCatalog 依赖中的精确 Ingress Operation。作者不得声明原始 HTTP envelope、delivery ID、correlation handle、tombstone 或私有 response obligation 状态。v1alpha4 原规范不变，仍拒绝 v1alpha5 的 `wait` 语法。
 
 ## 3. Contract 保留什么
 
