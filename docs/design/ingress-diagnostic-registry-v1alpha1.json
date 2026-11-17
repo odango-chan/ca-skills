@@ -75,7 +75,7 @@
         "primary": "Exact invalid field; use '#' for an invalid root and the containing object pointer for a missing required field.",
         "related": "None unless a second catalog field is needed to explain the contradiction.",
         "primaryPointerTemplate": [
-          "#/",
+          "#",
           "#/apiVersion",
           "#/kind",
           "#/spec"
