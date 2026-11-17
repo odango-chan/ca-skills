@@ -214,6 +214,10 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     del missing_part_limit["spec"]["operations"][0]["request"]["normalization"]["representations"][1]["parts"][0]["maxBytes"]
     expect_schema_failure(validator, missing_part_limit, "missing multipart part byte limit")
 
+    media_type_with_parameters = copy.deepcopy(example)
+    media_type_with_parameters["spec"]["operations"][0]["request"]["acceptedMediaTypes"][0] = "application/json; charset=utf-8"
+    expect_schema_failure(validator, media_type_with_parameters, "media type essence must not contain parameters")
+
     duplicate_status = copy.deepcopy(example)
     dispositions = duplicate_status["spec"]["operations"][0]["response"]["dispositions"]
     dispositions[1]["status"] = dispositions[0]["status"]
