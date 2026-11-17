@@ -488,7 +488,7 @@ nodes:
         resources.sessionConfigurationDigest != ""
 """, encoding="utf-8")
             (root / "SKILL.md").write_text(
-                "| \x60establish-n4-session\x60 | step 8 native SMF session/UPF selection, then steps 10a–10b; §4.4.1.2 |\n",
+                "| \x60establish-n4-session\x60 | TS 23.502 V19.9.0 step 8 native SMF session/UPF selection, then steps 10a–10b; §4.4.1.2 | \x60CA_ADAPTER\x60: SMF N4 Owner |\n",
                 encoding="utf-8",
             )
             errors: list[str] = []
