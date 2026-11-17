@@ -278,7 +278,7 @@ If the wire protocol carries a generation, transaction or request discriminator,
 
 ### 4.2 Trigger and arming point
 
-The Integration export MUST identify the trusted triggering Operation callable(s), if any, that can cause the declared inbound event, and MUST define how the correlation binding is materialized before dispatch of each such callable.
+The Integration export MUST identify the trusted triggering Operation callable(s), if any, that can cause the declared inbound event, and MUST define how the correlation binding is materialized before dispatch of each such callable. Each triggering identity MUST resolve to exactly one trusted ToolCatalog Operation callable export in the declared dependency snapshots; a Capability ID, free-form label, Observation export or network address is not a triggering Operation identity.
 
 For each reachable incoming path to a Wait-bearing Node:
 
