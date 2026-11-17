@@ -20,13 +20,17 @@ The MAS-to-3GPP comparisons in this mapping use the following independently pinn
 | TS 23.502 | V19.9.0 | §4.3.2.2.1 PDU Session Establishment; §4.4.1.2–§4.4.1.3 N4 procedures |
 | TS 23.503 | V19.8.0 | PCC and SM Policy framework |
 | TS 29.502 | V19.7.0 | Nsmf CreateSMContext / UpdateSMContext API; OpenAPI Annex A.2 |
-| TS 29.500 | V19.7.1 | SBI retry and HTTP deadline semantics | [ETSI Work Programme](https://portal.etsi.org/webapp/WorkProgram/Frame_WorkItemList.asp?SearchPage=TRUE+++&butExpertSearch=++Search++&includeNonActiveTB=FALSE+++&optDisplay=ALL+++&qCURRENT_STATE_CODE=finalized+++&qINCLUDE_SUB_TB=True+++&qPROJECT_BOOLEAN=OR+++&qREPORT_TYPE=SUMMARY+++&qSORT=HIGHVERSION+++&qTITLE=TS+29.500+++&titleType=all+++) |
+| TS 29.500 | V19.7.1 | SBI retry and HTTP deadline semantics |
+| TS 29.571 | V19.7.0 | Common SBI data types, including `RefToBinaryData` for N1/N2 payload references | [ETSI Work Programme](https://portal.etsi.org/webapp/WorkProgram/Frame_WorkItemList.asp?SearchPage=TRUE+++&butExpertSearch=++Search++&includeNonActiveTB=FALSE+++&optDisplay=ALL+++&qCURRENT_STATE_CODE=finalized+++&qINCLUDE_SUB_TB=True+++&qPROJECT_BOOLEAN=OR+++&qREPORT_TYPE=SUMMARY+++&qSORT=HIGHVERSION+++&qTITLE=TS+29.500+++&titleType=all+++) |
 | TS 29.503 | V19.7.0 | UDM SDM / UECM APIs; OpenAPI Annex A.2 / A.3 |
 | TS 29.512 | V19.6.0 | Npcf_SMPolicyControl API; OpenAPI Annex A.2 |
 | TS 29.518 | V19.8.0 | Namf_Communication API; OpenAPI Annex A.2 |
 | TS 29.244 | V19.6.0 | PFCP/N4 protocol |
 
-The version numbers are per-specification pins, not one common Release 19 version. These references classify the standard interactions that the MAS OES source resembles; they do not turn the MAS plan into a normative 3GPP procedure or qualify its candidate callable identities. In particular, the MAS early UECM registration remains an explicit ordering deviation from conventional TS 23.502 V19.9.0 §4.3.2.2.1 step 16c.
+The version numbers are per-specification pins, not one common Release 19 version.
+
+The Nsmf/Namf adapter operations that carry NAS or NGAP content use the 3GPP binary-part model, not a JSON-only or arbitrary base64 convention. TS 29.502 V19.7.0 defines `multipart/related` representations with a JSON root part plus one or more binary body parts; N1 SM uses `application/vnd.3gpp.5gnas` and N2 NGAP uses `application/vnd.3gpp.ngap`. TS 29.571 V19.7.0 §5.4.4.14 defines `RefToBinaryData.contentId` as the referenced binary part's `Content-ID` header value. The Owner/HTTP adapter must bind the JSON reference to the actual bytes and support all binary parts declared by the operation's OpenAPI schema. This framing is adapter responsibility, not Skill-authored HTTP syntax.
+ These references classify the standard interactions that the MAS OES source resembles; they do not turn the MAS plan into a normative 3GPP procedure or qualify its candidate callable identities. In particular, the MAS early UECM registration remains an explicit ordering deviation from conventional TS 23.502 V19.9.0 §4.3.2.2.1 step 16c.
 
 Primary ETSI documents: [TS 23.502 V19.9.0](https://www.etsi.org/deliver/etsi_ts/123500_123599/123502/19.09.00_60/ts_123502v190900p.pdf), [TS 29.503 V19.7.0](https://www.etsi.org/deliver/etsi_ts/129500_129599/129503/19.07.00_60/ts_129503v190700p.pdf), [TS 29.512 V19.6.0](https://www.etsi.org/deliver/etsi_ts/129500_129599/129512/19.06.00_60/ts_129512v190600p.pdf), and [TS 29.244 V19.6.0](https://www.etsi.org/deliver/etsi_ts/129200_129299/129244/19.06.00_60/ts_129244v190600p.pdf).
 
