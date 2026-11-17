@@ -2,7 +2,7 @@
 
 **状态：** 设计提案；尚未冻结、尚未发布。  
 **适用范围：** CA-SL v1alpha4 之后的语言修订，以及与之配套的可信 Integration 依赖导出。  
-**语义依据：** [Node-level Event Wait 冻结语义 PR #60](https://github.com/odango-chan/ca-skills/pull/60)；accepted-event tombstone/replay 澄清见 [PR #64](https://github.com/odango-chan/ca-skills/pull/64)。  
+**语义依据：** Node-level Event Wait 语义基线见 [PR #60](https://github.com/odango-chan/ca-skills/pull/60)；完整 v1alpha5 规范性增补见 [PR #61](https://github.com/odango-chan/ca-skills/pull/61)；accepted-event tombstone/replay 澄清见 [PR #64](https://github.com/odango-chan/ca-skills/pull/64)。  
 **相关文档：** [CA-SL Wait 规范化草案 PR #61](https://github.com/odango-chan/ca-skills/pull/61)、[Generic Host/Runtime Inbound Event 契约 PR #210](https://github.com/odango-chan/ca-agent-demo/pull/210)。  
 **版本边界：** 本文提出独立的 Integration 导出契约版本，不分配 CA-SL 语言版本，也不改变 v1alpha4。
 
