@@ -247,7 +247,7 @@ The trusted Ingress Operation export, serialized as a package-scoped IngressCata
 7. a deterministic, traceable source-to-normalized mapping for path, query, JSON and supported multipart/binary parts;
 8. authenticated peer identity rules and protocol authorization rules;
 9. deterministic correlation derivation, including the exact permitted triggering Operation callable identity/identities and the pre-dispatch binding required to arm the Wait;
-10. duplicate, stale-delivery, generation-reuse and unmatched-request handling;
+10. duplicate, stale-delivery, generation-reuse and unmatched-request handling; for a single-flight/tombstone strategy, the correlation resource key MUST be consumed and tombstoned after EVENT_ACCEPTED as well as after TIMEOUT, CANCELLED or INVALIDATED;
 11. whether a paired protocol response exists, its response Schema/media types, success and failure mapping, and response-obligation lifecycle;
 12. when a response body is required, the typed response-result input Schema, the response-boundary Producer stage type (operation or observation), the protocol response Schema and a deterministic mapping between them;
 13. a typed armInputSchema for the pre-dispatch correlationBinding, plus exact bindings from either admitted Invocation Context or triggering Operation arguments.
@@ -395,7 +395,7 @@ A valid delivery received in REGISTERED is durably buffered but does not activat
 
 For an ACTIVE Wait, event acceptance and Wait timeout MUST compete through one authoritative atomic state transition. Exactly one disposition wins. The durable winner is authoritative across recovery. Duplicate Host notifications and duplicate delivery submissions MUST NOT cause a second Node entry.
 
-Once TIMED_OUT, INVALIDATED or CANCELLED, a Wait occurrence is closed. A later event MUST NOT reopen it, populate its output or satisfy a later Wait occurrence.
+Once EVENT_ACCEPTED, TIMED_OUT, INVALIDATED or CANCELLED wins, that Wait occurrence's correlation slot is closed. A later event MUST NOT reopen it, populate its output or satisfy a later Wait occurrence. For a single-flight/tombstone Ingress strategy, Integration MUST atomically consume the resource key and start its tombstone when a valid request is first durably matched to the armed occurrence, before Host/Runtime delivery; it MUST NOT wait for Node activation, business-stage completion or paired-response delivery. If no request is matched, TIMEOUT, CANCELLED or INVALIDATED starts the tombstone when that closure is committed. Until tombstone expiry, the same resource key MUST NOT be armed for a later occurrence. If a legitimate next request may arrive during that interval and the protocol has no verifiable wire discriminator, the binding is not safe and MUST be rejected.
 
 ### 7.2 Deadlines and cancellation
 
@@ -403,7 +403,7 @@ The Wait clock starts only when the target Node becomes ACTIVE. Its authored dea
 
 If the authored Wait deadline is strictly earlier and its timeout transition wins the authoritative state transition, Runtime follows wait.routes.TIMEOUT. If the global Invocation deadline is earlier than or equal to the authored Wait deadline, the global deadline takes precedence and Runtime applies the existing global stop semantics; it MUST NOT relabel that stop as the author's TIMEOUT outcome. Cancellation likewise uses the existing global stop semantics. Event acceptance, timeout and global stop are serialized against the same authoritative Wait occurrence; only one durable transition may win.
 
-The inbound protocol response deadline, if the Integration contract defines one, begins after event acceptance and is independent of the pre-event Wait deadline. Integration supplies that deadline to Host/Runtime; it MAY further constrain processing. Its expiry is handled by the Integration response/failure contract, and Runtime preserves the accepted-event checkpoint and any unresolved business/resource responsibility. It is not a Wait TIMEOUT and MUST NOT be converted into an author-routable Stage Outcome. Any resulting Run cancellation MUST use the existing global cancellation semantics.
+For a paired response, the Ingress export MUST define a finite response deadline policy. Integration computes the absolute responseDeadline from the policy's declared clock origin when it first receives the complete valid wire request (or an earlier protocol-mandated origin), and persists it with the accepted delivery before Host/Runtime relay. The deadline policy MUST define its duration, clock basis and maximum permitted clock skew. Runtime's later EVENT_ACCEPTED transition MUST NOT reset or extend responseDeadline; a delivery buffered before Node activation continues consuming the same response budget. Host MUST persist and relay responseDeadline unchanged to Runtime. Runtime MAY use it as a generic processing upper bound, but it is not a Wait TIMEOUT and MUST NOT be converted into an author-routable Stage Outcome. Integration remains authoritative for protocol response expiry and applies the pinned response/failure contract. Runtime preserves the accepted-event checkpoint and any unresolved business/resource responsibility. Any resulting Run cancellation MUST use the existing global cancellation semantics.
 
 Wait itself dispatches no Tool or Script and consumes no Tool/Script Action Budget. It consumes wall-clock time and remains subject to deployment Wait limits, Invocation deadline, cancellation, Node limits and durable Runtime resource limits.
 
@@ -502,7 +502,8 @@ Host -> Runtime:
     deliveryRef,
     expectedIngressRef,
     ingressContractRef,
-    normalizedPayloadRef
+    normalizedPayloadRef,
+    responseDeadline?
   )
 
 Runtime -> Host:
@@ -515,7 +516,7 @@ Runtime -> Host:
 
 Runtime creates expectedIngressRef and privately binds it to the exact Run, Node and Wait occurrence. Host and Integration carry it only as an opaque handle. Neither may resolve it to a Run or Node. Integration MUST NOT receive runId or waitOccurrenceRef.
 
-deliveryRef is an Integration-owned idempotency identity for one normalized delivery. responseObligationRef is Integration-owned and remains private to Integration/Host. It MUST be present if and only if the pinned Ingress Operation export declares a paired response. responseResultRef is required when any response disposition is body-bearing or when multiple dispositions must be selected; it MAY be absent only for a single fixed bodyless disposition. normalizedPayloadRef is a protected immutable reference; the typed request value is exposed to Skill code only through wait.output.
+deliveryRef is an Integration-owned idempotency identity for one normalized delivery. responseObligationRef is Integration-owned and remains private to Integration/Host. It MUST be present if and only if the pinned Ingress Operation export declares a paired response. responseDeadline MUST be present if and only if the paired response export resolves a finite deadline policy, and Host MUST relay it unchanged to Runtime. responseResultRef is required when any response disposition is body-bearing or when multiple dispositions must be selected; it MAY be absent only for a single fixed bodyless disposition. responseResultRef identifies the immutable typed output of the exact response-boundary Producer. normalizedPayloadRef is a protected immutable reference; the typed request value is exposed to Skill code only through wait.output.
 
 Delivery is durable at-least-once plus idempotent acceptance. No distributed exactly-once transport guarantee is implied. Runtime's atomic state transition and durable checkpoint enforce exactly-once Node entry for one Wait occurrence.
 
