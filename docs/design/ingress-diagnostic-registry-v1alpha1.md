@@ -51,7 +51,8 @@ A source location MUST point into the exact immutable Catalog snapshot that was 
 | Trusted OpenAPI artifact has inconsistent release, API URI version, method, path or operationId metadata | `INGRESS_PROTOCOL_ARTIFACT_INVALID` |
 | Source, normalized, arm-input or response Schema missing/invalid, or Schema Closure resolution invalid | Existing `SCHEMA_MISSING` / `SCHEMA_INVALID` |
 | Ingress-owned peer profile reference malformed or unresolved in the declared trusted snapshot | `INGRESS_PEER_PROFILE_REFERENCE_INVALID` |
-| Request normalization declaration/mapping invalid | `INGRESS_NORMALIZATION_INVALID` |
+| Request media-type/source-Schema correspondence or normalization declaration/mapping invalid, including required wire fields not mapped | `INGRESS_NORMALIZATION_INVALID` |
+| Request/response immutable binary-content reference, digest/access contract or retention/recovery window invalid | `INGRESS_BINARY_CONTENT_LIFECYCLE_INVALID` |
 | Ingress-owned correlation, duplicate identity or stale-delivery declaration invalid | `INGRESS_CORRELATION_INVALID` |
 | Selected Skill cannot materialize its `armInputSchema` or prove path-specific stale-delivery safety | CA-SL `WAIT_CORRELATION_BINDING_INVALID` |
 | Ingress-owned response mode, deadline, disposition, failure-response or recovery contract invalid | `INGRESS_RESPONSE_CONTRACT_INVALID` |
@@ -73,7 +74,7 @@ The Compiler MUST apply the following prerequisite order to a single Catalog dep
 5. Exact ToolCatalog trigger Operation linking. Use existing `EXPORT_ID_MISSING` / `EXPORT_ID_AMBIGUOUS`; do not translate these to Wait selector diagnostics.
 6. Source artifact identity/digest and Schema resolution. Dependency identity errors precede protocol metadata checks; `SCHEMA_MISSING` / `SCHEMA_INVALID` precede normalization or response mapping errors that depend on the unresolved Schema.
 7. Trusted OpenAPI protocol metadata, peer-profile references and request normalization.
-8. Ingress-owned correlation and stale-delivery declaration.
+8. Ingress-owned binary-content reference/lifecycle declarations, then correlation and stale-delivery declarations.
 9. Ingress-owned response contract, then response representation/mapping.
 10. Skill-specific Wait selector, path/correlation, response boundary and Producer mapping checks.
 
@@ -81,19 +82,20 @@ The numeric `precedence` values in the machine registry order the Ingress-owned 
 
 ## 5. Registry entries
 
-The machine-readable registry is normative for exact Codes, Phase, Severity, build-blocking behavior, precedence, message keys, templates and source-location policies. The nine entries are:
+The machine-readable registry is normative for exact Codes, Phase, Severity, build-blocking behavior, precedence, message keys, templates and source-location policies. The ten entries are:
 
-| Code | Phase | Severity | Blocks Build | Precedence | Message key | Conformance |
+| Code | Phase | Severity | Blocks Build | Precedence | Message key | Conformance cases |
 |---|---|---|---|---:|---|
 | `INGRESS_CATALOG_INVALID` | C_STATIC | ERROR | Yes | 10 | `ingress.catalog.invalid` | IN-055 |
 | `INGRESS_EXPORT_ID_DUPLICATE` | C_STATIC | ERROR | Yes | 20 | `ingress.export.id.duplicate` | IN-005 |
 | `INGRESS_EVENT_SELECTOR_DUPLICATE` | C_STATIC | ERROR | Yes | 21 | `ingress.event.selector.duplicate` | IN-056 |
-| `INGRESS_PROTOCOL_ARTIFACT_INVALID` | C_STATIC | ERROR | Yes | 30 | `ingress.protocol.artifact.invalid` | IN-057 |
+| `INGRESS_PROTOCOL_ARTIFACT_INVALID` | C_STATIC | ERROR | Yes | 30 | `ingress.protocol.artifact.invalid` | IN-007, IN-057 |
 | `INGRESS_PEER_PROFILE_REFERENCE_INVALID` | C_STATIC | ERROR | Yes | 40 | `ingress.peer.profile.reference.invalid` | IN-058 |
-| `INGRESS_NORMALIZATION_INVALID` | C_STATIC | ERROR | Yes | 50 | `ingress.normalization.invalid` | IN-059 |
-| `INGRESS_CORRELATION_INVALID` | C_STATIC | ERROR | Yes | 60 | `ingress.correlation.invalid` | IN-060 |
-| `INGRESS_RESPONSE_CONTRACT_INVALID` | C_STATIC | ERROR | Yes | 70 | `ingress.response.contract.invalid` | IN-061 |
-| `INGRESS_RESPONSE_MAPPING_INVALID` | C_STATIC | ERROR | Yes | 80 | `ingress.response.mapping.invalid` | IN-062 |
+| `INGRESS_NORMALIZATION_INVALID` | C_STATIC | ERROR | Yes | 50 | `ingress.normalization.invalid` | IN-014, IN-015, IN-039, IN-059 |
+| `INGRESS_BINARY_CONTENT_LIFECYCLE_INVALID` | C_STATIC | ERROR | Yes | 55 | `ingress.binary.content.lifecycle.invalid` | IN-016, IN-042 |
+| `INGRESS_CORRELATION_INVALID` | C_STATIC | ERROR | Yes | 60 | `ingress.correlation.invalid` | IN-023, IN-046, IN-047, IN-060 |
+| `INGRESS_RESPONSE_CONTRACT_INVALID` | C_STATIC | ERROR | Yes | 70 | `ingress.response.contract.invalid` | IN-027, IN-033, IN-040, IN-061 |
+| `INGRESS_RESPONSE_MAPPING_INVALID` | C_STATIC | ERROR | Yes | 80 | `ingress.response.mapping.invalid` | IN-032, IN-044, IN-045, IN-062 |
 
 ## 6. Version boundary
 
