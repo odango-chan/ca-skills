@@ -75,6 +75,8 @@ spec:
 
 上述 API 标识是本文提出的契约版本，不代表已存在可下载的正式发布物。资源的物理文件路径由 Integration Package 决定，不成为 Skill 作者可见的身份。每个 operations[] 元素是一个 exportKind=ingressOperation 的独立导出；Catalog 文件本身不取代 trusted dependency binding。
 
+建议的结构校验 Schema 位于 [ingresscatalog.v1alpha1.schema.json](schemas/ingresscatalog.v1alpha1.schema.json)。它只校验 IngressCatalog 的结构、字段类型和局部条件；Package ID / Owner binding、跨快照唯一性、Schema 引用闭包、Trigger Operation 链接、Procedure path analysis、部署 profile binding 和真实协议行为仍由 Compiler、Admission 与 Integration conformance tests 分别验证。该 JSON Schema 与本文一样保持 NOT FROZEN。
+
 ### 2.3 四种不同身份
 
 | 身份 | 权威 Owner | 用途 | 是否暴露给 Skill |
@@ -536,7 +538,7 @@ Compiler 不执行协议认证，不调用真实 Integration adapter，不通过
 
 ## 12. 建议的最小 IngressCatalog 结构
 
-以下为字段归属示意，不是可直接部署的 3GPP 发布物。所有 urn:example、摘要、Package ID、profile 和 Schema ID 都是占位符。
+以下为字段归属示意，不是可直接部署的 3GPP 发布物。对应结构约束见 [IngressCatalog v1alpha1 structural schema](schemas/ingresscatalog.v1alpha1.schema.json)。所有 urn:example、摘要、Package ID、profile 和 Schema ID 都是占位符。
 
 ~~~yaml
 apiVersion: connectionagent.io/ingresscatalog/v1alpha1
