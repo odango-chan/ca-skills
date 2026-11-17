@@ -481,6 +481,19 @@ def validate_schema_closure_resolution(vector: dict) -> set[tuple[str, str]]:
             _resolver_error(f"artifact {artifact} has an invalid artifactDigest")
         if not isinstance(document, dict):
             _resolver_error(f"artifact {artifact} parsed document must be an object")
+        raw_artifact = item.get("rawArtifact")
+        if not isinstance(raw_artifact, str) or not raw_artifact:
+            _resolver_error(f"artifact {artifact} must include its exact rawArtifact UTF-8 bytes")
+        raw_bytes = raw_artifact.encode("utf-8")
+        computed_digest = "sha256:" + hashlib.sha256(raw_bytes).hexdigest()
+        if computed_digest != digest:
+            _resolver_error(f"artifact {artifact} artifactDigest does not match its raw source bytes")
+        try:
+            parsed_raw_artifact = yaml.safe_load(raw_artifact)
+        except yaml.YAMLError as exc:
+            _resolver_error(f"artifact {artifact} raw source bytes cannot be parsed: {exc}")
+        if parsed_raw_artifact != document:
+            _resolver_error(f"artifact {artifact} parsed document is not derived from its exact raw source bytes")
         schema_nodes = schema_nodes_for_document(document, dialect)
         document_by_artifact[artifact] = item
         document_uri_by_artifact[artifact] = uri
@@ -608,7 +621,10 @@ def validate_schema_closure_resolution(vector: dict) -> set[tuple[str, str]]:
 
 
 def validate_schema_closure_resolution_vector(vector: dict) -> None:
-    validate_schema_closure_resolution(vector)
+    resolved = validate_schema_closure_resolution(vector)
+    nested_resource_leaf = ("urn:test:schemas/shared", "#/$defs/Shared/$defs/Leaf")
+    if nested_resource_leaf not in resolved:
+        _resolver_error("nested-$id fragment was not translated to its artifact-relative Schema pointer")
 
     def must_reject(mutated: dict, label: str) -> None:
         try:
@@ -648,6 +664,28 @@ def validate_schema_closure_resolution_vector(vector: dict) -> None:
     escaped_path = copy.deepcopy(vector)
     escaped_path["resolutionContext"]["documents"][2]["snapshotPath"] = "../shared.json"
     must_reject(escaped_path, "snapshot-relative path escape")
+
+    nested_missing = copy.deepcopy(vector)
+    nested_missing["resolutionContext"]["documents"][2]["document"]["$defs"]["Shared"]["properties"]["leaf"]["$ref"] = "#/$defs/Missing"
+    must_reject(nested_missing, "nested-$id fragment to a missing artifact-relative Schema pointer")
+
+    stale_raw_bytes = copy.deepcopy(vector)
+    stale_raw_bytes["resolutionContext"]["documents"][0]["rawArtifact"] += " "
+    must_reject(stale_raw_bytes, "raw source bytes changed without updating artifactDigest")
+
+    byte_only_change = copy.deepcopy(vector)
+    changed_document = byte_only_change["resolutionContext"]["documents"][0]
+    changed_document["rawArtifact"] += " "
+    changed_digest = "sha256:" + hashlib.sha256(changed_document["rawArtifact"].encode("utf-8")).hexdigest()
+    changed_document["artifactDigest"] = changed_digest
+    for node in byte_only_change["nodes"]:
+        if node["artifactRef"] == changed_document["artifactRef"]:
+            node["artifactDigest"] = changed_digest
+    if byte_only_change["root"]["artifactRef"] == changed_document["artifactRef"]:
+        byte_only_change["root"]["artifactDigest"] = changed_digest
+    validate_schema_closure_resolution(byte_only_change)
+    if schema_closure_digest(byte_only_change["root"], byte_only_change["nodes"]) == vector["expectedDigest"]:
+        _resolver_error("Schema Closure Digest did not change when raw artifact bytes changed but parsed Schema values remained identical")
 
     if canonical_pointer_from_uri_fragment("/components/schemas/%52equest") != "#/components/schemas/Request":
         _resolver_error("percent-encoded JSON Pointer token did not canonicalize")
