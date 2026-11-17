@@ -445,7 +445,7 @@ The trusted Integration export MUST declare:
 - a deterministic field mapping from those typed Producer outputs to the protocol response Schema;
 - explicit failure-response mappings for any permitted early terminal disposition.
 
-The Compiler resolves every responseResultSource against the exact Producer and Output Schema in the Skill graph. Each source MUST be available on every path reaching the response boundary, MUST dominate that boundary, and MUST be assignable to the declared responseResultSchema mapping. The Compiler MUST verify that each required protocol response field is supplied.
+The Compiler resolves every responseResultSource against the exact Producer and Output Schema in the Skill graph. Each source MUST be an operation.output or observation.output SourcePath; wait.output, Context paths and raw request fields MUST NOT be used as protocol response-result sources. Each source MUST be available on every path reaching the response boundary, MUST dominate that boundary, and MUST be assignable to the declared responseResultSchema mapping. The Compiler MUST verify that each required protocol response field is supplied.
 
 A responseResultSource MAY identify an earlier Node's Operation or Observation output when that Producer dominates the response boundary and its output remains valid and available there. The Integration export's binding MUST identify the exact SourcePath; the response encoder MUST NOT infer the "latest" output, inspect arbitrary Run state or construct an untyped aggregate. This preserves explicit dataflow without adding a Skill-authored response mapping field.
 
