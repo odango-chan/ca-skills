@@ -16,15 +16,15 @@ STAGE3_REQUIRED_BY_NODE = {
     "subscribe-sm-data": ("TS 29.503 V19.7.0",),
     "establish-sm-policy-association": ("TS 29.512 V19.6.0",),
     "establish-n4-session": ("TS 29.244 V19.6.0",),
-    "transfer-n1n2-message": ("TS 29.518 V19.8.0",),
-    "update-sm-context": ("TS 29.502 V19.7.0",),
+    "transfer-n1n2-message": ("TS 29.518 V19.8.0", "TS 29.571 V19.7.0"),
+    "update-sm-context": ("TS 29.502 V19.7.0", "TS 29.571 V19.7.0"),
     "modify-n4-session": ("TS 29.244 V19.6.0",),
     "ensure-uecm-registration": ("TS 29.503 V19.7.0",),
     "validate-sm-subscription": ("TS 29.503 V19.7.0",),
-    "create-sm-context": ("TS 29.502 V19.7.0",),
+    "create-sm-context": ("TS 29.502 V19.7.0", "TS 29.571 V19.7.0"),
     "register-uecm": ("TS 29.503 V19.7.0",),
     "modify-sm-policy-association": ("TS 29.512 V19.6.0",),
-    "signal-ue-and-access-network": ("TS 29.518 V19.8.0", "TS 29.502 V19.7.0"),
+    "signal-ue-and-access-network": ("TS 29.518 V19.8.0", "TS 29.502 V19.7.0", "TS 29.571 V19.7.0"),
 }
 
 NODE = re.compile(r"^  ([A-Za-z][A-Za-z0-9_-]*):\s*$")
