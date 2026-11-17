@@ -55,6 +55,7 @@ jobs:
           test "$(wc -c < "$yaml_file")" -eq 209138
           echo "ca5d94e296a334c85635715fc325167459d865f2c83a16c47926c979dab7545b  $yaml_file" | sha256sum --check
           python - "$yaml_file" <<'PY'
+          import os
           import pathlib
           import sys
           import yaml
@@ -63,7 +64,7 @@ jobs:
           assert artifact["openapi"] == "3.0.0"
           assert artifact["info"]["title"] == "Nsmf_PDUSession"
           assert artifact["info"]["version"] == "1.4.0"
-          with open("$GITHUB_ENV", "a", encoding="utf-8") as env_file:
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env_file:
               env_file.write(f"TS29502_OPENAPI_PATH={artifact_path}\\n")
           for path, methods in artifact["paths"].items():
               for method, operation in methods.items():
