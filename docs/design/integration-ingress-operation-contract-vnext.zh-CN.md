@@ -228,7 +228,7 @@ source selector 的 kind 仅允许 path、query、header、json-body、multipart
 
 transform 的初始封闭集合仅为 identity、parse-integer、parse-number、parse-boolean 和 binary-content-ref。identity 要求来源 Schema 类型可直接赋值给目标属性；parse-integer 只接受规范十进制整数词法且不得溢出；parse-number 只接受规范十进制有限数值且不得舍入或产生非有限值；parse-boolean 只接受精确小写 true/false；binary-content-ref 只适用于 multipart-binary 并生成 normalized Schema 声明的受限不可变内容引用。不得执行任意 CEL、Python、表达式、反射、网络查询、隐式字符串化、locale 转换、截断或有损转换。
 
-对于 3GPP TS 29.502 §6.1.2.4 的 multipart/related，Integration MUST 校验每个 binary part 的 `Content-ID` 与根 JSON part 中对应 `RefToBinaryData` 属性逐一匹配。`contentIdReference.part` 必须指向该 representation 的 JSON 根 part，`pointer` 必须指向精确的 RefToBinaryData 属性；引用缺失、悬空、重复、指向错误 part、Content-ID 重复或存在未被引用的 binary part，均必须拒绝/隔离。part 名称不是 Content-ID，不能代替该关联校验。归一化后的业务字段只暴露受限 binary content reference，不把原始 Content-ID 当成业务身份。对 `application/json` representation，由于不存在 binary part，任何非空 RefToBinaryData 引用都必须拒绝，不得保留成看似可用的内容引用。
+对于 3GPP TS 29.502 §6.1.2.4 的 multipart/related，Integration MUST 校验每个 binary part 的 `Content-ID` 与根 JSON part 中对应 `RefToBinaryData` 属性逐一匹配。`contentIdReference.part` 必须指向该 representation 的 JSON 根 part，`pointer` 必须指向精确 RefToBinaryData 对象中的 `contentId` 字符串属性；引用缺失、悬空、重复、指向错误 part、Content-ID 重复或存在未被引用的 binary part，均必须拒绝/隔离。part 名称不是 Content-ID，不能代替该关联校验。归一化后的业务字段只暴露受限 binary content reference，不把原始 Content-ID 当成业务身份。对 `application/json` representation，由于不存在 binary part，任何非空 RefToBinaryData 引用都必须拒绝，不得保留成看似可用的内容引用。
 
 对每一种 media type，normalized Schema 的每个 required 属性必须恰好由一条 mapping 提供；不得有重复 target、悬空 source、未知 target 或类型不可赋值。未映射源字段/part 默认拒绝；只有 pinned source Schema 明确声明其可忽略，且 export 显式列出该忽略项时才可丢弃。可选 normalized 属性可以在对应 wire representation 中缺失，但不得合成默认值。真实 Adapter 必须通过 conformance fixtures 证明执行结果与内联 mapping 完全一致。禁止以 Skill Script、CEL 或 LLM 在运行时临时完成协议归一化。
 
@@ -691,7 +691,7 @@ spec:
                     part: binaryDataN1SmMessage
                     contentIdReference:
                       part: jsonData
-                      pointer: /n1SmMsg
+                      pointer: /n1SmMsg/contentId
                   target: /n1SmMessage
                   transform: binary-content-ref
                 - source:
@@ -699,7 +699,7 @@ spec:
                     part: binaryDataN2SmInformation
                     contentIdReference:
                       part: jsonData
-                      pointer: /n2SmInfo
+                      pointer: /n2SmInfo/contentId
                   target: /n2SmInformation
                   transform: binary-content-ref
                 - source:
@@ -707,7 +707,7 @@ spec:
                     part: binaryDataN2SmInformationExt1
                     contentIdReference:
                       part: jsonData
-                      pointer: /n2SmInfoExt1
+                      pointer: /n2SmInfoExt1/contentId
                   target: /n2SmInformationExt1
                   transform: binary-content-ref
         binaryContent:
@@ -799,8 +799,8 @@ spec:
 - sourceSchemas 和 normalizedSchemaRef 是不同契约，不得互相替代；
 - artifactDigest 绑定精确 OpenAPI 文件；内联 normalization/response mappings 由整个 IngressCatalog dependency snapshot digest 固定；
 - operationId 不能替代 Service-Operation 名称；UpdateSMContext 的 multipart part 名称使用 pinned OpenAPI 中的 binaryDataN1SmMessage / binaryDataN2SmInformation，不能缩写成 n1SmMsg / n2SmInfo；
-- TS 29.502 V19.5.0 的 UpdateSmContext 请求 multipart parts 包含 `binaryDataN1SmMessage`、`binaryDataN2SmInformation` 和 `binaryDataN2SmInformationExt1`；三者分别通过 `jsonData` 中的 `n1SmMsg`、`n2SmInfo` 和 `n2SmInfoExt1` RefToBinaryData 属性关联 Content-ID。示例必须逐项映射并校验这些引用；
-- UpdateSmContext 的 200 响应在协议上可使用 `application/json` 或 `multipart/related`，204 则没有响应体。V19.5.0 的 200 multipart response parts 为 `jsonData`、`binaryDataN1SmMessage` 和 `binaryDataN2SmInformation`，二进制 part 同样必须通过 `SmContextUpdatedData.n1SmMsg` / `n2SmInfo` 的 RefToBinaryData 与 Content-ID 关联。本版示例仅链接 200 JSON 与 204；v1alpha1 当前不支持 200 multipart response mapping，因此包含 N1/N2 binary response part 的响应分支必须保持 NOT LINKABLE；
+- TS 29.502 V19.5.0 的 UpdateSmContext 请求 multipart parts 包含 `binaryDataN1SmMessage`、`binaryDataN2SmInformation` 和 `binaryDataN2SmInformationExt1`；三者分别通过 `jsonData` 中的 `n1SmMsg.contentId`、`n2SmInfo.contentId` 和 `n2SmInfoExt1.contentId` 关联 Content-ID。示例必须逐项映射并校验这些引用；
+- UpdateSmContext 的 200 响应在协议上可使用 `application/json` 或 `multipart/related`，204 则没有响应体。V19.5.0 的 200 multipart response parts 为 `jsonData`、`binaryDataN1SmMessage` 和 `binaryDataN2SmInformation`，二进制 part 同样必须通过 `SmContextUpdatedData.n1SmMsg.contentId` / `n2SmInfo.contentId` 与 Content-ID 关联。本版示例仅链接 200 JSON 与 204；v1alpha1 当前不支持 200 multipart response mapping，因此包含 N1/N2 binary response part 的响应分支必须保持 NOT LINKABLE；
 - 示例 200 JSON response maxBytes=65536，仅映射 SmContextUpdatedData 的条件属性 cause；smContextRef 是 request path 参数，不是 SmContextUpdatedData response body 字段；若 200 JSON body 含 RefToBinaryData 引用，则必须使用 multipart response，不能在本 JSON-only profile 中接受；
 - TS 23.502 Step 15 的 N2 setup failure 分支可能要求 Step 17 返回包含 PDU Session Establishment Reject 的 N1 SM binary container；本版 JSON-only response profile 不支持该 multipart failure response，不能把它伪装成 204 或通用 JSON 错误，必须保持 NOT LINKABLE，直到 response multipart 映射扩展完成；
 - arming.triggers[].operation 是出站 ToolCatalog Operation，不是 Ingress Operation；Compiler 从该精确 ToolCatalog export 解析 Operation Input Schema，armInputSchemaRef 则定义单独的 correlationBinding Schema；
