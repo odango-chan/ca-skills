@@ -150,7 +150,7 @@ jobs:
           print("Response 204: bodyless")
           print("Pinned ETSI Annex A.2 OpenAPI identity and protocol shape: PASS")
           PY
-      - name: Inspect official ETSI TS 29.571 V19.5.0 CommonData artifact
+      - name: Verify pinned official ETSI TS 29.571 V19.5.0 CommonData artifact
         shell: bash
         run: |
           set -euo pipefail
@@ -161,20 +161,13 @@ jobs:
           ua="Mozilla/5.0 (compatible; CA-Skill-Artifact-Lock/1.0)"
           curl --fail --location --retry 3 --silent --show-error --user-agent "$ua" "$base/ts_129571v190500p.pdf" --output "$pdf"
           curl --fail --location --retry 3 --silent --show-error --user-agent "$ua" "$base/ts_129571v190500p0.zip" --output "$zip"
-          echo "TS 29.571 PDF bytes: $(wc -c < "$pdf")"
-          echo "TS 29.571 PDF SHA-256:"
-          pdf_sha256="$(sha256sum "$pdf" | cut -d' ' -f1)"
-          echo "TS 29.571 PDF SHA-256: $pdf_sha256"
-          echo "TS 29.571 companion ZIP bytes: $(wc -c < "$zip")"
-          echo "TS 29.571 companion ZIP SHA-256:"
-          zip_sha256="$(sha256sum "$zip" | cut -d' ' -f1)"
-          echo "TS 29.571 companion ZIP SHA-256: $zip_sha256"
-          unzip -l "$zip"
+          test "$(wc -c < "$pdf")" -eq 1191071
+          test "$(wc -c < "$zip")" -eq 38569
+          echo "a608887aa19de1c28fdef8b3ae02d015fe8ccbaa8db52b3fa7defe48d5ff7c84  $pdf" | sha256sum --check
+          echo "5bc10332b197f1df131908cc236ca7c6ab97b0d3c908e7825f1d701c9d56e978  $zip" | sha256sum --check
           unzip -p "$zip" TS29571_CommonData.yaml > "$yaml_file"
-          echo "TS29571_CommonData.yaml bytes: $(wc -c < "$yaml_file")"
-          echo "TS29571_CommonData.yaml SHA-256:"
-          yaml_sha256="$(sha256sum "$yaml_file" | cut -d' ' -f1)"
-          echo "TS29571_CommonData.yaml SHA-256: $yaml_sha256"
+          test "$(wc -c < "$yaml_file")" -eq 255480
+          echo "8632cbab60c73e9c3ba9be26577057144255f21aef7430a1990bdf113c1e7bd4  $yaml_file" | sha256sum --check
           python - "$yaml_file" <<'PY'
           import pathlib
           import sys
@@ -189,7 +182,20 @@ jobs:
           assert schema["type"] == "object"
           assert schema["required"] == ["contentId"]
           assert schema["properties"]["contentId"]["type"] == "string"
-          print("Official TS 29.571 Annex A.2 identity and RefToBinaryData: PASS")
+
+          def walk(value):
+              if isinstance(value, dict):
+                  for key, child in value.items():
+                      if key == "$ref":
+                          yield child
+                      yield from walk(child)
+              elif isinstance(value, list):
+                  for child in value:
+                      yield from walk(child)
+
+          external_refs = [ref for ref in walk(artifact) if not ref.startswith("#/")]
+          assert not external_refs, f"TS 29.571 CommonData must be self-contained: {external_refs}"
+          print("Official TS 29.571 Annex A.2 identity, RefToBinaryData and closed schema: PASS")
           PY
       - name: Validate IngressCatalog example
         run: python scripts/validate-ingresscatalog-example.py
