@@ -218,7 +218,7 @@ The normal success path must not collapse the standard's failure branches:
 - Step 21 is not unconditional cleanup: it applies after failure following Step 4 only when the SMF no longer handles another PDU Session of the same UE for the same DNN and HPLMN S-NSSAI.
 
 Step 17 is the paired protocol response for Step 15, not the Skill Goal proof. The final CA-SL Postcondition and Host/Runtime resource-responsibility gate remain authoritative.
- 
+
 ## 10. Review and validation
 
 A 5GC migration is not ready for review closure until:
