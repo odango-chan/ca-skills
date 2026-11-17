@@ -640,8 +640,14 @@ def validate_standard_artifact_lock() -> None:
         or common_extracted["sha256"] != "8632cbab60c73e9c3ba9be26577057144255f21aef7430a1990bdf113c1e7bd4"
     ):
         raise SystemExit("official TS 29.571 companion package or extracted CommonData SHA-256 does not match the artifact lock")
-    if common["externalReferences"] != []:
-        raise SystemExit("TS 29.571 CommonData lock must explicitly declare a closed external-reference set")
+    closure = common["operationSchemaClosure"]
+    if closure != {
+        "operationId": "UpdateSmContext",
+        "scope": "operation-request-and-responses",
+        "externalDocuments": ["TS29571_CommonData.yaml"],
+        "status": "VERIFIED_BY_CI",
+    }:
+        raise SystemExit("UpdateSmContext operation-scoped OpenAPI reference closure is not pinned")
     if (
         informative["normative"] is not False
         or informative["matchesOfficialCompanionSource"] is not False
