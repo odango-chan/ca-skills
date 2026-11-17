@@ -377,7 +377,7 @@ Integration 必须证明一个经过认证、验证和归一化的请求最多�
 - `normalized-request-path`：从已验证的 normalized request 中读取精确 JSON Pointer；该字段必须在源 Schema、归一化映射和受信协议定义中闭合，并且必须是协议定义的逐请求身份字段，在同一逻辑请求的所有重传中保持不变；资源 ID、UE/SUPI、PDU Session ID、Content-ID 和时间戳都不满足这一条件；
 - `authenticated-header-parameter`：当前仅支持 3GPP SBI 的 `3gpp-Sbi-Request-Info` header 中的 `idempotency-key` 参数。Peer profile 必须要求该参数在每个请求中提供；Integration 必须按 TS 29.500 解析参数，而不是把整个 Header 字符串当作 ID。
 
-对 TS 29.502 V19.5.0 `UpdateSmContext`，`smContextRef` 只是资源 URI 路径参数，不能作为 successive Wait 的 wire discriminator；该 API 未定义可替代它的必需逐请求 ID。TS 29.502 §6.1.2.5 规定 AMF 可在新 TCP 连接上重试同一 HTTP 请求，并在重试时更新 `3gpp-Sbi-Origination-Timestamp` 与 `3gpp-Sbi-Sender-Timestamp`（若存在），因此这些时间戳不能用作 discriminator。
+对 TS 29.502 V19.5.0 `UpdateSmContext`，`smContextRef` 只是资源 URI 路径参数，不能作为 successive Wait 的 wire discriminator；该 API 未定义可替代它的必需逐请求 ID。TS 29.502 §6.1.2.5 规定 AMF 可在新 TCP 连接上重试同一 HTTP 请求，并在重试时更新 `3gpp-Sbi-Origination-Timestamp` 与 `3gpp-Sbi-Sender-Timestamp`（若存在），因此这些时间戳不能用作 discriminator。TS 29.500 §5.2.3.3.3 的 `3gpp-Sbi-Max-Rsp-Time` 只表示 HTTP Client 等待响应的时长；它与适用的发送时间戳共同用于计算 responseDeadline，不是请求身份，也不是 maximumLateArrival 或 tombstoneRetention 的依据。重试时该时长也可能重新设置。
 
 Wire discriminator 是外部请求身份，不是用于预派发匹配 Run/Wait 的 correlation key；它不要求在 arming 时预先知道，也不要求加入 normalized business Schema。Integration 在接收请求时提取 discriminator，并在匹配/提交 delivery 前检查它是否已被消费。消费记录必须按源协议定义的唯一性作用域持久化，不能擅自用 authenticated peer 或 Ingress export identity 缩小该作用域；`basisRef` 必须支持该作用域及其有限保留期。缺失、重复复用或格式不合法时必须拒绝/隔离，不得退回到猜测或选择 newest。
 
@@ -891,6 +891,7 @@ spec:
 | IN-049 | 3GPP multipart binary part 的 Content-ID 与根 JSON 中 RefToBinaryData 不匹配、缺失、重复或悬空 | Integration 拒绝/隔离，不生成 normalized delivery |
 | IN-050 | application/json representation 包含无法由 multipart binary part 解析的 RefToBinaryData | Integration 拒绝/隔离，不生成伪造 binary content reference |
 | IN-051 | 同一 3GPP SBI idempotency-key 在同一目标 NF 的不同 Ingress export 或替代实例间被复用/重复出现 | Integration 按目标 NF 作用域识别为已消费 key；不得因 peer/export 不同而将其当作新请求 |
+| IN-052 | 将 `3gpp-Sbi-Max-Rsp-Time` 或发送时间戳用作 request discriminator / maximumLateArrival | Integration 拒绝该配置；这些字段只参与响应期限计算，不证明请求身份或迟到窗口 |
 
 ## 15. 冻结与发布门槛
 
