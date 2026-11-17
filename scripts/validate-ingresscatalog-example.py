@@ -279,13 +279,23 @@ def validate_3gpp_reference_example(catalog: dict) -> None:
     if not {"/n1SmMessage", "/n2SmInformation", "/n2SmInformationExt1"} <= normalized_targets:
         raise SystemExit("UpdateSMContext binary parts are not mapped to normalized business fields")
 
+    if operation["protocol"]["apiUriVersion"] != "v1":
+        raise SystemExit("UpdateSMContext API URI version must be v1")
+
     response = operation["response"]
-    status_by_id = {item["id"]: item["status"] for item in response["dispositions"]}
+    dispositions = {item["id"]: item for item in response["dispositions"]}
+    status_by_id = {key: item["status"] for key, item in dispositions.items()}
     if status_by_id != {
         "update-with-json-cause": 200,
         "update-completed-no-content": 204,
     }:
         raise SystemExit("UpdateSMContext success response dispositions must be 200 and 204")
+    json_response = dispositions["update-with-json-cause"]
+    bodyless_response = dispositions["update-completed-no-content"]
+    if json_response["body"] != "required" or json_response["mediaType"] != "application/json":
+        raise SystemExit("v1alpha1 reference profile supports the 200 JSON response representation only")
+    if bodyless_response["body"] != "none" or "mediaType" in bodyless_response:
+        raise SystemExit("UpdateSMContext 204 success response must be bodyless")
     mappings = response["result"]["mappings"]
     if not any(item["from"] == "/cause" and item["to"] == "/cause" for item in mappings):
         raise SystemExit("UpdateSMContext response mapping must use SmContextUpdatedData.cause")
