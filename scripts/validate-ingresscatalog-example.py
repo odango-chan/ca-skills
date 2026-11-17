@@ -14,6 +14,12 @@ from jsonschema import Draft202012Validator
 ROOT = Path(__file__).resolve().parents[1]
 DOC = ROOT / "docs/design/integration-ingress-operation-contract-vnext.zh-CN.md"
 SCHEMA = ROOT / "docs/design/schemas/ingresscatalog.v1alpha1.schema.json"
+DURATION = re.compile(
+    r"P(?:(?P<days>[1-9][0-9]*)D)?"
+    r"(?:T(?:(?P<hours>[1-9][0-9]*)H)?"
+    r"(?:(?P<minutes>[1-9][0-9]*)M)?"
+    r"(?:(?P<seconds>[1-9][0-9]*)S)?)?"
+)
 
 
 def load_example() -> dict:
@@ -28,47 +34,142 @@ def load_example() -> dict:
     return value
 
 
+def fixed_duration_seconds(value: str, label: str) -> int:
+    match = DURATION.fullmatch(value)
+    if not match:
+        raise SystemExit(f"{label}: invalid positive fixed duration: {value!r}")
+    parts = {key: int(part) if part else 0 for key, part in match.groupdict().items()}
+    if not any(parts.values()):
+        raise SystemExit(f"{label}: duration must be greater than zero")
+    return parts["days"] * 86400 + parts["hours"] * 3600 + parts["minutes"] * 60 + parts["seconds"]
+
+
+def unique(values: list, label: str) -> None:
+    encoded = [json.dumps(value, sort_keys=True, separators=(",", ":")) for value in values]
+    if len(encoded) != len(set(encoded)):
+        raise SystemExit(f"{label}: duplicate values are not allowed")
+
+
 def validate_semantics(catalog: dict) -> None:
     operations = catalog["spec"]["operations"]
     for operation in operations:
+        op_id = operation["id"]
+        if operation["security"]["authenticatedPeerType"] != operation["event"]["source"]:
+            raise SystemExit(f"{op_id}: authenticatedPeerType must equal event.source")
+
         request = operation["request"]
         accepted = request["acceptedMediaTypes"]
         source_types = [item["mediaType"] for item in request["sourceSchemas"]]
-        representation_types = [item["mediaType"] for item in request["normalization"]["representations"]]
+        representations = request["normalization"]["representations"]
+        representation_types = [item["mediaType"] for item in representations]
         for label, values in (
             ("sourceSchemas", source_types),
             ("normalization.representations", representation_types),
         ):
             if len(values) != len(set(values)) or set(values) != set(accepted):
                 raise SystemExit(
-                    f"{operation['id']}: {label} media types must match acceptedMediaTypes exactly once"
+                    f"{op_id}: {label} media types must match acceptedMediaTypes exactly once"
                 )
+
+        for representation in representations:
+            parts = {part["name"]: part for part in representation.get("parts", [])}
+            if len(parts) != len(representation.get("parts", [])):
+                raise SystemExit(f"{op_id}: duplicate multipart part name")
+            targets = [mapping["target"] for mapping in representation["mappings"]]
+            unique(targets, f"{op_id}: duplicate normalization target")
+            for mapping in representation["mappings"]:
+                source = mapping["source"]
+                kind = source["kind"]
+                if kind in ("multipart-json", "multipart-binary"):
+                    part = parts.get(source["part"])
+                    if part is None:
+                        raise SystemExit(f"{op_id}: mapping references an undeclared multipart part")
+                    expected_kind = "json" if kind == "multipart-json" else "binary"
+                    if part["kind"] != expected_kind:
+                        raise SystemExit(f"{op_id}: multipart mapping kind does not match declared part")
+                if mapping["transform"] == "binary-content-ref" and kind != "multipart-binary":
+                    raise SystemExit(f"{op_id}: binary-content-ref requires a multipart-binary source")
+
+        correlation = operation["correlation"]
+        key_fields = correlation["keyFields"]
+        key_paths = [field["requestPath"] for field in key_fields]
+        unique(key_paths, f"{op_id}: duplicate correlation requestPath")
+        stale = correlation["staleDelivery"]
+        if stale["strategy"] == "wire-discriminator":
+            if stale["discriminatorPath"] not in key_paths:
+                raise SystemExit(f"{op_id}: wire discriminator must be included in correlation keyFields")
+        else:
+            if stale["resourceKey"] not in key_paths:
+                raise SystemExit(f"{op_id}: single-flight resourceKey must be included in correlation keyFields")
+            durations = [
+                stale["maximumLateArrival"],
+                stale["clockSkewAllowance"],
+                stale["tombstoneRetention"],
+            ]
+            # The prose example deliberately uses explicit placeholders until a trusted
+            # protocol/deployment guarantee supplies real values.
+            placeholders = [value.startswith("<") and value.endswith(">") for value in durations]
+            if any(placeholders) and not all(placeholders):
+                raise SystemExit(f"{op_id}: tombstone durations must be all concrete or all explicit placeholders")
+            if not any(placeholders):
+                maximum_late = fixed_duration_seconds(durations[0], "maximumLateArrival")
+                skew = fixed_duration_seconds(durations[1], "clockSkewAllowance")
+                retention = fixed_duration_seconds(durations[2], "tombstoneRetention")
+                if retention < maximum_late + skew:
+                    raise SystemExit(f"{op_id}: tombstoneRetention is shorter than maximumLateArrival + clockSkewAllowance")
+
+        arming = operation["arming"]
+        expected_keys = set(key_paths)
+        if arming["start"]["allowed"]:
+            bindings = arming["start"]["bindings"]
+            actual = [binding["requestKey"] for binding in bindings]
+            unique(actual, f"{op_id}: duplicate start binding requestKey")
+            if set(actual) != expected_keys:
+                raise SystemExit(f"{op_id}: start bindings must cover every correlation key exactly once")
+        trigger_ids = []
+        for trigger in arming["triggers"]:
+            identity = trigger["operation"]
+            trigger_ids.append((identity["packageId"], identity["owner"], identity["kind"], identity["id"]))
+            actual = [binding["requestKey"] for binding in trigger["bindings"]]
+            unique(actual, f"{op_id}: duplicate trigger binding requestKey")
+            if set(actual) != expected_keys:
+                raise SystemExit(f"{op_id}: each trigger must bind every correlation key exactly once")
+        unique(trigger_ids, f"{op_id}: duplicate triggering Operation identity")
 
         response = operation["response"]
         if response["mode"] == "paired":
             dispositions = response["dispositions"]
             ids = [item["id"] for item in dispositions]
             statuses = [item["status"] for item in dispositions]
-            if len(ids) != len(set(ids)):
-                raise SystemExit(f"{operation['id']}: duplicate response disposition id")
-            if len(statuses) != len(set(statuses)):
-                raise SystemExit(f"{operation['id']}: duplicate response HTTP status")
+            unique(ids, f"{op_id}: duplicate response disposition id")
+            unique(statuses, f"{op_id}: duplicate response HTTP status")
             result = response.get("result")
             if result:
                 declared = set(ids)
-                mapped = {item["dispositionId"] for item in result.get("mappings", [])}
-                selected = {
-                    item["dispositionId"]
-                    for item in result.get("dispositionSelector", {}).get("cases", [])
-                }
+                body_by_id = {item["id"]: item["body"] for item in dispositions}
+                mappings = result.get("mappings", [])
+                mapped = {item["dispositionId"] for item in mappings}
+                cases = result.get("dispositionSelector", {}).get("cases", [])
+                selected = {item["dispositionId"] for item in cases}
+                unique([item["value"] for item in cases], f"{op_id}: duplicate disposition selector value")
                 if not mapped <= declared or not selected <= declared:
-                    raise SystemExit(f"{operation['id']}: response mapping/selector references unknown disposition")
-                if len(selected) != len(result.get("dispositionSelector", {}).get("cases", [])):
-                    raise SystemExit(f"{operation['id']}: duplicate disposition selector value")
+                    raise SystemExit(f"{op_id}: response mapping/selector references unknown disposition")
                 if len(dispositions) > 1 and selected != declared:
-                    raise SystemExit(f"{operation['id']}: disposition selector must cover every disposition exactly once")
+                    raise SystemExit(f"{op_id}: disposition selector must cover every disposition exactly once")
+                if any(body_by_id[item] != "required" for item in mapped):
+                    raise SystemExit(f"{op_id}: bodyless disposition must not declare a response-body mapping")
                 if any(item["body"] == "required" and item["id"] not in mapped for item in dispositions):
-                    raise SystemExit(f"{operation['id']}: body-bearing disposition has no response mapping")
+                    raise SystemExit(f"{op_id}: body-bearing disposition has no response mapping")
+                for disposition_id in declared:
+                    targets = [item["to"] for item in mappings if item["dispositionId"] == disposition_id]
+                    unique(targets, f"{op_id}: duplicate response mapping target for {disposition_id}")
+            elif any(item["body"] == "required" for item in dispositions) or len(dispositions) > 1:
+                raise SystemExit(f"{op_id}: body-bearing or multiple dispositions require a typed response result")
+
+
+def expect_schema_failure(validator: Draft202012Validator, value: dict, label: str) -> None:
+    if validator.is_valid(value):
+        raise SystemExit(f"negative fixture was unexpectedly accepted by schema: {label}")
 
 
 def expect_semantic_failure(value: dict, label: str) -> None:
@@ -76,7 +177,7 @@ def expect_semantic_failure(value: dict, label: str) -> None:
         validate_semantics(value)
     except SystemExit:
         return
-    raise SystemExit(f"negative fixture was unexpectedly accepted: {label}")
+    raise SystemExit(f"negative fixture was unexpectedly accepted by semantic checks: {label}")
 
 
 def validate_negative_cases(schema: dict, example: dict) -> None:
@@ -84,18 +185,15 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
 
     missing_adapter = copy.deepcopy(example)
     del missing_adapter["spec"]["operations"][0]["adapter"]
-    if validator.is_valid(missing_adapter):
-        raise SystemExit("schema accepted an Ingress Operation without adapter identity")
+    expect_schema_failure(validator, missing_adapter, "missing adapter identity")
 
     invalid_api_version = copy.deepcopy(example)
     invalid_api_version["spec"]["operations"][0]["protocol"]["apiUriVersion"] = 1
-    if validator.is_valid(invalid_api_version):
-        raise SystemExit("schema accepted a non-string apiUriVersion")
+    expect_schema_failure(validator, invalid_api_version, "non-string apiUriVersion")
 
     missing_binary_policy = copy.deepcopy(example)
     del missing_binary_policy["spec"]["operations"][0]["request"]["binaryContent"]
-    if validator.is_valid(missing_binary_policy):
-        raise SystemExit("schema accepted binary-content-ref mappings without binaryContent policy")
+    expect_schema_failure(validator, missing_binary_policy, "missing binary-content policy")
 
     duplicate_status = copy.deepcopy(example)
     dispositions = duplicate_status["spec"]["operations"][0]["response"]["dispositions"]
@@ -106,6 +204,36 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     cases = incomplete_selector["spec"]["operations"][0]["response"]["result"]["dispositionSelector"]["cases"]
     cases.pop()
     expect_semantic_failure(incomplete_selector, "incomplete response disposition selector")
+
+    duplicate_selector_value = copy.deepcopy(example)
+    cases = duplicate_selector_value["spec"]["operations"][0]["response"]["result"]["dispositionSelector"]["cases"]
+    cases[1]["value"] = cases[0]["value"]
+    expect_semantic_failure(duplicate_selector_value, "duplicate response disposition selector value")
+
+    bodyless_mapping = copy.deepcopy(example)
+    mappings = bodyless_mapping["spec"]["operations"][0]["response"]["result"]["mappings"]
+    invalid_mapping = copy.deepcopy(mappings[0])
+    invalid_mapping["dispositionId"] = "update-completed-no-content"
+    mappings.append(invalid_mapping)
+    expect_semantic_failure(bodyless_mapping, "response mapping for bodyless disposition")
+
+    missing_trigger_key = copy.deepcopy(example)
+    missing_trigger_key["spec"]["operations"][0]["arming"]["triggers"][0]["bindings"].pop()
+    expect_semantic_failure(missing_trigger_key, "trigger missing a correlation key binding")
+
+    short_tombstone = copy.deepcopy(example)
+    stale = short_tombstone["spec"]["operations"][0]["correlation"]["staleDelivery"]
+    stale["maximumLateArrival"] = "PT30S"
+    stale["clockSkewAllowance"] = "PT5S"
+    stale["tombstoneRetention"] = "PT30S"
+    expect_semantic_failure(short_tombstone, "tombstone shorter than late-arrival plus skew")
+
+    zero_duration = copy.deepcopy(example)
+    stale = zero_duration["spec"]["operations"][0]["correlation"]["staleDelivery"]
+    stale["maximumLateArrival"] = "PT0S"
+    stale["clockSkewAllowance"] = "PT5S"
+    stale["tombstoneRetention"] = "PT35S"
+    expect_semantic_failure(zero_duration, "zero maximumLateArrival duration")
 
 
 def main() -> None:
