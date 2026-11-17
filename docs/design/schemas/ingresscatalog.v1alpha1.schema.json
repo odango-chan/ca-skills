@@ -1791,7 +1791,42 @@
             "required": [
               "rootPart",
               "parts"
-            ]
+            ],
+            "properties": {
+              "parts": {
+                "allOf": [
+                  {
+                    "contains": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "const": "json"
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ]
+                    },
+                    "minContains": 1,
+                    "maxContains": 1
+                  },
+                  {
+                    "contains": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "const": "binary"
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ]
+                    },
+                    "minContains": 1
+                  }
+                ]
+              }
+            }
           }
         },
         {
@@ -1822,7 +1857,8 @@
             }
           }
         }
-      ]
+      ],
+      "description": "A multipart/related response has exactly one JSON root part and at least one binary part. The rootPart must identify the first part; cross-part name and schema bindings are checked semantically."
     },
     "responseTarget": {
       "oneOf": [
