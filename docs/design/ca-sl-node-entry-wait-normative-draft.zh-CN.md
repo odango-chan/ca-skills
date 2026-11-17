@@ -1,7 +1,7 @@
 # CA-SL Node-level Event Wait — Normative Amendment Draft
 
 **Status:** Normative text draft for the language revision after CA-SL v1alpha4.  
-**Semantic baseline:** FROZEN by the design record in [ca-skills PR #60](https://github.com/odango-chan/ca-skills/pull/60).  
+**Semantic baseline:** FROZEN by [ca-skills PR #60](https://github.com/odango-chan/ca-skills/pull/60), with the accepted-event tombstone/replay clarification tracked in [ca-skills PR #64](https://github.com/odango-chan/ca-skills/pull/64).  
 **Integration export contract:** under independent design review in [ca-skills PR #62](https://github.com/odango-chan/ca-skills/pull/62).  
 **Generic Host/Runtime continuation contract:** [ca-agent-demo PR #210](https://github.com/odango-chan/ca-agent-demo/pull/210).  
 **Normative publication status:** NOT FROZEN / NOT RELEASED.  
