@@ -388,7 +388,7 @@ Integration 为一次已接受的 normalized delivery 生成稳定 deliveryRef�
 
 Integration 必须声明其协议请求去重身份来源。允许的来源为 protocol-request-id、trusted-gateway-request-id，或在同一 expectedIngressRef 范围内的 canonical-request-digest。去重作用域必须至少包含 authenticated peer、Ingress export identity 和 expectedIngressRef；协议 request ID 还必须按协议定义的唯一性范围校验。重试同一请求时必须复用同一个 deliveryRef。
 
-若使用 canonical request digest，则同一 Wait occurrence 内两个内容完全相同的请求将被视为重复；Integration 必须明确该语义。若业务协议允许同一 Wait 下出现两个内容相同但语义独立的请求，而 Integration 无法区分二者，必须拒绝/隔离歧义情形，不得声称 exactly-once 网络投递。
+若使用 canonical request digest，初始 profile 定义为对 normalized business value 执行 RFC 8785 JSON Canonicalization，再将每个 binary content reference 替换为其 media type、长度和 SHA-256 内容摘要描述，最后对该确定性字节序列计算 SHA-256。不得把 payload-store URL、临时引用句柄或其他传输元数据纳入摘要。摘要只在同一个 expectedIngressRef 范围内用于识别重复；同一 Wait occurrence 内两个内容完全相同的独立请求将被视为重复。若业务协议允许同一 Wait 下出现两个内容相同但语义独立的请求，而 Integration 无法区分二者，必须拒绝/隔离歧义情形，不得声称 exactly-once 网络投递。
 
 ## 8. 配对协议响应
 
@@ -672,7 +672,7 @@ spec:
             dimension: session
             comparison: exact
         duplicate:
-          identitySource: protocol-request-id
+          identitySource: canonical-request-digest
           scope: expected-ingress
         staleDelivery:
           strategy: single-flight-tombstone
@@ -736,7 +736,7 @@ spec:
             responseRef: urn:example:protocol-error:safe-stopped
         deliveryRecovery:
           mode: protocol-replay
-          requestIdentity: protocol-request-id
+          requestIdentity: canonical-request-digest
           lostChannelDisposition: protocol-defined-retry
 ~~~
 
@@ -749,7 +749,7 @@ spec:
 - requestKey 指向 normalized request 的字段，bindingPath 指向 correlation.armInputSchemaRef 的字段，operation-argument.path 指向出站 Operation 已物化输入；
 - response.result.producer 只允许 operation 或 observation；只有单一 bodyless disposition 时才可省略 typed result Producer；
 - 示例的 maximumLateArrival、clockSkewAllowance 和 tombstoneRetention 必须由受信协议/部署保证给出，且 tombstoneRetention 不得小于前两者之和；
-- 示例没有提供任何凭证、证书、网络地址或运行时私有句柄。
+- 示例没有提供任何凭证、证书、网络地址或运行时私有句柄；示例采用 canonical-request-digest 作为重复识别占位策略，不宣称 TS 29.502 提供 protocol request ID；实际 Adapter 必须确认同一 Wait occurrence 内相同规范化请求应按重复处理。
 
 ## 13. 建议的诊断与拒绝分类
 
