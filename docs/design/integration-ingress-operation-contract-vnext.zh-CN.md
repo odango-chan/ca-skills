@@ -561,6 +561,7 @@ metadata:
 spec:
   operations:
     - id: nsmf-pdusession.update-sm-context
+      adapter: integration-adapter::nsmf-pdusession
       event:
         source: AMF
         service: Nsmf_PDUSession
@@ -572,7 +573,7 @@ spec:
         apiUriVersion: v1
         openapi:
           artifactRef: urn:example:openapi:nsmf-pdusession
-          artifactDigest: sha256:<64-hex>
+          artifactDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
           operationId: UpdateSmContext
           method: POST
           path: /sm-contexts/{smContextRef}/modify
@@ -589,12 +590,12 @@ spec:
         sourceSchemas:
           - mediaType: application/json
             schemaRef: urn:example:openapi:update-sm-context-request
-            schemaDigest: sha256:<64-hex>
+            schemaDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
           - mediaType: multipart/related
             schemaRef: urn:example:openapi:update-sm-context-multipart-request
-            schemaDigest: sha256:<64-hex>
+            schemaDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
         normalizedSchemaRef: urn:example:normalized:update-sm-context:v1
-        normalizedSchemaDigest: sha256:<64-hex>
+        normalizedSchemaDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
         normalization:
           representations:
             - mediaType: application/json
@@ -616,17 +617,17 @@ spec:
                   kind: json
                   required: true
                   schemaRef: urn:example:openapi:update-sm-context-json-part
-                  schemaDigest: sha256:<64-hex>
+                  schemaDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
                 - name: n1SmMsg
                   mediaType: application/vnd.3gpp.5gnas
                   kind: binary
                   required: false
-                  maxBytes: <deployment-limit>
+                  maxBytes: 1048576
                 - name: n2SmInfo
                   mediaType: application/vnd.3gpp.ngap
                   kind: binary
                   required: false
-                  maxBytes: <deployment-limit>
+                  maxBytes: 1048576
               mappings:
                 - source:
                     kind: path
@@ -655,7 +656,7 @@ spec:
           immutable: true
           access: authorized-tool-only
           retention: PT10M
-          maxBytes: <deployment-limit>
+          maxBytes: 1048576
 
       correlation:
         armInputSchemaRef: urn:example:schema:update-sm-context-arm-input
@@ -715,7 +716,7 @@ spec:
             body: required
             mediaType: application/json
             responseSchemaRef: urn:example:openapi:update-sm-context-response
-            responseSchemaDigest: sha256:<64-hex>
+            responseSchemaDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
           - id: update-completed-no-content
             status: 204
             body: none
@@ -799,7 +800,7 @@ spec:
 | IN-025 | 重试提交同一 deliveryRef | Host 返回幂等 disposition，不重复 Node entry |
 | IN-026 | 同一 Wait 下两个不可区分的独立请求 | Integration 拒绝/隔离歧义 |
 | IN-027 | paired response 被声明但无 response obligation | Integration/Host 拒绝不完整交付 |
-| IN-028 | bodyless paired response | 不要求 response-result Producer |
+| IN-028 | 单一固定 bodyless paired response disposition | 不要求 response-result Producer；多个 disposition 仍须 typed result 选择 |
 | IN-029 | body-bearing response 缺少 result Producer | Compiler 拒绝 |
 | IN-030 | response.after Node 缺少 export 指定的 Producer stage | Compiler 拒绝 |
 | IN-031 | boundary Producer Output 不可赋值给 responseResultSchema | Compiler 拒绝 |
