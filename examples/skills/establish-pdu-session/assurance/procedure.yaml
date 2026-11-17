@@ -43,7 +43,7 @@ nodes:
         UNKNOWN: UNRESOLVED
         DENIED: FAILED
     observation:
-      tool: ca-session-context::smf.session.context.query
+      tool: ca-session-context::context.smf.session.read
       arguments:
         supi: context.supi
         pduSessionId: context.request.pduSessionId
@@ -197,7 +197,7 @@ nodes:
         OUTCOME_UNKNOWN: SAFE_STOPPED
         DENIED: SAFE_STOPPED
     observation:
-      tool: ca-session-context::smf.session.context.query
+      tool: ca-session-context::context.smf.session.read
       arguments:
         supi: context.supi
         pduSessionId: context.request.pduSessionId
