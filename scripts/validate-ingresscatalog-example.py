@@ -106,6 +106,14 @@ def validate_semantics(catalog: dict) -> None:
                     expected_kind = "json" if kind == "multipart-json" else "binary"
                     if part["kind"] != expected_kind:
                         raise SystemExit(f"{op_id}: multipart mapping kind does not match declared part")
+                if kind == "multipart-binary":
+                    content_id_reference = source.get("contentIdReference")
+                    if content_id_reference:
+                        reference_part = parts.get(content_id_reference["part"])
+                        if reference_part is None or reference_part["kind"] != "json":
+                            raise SystemExit(f"{op_id}: contentIdReference must point to a declared JSON part")
+                    if operation["protocol"]["specification"] == "3GPP TS 29.502" and mapping["transform"] == "binary-content-ref" and not content_id_reference:
+                        raise SystemExit(f"{op_id}: TS 29.502 binary-content-ref requires contentIdReference")
                 if mapping["transform"] == "binary-content-ref" and kind != "multipart-binary":
                     raise SystemExit(f"{op_id}: binary-content-ref requires a multipart-binary source")
 
@@ -120,8 +128,15 @@ def validate_semantics(catalog: dict) -> None:
             if discriminator["kind"] == "authenticated-header-parameter":
                 if duplicate_source != "3gpp-sbi-idempotency-key":
                     raise SystemExit(f"{op_id}: SBI idempotency-key discriminator must also be the duplicate identity source")
+                if operation["protocol"]["specification"] == "3GPP TS 29.502" and (
+                    discriminator["header"] != "3gpp-Sbi-Request-Info"
+                    or discriminator["parameter"] != "idempotency-key"
+                ):
+                    raise SystemExit(f"{op_id}: TS 29.502 wire discriminator must be 3gpp-Sbi-Request-Info.idempotency-key")
             elif duplicate_source == "3gpp-sbi-idempotency-key":
                 raise SystemExit(f"{op_id}: 3GPP SBI idempotency-key identity requires its authenticated header discriminator")
+            elif operation["protocol"]["specification"] == "3GPP TS 29.502" and discriminator["kind"] == "normalized-request-path":
+                raise SystemExit(f"{op_id}: UpdateSmContext defines no per-request normalized field suitable as a wire discriminator")
             durations = [
                 stale["maximumLateArrival"],
                 stale["clockSkewAllowance"],
@@ -217,6 +232,8 @@ def validate_3gpp_reference_example(catalog: dict) -> None:
         "operation": "UpdateSMContext",
     }:
         raise SystemExit("UpdateSMContext event identity does not match the 3GPP reference")
+    if operation["protocol"]["specification"] != "3GPP TS 29.502" or operation["protocol"]["release"] != "19.5.0":
+        raise SystemExit("UpdateSMContext reference must pin TS 29.502 V19.5.0")
     openapi = operation["protocol"]["openapi"]
     if (openapi["method"], openapi["path"], openapi["operationId"]) != (
         "POST",
@@ -230,12 +247,36 @@ def validate_3gpp_reference_example(catalog: dict) -> None:
         if item["mediaType"] == "multipart/related"
     )
     part_names = {part["name"] for part in multipart["parts"]}
-    required_parts = {"jsonData", "binaryDataN1SmMessage", "binaryDataN2SmInformation"}
+    required_parts = {
+        "jsonData",
+        "binaryDataN1SmMessage",
+        "binaryDataN2SmInformation",
+        "binaryDataN2SmInformationExt1",
+    }
     if not required_parts <= part_names:
-        raise SystemExit("UpdateSMContext multipart part names do not match the 3GPP OpenAPI reference")
+        raise SystemExit("UpdateSMContext multipart part names do not match TS 29.502 V19.5.0")
+
+    expected_binary_mappings = {
+        "binaryDataN1SmMessage": ("/n1SmMsg", "/n1SmMessage"),
+        "binaryDataN2SmInformation": ("/n2SmInfo", "/n2SmInformation"),
+        "binaryDataN2SmInformationExt1": ("/n2SmInfoExt1", "/n2SmInformationExt1"),
+    }
+    mappings_by_part = {
+        item["source"]["part"]: item
+        for item in multipart["mappings"]
+        if item["source"]["kind"] == "multipart-binary"
+    }
+    if set(mappings_by_part) != set(expected_binary_mappings):
+        raise SystemExit("Every declared UpdateSMContext binary part must have exactly one normalized mapping")
+    for part_name, (reference_pointer, target) in expected_binary_mappings.items():
+        mapping = mappings_by_part[part_name]
+        if mapping["source"].get("contentIdReference") != {"part": "jsonData", "pointer": reference_pointer}:
+            raise SystemExit(f"{part_name} must be linked to jsonData {reference_pointer} by Content-ID")
+        if mapping["target"] != target or mapping["transform"] != "binary-content-ref":
+            raise SystemExit(f"{part_name} is not mapped to its typed immutable binary content reference")
 
     normalized_targets = {item["target"] for item in multipart["mappings"]}
-    if not {"/n1SmMessage", "/n2SmInformation"} <= normalized_targets:
+    if not {"/n1SmMessage", "/n2SmInformation", "/n2SmInformationExt1"} <= normalized_targets:
         raise SystemExit("UpdateSMContext binary parts are not mapped to normalized business fields")
 
     response = operation["response"]
@@ -313,6 +354,7 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     expect_schema_failure(validator, missing_response_limit, "missing response body byte limit")
 
     invalid_sbi_discriminator = copy.deepcopy(example)
+    invalid_sbi_discriminator["spec"]["operations"][0]["correlation"]["duplicate"]["identitySource"] = "3gpp-sbi-idempotency-key"
     stale = invalid_sbi_discriminator["spec"]["operations"][0]["correlation"]["staleDelivery"]
     stale.clear()
     stale.update({
@@ -322,8 +364,12 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
             "header": "3gpp-Sbi-Correlation-Info",
             "parameter": "supi",
         },
+        "maximumLateArrival": "PT30S",
+        "clockSkewAllowance": "PT5S",
+        "discriminatorRetention": "PT35S",
+        "basisRef": "urn:example:retry-window-guarantee",
     })
-    expect_schema_failure(validator, invalid_sbi_discriminator, "UE correlation header is not a request idempotency discriminator")
+    expect_semantic_failure(invalid_sbi_discriminator, "UE correlation header is not a request idempotency discriminator")
 
     valid_sbi_discriminator = copy.deepcopy(example)
     operation = valid_sbi_discriminator["spec"]["operations"][0]
@@ -341,6 +387,22 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
         "basisRef": "urn:example:retry-window-guarantee",
     }
     validate_semantics(valid_sbi_discriminator)
+    validate_3gpp_reference_example(valid_sbi_discriminator)
+
+    invalid_timestamp_discriminator = copy.deepcopy(valid_sbi_discriminator)
+    invalid_timestamp_discriminator["spec"]["operations"][0]["correlation"]["staleDelivery"]["discriminator"] = {
+        "kind": "authenticated-header-parameter",
+        "header": "3gpp-Sbi-Origination-Timestamp",
+        "parameter": "value",
+    }
+    expect_semantic_failure(invalid_timestamp_discriminator, "retry-updated timestamp is not a request discriminator")
+
+    invalid_resource_discriminator = copy.deepcopy(valid_sbi_discriminator)
+    invalid_resource_discriminator["spec"]["operations"][0]["correlation"]["staleDelivery"]["discriminator"] = {
+        "kind": "normalized-request-path",
+        "path": "/smContextRef",
+    }
+    expect_semantic_failure(invalid_resource_discriminator, "smContextRef is a resource key, not a per-request discriminator")
 
     short_discriminator_retention = copy.deepcopy(valid_sbi_discriminator)
     short_discriminator_retention["spec"]["operations"][0]["correlation"]["staleDelivery"]["discriminatorRetention"] = "PT30S"
@@ -379,6 +441,21 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     wrong_3gpp_part_name = copy.deepcopy(example)
     wrong_3gpp_part_name["spec"]["operations"][0]["request"]["normalization"]["representations"][1]["parts"][1]["name"] = "n1SmMsg"
     expect_semantic_failure(wrong_3gpp_part_name, "incorrect 3GPP multipart part name")
+
+    missing_content_id_binding = copy.deepcopy(example)
+    missing_content_id_binding["spec"]["operations"][0]["request"]["normalization"]["representations"][1]["mappings"][2]["source"].pop("contentIdReference")
+    expect_protocol_failure(missing_content_id_binding, "missing RefToBinaryData-to-Content-ID binding")
+
+    wrong_content_id_binding = copy.deepcopy(example)
+    wrong_content_id_binding["spec"]["operations"][0]["request"]["normalization"]["representations"][1]["mappings"][2]["source"]["contentIdReference"]["pointer"] = "/smContextRef"
+    expect_protocol_failure(wrong_content_id_binding, "Content-ID bound to the resource path instead of RefToBinaryData")
+
+    missing_n2_ext1 = copy.deepcopy(example)
+    multipart_parts = missing_n2_ext1["spec"]["operations"][0]["request"]["normalization"]["representations"][1]["parts"]
+    multipart_parts[:] = [part for part in multipart_parts if part["name"] != "binaryDataN2SmInformationExt1"]
+    multipart_mappings = missing_n2_ext1["spec"]["operations"][0]["request"]["normalization"]["representations"][1]["mappings"]
+    multipart_mappings[:] = [mapping for mapping in multipart_mappings if mapping["source"].get("part") != "binaryDataN2SmInformationExt1"]
+    expect_protocol_failure(missing_n2_ext1, "missing TS 29.502 V19.5 N2 SM Information extension part")
 
     wrong_3gpp_response_path = copy.deepcopy(example)
     wrong_3gpp_response_path["spec"]["operations"][0]["response"]["result"]["mappings"][0]["from"] = "/smContextRef"
