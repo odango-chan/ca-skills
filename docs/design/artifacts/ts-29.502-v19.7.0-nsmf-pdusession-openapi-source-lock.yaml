@@ -88,8 +88,9 @@ spec:
     status: OFFICIAL_SOURCE_BYTES_PINNED
     verifiedAt: 2026-11-17
     verifiedBy:
-      workflow: IngressCatalog Schema
-      run: 44058252873
+      probeWorkflow: IngressCatalog Schema
+      probeRun: 44058252873
+      lockValidationRun: PENDING
     evidence:
       - Official ETSI V19.7.0 TS 29.502 PDF, companion ZIP and extracted Annex A.2 YAML byte lengths and SHA-256 values were checked by CI.
       - Official ETSI V19.7.0 TS 29.571 PDF, companion ZIP and extracted Annex A.2 YAML byte lengths and SHA-256 values were checked by CI.
