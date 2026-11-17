@@ -460,6 +460,19 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     wrong_content_id_binding["spec"]["operations"][0]["request"]["normalization"]["representations"][1]["mappings"][2]["source"]["contentIdReference"]["pointer"] = "/smContextRef"
     expect_protocol_failure(wrong_content_id_binding, "Content-ID bound to the resource path instead of RefToBinaryData")
 
+    wrong_content_id_member = copy.deepcopy(example)
+    wrong_content_id_member["spec"]["operations"][0]["request"]["normalization"]["representations"][1]["mappings"][2]["source"]["contentIdReference"]["pointer"] = "/n1SmMsg"
+    expect_protocol_failure(wrong_content_id_member, "Content-ID binding points to RefToBinaryData object instead of its contentId member")
+
+    json_only_binary_reference = copy.deepcopy(example)
+    json_mappings = json_only_binary_reference["spec"]["operations"][0]["request"]["normalization"]["representations"][0]["mappings"]
+    json_mappings.append({
+        "source": {"kind": "json-body", "pointer": "/n1SmMsg/contentId"},
+        "target": "/n1SmMessage",
+        "transform": "binary-content-ref",
+    })
+    expect_semantic_failure(json_only_binary_reference, "JSON-only representation cannot synthesize a binary content reference")
+
     missing_n2_ext1 = copy.deepcopy(example)
     multipart_parts = missing_n2_ext1["spec"]["operations"][0]["request"]["normalization"]["representations"][1]["parts"]
     multipart_parts[:] = [part for part in multipart_parts if part["name"] != "binaryDataN2SmInformationExt1"]
