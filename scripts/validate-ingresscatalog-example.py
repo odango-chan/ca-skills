@@ -591,6 +591,15 @@ def validate_step15_failure_response_schema() -> None:
         "responseRepresentation": "multipart",
         "n1SmMessage": n1_reference,
     }
+    valid_enforcement_failure = {
+        "procedureOutcome": "user-plane-enforcement-required-unavailable",
+        "step16Outcome": {
+            "n4Action": "not-performed",
+            "udmRegistration": "skipped",
+        },
+        "responseRepresentation": "multipart",
+        "n1SmMessage": n1_reference,
+    }
     valid_success_json = {
         "procedureOutcome": "n2-user-plane-setup-succeeded",
         "step16Outcome": {
@@ -619,7 +628,8 @@ def validate_step15_failure_response_schema() -> None:
         "responseRepresentation": "no-content",
     }
     for label, value in (
-        ("N2 setup failure with N4 release and multipart N1 reject", valid_failure),
+        ("N2 setup failure with pre-response N4 release and multipart N1 reject", valid_failure),
+        ("required UPE failure with Step 16 skipped and multipart N1 reject", valid_enforcement_failure),
         ("successful N2 setup with JSON response", valid_success_json),
         ("successful N2 setup with multipart N2 response", valid_success_multipart),
         ("successful N2 setup with bodyless 204", valid_success_no_content),
@@ -645,6 +655,14 @@ def validate_step15_failure_response_schema() -> None:
     invalid = copy.deepcopy(valid_failure)
     invalid["step16Outcome"]["udmRegistration"] = "completed"
     invalid_cases.append(("Step 16c is skipped on the Step 15 N2 failure branch", invalid))
+
+    invalid = copy.deepcopy(valid_enforcement_failure)
+    invalid["step16Outcome"]["n4Action"] = "session-released"
+    invalid_cases.append(("required UPE failure must not model Step 16 N4 release before Step 17", invalid))
+
+    invalid = copy.deepcopy(valid_enforcement_failure)
+    invalid["step16Outcome"]["udmRegistration"] = "completed"
+    invalid_cases.append(("Step 16c is skipped on required UPE failure", invalid))
 
     invalid = copy.deepcopy(valid_success_json)
     invalid["step16Outcome"]["n4Action"] = "session-released"
