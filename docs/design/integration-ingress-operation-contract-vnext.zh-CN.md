@@ -418,7 +418,8 @@ bodyless paired response 必须明确声明 bodyless response disposition，且�
 
 Integration export 必须定义：
 
-- 正常 response boundary 的成功响应状态、media type 和 Schema；
+- 正常 response boundary 的响应状态、media type 和 Schema，以及 typed response result 到协议响应的映射；该映射表达协议响应，不代表 Skill Goal 已 PASS；
+- 若 boundary Producer 已成功产生 typed result，即使后续 Postcondition 的业务判定未通过，Integration 仍按该 typed result 和协议映射处理响应；
 - 在响应 Producer 尚未产生可用结果前，Run 提前以 FAILED、UNRESOLVED 或 SAFE_STOPPED 结束时的显式 failure response mapping；
 - response deadline 的来源与到期处置；
 - response obligation 的持久化、重放、重复响应和失去原传输通道后的恢复策略。
@@ -542,7 +543,6 @@ metadata:
 spec:
   operations:
     - id: nsmf-pdusession.update-sm-context
-      contractVersion: connectionagent.io/ingresscatalog/v1alpha1
       contractDigest: sha256:<64-hex>
       event:
         source: AMF
