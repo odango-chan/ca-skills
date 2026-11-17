@@ -11,6 +11,21 @@ from pathlib import Path
 from typing import Any
 
 TS_23_502_BASELINE = "TS 23.502 V19.9.0"
+STAGE3_REQUIRED_BY_NODE = {
+    "get-sm-subscription-data": ("TS 29.503 V19.7.0",),
+    "subscribe-sm-data": ("TS 29.503 V19.7.0",),
+    "establish-sm-policy-association": ("TS 29.512 V19.6.0",),
+    "establish-n4-session": ("TS 29.244 V19.6.0",),
+    "transfer-n1n2-message": ("TS 29.518 V19.8.0",),
+    "update-sm-context": ("TS 29.502 V19.7.0",),
+    "modify-n4-session": ("TS 29.244 V19.6.0",),
+    "ensure-uecm-registration": ("TS 29.503 V19.7.0",),
+    "validate-sm-subscription": ("TS 29.503 V19.7.0",),
+    "create-sm-context": ("TS 29.502 V19.7.0",),
+    "register-uecm": ("TS 29.503 V19.7.0",),
+    "modify-sm-policy-association": ("TS 29.512 V19.6.0",),
+    "signal-ue-and-access-network": ("TS 29.518 V19.8.0", "TS 29.502 V19.7.0"),
+}
 
 NODE = re.compile(r"^  ([A-Za-z][A-Za-z0-9_-]*):\s*$")
 SCRIPT = re.compile(r"^      script:\s+(\S+)\s*$")
@@ -161,6 +176,9 @@ def validate_3gpp_traceability(skill: Path, errors: list[str]) -> None:
         elif re.search(r"\b(?:steps?)\s*\d|Nudm_|Npcf_|Namf_|Nsmf_|N4 Session", previous, flags=re.IGNORECASE):
             if TS_23_502_BASELINE not in previous:
                 errors.append(f"{skill.name}/{node}: 3GPP step/API mapping comment must pin {TS_23_502_BASELINE}")
+        for stage3 in STAGE3_REQUIRED_BY_NODE.get(node, ()):
+            if stage3 not in previous:
+                errors.append(f"{skill.name}/{node}: mapping comment must pin {stage3}")
 
     doc = skill_doc.read_text(encoding="utf-8")
     if "## 3GPP Traceability" not in doc:
