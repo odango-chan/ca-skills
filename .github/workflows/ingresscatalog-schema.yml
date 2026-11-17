@@ -6,6 +6,7 @@ on:
     paths:
       - "docs/design/integration-ingress-operation-contract-vnext.zh-CN.md"
       - "docs/design/artifacts/ts-29.502-v19.5.0-nsmf-pdusession-openapi-source-lock.yaml"
+      - "docs/design/artifacts/ts-29.502-v19.7.0-nsmf-pdusession-openapi-source-lock.yaml"
       - "docs/design/schemas/ingresscatalog.v1alpha1.schema.json"
       - "docs/design/schemas/update-sm-context-response-result.v1.schema.json"
       - "docs/design/schemas/response-binary-content-reference.v1.schema.json"
@@ -13,6 +14,7 @@ on:
       - "docs/design/schema-closure-digest-v1.md"
       - "scripts/validate-ingresscatalog-example.py"
       - "scripts/validate_ingress_diagnostic_registry.py"
+      - "scripts/validate_etsi_production_artifact_lock.py"
       - "docs/design/ingress-diagnostic-registry-v1alpha1.json"
       - "docs/design/ingress-diagnostic-registry-v1alpha1.md"
       - ".github/workflows/ingresscatalog-schema.yml"
@@ -21,6 +23,7 @@ on:
     paths:
       - "docs/design/integration-ingress-operation-contract-vnext.zh-CN.md"
       - "docs/design/artifacts/ts-29.502-v19.5.0-nsmf-pdusession-openapi-source-lock.yaml"
+      - "docs/design/artifacts/ts-29.502-v19.7.0-nsmf-pdusession-openapi-source-lock.yaml"
       - "docs/design/schemas/ingresscatalog.v1alpha1.schema.json"
       - "docs/design/schemas/update-sm-context-response-result.v1.schema.json"
       - "docs/design/schemas/response-binary-content-reference.v1.schema.json"
@@ -28,6 +31,7 @@ on:
       - "docs/design/schema-closure-digest-v1.md"
       - "scripts/validate-ingresscatalog-example.py"
       - "scripts/validate_ingress_diagnostic_registry.py"
+      - "scripts/validate_etsi_production_artifact_lock.py"
       - "docs/design/ingress-diagnostic-registry-v1alpha1.json"
       - "docs/design/ingress-diagnostic-registry-v1alpha1.md"
       - ".github/workflows/ingresscatalog-schema.yml"
@@ -238,7 +242,7 @@ jobs:
           print("Official TS 29.571 Annex A.2 and RefToBinaryData: PASS")
           print("UpdateSmContext mapped request/response schema closure: PASS")
           PY
-      - name: Probe current production ETSI TS 29.502 and TS 29.571 V19.7.0 artifacts
+      - name: Verify pinned production-profile ETSI TS 29.502 and TS 29.571 V19.7.0 artifacts
         shell: bash
         run: |
           set -euo pipefail
@@ -255,73 +259,9 @@ jobs:
           curl --fail --location --retry 3 --silent --show-error --user-agent "$ua" "$base502/ts_129502v190700p0.zip" --output "$zip502"
           curl --fail --location --retry 3 --silent --show-error --user-agent "$ua" "$base571/ts_129571v190700p.pdf" --output "$pdf571"
           curl --fail --location --retry 3 --silent --show-error --user-agent "$ua" "$base571/ts_129571v190700p0.zip" --output "$zip571"
-          test "$(wc -c < "$pdf502")" -eq 2075827
-          test "$(wc -c < "$zip502")" -eq 18013
-          test "$(wc -c < "$pdf571")" -eq 1194280
-          test "$(wc -c < "$zip571")" -eq 38606
           unzip -p "$zip502" TS29502_Nsmf_PDUSession.yaml > "$yaml502"
           unzip -p "$zip571" TS29571_CommonData.yaml > "$yaml571"
-          echo "V19.7.0 official ETSI artifact sizes:"
-          wc -c "$pdf502" "$zip502" "$yaml502" "$pdf571" "$zip571" "$yaml571"
-          echo "V19.7.0 official ETSI SHA-256 values (promote exact values into the source lock after review):"
-          sha256sum "$pdf502" "$zip502" "$yaml502" "$pdf571" "$zip571" "$yaml571"
-          python - "$yaml502" "$yaml571" <<'PY'
-          import pathlib
-          import sys
-          import yaml
-
-          session = yaml.safe_load(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
-          common = yaml.safe_load(pathlib.Path(sys.argv[2]).read_text(encoding="utf-8"))
-          assert session["openapi"] == "3.0.0"
-          assert session["info"]["title"] == "Nsmf_PDUSession"
-          assert "19.7.0" in session["externalDocs"]["description"]
-          assert common["openapi"] == "3.0.0"
-          assert common["info"]["title"] == "Common Data Types"
-          assert "19.7.0" in common["externalDocs"]["description"]
-          operations = [
-              (path, method.lower(), operation)
-              for path, methods in session["paths"].items()
-              for method, operation in methods.items()
-              if isinstance(operation, dict) and operation.get("operationId") == "UpdateSmContext"
-          ]
-          assert len(operations) == 1, "expected exactly one V19.7.0 UpdateSmContext operation"
-          path, method, operation = operations[0]
-          assert (path, method) == ("/sm-contexts/{smContextRef}/modify", "post")
-          request_schema = session["components"]["schemas"]["SmContextUpdateData"]
-          response_schema = session["components"]["schemas"]["SmContextUpdatedData"]
-          for schema, fields in (
-              (request_schema, ("n1SmMsg", "n2SmInfo", "n2SmInfoType", "n2SmInfoExt1", "n2SmInfoTypeExt1")),
-              (response_schema, ("n1SmMsg", "n2SmInfo", "n2SmInfoType", "cause")),
-          ):
-              assert set(fields) <= set(schema["properties"]), "V19.7.0 mapped request/response fields changed"
-          common_ref = "TS29571_CommonData.yaml#/components/schemas/RefToBinaryData"
-          for schema, fields in (
-              (request_schema, ("n1SmMsg", "n2SmInfo", "n2SmInfoExt1")),
-              (response_schema, ("n1SmMsg", "n2SmInfo")),
-          ):
-              for field in fields:
-                  assert schema["properties"][field]["$ref"] == common_ref, (
-                      f"{field} must resolve through the V19.7.0 TS 29.571 artifact"
-                  )
-          ref_to_binary = common["components"]["schemas"]["RefToBinaryData"]
-          assert ref_to_binary["type"] == "object"
-          assert "contentId" in ref_to_binary["required"]
-          assert ref_to_binary["properties"]["contentId"]["type"] == "string"
-          request_content = operation["requestBody"]["content"]
-          response_content = operation["responses"]["200"]["content"]
-          assert "multipart/related" in request_content and "application/json" in request_content
-          assert "multipart/related" in response_content and "application/json" in response_content
-          request_parts = request_content["multipart/related"]["schema"]["properties"]
-          response_parts = response_content["multipart/related"]["schema"]["properties"]
-          assert {"jsonData", "binaryDataN1SmMessage", "binaryDataN2SmInformation", "binaryDataN2SmInformationExt1"} <= set(request_parts)
-          assert {"jsonData", "binaryDataN1SmMessage", "binaryDataN2SmInformation"} <= set(response_parts)
-          print("TS 29.502:", session["externalDocs"]["description"], "OpenAPI", session["info"]["version"])
-          print("TS 29.571:", common["externalDocs"]["description"], "OpenAPI", common["info"]["version"])
-          print("UpdateSmContext:", method.upper(), path)
-          print("Request parts:", sorted(request_parts))
-          print("Response 200 parts:", sorted(response_parts))
-          print("V19.7.0 production-profile protocol shape: PASS")
-          PY
+          python scripts/validate_etsi_production_artifact_lock.py "$pdf502" "$zip502" "$yaml502" "$pdf571" "$zip571" "$yaml571"
       - name: Validate IngressCatalog example
         run: python scripts/validate-ingresscatalog-example.py
       - name: Validate Ingress diagnostic registry
