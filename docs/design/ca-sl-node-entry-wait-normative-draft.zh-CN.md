@@ -443,7 +443,7 @@ The trusted Integration export MUST declare:
 - the protocol response Schema and media type for each supported response disposition;
 - whether the response is bodyless or body-bearing;
 - for a body-bearing response, a typed responseResultSchema and the response-boundary Producer stage type, operation or observation;
-- a deterministic Integration-owned mapping from that typed response result to the protocol response Schema;
+- a deterministic Integration-owned mapping from that typed response result to one declared response disposition and its protocol response Schema;
 - explicit fixed failure-response mappings for any permitted early terminal disposition before the selected Producer has produced a result.
 
 The Compiler resolves the exact response SourcePath deterministically from wait.response.after (or the default Wait-bearing Node) and the export's Producer stage type: <response-boundary-node>.<producer>.output. It MUST NOT accept a Skill-specific NodeId or SourcePath embedded in the reusable Integration export. The selected Producer MUST exist at the response-boundary Node, MUST be available on every normal path reaching that boundary, and its Output Schema MUST be assignable to responseResultSchema. The Compiler MUST verify that the Integration mapping supplies each required protocol response field.
@@ -454,7 +454,7 @@ A single fixed bodyless protocol response disposition MAY declare no response-re
 
 ### 8.3 Response completion and ownership
 
-When the response boundary is committed, Runtime emits a typed response-ready result associated with the opaque expectedIngressRef, exact Ingress Operation contract and typed response result. Host resolves its private association from expectedIngressRef to the durable response-obligation record and relays the result to Integration.
+When the response boundary is committed, Runtime emits a response-ready result associated with the opaque expectedIngressRef and exact Ingress Operation contract, including a typed response result when the export requires one. Host resolves its private association from expectedIngressRef to the durable response-obligation record and relays the result to Integration.
 
 - Runtime does not receive or emit a protocol response-obligation identity.
 - Host retains the private response-obligation record and owns durable relay/recovery.
@@ -515,7 +515,7 @@ Runtime -> Host:
 
 Runtime creates expectedIngressRef and privately binds it to the exact Run, Node and Wait occurrence. Host and Integration carry it only as an opaque handle. Neither may resolve it to a Run or Node. Integration MUST NOT receive runId or waitOccurrenceRef.
 
-deliveryRef is an Integration-owned idempotency identity for one normalized delivery. responseObligationRef is Integration-owned and remains private to Integration/Host. It MUST be present if and only if the pinned Ingress Operation export declares a paired response. responseResultRef is required only for a body-bearing response disposition; it MAY be absent for a bodyless response. normalizedPayloadRef is a protected immutable reference; the typed request value is exposed to Skill code only through wait.output.
+deliveryRef is an Integration-owned idempotency identity for one normalized delivery. responseObligationRef is Integration-owned and remains private to Integration/Host. It MUST be present if and only if the pinned Ingress Operation export declares a paired response. responseResultRef is required when any response disposition is body-bearing or when multiple dispositions must be selected; it MAY be absent only for a single fixed bodyless disposition. normalizedPayloadRef is a protected immutable reference; the typed request value is exposed to Skill code only through wait.output.
 
 Delivery is durable at-least-once plus idempotent acceptance. No distributed exactly-once transport guarantee is implied. Runtime's atomic state transition and durable checkpoint enforce exactly-once Node entry for one Wait occurrence.
 
