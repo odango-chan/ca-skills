@@ -472,7 +472,7 @@ Compiler 根据 wait.response.after（或默认 Wait-bearing Node）和 producer
 
 映射由 Integration 拥有，不由 Skill 重复声明。若协议要求响应体，则不得以空 Body 或 Runtime Trace 代替。Integration 必须在持久接受请求前检查 HTTP Accept 与所有可能的 body-bearing disposition representation 是否兼容；若后续可能选择的响应表示不被请求方接受，必须在提交 Ingress delivery 前按协议/HTTP 规则拒绝（通常为 406），不得先触发业务执行再发现无法序列化响应。
 
-v1alpha1 目前只定义 JSON body response mapping。若 pinned OpenAPI 的 200 response 还允许 multipart/related binary parts（例如 N1/N2 SM 信息），Integration 只有在请求方允许 JSON 且实际 response result 不包含必须通过 multipart 承载的 binary parts 时才能选择本版 JSON representation。若业务结果需要这些 binary parts，Compiler/Admission 必须拒绝该 export；不得省略、字符串化或伪造 binary parts。显式 response multipart part mapping 属于后续契约扩展，不在本版暗示已支持。
+v1alpha1 支持 `application/json` 与 `multipart/related` 两种显式 response representation，但不支持任意媒体类型或不透明 URL/文件路径作为二进制引用。multipart response 必须通过 `response.binaryContent`、immutable typed reference、root JSON part、逐 part Schema/大小限制和显式 Content-ID mapping 完整声明；缺少任一绑定时 Compiler/Admission 必须拒绝，不得省略、字符串化或伪造 binary parts。
 
 ### 8.4 成功、早期失败和响应超时
 
@@ -769,28 +769,96 @@ spec:
           producer: observation
           responseResultSchemaRef: urn:example:response-result:update-sm-context:v1
           dispositionSelector:
-            sourcePath: /responseDisposition
+            sourcePath: /responseRepresentation
             cases:
-              - value: update-with-json-cause
-                dispositionId: update-with-json-cause
-              - value: update-completed-no-content
+              - value: json
+                dispositionId: update-completed
+                representationId: json
+              - value: multipart
+                dispositionId: update-completed
+                representationId: multipart
+              - value: no-content
                 dispositionId: update-completed-no-content
           mappings:
-            - dispositionId: update-with-json-cause
+            - dispositionId: update-completed
+              representationId: json
               from: /cause
-              to: /cause
+              target:
+                kind: json-body
+                pointer: /cause
               transform: identity
+            - dispositionId: update-completed
+              representationId: multipart
+              from: /cause
+              target:
+                kind: multipart-json
+                part: jsonData
+                pointer: /cause
+              transform: identity
+            - dispositionId: update-completed
+              representationId: multipart
+              from: /n1SmMessage
+              target:
+                kind: multipart-binary
+                part: binaryDataN1SmMessage
+                contentIdField:
+                  part: jsonData
+                  pointer: /n1SmMsg/contentId
+              transform: binary-content-ref
+            - dispositionId: update-completed
+              representationId: multipart
+              from: /n2SmInformation
+              target:
+                kind: multipart-binary
+                part: binaryDataN2SmInformation
+                contentIdField:
+                  part: jsonData
+                  pointer: /n2SmInfo/contentId
+              transform: binary-content-ref
         dispositions:
-          - id: update-with-json-cause
+          - id: update-completed
             status: 200
             body: required
-            mediaType: application/json
-            maxBytes: 65536
-            responseSchemaRef: urn:example:openapi:update-sm-context-response
-            responseSchemaDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+            representations:
+              - id: json
+                mediaType: application/json
+                responseSchemaRef: urn:example:openapi:update-sm-context-response
+                responseSchemaDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+                maxBytes: 65536
+              - id: multipart
+                mediaType: multipart/related
+                responseSchemaRef: urn:example:openapi:update-sm-context-response
+                responseSchemaDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+                maxBytes: 2228224
+                rootPart: jsonData
+                parts:
+                  - name: jsonData
+                    mediaType: application/json
+                    kind: json
+                    required: true
+                    schemaRef: urn:example:openapi:update-sm-context-response
+                    schemaDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+                    maxBytes: 65536
+                  - name: binaryDataN1SmMessage
+                    mediaType: application/vnd.3gpp.5gnas
+                    kind: binary
+                    required: false
+                    maxBytes: 1048576
+                  - name: binaryDataN2SmInformation
+                    mediaType: application/vnd.3gpp.ngap
+                    kind: binary
+                    required: false
+                    maxBytes: 1048576
           - id: update-completed-no-content
             status: 204
             body: none
+        binaryContent:
+          referenceSchemaRef: urn:example:response:binary-content-reference:v1
+          digestAlgorithm: sha-256
+          immutable: true
+          access: integration-response-only
+          retention: "<response-deadline-plus-replay-and-recovery-window>"
+          maxBytes: 1048576
         earlyFailureResponses:
           FAILED:
             responseRef: urn:example:protocol-error:failed
@@ -810,9 +878,9 @@ spec:
 - artifactDigest 绑定精确 OpenAPI 文件；内联 normalization/response mappings 由整个 IngressCatalog dependency snapshot digest 固定；
 - operationId 不能替代 Service-Operation 名称；UpdateSMContext 的 multipart part 名称使用 pinned OpenAPI 中的 binaryDataN1SmMessage / binaryDataN2SmInformation，不能缩写成 n1SmMsg / n2SmInfo；
 - TS 29.502 V19.5.0 的 UpdateSmContext 请求 multipart parts 包含 `binaryDataN1SmMessage`、`binaryDataN2SmInformation` 和 `binaryDataN2SmInformationExt1`；三者分别通过 `jsonData` 中的 `n1SmMsg.contentId`、`n2SmInfo.contentId` 和 `n2SmInfoExt1.contentId` 关联 Content-ID。示例必须逐项映射并校验这些引用；
-- UpdateSmContext 的 200 响应在协议上可使用 `application/json` 或 `multipart/related`，204 则没有响应体。V19.5.0 的 200 multipart response parts 为 `jsonData`、`binaryDataN1SmMessage` 和 `binaryDataN2SmInformation`，二进制 part 同样必须通过 `SmContextUpdatedData.n1SmMsg.contentId` / `n2SmInfo.contentId` 与 Content-ID 关联。本版示例仅链接 200 JSON 与 204；v1alpha1 当前不支持 200 multipart response mapping，因此包含 N1/N2 binary response part 的响应分支必须保持 NOT LINKABLE；
-- 示例 200 JSON response maxBytes=65536，仅映射 SmContextUpdatedData 的条件属性 cause；smContextRef 是 request path 参数，不是 SmContextUpdatedData response body 字段；若 200 JSON body 含 RefToBinaryData 引用，则必须使用 multipart response，不能在本 JSON-only profile 中接受；
-- TS 23.502 V19.5.0 §4.3.2.2.1 Step 15 的 N2 setup failure 分支要求按失败流程释放 N4 Session，并在 Step 17 返回包含 PDU Session Establishment Reject 的 N1 SM binary container；本版 JSON-only response profile 不支持该 multipart failure response，不能把它伪装成 204 或通用 JSON 错误，必须保持 NOT LINKABLE，直到 response multipart 映射扩展完成。示例中的 `earlyFailureResponses` 仅是其他早期终止情形的占位映射，绝不能替代该协议定义的失败响应；
+- UpdateSmContext 的 200 响应在协议上可使用 `application/json` 或 `multipart/related`，204 则没有响应体。V19.5.0 的 200 multipart response parts 为 `jsonData`、`binaryDataN1SmMessage` 和 `binaryDataN2SmInformation`；示例在同一个 200 disposition 下分别声明 JSON 与 multipart representations，并将 binary parts 通过 `SmContextUpdatedData.n1SmMsg.contentId` / `n2SmInfo.contentId` 绑定到 Content-ID。v1alpha1 的 multipart response mapping 通过 typed immutable binary reference、root JSON part、显式 Content-ID field 和有限 retention 表达，不允许省略或字符串化二进制内容；
+- 示例 200 JSON representation maxBytes=65536，仅映射 SmContextUpdatedData 的条件属性 cause；smContextRef 是 request path 参数，不是 SmContextUpdatedData response body 字段；若响应需要 N1/N2 binary part 或 JSON root 含 RefToBinaryData 引用，必须选择 multipart representation，不能把 Content-ID 当成业务身份；
+- TS 23.502 V19.5.0 §4.3.2.2.1 Step 15 的 N2 setup failure 分支要求按失败流程释放 N4 Session，并在 Step 17 返回包含 PDU Session Establishment Reject 的 N1 SM binary container；该分支只有在 boundary Producer 提供可信、不可变的 N1 SM binary reference 且选择 multipart representation 时才可链接。若缺少该引用或映射，必须保持 NOT LINKABLE；不得伪装成 204 或通用 JSON 错误。示例中的 `earlyFailureResponses` 仅处理 Producer 尚未产生结果时的其他早期终止情形，绝不能替代该协议定义的业务失败响应；
 - arming.triggers[].operation 是出站 ToolCatalog Operation，不是 Ingress Operation；Compiler 从该精确 ToolCatalog export 解析 Operation Input Schema，armInputSchemaRef 则定义单独的 correlationBinding Schema；
 - requestKey 指向 normalized request 的字段，bindingPath 指向 correlation.armInputSchemaRef 的字段，operation-argument.path 指向出站 Operation 已物化输入；
 - response.result.producer 只允许 operation 或 observation；本示例使用 boundary Node 中 Operation 之后的 Observation 输出完整 typed Step 17 response result，不能把 N4 Tool 的原始输出未经类型验证直接当作 SBI response；只有单一 bodyless disposition 时才可省略 typed result Producer；
