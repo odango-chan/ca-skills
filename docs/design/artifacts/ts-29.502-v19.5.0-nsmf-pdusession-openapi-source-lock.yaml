@@ -66,7 +66,12 @@ spec:
           byteLength: 255480
           sha256: 8632cbab60c73e9c3ba9be26577057144255f21aef7430a1990bdf113c1e7bd4
           role: exact-openapi-source-bytes-for-annex-a2
-      externalReferences: []
+      operationSchemaClosure:
+        operationId: UpdateSmContext
+        scope: operation-request-and-responses
+        externalDocuments:
+          - TS29571_CommonData.yaml
+        status: VERIFIED_BY_CI
   informativeSource:
     repository: https://forge.3gpp.org/rep/all/5G_APIs
     ref: REL-19
