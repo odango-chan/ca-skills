@@ -80,7 +80,7 @@ nodes:
   # OpenAMSM OES: SC.CREATE_SM_CONTEXT (s3). This is the internal context
   # creation that supports the paired CreateSMContext service boundary; the
   # early step-5 response is not proof of final PDU Session establishment.
-  # 3GPP: CA_ADAPTER — TS 23.502 V19.9.0 §4.3.2.2.1 steps 3/5; NW Agent s3 SC.CREATE_SM_CONTEXT implements SM Context creation at the Nsmf service boundary. SMF API: TS 29.502 V19.7.0 §5.2/§6.1 / OpenAPI Annex A.2; Step 5 is not final Goal proof.
+  # 3GPP: CA_ADAPTER — TS 23.502 V19.9.0 §4.3.2.2.1 steps 3/5; NW Agent s3 SC.CREATE_SM_CONTEXT implements SM Context creation at the Nsmf service boundary. SMF API: TS 29.502 V19.7.0 §5.2/§6.1 / OpenAPI Annex A.2; common binary type TS 29.571 V19.7.0 §5.4.4.14 for N1 SM; Step 5 is not final Goal proof.
   create-sm-context:
     operation:
       tool: mas::SC.CREATE_SM_CONTEXT
@@ -296,7 +296,7 @@ nodes:
   # remain pending until the exact later step-15 UpdateSMContext result supplies
   # the RAN F-TEID. Host correlates that request to this Operation; Runtime
   # resumes this same Invocation. The AMF transfer ACK alone is not adoption.
-  # 3GPP: CA_ADAPTER — TS 23.502 V19.9.0 §4.3.2.2.1 steps 11 and 15; NW Agent s10 SSM.SIGNAL_UE_AN orchestrates Namf_Communication_N1N2MessageTransfer and the pending Nsmf_PDUSession_UpdateSMContext completion. APIs: TS 29.518 V19.8.0 §5.2 / OpenAPI Annex A.2; TS 29.502 V19.7.0 §5.2/§6.1 / OpenAPI Annex A.2.
+  # 3GPP: CA_ADAPTER — TS 23.502 V19.9.0 §4.3.2.2.1 steps 11 and 15; NW Agent s10 SSM.SIGNAL_UE_AN orchestrates Namf_Communication_N1N2MessageTransfer and the pending Nsmf_PDUSession_UpdateSMContext completion. APIs: TS 29.518 V19.8.0 §5.2 / OpenAPI Annex A.2; TS 29.502 V19.7.0 §5.2/§6.1 / OpenAPI Annex A.2; common binary type TS 29.571 V19.7.0 §5.4.4.14.
   signal-ue-and-access-network:
     operation:
       tool: mas::SSM.SIGNAL_UE_AN
