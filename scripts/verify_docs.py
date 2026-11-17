@@ -221,7 +221,7 @@ def check_v1alpha5(text: str, errors: list[str]) -> None:
             return []
         after = text.split(header, 1)[1].splitlines()
         rows: list[str] = []
-        for line in after[1:]:
+        for line in after[2:]:
             if not line.startswith("|"):
                 break
             rows.append(line)
