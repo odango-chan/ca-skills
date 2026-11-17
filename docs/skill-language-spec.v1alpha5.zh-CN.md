@@ -3957,6 +3957,8 @@ G.1–G.9 的继承用例与新增 E115–E120 共同组成 v1alpha4 已冻结�
 
 **全局门禁主诊断区别：** Contract 引用不存在、类型错误或已存在但从 start 不可达的 Precondition，先按 `ENTRY_PRECONDITION_REF_INVALID / C_STATIC`；**引用可达**但某条实际可达路径绕过其聚合 PASS，则按 `ENTRY_PRECONDITION_BYPASSED / C_STATIC`。同 Node 隐式 PASS 自动边按 §12.9 视为已通过门禁（E52/E61），不能误报 BYPASSED。此表不新增诊断 Code；下表包含 107 个唯一 Code、108 条唯一 `(Code, Phase)` 复合诊断身份（`EFFECT_MISMATCH` 同名跨 `C_STATIC` / `R_RUNTIME` 为两个独立身份）。
 
+| Code | Phase | 类别 | 阻断构建 | 触发位置 | Runtime 终态/路由影响 | 规范条款 | 代表用例 | 覆盖状态 |
+|---|---|---|---|---|---|---|---|---|
 | WAIT_DECLARATION_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、附录 L.1、§24.1 | EW-035 | 规范用例已定义，机器 Fixture 待执行 |
 | WAIT_TIMEOUT_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、附录 L.1.1、§24.1 | EW-027/EW-036 | 规范用例已定义，机器 Fixture 待执行 |
 | WAIT_INGRESS_EXPORT_NOT_FOUND | C_STATIC | Compiler ERROR | 是 | Link / ingress | 不启动 Invocation | 附录 L.3、§24.1 | EW-015（零匹配变体） | 规范用例已定义，机器 Fixture 待执行 |
@@ -3966,8 +3968,6 @@ G.1–G.9 的继承用例与新增 E115–E120 共同组成 v1alpha4 已冻结�
 | WAIT_NODE_STAGE_REQUIRED | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、附录 L.1、§24.1 | EW-013 | 规范用例已定义，机器 Fixture 待执行 |
 | WAIT_RESPONSE_BOUNDARY_INVALID | C_STATIC | Compiler ERROR | 是 | Graph / response | 不启动 Invocation | 附录 L.8、§24.1 | EW-019/EW-030 | 规范用例已定义，机器 Fixture 待执行 |
 | WAIT_RESPONSE_MAPPING_INVALID | C_STATIC | Compiler ERROR | 是 | Schema / response mapping | 不启动 Invocation | 附录 L.8、§24.1 | EW-021/EW-029 | 规范用例已定义，机器 Fixture 待执行 |
-| Code | Phase | 类别 | 阻断构建 | 触发位置 | Runtime 终态/路由影响 | 规范条款 | 代表用例 | 覆盖状态 |
-|---|---|---|---|---|---|---|---|---|
 | YAML_PARSE_ERROR | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | E119（重复 YAML Key） | 规范用例已定义 |
 | IDENTIFIER_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source (G.1) | 不启动 Invocation | §10.1、§24.1 | E105 | 规范用例已定义 |
 | QUALIFIED_REFERENCE_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source (G.1) | 不启动 Invocation | §10.1、§24.1 | E105 | 规范用例已定义 |
