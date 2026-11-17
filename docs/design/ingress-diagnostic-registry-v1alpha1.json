@@ -5,7 +5,7 @@
     "apiVersion": "connectionagent.io/ingresscatalog/v1alpha1",
     "kind": "IngressCatalog"
   },
-  "status": "NORMATIVE_DRAFT_NOT_FROZEN",
+  "status": "NORMATIVE_FROZEN",
   "identity": {
     "key": [
       "code",
