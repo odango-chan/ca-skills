@@ -129,14 +129,14 @@ class V1Alpha4ScriptTests(unittest.TestCase):
             (root / "assurance").mkdir()
             (root / "assurance" / "procedure.yaml").write_text("""start: retrieve
 nodes:
-  # 3GPP: 3GPP_NATIVE — TS 23.502 step 4
+  # 3GPP: 3GPP_NATIVE — TS 23.502 V19.9.0 step 4
   retrieve:
     operation: {}
 """, encoding="utf-8")
             tick = chr(96)
             doc = "\n".join([
                 "## 3GPP Traceability", "",
-                "TS 23.502 V18.12.0",
+                "TS 23.502 V19.9.0",
                 "| Procedure Node | Mapping |", "|---|---|",
                 "| " + tick + "retrieve" + tick + " | step 4 |",
             ])
@@ -146,20 +146,41 @@ nodes:
             self.assertEqual(errors, [])
 
 
+    def test_stale_per_node_3gpp_release_reference_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "assurance").mkdir()
+            (root / "assurance" / "procedure.yaml").write_text("""start: retrieve
+nodes:
+  # 3GPP: 3GPP_NATIVE — TS 23.502 V18.12.0 step 4; UDM Nudm_SDM_Get
+  retrieve:
+    operation: {}
+""", encoding="utf-8")
+            tick = chr(96)
+            doc = "\\n".join([
+                "## 3GPP Traceability", "TS 23.502 V19.9.0",
+                "| Procedure Node | Mapping |", "|---|---|",
+                "| " + tick + "retrieve" + tick + " | step 4 |",
+            ])
+            (root / "SKILL.md").write_text(doc, encoding="utf-8")
+            errors: list[str] = []
+            validate_3gpp_traceability(root, errors)
+            self.assertTrue(any("must pin TS 23.502 V19.9.0" in error for error in errors), errors)
+
     def test_local_3gpp_step_classification_is_accepted(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             (root / "assurance").mkdir()
             (root / "assurance" / "procedure.yaml").write_text("""start: select
 nodes:
-  # 3GPP: 3GPP_LOCAL — TS 23.502 step 8; local SMF selection
+  # 3GPP: 3GPP_LOCAL — TS 23.502 V19.9.0 step 8; local SMF selection
   select:
     operation:
       script: scripts/select.py
 """, encoding="utf-8")
             tick = chr(96)
             doc = "\n".join([
-                "## 3GPP Traceability", "TS 23.502 V18.12.0",
+                "## 3GPP Traceability", "TS 23.502 V19.9.0",
                 "| Procedure Node | Mapping |", "|---|---|",
                 "| " + tick + "select" + tick + " | local SMF selection |",
             ])
@@ -179,14 +200,14 @@ nodes:
             (root / "assurance").mkdir()
             (root / "assurance" / "procedure.yaml").write_text("""start: wait-for-n2-response
 nodes:
-  # 3GPP: CA_ADAPTER — TS 23.502 step 15
+  # 3GPP: CA_ADAPTER — TS 23.502 V19.9.0 step 15
   wait-for-n2-response:
     operation:
       tool: ssm::SSM.SIGNAL_UE_AN
 """, encoding="utf-8")
             tick = chr(96)
             doc = "\n".join([
-                "## 3GPP Traceability", "TS 23.502 V18.12.0",
+                "## 3GPP Traceability", "TS 23.502 V19.9.0",
                 "| Procedure Node | Mapping |", "|---|---|",
                 "| " + tick + "wait-for-n2-response" + tick + " | step 15 |",
             ])
@@ -201,7 +222,7 @@ nodes:
             (root / "assurance").mkdir()
             (root / "assurance" / "procedure.yaml").write_text("""start: retrieve
 nodes:
-  # 3GPP: 3GPP_NATIVE — TS 23.502 step 4
+  # 3GPP: 3GPP_NATIVE — TS 23.502 V19.9.0 step 4
   retrieve:
     operation:
       tool: udm::Nudm_SDM_Subscribe
@@ -210,7 +231,7 @@ nodes:
 """, encoding="utf-8")
             tick = chr(96)
             doc = "\n".join([
-                "## 3GPP Traceability", "TS 23.502 V18.12.0",
+                "## 3GPP Traceability", "TS 23.502 V19.9.0",
                 "| Procedure Node | Mapping |", "|---|---|",
                 "| " + tick + "retrieve" + tick + " | step 4 |",
             ])
@@ -229,7 +250,7 @@ nodes:
     operation: {}
 """, encoding="utf-8")
             doc = "\n".join([
-                "## 3GPP Traceability", "TS 23.502 V18.12.0",
+                "## 3GPP Traceability", "TS 23.502 V19.9.0",
                 "| Procedure Node | Mapping |", "|---|---|",
             ])
             (root / "SKILL.md").write_text(doc, encoding="utf-8")
