@@ -465,4 +465,6 @@ Until those gates are met, v1alpha4 remains the only applicable published langua
 
 The semantic baseline in this document is translated into proposed normative clauses in [Draft PR #61](https://github.com/odango-chan/ca-skills/pull/61). That amendment draft does not modify v1alpha4 and does not assign the next language version identifier. It formalizes the grammar, SourcePath, control-flow, correlation, response-boundary, diagnostics and conformance cases while keeping the architectural decisions in this document frozen.
 
+The package-scoped Integration Ingress Operation export contract is maintained separately in [ca-skills PR #62](https://github.com/odango-chan/ca-skills/pull/62). It defines IngressCatalog, trusted export identity, typed pre-dispatch arm binding, protocol normalization, correlation safety and response mapping without reopening the frozen Wait semantics.
+
 The generic Host/Runtime continuation contract is maintained separately in [ca-agent-demo PR #210](https://github.com/odango-chan/ca-agent-demo/pull/210). Physical DTOs, persistence technology and product conformance remain separate implementation work.
