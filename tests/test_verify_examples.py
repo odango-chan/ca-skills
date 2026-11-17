@@ -62,8 +62,49 @@ class V1Alpha4ScriptTests(unittest.TestCase):
             source = schema.read_text(encoding="utf-8")
             self.assertIn("sd: {type: string", source, skill)
             self.assertIn("maxLength: 6", source, skill)
-            self.assertIn("pattern:", source, skill)
+            self.assertNotIn("pattern:", source, skill)
+            self.assertNotIn("format:", source, skill)
             self.assertNotIn("sd: {type: integer", source, skill)
+
+    def test_subscription_profile_predicate_validates_dnn_and_s_nssai_sd(self) -> None:
+        import runpy
+
+        main = runpy.run_path(
+            str(ROOT / "examples" / "skills" / "establish-pdu-session" / "scripts" / "validate-subscription-request.py")
+        )["main"]
+        base = {
+            "evidence": {"receipt": {"refs": ["evidence:udm-read"]}},
+            "receipt": {"result": {"subscription": {
+                "dnn": "internet.example",
+                "sNssai": {"sst": 1},
+                "pduSessionTypes": {
+                    "defaultSessionType": "IPV4",
+                    "allowedSessionTypes": ["IPV4"],
+                },
+                "sscModes": {
+                    "defaultSscMode": 1,
+                    "allowedSscModes": [1],
+                },
+            }}},
+            "requestedDnn": "internet.example",
+            "requestedSNssai": {"sst": 1},
+            "requestedPduSessionType": "IPV4",
+            "requestedSscMode": 1,
+        }
+        self.assertEqual(main(base)["result"], "PASS")
+
+        invalid_dnn = {**base, "requestedDnn": "internet..example"}
+        self.assertEqual(main(invalid_dnn)["reasonCode"], "REQUEST_DNN_INVALID")
+
+        invalid_sd = {**base, "requestedSNssai": {"sst": 1, "sd": "ZZZZZZ"}}
+        self.assertEqual(main(invalid_sd)["reasonCode"], "REQUEST_SNSSAI_SD_INVALID")
+
+        valid_sd = {**base, "requestedSNssai": {"sst": 1, "sd": "A1b2C3"}}
+        valid_sd["receipt"] = {"result": {"subscription": {
+            **base["receipt"]["result"]["subscription"],
+            "sNssai": {"sst": 1, "sd": "A1b2C3"},
+        }}}
+        self.assertEqual(main(valid_sd)["result"], "PASS")
 
     def lint(self, source: str = SOURCE_PROCEDURE,
              producer: str = PRODUCER,
