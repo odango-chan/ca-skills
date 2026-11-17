@@ -1559,10 +1559,22 @@
           },
           "then": {
             "not": {
-              "required": [
-                "parts",
-                "minBinaryParts",
-                "maxBinaryParts"
+              "anyOf": [
+                {
+                  "required": [
+                    "parts"
+                  ]
+                },
+                {
+                  "required": [
+                    "minBinaryParts"
+                  ]
+                },
+                {
+                  "required": [
+                    "maxBinaryParts"
+                  ]
+                }
               ]
             }
           }
