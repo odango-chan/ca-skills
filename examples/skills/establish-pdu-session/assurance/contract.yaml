@@ -1,6 +1,6 @@
 # CA-SL v1alpha5 author syntax. Capability IDs below are illustrative and NOT published.
 # Skill-visible context carries the 3GPP SUPI; invocation/lifecycle/correlation metadata stays private to Host.
-# ca-context, ca-session-context and SMF business Tool packages are reserved proposals, not trusted exports.
+# ca-context, ca-session-context, SMF business Tools and the Integration IngressCatalog are placeholders, not trusted exports.
 goal: pdu_session.initial_request_fulfilled
 precondition: get-sm-subscription-data.precondition
 requestSchema: schemas/establishment-request.schema.yaml
