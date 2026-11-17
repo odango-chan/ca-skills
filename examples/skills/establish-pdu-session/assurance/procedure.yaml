@@ -184,7 +184,7 @@ nodes:
   # Runtime resumes this same Invocation when the Owner returns the result. The paired Step 17
   # response remains a private Host service-exit obligation.
   # After completion, this Node performs a fresh exact UE/PSI SM Context Observation.
-  # 3GPP: CA_ADAPTER — TS 23.502 V19.9.0 §4.3.2.2.1 step 15; Nsmf_PDUSession_UpdateSMContext. SMF API: TS 29.502 V19.8.0, Nsmf_PDUSession §5.2/§6.1 / OpenAPI Annex A.2.
+  # 3GPP: CA_ADAPTER — TS 23.502 V19.9.0 §4.3.2.2.1 step 15; Nsmf_PDUSession_UpdateSMContext. SMF API: TS 29.502 V19.7.0, Nsmf_PDUSession §5.2/§6.1 / OpenAPI Annex A.2.
   update-sm-context:
     operation:
       tool: smf::nsmf.pdu_session.update_sm_context
