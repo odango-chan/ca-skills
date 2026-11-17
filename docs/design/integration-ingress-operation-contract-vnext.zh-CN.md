@@ -431,7 +431,7 @@ Compiler 根据 Skill 的 wait.response.after 和 Ingress export 的 producer �
 
 paired response 必须声明非空的 response.dispositions[]。每个 disposition 至少声明唯一 id、精确 HTTP status 和 body 模式：
 
-- body: required 时，必须声明精确 mediaType、responseSchemaRef 和 responseSchemaDigest；
+- body: required 时，必须声明精确 mediaType、responseSchemaRef 和 responseSchemaDigest；v1alpha1 的 body-bearing representation 仅允许 application/json；
 - body: none 时，不得声明 Body Schema 或 response mapping。
 
 response.result 是可选的 typed result 绑定，但在以下任一条件成立时 REQUIRED：
@@ -445,7 +445,9 @@ Compiler 根据 wait.response.after（或默认 Wait-bearing Node）和 producer
 
 若仅声明一个 body: none 的 response disposition，则 response.result 可以省略；该 status 是固定的，不需要 Producer 来选择。若有多个 bodyless dispositions，也必须使用 typed result 和 mapping 明确选择，不能依赖运行时猜测。
 
-映射由 Integration 拥有，不由 Skill 重复声明。若协议要求响应体，则不得以空 Body 或 Runtime Trace 代替。
+映射由 Integration 拥有，不由 Skill 重复声明。若协议要求响应体，则不得以空 Body 或 Runtime Trace 代替。Integration 必须在持久接受请求前检查 HTTP Accept 与所有可能的 body-bearing disposition representation 是否兼容；若后续可能选择的响应表示不被请求方接受，必须在提交 Ingress delivery 前按协议/HTTP 规则拒绝（通常为 406），不得先触发业务执行再发现无法序列化响应。
+
+v1alpha1 目前只定义 JSON body response mapping。若 pinned OpenAPI 的 200 response 还允许 multipart/related binary parts（例如 N1/N2 SM 信息），Integration 只有在请求方允许 JSON 且实际 response result 不包含必须通过 multipart 承载的 binary parts 时才能选择本版 JSON representation。若业务结果需要这些 binary parts，Compiler/Admission 必须拒绝该 export；不得省略、字符串化或伪造 binary parts。显式 response multipart part mapping 属于后续契约扩展，不在本版暗示已支持。
 
 ### 8.4 成功、早期失败和响应超时
 
