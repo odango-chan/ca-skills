@@ -1,4 +1,4 @@
-# CA-SL Node-level Event Wait — Normative Amendment Draft
+# CA-SL Node-level Event Wait — Normative Amendment History (superseded by v1alpha5)
 
 **Primary review artifact:** [Complete CA-SL v1alpha5 single-file specification](../skill-language-spec.v1alpha5.zh-CN.md). The full specification is the only review target for normative integration; this file is retained as the source amendment and decision-history record.
 **Candidate language target:** `connectionagent.io/v1alpha5` (assigned candidate identifier; not released).
@@ -724,7 +724,7 @@ The following semantic cases are REQUIRED for future language/Host/Runtime/Integ
 
 ## 13. Publication gate
 
-This draft is not a language release. Before normative publication, the following MUST be completed:
+This document is retained as the historical amendment/review record. Its normative clauses were integrated into the released CA-SL v1alpha5 single-file specification at `docs/skill-language-spec.v1alpha5.zh-CN.md`; it is not an independent or competing normative source.
 
 1. independent review of the complete amendment against the full CA-SL normative text;
 2. final agreement on the logical Integration Ingress Operation export and response-result binding contract;
@@ -733,4 +733,4 @@ This draft is not a language release. Before normative publication, the followin
 5. cross-review against the package-scoped Integration Ingress Operation export contract in [ca-skills PR #62](https://github.com/odango-chan/ca-skills/pull/62) and the Generic Host inbound-event continuation contract in [ca-agent-demo PR #210](https://github.com/odango-chan/ca-agent-demo/pull/210);
 6. a separately approved language version identifier and release decision.
 
-Until then, v1alpha4 remains the only applicable published authoring contract. No implementation or product-conformance claim follows from this draft.
+The current authoring contract is `connectionagent.io/v1alpha5`. Product qualification remains independent and is not implied by language publication.
