@@ -4756,7 +4756,7 @@ The following v1alpha4 rules remain unchanged for connectionagent.io/v1alpha4:
 - §10.1 does not admit the wait field.
 - §13.2 does not admit wait as a Producer source.
 - §21 continues to prohibit author-level wait, await and polling Nodes.
-- The v1alpha4 §52 authoring guidance remains scoped to v1alpha4; a future full specification MUST replace or qualify that guidance so it no longer contradicts the Node-entry Event Wait model.
+- The v1alpha4 §52 authoring guidance remains scoped to v1alpha4. This complete v1alpha5 specification qualifies §52 with an explicit version boundary and Node-entry Event Wait model; the frozen v1alpha4 source file remains unchanged.
 - UNSUPPORTED_WAIT / C_STATIC remains the required diagnostic only when the selected language target is v1alpha4, as defined by v1alpha4 §24.1/H. A future-version Compiler MUST NOT emit UNSUPPORTED_WAIT for a valid Node-level Wait declaration.
 - Existing v1alpha4 pending-Operation continuation semantics remain authoritative.
 
