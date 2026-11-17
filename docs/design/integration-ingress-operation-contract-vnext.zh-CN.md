@@ -312,7 +312,7 @@ Compiler 必须验证该路径由 Skill 已声明的 Host Context Schema 或 Req
 
 触发 Operation 必须来自 Skill 已声明的可信依赖快照。Observation、Predicate、Script、Capability ID、Tool display name 或网络地址不能充当 triggering Operation identity。
 
-Compiler 必须从 Procedure 图中解析触发 Operation 的实际调用点，并验证每个 correlation 值都能从该 Operation 的已物化 arguments 中取得。Runtime 必须在 Operation 派发前使用同一份已物化 arguments 建立 correlation binding；不得等 Operation 返回后再推导。
+Compiler 必须从 Procedure 图中解析触发 Operation 的实际调用点，并验证每个 correlation 值都能从该 Operation 的已物化 arguments 中取得。该 Operation 身份必须在整个 dependency closure 中解析到恰好一个 ToolCatalog Operation export；若同一 Package ID 的多个快照或多个 Owner/export 候选导致歧义，必须拒绝。Runtime 必须在 Operation 派发前使用同一份已物化 arguments 建立 correlation binding；不得等 Operation 返回后再推导。
 
 ### 6.3 每条入边的唯一触发关系
 
@@ -369,9 +369,9 @@ Integration 必须证明一个经过认证、验证和归一化的请求最多�
 
 Integration 为一次已接受的 normalized delivery 生成稳定 deliveryRef，并在重试时保持不变。Host 按 deliveryRef 幂等持久化。
 
-Integration 必须声明其协议请求去重身份来源。若协议有可靠 request ID，使用该 ID 及其作用域；若没有，必须使用受信入口设施提供的请求身份或对同一 Wait occurrence 定义明确的重复处理规则。
+Integration 必须声明其协议请求去重身份来源。允许的来源为协议 request ID、受信 Gateway request ID，或在同一 expectedIngressRef 范围内的 canonical request digest。去重作用域必须至少包含 authenticated peer、Ingress export identity 和 expectedIngressRef；协议 request ID 还必须按协议定义的唯一性范围校验。重试同一请求时必须复用同一个 deliveryRef。
 
-若 Integration 无法区分“同一请求重试”与“同一 Wait 下两个内容相同但语义独立的请求”，必须拒绝/隔离歧义情形，不得声称 exactly-once 网络投递。
+若使用 canonical request digest，则同一 Wait occurrence 内两个内容完全相同的请求将被视为重复；Integration 必须明确该语义。若业务协议允许同一 Wait 下出现两个内容相同但语义独立的请求，而 Integration 无法区分二者，必须拒绝/隔离歧义情形，不得声称 exactly-once 网络投递。
 
 ## 8. 配对协议响应
 
