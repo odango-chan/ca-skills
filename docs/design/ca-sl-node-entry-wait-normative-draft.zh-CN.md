@@ -243,7 +243,7 @@ The trusted Ingress Operation export MUST bind, at minimum:
 6. one normalized request Schema in the CA-SL supported JSON Schema subset;
 7. a deterministic, traceable source-to-normalized mapping for path, query, JSON and supported multipart/binary parts;
 8. authenticated peer identity rules and protocol authorization rules;
-9. deterministic correlation derivation, including the pre-dispatch binding required to arm the Wait;
+9. deterministic correlation derivation, including the exact permitted triggering Operation callable identity/identities and the pre-dispatch binding required to arm the Wait;
 10. duplicate, stale-delivery, generation-reuse and unmatched-request handling;
 11. whether a paired protocol response exists, its response Schema/media types, success and failure mapping, and response-obligation lifecycle;
 12. when a response body is required, the typed response-result input Schema and exact mapping from a Producer output at the resolved response boundary.
@@ -395,12 +395,9 @@ Once TIMED_OUT, INVALIDATED or CANCELLED, a Wait occurrence is closed. A later e
 
 ### 7.2 Deadlines and cancellation
 
-The Wait clock starts only when the target Node becomes ACTIVE. Its deadline is the earlier of:
+The Wait clock starts only when the target Node becomes ACTIVE. Its authored deadline is Node activation time plus wait.timeout. The effective deadline is the earlier of the authored Wait deadline and the remaining Invocation deadline.
 
-- Node activation time plus the authored wait.timeout; and
-- the remaining Invocation deadline.
-
-If the authored Wait deadline wins, Runtime follows wait.routes.TIMEOUT. If the global Invocation deadline or cancellation wins first, Runtime applies the existing global stop semantics and MUST NOT relabel that stop as the author's TIMEOUT outcome.
+If the authored Wait deadline is strictly earlier and its timeout transition wins the authoritative state transition, Runtime follows wait.routes.TIMEOUT. If the global Invocation deadline is earlier than or equal to the authored Wait deadline, the global deadline takes precedence and Runtime applies the existing global stop semantics; it MUST NOT relabel that stop as the author's TIMEOUT outcome. Cancellation likewise uses the existing global stop semantics. Event acceptance, timeout and global stop are serialized against the same authoritative Wait occurrence; only one durable transition may win.
 
 The inbound protocol response deadline, if the Integration contract defines one, begins after event acceptance and is independent of the pre-event Wait deadline. Its expiry is handled by the Integration response/failure contract; it is not a Wait TIMEOUT.
 
@@ -429,7 +426,7 @@ If the linked Ingress Operation export declares a paired protocol response, the 
 
 wait.response.after MUST identify a declared Node reachable from the event-accepted edge of the Wait-bearing Node. It is response-continuation metadata, not a business stage or route. It does not change the terminal Run condition.
 
-The Compiler MUST prove that every event-accepted path reaches the selected response boundary before a normal successful terminal. An event-accepted path that terminates earlier with FAILED, UNRESOLVED or SAFE_STOPPED is valid only if the trusted Integration export declares an explicit response mapping for that failure disposition. A path that reaches SUCCEEDED before the response boundary is invalid. The boundary MUST NOT be inferred from the eventual terminal Run.
+The Compiler MUST prove that the selected response-boundary Node post-dominates the event-accepted edge for every path that does not terminate early in a permitted failure disposition. Every event-accepted path MUST either reach the selected response boundary or terminate earlier with FAILED, UNRESOLVED or SAFE_STOPPED and have an explicit trusted Integration response mapping for that disposition. A path that reaches SUCCEEDED before the response boundary is invalid. The boundary MUST NOT be inferred from the eventual terminal Run.
 
 If the Integration export requires a response boundary later than the Wait-bearing Node, wait.response.after is REQUIRED. If the export allows response at Wait-bearing Node completion, omission is valid. If the export declares no paired response, authoring wait.response is invalid.
 
