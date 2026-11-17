@@ -996,7 +996,7 @@ spec:
 | IN-042 | binaryContent retention 早于最后一个声明 Consumer 的最晚访问/恢复时间 | Compiler/Admission 拒绝不安全的内容生命周期 |
 | IN-043 | multipart body 或单个 part 超过其声明 maxBytes | Integration 在无界缓冲前拒绝请求，不提交 normalized delivery |
 | IN-044 | pinned OpenAPI response 需要 multipart/related binary parts，但 v1alpha1 export 仅声明 JSON response mapping | Compiler/Admission 拒绝不完整响应表示；不得丢弃或字符串化 binary parts |
-| IN-045 | Step 15 N2 setup failure 要求 Step 17 携带 N1 SM Reject binary container，而 export 仅声明 JSON response | Integration/Admission 不得以 204 或通用 JSON error 替代；该失败分支保持 NOT LINKABLE |
+| IN-045 | Step 15 任一规范定义的 user-plane setup rejection 要求 Step 17 携带 N1 SM Reject binary container，而 export 仅声明 JSON response 或 204 | Integration/Admission 不得以 204 或通用 JSON error 替代；两种失败分支均须使用 200 multipart，缺少 N1 binary mapping 时保持 NOT LINKABLE |
 | IN-046 | staleDelivery 使用 3gpp-Sbi-Request-Info.idempotency-key，但请求缺少该参数或独立请求复用该 key | Integration 拒绝/隔离；不得退回 canonical digest 或重新分配到其他 Wait |
 | IN-047 | wire-discriminator 的 discriminatorRetention 小于或等于 maximumLateArrival + clockSkewAllowance | Compiler/Admission 拒绝不足以覆盖迟到重传窗口及边界竞态的身份保留策略 |
 | IN-048 | body-bearing response serialization 超过 disposition.maxBytes | Integration 不得发送超限 Body；按明确的协议失败策略处理，不得截断或静默省略字段 |
