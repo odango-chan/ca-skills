@@ -1,0 +1,2 @@
+# Dependencies used by repository-local source hygiene and tests.
+PyYAML==6.0.2
