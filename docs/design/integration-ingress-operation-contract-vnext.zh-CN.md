@@ -204,7 +204,7 @@ acceptedMediaTypes/sourceSchemas/normalization.representations 中的 mediaType 
 
 sourceSchemas 必须与 acceptedMediaTypes 一一对应：每个允许的 media type 恰有一个源 Schema，不得存在缺失或多余的源 Schema。源 Schema 必须与 pinned OpenAPI artifact 中的 Request Body / multipart part 声明一致。Integration Adapter 按该精确 OpenAPI artifact 的方言验证 wire request；Compiler 验证源 Schema 引用及其 artifact/digest 归属，但不要求完整 OpenAPI Schema 方言落入 CA-SL 的 JSON Schema 子集，也不在 Compiler 中执行协议 wire validation。normalizedSchemaRef 才是 Compiler 用于 wait.output 路径、类型赋值和 CA-SL 静态分析的 Schema，必须符合 CA-SL 支持的 JSON Schema Draft 2020-12 子集。
 
-所有 `schemaDigest` / `normalizedSchemaDigest` / `responseSchemaDigest` 字段统一使用 [Schema Closure Digest v1](schema-closure-digest-v1.md)。Schema resolver 必须将 `schemaRef` 解析为精确的 `(artifactRef, artifactDigest, JSON Pointer)` 根身份，并遍历该 Schema 的完整传递 `$ref` 闭包；所有目标必须位于声明的受信 dependency snapshot 内。摘要使用 JCS RFC 8785 和域分隔符 `CA-SKILL-SCHEMA-CLOSURE\\0v1\\0`，不允许远程解析或按文件名猜测。该摘要绑定 Schema 根及其闭包，不替代完整 dependency snapshot digest、Owner 信任验证或协议 Schema 校验。机器可执行 golden vector 由 CI 验证。示例中的全零摘要仍是明确的未准入占位符。
+所有 `schemaDigest` / `normalizedSchemaDigest` / `responseSchemaDigest` 字段统一使用 [Schema Closure Digest v1](schema-closure-digest-v1.md)。Schema resolver 必须将 `schemaRef` 解析为精确的 `(artifactRef, artifactDigest, JSON Pointer)` 根身份，并遍历该 Schema 的完整传递 `$ref` 闭包；所有目标必须位于声明的受信 dependency snapshot 内。摘要使用 JCS RFC 8785 和域分隔符 `CA-SKILL-SCHEMA-CLOSURE\0v1\0`，不允许远程解析或按文件名猜测。该摘要绑定 Schema 根及其闭包，不替代完整 dependency snapshot digest、Owner 信任验证或协议 Schema 校验。机器可执行 golden vector 由 CI 验证。示例中的全零摘要仍是明确的未准入占位符。
 
 ### 4.4 归一化规则
 
@@ -379,7 +379,7 @@ Integration 必须证明一个经过认证、验证和归一化的请求最多�
 - `normalized-request-path`：从已验证的 normalized request 中读取精确 JSON Pointer；该字段必须在源 Schema、归一化映射和受信协议定义中闭合，并且必须是协议定义的逐请求身份字段，在同一逻辑请求的所有重传中保持不变；资源 ID、UE/SUPI、PDU Session ID、Content-ID 和时间戳都不满足这一条件；
 - `authenticated-header-parameter`：当前仅支持 3GPP SBI 的 `3gpp-Sbi-Request-Info` header 中的 `idempotency-key` 参数。Peer profile 必须要求该参数在每个请求中提供；Integration 必须按 TS 29.500 解析参数，而不是把整个 Header 字符串当作 ID。
 
-对 TS 29.502 V19.5.0 `UpdateSmContext`，`smContextRef` 只是资源 URI 路径参数，不能作为 successive Wait 的 wire discriminator；该 API 未定义可替代它的必需逐请求 ID。TS 29.502 §6.1.2.5 规定 AMF 可在新 TCP 连接上重试同一 HTTP 请求，并在重试时更新 `3gpp-Sbi-Origination-Timestamp` 与 `3gpp-Sbi-Sender-Timestamp`（若存在），因此这些时间戳不能用作 discriminator。TS 29.500 §5.2.3.3.3 的 `3gpp-Sbi-Max-Rsp-Time` 只表示 HTTP Client 等待响应的时长；它与适用的发送时间戳共同用于计算 responseDeadline，不是请求身份，也不是 maximumLateArrival 或 tombstoneRetention 的依据。重试时该时长也可能重新设置。
+对 TS 29.502 V19.5.0 `UpdateSmContext`，`smContextRef` 只是资源 URI 路径参数，不能作为 successive Wait 的 wire discriminator；该 API 未定义可替代它的必需逐请求 ID。TS 29.502 §6.1.2.5 规定 AMF 可在新 TCP 连接上重试同一 HTTP 请求，并在重试时更新 `3gpp-Sbi-Origination-Timestamp` 与 `3gpp-Sbi-Sender-Timestamp`（若存在），因此这些时间戳不能用作 discriminator。TS 29.500 §5.2.3.3.3 的 `3gpp-Sbi-Max-Rsp-Time` 只表示 HTTP Client 等待响应的时长；它与适用的发送时间戳共同用于计算当前 attemptResponseDeadline，不是请求身份，也不是 maximumLateArrival 或 tombstoneRetention 的依据。重试时该时长也可能重新设置。
 
 Wire discriminator 是外部请求身份，不是用于预派发匹配 Run/Wait 的 correlation key；它不要求在 arming 时预先知道，也不要求加入 normalized business Schema。Integration 在接收请求时提取 discriminator，并在匹配/提交 delivery 前检查它是否已被消费。消费记录必须按源协议定义的唯一性作用域持久化，不能擅自用 authenticated peer 或 Ingress export identity 缩小该作用域；`basisRef` 必须支持该作用域及其有限保留期。缺失、重复复用或格式不合法时必须拒绝/隔离，不得退回到猜测或选择 newest。
 
