@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:connectionagent:ca:ingresscatalog:schema:v1alpha1",
-  "title": "CA Integration IngressCatalog v1alpha1 (proposed)",
-  "description": "Proposed structural schema only. Cross-resource dependency identity, digest verification, graph analysis, protocol conformance and deployment profile binding remain semantic checks.",
+  "title": "CA Integration IngressCatalog v1alpha1",
+  "description": "Normative structural schema for IngressCatalog v1alpha1. Cross-resource dependency identity, digest verification, graph analysis, protocol conformance and deployment profile binding remain semantic checks.",
   "type": "object",
   "additionalProperties": false,
   "required": [
