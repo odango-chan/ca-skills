@@ -442,7 +442,7 @@ The following may be refined without reopening the frozen semantics:
 
 - exact YAML/EBNF grammar and field-level lexical constraints;
 - diagnostic identifiers, wording and Compiler conformance fixtures;
-- serialization of the trusted Integration export and generic Host/Runtime ports;
+- serialization of the trusted Integration export and generic Host/Runtime ports, including exact triggering Operation callable binding and pre-dispatch correlation materialization;
 - payload-reference representation for supported multipart/binary content;
 - deployment-specific maximum Wait duration and operational retry/backoff policy;
 - persistence technology, inbox/outbox implementation and recovery test details.
