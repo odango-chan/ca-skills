@@ -81,7 +81,8 @@
           "#/spec"
         ],
         "relatedPointerTemplate": []
-      }
+      },
+      "conformanceCase": "IN-055"
     },
     {
       "code": "INGRESS_EXPORT_ID_DUPLICATE",
@@ -103,7 +104,8 @@
         "relatedPointerTemplate": [
           "#/spec/operations/{firstIndex}/id"
         ]
-      }
+      },
+      "conformanceCase": "IN-005"
     },
     {
       "code": "INGRESS_EVENT_SELECTOR_DUPLICATE",
@@ -125,7 +127,8 @@
         "relatedPointerTemplate": [
           "#/spec/operations/{firstIndex}/event"
         ]
-      }
+      },
+      "conformanceCase": "IN-056"
     },
     {
       "code": "INGRESS_PROTOCOL_ARTIFACT_INVALID",
@@ -147,7 +150,8 @@
         "relatedPointerTemplate": [
           "{resolvedOpenApiArtifactRef}#{openApiJsonPointer}"
         ]
-      }
+      },
+      "conformanceCase": "IN-057"
     },
     {
       "code": "INGRESS_PEER_PROFILE_REFERENCE_INVALID",
@@ -170,7 +174,8 @@
         "relatedPointerTemplate": [
           "{resolvedProfileArtifactRef}#{profileJsonPointer}"
         ]
-      }
+      },
+      "conformanceCase": "IN-058"
     },
     {
       "code": "INGRESS_NORMALIZATION_INVALID",
@@ -192,7 +197,8 @@
         "relatedPointerTemplate": [
           "#/spec/operations/{index}/request/normalizedSchemaRef"
         ]
-      }
+      },
+      "conformanceCase": "IN-059"
     },
     {
       "code": "INGRESS_CORRELATION_INVALID",
@@ -214,7 +220,8 @@
         "relatedPointerTemplate": [
           "#/spec/operations/{index}/correlation/armInputSchemaRef"
         ]
-      }
+      },
+      "conformanceCase": "IN-060"
     },
     {
       "code": "INGRESS_RESPONSE_CONTRACT_INVALID",
@@ -236,7 +243,8 @@
         "relatedPointerTemplate": [
           "#/spec/operations/{index}/response/deadlinePolicyRef"
         ]
-      }
+      },
+      "conformanceCase": "IN-061"
     },
     {
       "code": "INGRESS_RESPONSE_MAPPING_INVALID",
@@ -259,7 +267,8 @@
         "relatedPointerTemplate": [
           "#/spec/operations/{index}/response/dispositions/{dispositionIndex}/representations/{representationIndex}/responseSchemaRef"
         ]
-      }
+      },
+      "conformanceCase": "IN-062"
     }
   ]
 }
