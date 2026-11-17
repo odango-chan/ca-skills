@@ -188,18 +188,16 @@ The following Stage 2 and Stage 3 references were checked against ETSI publicati
 | TS 23.502 | V19.9.0 | PDU Session Establishment and N4 procedure steps |
 | TS 23.503 | V19.8.0 | PCC / SM Policy framework and policy-trigger context |
 | TS 29.502 | V19.7.0 | `Nsmf_PDUSession` service, CreateSMContext and UpdateSMContext API; OpenAPI Annex A.2 |
-| TS 29.571 | V19.7.0 | Common Data Types referenced by the pinned TS 29.502 OpenAPI, including `RefToBinaryData`; OpenAPI Annex A.2 |
 | TS 29.500 | V19.7.1 | SBI technical realization, common HTTP/2 retry and request-deadline behavior | [ETSI Work Programme](https://portal.etsi.org/webapp/WorkProgram/Frame_WorkItemList.asp?SearchPage=TRUE+++&butExpertSearch=++Search++&includeNonActiveTB=FALSE+++&optDisplay=ALL+++&qCURRENT_STATE_CODE=finalized+++&qINCLUDE_SUB_TB=True+++&qPROJECT_BOOLEAN=OR+++&qREPORT_TYPE=SUMMARY+++&qSORT=HIGHVERSION+++&qTITLE=TS+29.500+++&titleType=all+++) |
 | TS 29.571 | V19.7.0 | Common SBI data types, including `RefToBinaryData` used by Nsmf/Namf OpenAPI schemas; OpenAPI Annex A.2 | [ETSI PDF](https://www.etsi.org/deliver/etsi_ts/129500_129599/129571/19.07.00_60/ts_129571v190700p.pdf) |
-| TS 29.571 | V19.7.0 | Common SBI data types, including `RefToBinaryData` used by Nsmf/Namf OpenAPI schemas | [ETSI PDF](https://www.etsi.org/deliver/etsi_ts/129500_129599/129571/19.07.00_60/ts_129571v190700p.pdf) |
 | TS 29.503 | V19.7.0 | UDM SDM and UECM services; OpenAPI Annex A.2 and A.3 |
 | TS 29.512 | V19.6.0 | `Npcf_SMPolicyControl` service; OpenAPI Annex A.2 |
 | TS 29.518 | V19.8.0 | `Namf_Communication` service and N1N2 Message Transfer; OpenAPI Annex A.2 |
 | TS 29.244 | V19.6.0 | PFCP / N4 Session Establishment, Modification and Release |
 
-**Binary SBI payload contract:** TS 29.502 V19.7.0 §6.1.2.4 defines `multipart/related` representations for Nsmf operations that carry N1 SM, N2 SM/NGAP or N4/PFCP payloads. The JSON part is `application/json`; binary parts use operation-specific media types including `application/vnd.3gpp.5gnas`, `application/vnd.3gpp.ngap` and `application/vnd.3gpp.pfcp`. Multiple binary parts may be present; the exact OpenAPI operation/response schema determines which parts exist. TS 29.571 V19.7.0 §5.4.4.14 defines `RefToBinaryData`: its required `contentId` is the value of the `Content-ID` header on the referenced binary body part. The JSON reference is not the binary payload itself.
+**Binary SBI payload contract:** TS 29.502 V19.7.0 §6.1.2.4 and OpenAPI Annex A.2 define `multipart/related` representations for Nsmf operations that carry N1 SM, N2 SM/NGAP or N4/PFCP payloads. The JSON part is `application/json`; binary parts use operation-specific media types including `application/vnd.3gpp.5gnas`, `application/vnd.3gpp.ngap` and `application/vnd.3gpp.pfcp`. Multiple binary parts may be present; the exact OpenAPI operation/response schema determines which parts exist. TS 29.571 V19.7.0 §5.4.4.14 defines `RefToBinaryData`: its required `contentId` is the value of the `Content-ID` header on the referenced binary body part. The JSON reference is not the binary payload itself.
 
-The Tool Owner / HTTP adapter owns MIME framing, the JSON root part, binary part bytes, per-part media types and `Content-ID` binding. It must support the number of binary parts declared by the selected OpenAPI operation. Do not assume JSON-only transport or base64-in-JSON. A Skill passes typed payload data/references under the published Tool Schema; it does not construct raw HTTP multipart framing.
+The Tool Owner / HTTP adapter owns the `multipart/related` boundary and MIME framing, JSON root part, binary part bytes, per-part media types and `Content-ID` binding. It must support every binary part permitted by the selected OpenAPI operation. A Skill passes typed business data / payload references under the published Tool Schema; it does not construct raw HTTP multipart framing or invent base64-in-JSON encodings.
 
 Primary ETSI PDFs:
 
@@ -213,9 +211,7 @@ Primary ETSI PDFs:
 - [TS 29.518 V19.8.0](https://www.etsi.org/deliver/etsi_ts/129500_129599/129518/19.08.00_60/ts_129518v190800p.pdf)
 - [TS 29.244 V19.6.0](https://www.etsi.org/deliver/etsi_ts/129200_129299/129244/19.06.00_60/ts_129244v190600p.pdf)
 
-**Binary SBI payload contract (normative source mapping):** TS 29.502 V19.7.0 §6.1.2.4 and OpenAPI Annex A.2 define `multipart/related` representations for Nsmf operations that carry N1 SM, N2 SM/NGAP or N4/PFCP payloads. The JSON part is `application/json`; binary parts use the operation-specific media type (including `application/vnd.3gpp.5gnas`, `application/vnd.3gpp.ngap` and `application/vnd.3gpp.pfcp`). Multiple binary parts may be present; the exact OpenAPI operation/response schema determines which parts exist. TS 29.571 V19.7.0 §5.4.4.14 defines `RefToBinaryData`: its required `contentId` is the value of the `Content-ID` header on the referenced binary body part. The JSON reference is not the binary payload itself.
 
-The Tool Owner / HTTP adapter owns the MIME boundary, `multipart/related` framing, JSON root part, binary part bytes, per-part media types and `Content-ID` binding. It must support the number of binary parts declared by the selected OpenAPI operation; do not assume one binary part or JSON-only requests. A Skill passes typed business data / payload references under the published Tool Schema. It does not construct raw HTTP multipart framing or invent base64-in-JSON encodings.
 
 For Stage 3 API traceability, use the exact OpenAPI files named by the applicable TS annex. A TS document version pin does not qualify a Tool Owner implementation, its ToolCatalog export, Schema, CapabilityContracts, Evidence or Deployment binding.
 
