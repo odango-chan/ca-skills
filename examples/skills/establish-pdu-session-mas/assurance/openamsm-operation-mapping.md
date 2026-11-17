@@ -64,7 +64,7 @@ Therefore, the Skill's `ue_identity` is source-aligned with the plan's `ue_ident
 
 1. Removed every invented `stateRef` field. The OpenAMSM plan and the mapped outputs do not define `stateRef`.
 2. Replaced the invented `mas::ca.pdu_session.*` callable names with source-derived MAS/OES operation identities. They remain placeholders until the Owner publishes them.
-3. Added the exact UE/PSI entry Observation. Only `ABSENT` may select initial creation; `PRESENT` (including SC `UNAVAILABLE`) stops safely; query errors are `UNKNOWN`.
+3. Added the exact UE/PSI entry Observation after the read-only s1 subscription-validation Operation in the same first business Node. Only `ABSENT` may select initial creation; `PRESENT` (including SC `UNAVAILABLE`) stops safely; query errors are `UNKNOWN`.
 4. Renamed the SAA stage to `skip-secondary-authentication` and fixed `required="0"` to match the plan. It is not described as an auth decision.
 5. Removed the mandatory address-confirm stage for this fixed `LOCAL_POOL` profile.
 6. Renamed the SSM stage to `signal-ue-and-access-network`; it owns the pending N1/N2-to-step-15 completion boundary. There is no extra callback or Wait Node.
