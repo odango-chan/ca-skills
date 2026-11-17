@@ -1,7 +1,7 @@
 # CA-SL v1alpha4 author syntax. MAS ToolCatalog / CapabilityContracts are NOT published.
 # Subject Context carries the 3GPP SUPI from the admitted CreateSMContext request; HostBusinessInstance and Runtime identities remain private.
 goal: pdu_session.initial_request_fulfilled
-precondition: read-existing-sm-context.precondition
+precondition: validate-sm-subscription.precondition
 requestSchema: schemas/establishment-request.schema.yaml
 contextSchema: ca-context::urn:connectionagent:ca:context:subject:v1
 dependencies:
