@@ -53,6 +53,6 @@ spec:
       - GitLab REL-19 branch file hash differs from the official ETSI companion YAML and is not used as the artifact.
     admissionAllowed: false
     remainingQualification:
-      - Pin the extracted OpenAPI artifact in the trusted dependency snapshot and derive its source Schema digests.
-      - Implement and pass the real Integration Adapter wire conformance suite.
+      - Pin the extracted TS29502_Nsmf_PDUSession.yaml and its transitive external OpenAPI references in the trusted dependency snapshot; in particular, obtain and pin the official ETSI TS 29.571 V19.5.0 Annex A.2 Common Data Types artifact (TS29571_CommonData.yaml), then derive exact source Schema digests.
+      - Implement and pass the real Integration Adapter wire conformance suite against the resolved, digest-pinned schema closure.
       - Verify the deployed Owner binding and deployment profile.
