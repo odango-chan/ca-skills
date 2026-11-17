@@ -87,7 +87,7 @@ def schema_closure_digest(root: dict, nodes: list[dict]) -> str:
         "root": root,
         "nodes": ordered_nodes,
     }
-    preimage = b"CA-SKILL-SCHEMA-CLOSURE\\x00v1\\x00" + rfc8785.dumps(manifest)
+    preimage = b"CA-SKILL-SCHEMA-CLOSURE\x00v1\x00" + rfc8785.dumps(manifest)
     return "sha256:" + hashlib.sha256(preimage).hexdigest()
 
 
