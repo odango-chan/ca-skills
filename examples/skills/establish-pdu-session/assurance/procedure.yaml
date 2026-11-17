@@ -3,8 +3,9 @@
 # below and in SKILL.md; it is not expanded into a second set of business Nodes in this example.
 # After any confirmed resource creation, failure/unknown routes stop safely. Host/Owner retains
 # the exact resource, callback and late-result responsibility; no cleanup is claimed as completed.
-# Runtime coordination (Hold/Claim/Waiter/Journal/Reconcile), invocation identity and lifecycle/
-# correlation are Host/Owner internals. The Skill receives only business inputs and typed results.
+# Runtime Wait delivery lifecycle (durable admission, occurrence isolation, correlation),
+# Hold/Claim/Waiter/Journal/Reconcile and invocation identity remain Host/Owner internals.
+# The v1alpha5 Node-entry Wait is authored below; it exposes only its typed wait.output.
 # Non-SMF context required by an Operation stays inside its responsible Tool/Owner adapter.
 # Host performs ingress admission, identity/instance association, duplicate suppression and
 # execution lifecycle before this graph starts. Host execution metadata is not a Procedure input.
@@ -310,7 +311,7 @@ nodes:
       routes:
         SUCCEEDED: verify-pdu-session-establishment
         FAILED: SAFE_STOPPED
-        OUTCOME_UNKNOWN: UNRESOLVED
+        UNKNOWN: UNRESOLVED
 
   # Final business proof. Host/Runtime separately enforces its terminal resource-responsibility
   # gate before publishing SUCCEEDED; this is a §12.8 publish gate, not a Skill Node.
