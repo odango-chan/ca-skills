@@ -133,6 +133,78 @@ A timeout handler MUST NOT read the timed-out Wait's output. Compiler path analy
 
 The normalized request value is ordinary typed input data. It MUST NOT be injected into global Context, treated as an Operation Result or Observation Result, or treated as Evidence. Transport headers, Host correlation keys, expectedIngressRef, deliveryRef, response handles and lifecycle metadata remain private unless the Integration's public normalized request Schema explicitly defines a field as business input.
 
+### 2.4 Authoring example
+
+The following is a syntax illustration. Callable IDs and Predicate IDs are placeholders; they do not claim that the corresponding Owner exports are published.
+
+~~~yaml
+start: transfer-n1n2-message
+nodes:
+  transfer-n1n2-message:
+    operation:
+      tool: ca::amf.communication.n1n2_message_transfer
+      arguments:
+        smContextRef: create-sm-context.operation.output.smContextRef
+        n1Message: prepare-n1n2.operation.output.n1Message
+      routes:
+        SUCCEEDED: update-sm-context
+        FAILED: SAFE_STOPPED
+
+  update-sm-context:
+    wait:
+      event:
+        source: AMF
+        service: Nsmf_PDUSession
+        operation: UpdateSMContext
+      timeout: PT30S
+      response:
+        after: modify-n4-session
+      routes:
+        TIMEOUT: handle-update-timeout
+    precondition:
+      predicates:
+        - predicate: session.update_request.valid
+          arguments:
+            - update-sm-context.wait.output
+      routes:
+        PASS: update-sm-context
+        FAIL: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
+    operation:
+      tool: ca::smf.session.update_from_amf
+      arguments:
+        request: update-sm-context.wait.output
+      routes:
+        FAILED: SAFE_STOPPED
+    postcondition:
+      predicates:
+        - predicate: session.ran_adoption.confirmed
+          arguments:
+            - update-sm-context.operation.output
+      routes:
+        PASS: modify-n4-session
+        FAIL: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
+
+  modify-n4-session:
+    operation:
+      tool: ca::upn.session.modify
+      arguments:
+        request: update-sm-context.operation.output
+      routes:
+        FAILED: SAFE_STOPPED
+
+  handle-update-timeout:
+    operation:
+      tool: ca::smf.update_timeout.handle
+      arguments: {}
+      routes:
+        SUCCEEDED: SAFE_STOPPED
+        FAILED: UNRESOLVED
+~~~
+
+This fragment is not a complete Skill: its referenced Nodes, schemas, Predicate declarations, dependency exports and final Goal Postcondition are intentionally omitted. It demonstrates only the Node-entry Wait shape, typed wait.output binding, timeout routing and the Step 17 response boundary. The Integration export MUST identify the triggering transfer callable and prove its pre-dispatch correlation binding.
+
 ## 3. Integration Ingress Operation export
 
 ### 3.1 Ownership and exact resolution
