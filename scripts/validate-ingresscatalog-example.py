@@ -596,30 +596,32 @@ def validate_standard_artifact_lock() -> None:
 
 
 def build_multipart_wire(root: dict, binary_parts: list[dict], boundary: str = "ca-step17-boundary") -> bytes:
+    crlf = bytes((13, 10))
     chunks = [
-        f"--{boundary}\\r\\n".encode(),
-        b"Content-Type: application/json\\r\\n",
-        b"Content-ID: <root@connectionagent>\\r\\n\\r\\n",
+        f"--{boundary}".encode() + crlf,
+        b"Content-Type: application/json" + crlf,
+        b"Content-ID: <root@connectionagent>" + crlf + crlf,
         json.dumps(root, separators=(",", ":")).encode("utf-8"),
-        b"\\r\\n",
+        crlf,
     ]
     for item in binary_parts:
         chunks.extend([
-            f"--{boundary}\\r\\n".encode(),
-            f"Content-Type: {item['mediaType']}\\r\\n".encode(),
-            f"Content-ID: {item['contentId']}\\r\\n".encode(),
+            f"--{boundary}".encode() + crlf,
+            f"Content-Type: {item['mediaType']}".encode() + crlf,
+            f"Content-ID: {item['contentId']}".encode() + crlf,
         ])
         if item.get("duplicateContentId"):
-            chunks.append(f"Content-ID: {item['duplicateContentId']}\\r\\n".encode())
-        chunks.extend([b"\\r\\n", item.get("body", b"binary"), b"\\r\\n"])
-    chunks.append(f"--{boundary}--\\r\\n".encode())
+            chunks.append(f"Content-ID: {item['duplicateContentId']}".encode() + crlf)
+        chunks.extend([crlf, item.get("body", b"binary"), crlf])
+    chunks.append(f"--{boundary}--".encode() + crlf)
     headers = (
-        f'Content-Type: multipart/related; boundary="{boundary}"; type="application/json"\\r\\n'
-        "MIME-Version: 1.0\\r\\n\\r\\n"
-    ).encode("ascii")
+        f'Content-Type: multipart/related; boundary="{boundary}"; type="application/json"'.encode("ascii")
+        + crlf
+        + b"MIME-Version: 1.0"
+        + crlf
+        + crlf
+    )
     return headers + b"".join(chunks)
-
-
 def parse_3gpp_multipart_reference(raw: bytes, role_map: dict[str, tuple[str, str]]) -> tuple[dict, dict]:
     message = BytesParser(policy=email_policy).parsebytes(raw)
     if not message.is_multipart() or message.get_content_type() != "multipart/related":
