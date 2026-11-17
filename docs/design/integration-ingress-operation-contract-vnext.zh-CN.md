@@ -439,7 +439,7 @@ response.result 是可选的 typed result 绑定，但在以下任一条件成�
 - 至少一个 response disposition 为 body: required；
 - 声明多个 response dispositions，需要依据业务结果确定所选 status/disposition。
 
-此时必须声明 responseResultSchemaRef、response.result.producer（operation 或 observation）以及 response.result.mappings[]。若存在多个 response dispositions，还必须声明 dispositionSelector，从 responseResultSchema 的一个受限 enum 属性将每个值精确映射到一个 disposition id。每条 response mapping 必须声明 dispositionId、from（responseResultSchema 内的 JSON Pointer）、to（对应 disposition 的 protocol responseSchema 内的 JSON Pointer）和 transform。初始 profile 的 transform 仅允许 identity；不得执行脚本、CEL、任意表达式或读取历史 Run 输出。
+此时必须声明 responseResultSchemaRef、response.result.producer（operation 或 observation）以及 response.result.mappings[]。本版 body-bearing response mapping 僅支持 application/json representation；若 pinned OpenAPI response 需要 multipart/related binary parts，当前 v1alpha1 不得假装仅靠 JSON Pointer mapping 已覆盖，必须拒绝该导出，直到后续版本定义显式 response-part/content-reference mapping。若存在多个 response dispositions，还必须声明 dispositionSelector，从 responseResultSchema 的一个受限 enum 属性将每个值精确映射到一个 disposition id。每条 response mapping 必须声明 dispositionId、from（responseResultSchema 内的 JSON Pointer）、to（对应 disposition 的 protocol responseSchema 内的 JSON Pointer）和 transform。初始 profile 的 transform 仅允许 identity；不得执行脚本、CEL、任意表达式或读取历史 Run 输出。
 
 Compiler 根据 wait.response.after（或默认 Wait-bearing Node）和 producer 类型推导唯一 SourcePath，并验证 boundary Producer Output 对 responseResultSchema 的可赋值性。responseResultSchema 必须符合 CA-SL 支持的 JSON Schema 子集；协议 responseSchemaRef 则按 pinned OpenAPI artifact 验证，由 Integration Adapter 负责实际 wire response validation。Compiler 必须验证 dispositionSelector 的源属性为闭合 enum、其值集合与 dispositions 完整且一一对应，并验证每个 body-bearing disposition 的 response mapping 覆盖全部 required response fields。
 
@@ -637,12 +637,12 @@ spec:
                   schemaRef: urn:example:openapi:update-sm-context-json-part
                   schemaDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
                   maxBytes: 262144
-                - name: n1SmMsg
+                - name: binaryDataN1SmMessage
                   mediaType: application/vnd.3gpp.5gnas
                   kind: binary
                   required: false
                   maxBytes: 1048576
-                - name: n2SmInfo
+                - name: binaryDataN2SmInformation
                   mediaType: application/vnd.3gpp.ngap
                   kind: binary
                   required: false
@@ -661,13 +661,13 @@ spec:
                   transform: identity
                 - source:
                     kind: multipart-binary
-                    part: n1SmMsg
+                    part: binaryDataN1SmMessage
                   target: /n1SmMessage
                   transform: binary-content-ref
                 - source:
                     kind: multipart-binary
-                    part: n2SmInfo
-                  target: /n2SmInformation
+                    part: binaryDataN2SmInformation
+                  target: /binaryDataN2SmInformationrmation
                   transform: binary-content-ref
         binaryContent:
           referenceSchemaRef: urn:example:normalized:binary-content-reference:v1
@@ -726,8 +726,8 @@ spec:
                 dispositionId: update-completed-no-content
           mappings:
             - dispositionId: update-accepted
-              from: /smContextRef
-              to: /smContextRef
+              from: /upCnxState
+              to: /upCnxState
               transform: identity
         dispositions:
           - id: update-accepted
@@ -756,7 +756,8 @@ spec:
 
 - sourceSchemas 和 normalizedSchemaRef 是不同契约，不得互相替代；
 - artifactDigest 绑定精确 OpenAPI 文件；内联 normalization/response mappings 由整个 IngressCatalog dependency snapshot digest 固定；
-- operationId 不能替代 Service-Operation 名称；
+- operationId 不能替代 Service-Operation 名称；UpdateSMContext 的 multipart part 名称使用 pinned OpenAPI 中的 binaryDataN1SmMessage / binaryDataN2SmInformation，不能缩写成 n1SmMsg / n2SmInfo；
+- 示例 200 JSON response 仅映射 SmContextUpdatedData 的条件属性 upCnxState；smContextRef 是 request path 参数，不是 SmContextUpdatedData response body 字段；示例不覆盖含 N1/N2 binary response parts 的 multipart/related 200 representation；
 - arming.triggers[].operation 是出站 ToolCatalog Operation，不是 Ingress Operation；Compiler 从该精确 ToolCatalog export 解析 Operation Input Schema，armInputSchemaRef 则定义单独的 correlationBinding Schema；
 - requestKey 指向 normalized request 的字段，bindingPath 指向 correlation.armInputSchemaRef 的字段，operation-argument.path 指向出站 Operation 已物化输入；
 - response.result.producer 只允许 operation 或 observation；只有单一 bodyless disposition 时才可省略 typed result Producer；
@@ -836,6 +837,7 @@ spec:
 | IN-041 | EVENT_ACCEPTED 后同一 resource key 的旧请求副本在 tombstone 到期前到达，或尝试提前 arm 下一 Wait | Integration 必须返回既有重复处置或拒绝/隔离；不得将旧请求分配给下一 Wait |
 | IN-042 | binaryContent retention 早于最后一个声明 Consumer 的最晚访问/恢复时间 | Compiler/Admission 拒绝不安全的内容生命周期 |
 | IN-043 | multipart body 或单个 part 超过其声明 maxBytes | Integration 在无界缓冲前拒绝请求，不提交 normalized delivery |
+| IN-044 | pinned OpenAPI response 需要 multipart/related binary parts，但 v1alpha1 export 仅声明 JSON response mapping | Compiler/Admission 拒绝不完整响应表示；不得丢弃或字符串化 binary parts |
 
 ## 15. 冻结与发布门槛
 
