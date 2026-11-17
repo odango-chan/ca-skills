@@ -6,7 +6,7 @@
 
 ## 0. Effect and compatibility
 
-This document translates the frozen Node-level Event Wait semantic baseline into proposed normative clauses. It is a delta against the published CA-SL v1alpha4 specification, not a replacement for that specification and not a new released language version.
+This document translates the frozen Node-level Event Wait semantic baseline into proposed normative clauses. It is a delta against the published CA-SL v1alpha4 specification, not a replacement for that specification and not a new released language version. It covers only inbound protocol events consumed by a Wait in an already-created Run; it does not define initial Start Ingress admission or the paired response for that initial request (for example CreateSMContext Steps 3/5). Initial Start Ingress / Service-exit is a separate contract, and `wait.response.after` MUST NOT be reused as its response boundary.
 
 The following v1alpha4 rules remain unchanged for connectionagent.io/v1alpha4:
 
