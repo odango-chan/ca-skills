@@ -1,4 +1,7 @@
 apiVersion: connectionagent.io/standard-artifact-lock/v1alpha1
+# Verified fixture lock only: TS 29.502/29.571 V19.5.0 is retained for reproducible schema/field tests.
+# It is not the current 5GC profile production pin (TS 29.502/29.571 V19.7.0 as checked 2026-11-17).
+# Replace this fixture with the exact V19.7.0 ETSI companion artifacts and rerun all hashes before real Integration admission.
 kind: StandardArtifactLock
 metadata:
   id: 3gpp-ts-29.502-v19.5.0-nsmf-pdusession
