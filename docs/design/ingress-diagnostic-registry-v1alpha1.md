@@ -83,17 +83,17 @@ The numeric `precedence` values in the machine registry order the Ingress-owned 
 
 The machine-readable registry is normative for exact Codes, Phase, Severity, build-blocking behavior, precedence, message keys, templates and source-location policies. The nine entries are:
 
-| Code | Phase | Severity | Blocks Build | Precedence | Message key |
+| Code | Phase | Severity | Blocks Build | Precedence | Message key | Conformance |
 |---|---|---|---|---:|---|
-| `INGRESS_CATALOG_INVALID` | C_STATIC | ERROR | Yes | 10 | `ingress.catalog.invalid` |
-| `INGRESS_EXPORT_ID_DUPLICATE` | C_STATIC | ERROR | Yes | 20 | `ingress.export.id.duplicate` |
-| `INGRESS_EVENT_SELECTOR_DUPLICATE` | C_STATIC | ERROR | Yes | 21 | `ingress.event.selector.duplicate` |
-| `INGRESS_PROTOCOL_ARTIFACT_INVALID` | C_STATIC | ERROR | Yes | 30 | `ingress.protocol.artifact.invalid` |
-| `INGRESS_PEER_PROFILE_REFERENCE_INVALID` | C_STATIC | ERROR | Yes | 40 | `ingress.peer.profile.reference.invalid` |
-| `INGRESS_NORMALIZATION_INVALID` | C_STATIC | ERROR | Yes | 50 | `ingress.normalization.invalid` |
-| `INGRESS_CORRELATION_INVALID` | C_STATIC | ERROR | Yes | 60 | `ingress.correlation.invalid` |
-| `INGRESS_RESPONSE_CONTRACT_INVALID` | C_STATIC | ERROR | Yes | 70 | `ingress.response.contract.invalid` |
-| `INGRESS_RESPONSE_MAPPING_INVALID` | C_STATIC | ERROR | Yes | 80 | `ingress.response.mapping.invalid` |
+| `INGRESS_CATALOG_INVALID` | C_STATIC | ERROR | Yes | 10 | `ingress.catalog.invalid` | IN-055 |
+| `INGRESS_EXPORT_ID_DUPLICATE` | C_STATIC | ERROR | Yes | 20 | `ingress.export.id.duplicate` | IN-005 |
+| `INGRESS_EVENT_SELECTOR_DUPLICATE` | C_STATIC | ERROR | Yes | 21 | `ingress.event.selector.duplicate` | IN-056 |
+| `INGRESS_PROTOCOL_ARTIFACT_INVALID` | C_STATIC | ERROR | Yes | 30 | `ingress.protocol.artifact.invalid` | IN-057 |
+| `INGRESS_PEER_PROFILE_REFERENCE_INVALID` | C_STATIC | ERROR | Yes | 40 | `ingress.peer.profile.reference.invalid` | IN-058 |
+| `INGRESS_NORMALIZATION_INVALID` | C_STATIC | ERROR | Yes | 50 | `ingress.normalization.invalid` | IN-059 |
+| `INGRESS_CORRELATION_INVALID` | C_STATIC | ERROR | Yes | 60 | `ingress.correlation.invalid` | IN-060 |
+| `INGRESS_RESPONSE_CONTRACT_INVALID` | C_STATIC | ERROR | Yes | 70 | `ingress.response.contract.invalid` | IN-061 |
+| `INGRESS_RESPONSE_MAPPING_INVALID` | C_STATIC | ERROR | Yes | 80 | `ingress.response.mapping.invalid` | IN-062 |
 
 ## 6. Version boundary
 
