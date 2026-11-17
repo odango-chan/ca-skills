@@ -224,9 +224,11 @@ Schema 选择不能依赖未验证的 Body 字段。未经认证的 source、UE 
 
 request.normalization.representations[] 必须对每个 accepted media type 恰好声明一个映射配置。每个配置至少包含精确 mediaType、multipart parts（适用时）和 mappings[]。每条 mapping 必须包含 source selector、normalized target JSON Pointer 和 transform。Normalization mapping 是 IngressCatalog operations[] 中的内联声明式数据，随整个 dependency snapshot digest 一起固定；本版不再引入独立 mappingRef/mappingDigest。
 
-source selector 的 kind 仅允许 path、query、header、json-body、multipart-json 和 multipart-binary。path/query/header 必须带精确参数名；json-body 必须带 JSON Pointer；multipart-json 必须带精确 part 名及 JSON Pointer；multipart-binary 必须带精确 part 名。header 只有在源协议明确将其定义为业务输入且 normalized Schema 显式声明对应属性时才允许映射，认证和传输控制 Header 不得映射。
+source selector 的 kind 仅允许 path、query、header、json-body、multipart-json 和 multipart-binary。path/query/header 必须带精确参数名；json-body 必须带 JSON Pointer；multipart-json 必须带精确 part 名及 JSON Pointer；multipart-binary 必须带精确 part 名。对于源协议使用 `RefToBinaryData` 关联 multipart `Content-ID` 的情况，multipart-binary source 还必须声明 `contentIdReference: { part, pointer }`，指向根 JSON part 中对应的引用属性。header 只有在源协议明确将其定义为业务输入且 normalized Schema 显式声明对应属性时才允许映射，认证和传输控制 Header 不得映射。
 
 transform 的初始封闭集合仅为 identity、parse-integer、parse-number、parse-boolean 和 binary-content-ref。identity 要求来源 Schema 类型可直接赋值给目标属性；parse-integer 只接受规范十进制整数词法且不得溢出；parse-number 只接受规范十进制有限数值且不得舍入或产生非有限值；parse-boolean 只接受精确小写 true/false；binary-content-ref 只适用于 multipart-binary 并生成 normalized Schema 声明的受限不可变内容引用。不得执行任意 CEL、Python、表达式、反射、网络查询、隐式字符串化、locale 转换、截断或有损转换。
+
+对于 3GPP TS 29.502 §6.1.2.4 的 multipart/related，Integration MUST 校验每个 binary part 的 `Content-ID` 与根 JSON part 中对应 `RefToBinaryData` 属性逐一匹配。`contentIdReference.part` 必须指向该 representation 的 JSON 根 part，`pointer` 必须指向精确的 RefToBinaryData 属性；引用缺失、悬空、重复、指向错误 part、Content-ID 重复或存在未被引用的 binary part，均必须拒绝/隔离。part 名称不是 Content-ID，不能代替该关联校验。归一化后的业务字段只暴露受限 binary content reference，不把原始 Content-ID 当成业务身份。对 `application/json` representation，由于不存在 binary part，任何非空 RefToBinaryData 引用都必须拒绝，不得保留成看似可用的内容引用。
 
 对每一种 media type，normalized Schema 的每个 required 属性必须恰好由一条 mapping 提供；不得有重复 target、悬空 source、未知 target 或类型不可赋值。未映射源字段/part 默认拒绝；只有 pinned source Schema 明确声明其可忽略，且 export 显式列出该忽略项时才可丢弃。可选 normalized 属性可以在对应 wire representation 中缺失，但不得合成默认值。真实 Adapter 必须通过 conformance fixtures 证明执行结果与内联 mapping 完全一致。禁止以 Skill Script、CEL 或 LLM 在运行时临时完成协议归一化。
 
@@ -372,8 +374,10 @@ Integration 必须证明一个经过认证、验证和归一化的请求最多�
 
 若协议提供 request ID、transaction ID、generation 或其他可验证 discriminator，Ingress export 的 staleDelivery 必须声明 strategy=wire-discriminator，并声明 discriminator 的来源。v1alpha1 支持两种来源：
 
-- `normalized-request-path`：从已验证的 normalized request 中读取精确 JSON Pointer；该字段必须在源 Schema、归一化映射和受信协议定义中闭合；
+- `normalized-request-path`：从已验证的 normalized request 中读取精确 JSON Pointer；该字段必须在源 Schema、归一化映射和受信协议定义中闭合，并且必须是协议定义的逐请求身份字段，在同一逻辑请求的所有重传中保持不变；资源 ID、UE/SUPI、PDU Session ID、Content-ID 和时间戳都不满足这一条件；
 - `authenticated-header-parameter`：当前仅支持 3GPP SBI 的 `3gpp-Sbi-Request-Info` header 中的 `idempotency-key` 参数。Peer profile 必须要求该参数在每个请求中提供；Integration 必须按 TS 29.500 解析参数，而不是把整个 Header 字符串当作 ID。
+
+对 TS 29.502 `UpdateSmContext`，`smContextRef` 只是资源 URI 路径参数，不能作为 successive Wait 的 wire discriminator；该 API 未定义可替代它的必需逐请求 ID。`3gpp-Sbi-Origination-Timestamp` 与 `3gpp-Sbi-Sender-Timestamp` 也不能用作 discriminator，因为 AMF 重试同一请求时会更新这些时间戳。
 
 Wire discriminator 是外部请求身份，不是用于预派发匹配 Run/Wait 的 correlation key；它不要求在 arming 时预先知道，也不要求加入 normalized business Schema。Integration 在接收请求时提取 discriminator，并在匹配/提交 delivery 前检查它是否已被其他 Wait occurrence 消费。其值必须在 authenticated peer + Ingress export 的范围内对每个原始请求唯一，并在该请求的所有重传中保持不变。缺失、重复复用或格式不合法时必须拒绝/隔离，不得退回到猜测或选择 newest。
 
@@ -569,7 +573,7 @@ Compiler 不执行协议认证，不调用真实 Integration adapter，不通过
 
 ## 11. 5GC 参考映射：TS 23.502 Step 15 / Step 17
 
-以下仅说明责任和身份映射，不选择具体 3GPP release，也不声称当前 Owner 已发布对应 IngressCatalog。
+以下按 3GPP TS 23.502 V19.5.0 与 TS 29.502 V19.5.0 对照说明责任和身份映射；示例的 OpenAPI artifact digest 仍是占位符，不代表已发布、已固定摘要的可部署 Owner artifact。
 
 - Step 11 Namf_Communication_N1N2MessageTransfer 是触发后续事件的出站 Operation。
 - Step 3 Nsmf_PDUSession_CreateSMContext 建立 SM Context；Step 5 成功响应的 Location resource URI 提供精确 smContextRef。
@@ -578,8 +582,9 @@ Compiler 不执行协议认证，不调用真实 Integration adapter，不通过
 - Integration 认证 AMF、校验精确 TS 29.502 API artifact、解析 path/body/media parts、验证源 Schema、归一化请求并以精确 smContextRef 关联已 armed Wait。
 - Host 持久提交 normalized delivery；Runtime 接受事件并继续同一个 Run，wait.output 提供 typed UpdateSMContext request。
 - Agent 执行声明的 SMF 业务 Operation。补充的只读 SMF Context Observation（若需要）仍在同一个 Node 的 Operation 之后执行，不转移协议响应责任。
-- Step 17 Nsmf_PDUSession.UpdateSMContext Response 在 modify-n4-session Node 的声明 response boundary commit 后由 Integration 编码。Ingress export 指定 response result 来自该 boundary Node 的 operation.output，Compiler 校验该输出与 responseResultSchema 的兼容性。
-- 若响应需要更早 Node 的值，Skill 必须将其显式传入 modify-n4-session Operation arguments，并由该 Operation 输出完整 response result。
+- Step 16a/16b 是 SMF 与 UPF 之间的 N4 Session Modification Request/Response；Step 16c 是条件性的 UDM 注册动作，是否执行取决于该过程中的注册状态。
+- Step 17 Nsmf_PDUSession.UpdateSMContext Response 必须在适用的 Step 16 动作全部完成后编码。当前 `modify-n4-session` response boundary 仅代表 16c 不需要执行或已在该边界前完成的成功分支；若 16c 仍需执行，boundary 必须移至包含该动作的后续 Node。
+- 若响应需要更早 Node 的值，Skill 必须将其显式传入最终 response-boundary Node 的 Operation arguments，并由该 Operation 输出完整 response result。
 
 此模型是传统 3GPP SMF 对外协议边界。不得把 OpenAMSM 内部模块名写成 3GPP 协议身份，不得把 AMF/(R)AN/UE 行为描述为 SMF 自身的 Operation。不得在 Step 3 尚未创建 SM Context 时查询一个不存在的 smContextRef 来注册 Step 15。
 
@@ -603,7 +608,7 @@ spec:
 
       protocol:
         specification: 3GPP TS 29.502
-        release: "<exact-pinned-release>"
+        release: "19.5.0"
         apiUriVersion: v1
         openapi:
           artifactRef: urn:example:openapi:nsmf-pdusession
@@ -664,6 +669,11 @@ spec:
                   kind: binary
                   required: false
                   maxBytes: 1048576
+                - name: binaryDataN2SmInformationExt1
+                  mediaType: application/vnd.3gpp.ngap
+                  kind: binary
+                  required: false
+                  maxBytes: 1048576
               mappings:
                 - source:
                     kind: path
@@ -679,12 +689,26 @@ spec:
                 - source:
                     kind: multipart-binary
                     part: binaryDataN1SmMessage
+                    contentIdReference:
+                      part: jsonData
+                      pointer: /n1SmMsg
                   target: /n1SmMessage
                   transform: binary-content-ref
                 - source:
                     kind: multipart-binary
                     part: binaryDataN2SmInformation
+                    contentIdReference:
+                      part: jsonData
+                      pointer: /n2SmInfo
                   target: /n2SmInformation
+                  transform: binary-content-ref
+                - source:
+                    kind: multipart-binary
+                    part: binaryDataN2SmInformationExt1
+                    contentIdReference:
+                      part: jsonData
+                      pointer: /n2SmInfoExt1
+                  target: /n2SmInformationExt1
                   transform: binary-content-ref
         binaryContent:
           referenceSchemaRef: urn:example:normalized:binary-content-reference:v1
@@ -775,9 +799,10 @@ spec:
 - sourceSchemas 和 normalizedSchemaRef 是不同契约，不得互相替代；
 - artifactDigest 绑定精确 OpenAPI 文件；内联 normalization/response mappings 由整个 IngressCatalog dependency snapshot digest 固定；
 - operationId 不能替代 Service-Operation 名称；UpdateSMContext 的 multipart part 名称使用 pinned OpenAPI 中的 binaryDataN1SmMessage / binaryDataN2SmInformation，不能缩写成 n1SmMsg / n2SmInfo；
-- 示例 200 JSON response maxBytes=65536，仅映射 SmContextUpdatedData 的条件属性 cause；smContextRef 是 request path 参数，不是 SmContextUpdatedData response body 字段；示例不覆盖含 N1/N2 binary response parts 的 multipart/related 200 representation；
+- TS 29.502 V19.5.0 的 UpdateSmContext 请求 multipart parts 包含 `binaryDataN1SmMessage`、`binaryDataN2SmInformation` 和 `binaryDataN2SmInformationExt1`；三者分别通过 `jsonData` 中的 `n1SmMsg`、`n2SmInfo` 和 `n2SmInfoExt1` RefToBinaryData 属性关联 Content-ID。示例必须逐项映射并校验这些引用；
+- UpdateSmContext 的 200 响应在协议上可使用 `application/json` 或 `multipart/related`，204 则没有响应体。本版示例仅链接 200 JSON 与 204；v1alpha1 当前不支持 200 multipart response mapping，因此包含 N1/N2 binary response part 的响应分支必须保持 NOT LINKABLE；
+- 示例 200 JSON response maxBytes=65536，仅映射 SmContextUpdatedData 的条件属性 cause；smContextRef 是 request path 参数，不是 SmContextUpdatedData response body 字段；若 200 JSON body 含 RefToBinaryData 引用，则必须使用 multipart response，不能在本 JSON-only profile 中接受；
 - TS 23.502 Step 15 的 N2 setup failure 分支可能要求 Step 17 返回包含 PDU Session Establishment Reject 的 N1 SM binary container；本版 JSON-only response profile 不支持该 multipart failure response，不能把它伪装成 204 或通用 JSON 错误，必须保持 NOT LINKABLE，直到 response multipart 映射扩展完成；
-- 具体 TS 29.502 release 可能增加 multipart part（例如 N2 SM Information extension part）；示例仅列出当前引用的两个常见 part，正式 pinned OpenAPI 的完整 part 集必须逐项覆盖或明确拒绝，不能静默丢弃；
 - arming.triggers[].operation 是出站 ToolCatalog Operation，不是 Ingress Operation；Compiler 从该精确 ToolCatalog export 解析 Operation Input Schema，armInputSchemaRef 则定义单独的 correlationBinding Schema；
 - requestKey 指向 normalized request 的字段，bindingPath 指向 correlation.armInputSchemaRef 的字段，operation-argument.path 指向出站 Operation 已物化输入；
 - response.result.producer 只允许 operation 或 observation；只有单一 bodyless disposition 时才可省略 typed result Producer；
@@ -863,6 +888,8 @@ spec:
 | IN-046 | staleDelivery 使用 3gpp-Sbi-Request-Info.idempotency-key，但请求缺少该参数或独立请求复用该 key | Integration 拒绝/隔离；不得退回 canonical digest 或重新分配到其他 Wait |
 | IN-047 | wire-discriminator 的 discriminatorRetention 小于 maximumLateArrival + clockSkewAllowance | Compiler/Admission 拒绝不足以覆盖迟到重传窗口的身份保留策略 |
 | IN-048 | body-bearing response serialization 超过 disposition.maxBytes | Integration 不得发送超限 Body；按明确的协议失败策略处理，不得截断或静默省略字段 |
+| IN-049 | 3GPP multipart binary part 的 Content-ID 与根 JSON 中 RefToBinaryData 不匹配、缺失、重复或悬空 | Integration 拒绝/隔离，不生成 normalized delivery |
+| IN-050 | application/json representation 包含无法由 multipart binary part 解析的 RefToBinaryData | Integration 拒绝/隔离，不生成伪造 binary content reference |
 
 ## 15. 冻结与发布门槛
 
