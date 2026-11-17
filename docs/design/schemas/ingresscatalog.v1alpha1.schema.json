@@ -1435,6 +1435,27 @@
               "parts"
             ]
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "mediaType": {
+                "not": {
+                  "pattern": "^multipart/"
+                }
+              }
+            },
+            "required": [
+              "mediaType"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "parts"
+              ]
+            }
+          }
         }
       ]
     },
