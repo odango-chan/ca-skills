@@ -696,6 +696,7 @@ def main(input: PredicateInput) -> PredicateEvaluationResult:
             errors: list[str] = []
             validate_async_update_sm_context_boundary(root, errors)
             self.assertTrue(any("must not declare or mention MAS implementation details" in e for e in errors), errors)
+            self.assertTrue(any("retired generic context callable ID" in e for e in errors), errors)
             self.assertTrue(any("fresh post-Step-15 Observation must be co-located in update-sm-context" in e for e in errors), errors)
             self.assertTrue(any("standalone Observation-only Node is forbidden" in e for e in errors), errors)
 
