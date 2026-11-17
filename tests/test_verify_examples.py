@@ -728,5 +728,22 @@ capabilities:
             self.assertTrue(any("missing step-15 update-sm-context continuation Node" in e for e in errors), errors)
             self.assertTrue(any("Host ingress, lifecycle and transport response metadata or Owner handles must remain private" in e for e in errors), errors)
 
+    def test_mas_charging_step_matches_pinned_nw_agent_skip_behavior(self) -> None:
+        skill = ROOT / "examples" / "skills" / "establish-pdu-session-mas"
+        procedure = (skill / "assurance" / "procedure.yaml").read_text(encoding="utf-8")
+        predicates = (skill / "assurance" / "predicates.yaml").read_text(encoding="utf-8")
+        mapping = (skill / "assurance" / "openamsm-operation-mapping.md").read_text(encoding="utf-8")
+        self.assertIn("execute-charging-step:", procedure)
+        self.assertIn("tool: mas::CA.CREATE_CHARGING", procedure)
+        self.assertIn('ratingGroupRefs: "default"', procedure)
+        self.assertIn("establishment.mas.charging_step_completed", procedure)
+        self.assertNotIn("charging_reservation_created", procedure)
+        self.assertIn('expression: result.charging_ref == "1"', predicates)
+        self.assertIn("mas::ca.charging-step-skipped", predicates)
+        self.assertIn("SMF_MAS_OK", mapping)
+        self.assertIn("NOT_IMPL_skip", mapping)
+        self.assertIn("continues to s8", mapping)
+        self.assertNotIn("hard qualification blocker", mapping)
+
 if __name__ == "__main__":
     unittest.main()
