@@ -944,7 +944,8 @@ IngressCatalog v1alpha1 使用独立、版本化的静态诊断注册表：[`con
 | INGRESS_PROTOCOL_ARTIFACT_INVALID | 已通过源字节摘要和可信依赖身份验证的 OpenAPI artifact，其 release、API URI version、method、path 或 operationId 与 Catalog 声明不一致 |
 | INGRESS_PEER_PROFILE_REFERENCE_INVALID | Peer authentication/authorization profile 引用格式错误，或在已声明的受信依赖快照中无法解析到预期资源 |
 | INGRESS_NORMALIZATION_INVALID | 请求 media type/source Schema/normalization representation 对应关系不完整，或 mapping 缺失、重复、字段覆盖不完整、transform/目标路径无效 |
-| INGRESS_BINARY_CONTENT_LIFECYCLE_INVALID | 请求/响应 binaryContent 的不可变引用、摘要、访问策略、最大长度或保留/恢复期限声明不完整或不安全 |\n| INGRESS_CORRELATION_INVALID | Ingress 自身的 key、duplicate identity/scope 或 stale-delivery 声明不合法或不能保证 occurrence 隔离 |
+| INGRESS_BINARY_CONTENT_LIFECYCLE_INVALID | 请求/响应 binaryContent 的不可变引用、摘要、访问策略、最大长度或保留/恢复期限声明不完整或不安全 |
+| INGRESS_CORRELATION_INVALID | Ingress 自身的 key、duplicate identity/scope 或 stale-delivery 声明不合法或不能保证 occurrence 隔离 |
 | INGRESS_RESPONSE_CONTRACT_INVALID | response mode、deadline policy、disposition、failure response 或 delivery recovery 声明不完整/矛盾 |
 | INGRESS_RESPONSE_MAPPING_INVALID | Ingress 自身的协议响应 representation、Schema 映射、multipart part 映射或必需响应字段映射无效 |
 
