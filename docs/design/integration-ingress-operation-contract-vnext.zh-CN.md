@@ -397,7 +397,7 @@ wire-discriminator 策略还必须声明 maximumLateArrival、clockSkewAllowance
 - maximumLateArrival 与 clockSkewAllowance 的依据必须由可审计的协议或部署保证支持，不得由 Skill 作者随意声明；
 - maximumLateArrival 使用 CA-SL 固定正时长的同一词法子集；若无法证明有限的迟到窗口，则不得复用该 key；Compiler/Admission 必须 fail-closed。
 
-当一个有效请求首次匹配到 armed expectedIngressRef 并被 Integration 持久接受时，Integration 必须原子地消费该 correlation resource key 并立即启动 tombstone；不得等 Runtime 消费事件、业务 Node 完成或 paired response 交付后才启动。这样同一请求的重试/副本不能落入下一 Wait。若 Wait 在没有匹配请求的情况下因 TIMEOUT、CANCELLED 或 INVALIDATED 关闭，则在该关闭状态提交时启动 tombstone。tombstone 到期前到达的请求必须作为旧请求副本/迟到请求处理，不得匹配新 Wait。
+当一个有效请求首次匹配到 armed expectedIngressRef 并被 Integration 持久接受时，Integration 必须原子地消费该 correlation resource key 并立即启动 tombstone；不得等 Runtime 消费事件、业务 Node 完成或 paired response 交付后才启动。这样同一请求的重试/副本不能落入下一 Wait。该 tombstone 仅阻止将旧请求分配给新 occurrence，不得删除首次接受的 delivery 记录：Integration 必须保留稳定的 deliveryRef、原始 expectedIngressRef，以及（paired 模式下）原始 responseObligationRef。相同请求重试时必须重放原 delivery/disposition 并继续关联原 occurrence；不得因为 tombstone 已存在而将其重新匹配给下一 Wait，也不得为同一请求创建第二个 Runtime delivery。若 Wait 在没有匹配请求的情况下因 TIMEOUT、CANCELLED 或 INVALIDATED 关闭，则在该关闭状态提交时启动 tombstone。tombstone 到期前到达的请求必须作为旧请求副本/迟到请求处理，不得匹配新 Wait。
 
 如果协议允许同一 resource key 在 tombstone 窗口内出现合法的下一条独立请求，而又没有可验证的 wire discriminator，则 single-flight-tombstone 策略不适用于该接口；Compiler/Admission 必须拒绝该绑定，要求更强的 wire discriminator 或其他协议级可验证区分依据。
 
