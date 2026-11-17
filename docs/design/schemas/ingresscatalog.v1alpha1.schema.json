@@ -120,7 +120,7 @@
       "required": [
         "specification",
         "release",
-        "apiVersion",
+        "apiUriVersion",
         "openapi"
       ],
       "properties": {
@@ -132,12 +132,12 @@
           "type": "string",
           "minLength": 1
         },
-        "apiVersion": {
-          "type": "string",
-          "minLength": 1
-        },
         "openapi": {
           "$ref": "#/$defs/openapi"
+        },
+        "apiUriVersion": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -191,17 +191,16 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "mappingRef",
-        "mappingDigest"
+        "representations"
       ],
       "properties": {
-        "mappingRef": {
-          "type": "string",
-          "minLength": 1
-        },
-        "mappingDigest": {
-          "type": "string",
-          "pattern": "^sha256:[0-9a-f]{64}$"
+        "representations": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/normalizationRepresentation"
+          }
         }
       }
     },
@@ -243,8 +242,55 @@
         },
         "normalization": {
           "$ref": "#/$defs/normalization"
+        },
+        "binaryContent": {
+          "$ref": "#/$defs/binaryContent"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "normalization": {
+                "properties": {
+                  "representations": {
+                    "contains": {
+                      "properties": {
+                        "mappings": {
+                          "contains": {
+                            "properties": {
+                              "transform": {
+                                "const": "binary-content-ref"
+                              }
+                            },
+                            "required": [
+                              "transform"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "mappings"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "representations"
+                ]
+              }
+            },
+            "required": [
+              "normalization"
+            ]
+          },
+          "then": {
+            "required": [
+              "binaryContent"
+            ]
+          }
+        }
+      ]
     },
     "correlationKey": {
       "type": "object",
@@ -319,6 +365,8 @@
         "strategy",
         "resourceKey",
         "maximumLateArrival",
+        "clockSkewAllowance",
+        "tombstoneRetention",
         "basisRef"
       ],
       "properties": {
@@ -334,6 +382,14 @@
           "minLength": 1
         },
         "basisRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clockSkewAllowance": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tombstoneRetention": {
           "type": "string",
           "minLength": 1
         }
@@ -605,9 +661,7 @@
       "additionalProperties": false,
       "required": [
         "producer",
-        "responseResultSchemaRef",
-        "mappingRef",
-        "mappingDigest"
+        "responseResultSchemaRef"
       ],
       "properties": {
         "producer": {
@@ -620,13 +674,15 @@
           "type": "string",
           "minLength": 1
         },
-        "mappingRef": {
-          "type": "string",
-          "minLength": 1
+        "dispositionSelector": {
+          "$ref": "#/$defs/dispositionSelector"
         },
-        "mappingDigest": {
-          "type": "string",
-          "pattern": "^sha256:[0-9a-f]{64}$"
+        "mappings": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/responseMapping"
+          }
         }
       }
     },
@@ -771,7 +827,14 @@
           "then": {
             "required": [
               "result"
-            ]
+            ],
+            "properties": {
+              "result": {
+                "required": [
+                  "mappings"
+                ]
+              }
+            }
           }
         },
         {
@@ -788,7 +851,14 @@
           "then": {
             "required": [
               "result"
-            ]
+            ],
+            "properties": {
+              "result": {
+                "required": [
+                  "dispositionSelector"
+                ]
+              }
+            }
           }
         },
         {
@@ -827,6 +897,7 @@
       "additionalProperties": false,
       "required": [
         "id",
+        "adapter",
         "event",
         "protocol",
         "security",
@@ -867,6 +938,10 @@
               "$ref": "#/$defs/responsePaired"
             }
           ]
+        },
+        "adapter": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -961,6 +1036,429 @@
           }
         }
       ]
+    },
+    "sourceSelector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "path",
+            "query",
+            "header",
+            "json-body",
+            "multipart-json",
+            "multipart-binary"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "part": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pointer": {
+          "anyOf": [
+            {
+              "const": ""
+            },
+            {
+              "type": "string",
+              "pattern": "^/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*$"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "path",
+                  "query",
+                  "header"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "name"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "part"
+                  ]
+                },
+                {
+                  "required": [
+                    "pointer"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "json-body"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "pointer"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "name"
+                  ]
+                },
+                {
+                  "required": [
+                    "part"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "multipart-json"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "part",
+              "pointer"
+            ],
+            "not": {
+              "required": [
+                "name"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "multipart-binary"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "part"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "name"
+                  ]
+                },
+                {
+                  "required": [
+                    "pointer"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "normalizationMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "target",
+        "transform"
+      ],
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/sourceSelector"
+        },
+        "target": {
+          "type": "string",
+          "pattern": "^/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*$"
+        },
+        "transform": {
+          "enum": [
+            "identity",
+            "parse-integer",
+            "parse-number",
+            "parse-boolean",
+            "binary-content-ref"
+          ]
+        }
+      }
+    },
+    "multipartPart": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "mediaType",
+        "kind",
+        "required"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mediaType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "json",
+            "binary"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "schemaRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schemaDigest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "maxBytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "json"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "schemaRef",
+              "schemaDigest"
+            ],
+            "not": {
+              "required": [
+                "maxBytes"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "binary"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "maxBytes"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "schemaRef"
+                  ]
+                },
+                {
+                  "required": [
+                    "schemaDigest"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "normalizationRepresentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mediaType",
+        "mappings"
+      ],
+      "properties": {
+        "mediaType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parts": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/multipartPart"
+          }
+        },
+        "mappings": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/normalizationMapping"
+          }
+        }
+      }
+    },
+    "binaryContent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "referenceSchemaRef",
+        "digestAlgorithm",
+        "immutable",
+        "access",
+        "retention",
+        "maxBytes"
+      ],
+      "properties": {
+        "referenceSchemaRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digestAlgorithm": {
+          "const": "sha-256"
+        },
+        "immutable": {
+          "const": true
+        },
+        "access": {
+          "const": "authorized-tool-only"
+        },
+        "retention": {
+          "type": "string",
+          "minLength": 1
+        },
+        "maxBytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "dispositionSelectorCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "dispositionId"
+      ],
+      "properties": {
+        "value": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "boolean"
+            }
+          ]
+        },
+        "dispositionId": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "dispositionSelector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourcePath",
+        "cases"
+      ],
+      "properties": {
+        "sourcePath": {
+          "type": "string",
+          "pattern": "^/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*$"
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/dispositionSelectorCase"
+          }
+        }
+      }
+    },
+    "responseMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dispositionId",
+        "from",
+        "to",
+        "transform"
+      ],
+      "properties": {
+        "dispositionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "from": {
+          "type": "string",
+          "pattern": "^/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*$"
+        },
+        "to": {
+          "type": "string",
+          "pattern": "^/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*$"
+        },
+        "transform": {
+          "const": "identity"
+        }
+      }
     }
   }
 }
