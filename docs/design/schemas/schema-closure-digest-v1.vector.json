@@ -6,23 +6,6 @@
   },
   "nodes": [
     {
-      "artifactRef": "urn:test:schemas/common",
-      "artifactDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
-      "pointer": "#/components/schemas/Context",
-      "schema": {
-        "type": "object",
-        "properties": {
-          "supi": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "supi"
-        ],
-        "additionalProperties": false
-      }
-    },
-    {
       "artifactRef": "urn:test:schemas/root",
       "artifactDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "pointer": "#/components/schemas/Request",
@@ -30,33 +13,117 @@
         "type": "object",
         "properties": {
           "context": {
-            "$ref": "common.yaml#/components/schemas/Context"
+            "$ref": "common.yaml#/$defs/Context"
           }
         },
         "required": [
           "context"
         ]
       }
+    },
+    {
+      "artifactRef": "urn:test:schemas/common",
+      "artifactDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "pointer": "#/$defs/Context",
+      "schema": {
+        "$id": "resources/context",
+        "type": "object",
+        "properties": {
+          "supi": {
+            "type": "string"
+          },
+          "shared": {
+            "$ref": "../shared.json#/$defs/Shared"
+          }
+        },
+        "required": [
+          "supi"
+        ]
+      }
+    },
+    {
+      "artifactRef": "urn:test:schemas/shared",
+      "artifactDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "pointer": "#/$defs/Shared",
+      "schema": {
+        "type": "string",
+        "minLength": 1
+      }
     }
   ],
-  "expectedDigest": "sha256:52f6da3e6fdeb19ac7450890baf94fa2428af80dd713a370c2bd8b561803aa0d",
+  "expectedDigest": "sha256:bed6154a9c5149a9f019641151be2dc74f960880b7486434915822e590a18ddf",
   "resolutionContext": {
-    "documentUris": [
+    "snapshotBaseUri": "https://snapshot.invalid/package/",
+    "documents": [
       {
         "artifactRef": "urn:test:schemas/root",
-        "uri": "https://snapshot.invalid/package/openapi/root.yaml"
+        "snapshotPath": "openapi/root.yaml",
+        "documentUri": "https://snapshot.invalid/package/openapi/root.yaml",
+        "artifactDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "dialect": "openapi-3.0",
+        "document": {
+          "openapi": "3.0.0",
+          "components": {
+            "schemas": {
+              "Request": {
+                "type": "object",
+                "properties": {
+                  "context": {
+                    "$ref": "common.yaml#/$defs/Context"
+                  }
+                },
+                "required": [
+                  "context"
+                ]
+              }
+            }
+          }
+        }
       },
       {
         "artifactRef": "urn:test:schemas/common",
-        "uri": "https://snapshot.invalid/package/openapi/common.yaml"
-      }
-    ],
-    "references": [
+        "snapshotPath": "openapi/common.yaml",
+        "documentUri": "https://snapshot.invalid/package/openapi/common.yaml",
+        "artifactDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "dialect": "json-schema-2020-12",
+        "document": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://schemas.invalid/common",
+          "$defs": {
+            "Context": {
+              "$id": "resources/context",
+              "type": "object",
+              "properties": {
+                "supi": {
+                  "type": "string"
+                },
+                "shared": {
+                  "$ref": "../shared.json#/$defs/Shared"
+                }
+              },
+              "required": [
+                "supi"
+              ]
+            }
+          }
+        }
+      },
       {
-        "fromArtifactRef": "urn:test:schemas/root",
-        "ref": "common.yaml#/components/schemas/Context",
-        "toArtifactRef": "urn:test:schemas/common",
-        "pointer": "#/components/schemas/Context"
+        "artifactRef": "urn:test:schemas/shared",
+        "snapshotPath": "openapi/shared.json",
+        "documentUri": "https://snapshot.invalid/package/openapi/shared.json",
+        "artifactDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "dialect": "json-schema-2020-12",
+        "document": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://schemas.invalid/shared.json",
+          "$defs": {
+            "Shared": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
       }
     ]
   }
