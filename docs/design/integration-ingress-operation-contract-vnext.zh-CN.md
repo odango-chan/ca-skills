@@ -246,7 +246,7 @@ transform 的初始封闭集合仅为 identity、parse-integer、parse-number、
 
 二进制业务引用必须绑定内容摘要、媒体类型、长度、不可变性、授权范围和保留期限；不得是任意 URL 或本地文件路径。每个 multipart part 的 maxBytes 是该 part 的独立上限，request.maxBytes 是整个 wire request body（含 framing）的总上限，binaryContent.maxBytes 是单个不可变 binary object 的上限。Integration 必须在读取/缓冲完整 Body 前执行可用的流式总长度限制。
 
-binaryContent.retention 从 delivery 持久接受时起算，必须覆盖所有可能引用该内容的 Skill Consumer 的最后一次访问，包括 Run 暂停、Host/Runtime 恢复和 Tool 重试窗口。Admission 必须将 retention 与部署允许的最大 Invocation 生命周期及恢复宽限期比较；若无法证明内容在最后一个声明 Consumer 完成前不会过期，则不得链接该二进制 Schema。不得仅以 HTTP response deadline 或某个 Node 的预期耗时替代完整 Consumer 生命周期。
+binaryContent.retention 从 delivery 持久接受时起算，必须使用固定正时长，并覆盖所有可能引用该内容的 Skill Consumer 的最后一次访问，包括 Run 暂停、Host/Runtime 恢复和 Tool 重试窗口。Admission 必须将 retention 与部署允许的最大 Invocation 生命周期及恢复宽限期比较；若无法证明内容在最后一个声明 Consumer 完成前不会过期，则不得链接该二进制 Schema。不得仅以 HTTP response deadline 或某个 Node 的预期耗时替代完整 Consumer 生命周期。
 
 Skill 只能通过声明的 Tool/Owner 能力消费该引用，不能直接访问 Host 的内部 Payload Store。若 Integration 无法安全表达某个 part，必须拒绝该请求。
 
@@ -395,6 +395,8 @@ Integration 必须证明一个经过认证、验证和归一化的请求最多�
 Integration 为一次已接受的 normalized delivery 生成稳定 deliveryRef，并在重试时保持不变。Host 按 deliveryRef 幂等持久化。
 
 Integration 必须声明其协议请求去重身份来源。允许的来源为 protocol-request-id、trusted-gateway-request-id，或在同一 expectedIngressRef 范围内的 canonical-request-digest。去重作用域必须至少包含 authenticated peer、Ingress export identity 和 expectedIngressRef；协议 request ID 还必须按协议定义的唯一性范围校验。重试同一请求时必须复用同一个 deliveryRef。
+
+duplicate.identitySource 用于识别一次 Ingress delivery 的重试，不自动构成 successive Wait generation 的 wire discriminator。只有当 request ID 可从已验证的入站请求中稳定取得、在协议规定范围内跨 Wait occurrence 唯一，并且被声明为 normalized request 的 correlation.keyFields 时，它才可以同时用于 staleDelivery.strategy=wire-discriminator；否则仍必须使用独立的 stale-delivery 证明。
 
 若使用 canonical request digest，初始 profile 定义为对 normalized business value 执行 RFC 8785 JSON Canonicalization，再将每个 binary content reference 替换为其 media type、长度和 SHA-256 内容摘要描述，最后对该确定性字节序列计算 SHA-256。不得把 payload-store URL、临时引用句柄或其他传输元数据纳入摘要。摘要只在同一个 expectedIngressRef 范围内用于识别重复；同一 Wait occurrence 内两个内容完全相同的独立请求将被视为重复。若业务协议允许同一 Wait 下出现两个内容相同但语义独立的请求，而 Integration 无法区分二者，必须拒绝/隔离歧义情形，不得声称 exactly-once 网络投递。
 
