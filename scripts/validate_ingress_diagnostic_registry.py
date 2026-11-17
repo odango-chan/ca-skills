@@ -127,7 +127,7 @@ def main() -> None:
     if registry["registryId"] not in registry_doc or registry["registryId"] not in contract_doc:
         fail("versioned registry ID is not cross-referenced by both normative documents")
 
-    print("Ingress diagnostic registry integrity: PASS (9 identities; product execution NOT_RUN)")
+    print("Ingress diagnostic registry integrity: PASS (10 identities; product execution NOT_RUN)")
 
 
 if __name__ == "__main__":
