@@ -181,15 +181,37 @@ nodes:
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
     postcondition:
-      # FAIL here means the N2 user-plane setup result was a protocol-level
-      # rejection, not that the Operation itself failed. Route to N4 Release.
+      # A protocol-level failure is still a completed business result, not an
+      # Operation failure. Classify the two TS 23.502 Step 15 rejection cases.
       predicates:
         - predicate: session.n2_user_plane_setup_succeeded
           arguments:
             - update-sm-context.operation.output
       routes:
         PASS: modify-n4-session
-        FAIL: release-n4-session
+        FAIL: classify-step15-failure
+        UNKNOWN: UNRESOLVED
+
+  classify-step15-failure:
+    precondition:
+      predicates:
+        - predicate: session.step15_failure_is_n2_resource_setup_failure
+          arguments:
+            - update-sm-context.operation.output
+      routes:
+        PASS: release-n4-session
+        FAIL: classify-required-upe-failure
+        UNKNOWN: UNRESOLVED
+
+  classify-required-upe-failure:
+    precondition:
+      predicates:
+        - predicate: session.step15_failure_is_required_upe_unavailable
+          arguments:
+            - update-sm-context.operation.output
+      routes:
+        PASS: prepare-step17-response
+        FAIL: SAFE_STOPPED
         UNKNOWN: UNRESOLVED
 
   modify-n4-session:
@@ -241,15 +263,34 @@ nodes:
         request: update-sm-context.wait.output
         update: update-sm-context.operation.output
       routes:
-        SUCCEEDED: verify-final-session
+        SUCCEEDED: classify-step17-result
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: UNRESOLVED
-    # This Observation runs after either N4 Modification + optional UDM
-    # Registration, or the N2-failure N4 Release. It queries the exact SM Context
-    # identified by wait.output.smContextRef to confirm the completed Step 16
-    # branch and returns the typed Step 17 response DTO. On N2 failure,
-    # update.operation.output carries the prepared N1 SM Reject binary reference.
+    # This Observation runs after one of three Step 16 outcomes: successful N4
+    # Modification plus optional UDM registration; N2 resource-setup failure
+    # with the mandated pre-response N4 Release; or required UPE unavailable,
+    # where Step 16 is skipped without that pre-response Release. It queries the
+    # exact SM Context identified by wait.output.smContextRef and returns the
+    # typed Step 17 response DTO. On either rejection branch, the Operation
+    # output carries the prepared N1 SM Reject binary reference. This Node is
+    # the response boundary; Step 18 cleanup is deliberately later.
 
+  classify-step17-result:
+    precondition:
+      predicates:
+        - predicate: session.pdu_session_establishment_succeeded
+          arguments:
+            - prepare-step17-response.observation.output
+      routes:
+        PASS: verify-final-session
+        FAIL: step18-failed-establishment-cleanup
+        UNKNOWN: UNRESOLVED
+
+  # step18-failed-establishment-cleanup is a later Node (omitted from this
+  # abbreviated fragment). It performs the conditional Step 18 release
+  # notification and cleanup of resources created during establishment. It
+  # MUST remain after wait.response.after: Step 17 response delivery must not
+  # wait for this later cleanup.
 
   verify-final-session:
     postcondition:
@@ -272,7 +313,7 @@ nodes:
         OUTCOME_UNKNOWN: SAFE_STOPPED
 ~~~
 
-This fragment is not a complete Skill: its referenced Nodes, schemas, Predicate declarations, dependency exports and final Goal Postcondition are intentionally omitted. It demonstrates Node-entry Wait, typed wait.output binding, timeout routing and both Step 16 branches. A successful N2 user-plane setup proceeds through N4 Session Modification and then the conditional UDM registration; if registration is not required, the Precondition routes directly to the common response Node. An N2 user-plane setup failure is a business result, not an Operation failure: Step 16a/16b/16c are skipped, the N4 Session is released, and the common response Node is reached only after that Release succeeds. The response Node's Observation reads the exact Wait request and the Step 15 Operation result, including the prepared N1 SM Reject reference on the failure branch, and returns the typed `update-sm-context-response-result.v1` DTO. `wait.response.after` names this common post-dominating Node, so Step 17 cannot be emitted before either branch has completed. The Integration maps the failure DTO to the same TS 29.502 200 disposition using `multipart/related`, with `binaryDataN1SmMessage` required by the result Schema; it must not map this business failure to 204 or a generic HTTP error. The Integration export MUST identify the triggering transfer callable and prove its pre-dispatch correlation binding. The Compiler derives the exact Observation output from `wait.response.after` and validates it against the pinned responseResultSchema before accepting the mapping.
+This fragment is not a complete Skill: its referenced Nodes, schemas, Predicate declarations, dependency exports and final Goal Postcondition are intentionally omitted. It demonstrates Node-entry Wait, typed wait.output binding, timeout routing and the Step 15/16/17 response branches. A successful N2 user-plane setup proceeds through N4 Session Modification and then the conditional UDM registration; if registration is not required, the Precondition routes directly to the common response Node. TS 23.502 distinguishes two Step 15 rejection cases: (1) N2 user-plane resource setup failure skips Step 16 and requires N4 Session Release before Step 17; (2) a User Plane Enforcement Policy Notification reporting no resources established while policy is `required` also skips Step 16 and returns the N1 SM Reject at Step 17, but does not specify that same pre-response N4 Release. Both are business results, not Operation failures, and both require the typed Step 17 response DTO with the N1 SM Reject binary reference. The common response Node is the `wait.response.after` boundary. Step 18 failure cleanup (including SM Context Status Notify Release and release of resources created during establishment) is a later Node and MUST NOT delay that paired response. The Integration maps either rejection DTO to the same TS 29.502 200 disposition using `multipart/related`, with `binaryDataN1SmMessage` required; it must not map these business failures to 204 or a generic HTTP error. The Integration export MUST identify the triggering transfer callable and prove its pre-dispatch correlation binding. The Compiler derives the exact Observation output from `wait.response.after` and validates it against the pinned responseResultSchema before accepting the mapping.
 
 ## 3. Integration Ingress Operation export
 
