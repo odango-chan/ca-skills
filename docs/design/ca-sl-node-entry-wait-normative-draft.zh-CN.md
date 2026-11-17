@@ -548,7 +548,7 @@ The following are proposed future-revision diagnostics. They do not alter the v1
 | WAIT_TIMEOUT_ROUTE_INVALID | TIMEOUT is missing, an extra Wait route key is present, the target is not a NodeId or permitted stopping terminal, or a forbidden terminal is selected; an undeclared NodeId uses CONTROL_FLOW_DANGLING |
 | WAIT_NODE_STAGE_REQUIRED | Wait-bearing Node declares none of the four business stages |
 | WAIT_RESPONSE_BOUNDARY_INVALID | response.after is unknown/unreachable, a normal accepted path bypasses it, a success terminal occurs before it, or the export-required later boundary is omitted |
-| WAIT_RESPONSE_MAPPING_INVALID | A body-bearing response has no valid typed Producer source/mapping, or the mapped output is not assignable to the response input Schema |
+| WAIT_RESPONSE_MAPPING_INVALID | A body-bearing response has no declared typed Producer-source mapping or the mapping does not supply every required response field; undeclared/unavailable paths and ordinary Schema incompatibility use their existing SourcePath/type diagnostics |
 
 Existing diagnostics are reused for existing categories:
 
