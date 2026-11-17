@@ -357,27 +357,31 @@ def validate_3gpp_reference_example(catalog: dict) -> None:
         item for item in operation["request"]["normalization"]["representations"]
         if item["mediaType"] == "multipart/related"
     )
-    part_names = {part["name"] for part in multipart["parts"]}
-    required_parts = {
+    request_part_list = multipart["parts"]
+    request_part_names = [part["name"] for part in request_part_list]
+    required_parts = [
         "jsonData",
         "binaryDataN1SmMessage",
         "binaryDataN2SmInformation",
         "binaryDataN2SmInformationExt1",
-    }
-    if not required_parts <= part_names:
-        raise SystemExit("UpdateSMContext multipart part names do not match TS 29.502 V19.5.0")
+    ]
+    if request_part_names != required_parts:
+        raise SystemExit("UpdateSMContext request multipart parts must be unique, complete and rooted at jsonData")
+    request_root = request_part_list[0]
+    if request_root["kind"] != "json" or request_root["required"] is not True or request_root["mediaType"] != "application/json":
+        raise SystemExit("UpdateSMContext request multipart root must be the first required application/json part")
 
     expected_binary_mappings = {
         "binaryDataN1SmMessage": ("/n1SmMsg/contentId", "/n1SmMessage"),
         "binaryDataN2SmInformation": ("/n2SmInfo/contentId", "/n2SmInformation"),
         "binaryDataN2SmInformationExt1": ("/n2SmInfoExt1/contentId", "/n2SmInformationExt1"),
     }
-    mappings_by_part = {
-        item["source"]["part"]: item
-        for item in multipart["mappings"]
+    request_binary_mappings = [
+        item for item in multipart["mappings"]
         if item["source"]["kind"] == "multipart-binary"
-    }
-    if set(mappings_by_part) != set(expected_binary_mappings):
+    ]
+    mappings_by_part = {item["source"]["part"]: item for item in request_binary_mappings}
+    if len(request_binary_mappings) != len(expected_binary_mappings) or set(mappings_by_part) != set(expected_binary_mappings):
         raise SystemExit("Every declared UpdateSMContext binary part must have exactly one normalized mapping")
     for part_name, (reference_pointer, target) in expected_binary_mappings.items():
         mapping = mappings_by_part[part_name]
