@@ -601,6 +601,10 @@ The following semantic cases are REQUIRED for future language/Host/Runtime/Integ
 | EW-029 | response.after names an unknown or unreachable Node | Compiler emits WAIT_RESPONSE_BOUNDARY_INVALID |
 | EW-030 | Event is accepted but the Contract-referenced global Precondition has not passed on every incoming path | Wait edge does not establish the gate; protected Mutation and success remain blocked |
 | EW-031 | Integration cannot acknowledge expected-ingress arming before the triggering Operation | Runtime MUST NOT dispatch the triggering Operation; no send-first/correlate-later fallback |
+| EW-032 | Wait routes mapping or TIMEOUT key is missing | Compiler emits WAIT_TIMEOUT_ROUTE_INVALID |
+| EW-033 | Author declares EVENT_RECEIVED or another key under wait.routes | Compiler emits WAIT_TIMEOUT_ROUTE_INVALID; normal event edge remains implicit |
+| EW-034 | event.source/service/operation is empty or has the wrong type | Compiler emits WAIT_DECLARATION_INVALID |
+| EW-035 | wait.timeout is missing or is not a YAML string | Compiler emits WAIT_TIMEOUT_INVALID |
 
 ## 13. Publication gate
 
