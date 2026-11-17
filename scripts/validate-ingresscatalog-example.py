@@ -161,7 +161,7 @@ def validate_semantics(catalog: dict) -> None:
                 skew = fixed_duration_seconds(durations[1], "clockSkewAllowance")
                 retention = fixed_duration_seconds(durations[2], "discriminatorRetention")
                 if retention <= maximum_late + skew:
-                    raise SystemExit(f"{op_id}: discriminatorRetention is shorter than maximumLateArrival + clockSkewAllowance")
+                    raise SystemExit(f"{op_id}: discriminatorRetention must be strictly greater than maximumLateArrival + clockSkewAllowance")
         else:
             if duplicate_source == "3gpp-sbi-idempotency-key":
                 raise SystemExit(f"{op_id}: 3GPP SBI idempotency-key identity requires wire-discriminator strategy")
@@ -182,7 +182,7 @@ def validate_semantics(catalog: dict) -> None:
                 skew = fixed_duration_seconds(durations[1], "clockSkewAllowance")
                 retention = fixed_duration_seconds(durations[2], "tombstoneRetention")
                 if retention <= maximum_late + skew:
-                    raise SystemExit(f"{op_id}: tombstoneRetention is shorter than maximumLateArrival + clockSkewAllowance")
+                    raise SystemExit(f"{op_id}: tombstoneRetention must be strictly greater than maximumLateArrival + clockSkewAllowance")
 
         arming = operation["arming"]
         expected_keys = set(key_paths)
@@ -441,7 +441,7 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
 
     short_discriminator_retention = copy.deepcopy(valid_sbi_discriminator)
     short_discriminator_retention["spec"]["operations"][0]["correlation"]["staleDelivery"]["discriminatorRetention"] = "PT30S"
-    expect_semantic_failure(short_discriminator_retention, "wire discriminator retention shorter than late-arrival plus skew")
+    expect_semantic_failure(short_discriminator_retention, "wire discriminator retention not strictly greater than late-arrival plus skew")
 
     equal_discriminator_retention = copy.deepcopy(valid_sbi_discriminator)
     equal_discriminator_retention["spec"]["operations"][0]["correlation"]["staleDelivery"]["discriminatorRetention"] = "PT35S"
@@ -540,7 +540,7 @@ def validate_negative_cases(schema: dict, example: dict) -> None:
     stale["maximumLateArrival"] = "PT30S"
     stale["clockSkewAllowance"] = "PT5S"
     stale["tombstoneRetention"] = "PT30S"
-    expect_semantic_failure(short_tombstone, "tombstone shorter than late-arrival plus skew")
+    expect_semantic_failure(short_tombstone, "tombstone not strictly greater than late-arrival plus skew")
 
     equal_tombstone = copy.deepcopy(example)
     stale = equal_tombstone["spec"]["operations"][0]["correlation"]["staleDelivery"]
