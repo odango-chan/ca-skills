@@ -63,3 +63,47 @@ jobs:
               if item.get("code") in {"IDENTIFIER_INVALID", "YAML_PARSE_ERROR"}:
                   print("MAS_SOURCE_DIAGNOSTIC", json.dumps(item, ensure_ascii=False))
           PYCODE
+
+      - name: Set up Go for patched Compiler parser regression
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.27.4"
+          cache: false
+      - name: Verify pending Compiler parser fix against MAS source
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          git clone --quiet https://github.com/odango-chan/ca-skill-compiler.git "$tmp/compiler"
+          cd "$tmp/compiler"
+          git checkout --quiet 18a38323a779f4c610218643fdd2725afc2bcd49
+          GOWORK=off go test ./internal/compiler/yamlast -count=1
+          CGO_ENABLED=0 GOWORK=off go build -o "$tmp/skillc-patched" ./cmd/skillc
+          cd "$GITHUB_WORKSPACE"
+          mkdir -p "$tmp/project/skills"
+          cp -R examples/skills/establish-pdu-session-mas "$tmp/project/skills/"
+          set +e
+          "$tmp/skillc-patched" check "$tmp/project" --skill establish-pdu-session-mas --json > "$tmp/patched-diagnostics.json"
+          status=$?
+          set -e
+          if [ "$status" -ne 1 ]; then
+            echo "Expected missing-Owner diagnostics from patched Compiler, exit=$status" >&2
+            exit 1
+          fi
+          python - "$tmp/patched-diagnostics.json" <<'PYCODE'
+          import json
+          import sys
+          with open(sys.argv[1], encoding="utf-8") as stream:
+              diagnostics = json.load(stream)
+          codes = {str(item.get("code", "")) for item in diagnostics}
+          forbidden = codes & {"YAML_PARSE_ERROR", "IDENTIFIER_INVALID"}
+          if forbidden:
+              for item in diagnostics:
+                  if item.get("code") in forbidden:
+                      print("SOURCE_NOT_FIXED", json.dumps(item, ensure_ascii=False))
+              raise SystemExit("Grammar/parser errors remain after candidate fixes")
+          if "DEPENDENCY_SNAPSHOT_MISSING" not in codes:
+              raise SystemExit("Missing-Owner fail-closed diagnostics unexpectedly vanished")
+          print("MAS_V1ALPHA5_SOURCE_GRAMMAR_PASS_WITH_COMPILER_PATCH", sorted(codes))
+          PYCODE
