@@ -1,18 +1,42 @@
-![ConnectionAgent Skills](assets/repo-banner.svg)
-
 # ConnectionAgent Skills
 
 [English](README.md)
 
-ConnectionAgent Skill 官方源码与 CA-SL 语言规范。**CA-SL v1alpha5 已冻结。** 下游可通过[发布记录](docs/releases/ca-sl-v1alpha5.md)锁定规范与配套 Ingress 契约。
+ConnectionAgent Skill Language（CA-SL）定义 Skill 如何声明输入、调用工具，以及验证业务目标是否达成。本仓库发布语言规范、编写指南和 Skill 示例。
 
-| 入口 | 内容 |
+## 当前版本
+
+**CA-SL v1alpha5**（`connectionagent.io/v1alpha5`）是当前冻结版本。[发布记录](docs/releases/ca-sl-v1alpha5.md)提供规范与配套 IngressCatalog 契约的固定提交链接，并记录编辑性勘误。
+
+- 查阅[语言规范](docs/skill-language-spec.md)，了解语法与语义。
+- 参照[编写指南](docs/authoring.zh-CN.md)编写 Skill。
+- 通过[文档索引](docs/README.md)查找 Schema、诊断注册表和历史资料。
+
+## 示例
+
+| Skill | 展示内容 |
 | --- | --- |
-| [语言规范](docs/skill-language-spec.md) | 当前 CA-SL 目标、配套契约及历史版本 |
-| [编写指南](docs/authoring.zh-CN.md) | Skill 包结构、Procedure、Predicate、Schema 和 Script |
-| [PDU 会话示例](examples/README.md) | 传统 5GC 和 OpenAMSM MAS 的 v1alpha5 源码示例 |
-| [仓库文档](docs/README.md) | 编写参考、历史基线及设计归档 |
+| [传统 5GC PDU 会话](examples/skills/establish-pdu-session/SKILL.md) | UE 请求的会话建立流程，包含入站事件等待和最终 Postcondition。 |
+| [OpenAMSM MAS PDU 会话](examples/skills/establish-pdu-session-mas/SKILL.md) | 基于 OpenAMSM NW Agent 计划的策略优先会话流程。 |
 
-示例需要可信 Owner 契约才能完成链接，产品状态为 `NOT_QUALIFIED`。[历史 Skill 包](skills/README.md)和[导入快照](lib/README.md)保留原路径，供现有消费者使用。
+[示例](examples/README.md)用于展示 v1alpha5 源码写法。链接和运行需要可信 Owner 契约及部署绑定，产品符合性状态见发布记录。
 
-运行 `make verify` 检查源码、规范结构及 Wait／Ingress 注册表。Compiler、Runtime 和真实 5GC 由各自的验收测试验证。
+## 本地验证
+
+准备 Git、Make 和 Python 3.11，然后运行：
+
+```sh
+git clone https://github.com/odango-chan/ca-skills.git
+cd ca-skills
+make verify
+```
+
+该命令检查仓库源码、规范结构和 Wait／Ingress 注册表。
+
+## 参与贡献
+
+提交 [Issue](https://github.com/odango-chan/ca-skills/issues) 时，请注明 CA-SL 版本、涉及的条款或示例，以及预期行为。提交 PR 前请运行 `make verify`。
+
+## 许可证
+
+仓库级许可证待定。
