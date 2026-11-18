@@ -22,3 +22,5 @@ jobs:
           python-version: "3.11"
       - name: Verify official Skill source hygiene
         run: make verify
+      - name: Test MAS Compiler v2 project input gate
+        run: python -m unittest discover -s tests -p test_compile_mas_v1alpha5.py
