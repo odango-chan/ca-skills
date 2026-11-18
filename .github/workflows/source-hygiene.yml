@@ -59,4 +59,7 @@ jobs:
               raise SystemExit("Compiler returned no structured error diagnostics")
           codes = sorted({str(item.get("code", "")) for item in diagnostics})
           print("REAL_COMPILER_V2_FAIL_CLOSED_PASS", ", ".join(codes))
+          for item in diagnostics:
+              if item.get("code") in {"IDENTIFIER_INVALID", "YAML_PARSE_ERROR"}:
+                  print("MAS_SOURCE_DIAGNOSTIC", json.dumps(item, ensure_ascii=False))
           PYCODE
