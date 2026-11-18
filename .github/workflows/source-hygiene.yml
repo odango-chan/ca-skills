@@ -30,8 +30,9 @@ jobs:
           set -euo pipefail
           release="https://github.com/odango-chan/ca-skill-compiler/releases/download/v2.0.0"
           curl -fsSL --retry 3 "$release/SHA256SUMS" -o SHA256SUMS
-          curl -fsSL --retry 3 "$release/skillc-v2.0.0-linux-amd64" -o skillc
+          curl -fsSL --retry 3 "$release/skillc-v2.0.0-linux-amd64" -o skillc-v2.0.0-linux-amd64
           grep 'skillc-v2.0.0-linux-amd64' SHA256SUMS | sha256sum -c -
+          mv skillc-v2.0.0-linux-amd64 skillc
           chmod +x skillc
           ./skillc version
           project="$(mktemp -d)"
