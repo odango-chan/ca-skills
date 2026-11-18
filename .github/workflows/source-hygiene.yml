@@ -69,7 +69,7 @@ jobs:
         with:
           go-version: "1.27.4"
           cache: false
-      - name: Verify pending Compiler parser fix against MAS source
+      - name: Verify merged Compiler parser fix against MAS source
         shell: bash
         run: |
           set -euo pipefail
@@ -77,7 +77,7 @@ jobs:
           trap 'rm -rf "$tmp"' EXIT
           git clone --quiet https://github.com/odango-chan/ca-skill-compiler.git "$tmp/compiler"
           cd "$tmp/compiler"
-          git checkout --quiet 18a38323a779f4c610218643fdd2725afc2bcd49
+          git checkout --quiet 71d37af1d5321c146f3dde86a539d0fcd6167fa2
           GOWORK=off go test ./internal/compiler/yamlast -count=1
           CGO_ENABLED=0 GOWORK=off go build -o "$tmp/skillc-patched" ./cmd/skillc
           cd "$GITHUB_WORKSPACE"
