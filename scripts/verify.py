@@ -15,9 +15,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS_ROOT = ROOT / "skills"
-CURRENT_SKILLS = ("establish-pdu-session", "establish-pdu-session-mas")
+EXAMPLES_ROOT = ROOT / "examples" / "skills"
+PDU_SKILLS = ("establish-pdu-session", "establish-pdu-session-mas")
 ASSURANCE_FILES = ("contract.yaml", "procedure.yaml", "predicates.yaml")
-SCRIPT_REF_RE = re.compile(r"(?m)^\s*(?:script|ref):\s*(scripts/[^\s#]+)\s*(?:#.*)?$")
+REQUEST_SCHEMA_RE = re.compile(
+    r"""(?m)^[ \t]*requestSchema:[ \t]*(?P<quote>['"]?)(?P<path>[^\s'"#]+)(?P=quote)[ \t]*(?:#.*)?$"""
+)
+SCRIPT_REF_RE = re.compile(
+    r"""(?m)^[ \t]*(?:script|ref):[ \t]*(?P<quote>['"]?)(?P<path>scripts/[^\s'"#]+)(?P=quote)[ \t]*(?:#.*)?$"""
+)
 RUN_PRODUCED_FACT_IDS = ("virtual_group.id",)
 
 
@@ -114,51 +120,49 @@ def validate_script(path: Path, errors: list[str]) -> None:
         errors.append(f"{path.relative_to(ROOT)}: main return annotation must name a TypedDict declared in the same file")
 
 
+def validate_assurance_references(skill: Path, errors: list[str]) -> bool:
+    package = skill.relative_to(ROOT)
+    assurance = skill / "assurance"
+    missing = [name for name in ASSURANCE_FILES if not (assurance / name).is_file()]
+    if missing:
+        errors.extend(f"{package}: missing assurance/{name}" for name in missing)
+        return False
+
+    contract = (assurance / "contract.yaml").read_text(encoding="utf-8")
+    request_match = REQUEST_SCHEMA_RE.search(contract)
+    package_root = skill.resolve()
+    request_path = Path(request_match["path"]) if request_match else Path()
+    schema = (skill / request_path).resolve()
+    if request_path.is_absolute() or not schema.is_relative_to(package_root) or not schema.is_file():
+        errors.append(f"{package}: requestSchema must reference an existing file inside the Skill package")
+
+    for filename in ("procedure.yaml", "predicates.yaml"):
+        source = (assurance / filename).read_text(encoding="utf-8")
+        for match in SCRIPT_REF_RE.finditer(source):
+            relative = match["path"]
+            candidate = (skill / relative).resolve()
+            if not candidate.is_relative_to(package_root):
+                errors.append(f"{package}/{filename}: Script path escapes Skill package: {relative}")
+            elif not candidate.is_file():
+                errors.append(f"{package}/{filename}: referenced Script does not exist: {relative}")
+    return True
+
+
 def validate_current_skill(skill_name: str, errors: list[str]) -> None:
     skill = SKILLS_ROOT / skill_name
     if not skill.is_dir():
         errors.append(f"current official Skill package missing: {skill_name}")
         return
+    if not validate_assurance_references(skill, errors):
+        return
 
     assurance = skill / "assurance"
-    for required in ASSURANCE_FILES:
-        if not (assurance / required).is_file():
-            errors.append(f"{skill_name}: missing assurance/{required}")
-
     contract = (assurance / "contract.yaml").read_text(encoding="utf-8")
     if "localTools:" in contract or "allowedResources:\n    localTools:" in contract:
         errors.append(f"{skill_name}: allowedResources.localTools is not part of the current language")
-    request_match = re.search(r"(?m)^\s*requestSchema:\s*(\S+)\s*$", contract)
-    if not request_match or not (skill / request_match.group(1)).is_file():
-        errors.append(f"{skill_name}: requestSchema must reference an existing Skill-owned schema")
-
-    procedure_path = assurance / "procedure.yaml"
-    procedure = procedure_path.read_text(encoding="utf-8")
+    procedure = (assurance / "procedure.yaml").read_text(encoding="utf-8")
     if re.search(r"(?m)^\s*tool\s*:", procedure):
         errors.append(f"{skill_name}: tool is not a supported Procedure action")
-    for match in SCRIPT_REF_RE.finditer(procedure):
-        relative = match.group(1)
-        candidate = (skill / relative).resolve()
-        try:
-            candidate.relative_to(skill.resolve())
-        except ValueError:
-            errors.append(f"{skill_name}: Script path escapes Skill package: {relative}")
-            continue
-        if not candidate.is_file():
-            errors.append(f"{skill_name}: referenced Script does not exist: {relative}")
-
-    predicates_path = assurance / "predicates.yaml"
-    predicates = predicates_path.read_text(encoding="utf-8")
-    for match in SCRIPT_REF_RE.finditer(predicates):
-        relative = match.group(1)
-        candidate = (skill / relative).resolve()
-        try:
-            candidate.relative_to(skill.resolve())
-        except ValueError:
-            errors.append(f"{skill_name}: Predicate Script path escapes Skill package: {relative}")
-            continue
-        if not candidate.is_file():
-            errors.append(f"{skill_name}: referenced Predicate Script does not exist: {relative}")
 
     scripts = skill / "scripts"
     if scripts.is_dir():
@@ -227,8 +231,17 @@ def main() -> None:
     for skill in packages:
         validate_package_layout(skill, errors)
 
-    for name in CURRENT_SKILLS:
+    for name in PDU_SKILLS:
         validate_current_skill(name, errors)
+
+    examples = sorted(path for path in EXAMPLES_ROOT.glob("*") if path.is_dir())
+    example_names = {path.name for path in examples}
+    for name in PDU_SKILLS:
+        if name not in example_names:
+            errors.append(f"examples/skills/{name}: missing example package")
+    for example in examples:
+        validate_package_layout(example, errors)
+        validate_assurance_references(example, errors)
 
     catalog = ROOT / "lib" / "tools" / "createdsession.tool.yaml"
     if not catalog.is_file():
@@ -243,6 +256,7 @@ def main() -> None:
 
     print(f"PACKAGE_LAYOUT_OK ({len(packages)} Skill directories)")
     print("CURRENT_5GC_SOURCE_OK (2 official packages)")
+    print(f"V1ALPHA5_EXAMPLE_SOURCE_OK ({len(examples)} packages)")
     print("SCRIPT_CONTRACT_SHAPE_OK")
     print("IMPORTED_TOOL_CATALOG_OK (12 Operations)")
     print("SEMANTIC_TOKEN_REGISTRY_OK (v0.2.0)")

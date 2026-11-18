@@ -31,12 +31,12 @@ cd ca-skills
 make verify
 ```
 
-This checks repository source hygiene, specification structure, and the Wait and Ingress registries.
+This checks package layout and local references, specification structure, and the Wait and Ingress registries.
 
 ## Contributing
 
-Open an [issue](https://github.com/odango-chan/ca-skills/issues) with the CA-SL version, the affected clause or example, and the expected behavior. Run `make verify` before submitting a pull request.
+See the [contribution guide](CONTRIBUTING.md) for reporting issues, preparing changes, and verifying a pull request.
 
 ## License
 
-A repository-wide license is pending.
+A repository-wide license is pending. See the [source provenance and licensing notes](docs/source-provenance.md).
