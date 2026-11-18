@@ -6,7 +6,7 @@
 
 Only `examples/skills/establish-pdu-session-mas/` from this repository is submitted to the v1alpha5 Compiler. The `ca-agent-demo/skills/establish-pdu-session-mas/` historical source and old `ca-skill-compiler/examples/ca-agent-demo-project/` are not current compiler inputs.
 
-The official MAS example still contains a candidate `mas` dependency, 14 candidate Capability IDs, and 12 candidate Predicate result Schema IDs. These have no published trusted Owner export. Disabling validation, suppressing diagnostics or renaming placeholders cannot make a trustworthy Owner.
+The official MAS example still contains a candidate `mas` dependency, **14 grammar-valid but unpublished DottedId Capability IDs**, and 12 candidate Predicate result Schema IDs. These have no published trusted Owner export. Disabling validation, suppressing diagnostics or renaming placeholders cannot make a trustworthy Owner.
 
 Compiler v2.0.0 consumes complete, immutable source plus resolved snapshots and trusted deployment bindings. It is not a package installer or Owner publisher.
 
@@ -59,7 +59,7 @@ python -m unittest discover -s tests -p test_compile_mas_v1alpha5.py
 | D1 | `ca-context`: Context Schema package, stable ID and snapshot digest | alias only, no resolved snapshot in official example |
 | D2 | `ca-session-context`: SMF Observation ToolCatalog, result Schema and evidence/source authority | alias only |
 | D3 | `mas`: 13 MAS Operation ToolCatalog entries, Owner identity, per-Operation Schemas, Effect/Outcome/Mutation contracts | `urn:example:connectionagent:openamsm-mas-tool-contracts` |
-| C1 | Deployment CapabilityContracts for SMF read + 13 MAS Operations | 14 `urn:example:connectionagent:capability:*` candidates |
+| C1 | Deployment CapabilityContracts for SMF read + 13 MAS Operations | 14 syntactically valid but **unpublished** DottedId candidates (`smf.session.context.query` and 13 `mas.*` IDs) |
 | S1 | MAS Predicate result Schema exports | 12 `urn:example:openamsm:mas:*` candidates |
 | E1 | Source-authoritative Evidence Guarantees, scope/freshness, EvidenceTrustBindings | not published |
 | T1 | Complete immutable Snapshot, trusted Owner bindings and deployment authorization | not provided here |
@@ -82,3 +82,15 @@ The current first MAS Node runs `SC.VALIDATE_SUBSCRIPTION` before observing that
 - [ca-client-tools #10](https://github.com/odango-chan/ca-client-tools/issues/10): type-safe MAS Provider (private operation IDs are not public ToolCatalog identities).
 - [ca-agent-demo #215](https://github.com/odango-chan/ca-agent-demo/issues/215): Compiler Artifact admission and actual execution on the existing graph engine.
 - [Compiler v2.0.0](https://github.com/odango-chan/ca-skill-compiler/releases/tag/v2.0.0): already released, do not reopen its rewrite.
+
+## Actual native Compiler acceptance (2026-11-19)
+
+The real v2.0.0 release binary (SHA256 asset verification PASS) reported four error classes against the original MAS source:
+
+- `IDENTIFIER_INVALID` for 14 Contract Capability IDs that had been formatted as URNs rather than DottedIds — **fixed in this PR** without asserting that the candidate DottedIds are published.
+- `YAML_PARSE_ERROR` at Procedure line 260, “YAML indentation depth exceeds 64” despite shallow nodes — traced to a genuine Compiler tokenizer depth bug. [Compiler PR #44](https://github.com/odango-chan/ca-skill-compiler/pull/44) corrected this in `ca-skill-compiler/main`, preserving AST/alias depth limits. Full Go, vet, Native/WASM and real Chromium CI passed.
+- `DEPENDENCY_SNAPSHOT_MISSING` and `EVIDENCE_GUARANTEE_LINK_INVALID` — correct fail-closed responses to unpublished Owner artifacts.
+
+The ca-skills Action [source validation run 44350887603](https://github.com/odango-chan/ca-skills/actions/runs/44350887603) invoked both the immutable official v2.0.0 release and the pinned patched Compiler. With the patched Compiler + corrected DottedIds, **no `YAML_PARSE_ERROR` or `IDENTIFIER_INVALID` remained**. Remaining static errors were `DEPENDENCY_SNAPSHOT_MISSING`, `EVIDENCE_GUARANTEE_LINK_INVALID` and `PREDICATE_EVIDENCE_UNSATISFIABLE`, all attributable to the unresolved trusted dependency/evidence closure.
+
+The publicly released v2.0.0 binary has not been rewritten. Production CLI users need the post-PR-44 Compiler code or a new patch release; the v2.0.0 artifact remains immutable. **This is source-grammar acceptance and fail-closed dependency validation, not a successful complete Build.**
