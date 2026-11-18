@@ -1,38 +1,23 @@
 ---
 name: Work item
-about: Track a bug, requirement, gap, migration, cleanup, blocker, or acceptance follow-up
+about: Report a specification, example, or repository issue
 title: ""
 labels: ""
 assignees: ""
 ---
 
-## Type
+## Scope
 
-<!-- bug | requirement | feature | gap | migration | cleanup | blocker | acceptance | investigation -->
+<!-- Include the CA-SL version and affected clause, example, or file. For component integration, include the component and tested commit. -->
 
-## Observed / Need
+## Observed behavior
 
-<!-- What was observed, or what requirement/change is needed? Include durable evidence/locator when applicable. -->
+<!-- Include the smallest reproduction and the relevant output, if available. -->
 
-## Expected / Target
+## Expected behavior
 
-<!-- What should be true when this item is complete? -->
+<!-- Explain what should happen or what the documentation should say. -->
 
-## Owner / Scope
+## References
 
-Owner:
-Related repositories:
-Affected contract/design/code:
-
-## Acceptance / Closure conditions
-
-- [ ] Target implementation/change is on the intended branch/release.
-- [ ] Required focused/local validation passed.
-- [ ] Required cross-repo/system acceptance passed, or is explicitly not applicable.
-- [ ] WORK.md current snapshot is updated if repository status changed.
-- [ ] TRACEABILITY.md is updated if contract/code/test/acceptance/evidence locators changed.
-- [ ] Closing comment records resolving commit(s), test/acceptance result, stable evidence locator, and any remaining scope.
-
-## Evidence / Links
-
-<!-- Existing issue, contract/design, code/test locator, failure output, acceptance case, artifact, or cross-repo dependency. -->
+<!-- Link related issues, PRs, specification clauses, or test results. -->

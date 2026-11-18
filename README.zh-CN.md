@@ -31,12 +31,12 @@ cd ca-skills
 make verify
 ```
 
-该命令检查仓库源码、规范结构和 Wait／Ingress 注册表。
+该命令检查 Skill 包结构、本地引用、规范结构和 Wait／Ingress 注册表。
 
 ## 参与贡献
 
-提交 [Issue](https://github.com/odango-chan/ca-skills/issues) 时，请注明 CA-SL 版本、涉及的条款或示例，以及预期行为。提交 PR 前请运行 `make verify`。
+提交 Issue 或 PR 前，请参阅[贡献指南](CONTRIBUTING.md)中的问题报告、修改与验证流程。
 
 ## 许可证
 
-仓库级许可证待定。
+仓库级许可证待定，详见[来源与许可证记录](docs/source-provenance.md)。
