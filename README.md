@@ -1,18 +1,42 @@
-![ConnectionAgent Skills](assets/repo-banner.svg)
-
 # ConnectionAgent Skills
 
 [简体中文](README.zh-CN.md)
 
-Official source for ConnectionAgent Skills and the CA-SL language specification. **CA-SL v1alpha5 is frozen.** Use the [release record](docs/releases/ca-sl-v1alpha5.md) to pin the specification and its companion Ingress contract.
+ConnectionAgent Skill Language (CA-SL) describes how a Skill declares its inputs, calls tools, and verifies that it reached its goal. This repository publishes the language specification, authoring guides, and Skill examples.
 
-| Start here | Contents |
+## Current release
+
+**CA-SL v1alpha5** (`connectionagent.io/v1alpha5`) is the current frozen language. The [release record](docs/releases/ca-sl-v1alpha5.md) links to the exact specification and companion IngressCatalog contract, and records editorial corrections.
+
+- Read the [language specification](docs/skill-language-spec.md) for syntax and semantics.
+- Use the [authoring guide](docs/authoring.md) to write a Skill.
+- See the [documentation index](docs/README.md) for schemas, diagnostics, and historical material.
+
+## Examples
+
+| Skill | What it shows |
 | --- | --- |
-| [Specification](docs/skill-language-spec.md) | Current CA-SL target, companion contracts and previous releases |
-| [Authoring guide](docs/authoring.md) | Skill package layout, Procedure, Predicates, Schemas and Scripts |
-| [PDU Session examples](examples/README.md) | v1alpha5 source examples for conventional 5GC and OpenAMSM MAS |
-| [Repository documentation](docs/README.md) | Authoring references, historical baselines and design archive |
+| [Conventional 5G Core PDU Session](examples/skills/establish-pdu-session/SKILL.md) | A UE-requested session with an inbound event wait and an explicit final Postcondition. |
+| [OpenAMSM MAS PDU Session](examples/skills/establish-pdu-session-mas/SKILL.md) | A policy-first session flow based on the OpenAMSM NW Agent plan. |
 
-The examples require trusted Owner contracts and remain `NOT_QUALIFIED`. The [historical Skill packages](skills/README.md) and [imported snapshots](lib/README.md) retain their original paths for existing consumers.
+The [examples](examples/README.md) illustrate v1alpha5 source. Linking and running them requires trusted Owner contracts and deployment bindings. Product qualification is tracked in the release record.
 
-Run `make verify` for source hygiene, specification structure and Wait/Ingress registry checks. Compiler, Runtime and live 5GC qualification use separate acceptance tests.
+## Local verification
+
+With Git, Make, and Python 3.11 available, run:
+
+```sh
+git clone https://github.com/odango-chan/ca-skills.git
+cd ca-skills
+make verify
+```
+
+This checks repository source hygiene, specification structure, and the Wait and Ingress registries.
+
+## Contributing
+
+Open an [issue](https://github.com/odango-chan/ca-skills/issues) with the CA-SL version, the affected clause or example, and the expected behavior. Run `make verify` before submitting a pull request.
+
+## License
+
+A repository-wide license is pending.
