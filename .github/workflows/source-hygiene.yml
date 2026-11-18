@@ -22,3 +22,63 @@ jobs:
           python-version: "3.11"
       - name: Verify official Skill source hygiene
         run: make verify
+      - name: Test MAS Compiler v2 project input gate
+        run: python -m unittest discover -s tests -p test_compile_mas_v1alpha5.py
+      - name: Verify released Compiler v2.0.1 accepts MAS grammar and rejects missing Owner
+        shell: bash
+        run: |
+          set -euo pipefail
+          release="https://github.com/odango-chan/ca-skill-compiler/releases/download/v2.0.1"
+          curl -fsSL --retry 3 "$release/SHA256SUMS" -o SHA256SUMS
+          curl -fsSL --retry 3 "$release/skillc-v2.0.1-linux-amd64" -o skillc-v2.0.1-linux-amd64
+          grep 'skillc-v2.0.1-linux-amd64' SHA256SUMS | sha256sum -c -
+          mv skillc-v2.0.1-linux-amd64 skillc
+          chmod +x skillc
+          ./skillc version | tee compiler-version.txt
+          grep -F 'skillc v2.0.1' compiler-version.txt
+          grep -F 'language target: connectionagent.io/v1alpha5' compiler-version.txt
+          project="$(mktemp -d)"
+          trap 'rm -rf "$project" skillc SHA256SUMS compiler-version.txt' EXIT
+          mkdir -p "$project/skills"
+          cp -R examples/skills/establish-pdu-session-mas "$project/skills/"
+          set +e
+          ./skillc check "$project" --skill establish-pdu-session-mas --json > "$project/diagnostics.json"
+          check_status=$?
+          set -e
+          if [ "$check_status" -ne 1 ]; then
+            echo "Expected missing-Owner diagnostics from Compiler v2.0.1, exit=$check_status" >&2
+            exit 1
+          fi
+          python - "$project/diagnostics.json" <<'PYCODE'
+          import json
+          import sys
+          with open(sys.argv[1], encoding="utf-8") as stream:
+              diagnostics = json.load(stream)
+          if not isinstance(diagnostics, list) or not any(
+              item.get("severity", "").lower() == "error" for item in diagnostics
+          ):
+              raise SystemExit("Compiler returned no structured error diagnostics")
+          codes = {str(item.get("code", "")) for item in diagnostics}
+          forbidden = codes & {"YAML_PARSE_ERROR", "IDENTIFIER_INVALID"}
+          if forbidden:
+              for item in diagnostics:
+                  if item.get("code") in forbidden:
+                      print("SOURCE_NOT_FIXED", json.dumps(item, ensure_ascii=False))
+              raise SystemExit("Grammar/parser errors remain")
+          if "DEPENDENCY_SNAPSHOT_MISSING" not in codes:
+              raise SystemExit("Missing-Owner dependency error unexpectedly vanished")
+          print("MAS_V1ALPHA5_SOURCE_GRAMMAR_PASS_COMPILER_V2_0_1", sorted(codes))
+          PYCODE
+          set +e
+          ./skillc build "$project" --skill establish-pdu-session-mas --out "$project/output" --json > "$project/build.json"
+          build_status=$?
+          set -e
+          if [ "$build_status" -ne 1 ]; then
+            echo "Unlinked MAS must not produce a successful Build, exit=$build_status" >&2
+            exit 1
+          fi
+          if [ -d "$project/output" ] && [ -n "$(ls -A "$project/output")" ]; then
+            echo "Failed Build emitted files despite missing trusted Owner" >&2
+            exit 1
+          fi
+          echo "MAS_UNTRUSTED_BUILD_FAIL_CLOSED_PASS"
