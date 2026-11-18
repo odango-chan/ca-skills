@@ -19,7 +19,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 SKILL = "establish-pdu-session-mas"
 SOURCE = REPO / "examples" / "skills" / SKILL
-VERSION = "skillc v2.0.0"
+VERSION = "skillc v2.0.1"
 TARGET = "connectionagent.io/v1alpha5"
 
 
