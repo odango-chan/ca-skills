@@ -24,28 +24,29 @@ jobs:
         run: make verify
       - name: Test MAS Compiler v2 project input gate
         run: python -m unittest discover -s tests -p test_compile_mas_v1alpha5.py
-      - name: Verify released Compiler v2 rejects the unlinked MAS example
+      - name: Verify released Compiler v2.0.1 accepts MAS grammar and rejects missing Owner
         shell: bash
         run: |
           set -euo pipefail
-          release="https://github.com/odango-chan/ca-skill-compiler/releases/download/v2.0.0"
+          release="https://github.com/odango-chan/ca-skill-compiler/releases/download/v2.0.1"
           curl -fsSL --retry 3 "$release/SHA256SUMS" -o SHA256SUMS
-          curl -fsSL --retry 3 "$release/skillc-v2.0.0-linux-amd64" -o skillc-v2.0.0-linux-amd64
-          grep 'skillc-v2.0.0-linux-amd64' SHA256SUMS | sha256sum -c -
-          mv skillc-v2.0.0-linux-amd64 skillc
+          curl -fsSL --retry 3 "$release/skillc-v2.0.1-linux-amd64" -o skillc-v2.0.1-linux-amd64
+          grep 'skillc-v2.0.1-linux-amd64' SHA256SUMS | sha256sum -c -
+          mv skillc-v2.0.1-linux-amd64 skillc
           chmod +x skillc
-          ./skillc version
+          ./skillc version | tee compiler-version.txt
+          grep -F 'skillc v2.0.1' compiler-version.txt
+          grep -F 'language target: connectionagent.io/v1alpha5' compiler-version.txt
           project="$(mktemp -d)"
-          trap 'rm -rf "$project" skillc SHA256SUMS' EXIT
+          trap 'rm -rf "$project" skillc SHA256SUMS compiler-version.txt' EXIT
           mkdir -p "$project/skills"
           cp -R examples/skills/establish-pdu-session-mas "$project/skills/"
           set +e
           ./skillc check "$project" --skill establish-pdu-session-mas --json > "$project/diagnostics.json"
-          status=$?
+          check_status=$?
           set -e
-          if [ "$status" -ne 1 ]; then
-            echo "Expected fail-closed static diagnostics for unpublished MAS Owner, exit=$status" >&2
-            cat "$project/diagnostics.json" || true
+          if [ "$check_status" -ne 1 ]; then
+            echo "Expected missing-Owner diagnostics from Compiler v2.0.1, exit=$check_status" >&2
             exit 1
           fi
           python - "$project/diagnostics.json" <<'PYCODE'
@@ -57,53 +58,27 @@ jobs:
               item.get("severity", "").lower() == "error" for item in diagnostics
           ):
               raise SystemExit("Compiler returned no structured error diagnostics")
-          codes = sorted({str(item.get("code", "")) for item in diagnostics})
-          print("REAL_COMPILER_V2_FAIL_CLOSED_PASS", ", ".join(codes))
-          for item in diagnostics:
-              if item.get("code") in {"IDENTIFIER_INVALID", "YAML_PARSE_ERROR"}:
-                  print("MAS_SOURCE_DIAGNOSTIC", json.dumps(item, ensure_ascii=False))
-          PYCODE
-
-      - name: Set up Go for patched Compiler parser regression
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.27.4"
-          cache: false
-      - name: Verify merged Compiler parser fix against MAS source
-        shell: bash
-        run: |
-          set -euo pipefail
-          tmp="$(mktemp -d)"
-          trap 'rm -rf "$tmp"' EXIT
-          git clone --quiet https://github.com/odango-chan/ca-skill-compiler.git "$tmp/compiler"
-          cd "$tmp/compiler"
-          git checkout --quiet 71d37af1d5321c146f3dde86a539d0fcd6167fa2
-          GOWORK=off go test ./internal/compiler/yamlast -count=1
-          CGO_ENABLED=0 GOWORK=off go build -o "$tmp/skillc-patched" ./cmd/skillc
-          cd "$GITHUB_WORKSPACE"
-          mkdir -p "$tmp/project/skills"
-          cp -R examples/skills/establish-pdu-session-mas "$tmp/project/skills/"
-          set +e
-          "$tmp/skillc-patched" check "$tmp/project" --skill establish-pdu-session-mas --json > "$tmp/patched-diagnostics.json"
-          status=$?
-          set -e
-          if [ "$status" -ne 1 ]; then
-            echo "Expected missing-Owner diagnostics from patched Compiler, exit=$status" >&2
-            exit 1
-          fi
-          python - "$tmp/patched-diagnostics.json" <<'PYCODE'
-          import json
-          import sys
-          with open(sys.argv[1], encoding="utf-8") as stream:
-              diagnostics = json.load(stream)
           codes = {str(item.get("code", "")) for item in diagnostics}
           forbidden = codes & {"YAML_PARSE_ERROR", "IDENTIFIER_INVALID"}
           if forbidden:
               for item in diagnostics:
                   if item.get("code") in forbidden:
                       print("SOURCE_NOT_FIXED", json.dumps(item, ensure_ascii=False))
-              raise SystemExit("Grammar/parser errors remain after candidate fixes")
+              raise SystemExit("Grammar/parser errors remain")
           if "DEPENDENCY_SNAPSHOT_MISSING" not in codes:
-              raise SystemExit("Missing-Owner fail-closed diagnostics unexpectedly vanished")
-          print("MAS_V1ALPHA5_SOURCE_GRAMMAR_PASS_WITH_COMPILER_PATCH", sorted(codes))
+              raise SystemExit("Missing-Owner dependency error unexpectedly vanished")
+          print("MAS_V1ALPHA5_SOURCE_GRAMMAR_PASS_COMPILER_V2_0_1", sorted(codes))
           PYCODE
+          set +e
+          ./skillc build "$project" --skill establish-pdu-session-mas --out "$project/output" --json > "$project/build.json"
+          build_status=$?
+          set -e
+          if [ "$build_status" -ne 1 ]; then
+            echo "Unlinked MAS must not produce a successful Build, exit=$build_status" >&2
+            exit 1
+          fi
+          if [ -d "$project/output" ] && [ -n "$(ls -A "$project/output")" ]; then
+            echo "Failed Build emitted files despite missing trusted Owner" >&2
+            exit 1
+          fi
+          echo "MAS_UNTRUSTED_BUILD_FAIL_CLOSED_PASS"
