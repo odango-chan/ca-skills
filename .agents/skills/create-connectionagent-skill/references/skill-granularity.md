@@ -51,7 +51,7 @@ Historical routing packages under `skills/` are outside the current 5GC baseline
 
 If two product behaviors share the same lower-level operation, keep the operation as a shared Capability and express different product semantics in their respective Skills.
 
-If the difference is a governed reusable procedure structure over the same base Skill, consider ProcedurePatch / ProcedureVariant rather than cloning the entire Skill.
+Use the current CA-SL specification to decide which variations can share one Procedure and its explicit routes.
 
 If the difference is deployment binding, endpoint, credential, or provider implementation, it is not a new Skill. Those concerns belong to Runtime/deployment ProviderBinding.
 

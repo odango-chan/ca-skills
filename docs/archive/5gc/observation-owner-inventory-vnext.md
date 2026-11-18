@@ -1,4 +1,4 @@
-> **Status notice (2026-11-13):** Legacy ObservationSource ownership inventory. It records current implementation/source facts, not the final vNext public contract model. The [CA-SL vNext Specification](../skill-language-spec.zh-CN.md) defines Observation Query as a specialized read-only Tool contract and is authoritative for new syntax.
+> **Status notice (2026-11-13):** Legacy ObservationSource ownership inventory. It records current implementation/source facts, not the final vNext public contract model. The [CA-SL vNext Specification](../../skill-language-spec.zh-CN.md) defines Observation Query as a specialized read-only Tool contract and is authoritative for new syntax.
 
 # Observation Owner and Acquisition Inventory — vNext
 

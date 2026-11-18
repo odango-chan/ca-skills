@@ -41,7 +41,7 @@ implementation:
     hostRuntime:
       commitOrArtifactDigest: null
 caseMatrix:
-  normativeIndex: docs/fixtures/ca-sl-v1alpha3-case-traceability.yaml
+  normativeIndex: docs/archive/v1alpha3/fixtures/ca-sl-v1alpha3-case-traceability.yaml
   caseRange: E01-E114
   executableSuiteRef: null
   rawResultRef: null
@@ -50,7 +50,7 @@ caseMatrix:
   status: NOT_TESTED
 diagnosticMatrix:
   normativeIndex: docs/skill-language-spec.zh-CN.md#appendix-h
-  gapRegister: docs/fixtures/ca-sl-v1alpha3-diagnostic-fixture-gaps.yaml
+  gapRegister: docs/archive/v1alpha3/fixtures/ca-sl-v1alpha3-diagnostic-fixture-gaps.yaml
   executableSuiteRef: null
   rawResultRef: null
   status: NOT_TESTED

@@ -2,9 +2,9 @@
 
 This guide follows the [CA-SL v1alpha5 Specification](skill-language-spec.v1alpha5.zh-CN.md), the sole normative language authority. v1alpha4 remains an immutable historical target. The author syntax and interoperability profile are frozen; product conformance and executable 5GC migration are separate §45.2 / §L.13.2 gates.
 
-## 1. Current source baseline
+## 1. Source examples
 
-The runnable 5GC Skills remain on the v0.2 business/source baseline and have not yet been migrated to v1alpha5. MAS is a design candidate, not the first live execution acceptance baseline. Do not rewrite the current runnable packages before a separately reviewed migration.
+Use the [v1alpha5 PDU Session examples](../examples/README.md) as authoring references for conventional 5GC and OpenAMSM MAS. They require trusted Owner contracts to link. The packages under `skills/` preserve the [legacy 5GC behavior baseline](current-5gc-skill-baseline.md).
 
 ## 2. Canonical v1alpha5 Skill package
 

@@ -2,7 +2,7 @@
 
 **性质：** 资料性作者指南（Informative）  
 **适用版本：** `connectionagent.io/v1alpha3`（vNext 为资料性别名）  
-**规范性依据：** [CA-SL 完整规范](../skill-language-spec.zh-CN.md)
+**规范性依据：** [CA-SL 完整规范](../../skill-language-spec.zh-CN.md)
 
 本指南说明符合现有规范的常见写法，不增加新的语法、缩窄规则或权限来源。任何示例中没有给出完整 Owner 发布物的引用，均表示模式说明，**不是已通过 Compiler 的独立 Fixture**。
 
@@ -36,7 +36,7 @@ SourcePath 的直接绑定只允许引用在该路径所有可达分支中**保�
 
 静态无法解析受信身份域、共同事实绑定、Scope 映射或授权时，构建被 `EVIDENCE_GUARANTEE_LINK_INVALID` 阻断。绑定全部合法但能从静态声明证明无论何种合法记录均不能组成独立证据时，报 `PREDICATE_EVIDENCE_UNSATISFIABLE`。当静态可满足而本次记录缺失、过期、同源或无法核验时，Predicate 返回 UNKNOWN。
 
-见 [统一决策索引](../design/ca-sl-v1alpha3-decision-and-trace-index.md)和 §G.3.1。
+见 [统一决策索引](review/ca-sl-v1alpha3-decision-and-trace-index.md)和 §G.3.1。
 
 ## 5. Owner Schema 投影的发布与版本治理
 
@@ -64,4 +64,4 @@ G.4 与 F.6 已限定允许的表达式、类型和注解集合。不得因为�
 
 ## 8. 适用的验收记录
 
-本指南本身未通过 Compiler、Runtime 或真实 5GC 测试。正式验证仍遵守 §45.2 的八项门槛以及 [E01–E114 预期索引](../fixtures/ca-sl-v1alpha3-case-traceability.yaml)。作者不得将资料性写法作为现行产品已支持的声明。
+本指南本身未通过 Compiler、Runtime 或真实 5GC 测试。正式验证仍遵守 §45.2 的八项门槛以及 [E01–E114 预期索引](fixtures/ca-sl-v1alpha3-case-traceability.yaml)。作者不得将资料性写法作为现行产品已支持的声明。

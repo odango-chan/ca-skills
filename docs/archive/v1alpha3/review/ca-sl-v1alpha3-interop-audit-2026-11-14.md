@@ -1,7 +1,7 @@
 # CA-SL v1alpha3 — 互操作审计与符合性分流澄清（2026-11-14）
 
 **性质：** 冻结后 A/B 类解释性修订及尚未关闭的互操作交付缺口登记；本文件不新增语言字段或改变现有 E 用例预期  
-**权威文本：** [CA-SL v1alpha3 中文规范](../skill-language-spec.zh-CN.md)  
+**权威文本：** [CA-SL v1alpha3 中文规范](../../../skill-language-spec.zh-CN.md)\
 **状态：** 语言语义 FROZEN；独立 Owner 互操作发布物和 Compiler/Runtime/Studio 符合性仍为 **NOT QUALIFIED**
 
 ## 评审逐项裁决

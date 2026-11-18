@@ -1,6 +1,6 @@
 # 5GC Owner Schema Gap Register — vNext
 
-> **Status update (2026-11-14):** This is a source audit at the commit stated below, **not** a fresh inventory of current main. Agent Host PRs #198, #199 and #200 have since merged; Provider #50 is still open. The frozen CA-SL v1alpha2 language contract is independent of the outstanding verified Owner export bundle. See [freeze record](ca-sl-v1alpha2-freeze-record.md).
+> **Status update (2026-11-14):** This is a source audit at the commit stated below, **not** a fresh inventory of current main. Agent Host PRs #198, #199 and #200 have since merged; Provider #50 is still open. The frozen CA-SL v1alpha2 language contract is independent of the outstanding verified Owner export bundle. See [freeze record](../v1alpha2/freeze-record.md).
 
 Status: **CODE-DERIVED AUDIT / OWNER EXPORTS IN DRAFT; COMPLETE IMPORTABLE BUNDLE NOT YET AVAILABLE**
 Audit source: odango-chan/ca-agent-demo main, commit 38012852827437185c6343c2b544acad401084e1.

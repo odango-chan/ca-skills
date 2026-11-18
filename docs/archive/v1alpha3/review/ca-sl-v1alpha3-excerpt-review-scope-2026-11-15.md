@@ -1,7 +1,7 @@
 # CA-SL v1alpha3 — 摘录评审复核与冻结范围勘误（2026-11-15）
 
 **分类：** §45.1 A（文档排版、展示版本、目录说明）和 B（已有 §12.8 Root Routing 外部归属的冻结范围澄清、§17.1 来源豁免正负例）  
-**权威 Normative 源：** [CA-SL v1alpha3 中文规范](../skill-language-spec.zh-CN.md)  
+**权威 Normative 源：** [CA-SL v1alpha3 中文规范](../../../skill-language-spec.zh-CN.md)\
 **产品状态：** NOT QUALIFIED；本勘误不构成 Compiler、Studio、Runtime、Owner 或真实 5GC 的可执行验收。
 
 ## 完整规范与片段评审的差异

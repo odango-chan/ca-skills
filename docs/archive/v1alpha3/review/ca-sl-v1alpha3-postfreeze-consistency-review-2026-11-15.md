@@ -2,7 +2,7 @@
 
 **分类：** §45.1 A（已修复项核对、术语及交叉索引）/ B（复述已有 Owner / Script / Evidence 规则为字段权威表和验收清单；无新的允许输入、诊断、授权来源或结果）  
 **语言目标：** `connectionagent.io/v1alpha3`（vNext 仅资料性别名）  
-**Normative 唯一来源：** [完整中文规范](../skill-language-spec.zh-CN.md)  
+**Normative 唯一来源：** [完整中文规范](../../../skill-language-spec.zh-CN.md)\
 **产品符合性：** NOT QUALIFIED；本文件及 GitHub Source Hygiene 不是 §45.2 的执行证据
 
 ## P0 逐条复核
@@ -22,7 +22,7 @@
 2. **F.3 Evidence 描述符索引。** 列出 authority、fact、producers、scope/correlation、factValue、selection、freshness、sourceIdentity / IndependentDomains、factIdentity 的已有职责与错误分类。§17 / G.3.1 的精确路径/作用域规则不被表格放宽。
 3. **§12.6 Result Sufficiency。** 明确 SHOULD 是业务评审与 Studio 的 Review Checklist，不单独生成“是否足够”的 Compiler 诊断；可静态判定的类型、路径、Schema、Evidence 仍由现行规则验证。
 4. **§45.2 Script 最低验收清单。** 现有 §32/F.6 要求被整理为六类机器验收：入口 TypedDict、字面量键、可缺失键守卫、严格输出、受支持注解、Native/WASM/Studio 诊断一致性。版本和 CI 原始证据仍须真实填报。
-5. **Owner Schema 投影、可选 SourcePath、Evidence requires、CEL 与 Reconcile UNRESOLVED** 已在 [作者指南](../guides/ca-sl-v1alpha3-authoring-patterns.md) 中补齐可操作流程，明确没有新的 Owner 发布格式或 Skill 信任来源。
+5. **Owner Schema 投影、可选 SourcePath、Evidence requires、CEL 与 Reconcile UNRESOLVED** 已在 [作者指南](../authoring-patterns.md) 中补齐可操作流程，明确没有新的 Owner 发布格式或 Skill 信任来源。
 6. G.2.1 的教学 Fragment 标记提前到代码之前，防止误以为一段 `spec.contracts[]` 条目可以单独当 ToolCatalog 完整文件。
 7. **附录 H 高频运行诊断不重新分类。** 现有 `TOOL_UNAVAILABLE`、`EVIDENCE_STALE`、`SCOPE_MISMATCH` 已有派发前/派发后与 Mutation/READ 的精细行为；尤其已派发 READ 的回包 Scope 不匹配必须按证据不可信和 UNKNOWN/停止处理，**不能**误沿派发前 `DENIED` 继续业务。H 的 `(Code, Phase)` 与 §24.2 仍是规范性判断来源。
 

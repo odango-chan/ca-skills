@@ -4,7 +4,7 @@
 **适用版本：** CA-SL vNext / API v1alpha3  
 **性质：** §45.1 A/B 类，既有逻辑通道根与示例的一致性澄清；不重新定义 Reconcile 或迁移到新路径语法  
 **产品状态：** NOT QUALIFIED（不以文本审计替代 §45.2 测试）  
-**唯一 Normative 正文：** [中文规范](../skill-language-spec.zh-CN.md)
+**唯一 Normative 正文：** [中文规范](../../../skill-language-spec.zh-CN.md)
 
 ## 1. Receipt/Proof 根裁决
 

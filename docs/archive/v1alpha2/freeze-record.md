@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-14  
 **Decision:** LANGUAGE CONTRACT FROZEN; IMPLEMENTATION CONFORMANCE NOT QUALIFIED  
-**Normative source:** [CA-SL 中文规范](../skill-language-spec.zh-CN.md), including Appendix F  
+**Normative source:** [CA-SL 中文规范](../../skill-language-spec.zh-CN.md), including Appendix F\
 **Change control:** Semantic changes require an explicitly new language or interoperability contract version; implementation deviations do not redefine v1alpha2.
 
 ## 1. Boundary of the freeze
