@@ -1,4 +1,4 @@
-# Current 5GC Skill Source Baseline
+# Legacy 5GC Skill Source Baseline
 
 **Version scope (2026-11-17): LEGACY 5GC SOURCE; NOT CA-SL v1alpha5-CONFORMING.** The two current Contracts still identify `connectionagent.io/v1alpha1`, while the imported `lib/tools/createdsession.tool.yaml` uses `ca-agent-demo.tool/v1`; neither meets the v1alpha5 inherited exact external profile. There is no verified trusted CapabilityContracts/Owner publication here. The [CA-SL v1alpha5 language](skill-language-spec.v1alpha5.zh-CN.md) is FROZEN / RELEASED; Compiler/Studio/Host/Owner/5GC remain `NOT_QUALIFIED` under §45.2 / §L.13.2. Do not turn a legacy snapshot into a purported v1alpha5 publication by changing its version string.
 
@@ -9,7 +9,7 @@
 - The two official 5GC Skill packages were originally synchronized from that reference. This refresh intentionally migrates their Script interface to the new ca-skills Script Contract; business Procedure order and Operation identities remain unchanged.
 - Current ca-agent-demo checkout is not a second Skill source of truth. Changes to official Skill language/source are made here first, then consumers are updated separately.
 
-## Official current packages
+## Historical source packages
 
 | Package | Before Script migration | Current source | Notes |
 | --- | ---: | ---: | --- |
@@ -35,7 +35,7 @@ The `PcfPolicyInputsOutput` uses functional `TypedDict` for wire key `5qi`, whic
 
 ## Procedure and Operation identity
 
-`call` remains the current scalar form:
+The legacy Procedure uses scalar `call`:
 
 ~~~yaml
 call: sbi.udm.sm_data.get

@@ -4,7 +4,7 @@
 **目标语言：** CA-SL vNext / API v1alpha3（FROZEN）  
 **变更分类：** §45.1 A/B 类既有条款的字段归属、诊断身份和可执行处置交叉引用澄清  
 **符合性状态：** NOT QUALIFIED  
-**唯一规范性正文：** [CA-SL 完整规范](../skill-language-spec.zh-CN.md)
+**唯一规范性正文：** [CA-SL 完整规范](../../../skill-language-spec.zh-CN.md)
 
 ## 1. 对重复评审事项的核验
 

@@ -1,6 +1,6 @@
 # CA-SL Node-level Event Wait — Normative Amendment History (superseded by v1alpha5)
 
-**Primary review artifact:** [Complete CA-SL v1alpha5 single-file specification](../skill-language-spec.v1alpha5.zh-CN.md). The full specification is the only review target for normative integration; this file is retained as the source amendment and decision-history record.
+**Primary review artifact:** [Complete CA-SL v1alpha5 single-file specification](../../skill-language-spec.v1alpha5.zh-CN.md). The full specification is the only review target for normative integration; this file is retained as the source amendment and decision-history record.
 **Candidate language target:** `connectionagent.io/v1alpha5` (assigned candidate identifier; not released).
 **Status:** Delta source retained for traceability; superseded as the primary review artifact by the complete single-file specification.
 

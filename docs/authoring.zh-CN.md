@@ -2,9 +2,9 @@
 
 **语言权威：** [CA-SL v1alpha5 完整规范](skill-language-spec.v1alpha5.zh-CN.md)。本指南只做导航，不另行定义语法。v1alpha4 保持不可变历史版本；v1alpha5 语言及互操作规范已冻结。Compiler / Runtime / Studio / Integration / 5GC 产品符合性仍需按 §45.2 / §L.13.2 独立验收。
 
-## 1. 当前正式源码基线
+## 1. 源码示例
 
-当前 `skills/` 下的 5GC 可执行 Skill 仍以 v0.2 为业务行为基线，尚未完成 v1alpha5 迁移。MAS 是设计候选，不是第一阶段真实执行验收基线。迁移前不改写现有可运行源码。
+[v1alpha5 PDU 会话示例](../examples/README.md)提供传统 5GC 和 OpenAMSM MAS 的编写参考，完成链接需要可信 Owner 契约。`skills/` 下的原有包用于保留[历史 5GC 行为基线](current-5gc-skill-baseline.md)。
 
 ## 2. v1alpha5 Skill Package
 

@@ -1,6 +1,6 @@
 # CA-SL v1alpha3 — 冻结后编辑性澄清（2026-11-14）
 
-**适用文本：** [CA-SL 规范（中文唯一 Normative 正文）](../skill-language-spec.zh-CN.md)  
+**适用文本：** [CA-SL 规范（中文唯一 Normative 正文）](../../../skill-language-spec.zh-CN.md)\
 **版本与状态：** vNext / API v1alpha3，语言 FROZEN；产品/Owner 符合性 NOT QUALIFIED  
 **分类：** §45.1 A 类编辑性勘误、B 类既有语义的适用位置澄清；不引入 C 类语义变更
 

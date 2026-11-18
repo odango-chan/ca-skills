@@ -1,8 +1,8 @@
-# Imported Tool Library
+# Historical ToolCatalog snapshot
 
-This directory contains exact snapshots of externally owned contracts. Treat every file here as **imported and read-only**; refresh from the owning repository rather than editing the snapshot in place. Current imports are ToolCatalogs under `tools/`. A project may optionally import a deployment-owned CapabilityContracts snapshot under `capabilities/` when Capability-ID navigation is required; no such snapshot is present in this project.
+The [legacy 5GC source](../skills/README.md) uses the read-only snapshot under `tools/`. CA-SL v1alpha5 receives trusted Owner contracts as caller-supplied dependency snapshots. See [Schema ownership](../docs/schema-ownership.md) for the current dependency model.
 
-## Current import
+## Pinned import
 
 | Local path | Source | Source commit | Use |
 | --- | --- | --- | --- |

@@ -1,10 +1,10 @@
-# Current official 5GC Skills
+# Historical Skill source
 
-The current 5GC source baseline is:
+The [v1alpha5 authoring examples](../examples/README.md) are the starting point for new Skill source. The packages here preserve the earlier source layouts used by existing consumers.
 
-- [`establish-pdu-session`](establish-pdu-session/SKILL.md) — conventional UE-requested initial PDU Session Establishment.
-- [`establish-pdu-session-mas`](establish-pdu-session-mas/SKILL.md) — SMF MAS policy-first initial establishment.
+| Package | Role |
+| --- | --- |
+| [`establish-pdu-session`](establish-pdu-session/SKILL.md) | Conventional 5GC behavior baseline |
+| [`establish-pdu-session-mas`](establish-pdu-session-mas/SKILL.md) | OpenAMSM MAS policy-first design baseline |
 
-Both were synchronized from `odango-chan/ca-agent-demo` main commit `4395982fa6efb97714b97901603b2dfb7018c4d0`.
-
-This index describes only the current 5GC baseline. Other historical packages remain untouched and are not current authoring references. Compiler compatibility and Runtime qualification status are recorded in [the baseline report](../docs/current-5gc-skill-baseline.md).
+Both packages were synchronized from `odango-chan/ca-agent-demo` commit `4395982fa6efb97714b97901603b2dfb7018c4d0`. See the [legacy 5GC baseline](../docs/current-5gc-skill-baseline.md) for provenance, the imported ToolCatalog and open Owner references.

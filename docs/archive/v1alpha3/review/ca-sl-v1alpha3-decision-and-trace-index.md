@@ -2,7 +2,7 @@
 
 **性质：** 资料性索引（Informative）  
 **语言目标：** `connectionagent.io/v1alpha3`  
-**权威依据：** [CA-SL 完整规范](../skill-language-spec.zh-CN.md)  
+**权威依据：** [CA-SL 完整规范](../../../skill-language-spec.zh-CN.md)\
 **产品符合性：** NOT QUALIFIED
 
 本索引只整理已经冻结的执行判定和条款关系。出现不一致时，**以对应规范性条款为准**，不得以本表重新定义 Owner Outcome、Stage Outcome 或 Invocation 终态。

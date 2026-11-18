@@ -4,7 +4,7 @@
 **适用版本：** CA-SL vNext / API v1alpha3（FROZEN）  
 **变更分类：** §45.1 A 类索引勘误、B 类已冻结规则适用位置澄清  
 **产品符合性：** NOT QUALIFIED  
-**规范性依据：** [CA-SL 完整规范](../skill-language-spec.zh-CN.md)
+**规范性依据：** [CA-SL 完整规范](../../../skill-language-spec.zh-CN.md)
 
 ## 1. 诊断索引现状
 

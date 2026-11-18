@@ -3,7 +3,7 @@
 **类型：** 冻结后 A/B 类文本勘误和既有规范性约束的解释性闭合  
 **版本：** CA-SL vNext / API v1alpha3（语言 FROZEN）  
 **产品验收：** §45.2 NOT QUALIFIED  
-**规范性来源：** [CA-SL v1alpha3 完整规范](../skill-language-spec.zh-CN.md)  
+**规范性来源：** [CA-SL v1alpha3 完整规范](../../../skill-language-spec.zh-CN.md)\
 **回归计划：** [RFX-117–RFX-122（资料性候选，不是正式 E 用例）](../fixtures/ca-sl-v1alpha3-review-regression-candidates.yaml)
 
 ## 1. 评审发现与处置

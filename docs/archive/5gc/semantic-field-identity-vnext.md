@@ -1,6 +1,6 @@
 # Semantic Field Identity Contract vNext — historical proposal
 
-> **Status notice (2026-11-13):** Historical exploration only. The current [CA-SL vNext Specification](../skill-language-spec.zh-CN.md) is the sole normative language authority and supersedes the source-binding syntax in this document. vNext uses explicit direct arguments and does not adopt semantic-ID-driven automatic binding or the old with/from spelling. Keep this note only for rationale and prior experiments.
+> **Status notice (2026-11-13):** Historical exploration only. The current [CA-SL vNext Specification](../../skill-language-spec.zh-CN.md) is the sole normative language authority and supersedes the source-binding syntax in this document. vNext uses explicit direct arguments and does not adopt semantic-ID-driven automatic binding or the old with/from spelling. Keep this note only for rationale and prior experiments.
 
 Status: **DESIGN-REVIEW / NOT ADOPTED**  
 Authority: the current CA-SL vNext Specification; implementation experiments are historical Compiler binding-spike material.
@@ -98,7 +98,7 @@ This document does not define a full semantic-type registry, new package manager
 
 Before final freeze: decide the exact extension-key spelling; validate the annotation against all current JSON Schema validation rules; confirm trusted context owner schemas; prove real Procedure CFG/dataflow; and compare compiled bindings with the existing explicit mappings and execution outcomes in both official Skills.
 
-Related: [Capability & Authoring Model vNext](capability-authoring-model-vnext.md), [Binding Migration Rehearsal](binding-migration-rehearsal-vnext.md), [Observation Owner Inventory](observation-owner-inventory-vnext.md), and [Compiler PR #7](https://github.com/odango-chan/ca-skill-compiler/pull/7).
+Related: [Capability & Authoring Model vNext](../v1alpha2/capability-authoring-model-vnext.md), [Binding Migration Rehearsal](binding-migration-rehearsal-vnext.md), [Observation Owner Inventory](observation-owner-inventory-vnext.md), and [Compiler PR #7](https://github.com/odango-chan/ca-skill-compiler/pull/7).
 
 
 ## 7. Compiler integration finding (2026-11-12)

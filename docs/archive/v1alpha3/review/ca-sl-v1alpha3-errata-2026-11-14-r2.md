@@ -4,7 +4,7 @@
 **Classification:** Documentary errata and clarification of existing normative obligations (**A/B**, §45.1)  
 **Language target:** **CA-SL v1alpha3 FROZEN**. Any substantive change to valid inputs, Evidence authority, authorization, Reconcile semantics or an already frozen diagnostic/result would require an explicit **v1alpha4** or a separately versioned interoperability contract.  
 **Product/Owner conformance:** **NOT QUALIFIED**, exactly as in §45.2.  
-**Normative source:** [Chinese CA-SL specification](../skill-language-spec.zh-CN.md).  
+**Normative source:** [Chinese CA-SL specification](../../../skill-language-spec.zh-CN.md).\
 **Earlier errata:** [v1alpha3 errata round 1](ca-sl-v1alpha3-errata-2026-11-14.md).
 
 This record follows an additional independent review. It identifies textual inconsistencies still present **after** the previous errata and distinguishes those from findings already corrected in main. It is not a substitute for the normative language or real Owner publications.

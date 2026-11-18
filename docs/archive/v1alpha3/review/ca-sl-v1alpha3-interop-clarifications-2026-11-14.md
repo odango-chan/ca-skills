@@ -3,7 +3,7 @@
 **分类：** 冻结后 A 类文字/索引勘误、B 类现有规则的适用范围澄清  
 **版本：** CA-SL vNext / API v1alpha3（FROZEN）  
 **实现符合性：** NOT QUALIFIED  
-**规范依据：** [CA-SL 完整规范](../skill-language-spec.zh-CN.md)  
+**规范依据：** [CA-SL 完整规范](../../../skill-language-spec.zh-CN.md)\
 **相关历史：** [诊断追溯与 PSI 身份来源勘误](ca-sl-v1alpha3-diagnostic-trace-errata.md)
 
 ## 1. 本轮 P0 复核裁决
@@ -48,7 +48,7 @@ CA-SL 的规范性输入集合由 G.4、F.6、§32 定义，不由具体第三�
 - G.4 明确 `$defs`、`definitions` 与 JSON Pointer 片段引用不在 v1alpha3 白名单中。
 - F.6/F.7 明确语言剖面与解析器/执行器版本的区别。
 - [Mutation、Reconcile、Evidence 决策与条款索引](ca-sl-v1alpha3-decision-and-trace-index.md)为资料性导航，不取代规范性决策表。
-- [SourcePath、Evidence、Owner 投影作者指南](../guides/ca-sl-v1alpha3-authoring-patterns.md)为资料性实施建议。
+- [SourcePath、Evidence、Owner 投影作者指南](../authoring-patterns.md)为资料性实施建议。
 - 附录 B/D 明确标记为历史记录，现行八项符合性门槛仍为 §45.2。
 - 诊断的唯一规范性名称索引仍为附录 H；[E01–E114 预期索引](../fixtures/ca-sl-v1alpha3-case-traceability.yaml)与[39 项诊断缺口清单](../fixtures/ca-sl-v1alpha3-diagnostic-fixture-gaps.yaml)继续独立追踪。
 

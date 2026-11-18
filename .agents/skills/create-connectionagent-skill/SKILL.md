@@ -1,43 +1,21 @@
 ---
 name: create-connectionagent-skill
-description: Use when authoring or refreshing an official ConnectionAgent Skill in ca-skills. Follow the current Skill Language v0.2, Script Contract, Schema Ownership and current 5GC source baseline.
+description: Use when authoring, reviewing or refreshing ConnectionAgent Skill source in ca-skills. Apply the current CA-SL v1alpha5 specification and keep historical 5GC packages on their documented source baseline.
 ---
 
-# Create or update an official ConnectionAgent Skill
+# Author ConnectionAgent Skill source
 
-## Authority
+## Choose the source baseline
 
-- Official Skill source and Skill-authored language semantics: this repository.
-- Current executable source examples: `skills/establish-pdu-session/` and `skills/establish-pdu-session-mas/`.
-- Current source provenance: `docs/current-5gc-skill-baseline.md`.
-- Language authority: `docs/skill-language-spec.md`.
-- Script authority: `docs/script-contract.md`.
-- Schema ownership: `docs/schema-ownership.md`.
-- Procedure semantics: `docs/authoring-model.md`.
-- Semantic token registry: `language/semantic-tokens.v1.json`.
-- Practical syntax: `references/authoring-syntax.md`.
+- Read the [current CA-SL specification](../../../docs/skill-language-spec.md) and [authoring guide](../../../docs/authoring.md). Use the [v1alpha5 examples](../../../examples/README.md) for new source.
+- Read the [legacy 5GC baseline](../../../docs/current-5gc-skill-baseline.md) before editing packages under `skills/`. Preserve business ordering and callable identities unless the requested migration changes them.
+- Read [Skill granularity](references/skill-granularity.md) when deciding whether a behavior belongs in a Skill, Tool or routing policy.
 
-## Workflow
+## Author and review
 
-1. Decide whether the asset is an executable Skill, model-context package or externally owned Tool/Observation contract.
-2. Read the current 5GC baseline before copying an example. Other historical packages under `skills/` are not current syntax authorities.
-3. Keep English `SKILL.md` model-facing: business goal, applicability, supported profile, required facts, invalid inferences, completion and uncertainty. Do not expose Host/Runtime/Provider/Fabric/adapter/deployment internals.
-4. For an executable Skill, maintain the complete `assurance/{contract.yaml,procedure.yaml,predicates.yaml}` trio.
-5. Keep deterministic workflow in `procedure.yaml`. `call` is a scalar exact Operation ID; preserve business ordering and explicit `with/from` bindings.
-6. Use Scripts only for deterministic local computation. Script identity is the package-relative file path; use `main(input: dict) -> OutputTypedDict`. Do not add metadata or independent local Tool IDs.
-7. Put only Skill-owned public schemas in `schemas/`. Import Tool/Host/Observation Owner schemas as read-only caller-supplied contracts; never fabricate them.
-8. Use one `cases/<case>/case.yaml` per semantic obligation. Cases are source material; never claim execution or qualification without owner-run evidence.
-9. Put optional model knowledge in flat or logically grouped `references/` Markdown; list exact paths in `SKILL.md`. References are not automatically loaded.
-10. Before claiming Compiler compatibility, verify the actual target Compiler against every source construct and imported reference. Source hygiene is not Compiler acceptance.
+1. Keep `SKILL.md` focused on goal, applicability, supported profile, business inputs, completion and uncertainty. Put protocol and source traceability in `references/`.
+2. For deterministic Skills, maintain `assurance/contract.yaml`, `procedure.yaml` and `predicates.yaml`. Use explicit arguments, exact callable exports and a final Postcondition that proves the Goal. Read the [syntax references](references/authoring-syntax.md) for the authoritative sections.
+3. Put Skill-owned Schemas in `schemas/`. Link caller-supplied Owner contracts for Tool, Host and Observation types. Keep local computation in pure Scripts and derive Script inputs from the declared source bindings or Predicate signature.
+4. Record semantic cases under `cases/<case>/case.yaml` and optional model knowledge under `references/`. Keep verification results tied to the gate that actually ran.
 
-## Validation language
-
-- `SOURCE_SYNCED`: source files are present and provenance is recorded.
-- `SOURCE_HYGIENE_PASS`: repository-local structural checks passed.
-- `COMPILE_PASS`: the actual target Compiler completed successfully.
-- `LINK_PASS`: all declared local/imported references resolved.
-- `RUNTIME_PASS`: the admitted Runtime path executed successfully.
-- `QUALIFIED`: a separately owned qualification gate passed.
-- `LIVE_PASS`: the real target environment completed its acceptance scenario.
-
-Never use a lower status as evidence for a higher one.
+Run `make verify` for repository checks. Report Compiler, linking, Runtime and live acceptance separately when their respective implementations have been exercised.
