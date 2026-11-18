@@ -24,3 +24,38 @@ jobs:
         run: make verify
       - name: Test MAS Compiler v2 project input gate
         run: python -m unittest discover -s tests -p test_compile_mas_v1alpha5.py
+      - name: Verify released Compiler v2 rejects the unlinked MAS example
+        shell: bash
+        run: |
+          set -euo pipefail
+          release="https://github.com/odango-chan/ca-skill-compiler/releases/download/v2.0.0"
+          curl -fsSL --retry 3 "$release/SHA256SUMS" -o SHA256SUMS
+          curl -fsSL --retry 3 "$release/skillc-v2.0.0-linux-amd64" -o skillc
+          grep 'skillc-v2.0.0-linux-amd64' SHA256SUMS | sha256sum -c -
+          chmod +x skillc
+          ./skillc version
+          project="$(mktemp -d)"
+          trap 'rm -rf "$project" skillc SHA256SUMS' EXIT
+          mkdir -p "$project/skills"
+          cp -R examples/skills/establish-pdu-session-mas "$project/skills/"
+          set +e
+          ./skillc check "$project" --skill establish-pdu-session-mas --json > "$project/diagnostics.json"
+          status=$?
+          set -e
+          if [ "$status" -ne 1 ]; then
+            echo "Expected fail-closed static diagnostics for unpublished MAS Owner, exit=$status" >&2
+            cat "$project/diagnostics.json" || true
+            exit 1
+          fi
+          python - "$project/diagnostics.json" <<'PYCODE'
+          import json
+          import sys
+          with open(sys.argv[1], encoding="utf-8") as stream:
+              diagnostics = json.load(stream)
+          if not isinstance(diagnostics, list) or not any(
+              item.get("severity", "").lower() == "error" for item in diagnostics
+          ):
+              raise SystemExit("Compiler returned no structured error diagnostics")
+          codes = sorted({str(item.get("code", "")) for item in diagnostics})
+          print("REAL_COMPILER_V2_FAIL_CLOSED_PASS", ", ".join(codes))
+          PYCODE
