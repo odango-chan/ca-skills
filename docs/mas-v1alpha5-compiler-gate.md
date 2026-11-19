@@ -1,6 +1,6 @@
-# MAS Skill v1alpha5 — Compiler v2.0.1 gate
+# MAS Skill v1alpha5 — Compiler v2.0.2 gate
 
-**State (2026-11-19): INPUT_BLOCKED / NOT_LINKABLE.** This is a reproducible compilation entrypoint and dependency inventory, **not** a claim of a successful formal Build or a published MAS Owner. Compiler v2.0.1 has been released: https://github.com/odango-chan/ca-skill-compiler/releases/tag/v2.0.1.
+**Formal state (2026-11-19): INPUT_BLOCKED / NOT_LINKABLE.** The fixed Compiler passes full static compilation with an explicitly synthetic fixture. A formal Build still requires trusted Owner and Deployment publications. Compiler PR #47 fixes false SourcePath rejection after a producer's postcondition.
 
 ## Source of truth
 
@@ -8,7 +8,7 @@ Only `examples/skills/establish-pdu-session-mas/` from this repository is submit
 
 The official MAS example still contains a candidate `mas` dependency, **13 grammar-valid but unpublished DottedId Capability IDs**, and 12 candidate Predicate result Schema IDs. These have no published trusted Owner export. Disabling validation, suppressing diagnostics or renaming placeholders cannot make a trustworthy Owner.
 
-Compiler v2.0.1 consumes complete, immutable source plus resolved snapshots and trusted deployment bindings. It is not a package installer or Owner publisher.
+Compiler v2.0.2 consumes complete, immutable source plus resolved snapshots and trusted deployment bindings.
 
 ## Reproducible compiler entrypoint
 
@@ -41,7 +41,7 @@ python scripts/compile_mas_v1alpha5.py --compiler skillc \
   --out ./out/mas-v1alpha5
 ~~~
 
-The adapter exits nonzero on any input or Compiler failure; stdout reports actual per-stage exit codes and diagnostics. Compiler must identify itself as `skillc v2.0.1`, target `connectionagent.io/v1alpha5`. There is no v1alpha4 fallback.
+The adapter exits nonzero on any input or Compiler failure; stdout reports actual per-stage exit codes and diagnostics. Compiler must identify itself as `skillc v2.0.2`, target `connectionagent.io/v1alpha5`.
 
 For strictly local synthetic compilation tests, select `--mode fixture`. The adapter then allows test-only `urn:example:` identities but reports `NOT_QUALIFIED` regardless of whether a static Build succeeds. Fixture artifacts are never eligible for live deployment. Default `--mode release` rejects `urn:example:` in Skill YAML and trusted.json.
 
@@ -66,7 +66,7 @@ The Compiler recomputes snapshot digests, checks Schema/Owner/Capability closure
 
 ## Two acceptance gates
 
-**A. Fixture static compilation.** For explicitly synthetic internally consistent trusted snapshots, real Compiler v2.0.1 Check, InspectDependencies and Build succeed, emitted manifest verifies, and negative tampering/Owner-mismatch tests fail closed. Only claim `FIXTURE_STATIC_BUILD_PASS`.
+**A. Fixture static compilation.** For explicitly synthetic internally consistent trusted snapshots, Compiler v2.0.2 Check, InspectDependencies and Build must succeed, the manifest must verify, and negative tests must fail closed. Report `FIXTURE_STATIC_BUILD_PASS` for this scope.
 
 **B. Official MAS Skill.** Owner/Host/Deployment release actual ToolCatalog, Schemas, CapabilityContracts, Evidence and authorization; replace every placeholder with exact published identity; build against these immutable snapshots. Compiler success still does not imply Host/Runtime authorization or real 5GC E2E. Before this gate passes: `NOT_LINKABLE / NOT_QUALIFIED`.
 
@@ -79,7 +79,7 @@ The MAS Skill replaces initial Session establishment: its first Node no longer q
 - [ca-skills #71](https://github.com/odango-chan/ca-skills/issues/71): canonical source and trusted dependency closure.
 - [ca-client-tools #10](https://github.com/odango-chan/ca-client-tools/issues/10): type-safe MAS Provider (private operation IDs are not public ToolCatalog identities).
 - [ca-agent-demo #215](https://github.com/odango-chan/ca-agent-demo/issues/215): Compiler Artifact admission and actual execution on the existing graph engine.
-- [Compiler v2.0.1](https://github.com/odango-chan/ca-skill-compiler/releases/tag/v2.0.1): published YAML sibling-depth hotfix; unchanged CA-SL v1alpha5 interfaces.
+- [Compiler PR #47](https://github.com/odango-chan/ca-skill-compiler/pull/47): producer output availability fix across Procedure stages.
 
 ## Actual native Compiler acceptance (2026-11-19)
 
@@ -91,7 +91,7 @@ The real v2.0.0 release binary (SHA256 asset verification PASS) reported four er
 
 Earlier ca-skills Action [source validation run 44350887603](https://github.com/odango-chan/ca-skills/actions/runs/44350887603) invoked both the immutable official v2.0.0 release and the pinned patched Compiler. With the patched Compiler + corrected DottedIds, **no `YAML_PARSE_ERROR` or `IDENTIFIER_INVALID` remained**. Remaining static errors were `DEPENDENCY_SNAPSHOT_MISSING`, `EVIDENCE_GUARANTEE_LINK_INVALID` and `PREDICATE_EVIDENCE_UNSATISFIABLE`, all attributable to the unresolved trusted dependency/evidence closure.
 
-Compiler **v2.0.1 is now officially published**, with all Native/WASM assets and independent SHA256 re-download verification passing in [release workflow 44352588675](https://github.com/odango-chan/ca-skill-compiler/actions/runs/44352588675). The v2.0.0 artifact remains immutable; use v2.0.1 for current MAS source. **This is source-grammar acceptance and fail-closed dependency validation, not a successful complete Build.**
+Compiler **v2.0.1** was published with independent SHA256 verification in [release workflow 44352588675](https://github.com/odango-chan/ca-skill-compiler/actions/runs/44352588675). That result covered source grammar and rejection of missing dependencies. A complete synthetic fixture later exposed a false `SOURCE_NOT_AVAILABLE` diagnostic, fixed in PR #47.
 
 ## MAS source-contract mapping now available (not an Owner release)
 
@@ -101,5 +101,5 @@ Compiler **v2.0.1 is now officially published**, with all Native/WASM assets and
 
 The current OpenAMSM `MasInvokeResponse` contains an `OK` status plus business outputs, not an Owner-issued receipt binding `originalInvocationId` to `COMMITTED` / `NOT_COMMITTED`. The Provider's implemented runtime is currently read-only; MAS mutation handling must actually be implemented and verified before releasing such proof. The private Provider GitHub Actions run [44433042075](https://github.com/odango-chan/ca-client-tools/actions/runs/44433042075) reported failure with no executed job steps, so no Go or Python verifier CI pass is claimed for the candidate.
 
-**Next qualification gate:** complete the actual 13-operation typed Provider, persisted/reconciled Owner evidence contract and authoritative deployment grants; produce an immutable authorized snapshot, then re-run released Compiler v2.0.1 `check`, `inspect`, `build` and artifact verification. The s1 mutation Effect/Outcome and authenticated initial-ingress duplicate handling still require Owner/Host verification.
+**Next formal compilation gate:** obtain the authorized Owner/Deployment publications and use their exact package and Schema identities. Re-run released Compiler v2.0.2 `check`, `inspect`, `build` and artifact verification against those immutable snapshots.
 

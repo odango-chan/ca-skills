@@ -24,18 +24,18 @@ jobs:
         run: make verify
       - name: Test MAS Compiler v2 project input gate
         run: python -m unittest discover -s tests -p test_compile_mas_v1alpha5.py
-      - name: Verify released Compiler v2.0.1 accepts MAS grammar and rejects missing Owner
+      - name: Verify released Compiler v2.0.2 accepts MAS grammar and rejects missing Owner
         shell: bash
         run: |
           set -euo pipefail
-          release="https://github.com/odango-chan/ca-skill-compiler/releases/download/v2.0.1"
+          release="https://github.com/odango-chan/ca-skill-compiler/releases/download/v2.0.2"
           curl -fsSL --retry 3 "$release/SHA256SUMS" -o SHA256SUMS
-          curl -fsSL --retry 3 "$release/skillc-v2.0.1-linux-amd64" -o skillc-v2.0.1-linux-amd64
-          grep 'skillc-v2.0.1-linux-amd64' SHA256SUMS | sha256sum -c -
-          mv skillc-v2.0.1-linux-amd64 skillc
+          curl -fsSL --retry 3 "$release/skillc-v2.0.2-linux-amd64" -o skillc-v2.0.2-linux-amd64
+          grep 'skillc-v2.0.2-linux-amd64' SHA256SUMS | sha256sum -c -
+          mv skillc-v2.0.2-linux-amd64 skillc
           chmod +x skillc
           ./skillc version | tee compiler-version.txt
-          grep -F 'skillc v2.0.1' compiler-version.txt
+          grep -F 'skillc v2.0.2' compiler-version.txt
           grep -F 'language target: connectionagent.io/v1alpha5' compiler-version.txt
           project="$(mktemp -d)"
           trap 'rm -rf "$project" skillc SHA256SUMS compiler-version.txt' EXIT
@@ -46,7 +46,7 @@ jobs:
           check_status=$?
           set -e
           if [ "$check_status" -ne 1 ]; then
-            echo "Expected missing-Owner diagnostics from Compiler v2.0.1, exit=$check_status" >&2
+            echo "Expected missing-Owner diagnostics from Compiler v2.0.2, exit=$check_status" >&2
             exit 1
           fi
           python - "$project/diagnostics.json" <<'PYCODE'
