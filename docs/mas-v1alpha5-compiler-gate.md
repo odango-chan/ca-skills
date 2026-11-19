@@ -58,7 +58,7 @@ python -m unittest discover -s tests -p test_compile_mas_v1alpha5.py
 | D1 | `ca-context`: Context Schema package, stable ID and snapshot digest | alias only, no resolved snapshot in official example |
 | D3 | `mas`: 13 MAS Operation ToolCatalog entries, Owner identity, per-Operation Schemas, Effect/Outcome/Mutation contracts | `urn:example:connectionagent:openamsm-mas-tool-contracts` |
 | C1 | Deployment CapabilityContracts for 13 MAS Operations | 13 syntactically valid but **unpublished** `mas.*` DottedId candidates |
-| S1 | MAS Predicate result Schema exports | 12 `urn:example:openamsm:mas:*` candidates |
+| S1 | MAS Predicate result Schema exports | 12 `wtlab:openamsm:mas:v0.2.0:*` candidate Schema IDs |
 | E1 | Source-authoritative Evidence Guarantees, scope/freshness, EvidenceTrustBindings | not published |
 | T1 | Complete immutable Snapshot, trusted Owner bindings and deployment authorization | not provided here |
 

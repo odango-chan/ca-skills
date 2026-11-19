@@ -14,7 +14,7 @@ The s1 `SC.VALIDATE_SUBSCRIPTION` candidate must **not** be published as READ wi
 
 ## Fixed MAS callable mapping
 
-Source of truth for the table is `ca-client-tools/contracts/mas-owner-candidate/v0.1.0/source-map.json` on main, itself pinned to `env-openamsm@594dec78b95bff4fdc34deac8a3a9681fb41228f`. The candidate has 13 input Schema files and 12 distinct normalized output Schema files; every ID remains `urn:example:`.
+Source of truth for the table is the v0.2.0 source map in [ca-client-tools PR #16](https://github.com/odango-chan/ca-client-tools/pull/16), pinned to `env-openamsm@594dec78b95bff4fdc34deac8a3a9681fb41228f`. The candidate has 13 input and 12 distinct output Schema files under `wtlab:openamsm:mas:v0.2.0:`. A formal Build still needs trusted Owner and Deployment publications.
 
 | OES step | Candidate Tool callable | Candidate Capability | Candidate Evidence Guarantee | Expected normalized result fields |
 | --- | --- | --- | --- | --- |
