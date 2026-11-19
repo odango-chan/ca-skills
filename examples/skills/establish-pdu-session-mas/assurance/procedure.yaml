@@ -11,7 +11,7 @@ nodes:
   # The source output exposed by the plan is sub_summary ("ok" on validation).
   # This is a CA adapter around the SMF's UDM SDM Get path, not a new 3GPP API.
   # The OpenAMSM /invoke resolver can materialize an SMF session shell even for s1.
-  # Therefore s1 is not presumed READ, and a sessionPresence == ABSENT gate is not
+  # Therefore s1 is not presumed READ; a generic SMF Session ABSENT gate is not
   # valid for this MAS-owned initial establishment flow. Host owns authenticated
   # ingress, duplicate suppression, and exact SUPI/PSI/lifecycle correlation.
   # This Skill does not re-query AMF registration or require CM CONNECTED.
