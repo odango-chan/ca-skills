@@ -6,7 +6,7 @@
 
 Only `examples/skills/establish-pdu-session-mas/` from this repository is submitted to the v1alpha5 Compiler. The `ca-agent-demo/skills/establish-pdu-session-mas/` historical source and old `ca-skill-compiler/examples/ca-agent-demo-project/` are not current compiler inputs.
 
-The official MAS example still contains a candidate `mas` dependency, **14 grammar-valid but unpublished DottedId Capability IDs**, and 12 candidate Predicate result Schema IDs. These have no published trusted Owner export. Disabling validation, suppressing diagnostics or renaming placeholders cannot make a trustworthy Owner.
+The official MAS example still contains a candidate `mas` dependency, **13 grammar-valid but unpublished DottedId Capability IDs**, and 12 candidate Predicate result Schema IDs. These have no published trusted Owner export. Disabling validation, suppressing diagnostics or renaming placeholders cannot make a trustworthy Owner.
 
 Compiler v2.0.1 consumes complete, immutable source plus resolved snapshots and trusted deployment bindings. It is not a package installer or Owner publisher.
 
@@ -23,7 +23,6 @@ trusted-mas-project/
   trusted.json
   snapshots/
     ca-context/...
-    ca-session-context/...
     mas/...
   capability/...
   evidence/...    # only when configured in trusted.json
@@ -57,9 +56,8 @@ python -m unittest discover -s tests -p test_compile_mas_v1alpha5.py
 | Group | Required trusted export | Current status |
 | --- | --- | --- |
 | D1 | `ca-context`: Context Schema package, stable ID and snapshot digest | alias only, no resolved snapshot in official example |
-| D2 | `ca-session-context`: SMF Observation ToolCatalog, result Schema and evidence/source authority | alias only |
 | D3 | `mas`: 13 MAS Operation ToolCatalog entries, Owner identity, per-Operation Schemas, Effect/Outcome/Mutation contracts | `urn:example:connectionagent:openamsm-mas-tool-contracts` |
-| C1 | Deployment CapabilityContracts for SMF read + 13 MAS Operations | 14 syntactically valid but **unpublished** DottedId candidates (`smf.session.context.query` and 13 `mas.*` IDs) |
+| C1 | Deployment CapabilityContracts for 13 MAS Operations | 13 syntactically valid but **unpublished** `mas.*` DottedId candidates |
 | S1 | MAS Predicate result Schema exports | 12 `urn:example:openamsm:mas:*` candidates |
 | E1 | Source-authoritative Evidence Guarantees, scope/freshness, EvidenceTrustBindings | not published |
 | T1 | Complete immutable Snapshot, trusted Owner bindings and deployment authorization | not provided here |
@@ -74,7 +72,7 @@ The Compiler recomputes snapshot digests, checks Schema/Owner/Capability closure
 
 ## Adjacent issue not to hide
 
-The current first MAS Node runs `SC.VALIDATE_SUBSCRIPTION` before observing that no SM Context exists. OpenAMSM's /invoke resolver may create an SMF session shell as a side effect, so the subsequent ABSENT test may reject a new UE/PSI. Correct that business admission ordering separately in [ca-skills #71](https://github.com/odango-chan/ca-skills/issues/71). Never suppress Compiler diagnostics to work around that mismatch.
+The MAS Skill replaces initial Session establishment: its first Node no longer queries an SMF Session ABSENT Observation after s1, since `/invoke` may create a non-established shell. A valid authenticated initial `CreateSMContext` ingress and exact original-invocation duplicate suppression are integration responsibilities. Do not add an extra AMF-registration/CM-CONNECTED network query to the Skill. The s1 callable is conservatively treated as mutation-capable; release qualification still requires Owner Effect verification and real commit/evidence proof. Never suppress Compiler diagnostics to work around missing Owner guarantees.
 
 ## Ownership
 
@@ -99,9 +97,9 @@ Compiler **v2.0.1 is now officially published**, with all Native/WASM assets and
 
 [ca-client-tools PR #11](https://github.com/odango-chan/ca-client-tools/pull/11) has merged into the private Provider repository's main as a **non-deployable source-contract candidate**. It supplies a pinned OpenAMSM reference map for 13 MAS operations, 13 CA-facing input Schemas, 12 normalized result Schemas, and explicit CA-SL-to-OES argument mappings. The fixed policy-first Plan's 13 MAS/op/input/output records were independently compared to the candidate; 25/25 JSON Schema shapes were checked for their `$id`, required fields and closed-object declaration.
 
-**This does not unblock a formal Build.** The candidate explicitly has no published Owner identity, no trusted ToolCatalog, no real Mutation Receipt/Commit Proof, no durable exact-occurrence Reconcile, no authorized CapabilityContracts, and no proven Evidence Guarantees. Its result Schema IDs remain `urn:example:`. Do not copy the candidate into a trusted DependencySnapshot or change `NOT_LINKABLE` to `QUALIFIED` merely because source-aligned Schema files exist.
+**This does not unblock a formal Build.** The previous 14th SMF read Capability was removed from this MAS Skill, leaving exactly the 13 source-mapped MAS callables; the generic SMF context read remains a separate reusable capability for other Skills. The candidate explicitly has no published Owner identity, no trusted ToolCatalog, no real Mutation Receipt/Commit Proof, no durable exact-occurrence Reconcile, no authorized CapabilityContracts, and no proven Evidence Guarantees. Its result Schema IDs remain `urn:example:`. Do not copy the candidate into a trusted DependencySnapshot or change `NOT_LINKABLE` to `QUALIFIED` merely because source-aligned Schema files exist.
 
 The current OpenAMSM `MasInvokeResponse` contains an `OK` status plus business outputs, not an Owner-issued receipt binding `originalInvocationId` to `COMMITTED` / `NOT_COMMITTED`. The Provider's implemented runtime is currently read-only; MAS mutation handling must actually be implemented and verified before releasing such proof. The private Provider GitHub Actions run [44433042075](https://github.com/odango-chan/ca-client-tools/actions/runs/44433042075) reported failure with no executed job steps, so no Go or Python verifier CI pass is claimed for the candidate.
 
-**Next qualification gate:** complete the actual 13-operation typed Provider, persisted/reconciled Owner evidence contract and authoritative deployment grants; produce an immutable authorized snapshot, then re-run released Compiler v2.0.1 `check`, `inspect`, `build` and artifact verification. The source package must still pass the separate first-node SMF session-absence business sequencing review.
+**Next qualification gate:** complete the actual 13-operation typed Provider, persisted/reconciled Owner evidence contract and authoritative deployment grants; produce an immutable authorized snapshot, then re-run released Compiler v2.0.1 `check`, `inspect`, `build` and artifact verification. The s1 mutation Effect/Outcome and authenticated initial-ingress duplicate handling still require Owner/Host verification.
 

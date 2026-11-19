@@ -6,10 +6,8 @@ requestSchema: schemas/establishment-request.schema.yaml
 contextSchema: ca-context::urn:connectionagent:ca:context:subject:v1
 dependencies:
   ca-context: urn:connectionagent:ca:host-context
-  ca-session-context: urn:connectionagent:ca:host:smf-session-context
   mas: urn:example:connectionagent:openamsm-mas-tool-contracts
 capabilities:
-  - smf.session.context.query
   - mas.sc.subscription.validate
   - mas.saa.secondary.auth
   - mas.sc.context.create
