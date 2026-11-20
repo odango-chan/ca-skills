@@ -6,7 +6,7 @@ predicates:
       - trigger: string
     evaluator:
       type: cel
-      expression: trigger in ["UE_REQUESTED", "PCF_INITIATED", "AF_QOS_INITIATED"]
+      expression: trigger in ["UE_REQUESTED", "AMF_RAN_REQUESTED", "NETWORK_TRIGGERED"]
 
   modify.mas.context_updated:
     parameters:
