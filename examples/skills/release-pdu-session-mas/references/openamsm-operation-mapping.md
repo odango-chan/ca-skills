@@ -60,13 +60,13 @@ The following are the exact source-derived field shapes the Owner package must p
 
 | Node occurrence | Candidate callable | Input shape required by this Procedure | Output shape required by this Procedure | Effect / proof boundary |
 |---|---|---|---|---|
-| r2 | `mas::UPN.DELETE_UP_SESSION` | `trigger: integer` (one of the seven pinned values) | `released: string` (source success value `"1"`) | MUTATION; matching PFCP deletion completion |
-| r3 | `mas::SSM.SIGNAL_UE_AN` | `release: string` (literal `"1"`), `trigger: integer` | no OES output fields | MUTATION; exact release signaling disposition and any required AMF confirmation |
-| r4 | `mas::PA.DELETE_SM_POLICY` | `release: string` (literal `"1"`) | no OES output fields | MUTATION; PCF association deletion completion |
-| r5 | `mas::SC.RELEASE_SM_CONTEXT` | `release: string` (literal `"1"`) | `lifecycle: string` (source completion value `RELEASING`) | MUTATION; UDM unsubscribe, UECM deregistration and AMF response phases completed |
-| r6 | `mas::SE.EMIT_EVENTS` | `ev: string` (literal `RELEASED`) | no OES output fields | MUTATION; local MAS event write completed |
+| r2 | `mas::UPN.DELETE_UP_SESSION` | scope-only `ue_identity` + `psi`; `trigger: integer` (one of the seven pinned values) | `released: string` (source success value `"1"`) | MUTATION; matching PFCP deletion completion |
+| r3 | `mas::SSM.SIGNAL_UE_AN` | scope-only `ue_identity` + `psi`; `release: string` (literal `"1"`), `trigger: integer` | no OES output fields | MUTATION; exact release signaling disposition and any required AMF confirmation |
+| r4 | `mas::PA.DELETE_SM_POLICY` | scope-only `ue_identity` + `psi`; `release: string` (literal `"1"`) | no OES output fields | MUTATION; PCF association deletion completion |
+| r5 | `mas::SC.RELEASE_SM_CONTEXT` | scope-only `ue_identity` + `psi`; `release: string` (literal `"1"`) | `lifecycle: string` (source completion value `RELEASING`) | MUTATION; UDM unsubscribe, UECM deregistration and AMF response phases completed |
+| r6 | `mas::SE.EMIT_EVENTS` | scope-only `ue_identity` + `psi`; `ev: string` (literal `"RELEASED"`) | no OES output fields | MUTATION; local MAS event write completed |
 
-The shared SSM callable is also used by Establishment and Modify. Its published Input Schema must model these distinct call profiles (including release-specific `release` and `trigger`) without accepting ambiguous combinations. No synthetic Output fields are introduced for r3/r4/r6. The exact Schema IDs, Evidence Guarantee IDs, ownerOutcomes and mutation.reconcile binding remain Owner-owned and unpublished.
+`ue_identity` is bound from `context.supi`; `psi` is bound from the validated 3GPP `context.request.pduSessionId`. These are Owner Scope arguments and MUST NOT be forwarded as OES business fields. The shared SSM and SE callables are also used by Establishment and Modify, but their existing candidate input profiles are not a shape match for Release. Owner must publish closed Release profiles or separate bounded callable identities; no generic optional-field bag is permitted. No synthetic Output fields are introduced for r3/r4/r6. The exact Schema IDs, Evidence Guarantee IDs, ownerOutcomes and mutation.reconcile binding remain Owner-owned and unpublished.
 
 ## Cross-repository Owner candidate alignment
 
