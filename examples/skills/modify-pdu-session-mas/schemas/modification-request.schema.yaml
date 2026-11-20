@@ -8,4 +8,4 @@ required: [trigger]
 properties:
   trigger:
     type: string
-    enum: [UE_REQUESTED, PCF_INITIATED, AF_QOS_INITIATED]
+    enum: [UE_REQUESTED, AMF_RAN_REQUESTED, NETWORK_TRIGGERED]
