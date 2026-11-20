@@ -60,12 +60,12 @@ The following are the exact source-derived field shapes the Owner package must p
 
 | Node occurrence | Candidate callable | Input shape required by this Procedure | Output shape required by this Procedure | Effect / proof boundary |
 |---|---|---|---|---|
-| m0 | `mas::SC.UPDATE_SM_CONTEXT` | empty object | `lifecycle: string` (source success value `OPERATIONAL`) | MUTATION; SC context update completion |
-| m3 | `mas::UPN.MODIFY_UP_SESSION` | `up_intent: string` (literal `"1"`) | `n4_seid: string` | MUTATION; UP intent applied and existing N4 SEID returned |
-| m4 | `mas::SSM.SIGNAL_UE_AN` | empty object | `an_tunnel: string`, `an_tunnel_teid: string`, `an_tunnel_ip: string` | MUTATION; exact correlated AN result, not transfer ACK |
-| m5 | `mas::UPN.MODIFY_UP_SESSION` | `an_tunnel_teid: string`, `an_tunnel_ip: string`, `n4_seid: string` | `n3_synced: string` | MUTATION; second distinct N4/N3 synchronization occurrence |
+| m0 | `mas::SC.UPDATE_SM_CONTEXT` | `ue_identity: string`, `psi: integer` (both scope-only; no OES business inputs) | `lifecycle: string` (source success value `OPERATIONAL`) | MUTATION; SC context update completion |
+| m3 | `mas::UPN.MODIFY_UP_SESSION` | scope-only `ue_identity` + `psi`; `up_intent: string` (literal `"1"`) | `n4_seid: string` | MUTATION; UP intent applied and existing N4 SEID returned |
+| m4 | `mas::SSM.SIGNAL_UE_AN` | scope-only `ue_identity` + `psi`; no OES business inputs | `an_tunnel: string`, `an_tunnel_teid: string`, `an_tunnel_ip: string` | MUTATION; exact correlated AN result, not transfer ACK |
+| m5 | `mas::UPN.MODIFY_UP_SESSION` | scope-only `ue_identity` + `psi`; `an_tunnel_teid: string`, `an_tunnel_ip: string`, `n4_seid: string` | `n3_synced: string` | MUTATION; second distinct N4/N3 synchronization occurrence |
 
-m3 and m5 deliberately share a callable ID but not an invocation/effect/receipt identity. The Owner export must support both input profiles without treating one occurrence's receipt as the other's. The shared SSM callable is also used by Establishment and Release; its published Input Schema must model the supported call profiles without accepting ambiguous combinations. The exact Schema IDs, Evidence Guarantee IDs, ownerOutcomes and mutation.reconcile binding remain Owner-owned and unpublished.
+`ue_identity` is bound from `context.supi`; `psi` is bound from the validated 3GPP `context.request.pduSessionId`. They are public Owner Scope arguments only and MUST NOT be forwarded as OES business fields. m3 and m5 deliberately share the backend MAS operation and candidate callable identity but not an invocation/effect/receipt identity. Their distinct input/output profiles require an exact Owner contract; the existing Establishment s11 profile only matches m5. The shared SSM callable is also used by Establishment and Release; its published Input Schema must model the closed call profiles without accepting ambiguous combinations. The exact Schema IDs, Evidence Guarantee IDs, ownerOutcomes and mutation.reconcile binding remain Owner-owned and unpublished.
 
 ## Cross-repository Owner candidate alignment
 
