@@ -13,30 +13,30 @@ description: CA-SL v1alpha5 source-aligned OpenAMSM MAS PDU Session modification
 
 Modify an already-existing PDU Session. This Skill does not create a Session, replace the establishment Procedure, or implement a general SMF state machine.
 
-The Host classifies authenticated ingress before Invocation creation and selects this Procedure only for a new business modification. It distinguishes UE-initiated, AMF/RAN-initiated and trusted network-triggered events, and correlates all work to the exact existing Session generation. A later N2 response that completes an already-pending establishment or modification Operation MUST resume that original Owner occurrence; it MUST NOT start this Skill.
+The Host classifies authenticated ingress before Invocation creation and selects this Procedure only for a new business modification. Supported source-described entry classes are UE-requested, PCF-initiated and AF-QoS-initiated modifications. The Host correlates all work to the exact existing Session generation. A later N2 response that completes an already-pending establishment or modification Operation MUST resume that original Owner occurrence; it MUST NOT start this Skill.
 
 ## Source plan
 
-Pinned OpenAMSM source: `tools/nw-agent/plans/modify/pdu-mod-v3.yaml`, workflow `wf-certified-pdu-mod-v3`, MAS capability `sm-mas-ops/3.2`, OES DSL `1.3`.
+Pinned OpenAMSM plan: `tools/nw-agent/plans/modify/pdu-mod-v3.yaml`, workflow `wf-certified-pdu-mod-v3`, MAS capability `sm-mas-ops/3.2`, OES DSL `1.3`.
 
 | Step | OES Operation | Treatment |
 |---|---|---|
-| m0 | SC.UPDATE_SM_CONTEXT | Included as a new Owner callable; source declares output `lifecycle`, no step inputs |
-| m2 | CA.UPDATE_CHARGING (optional) | Not in the base Procedure: source marks it optional but supplies no applicability predicate. Do not call it unconditionally or invent a trigger rule |
+| m0 | SC.UPDATE_SM_CONTEXT | Included; empty input map; output lifecycle returns to OPERATIONAL |
+| m2 | CA.UPDATE_CHARGING (optional) | Not in the base Procedure: source marks it optional but supplies no applicability predicate |
 | m3 | UPN.MODIFY_UP_SESSION | First distinct occurrence; source input `up_intent='1'`, output `n4_seid` |
-| m4 | SSM.SIGNAL_UE_AN | Reuses the existing SSM operation with the modification occurrence's correlation; outputs AN tunnel data |
+| m4 | SSM.SIGNAL_UE_AN | Empty input map; pending Owner operation returns the access-network tunnel tuple |
 | m5 | UPN.MODIFY_UP_SESSION | Second distinct occurrence; consumes m3 `n4_seid` and m4 AN tunnel data; output `n3_synced` |
 
 The two UPN calls are separate mutation occurrences. They MUST have independent invocation/effect/receipt identities and MUST NOT share or overwrite a generic “modify” receipt. The callable identity may be reused only if the Owner contract defines occurrence-scoped idempotency and evidence.
 
 ## Lifecycle and safety
 
-- Host binds SUPI, PSI, Host resource identity and generation; these are not caller-selected MAS arguments.
-- m0 updates the existing SM Context. m3 applies the source-defined N4 modification; m4 obtains the access-network result; m5 applies the distinct follow-up N4 modification.
-- m4's AMF transfer acceptance is not proof of AN adoption. The final predicate requires source-defined tunnel data and m5's N3 synchronization result.
+- Host binds the authenticated UE, PSI, Host resource identity and Session generation; these are not caller-selected MAS arguments.
+- m0 performs the source-defined SM Context update and returns lifecycle to `OPERATIONAL`.
+- m3 applies the source-defined UP intent and returns the existing N4 SEID; m4 obtains the access-network tunnel tuple; m5 applies the distinct follow-up N4 modification.
+- m4's AMF transfer acceptance is not proof of AN adoption. The final Predicate requires the tunnel tuple and m5's N3 synchronization result.
 - `m2 UPDATE_CHARGING` remains an explicit optional source step, not silently treated as executed.
 - No automatic retry, compensate-then-replan, or new Session creation is authored. Mutation `OUTCOME_UNKNOWN` remains unresolved pending exact-original Owner reconciliation.
-- Request entry variants are classification metadata. Their actual Nsmf/Namf wire fields and callbacks belong to the Host/Integration contracts, not to invented Skill syntax.
 
 ## Qualification blockers
 
