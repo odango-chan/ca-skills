@@ -42,6 +42,18 @@ The Skill-owned Request Schema accepts only the source-described new modificatio
 
 This is Host classification metadata, not an OES Operation argument. The Host must authenticate the original ingress, resolve it to one existing Session generation and select this Procedure only for a new modification. A late response that completes an already-pending establishment or modification Owner operation resumes that original occurrence; it must not create a second Modify Run.
 
+## SBI entry and continuation classification
+
+The business Request Schema uses the flowbook's three entry families:
+
+| Family | Public ingress / event | Host decision |
+|---|---|---|
+| F03 | `Nsmf_PDUSession_UpdateSMContext` with N1 5GSM PDU Session Modification Request | Start a new Modify Run after resolving the existing Session generation |
+| F04 | `Nsmf_PDUSession_UpdateSMContext` carrying an AMF/RAN-originated modification context | Start a new Run only when classification proves this is a new business modification; the pinned OES plan has no explicit ingress discriminator, so this remains a Host/Owner qualification item |
+| F05 | Trusted PCF/AF/SMF network-triggered event, followed by the applicable Namf N1/N2 flow | Start or continue a Modify Run only through the authenticated private Owner-event binding |
+
+An UpdateSMContext carrying the response to an already-pending establishment or modification (including the original s10 occurrence) is not F04 new work. It MUST be correlated to the original Owner/Run occurrence and resume it; it MUST NOT create another Modify Run. The Request Schema records the Host's classification after this distinction has been made. The trigger is not an OES plan argument and does not authorize the caller to choose the Session.
+
 ## Qualification gaps
 
 1. Publish exact callable IDs, Effects, schemas, outcomes and Evidence Guarantees for m0/m3/m4/m5.
