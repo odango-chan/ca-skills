@@ -37,7 +37,7 @@ nodes:
       arguments:
         ue_identity: context.supi
         psi: context.request.pduSessionId
-        up_intent: "1"
+        upIntent: "1"
       routes:
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: UNRESOLVED
@@ -78,9 +78,9 @@ nodes:
       arguments:
         ue_identity: context.supi
         psi: context.request.pduSessionId
-        an_tunnel_teid: signal-ue-and-access-network.operation.output.an_tunnel_teid
-        an_tunnel_ip: signal-ue-and-access-network.operation.output.an_tunnel_ip
-        n4_seid: modify-up-session-before-an.operation.output.n4_seid
+        anTunnelTeid: signal-ue-and-access-network.operation.output.an_tunnel_teid
+        anTunnelIp: signal-ue-and-access-network.operation.output.an_tunnel_ip
+        n4Seid: modify-up-session-before-an.operation.output.n4_seid
       routes:
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: UNRESOLVED
