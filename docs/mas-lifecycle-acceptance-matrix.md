@@ -48,6 +48,6 @@
 
 The repository regression test checks the source graph, typed profile references, trigger mapping, safe routes, optional-step exclusions, source pins and non-claims. It does not simulate Owner receipts, callback races, generation isolation or a live network.
 
-The CI workflow uses the released Compiler v2.0.2 to reject YAML / v1alpha5 grammar errors while requiring the expected missing-Owner dependency diagnostic. It also materializes the ca-client-tools v0.3.0 candidate into a synthetic Owner / Capability / Evidence fixture and runs Check, Inspect and Build for all three MAS Skills. This proves only static link-shape compatibility with synthetic data; it does not produce trusted Owner artifacts or qualify the real Provider.
+The CI workflow uses the released Compiler v2.0.2 to reject YAML / v1alpha5 grammar errors while requiring the expected missing-Owner dependency diagnostic. It also fetches the ca-client-tools v0.3.0 candidate at pinned commit `ff1dc3ef938ccd9594ce55d72986a67622c00921`, materializes a synthetic Owner / Capability / Evidence fixture and runs Check, Inspect and Build for all three MAS Skills. All three synthetic Builds pass; this proves only static link-shape compatibility with synthetic data and does not produce trusted Owner artifacts or qualify the real Provider.
 
 All Owner publication, Host binding, Runtime, OpenAMSM integration and live 5GC scenarios remain NOT_RUN. The two examples must remain NOT_LINKABLE / NOT_QUALIFIED until those gates close.
