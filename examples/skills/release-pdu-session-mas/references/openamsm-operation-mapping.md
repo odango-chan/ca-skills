@@ -76,3 +76,24 @@ The shared SSM callable is also used by Establishment and Modify. Its published 
 4. Verify the trigger integer mapping against the exact vendored Open5GS header at the Owner build revision.
 5. Prove durable resource tombstone, duplicate/late callback rejection and exact-original Reconcile without re-dispatch.
 6. Run success, denied, UNKNOWN, duplicate, wrong-generation, late-callback and mixed-UE cases.
+
+## Qualification scenario matrix (design obligations; NOT_RUN)
+
+| Scenario | Setup / fault | Required result |
+|---|---|---|
+| R-01 success / UE request | trigger=2; existing Session and original UpdateSMContext transaction | r2 PFCP delete → r3 uses original UpdateSMContext and waits for correlated release confirmation → r4 → r5 → r6; final PASS → SUCCEEDED |
+| R-02 success / AMF release | trigger=6 | r3 performs no N1/N2 signaling; r5 handles the original AMF ReleaseSMContext response |
+| R-03 success / AMF update | trigger=7 | r3 performs no N1/N2 signaling; r5 handles the original AMF UpdateSMContext response |
+| R-04 success / local | trigger=1 | r3 skips N1/N2; remaining release steps complete |
+| R-05 network trigger variants | trigger=3/4/5 | Verify the source-specific PCF/RAN/SMF signaling path and exact AMF confirmation behavior |
+| R-06 denied | Deny each callable in turn | No later Node dispatch; DENIED follows the declared FAILED route |
+| R-07 failed after partial release | Fail r2/r3/r4/r5 after earlier effects | SAFE_STOPPED; preserve exact Session-generation and residual responsibility |
+| R-08 unknown mutation | Lose result of r2/r3/r4/r5 after dispatch | UNRESOLVED; exact-original authorized Reconcile only; never repeat release mutation |
+| R-09 duplicate/late callback | Duplicate or late AMF release confirmation | Complete only the original matching occurrence once; reject stale delivery |
+| R-10 wrong generation | Callback maps to another Session generation | Reject before applying it to the Release Run |
+| R-11 mixed UE | Interleave releases for two UE/PSI pairs | No cross-UE resource, trigger, callback or tombstone association |
+| R-12 trigger admission | Supply value outside 1–7 or caller-selected unauthenticated trigger | Request/Host admission fails closed; no Owner mutation |
+| R-13 charging | Optional r1 absent | Procedure makes no CHF deletion claim; no synthetic charging receipt |
+| R-14 event | r6 succeeds after r5 | Local MAS RELEASED event is recorded; no claim of 3GPP Status Notify |
+
+These are acceptance targets, not executable Case Runner files. The CA-SL specification delegates the physical `case.yaml` format to the separate Case Runner contract; no ad-hoc case syntax is invented here.
