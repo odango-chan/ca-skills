@@ -40,9 +40,15 @@ nodes:
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: UNRESOLVED
         DENIED: FAILED
-    # The pinned OES step declares no output fields. Its exact completion
-    # disposition must be supplied by the Owner Outcome contract; no fake
-    # result field or synthetic 3GPP delivery proof is introduced here.
+    postcondition:
+      predicates:
+        - predicate: release.mas.an_release_operation_completed
+          arguments:
+            - signal-ue-and-access-network-release.operation.output
+      routes:
+        PASS: delete-sm-policy-association
+        FAIL: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
 
   delete-sm-policy-association:
     operation:
@@ -53,6 +59,15 @@ nodes:
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: UNRESOLVED
         DENIED: FAILED
+    postcondition:
+      predicates:
+        - predicate: release.mas.policy_association_deleted
+          arguments:
+            - delete-sm-policy-association.operation.output
+      routes:
+        PASS: release-sm-context
+        FAIL: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
 
   release-sm-context:
     operation:
@@ -82,6 +97,15 @@ nodes:
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: UNRESOLVED
         DENIED: FAILED
+    postcondition:
+      predicates:
+        - predicate: release.mas.release_event_recorded
+          arguments:
+            - record-session-release-event.operation.output
+      routes:
+        PASS: verify-pdu-session-release
+        FAIL: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
 
   verify-pdu-session-release:
     postcondition:
@@ -89,9 +113,18 @@ nodes:
         - predicate: release.mas.up_session_deleted
           arguments:
             - delete-up-session.operation.output
+        - predicate: release.mas.an_release_operation_completed
+          arguments:
+            - signal-ue-and-access-network-release.operation.output
+        - predicate: release.mas.policy_association_deleted
+          arguments:
+            - delete-sm-policy-association.operation.output
         - predicate: release.mas.sm_context_released
           arguments:
             - release-sm-context.operation.output
+        - predicate: release.mas.release_event_recorded
+          arguments:
+            - record-session-release-event.operation.output
       routes:
         PASS: SUCCEEDED
         FAIL: SAFE_STOPPED
