@@ -1,5 +1,4 @@
-# Candidate predicates. Their Schema and Evidence references are placeholders
-# until the MAS Owner publishes trusted ToolCatalog contracts.
+# Candidate predicates. New Release Owner schemas/guarantees are not published yet.
 predicates:
   release.request.supported:
     parameters:
@@ -10,20 +9,20 @@ predicates:
 
   release.mas.up_session_deleted:
     parameters:
-      - result: mas::wtlab:openamsm:mas:v0.2.0:upn-delete-up-session-result
+      - released: string
     evidence:
       requires:
-        result: [mas::upn.up-session-deleted]
+        released: [mas::upn.up-session-deleted]
     evaluator:
       type: cel
-      expression: result.released == "1"
+      expression: released == "1"
 
   release.mas.sm_context_release_committed:
     parameters:
-      - result: mas::wtlab:openamsm:mas:v0.2.0:sc-release-sm-context-result
+      - lifecycle: string
     evidence:
       requires:
-        result: [mas::sc.context-release-committed]
+        lifecycle: [mas::sc.context-release-committed]
     evaluator:
       type: cel
-      expression: result.lifecycle == "RELEASING"
+      expression: lifecycle == "RELEASING"
