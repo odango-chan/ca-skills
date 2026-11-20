@@ -136,8 +136,10 @@ jobs:
           # Cross-repository static Build fixture. This is synthetic Compiler
           # input only; it does not publish WTLab or qualify the MAS Owner.
           client_tools_dir="$project/ca-client-tools"
-          git clone --depth 1 --branch feat/wtlab-mas-contract-release \
-            https://github.com/odango-chan/ca-client-tools.git "$client_tools_dir"
+          git init "$client_tools_dir"
+          git -C "$client_tools_dir" remote add origin https://github.com/odango-chan/ca-client-tools.git
+          git -C "$client_tools_dir" fetch --depth 1 origin cce612855afb6a34e08b2cdad2cac2f7c054fcfb
+          git -C "$client_tools_dir" checkout --detach FETCH_HEAD
           fixture_root="$project/mas-v0.3.0-fixture"
           python3 "$client_tools_dir/contracts/mas-owner-candidate/fixtures/build_fixture.py" \
             "$fixture_root" --version v0.3.0
