@@ -37,18 +37,10 @@ nodes:
         release: "1"
         trigger: context.request.trigger
       routes:
+        SUCCEEDED: delete-sm-policy-association
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: UNRESOLVED
         DENIED: FAILED
-    postcondition:
-      predicates:
-        - predicate: release.mas.an_release_operation_completed
-          arguments:
-            - signal-ue-and-access-network-release.operation.output
-      routes:
-        PASS: delete-sm-policy-association
-        FAIL: SAFE_STOPPED
-        UNKNOWN: UNRESOLVED
 
   delete-sm-policy-association:
     operation:
@@ -56,10 +48,10 @@ nodes:
       arguments:
         release: "1"
       routes:
+        SUCCEEDED: release-sm-context
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: UNRESOLVED
         DENIED: FAILED
-        SUCCEEDED: release-sm-context
 
   release-sm-context:
     operation:
@@ -86,10 +78,10 @@ nodes:
       arguments:
         ev: RELEASED
       routes:
+        SUCCEEDED: verify-pdu-session-release
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: UNRESOLVED
         DENIED: FAILED
-        SUCCEEDED: verify-pdu-session-release
 
   verify-pdu-session-release:
     postcondition:
@@ -97,7 +89,7 @@ nodes:
         - predicate: release.mas.up_session_deleted
           arguments:
             - delete-up-session.operation.output
-        - predicate: release.mas.sm_context_released
+        - predicate: release.mas.sm_context_release_committed
           arguments:
             - release-sm-context.operation.output
       routes:
