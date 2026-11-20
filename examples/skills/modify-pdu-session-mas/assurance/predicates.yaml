@@ -1,6 +1,5 @@
-# Candidate predicates. The exact Owner schemas/guarantees are not published yet.
-# Existing s10/s11 candidate outputs are referenced by their source-derived Schema IDs;
-# m0 and the first m3 occurrence need new Owner output contracts.
+# Evidence is referenced only where ca-client-tools PR #14 already defines a
+# candidate Guarantee. New Owner facts are intentionally not fabricated.
 predicates:
   modify.request.supported:
     parameters:
@@ -9,26 +8,24 @@ predicates:
       type: cel
       expression: trigger == "UE_REQUESTED" || trigger == "AMF_RAN_REQUESTED" || trigger == "NETWORK_TRIGGERED"
 
+  # Owner must publish the exact lifecycle output Schema and Guarantee before link.
   modify.mas.context_updated:
     parameters:
       - lifecycle: string
-    evidence:
-      requires:
-        lifecycle: [mas::sc.context-updated]
     evaluator:
       type: cel
       expression: lifecycle == "OPERATIONAL"
 
+  # Owner must publish the exact first-occurrence n4_seid output Schema and Guarantee.
   modify.mas.n4_modification_prepared:
     parameters:
       - n4Seid: string
-    evidence:
-      requires:
-        n4Seid: [mas::upn.n4-modification-prepared]
     evaluator:
       type: cel
       expression: n4Seid != "" && n4Seid != "0"
 
+  # Output Schema and Evidence Guarantee are existing s10 candidate exports,
+  # but remain untrusted until the Owner package is qualified and published.
   modify.mas.access_network_result_available:
     parameters:
       - result: mas::urn:example:openamsm:mas:ssm-signal-ue-an-result:v1
@@ -39,6 +36,7 @@ predicates:
       type: cel
       expression: result.an_tunnel == "1" && result.an_tunnel_teid != "" && result.an_tunnel_ip != ""
 
+  # Output Schema and Evidence Guarantee are existing s11 candidate exports.
   modify.mas.n3_synchronized:
     parameters:
       - n3Synced: string
