@@ -63,6 +63,8 @@ nodes:
     operation:
       tool: mas::SC.RELEASE_SM_CONTEXT
       arguments:
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
         release: "1"
       routes:
         FAILED: SAFE_STOPPED
