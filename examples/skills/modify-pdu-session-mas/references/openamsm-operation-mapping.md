@@ -54,6 +54,19 @@ The business Request Schema uses the flowbook's three entry families:
 
 An UpdateSMContext carrying the response to an already-pending establishment or modification (including the original s10 occurrence) is not F04 new work. It MUST be correlated to the original Owner/Run occurrence and resume it; it MUST NOT create another Modify Run. The Request Schema records the Host's classification after this distinction has been made. The trigger is not an OES plan argument and does not authorize the caller to choose the Session.
 
+## Owner interface closure matrix
+
+The following are the exact source-derived field shapes the Owner package must publish. They are **requirements for the future Owner export**, not published Schema IDs or a claim that a current ToolCatalog already contains them.
+
+| Node occurrence | Candidate callable | Input shape required by this Procedure | Output shape required by this Procedure | Effect / proof boundary |
+|---|---|---|---|---|
+| m0 | `mas::SC.UPDATE_SM_CONTEXT` | empty object | `lifecycle: string` (source success value `OPERATIONAL`) | MUTATION; SC context update completion |
+| m3 | `mas::UPN.MODIFY_UP_SESSION` | `up_intent: string` (literal `"1"`) | `n4_seid: string` | MUTATION; UP intent applied and existing N4 SEID returned |
+| m4 | `mas::SSM.SIGNAL_UE_AN` | empty object | `an_tunnel: string`, `an_tunnel_teid: string`, `an_tunnel_ip: string` | MUTATION; exact correlated AN result, not transfer ACK |
+| m5 | `mas::UPN.MODIFY_UP_SESSION` | `an_tunnel_teid: string`, `an_tunnel_ip: string`, `n4_seid: string` | `n3_synced: string` | MUTATION; second distinct N4/N3 synchronization occurrence |
+
+m3 and m5 deliberately share a callable ID but not an invocation/effect/receipt identity. The Owner export must support both input profiles without treating one occurrence's receipt as the other's. The shared SSM callable is also used by Establishment and Release; its published Input Schema must model the supported call profiles without accepting ambiguous combinations. The exact Schema IDs, Evidence Guarantee IDs, ownerOutcomes and mutation.reconcile binding remain Owner-owned and unpublished.
+
 ## Qualification gaps
 
 1. Publish exact callable IDs, Effects, schemas, outcomes and Evidence Guarantees for m0/m3/m4/m5.
