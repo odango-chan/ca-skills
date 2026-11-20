@@ -31,7 +31,7 @@ The two UPN calls are separate mutation occurrences. They MUST have independent 
 
 ## Lifecycle and safety
 
-- Host binds the authenticated UE, PSI, Host resource identity and Session generation; these are not caller-selected MAS arguments.
+- Each Owner callable receives `ue_identity: context.supi` and `psi: context.request.pduSessionId` as scope-only arguments. The Owner validates them against the Host-bound Session generation and does not forward them as OES business inputs. The Host must reject a pduSessionId that does not identify the selected existing Session.
 - m0 performs the source-defined SM Context update and returns lifecycle to `OPERATIONAL`.
 - m3 applies the source-defined UP intent and returns the existing N4 SEID; m4 obtains the access-network tunnel tuple; m5 applies the distinct follow-up N4 modification.
 - m4's AMF transfer acceptance is not proof of AN adoption. The final Predicate requires the tunnel tuple and m5's N3 synchronization result.
