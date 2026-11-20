@@ -1,6 +1,6 @@
 # MAS Modify / Release Owner outcome contract
 
-**Status: REQUIRED CONTRACT / NOT PUBLISHED / NOT_QUALIFIED.** This document specifies the minimum Owner and Host contract needed to link the two v1alpha5 Procedures. It does not assert that ca-client-tools, OpenAMSM or Generic Host already implements it.
+**Status: REQUIRED CONTRACT / NOT PUBLISHED / NOT_QUALIFIED.** This document specifies the minimum Owner and Host contract needed to link the two v1alpha5 Procedures. The declared stable MAS package identity is wtlab:packages:openamsm:mas-compiler-contract; its ToolCatalog is still an unpublished candidate. This document does not assert that ca-client-tools, OpenAMSM or Generic Host already implements the contract.
 
 ## Effect and callable identity
 
