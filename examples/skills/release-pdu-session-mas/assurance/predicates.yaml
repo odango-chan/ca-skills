@@ -1,33 +1,22 @@
 # CA-SL v1alpha5 PredicateSet.
-# Schema IDs and Evidence Guarantees are candidate exports only; the mas dependency is untrusted.
+# Every MAS Schema and Evidence Guarantee below is an unpublished Owner candidate.
 predicates:
   release.request.admitted:
     parameters:
       - supi: string
       - pduSessionId: integer
       - entryKind: string
-      - trigger: string
+      - trigger: integer
     evaluator:
       type: cel
       expression: >-
         supi != "" &&
         pduSessionId >= 1 &&
         pduSessionId <= 15 &&
-        ((entryKind == "UE_INITIATED" && trigger == "UE_REQUESTED") ||
-         (entryKind == "AMF_INITIATED" &&
-          (trigger == "AMF_UPDATE_SM_CONTEXT" || trigger == "AMF_RELEASE_SM_CONTEXT")) ||
+        ((entryKind == "UE_INITIATED" && trigger == 2) ||
+         (entryKind == "AMF_INITIATED" && (trigger == 6 || trigger == 7)) ||
          (entryKind == "NETWORK_TRIGGERED" &&
-          (trigger == "PCF_INITIATED" || trigger == "SMF_INITIATED" || trigger == "LOCAL_INITIATED")))
-
-  release.mas.charging_marker_cleared:
-    parameters:
-      - result: mas::wtlab:openamsm:mas:v0.3.0:ca-delete-charging-result
-    evidence:
-      requires:
-        result: [mas::ca.charging-marker-cleared]
-    evaluator:
-      type: cel
-      expression: result.charging_ref == "0"
+          (trigger == 1 || trigger == 3 || trigger == 4 || trigger == 5)))
 
   release.mas.up_session_deleted:
     parameters:
@@ -39,11 +28,11 @@ predicates:
       type: cel
       expression: result.released == "1"
 
-  # The empty source output is intentional. Evidence carries the exact release
-  # disposition: signaling not required for this trigger, or the matching AMF response completed.
+  # The OES plan declares no output fields. The empty object is the typed result;
+  # the Owner Evidence Guarantee proves no-signal-required or AMF confirmation.
   release.mas.signal_settled:
     parameters:
-      - result: mas::wtlab:openamsm:mas:v0.3.0:ssm-signal-ue-an-result
+      - result: mas::wtlab:openamsm:mas:v0.3.0:ssm-signal-ue-an-release-result
     evidence:
       requires:
         result: [mas::ssm.release-signal-settled]
@@ -51,7 +40,8 @@ predicates:
       type: cel
       expression: result != null
 
-  # The Owner evidence must distinguish DELETED from NOT_PRESENT for the same SUPI/PSI/generation.
+  # The OES plan declares no output fields. Evidence distinguishes DELETED from
+  # a verified NOT_PRESENT association for this exact SUPI / PSI / generation.
   release.mas.policy_association_released:
     parameters:
       - result: mas::wtlab:openamsm:mas:v0.3.0:pa-delete-sm-policy-result
@@ -72,13 +62,14 @@ predicates:
       type: cel
       expression: result.lifecycle == "RELEASING"
 
-  # The source plan declares no output for r6; Evidence proves a local event only.
-  release.mas.release_event_recorded:
+  # The OES plan declares no output fields. Source C updates an in-memory marker;
+  # Evidence must not imply durable persistence or external event delivery.
+  release.mas.release_event_marker_written:
     parameters:
-      - result: mas::wtlab:openamsm:mas:v0.3.0:se-emit-events-result
+      - result: mas::wtlab:openamsm:mas:v0.3.0:se-emit-release-event-result
     evidence:
       requires:
-        result: [mas::se.release-event-recorded]
+        result: [mas::se.release-event-marker-written]
     evaluator:
       type: cel
       expression: result != null
