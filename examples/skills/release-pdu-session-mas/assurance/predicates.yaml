@@ -1,12 +1,12 @@
 # Candidate predicates. Their Schema and Evidence references are placeholders
-# until the MAS Owner publishes trusted v1alpha4 ToolCatalog contracts.
+# until the MAS Owner publishes trusted ToolCatalog contracts.
 predicates:
   release.request.supported:
     parameters:
-      - trigger: string
+      - trigger: integer
     evaluator:
       type: cel
-      expression: trigger in ["UE_REQUESTED", "AMF_REQUESTED", "NETWORK_TRIGGERED"]
+      expression: trigger >= 1 && trigger <= 7
 
   release.mas.up_session_deleted:
     parameters:
@@ -16,47 +16,14 @@ predicates:
         result: [mas::upn.up-session-deleted]
     evaluator:
       type: cel
-      expression: result.released != ""
+      expression: result.released == "1"
 
-  # These OES steps declare no output fields. The predicates intentionally
-  # inspect no fabricated DTO properties: their future Owner Evidence
-  # Guarantees must attest only the exact Operation occurrence disposition.
-  release.mas.an_release_operation_completed:
-    parameters:
-      - result: mas::wtlab:openamsm:mas:v0.2.0:ssm-signal-ue-an-release-result
-    evidence:
-      requires:
-        result: [mas::ssm.release-operation-completed]
-    evaluator:
-      type: cel
-      expression: true
-
-  release.mas.policy_association_deleted:
-    parameters:
-      - result: mas::wtlab:openamsm:mas:v0.2.0:pa-delete-sm-policy-result
-    evidence:
-      requires:
-        result: [mas::pa.policy-association-deleted]
-    evaluator:
-      type: cel
-      expression: true
-
-  release.mas.sm_context_released:
+  release.mas.sm_context_release_committed:
     parameters:
       - result: mas::wtlab:openamsm:mas:v0.2.0:sc-release-sm-context-result
     evidence:
       requires:
-        result: [mas::sc.context-released]
+        result: [mas::sc.context-release-committed]
     evaluator:
       type: cel
-      expression: result.lifecycle != ""
-
-  release.mas.release_event_recorded:
-    parameters:
-      - result: mas::wtlab:openamsm:mas:v0.2.0:se-emit-events-result
-    evidence:
-      requires:
-        result: [mas::se.release-event-recorded]
-    evaluator:
-      type: cel
-      expression: true
+      expression: result.lifecycle == "RELEASING"
