@@ -1,4 +1,4 @@
-"""Input-admission tests for the official MAS / Compiler v2.0.0 bridge.
+"""Input-admission tests for the official MAS / Compiler v2.0.2 bridge.
 
 The real Compiler is invoked by scripts/compile_mas_v1alpha5.py; these
 tests intentionally do not impersonate its static semantic validation.
@@ -119,6 +119,17 @@ class CompilerProjectGateTest(unittest.TestCase):
         self._write_config()
         _, errors = MODULE.validate_inputs(self.skill, self.trusted, "fixture")
         self.assertTrue(any("unsafe deployment bundle" in e for e in errors), errors)
+
+
+    def test_official_mas_skills_share_the_stable_wtlab_package_identity(self) -> None:
+        expected = "wtlab:packages:openamsm:mas-compiler-contract"
+        for skill_name in MODULE.SKILLS:
+            contract = (
+                MODULE.REPO / "examples" / "skills" / skill_name
+                / "assurance" / "contract.yaml"
+            ).read_text(encoding="utf-8")
+            aliases = MODULE.dependency_aliases(contract)
+            self.assertEqual(aliases["mas"], expected, skill_name)
 
 
 if __name__ == "__main__":
