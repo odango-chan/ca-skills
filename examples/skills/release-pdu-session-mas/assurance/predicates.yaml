@@ -1,0 +1,29 @@
+# Candidate predicates. Their Schema and Evidence references are placeholders
+# until the MAS Owner publishes trusted v1alpha4 ToolCatalog contracts.
+predicates:
+  release.request.supported:
+    parameters:
+      - trigger: string
+    evaluator:
+      type: cel
+      expression: trigger in ["UE_REQUESTED", "AMF_REQUESTED", "NETWORK_TRIGGERED"]
+
+  release.mas.up_session_deleted:
+    parameters:
+      - result: mas::wtlab:openamsm:mas:v0.2.0:upn-delete-up-session-result
+    evidence:
+      requires:
+        result: [mas::upn.up-session-deleted]
+    evaluator:
+      type: cel
+      expression: result.released == "1"
+
+  release.mas.sm_context_released:
+    parameters:
+      - result: mas::wtlab:openamsm:mas:v0.2.0:sc-release-sm-context-result
+    evidence:
+      requires:
+        result: [mas::sc.context-released]
+    evaluator:
+      type: cel
+      expression: result.lifecycle != ""
