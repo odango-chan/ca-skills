@@ -59,6 +59,7 @@ nodes:
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: UNRESOLVED
         DENIED: FAILED
+        SUCCEEDED: release-sm-context
 
   release-sm-context:
     operation:
@@ -71,7 +72,7 @@ nodes:
         DENIED: FAILED
     postcondition:
       predicates:
-        - predicate: release.mas.sm_context_released
+        - predicate: release.mas.sm_context_release_committed
           arguments:
             - release-sm-context.operation.output
       routes:
@@ -88,6 +89,7 @@ nodes:
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: UNRESOLVED
         DENIED: FAILED
+        SUCCEEDED: verify-pdu-session-release
 
   verify-pdu-session-release:
     postcondition:
