@@ -13,7 +13,7 @@ description: CA-SL v1alpha5 source-aligned OpenAMSM MAS PDU Session modification
 
 Modify an already-existing PDU Session. This Skill does not create a Session, replace the establishment Procedure, or implement a general SMF state machine.
 
-The Host classifies authenticated ingress before Invocation creation and selects this Procedure only for a new business modification. Supported source-described entry classes are UE-requested, PCF-initiated and AF-QoS-initiated modifications. The Host correlates all work to the exact existing Session generation. A later N2 response that completes an already-pending establishment or modification Operation MUST resume that original Owner occurrence; it MUST NOT start this Skill.
+The Host classifies authenticated ingress before Invocation creation and selects this Procedure only for a new business modification. Host classifies three business entry families: UE-requested modification (F03), a new AMF/RAN-requested modification (F04), and a trusted network/PCF/AF-triggered modification (F05). The Host correlates every new Run to the exact existing Session generation. An AMF/RAN N2 response that completes an already-pending establishment or modification Operation is a continuation, not a new business entry: it MUST resume that original Owner occurrence and MUST NOT start this Skill. The F04 new-business variant remains a Host/Owner qualification item because the pinned OES plan does not encode an explicit ingress discriminator.
 
 ## Source plan
 
