@@ -54,6 +54,20 @@ The Skill Request Schema carries the exact integer because the current C adapter
 
 The pinned OES YAML declares `start_inputs: {}` while r2 and r3 both reference `from_start: trigger`. The referenced start input is therefore not declared by the plan. This is a source-plan contract defect, not something the Skill can repair by inventing an implicit input. The OES plan owner must declare and type `start_inputs.trigger` (integer, constrained to the seven pinned values) before claiming that the source plan itself is executable. The Skill's own Request Schema and Host Context binding do not silently modify that OES plan.
 
+## Owner interface closure matrix
+
+The following are the exact source-derived field shapes the Owner package must publish. They are **requirements for the future Owner export**, not published Schema IDs or a claim that a current ToolCatalog already contains them.
+
+| Node occurrence | Candidate callable | Input shape required by this Procedure | Output shape required by this Procedure | Effect / proof boundary |
+|---|---|---|---|---|
+| r2 | `mas::UPN.DELETE_UP_SESSION` | `trigger: integer` (one of the seven pinned values) | `released: string` (source success value `"1"`) | MUTATION; matching PFCP deletion completion |
+| r3 | `mas::SSM.SIGNAL_UE_AN` | `release: string` (literal `"1"`), `trigger: integer` | no OES output fields | MUTATION; exact release signaling disposition and any required AMF confirmation |
+| r4 | `mas::PA.DELETE_SM_POLICY` | `release: string` (literal `"1"`) | no OES output fields | MUTATION; PCF association deletion completion |
+| r5 | `mas::SC.RELEASE_SM_CONTEXT` | `release: string` (literal `"1"`) | `lifecycle: string` (source completion value `RELEASING`) | MUTATION; UDM unsubscribe, UECM deregistration and AMF response phases completed |
+| r6 | `mas::SE.EMIT_EVENTS` | `ev: string` (literal `RELEASED`) | no OES output fields | MUTATION; local MAS event write completed |
+
+The shared SSM callable is also used by Establishment and Modify. Its published Input Schema must model these distinct call profiles (including release-specific `release` and `trigger`) without accepting ambiguous combinations. No synthetic Output fields are introduced for r3/r4/r6. The exact Schema IDs, Evidence Guarantee IDs, ownerOutcomes and mutation.reconcile binding remain Owner-owned and unpublished.
+
 ## Qualification gaps
 
 1. Publish exact callable IDs, Effects, input/output Schemas, outcomes and Evidence Guarantees for r2–r6.
