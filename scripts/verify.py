@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILLS_ROOT = ROOT / "skills"
 EXAMPLES_ROOT = ROOT / "examples" / "skills"
 PDU_SKILLS = ("establish-pdu-session", "establish-pdu-session-mas")
+MAS_LIFECYCLE_EXAMPLES = ("modify-pdu-session-mas", "release-pdu-session-mas")
 ASSURANCE_FILES = ("contract.yaml", "procedure.yaml", "predicates.yaml")
 REQUEST_SCHEMA_RE = re.compile(
     r"""(?m)^[ \t]*requestSchema:[ \t]*(?P<quote>['"]?)(?P<path>[^\s'"#]+)(?P=quote)[ \t]*(?:#.*)?$"""
@@ -239,6 +240,15 @@ def main() -> None:
     for name in PDU_SKILLS:
         if name not in example_names:
             errors.append(f"examples/skills/{name}: missing example package")
+    for name in MAS_LIFECYCLE_EXAMPLES:
+        if name not in example_names:
+            errors.append(f"examples/skills/{name}: missing MAS lifecycle Procedure example")
+            continue
+        mapping = EXAMPLES_ROOT / name / "references" / "openamsm-operation-mapping.md"
+        if not mapping.is_file():
+            errors.append(f"examples/skills/{name}: missing pinned OpenAMSM operation mapping")
+        elif "Qualification scenario matrix" not in mapping.read_text(encoding="utf-8"):
+            errors.append(f"examples/skills/{name}: missing explicit qualification scenario matrix")
     for example in examples:
         validate_package_layout(example, errors)
         validate_assurance_references(example, errors)

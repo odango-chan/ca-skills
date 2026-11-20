@@ -59,7 +59,9 @@ jobs:
           ):
               raise SystemExit("Compiler returned no structured error diagnostics")
           codes = {str(item.get("code", "")) for item in diagnostics}
-          forbidden = codes & {"YAML_PARSE_ERROR", "IDENTIFIER_INVALID"}
+          for item in diagnostics:
+              print("DIAGNOSTIC", json.dumps(item, ensure_ascii=False))
+          forbidden = codes & {"YAML_PARSE_ERROR", "IDENTIFIER_INVALID", "ROUTE_OUTCOME_MISSING", "UNREACHABLE_NODE"}
           if forbidden:
               for item in diagnostics:
                   if item.get("code") in forbidden:
@@ -67,7 +69,7 @@ jobs:
               raise SystemExit("Grammar/parser errors remain")
           if "DEPENDENCY_SNAPSHOT_MISSING" not in codes:
               raise SystemExit("Missing-Owner dependency error unexpectedly vanished")
-          print("MAS_V1ALPHA5_SOURCE_GRAMMAR_PASS_COMPILER_V2_0_1", sorted(codes))
+          print("MAS_V1ALPHA5_SOURCE_GRAMMAR_PASS_COMPILER_V2_0_2", sorted(codes))
           PYCODE
           set +e
           ./skillc build "$project" --skill establish-pdu-session-mas --out "$project/output" --json > "$project/build.json"
@@ -82,3 +84,93 @@ jobs:
             exit 1
           fi
           echo "MAS_UNTRUSTED_BUILD_FAIL_CLOSED_PASS"
+
+          # Check both new lifecycle Procedures with the released Compiler as well.
+          # The expected failure is the missing trusted Owner/Evidence snapshot, not
+          # a YAML parser, identifier, or v1alpha5 grammar error.
+          for skill in modify-pdu-session-mas release-pdu-session-mas; do
+            cp -R "examples/skills/$skill" "$project/skills/"
+            set +e
+            ./skillc check "$project" --skill "$skill" --json > "$project/$skill.diagnostics.json"
+            check_status=$?
+            set -e
+            if [ "$check_status" -ne 1 ]; then
+              echo "Expected fail-closed missing-Owner diagnostics for $skill, exit=$check_status" >&2
+              exit 1
+            fi
+            python - "$project/$skill.diagnostics.json" "$skill" <<'PYCODE'
+          import json
+          import sys
+          with open(sys.argv[1], encoding="utf-8") as stream:
+              diagnostics = json.load(stream)
+          if not isinstance(diagnostics, list) or not any(
+              item.get("severity", "").lower() == "error" for item in diagnostics
+          ):
+              raise SystemExit(f"{sys.argv[2]}: Compiler returned no structured errors")
+          codes = {str(item.get("code", "")) for item in diagnostics}
+          forbidden = codes & {"YAML_PARSE_ERROR", "IDENTIFIER_INVALID", "ROUTE_OUTCOME_MISSING", "UNREACHABLE_NODE"}
+          if forbidden:
+              for item in diagnostics:
+                  if item.get("code") in forbidden:
+                      print("SOURCE_NOT_FIXED", json.dumps(item, ensure_ascii=False))
+              raise SystemExit(f"{sys.argv[2]}: grammar/parser errors remain")
+          if "DEPENDENCY_SNAPSHOT_MISSING" not in codes:
+              raise SystemExit(f"{sys.argv[2]}: missing-Owner diagnostic unexpectedly vanished")
+          print(f"{sys.argv[2]}_V1ALPHA5_SOURCE_GRAMMAR_PASS", sorted(codes))
+          PYCODE
+            set +e
+            ./skillc build "$project" --skill "$skill" --out "$project/$skill-output" --json > "$project/$skill-build.json"
+            build_status=$?
+            set -e
+            if [ "$build_status" -ne 1 ]; then
+              echo "$skill: unlinked Owner must not Build successfully, exit=$build_status" >&2
+              exit 1
+            fi
+            if [ -d "$project/$skill-output" ] && [ -n "$(ls -A "$project/$skill-output")" ]; then
+              echo "$skill: failed Build emitted artifacts despite missing trusted Owner" >&2
+              exit 1
+            fi
+          done
+          echo "MAS_MODIFY_RELEASE_V1ALPHA5_SOURCE_GRAMMAR_FAIL_CLOSED_PASS"
+          
+          # Cross-repository static Build fixture. This is synthetic Compiler
+          # input only; it does not publish WTLab or qualify the MAS Owner.
+          client_tools_dir="$project/ca-client-tools"
+          git init "$client_tools_dir"
+          git -C "$client_tools_dir" remote add origin https://github.com/odango-chan/ca-client-tools.git
+          git -C "$client_tools_dir" fetch --depth 1 origin ff1dc3ef938ccd9594ce55d72986a67622c00921
+          git -C "$client_tools_dir" checkout --detach FETCH_HEAD
+          fixture_root="$project/mas-v0.3.0-fixture"
+          python3 "$client_tools_dir/contracts/mas-owner-candidate/fixtures/build_fixture.py" \
+            "$fixture_root" --version v0.3.0
+          for skill in establish-pdu-session-mas modify-pdu-session-mas release-pdu-session-mas; do
+            report="$project/$skill.fixture-build.json"
+            set +e
+            python3 scripts/compile_mas_v1alpha5.py \
+              --trusted-root "$fixture_root" --mode fixture --skill "$skill" \
+              --compiler ./skillc --out "$project/$skill-fixture-artifacts" > "$report"
+            compile_status=$?
+            set -e
+            cat "$report"
+            if [ "$compile_status" -ne 0 ]; then
+              echo "$skill: synthetic Compiler fixture failed, exit=$compile_status" >&2
+              exit "$compile_status"
+            fi
+            python3 - "$report" "$skill" <<'PYCODE'
+          import json
+          import sys
+          with open(sys.argv[1], encoding="utf-8") as stream:
+              report = json.load(stream)
+          if report.get("status") != "FIXTURE_STATIC_BUILD_PASS":
+              raise SystemExit(f"{sys.argv[2]}: synthetic Compiler Build did not pass: {report}")
+          if report.get("qualification") != "NOT_QUALIFIED":
+              raise SystemExit(f"{sys.argv[2]}: fixture incorrectly claims qualification")
+          stages = report.get("stages", [])
+          if [stage.get("command") for stage in stages] != ["check", "inspect", "build"]:
+              raise SystemExit(f"{sys.argv[2]}: incomplete Compiler stage sequence")
+          if any(stage.get("exitCode") != 0 for stage in stages):
+              raise SystemExit(f"{sys.argv[2]}: a Compiler stage failed")
+          print(f"{sys.argv[2]}_SYNTHETIC_OWNER_FIXTURE_BUILD_PASS_NOT_QUALIFIED")
+          PYCODE
+          done
+          echo "MAS_V0_3_0_THREE_SKILL_SYNTHETIC_COMPILER_BUILD_PASS_NOT_QUALIFIED"
