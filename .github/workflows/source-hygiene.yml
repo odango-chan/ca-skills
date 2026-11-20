@@ -59,7 +59,9 @@ jobs:
           ):
               raise SystemExit("Compiler returned no structured error diagnostics")
           codes = {str(item.get("code", "")) for item in diagnostics}
-          forbidden = codes & {"YAML_PARSE_ERROR", "IDENTIFIER_INVALID"}
+          for item in diagnostics:
+              print("DIAGNOSTIC", json.dumps(item, ensure_ascii=False))
+          forbidden = codes & {"YAML_PARSE_ERROR", "IDENTIFIER_INVALID", "ROUTE_OUTCOME_MISSING", "UNREACHABLE_NODE"}
           if forbidden:
               for item in diagnostics:
                   if item.get("code") in forbidden:
@@ -67,7 +69,7 @@ jobs:
               raise SystemExit("Grammar/parser errors remain")
           if "DEPENDENCY_SNAPSHOT_MISSING" not in codes:
               raise SystemExit("Missing-Owner dependency error unexpectedly vanished")
-          print("MAS_V1ALPHA5_SOURCE_GRAMMAR_PASS_COMPILER_V2_0_1", sorted(codes))
+          print("MAS_V1ALPHA5_SOURCE_GRAMMAR_PASS_COMPILER_V2_0_2", sorted(codes))
           PYCODE
           set +e
           ./skillc build "$project" --skill establish-pdu-session-mas --out "$project/output" --json > "$project/build.json"
@@ -106,7 +108,7 @@ jobs:
           ):
               raise SystemExit(f"{sys.argv[2]}: Compiler returned no structured errors")
           codes = {str(item.get("code", "")) for item in diagnostics}
-          forbidden = codes & {"YAML_PARSE_ERROR", "IDENTIFIER_INVALID"}
+          forbidden = codes & {"YAML_PARSE_ERROR", "IDENTIFIER_INVALID", "ROUTE_OUTCOME_MISSING", "UNREACHABLE_NODE"}
           if forbidden:
               for item in diagnostics:
                   if item.get("code") in forbidden:

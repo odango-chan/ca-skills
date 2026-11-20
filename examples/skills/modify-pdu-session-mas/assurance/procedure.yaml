@@ -13,6 +13,7 @@ nodes:
             - context.request.pduSessionId
             - context.request.entryKind
       routes:
+        PASS: m0
         FAIL: FAILED
         UNKNOWN: UNRESOLVED
 

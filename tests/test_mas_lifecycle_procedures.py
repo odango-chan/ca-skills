@@ -91,6 +91,16 @@ class MASLifecycleProcedureTests(unittest.TestCase):
                         self.assertIn("NOT_COMMITTED: SAFE_STOPPED", block)
                         self.assertIn("DENIED: SAFE_STOPPED", block)
 
+    def test_entry_preconditions_have_all_three_routes(self) -> None:
+        modify_entry = node_block(self.modify_procedure, "validate-modify-request")
+        release_entry = node_block(self.release_procedure, "validate-release-request")
+        self.assertIn("PASS: m0", modify_entry)
+        self.assertIn("FAIL: FAILED", modify_entry)
+        self.assertIn("UNKNOWN: UNRESOLVED", modify_entry)
+        self.assertIn("PASS: r1", release_entry)
+        self.assertIn("FAIL: FAILED", release_entry)
+        self.assertIn("UNKNOWN: UNRESOLVED", release_entry)
+
     def test_only_final_postcondition_can_publish_succeeded(self) -> None:
         for source in (self.modify_procedure, self.release_procedure):
             self.assertEqual(source.count("PASS: SUCCEEDED"), 1)
