@@ -15,6 +15,8 @@ nodes:
     operation:
       tool: mas::UPN.DELETE_UP_SESSION
       arguments:
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
         trigger: context.request.trigger
       routes:
         FAILED: SAFE_STOPPED
@@ -34,6 +36,8 @@ nodes:
     operation:
       tool: mas::SSM.SIGNAL_UE_AN
       arguments:
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
         release: "1"
         trigger: context.request.trigger
       routes:
@@ -46,6 +50,8 @@ nodes:
     operation:
       tool: mas::PA.DELETE_SM_POLICY
       arguments:
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
         release: "1"
       routes:
         SUCCEEDED: release-sm-context
@@ -76,6 +82,8 @@ nodes:
     operation:
       tool: mas::SE.EMIT_EVENTS
       arguments:
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
         ev: "RELEASED"
       routes:
         SUCCEEDED: verify-pdu-session-release
