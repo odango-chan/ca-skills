@@ -89,12 +89,17 @@ jobs:
           ):
               raise SystemExit(f"{sys.argv[2]}: Compiler returned no structured error diagnostics")
           codes = {str(item.get("code", "")) for item in diagnostics}
-          forbidden = codes & {"YAML_PARSE_ERROR", "IDENTIFIER_INVALID"}
-          if forbidden:
+          expected = {
+              "DEPENDENCY_SNAPSHOT_MISSING",
+              "EVIDENCE_GUARANTEE_LINK_INVALID",
+              "PREDICATE_EVIDENCE_UNSATISFIABLE",
+          }
+          unexpected = codes - expected
+          if unexpected:
               for item in diagnostics:
-                  if item.get("code") in forbidden:
+                  if item.get("code") in unexpected:
                       print("SOURCE_NOT_FIXED", json.dumps(item, ensure_ascii=False))
-              raise SystemExit(f"{sys.argv[2]}: grammar/parser errors remain")
+              raise SystemExit(f"{sys.argv[2]}: unexpected Compiler diagnostics: {sorted(unexpected)}")
           if "DEPENDENCY_SNAPSHOT_MISSING" not in codes:
               raise SystemExit(f"{sys.argv[2]}: missing trusted Owner was not diagnosed")
           print(f"{sys.argv[2]}_V1ALPHA5_SOURCE_GRAMMAR_PASS", sorted(codes))
