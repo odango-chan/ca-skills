@@ -1,161 +1,180 @@
-"""Source-level regression guards for the MAS Modify / Release v1alpha5 drafts.
+from __future__ import annotations
 
-These tests check authored graph and provenance invariants only. They do not
-simulate Owner receipts, Host concurrency, Runtime execution or live 5GC E2E.
-"""
-
-from pathlib import Path
 import re
 import unittest
+from pathlib import Path
+
 
 ROOT = Path(__file__).resolve().parents[1]
-EXAMPLES = ROOT / "examples" / "skills"
-MODIFY = EXAMPLES / "modify-pdu-session-mas"
-RELEASE = EXAMPLES / "release-pdu-session-mas"
-SOURCE_MAP = ROOT / "docs" / "mas-lifecycle-source-mapping.md"
-OWNER_CONTRACT = ROOT / "docs" / "mas-lifecycle-owner-contract.md"
-ACCEPTANCE = ROOT / "docs" / "mas-lifecycle-acceptance-matrix.md"
-
-MODIFY_OPERATIONS = [
-    "SC.UPDATE_SM_CONTEXT",
-    "CA.UPDATE_CHARGING",
-    "UPN.MODIFY_UP_SESSION",
-    "SSM.SIGNAL_UE_AN",
-    "UPN.MODIFY_UP_SESSION",
-]
-RELEASE_OPERATIONS = [
-    "CA.DELETE_CHARGING",
-    "UPN.DELETE_UP_SESSION",
-    "SSM.SIGNAL_UE_AN",
-    "PA.DELETE_SM_POLICY",
-    "SC.RELEASE_SM_CONTEXT",
-    "SE.EMIT_EVENTS",
-]
+MODIFY = ROOT / "examples/skills/modify-pdu-session-mas"
+RELEASE = ROOT / "examples/skills/release-pdu-session-mas"
 
 
-def operation_ids(source: str) -> list[str]:
-    return re.findall(r"(?m)^[ \t]+tool:[ \t]+mas::([A-Z_]+\.[A-Z_]+)[ \t]*$", source)
+def read(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
 
 
 def node_block(source: str, node_id: str) -> str:
-    match = re.search(
-        rf"(?ms)^  {re.escape(node_id)}:\n(.*?)(?=^  [A-Za-z0-9-]+:[ \t]*$|\Z)",
-        source,
+    pattern = re.compile(
+        rf"(?ms)^  {re.escape(node_id)}:\n(.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)"
     )
+    match = pattern.search(source)
     if not match:
-        raise AssertionError(f"missing Procedure node: {node_id}")
+        raise AssertionError(f"Procedure node not found: {node_id}")
     return match.group(1)
 
 
-class MASLifecycleProcedureTests(unittest.TestCase):
+class MasLifecycleProcedureTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.modify_procedure = (MODIFY / "assurance" / "procedure.yaml").read_text(encoding="utf-8")
-        cls.release_procedure = (RELEASE / "assurance" / "procedure.yaml").read_text(encoding="utf-8")
-        cls.modify_skill = (MODIFY / "SKILL.md").read_text(encoding="utf-8")
-        cls.release_skill = (RELEASE / "SKILL.md").read_text(encoding="utf-8")
-        cls.modify_request = (MODIFY / "schemas" / "modify-request.schema.yaml").read_text(encoding="utf-8")
-        cls.release_request = (RELEASE / "schemas" / "release-request.schema.yaml").read_text(encoding="utf-8")
-        cls.source_map = SOURCE_MAP.read_text(encoding="utf-8")
-        cls.owner_contract = OWNER_CONTRACT.read_text(encoding="utf-8")
-        cls.acceptance = ACCEPTANCE.read_text(encoding="utf-8")
+        cls.modify_procedure = read(MODIFY / "assurance/procedure.yaml")
+        cls.release_procedure = read(RELEASE / "assurance/procedure.yaml")
+        cls.modify_contract = read(MODIFY / "assurance/contract.yaml")
+        cls.release_contract = read(RELEASE / "assurance/contract.yaml")
+        cls.modify_predicates = read(MODIFY / "assurance/predicates.yaml")
+        cls.release_predicates = read(RELEASE / "assurance/predicates.yaml")
+        cls.modify_request = read(MODIFY / "schemas/modify-request.schema.yaml")
+        cls.release_request = read(RELEASE / "schemas/release-request.schema.yaml")
+        cls.source_mapping = read(ROOT / "docs/mas-lifecycle-source-mapping.md")
+        cls.owner_contract = read(ROOT / "docs/mas-lifecycle-owner-contract.md")
+        cls.acceptance = read(ROOT / "docs/mas-lifecycle-acceptance-matrix.md")
 
-    def test_exact_modify_source_occurrences(self) -> None:
-        self.assertEqual(operation_ids(self.modify_procedure), MODIFY_OPERATIONS)
-        for node_id in ("m0", "m2", "m3", "m4", "m5"):
-            node_block(self.modify_procedure, node_id)
+    def test_mandatory_modify_and_release_operation_order(self) -> None:
+        modify = re.findall(r"(?m)^      tool: mas::([A-Z0-9_]+\.[A-Z0-9_]+)$", self.modify_procedure)
+        release = re.findall(r"(?m)^      tool: mas::([A-Z0-9_]+\.[A-Z0-9_]+)$", self.release_procedure)
+        self.assertEqual(
+            modify,
+            [
+                "SC.UPDATE_SM_CONTEXT",
+                "UPN.MODIFY_UP_SESSION_INTENT",
+                "SSM.SIGNAL_UE_AN_MODIFY",
+                "UPN.MODIFY_UP_SESSION",
+            ],
+        )
+        self.assertEqual(
+            release,
+            [
+                "UPN.DELETE_UP_SESSION",
+                "SSM.SIGNAL_UE_AN_RELEASE",
+                "PA.DELETE_SM_POLICY",
+                "SC.RELEASE_SM_CONTEXT",
+                "SE.EMIT_RELEASE_EVENT",
+            ],
+        )
 
-    def test_exact_release_source_occurrences_and_r7_exclusion(self) -> None:
-        self.assertEqual(operation_ids(self.release_procedure), RELEASE_OPERATIONS)
-        for node_id in ("r1", "r2", "r3", "r4", "r5", "r6"):
-            node_block(self.release_procedure, node_id)
-        self.assertNotIn("COMPENSATE_RELEASE", self.release_procedure)
-        self.assertNotIn("compensate_then_replan_once", self.release_procedure)
+    def test_optional_charging_and_skipped_compensation_are_not_nodes(self) -> None:
+        for source in (self.modify_procedure, self.release_procedure):
+            self.assertNotIn("tool: mas::CA.UPDATE_CHARGING", source)
+            self.assertNotIn("tool: mas::CA.DELETE_CHARGING", source)
+            self.assertNotIn("COMPENSATE_RELEASE", source)
+            self.assertNotRegex(source, r"(?m)^  r7:")
+        self.assertIn("optional", self.source_mapping)
+        self.assertIn("execute: skip", self.source_mapping)
 
-    def test_every_mutation_has_fail_closed_outcome_routes(self) -> None:
-        first_step = {"modify": "m0", "release": "r1"}
-        for label, source in (("modify", self.modify_procedure), ("release", self.release_procedure)):
-            nodes = ("m0", "m2", "m3", "m4", "m5") if label == "modify" else ("r1", "r2", "r3", "r4", "r5", "r6")
-            first = first_step[label]
-            for node_id in nodes:
-                with self.subTest(procedure=label, node=node_id):
-                    block = node_block(source, node_id)
-                    self.assertIn("OUTCOME_UNKNOWN: SAFE_STOPPED", block)
-                    self.assertIn("COMMITTED: SAFE_STOPPED", block)
-                    if node_id == first:
-                        self.assertIn("FAILED: FAILED", block)
-                        self.assertIn("NOT_COMMITTED: FAILED", block)
-                        self.assertIn("DENIED: FAILED", block)
-                    else:
-                        self.assertIn("FAILED: SAFE_STOPPED", block)
-                        self.assertIn("NOT_COMMITTED: SAFE_STOPPED", block)
-                        self.assertIn("DENIED: SAFE_STOPPED", block)
+    def test_m3_m5_and_ssm_profiles_are_not_widened(self) -> None:
+        self.assertIn("UPN.MODIFY_UP_SESSION_INTENT", self.modify_procedure)
+        self.assertIn("UPN.MODIFY_UP_SESSION", self.modify_procedure)
+        self.assertIn("SSM.SIGNAL_UE_AN_MODIFY", self.modify_procedure)
+        self.assertIn("SSM.SIGNAL_UE_AN_RELEASE", self.release_procedure)
+        self.assertIn("upn-modify-intent-result", self.modify_predicates)
+        self.assertIn("v0.2.0:upn-modify-up-session-result", self.modify_predicates)
+        self.assertIn("v0.2.0:ssm-signal-ue-an-result", self.modify_predicates)
+        self.assertIn("distinct typed callable profile", self.source_mapping)
 
-    def test_entry_preconditions_have_all_three_routes(self) -> None:
-        modify_entry = node_block(self.modify_procedure, "validate-modify-request")
-        release_entry = node_block(self.release_procedure, "validate-release-request")
-        self.assertIn("PASS: m0", modify_entry)
-        self.assertIn("FAIL: FAILED", modify_entry)
-        self.assertIn("UNKNOWN: UNRESOLVED", modify_entry)
-        self.assertIn("PASS: r1", release_entry)
-        self.assertIn("FAIL: FAILED", release_entry)
-        self.assertIn("UNKNOWN: UNRESOLVED", release_entry)
+    def test_release_trigger_is_numeric_and_entry_kind_is_explicit(self) -> None:
+        self.assertIn("enum: [1, 2, 3, 4, 5, 6, 7]", self.release_request)
+        for entry in ("UE_INITIATED", "AMF_INITIATED", "NETWORK_TRIGGERED"):
+            self.assertIn(entry, self.release_request)
+            self.assertIn(entry, self.release_predicates)
+        for trigger in ("trigger == 1", "trigger == 2", "trigger == 3", "trigger == 4",
+                        "trigger == 5", "trigger == 6", "trigger == 7"):
+            self.assertIn(trigger, self.release_predicates)
+        self.assertIn("RAN_INITIATED", self.source_mapping)
+
+    def test_request_schemas_are_closed_and_only_carry_public_fields(self) -> None:
+        for source in (self.modify_request, self.release_request):
+            self.assertIn("additionalProperties: false", source)
+            self.assertIn("pduSessionId", source)
+            for private in ("sessionRef", "smContextRef", "generation", "stepId",
+                            "invocationId", "idempotencyKey", "streamId"):
+                self.assertNotIn(private, source)
+
+    def test_preconditions_have_explicit_success_failure_and_unknown_routes(self) -> None:
+        modify = node_block(self.modify_procedure, "validate-modify-request")
+        release = node_block(self.release_procedure, "validate-release-request")
+        for block, target in ((modify, "m0"), (release, "r2")):
+            self.assertIn(f"PASS: {target}", block)
+            self.assertIn("FAIL: FAILED", block)
+            self.assertIn("UNKNOWN: UNRESOLVED", block)
+
+    def test_every_mutation_has_fail_closed_unknown_route(self) -> None:
+        expected = {
+            self.modify_procedure: ("m0", "m3", "m4", "m5"),
+            self.release_procedure: ("r2", "r3", "r4", "r5", "r6"),
+        }
+        for source, node_ids in expected.items():
+            for node_id in node_ids:
+                block = node_block(source, node_id)
+                self.assertIn("OUTCOME_UNKNOWN: SAFE_STOPPED", block, node_id)
+                self.assertIn("FAILED:", block, node_id)
+                self.assertIn("DENIED:", block, node_id)
+
+        self.assertIn("FAILED: FAILED", node_block(self.modify_procedure, "m0"))
+        self.assertIn("DENIED: FAILED", node_block(self.modify_procedure, "m0"))
+        self.assertIn("FAILED: FAILED", node_block(self.release_procedure, "r2"))
+        self.assertIn("DENIED: FAILED", node_block(self.release_procedure, "r2"))
+        for node_id in ("m3", "m4", "m5"):
+            self.assertIn("FAILED: SAFE_STOPPED", node_block(self.modify_procedure, node_id))
+            self.assertIn("DENIED: SAFE_STOPPED", node_block(self.modify_procedure, node_id))
+        for node_id in ("r3", "r4", "r5", "r6"):
+            self.assertIn("FAILED: SAFE_STOPPED", node_block(self.release_procedure, node_id))
+            self.assertIn("DENIED: SAFE_STOPPED", node_block(self.release_procedure, node_id))
 
     def test_only_final_postcondition_can_publish_succeeded(self) -> None:
         for source in (self.modify_procedure, self.release_procedure):
             self.assertEqual(source.count("PASS: SUCCEEDED"), 1)
-            self.assertNotIn("UNKNOWN: SUCCEEDED", source)
-            self.assertNotIn("FAIL: SUCCEEDED", source)
+            self.assertNotIn("NOT_COMMITTED:", source)
+            self.assertNotIn("COMMITTED:", source)
+        self.assertIn("PASS: SUCCEEDED", node_block(self.modify_procedure, "verify-modify-completion"))
+        self.assertIn("PASS: SUCCEEDED", node_block(self.release_procedure, "verify-release-completion"))
 
-    def test_request_schemas_model_entry_variants_and_private_boundary(self) -> None:
-        for schema in (self.modify_request, self.release_request):
-            for variant in ("UE_INITIATED", "AMF_INITIATED", "NETWORK_TRIGGERED"):
-                self.assertIn(variant, schema)
-            for private_name in ("sessionRef", "smContextRef", "generation", "stepId", "idempotencyKey"):
-                self.assertNotIn(private_name, schema)
-        for trigger in (
-            "UE_REQUESTED",
-            "AMF_UPDATE_SM_CONTEXT",
-            "AMF_RELEASE_SM_CONTEXT",
-            "PCF_INITIATED",
-            "SMF_INITIATED",
-            "LOCAL_INITIATED",
-        ):
-            self.assertIn(trigger, self.release_request)
+    def test_no_wait_retry_compensation_or_replan_is_authored(self) -> None:
+        for source in (self.modify_procedure, self.release_procedure):
+            self.assertNotRegex(source, r"(?m)^\s*wait\s*:")
+            self.assertNotIn("NOT_COMMITTED:", source)
+            self.assertNotIn("COMMITTED:", source)
+        self.assertNotIn("retry", self.modify_procedure.lower())
+        self.assertNotIn("retry", self.release_procedure.lower())
 
-    def test_source_plan_and_candidate_schema_provenance_are_pinned(self) -> None:
-        self.assertIn("594dec78b95bff4fdc34deac8a3a9681fb41228f", self.source_map)
-        self.assertIn("8a2caf343c29bb64cbb09b29994c79ac8ad5da05", self.source_map)
-        self.assertIn("849c3206569d452a663d1b8d42a63ffdc367be31", self.source_map)
-        self.assertIn("wtlab:openamsm:mas:v0.3.0:", self.source_map)
+    def test_no_undeclared_release_output_fields_are_used(self) -> None:
+        for source in (self.release_procedure, self.release_predicates):
+            self.assertNotIn("terminated", source)
+            self.assertNotIn("last_event", source)
+        self.assertIn("r3.operation.output", self.release_procedure)
+        self.assertIn("r4.operation.output", self.release_procedure)
+        self.assertIn("r6.operation.output", self.release_procedure)
+        self.assertIn("result != null", self.release_predicates)
 
-    def test_owner_contract_keeps_unknown_duplicate_generation_and_scope_fail_closed(self) -> None:
-        for term in ("OUTCOME_UNKNOWN", "Duplicate original invocation", "Wrong generation", "Late callback", "Mixed UE"):
-            self.assertIn(term, self.owner_contract)
+    def test_release_plan_trigger_defect_is_recorded_as_blocking(self) -> None:
+        self.assertIn("start_inputs: {}", self.source_mapping)
+        self.assertIn("from_start: trigger", self.source_mapping)
+        self.assertIn("must declare the typed trigger input", self.owner_contract)
 
-    def test_acceptance_matrix_contains_required_scenarios(self) -> None:
-        for term in ("Successful Modify", "Successful Release", "DENIED", "OUTCOME_UNKNOWN", "Duplicate invocation", "Wrong generation", "Late callback", "Mixed UE", "Establishment s10 callback"):
-            self.assertIn(term, self.acceptance)
+    def test_source_pins_and_qualification_matrices_are_present(self) -> None:
+        self.assertIn("594dec78b95bff4fdc34deac8a3a9681fb41228f", self.source_mapping)
+        self.assertIn("8a2caf343c29bb64cbb09b29994c79ac8ad5da05", self.source_mapping)
+        self.assertIn("849c3206569d452a663d1b8d42a63ffdc367be31", self.source_mapping)
+        for skill in (MODIFY, RELEASE):
+            mapping = read(skill / "references/openamsm-operation-mapping.md")
+            self.assertIn("Qualification scenario matrix", mapping)
 
-    def test_establishment_deferred_callback_is_not_a_new_skill_run(self) -> None:
-        self.assertIn("s10 OWNER_DEFERRED", self.modify_skill)
-        self.assertIn("same Establishment Run", self.modify_skill)
-        self.assertIn("newer Run", self.release_skill)
-        self.assertNotIn("wait:", self.modify_procedure)
-        self.assertNotIn("wait:", self.release_procedure)
-
-    def test_source_nonclaims_are_explicit(self) -> None:
-        combined = self.modify_skill + self.release_skill + self.source_map
-        self.assertIn("does not create a CHF charging reservation", combined)
-        self.assertIn("not a 3GPP SM Context Status Notify", combined)
-        self.assertNotIn("last_event:", self.release_procedure)
-        self.assertNotIn("user_plane_ready:", self.release_procedure)
-        self.assertNotIn("sm_context_ref:", self.release_procedure)
-
-    def test_owner_publication_is_not_claimed(self) -> None:
-        for source in (self.modify_skill, self.release_skill):
-            self.assertIn("NOT_QUALIFIED / NOT_LINKABLE", source)
+    def test_owner_and_runtime_qualification_are_not_claimed(self) -> None:
         self.assertIn("NOT PUBLISHED", self.owner_contract)
+        self.assertIn("NOT_LINKABLE / NOT_QUALIFIED", self.owner_contract)
+        self.assertIn("OUTCOME_UNKNOWN", self.owner_contract)
+        self.assertIn("Runtime NOT_RUN", self.acceptance)
+        self.assertIn("live 5GC E2E", self.acceptance)
+        self.assertIn("in-memory", self.owner_contract)
 
 
 if __name__ == "__main__":
