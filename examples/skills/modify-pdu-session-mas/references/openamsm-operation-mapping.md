@@ -74,3 +74,20 @@ m3 and m5 deliberately share a callable ID but not an invocation/effect/receipt 
 3. Define m4's callback binding, pending disposition, deadline and exact completion output for each supported ingress class.
 4. Publish the trusted Host Context Schema and ingress-classification contract.
 5. Run success, denied, UNKNOWN, duplicate, wrong-generation, late-callback and mixed-UE cases.
+
+## Qualification scenario matrix (design obligations; NOT_RUN)
+
+| Scenario | Setup / fault | Required result |
+|---|---|---|
+| M-01 success / UE | F03 new UE modification; same existing Session generation; m4 returns correlated AN tunnel tuple | m0 → m3 → m4 → m5; final Postcondition PASS → SUCCEEDED; m3/m5 have distinct receipts |
+| M-02 success / network | F05 trusted PCF/AF event; existing Session selected by Host | New Modify Run only after authenticated Owner event; same m0/m3/m4/m5 graph; no duplicate PCF policy update |
+| M-03 AMF/RAN new business | F04 classified as a genuinely new modification, not a response to a pending operation | Host/Owner must explicitly prove admission and mapping; otherwise reject / NOT_QUALIFIED, never guess |
+| M-04 denied | Deny each callable in turn | No later Node dispatch; DENIED follows the declared FAILED route |
+| M-05 failed after side effects | Fail m3, m4 or m5 after earlier stages completed | SAFE_STOPPED with prior mutation responsibility retained |
+| M-06 unknown mutation | Lose the result of m0/m3/m5 after dispatch | UNRESOLVED; only exact-original authorized Reconcile may resolve; no new mutation dispatch |
+| M-07 duplicate callback | Deliver the same m4 AN result twice | One original m4 occurrence completes once; duplicate is recorded/rejected, no second m5 |
+| M-08 wrong generation | Callback identifies another Session generation for the same UE/PSI | Reject before binding output; no m5 dispatch |
+| M-09 late callback | Deliver callback after original Run deadline/terminal state | Do not start a new Modify Run or attach to a newer generation |
+| M-10 mixed UE | Interleave two UE/PSI modifications | All Operation outputs, receipts and callbacks remain invocation- and generation-scoped |
+
+These are acceptance targets, not executable Case Runner files. The CA-SL specification delegates the physical `case.yaml` format to the separate Case Runner contract; no ad-hoc case syntax is invented here.
