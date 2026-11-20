@@ -1,0 +1,11 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: urn:connectionagent:example:mas:release-request:v1alpha5
+title: ReleaseRequest
+description: Host-classified release trigger for an already-existing PDU Session.
+type: object
+additionalProperties: false
+required: [trigger]
+properties:
+  trigger:
+    type: string
+    enum: [UE_REQUESTED, AMF_REQUESTED, NETWORK_TRIGGERED]
