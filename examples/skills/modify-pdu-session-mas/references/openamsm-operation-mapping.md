@@ -34,13 +34,13 @@ The plan comments explicitly state that for PCF-initiated / AF QoS / stock UE mo
 
 ## Ingress classification
 
-The Skill-owned Request Schema accepts only the source-described new modification classes:
+The Skill-owned Request Schema accepts the three Host-classified entry families:
 
-- `UE_REQUESTED`
-- `PCF_INITIATED`
-- `AF_QOS_INITIATED`
+- `UE_REQUESTED` (F03)
+- `AMF_RAN_REQUESTED` (F04, only when proven to be a new business modification)
+- `NETWORK_TRIGGERED` (F05, including trusted PCF/AF/SMF events)
 
-This is Host classification metadata, not an OES Operation argument. The Host must authenticate the original ingress, resolve it to one existing Session generation and select this Procedure only for a new modification. A late response that completes an already-pending establishment or modification Owner operation resumes that original occurrence; it must not create a second Modify Run.
+This is Host classification metadata, not an OES Operation argument. The F05 source plan comments specifically cover PCF-initiated and AF-QoS modifications; the F04 new-business variant remains unqualified until the Host/Owner proves its mapping. The Host must authenticate the original ingress, resolve it to one existing Session generation and select this Procedure only for a new modification. A late response that completes an already-pending establishment or modification Owner operation resumes that original occurrence; it must not create a second Modify Run.
 
 ## SBI entry and continuation classification
 
@@ -73,7 +73,7 @@ Reviewed `odango-chan/ca-client-tools` PR #14, head `17c29f5b1b5751a785d0e314361
 
 | This Procedure occurrence | Existing candidate mapping | Decision |
 |---|---|---|
-| m3 UPN modify before AN | Candidate `UPN.MODIFY_UP_SESSION` / s11 requires AN tunnel tuple + n4 SEID and returns only `n3_synced` | **Not a shape match.** The first occurrence accepts only `up_intent` and returns `n4_seid`. Owner must publish a separate closed profile / output contract, or a compiler-supported discriminated union; do not pretend s11's current schema covers m3. |
+| m3 UPN modify before AN | Candidate `UPN.MODIFY_UP_SESSION` / s11 requires AN tunnel tuple + n4 SEID and returns only `n3_synced` | **Not a shape match.** The first occurrence accepts only the Owner-facing `upIntent` profile (mapped to OES `up_intent`) and returns `n4_seid`. Owner must publish a separate closed profile / output contract, or a compiler-supported discriminated union; do not pretend s11's current schema covers m3. |
 | m4 SSM signal | Candidate `SSM.SIGNAL_UE_AN` / s10 output Schema matches the AN tuple; current s10 input Schema requires establishment session keys, UE address and N4 SEID | Output Schema candidate is reused by ID in the Predicate. Input profile is not a match: Modify m4 has an empty OES input map and must bind the already-existing Session privately. Owner must publish this closed context-bound profile; do not make all fields optional on an unbounded Tool. |
 | m5 UPN modify after AN | Candidate `UPN.MODIFY_UP_SESSION` / s11 input fields and `n3_synced` output match this occurrence | Reuse the existing candidate callable and output Schema; keep the m5 receipt distinct from m3. |
 | m0 SC update context | No candidate callable/schema in PR #14 | New Owner export required. |
