@@ -1,0 +1,14 @@
+# CA-SL v1alpha5. Owner exports and Evidence Guarantees are not yet published.
+goal: pdu_session.modification_request_fulfilled
+precondition: update-sm-context.precondition
+requestSchema: schemas/modification-request.schema.yaml
+contextSchema: ca-context::urn:connectionagent:ca:context:subject:v1
+dependencies:
+  ca-context: urn:connectionagent:ca:host-context
+  mas: urn:example:connectionagent:openamsm-mas-tool-contracts
+capabilities:
+  - mas.sc.context.update
+  - mas.upn.up.session.modify
+  - mas.ssm.ue.an.signal
+limits:
+  maxActions: 12
