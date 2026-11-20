@@ -67,6 +67,19 @@ The following are the exact source-derived field shapes the Owner package must p
 
 m3 and m5 deliberately share a callable ID but not an invocation/effect/receipt identity. The Owner export must support both input profiles without treating one occurrence's receipt as the other's. The shared SSM callable is also used by Establishment and Release; its published Input Schema must model the supported call profiles without accepting ambiguous combinations. The exact Schema IDs, Evidence Guarantee IDs, ownerOutcomes and mutation.reconcile binding remain Owner-owned and unpublished.
 
+## Cross-repository Owner candidate alignment
+
+Reviewed `odango-chan/ca-client-tools` PR #14, head `17c29f5b1b5751a785d0e314361da3eacc4774a5`, candidate package `mas-owner-candidate/v0.1.0`. It is Draft, NOT_QUALIFIED, NOT_DEPLOYABLE and NOT_LINKABLE; its Schema IDs are `urn:example` placeholders, not trusted snapshots.
+
+| This Procedure occurrence | Existing candidate mapping | Decision |
+|---|---|---|
+| m3 UPN modify before AN | Candidate `UPN.MODIFY_UP_SESSION` / s11 requires AN tunnel tuple + n4 SEID and returns only `n3_synced` | **Not a shape match.** The first occurrence accepts only `up_intent` and returns `n4_seid`. Owner must publish a separate closed profile / output contract, or a compiler-supported discriminated union; do not pretend s11's current schema covers m3. |
+| m4 SSM signal | Candidate `SSM.SIGNAL_UE_AN` / s10 output Schema matches the AN tuple; current s10 input Schema requires establishment session keys, UE address and N4 SEID | Output Schema candidate is reused by ID in the Predicate. Input profile is not a match: Modify m4 has an empty OES input map and must bind the already-existing Session privately. Owner must publish this closed context-bound profile; do not make all fields optional on an unbounded Tool. |
+| m5 UPN modify after AN | Candidate `UPN.MODIFY_UP_SESSION` / s11 input fields and `n3_synced` output match this occurrence | Reuse the existing candidate callable and output Schema; keep the m5 receipt distinct from m3. |
+| m0 SC update context | No candidate callable/schema in PR #14 | New Owner export required. |
+
+Exact candidate output Schema IDs referenced by this Procedure are `mas::urn:example:openamsm:mas:ssm-signal-ue-an-result:v1` for m4 and the candidate `mas::urn:example:openamsm:mas:upn-modify-up-session-result:v1` remains the output target for m5 once the Owner binding is confirmed. The current candidate m5 Schema contains only `n3_synced`; m3's `n4_seid` is deliberately read as a primitive output field and still requires a new Owner output contract.
+
 ## Qualification gaps
 
 1. Publish exact callable IDs, Effects, schemas, outcomes and Evidence Guarantees for m0/m3/m4/m5.
