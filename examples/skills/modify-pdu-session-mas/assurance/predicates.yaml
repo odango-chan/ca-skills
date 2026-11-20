@@ -1,0 +1,49 @@
+# Candidate predicates. Their Schema and Evidence references are placeholders
+# until the MAS Owner publishes trusted v1alpha4 ToolCatalog contracts.
+predicates:
+  modify.request.supported:
+    parameters:
+      - trigger: string
+    evaluator:
+      type: cel
+      expression: trigger in ["UE_REQUESTED", "AMF_REQUESTED", "NETWORK_TRIGGERED"]
+
+  modify.mas.context_updated:
+    parameters:
+      - result: mas::wtlab:openamsm:mas:v0.2.0:sc-update-sm-context-result
+    evidence:
+      requires:
+        result: [mas::sc.context-updated]
+    evaluator:
+      type: cel
+      expression: result.lifecycle != ""
+
+  modify.mas.n4_modification_prepared:
+    parameters:
+      - result: mas::wtlab:openamsm:mas:v0.2.0:upn-modify-up-session-result
+    evidence:
+      requires:
+        result: [mas::upn.n4-modification-prepared]
+    evaluator:
+      type: cel
+      expression: result.n4_seid != "" && result.n4_seid != "0"
+
+  modify.mas.access_network_result_available:
+    parameters:
+      - result: mas::wtlab:openamsm:mas:v0.2.0:ssm-signal-ue-an-result
+    evidence:
+      requires:
+        result: [mas::ssm.access-network-result]
+    evaluator:
+      type: cel
+      expression: result.an_tunnel == "1" && result.an_tunnel_teid != "" && result.an_tunnel_ip != ""
+
+  modify.mas.n3_synchronized:
+    parameters:
+      - result: mas::wtlab:openamsm:mas:v0.2.0:upn-modify-up-session-result
+    evidence:
+      requires:
+        result: [mas::upn.n3-synchronized]
+    evaluator:
+      type: cel
+      expression: result.n3_synced == "1"
