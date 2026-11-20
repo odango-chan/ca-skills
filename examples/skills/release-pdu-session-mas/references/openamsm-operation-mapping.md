@@ -68,6 +68,10 @@ The following are the exact source-derived field shapes the Owner package must p
 
 `ue_identity` is bound from `context.supi`; `psi` is bound from the validated 3GPP `context.request.pduSessionId`. These are Owner Scope arguments and MUST NOT be forwarded as OES business fields. The shared SSM and SE callables are also used by Establishment and Modify, but their existing candidate input profiles are not a shape match for Release. Owner must publish closed Release profiles or separate bounded callable identities; no generic optional-field bag is permitted. No synthetic Output fields are introduced for r3/r4/r6. The exact Schema IDs, Evidence Guarantee IDs, ownerOutcomes and mutation.reconcile binding remain Owner-owned and unpublished.
 
+## Predicate Evidence publication boundary
+
+No Release Evidence Guarantees are published in ca-client-tools PR #14. The `released` and `lifecycle` values are Operation outputs and require exact Owner Evidence; their `evidence.requires` entries are intentionally withheld rather than filled with invented IDs. Under frozen v1alpha5, the Compiler must report `PREDICATE_EVIDENCE_REQUIRED` until the Owner publishes the exact Guarantees and descriptors. This is an intentional NOT_LINKABLE blocker, not a PASS.
+
 ## Cross-repository Owner candidate alignment
 
 Reviewed `odango-chan/ca-client-tools` PR #14, head `17c29f5b1b5751a785d0e314361da3eacc4774a5`, candidate package `mas-owner-candidate/v0.1.0`. It is Draft, NOT_QUALIFIED, NOT_DEPLOYABLE and NOT_LINKABLE; its Schema IDs are `urn:example` placeholders, not trusted snapshots. The candidate covers Establishment's 13 write bindings only; it does not publish Modify/Release callables.
