@@ -67,6 +67,12 @@ The following are the exact source-derived field shapes the Owner package must p
 
 `ue_identity` is bound from `context.supi`; `psi` is bound from the validated 3GPP `context.request.pduSessionId`. They are public Owner Scope arguments only and MUST NOT be forwarded as OES business fields. m3 and m5 deliberately share the backend MAS operation and candidate callable identity but not an invocation/effect/receipt identity. Their distinct input/output profiles require an exact Owner contract; the existing Establishment s11 profile only matches m5. The shared SSM callable is also used by Establishment and Release; its published Input Schema must model the closed call profiles without accepting ambiguous combinations. The exact Schema IDs, Evidence Guarantee IDs, ownerOutcomes and mutation.reconcile binding remain Owner-owned and unpublished.
 
+## Predicate Evidence publication boundary
+
+Only m4 and m5 use the exact candidate Evidence Guarantee identities already present in ca-client-tools PR #14 (`ssm.access-network-ready` and `upn.n3-synchronized`). They remain untrusted because PR #14 is not a published Owner snapshot.
+
+m0's `lifecycle` and m3's `n4_seid` are Operation outputs and therefore require Owner Evidence. No exact Guarantees for these facts exist in the current candidate package. Their `evidence.requires` entries are intentionally withheld rather than filled with invented IDs. Under frozen v1alpha5, the Compiler must report `PREDICATE_EVIDENCE_REQUIRED` until the Owner publishes the exact Guarantees and descriptors. This is an intentional NOT_LINKABLE blocker, not a PASS.
+
 ## Cross-repository Owner candidate alignment
 
 Reviewed `odango-chan/ca-client-tools` PR #14, head `17c29f5b1b5751a785d0e314361da3eacc4774a5`, candidate package `mas-owner-candidate/v0.1.0`. It is Draft, NOT_QUALIFIED, NOT_DEPLOYABLE and NOT_LINKABLE; its Schema IDs are `urn:example` placeholders, not trusted snapshots.
