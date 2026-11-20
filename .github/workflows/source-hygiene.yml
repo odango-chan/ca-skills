@@ -138,7 +138,7 @@ jobs:
           client_tools_dir="$project/ca-client-tools"
           git init "$client_tools_dir"
           git -C "$client_tools_dir" remote add origin https://github.com/odango-chan/ca-client-tools.git
-          git -C "$client_tools_dir" fetch --depth 1 origin cce612855afb6a34e08b2cdad2cac2f7c054fcfb
+          git -C "$client_tools_dir" fetch --depth 1 origin ff1dc3ef938ccd9594ce55d72986a67622c00921
           git -C "$client_tools_dir" checkout --detach FETCH_HEAD
           fixture_root="$project/mas-v0.3.0-fixture"
           python3 "$client_tools_dir/contracts/mas-owner-candidate/fixtures/build_fixture.py" \
