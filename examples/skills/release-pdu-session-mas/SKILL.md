@@ -19,8 +19,8 @@ The Skill does not expose raw NAS / NGAP bytes, Host ResourceMap keys, Owner ses
 
 The Host normalizes the authenticated ingress into `request.entryKind` and `request.trigger`:
 
-- `UE_INITIATED` — UE-requested release received through Nsmf UpdateSMContext.
-- `AMF_INITIATED` — AMF-requested release through Nsmf ReleaseSMContext or an UpdateSMContext release action.
+- `UE_INITIATED` — UE-requested release received through `Nsmf_PDUSession_UpdateSMContext`.
+- `AMF_INITIATED` — AMF-requested release through `Nsmf_PDUSession_ReleaseSMContext` or an UpdateSMContext release action.
 - `NETWORK_TRIGGERED` — trusted internal PCF / SMF Owner event.
 
 The source trigger enum is represented to the Skill as a symbolic Host-normalized value. The private Owner adapter must map it to the exact pinned OpenAMSM trigger constant before constructing the OES input. The symbolic value must never be passed directly to a C `atoi`-based trigger field.

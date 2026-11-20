@@ -65,9 +65,9 @@ All IDs use the source-candidate namespace `wtlab:openamsm:mas:v0.3.0:`.
 | `se-emit-events-input` | object; `ue_identity`, `psi`, `event="RELEASED"`; r6 does not declare `sessionKeys` |
 | `se-emit-events-result` | empty object for r6; r6 declares no public output |
 
-The shared UPN / SSM / SE callable IDs have occurrence-specific shapes. The Owner must publish a versioned union Schema that validates the exact branch selected by the private OES `stepId`. For `SE.EMIT_EVENTS`, the new release branch must not silently remove the existing Establishment `ESTABLISHED` / `sessionKeys` branch or change the existing Skill source. If one callable cannot safely expose both branches, publish a distinct Release callable export rather than weakening the schema. The Establishment v0.2.0 Procedure and 13-operation mapping are not modified by this PR.
+The shared UPN / SSM / SE callable IDs have occurrence-specific shapes. The Owner must publish versioned union Schemas that validate the exact branch selected by the private OES `stepId`. These unions must preserve the existing Establishment branches: UPN's s11 tunnel-sync branch, SSM's s10 establishment signaling branch, and SE's s13 `ESTABLISHED` / `sessionKeys` branch. The existing Establishment v0.2.0 Schemas and Skill source must remain resolvable and unchanged. If one callable cannot safely expose both old and new branches, publish a distinct Modify / Release callable export rather than weakening a Schema or changing the Establishment Procedure.
 
-### Trigger normalization
+## Trigger normalization
 
 Release Request Schema values are symbolic Host-normalized values:
 
@@ -78,7 +78,7 @@ Release Request Schema values are symbolic Host-normalized values:
 - `SMF_INITIATED`
 - `LOCAL_INITIATED`
 
-The Host classifies authenticated Nsmf Update / Release ingress or a trusted internal Owner event. The Owner adapter must map each symbolic value to the exact numeric trigger constant in the pinned OpenAMSM build before filling the OES `trigger` input. The numeric source mapping must be verified from the pinned headers and published in the Owner package. Passing a symbolic value directly to an `atoi`-based field is invalid. Until that mapping is published and tested, Release remains NOT_LINKABLE.
+The Host classifies authenticated `Nsmf_PDUSession_UpdateSMContext` / `Nsmf_PDUSession_ReleaseSMContext` ingress or a trusted internal Owner event. The Owner adapter must map each symbolic value to the exact numeric trigger constant in the pinned OpenAMSM build before filling the OES `trigger` input. The numeric source mapping must be verified from the pinned headers and published in the Owner package. Passing a symbolic value directly to an `atoi`-based field is invalid. Until that mapping is published and tested, Release remains NOT_LINKABLE.
 
 ## Source facts and non-claims
 

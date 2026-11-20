@@ -19,8 +19,8 @@ The Skill does not create an SM Context, re-query AMF registration, consume raw 
 
 The Host explicitly normalizes these entry variants into `request.entryKind`:
 
-- `UE_INITIATED` — UE / RAN initiated modification delivered through the authenticated Nsmf Update ingress.
-- `AMF_INITIATED` — an AMF initiated UpdateSMContext business action.
+- `UE_INITIATED` — UE / RAN initiated modification delivered through authenticated `Nsmf_PDUSession_UpdateSMContext`.
+- `AMF_INITIATED` — an AMF initiated `Nsmf_PDUSession_UpdateSMContext` business action.
 - `NETWORK_TRIGGERED` — a trusted internal Owner event, such as a PCF-triggered or local policy event.
 
 All three variants converge on the same pinned `pdu-mod-v3.yaml` sequence. The source plan does not define separate step graphs for these variants. This classification is Host-owned; it is not new CA-SL syntax.
