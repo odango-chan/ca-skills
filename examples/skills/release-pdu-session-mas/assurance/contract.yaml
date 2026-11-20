@@ -1,0 +1,16 @@
+# CA-SL v1alpha5. Owner exports and Evidence Guarantees are not yet published.
+goal: pdu_session.release_request_fulfilled
+precondition: delete-up-session.precondition
+requestSchema: schemas/release-request.schema.yaml
+contextSchema: ca-context::urn:connectionagent:ca:context:subject:v1
+dependencies:
+  ca-context: urn:connectionagent:ca:host-context
+  mas: urn:example:connectionagent:openamsm-mas-tool-contracts
+capabilities:
+  - mas.upn.up.session.delete
+  - mas.ssm.ue.an.signal
+  - mas.pa.sm.policy.delete
+  - mas.sc.context.release
+  - mas.se.events.emit
+limits:
+  maxActions: 12
