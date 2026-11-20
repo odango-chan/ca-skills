@@ -1,0 +1,150 @@
+# CA-SL v1alpha5 source-aligned graph for env-openamsm pdu-mod-v3.yaml.
+# Node IDs m0/m2/m3/m4/m5 intentionally preserve exact OES occurrence identities.
+# Host owns authenticated ingress classification, SUPI/PSI/generation binding and deduplication.
+# No raw NAS/NGAP bytes, sessionRef, smContextRef, stepId or generation enters Skill arguments.
+start: validate-modify-request
+nodes:
+  validate-modify-request:
+    precondition:
+      predicates:
+        - predicate: modify.request.admitted
+          arguments:
+            - context.supi
+            - context.request.pduSessionId
+            - context.request.entryKind
+      routes:
+        FAIL: FAILED
+        UNKNOWN: UNRESOLVED
+
+  # OES m0 — SC.UPDATE_SM_CONTEXT. ue_identity / psi are scope-only Owner bindings.
+  m0:
+    operation:
+      tool: mas::SC.UPDATE_SM_CONTEXT
+      arguments:
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
+      routes:
+        FAILED: FAILED
+        NOT_COMMITTED: FAILED
+        COMMITTED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
+        DENIED: FAILED
+    postcondition:
+      predicates:
+        - predicate: modify.mas.sm_context_operational
+          arguments:
+            - m0.operation.output
+      routes:
+        PASS: m2
+        FAIL: SAFE_STOPPED
+        UNKNOWN: SAFE_STOPPED
+
+  # OES m2 — optional source step. The pinned adapter records charging_ref="1" / NOT_IMPL_skip;
+  # this is a local marker only, not a CHF reservation. CA-SL has no optional Operation stage.
+  m2:
+    operation:
+      tool: mas::CA.UPDATE_CHARGING
+      arguments:
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
+      routes:
+        FAILED: SAFE_STOPPED
+        NOT_COMMITTED: SAFE_STOPPED
+        COMMITTED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
+        DENIED: SAFE_STOPPED
+    postcondition:
+      predicates:
+        - predicate: modify.mas.charging_marker_recorded
+          arguments:
+            - m2.operation.output
+      routes:
+        PASS: m3
+        FAIL: SAFE_STOPPED
+        UNKNOWN: SAFE_STOPPED
+
+  # OES m3 — first UPN.MODIFY_UP_SESSION occurrence; upIntent maps to up_intent="1".
+  m3:
+    operation:
+      tool: mas::UPN.MODIFY_UP_SESSION
+      arguments:
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
+        upIntent: "1"
+      routes:
+        FAILED: SAFE_STOPPED
+        NOT_COMMITTED: SAFE_STOPPED
+        COMMITTED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
+        DENIED: SAFE_STOPPED
+    postcondition:
+      predicates:
+        - predicate: modify.mas.upn_intent_applied
+          arguments:
+            - m3.operation.output
+      routes:
+        PASS: m4
+        FAIL: SAFE_STOPPED
+        UNKNOWN: SAFE_STOPPED
+
+  # OES m4 — SSM.SIGNAL_UE_AN Modify occurrence. The plan declares no step inputs;
+  # ue_identity / psi are used only by the Owner to bind the existing session scope.
+  m4:
+    operation:
+      tool: mas::SSM.SIGNAL_UE_AN
+      arguments:
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
+      routes:
+        FAILED: SAFE_STOPPED
+        NOT_COMMITTED: SAFE_STOPPED
+        COMMITTED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
+        DENIED: SAFE_STOPPED
+    postcondition:
+      predicates:
+        - predicate: modify.mas.an_tunnel_ready
+          arguments:
+            - m4.operation.output
+      routes:
+        PASS: m5
+        FAIL: SAFE_STOPPED
+        UNKNOWN: SAFE_STOPPED
+
+  # OES m5 — second UPN.MODIFY_UP_SESSION occurrence; consumes only m3/m4 declared outputs.
+  m5:
+    operation:
+      tool: mas::UPN.MODIFY_UP_SESSION
+      arguments:
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
+        anTunnelTeid: m4.operation.output.an_tunnel_teid
+        anTunnelIp: m4.operation.output.an_tunnel_ip
+        n4Seid: m3.operation.output.n4_seid
+      routes:
+        FAILED: SAFE_STOPPED
+        NOT_COMMITTED: SAFE_STOPPED
+        COMMITTED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
+        DENIED: SAFE_STOPPED
+    postcondition:
+      predicates:
+        - predicate: modify.mas.sm_context_operational
+          arguments:
+            - m0.operation.output
+        - predicate: modify.mas.charging_marker_recorded
+          arguments:
+            - m2.operation.output
+        - predicate: modify.mas.upn_intent_applied
+          arguments:
+            - m3.operation.output
+        - predicate: modify.mas.an_tunnel_ready
+          arguments:
+            - m4.operation.output
+        - predicate: modify.mas.n3_synchronized
+          arguments:
+            - m5.operation.output
+      routes:
+        PASS: SUCCEEDED
+        FAIL: SAFE_STOPPED
+        UNKNOWN: SAFE_STOPPED

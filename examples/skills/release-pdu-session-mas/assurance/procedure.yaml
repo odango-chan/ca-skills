@@ -1,0 +1,179 @@
+# CA-SL v1alpha5 source-aligned graph for env-openamsm pdu-rel-v4.yaml.
+# Node IDs r1-r6 intentionally preserve exact OES occurrence identities; r7 is excluded.
+# Host owns authenticated ingress classification, SUPI/PSI/generation binding and deduplication.
+# No raw NAS/NGAP bytes, sessionRef, smContextRef, stepId or generation enters Skill arguments.
+start: validate-release-request
+nodes:
+  validate-release-request:
+    precondition:
+      predicates:
+        - predicate: release.request.admitted
+          arguments:
+            - context.supi
+            - context.request.pduSessionId
+            - context.request.entryKind
+            - context.request.trigger
+      routes:
+        FAIL: FAILED
+        UNKNOWN: UNRESOLVED
+
+  # OES r1 — optional CA.DELETE_CHARGING marker; charging_ref="0" is not a CHF deletion.
+  r1:
+    operation:
+      tool: mas::CA.DELETE_CHARGING
+      arguments:
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
+      routes:
+        FAILED: FAILED
+        NOT_COMMITTED: FAILED
+        COMMITTED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
+        DENIED: FAILED
+    postcondition:
+      predicates:
+        - predicate: release.mas.charging_marker_cleared
+          arguments:
+            - r1.operation.output
+      routes:
+        PASS: r2
+        FAIL: SAFE_STOPPED
+        UNKNOWN: SAFE_STOPPED
+
+  # OES r2 — UPN.DELETE_UP_SESSION; trigger is Host-normalized and Owner-mapped to the
+  # exact pinned OpenAMSM trigger enum. The result is available only after PFCP deletion settles.
+  r2:
+    operation:
+      tool: mas::UPN.DELETE_UP_SESSION
+      arguments:
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
+        trigger: context.request.trigger
+      routes:
+        FAILED: SAFE_STOPPED
+        NOT_COMMITTED: SAFE_STOPPED
+        COMMITTED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
+        DENIED: SAFE_STOPPED
+    postcondition:
+      predicates:
+        - predicate: release.mas.up_session_deleted
+          arguments:
+            - r2.operation.output
+      routes:
+        PASS: r3
+        FAIL: SAFE_STOPPED
+        UNKNOWN: SAFE_STOPPED
+
+  # OES r3 — SSM.SIGNAL_UE_AN release occurrence. Owner must wait for the exact AMF
+  # confirmation when signaling is required; no CA-SL Wait/new Run is created.
+  r3:
+    operation:
+      tool: mas::SSM.SIGNAL_UE_AN
+      arguments:
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
+        release: "1"
+        trigger: context.request.trigger
+      routes:
+        FAILED: SAFE_STOPPED
+        NOT_COMMITTED: SAFE_STOPPED
+        COMMITTED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
+        DENIED: SAFE_STOPPED
+    postcondition:
+      predicates:
+        - predicate: release.mas.signal_settled
+          arguments:
+            - r3.operation.output
+      routes:
+        PASS: r4
+        FAIL: SAFE_STOPPED
+        UNKNOWN: SAFE_STOPPED
+
+  # OES r4 — PA.DELETE_SM_POLICY; the source plan declares no public output fields.
+  r4:
+    operation:
+      tool: mas::PA.DELETE_SM_POLICY
+      arguments:
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
+        release: "1"
+      routes:
+        FAILED: SAFE_STOPPED
+        NOT_COMMITTED: SAFE_STOPPED
+        COMMITTED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
+        DENIED: SAFE_STOPPED
+    postcondition:
+      predicates:
+        - predicate: release.mas.policy_association_released
+          arguments:
+            - r4.operation.output
+      routes:
+        PASS: r5
+        FAIL: SAFE_STOPPED
+        UNKNOWN: SAFE_STOPPED
+
+  # OES r5 — SC.RELEASE_SM_CONTEXT; the declared plan output is lifecycle only.
+  r5:
+    operation:
+      tool: mas::SC.RELEASE_SM_CONTEXT
+      arguments:
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
+        release: "1"
+      routes:
+        FAILED: SAFE_STOPPED
+        NOT_COMMITTED: SAFE_STOPPED
+        COMMITTED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
+        DENIED: SAFE_STOPPED
+    postcondition:
+      predicates:
+        - predicate: release.mas.sm_context_release_progressed
+          arguments:
+            - r5.operation.output
+      routes:
+        PASS: r6
+        FAIL: SAFE_STOPPED
+        UNKNOWN: SAFE_STOPPED
+
+  # OES r6 — SE.EMIT_EVENTS. The plan declares no outputs; evidence proves only a local event.
+  r6:
+    operation:
+      tool: mas::SE.EMIT_EVENTS
+      arguments:
+        ue_identity: context.supi
+        psi: context.request.pduSessionId
+        event: "RELEASED"
+      routes:
+        FAILED: SAFE_STOPPED
+        NOT_COMMITTED: SAFE_STOPPED
+        COMMITTED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: SAFE_STOPPED
+        DENIED: SAFE_STOPPED
+    postcondition:
+      predicates:
+        - predicate: release.mas.charging_marker_cleared
+          arguments:
+            - r1.operation.output
+        - predicate: release.mas.up_session_deleted
+          arguments:
+            - r2.operation.output
+        - predicate: release.mas.signal_settled
+          arguments:
+            - r3.operation.output
+        - predicate: release.mas.policy_association_released
+          arguments:
+            - r4.operation.output
+        - predicate: release.mas.sm_context_release_progressed
+          arguments:
+            - r5.operation.output
+        - predicate: release.mas.release_event_recorded
+          arguments:
+            - r6.operation.output
+      routes:
+        PASS: SUCCEEDED
+        FAIL: SAFE_STOPPED
+        UNKNOWN: SAFE_STOPPED

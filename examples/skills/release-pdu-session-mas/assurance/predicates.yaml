@@ -1,0 +1,84 @@
+# CA-SL v1alpha5 PredicateSet.
+# Schema IDs and Evidence Guarantees are candidate exports only; the mas dependency is untrusted.
+predicates:
+  release.request.admitted:
+    parameters:
+      - supi: string
+      - pduSessionId: integer
+      - entryKind: string
+      - trigger: string
+    evaluator:
+      type: cel
+      expression: >-
+        supi != "" &&
+        pduSessionId >= 1 &&
+        pduSessionId <= 15 &&
+        ((entryKind == "UE_INITIATED" && trigger == "UE_REQUESTED") ||
+         (entryKind == "AMF_INITIATED" &&
+          (trigger == "AMF_UPDATE_SM_CONTEXT" || trigger == "AMF_RELEASE_SM_CONTEXT")) ||
+         (entryKind == "NETWORK_TRIGGERED" &&
+          (trigger == "PCF_INITIATED" || trigger == "SMF_INITIATED" || trigger == "LOCAL_INITIATED")))
+
+  release.mas.charging_marker_cleared:
+    parameters:
+      - result: mas::wtlab:openamsm:mas:v0.3.0:ca-delete-charging-result
+    evidence:
+      requires:
+        result: [mas::ca.charging-marker-cleared]
+    evaluator:
+      type: cel
+      expression: result.charging_ref == "0"
+
+  release.mas.up_session_deleted:
+    parameters:
+      - result: mas::wtlab:openamsm:mas:v0.3.0:upn-delete-up-session-result
+    evidence:
+      requires:
+        result: [mas::upn.up-session-released]
+    evaluator:
+      type: cel
+      expression: result.released == "1"
+
+  # The empty source output is intentional. Evidence carries the exact release
+  # disposition: signaling not required for this trigger, or the matching AMF response completed.
+  release.mas.signal_settled:
+    parameters:
+      - result: mas::wtlab:openamsm:mas:v0.3.0:ssm-signal-ue-an-result
+    evidence:
+      requires:
+        result: [mas::ssm.release-signal-settled]
+    evaluator:
+      type: cel
+      expression: result != null
+
+  # The Owner evidence must distinguish DELETED from NOT_PRESENT for the same SUPI/PSI/generation.
+  release.mas.policy_association_released:
+    parameters:
+      - result: mas::wtlab:openamsm:mas:v0.3.0:pa-delete-sm-policy-result
+    evidence:
+      requires:
+        result: [mas::pa.policy-association-released]
+    evaluator:
+      type: cel
+      expression: result != null
+
+  release.mas.sm_context_release_progressed:
+    parameters:
+      - result: mas::wtlab:openamsm:mas:v0.3.0:sc-release-sm-context-result
+    evidence:
+      requires:
+        result: [mas::sc.context-release-committed]
+    evaluator:
+      type: cel
+      expression: result.lifecycle == "RELEASING"
+
+  # The source plan declares no output for r6; Evidence proves a local event only.
+  release.mas.release_event_recorded:
+    parameters:
+      - result: mas::wtlab:openamsm:mas:v0.3.0:se-emit-events-result
+    evidence:
+      requires:
+        result: [mas::se.release-event-recorded]
+    evaluator:
+      type: cel
+      expression: result != null

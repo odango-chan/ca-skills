@@ -18,6 +18,8 @@ ConnectionAgent Skill Language (CA-SL) describes how a Skill declares its inputs
 | --- | --- |
 | [Conventional 5G Core PDU Session](examples/skills/establish-pdu-session/SKILL.md) | A UE-requested session with an inbound event wait and an explicit final Postcondition. |
 | [OpenAMSM MAS PDU Session](examples/skills/establish-pdu-session-mas/SKILL.md) | A policy-first session flow based on the OpenAMSM NW Agent plan. |
+| [OpenAMSM MAS Modify](examples/skills/modify-pdu-session-mas/SKILL.md) | A source-aligned Modify Procedure with separate UPN mutation occurrences and Host-classified entry variants. |
+| [OpenAMSM MAS Release](examples/skills/release-pdu-session-mas/SKILL.md) | A source-aligned Release Procedure with explicit trigger mapping and no automatic compensation / replan. |
 
 The [examples](examples/README.md) illustrate v1alpha5 source. Linking and running them requires trusted Owner contracts and deployment bindings. Product qualification is tracked in the release record.
 

@@ -1,0 +1,71 @@
+# CA-SL v1alpha5 PredicateSet.
+# Schema IDs and Evidence Guarantees are candidate exports only; the mas dependency is untrusted.
+predicates:
+  modify.request.admitted:
+    parameters:
+      - supi: string
+      - pduSessionId: integer
+      - entryKind: string
+    evaluator:
+      type: cel
+      expression: >-
+        supi != "" &&
+        pduSessionId >= 1 &&
+        pduSessionId <= 15 &&
+        (entryKind == "UE_INITIATED" ||
+         entryKind == "AMF_INITIATED" ||
+         entryKind == "NETWORK_TRIGGERED")
+
+  modify.mas.sm_context_operational:
+    parameters:
+      - result: mas::wtlab:openamsm:mas:v0.3.0:sc-update-sm-context-result
+    evidence:
+      requires:
+        result: [mas::sc.context-updated]
+    evaluator:
+      type: cel
+      expression: result.lifecycle == "OPERATIONAL"
+
+  # This proves only the pinned local charging marker, never a CHF reservation.
+  modify.mas.charging_marker_recorded:
+    parameters:
+      - result: mas::wtlab:openamsm:mas:v0.3.0:ca-update-charging-result
+    evidence:
+      requires:
+        result: [mas::ca.charging-marker-updated]
+    evaluator:
+      type: cel
+      expression: result.charging_ref == "1"
+
+  modify.mas.upn_intent_applied:
+    parameters:
+      - result: mas::wtlab:openamsm:mas:v0.3.0:upn-modify-up-session-result
+    evidence:
+      requires:
+        result: [mas::upn.modify-intent-applied]
+    evaluator:
+      type: cel
+      expression: result.n4_seid != "" && result.n4_seid != "0"
+
+  modify.mas.an_tunnel_ready:
+    parameters:
+      - result: mas::wtlab:openamsm:mas:v0.3.0:ssm-signal-ue-an-result
+    evidence:
+      requires:
+        result: [mas::ssm.modify-an-tunnel-ready]
+    evaluator:
+      type: cel
+      expression: >-
+        result.an_tunnel == "1" &&
+        result.an_tunnel_teid != "" &&
+        result.an_tunnel_ip != ""
+
+  modify.mas.n3_synchronized:
+    parameters:
+      - result: mas::wtlab:openamsm:mas:v0.3.0:upn-modify-up-session-result
+    evidence:
+      requires:
+        result: [mas::upn.n3-synchronized]
+    evaluator:
+      type: cel
+      expression: result.n3_synced == "1"

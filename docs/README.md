@@ -14,6 +14,9 @@
 - Authoring guide · [English](authoring.md) / [中文](authoring.zh-CN.md)
 - Package structure · [Layout](project-layout.md), [authoring model](authoring-model.md) and [Schema ownership](schema-ownership.md)
 - [v1alpha5 PDU Session examples](../examples/README.md) · 传统 5GC 和 OpenAMSM MAS
+- [MAS Modify / Release source mapping](mas-lifecycle-source-mapping.md) · pinned OES steps, callable identities and candidate Schemas
+- [MAS Modify / Release Owner contract](mas-lifecycle-owner-contract.md) · mutation outcomes, receipts, Evidence and Scope
+- [MAS Modify / Release acceptance matrix](mas-lifecycle-acceptance-matrix.md) · static regression coverage and unrun runtime cases
 
 ## Repository layout / 目录
 

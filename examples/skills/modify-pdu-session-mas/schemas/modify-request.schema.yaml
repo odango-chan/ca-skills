@@ -1,0 +1,13 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: urn:connectionagent:example:mas:modify-request:v1alpha5
+title: ModifyRequest
+description: Host-normalized entry envelope for an already admitted PDU Session modification.
+type: object
+additionalProperties: false
+required: [pduSessionId, entryKind]
+properties:
+  pduSessionId: {type: integer, minimum: 1, maximum: 15}
+  entryKind:
+    type: string
+    enum: [UE_INITIATED, AMF_INITIATED, NETWORK_TRIGGERED]
+    description: Host-classified ingress variant; not a caller-controlled authorization claim.
