@@ -16,7 +16,8 @@
 | Compensation | r7 remains excluded; no compensation / replan / retry is authored | Pinned OES plan and static test |
 | Trigger values | Release uses numeric values 1..7 and Host-derived entryKind consistency | xact.h source pin and Predicate test |
 | Release source defect | start_inputs is empty while r2/r3 reference trigger; linking remains blocked | Pinned OES plan |
-| Owner publication | Missing trusted MAS ToolCatalog / CapabilityContracts / receipts remain fail-closed | Compiler v2.0.2 CI gate |\n| Synthetic contract closure | Establishment, Modify and Release each pass Check / Inspect / Build against the v0.3.0 synthetic Owner fixture | Source Hygiene CI PASS; all reports remain NOT_QUALIFIED |
+| Owner publication | Missing trusted MAS ToolCatalog / CapabilityContracts / receipts remain fail-closed | Compiler v2.0.2 CI gate |
+| Synthetic contract closure | Establishment, Modify and Release each pass Check / Inspect / Build against the v0.3.0 synthetic Owner fixture | Source Hygiene CI PASS; all reports remain NOT_QUALIFIED |
 
 ## Qualification scenario matrix
 
