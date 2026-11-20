@@ -14,6 +14,7 @@ nodes:
         UNKNOWN: UNRESOLVED
     operation:
       tool: mas::SC.UPDATE_SM_CONTEXT
+      arguments: {}
       routes:
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: UNRESOLVED
@@ -50,6 +51,7 @@ nodes:
   signal-ue-and-access-network:
     operation:
       tool: mas::SSM.SIGNAL_UE_AN
+      arguments: {}
       routes:
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: UNRESOLVED
