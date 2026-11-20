@@ -132,3 +132,35 @@ jobs:
             fi
           done
           echo "MAS_MODIFY_RELEASE_V1ALPHA5_SOURCE_GRAMMAR_FAIL_CLOSED_PASS"
+          
+          # Cross-repository static Build fixture. This is synthetic Compiler
+          # input only; it does not publish WTLab or qualify the MAS Owner.
+          client_tools_dir="$project/ca-client-tools"
+          git clone --depth 1 --branch feat/wtlab-mas-contract-release \
+            https://github.com/odango-chan/ca-client-tools.git "$client_tools_dir"
+          fixture_root="$project/mas-v0.3.0-fixture"
+          python3 "$client_tools_dir/contracts/mas-owner-candidate/fixtures/build_fixture.py" \
+            "$fixture_root" --version v0.3.0
+          for skill in establish-pdu-session-mas modify-pdu-session-mas release-pdu-session-mas; do
+            report="$project/$skill.fixture-build.json"
+            python3 scripts/compile_mas_v1alpha5.py \
+              --trusted-root "$fixture_root" --mode fixture --skill "$skill" \
+              --compiler ./skillc --out "$project/$skill-fixture-artifacts" > "$report"
+            python3 - "$report" "$skill" <<'PYCODE'
+          import json
+          import sys
+          with open(sys.argv[1], encoding="utf-8") as stream:
+              report = json.load(stream)
+          if report.get("status") != "FIXTURE_STATIC_BUILD_PASS":
+              raise SystemExit(f"{sys.argv[2]}: synthetic Compiler Build did not pass: {report}")
+          if report.get("qualification") != "NOT_QUALIFIED":
+              raise SystemExit(f"{sys.argv[2]}: fixture incorrectly claims qualification")
+          stages = report.get("stages", [])
+          if [stage.get("command") for stage in stages] != ["check", "inspect", "build"]:
+              raise SystemExit(f"{sys.argv[2]}: incomplete Compiler stage sequence")
+          if any(stage.get("exitCode") != 0 for stage in stages):
+              raise SystemExit(f"{sys.argv[2]}: a Compiler stage failed")
+          print(f"{sys.argv[2]}_SYNTHETIC_OWNER_FIXTURE_BUILD_PASS_NOT_QUALIFIED")
+          PYCODE
+          done
+          echo "MAS_V0_3_0_THREE_SKILL_SYNTHETIC_COMPILER_BUILD_PASS_NOT_QUALIFIED"
