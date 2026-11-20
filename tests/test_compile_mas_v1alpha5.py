@@ -108,7 +108,7 @@ class CompilerProjectGateTest(unittest.TestCase):
             dest = Path(directory)
             MODULE.copy_project(self.skill, self.trusted, dest, self.config)
             self.assertEqual(
-                (dest / "skills" / MODULE.SKILL / "assurance" / "contract.yaml").read_bytes(),
+                (dest / "skills" / self.skill.name / "assurance" / "contract.yaml").read_bytes(),
                 (self.skill / "assurance" / "contract.yaml").read_bytes(),
             )
             self.assertTrue((dest / "snapshots" / "mas" / "contract.yaml").is_file())
