@@ -5,55 +5,62 @@ description: Source-aligned CA-SL v1alpha5 Release Procedure for the OpenAMSM MA
 
 # Release PDU Session — OpenAMSM MAS profile
 
-**Source language:** [CA-SL v1alpha5](https://github.com/odango-chan/ca-skills/blob/main/docs/skill-language-spec.v1alpha5.zh-CN.md).
+**Source language:** CA-SL v1alpha5.
 
-**Adoption state: NOT_QUALIFIED / NOT_LINKABLE.** This package is a source-aligned Procedure draft. The required MAS ToolCatalog exports, v0.3.0 Schemas, mutation receipts, Evidence Guarantees, Owner identity and deployment CapabilityContracts are not published. Compiler linking must fail closed.
+**Adoption state: NOT_QUALIFIED / NOT_LINKABLE.** This package defines a source-aligned Procedure. The required MAS ToolCatalog exports, new v0.3.0 candidate Schemas, mutation receipts, Evidence Guarantees, Owner identity and deployment CapabilityContracts are not published. Compiler linking must fail closed.
 
 ## Scope
 
-This Skill models release of an existing PDU Session. It does not create a session and does not replace Establishment. The Host authenticates and classifies the ingress, binds the exact SUPI / PSI / current generation, and invokes this Procedure with a normalized request.
+This Skill models release of an existing PDU Session. It does not create a session and does not replace Establishment. The Host authenticates and classifies the ingress, binds the exact SUPI / PSI / current generation, and invokes this Procedure with a normalized request envelope.
 
 The Skill does not expose raw NAS / NGAP bytes, Host ResourceMap keys, Owner session references, invocation IDs, generation IDs or transport correlation handles.
 
-## Entry variants
+## Entry variants and numeric trigger
 
-The Host normalizes the authenticated ingress into `request.entryKind` and `request.trigger`:
+The Host, not the caller, derives request.entryKind and request.trigger from authenticated SBI ingress or a trusted internal Owner event:
 
-- `UE_INITIATED` — UE-requested release received through `Nsmf_PDUSession_UpdateSMContext`.
-- `AMF_INITIATED` — AMF-requested release through `Nsmf_PDUSession_ReleaseSMContext` or an UpdateSMContext release action.
-- `NETWORK_TRIGGERED` — trusted internal PCF / SMF Owner event.
+| Host entryKind | OpenAMSM trigger | Source meaning |
+| --- | ---: | --- |
+| UE_INITIATED | 2 | UE_REQUESTED |
+| AMF_INITIATED | 6 | AMF_RELEASE_SM_CONTEXT |
+| AMF_INITIATED | 7 | AMF_UPDATE_SM_CONTEXT |
+| NETWORK_TRIGGERED | 1 | LOCAL_INITIATED |
+| NETWORK_TRIGGERED | 3 | PCF_INITIATED |
+| NETWORK_TRIGGERED | 4 | RAN_INITIATED |
+| NETWORK_TRIGGERED | 5 | SMF_INITIATED |
 
-The source trigger enum is represented to the Skill as a symbolic Host-normalized value. The private Owner adapter must map it to the exact pinned OpenAMSM trigger constant before constructing the OES input. The symbolic value must never be passed directly to a C `atoi`-based trigger field.
+The numeric values are the pinned OpenAMSM constants. In particular, RAN_INITIATED is classified as NETWORK_TRIGGERED while retaining trigger=4. The Procedure checks that entryKind and trigger agree. The Host must not accept these fields as caller-selected authorization claims.
 
-This classification is Host-owned, not new CA-SL syntax. The Procedure is not a public SBI endpoint and does not relax OpenAMSM's current `agent_step` admission behavior.
+This classification is Host-owned, not new CA-SL syntax. The Procedure is not a public SBI endpoint and does not relax OpenAMSM's current agent_step admission behavior.
 
 ## Source progression
 
-The Procedure follows OES steps r1–r6 from `pdu-rel-v4.yaml`:
+The Procedure includes the mandatory OES steps r2 through r6:
 
-1. `r1` — `CA.DELETE_CHARGING`; the pinned adapter clears a local marker (`charging_ref="0"`, `NOT_IMPL_skip`). It does not delete a CHF charging resource.
-2. `r2` — `UPN.DELETE_UP_SESSION`; deletes the UP session and requires the exact PFCP deletion completion.
-3. `r3` — `SSM.SIGNAL_UE_AN` with `release="1"` and the normalized trigger. For AMF Update / Release and local-initiation paths, no N1/N2 release signal is needed; other supported triggers send N1/N2 and remain pending until the AMF release confirmation is correlated.
-4. `r4` — `PA.DELETE_SM_POLICY`; deletes the PCF association when present. A no-association result must be evidenced as `NOT_PRESENT`, not confused with an unverified success.
-5. `r5` — `SC.RELEASE_SM_CONTEXT`; completes the source's UDM unsubscribe / UECM deregistration / AMF acknowledgement sequence. The plan exposes `lifecycle="RELEASING"`, not `RELEASED`.
-6. `r6` — `SE.EMIT_EVENTS` with `ev="RELEASED"`; this is a local MAS event record only.
+1. r2 — UPN.DELETE_UP_SESSION; deletes the UP session and completes only after the matching PFCP deletion result. The released=1 output is not emitted merely because a delete request was sent.
+2. r3 — SSM.SIGNAL_UE_AN with release=1 and the numeric trigger. For triggers 1, 6 and 7, the pinned source sends no N1/N2 release signal. For triggers 2, 3, 4 and 5, it sends the applicable N1/N2 release and remains pending until the matching AMF release confirmation.
+3. r4 — PA.DELETE_SM_POLICY; completes the PCF association deletion. Evidence must distinguish DELETED from a verified NOT_PRESENT association. The OES plan declares no public output.
+4. r5 — SC.RELEASE_SM_CONTEXT; performs the source's UDM unsubscribe / UECM deregistration / AMF acknowledgement phases. The plan exposes lifecycle=RELEASING, not RELEASED.
+5. r6 — SE.EMIT_EVENTS with ev=RELEASED; the source updates a local in-memory MAS marker. The plan declares no public output. This is not a durable event record or a 3GPP SM Context Status Notify.
 
-The OES plan marks r1 optional. As with Modify m2, this fixed profile includes the current marker-only call because the pinned adapter returns a local disposition. CA-SL has no optional Operation stage. No CHF release is claimed.
+The source plan marks r1 CA.DELETE_CHARGING optional and supplies no applicability predicate. It is deliberately omitted; the Procedure does not call it unconditionally. The pinned CA adapter only clears a local marker and does not delete a CHF charging resource.
 
-OES r7 `COMPENSATE_RELEASE` is an explicit skip and is not imported. The OES `compensate_then_replan_once` policy is not imported: an unknown Mutation result must never trigger a blind retry or a new Release sequence.
+OES r7 COMPENSATE_RELEASE is explicitly execute: skip. It is not a Procedure Node. The OES compensate_then_replan_once policy is not imported. An unknown Mutation result must never trigger a blind retry or a new Release sequence.
+
+## Known source blocker
+
+The pinned Release plan declares start_inputs as an empty object but references from_start: trigger in both r2 and r3. This is a source-plan input declaration defect. The Owner must not invent a default or bypass the plan validation; the upstream plan must declare the typed trigger input before these two Operations can be linked and qualified.
 
 ## Host / Owner boundary
 
-The current OpenAMSM `agent_step` admission path rejects the standard Nsmf business Release route. The missing Owner-private binding and publication are explicit blockers; this Skill does not relax the protocol admission gate or invent a public SBI route.
+The current OpenAMSM agent_step admission path rejects the standard Nsmf business Release route. The missing Owner-private binding and publication are explicit blockers; this Skill does not relax the protocol admission gate or invent a public SBI route.
 
-Every MAS callable is a candidate MUTATION. The Owner must persist the exact pending occurrence and return final completion only after the relevant PFCP, AMF, PCF and UDM / UECM work has settled. An HTTP 2xx, an accepted request, or an in-memory pending handle is not completion evidence. Late callbacks must remain attached to the original Owner occurrence and generation; they must never resume a newer Run.
+The Owner must retain each pending occurrence and generation. Late callbacks may complete only the original r3 or r5 Owner operation; they must never resume a newer Run. The Host owns external URI ResourceMap tombstoning after the exact Release lifecycle has settled. That Host-owned action is outside this Procedure and is not inferred from lifecycle=RELEASING.
 
-The Host owns external URI ResourceMap tombstoning after the exact Release lifecycle has settled. That Host-owned action is outside this Procedure and is not inferred from `lifecycle="RELEASING"`.
-
-See [source mapping](../../../docs/mas-lifecycle-source-mapping.md), [Owner outcome contract](../../../docs/mas-lifecycle-owner-contract.md) and [acceptance matrix](../../../docs/mas-lifecycle-acceptance-matrix.md).
+See the [pinned operation mapping](references/openamsm-operation-mapping.md), the shared [source mapping](../../../docs/mas-lifecycle-source-mapping.md), the [Owner outcome contract](../../../docs/mas-lifecycle-owner-contract.md) and the [acceptance matrix](../../../docs/mas-lifecycle-acceptance-matrix.md).
 
 ## Goal boundary
 
-A successful Invocation proves the source-declared Release results for the same SUPI / PSI / generation, including UP-session deletion, settled UE/AN signaling disposition, policy-association release disposition, SM Context release progression and local release-event recording.
+A successful Invocation proves that the mandatory source-declared Release Owner steps completed for the same SUPI / PSI / generation, including PFCP UP-session deletion, the exact SSM release disposition, PCF association disposition, SM Context release progression and the local in-memory release marker.
 
-It does not claim a real CHF deletion, a 3GPP SM Context Status Notify from r6, a Host ResourceMap tombstone, or product / live 5GC qualification.
+It does not claim a real CHF deletion, a 3GPP Status Notify from r6, a Host ResourceMap tombstone, a final RELEASED lifecycle state, or product / live 5GC qualification.
