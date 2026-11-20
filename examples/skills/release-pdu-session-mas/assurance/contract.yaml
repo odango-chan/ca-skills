@@ -5,7 +5,7 @@ requestSchema: schemas/release-request.schema.yaml
 contextSchema: ca-context::urn:connectionagent:ca:context:subject:v1
 dependencies:
   ca-context: urn:connectionagent:ca:host-context
-  mas: urn:example:connectionagent:openamsm-mas-tool-contracts
+  mas: wtlab:packages:openamsm:mas-compiler-contract
 capabilities:
   - mas.upn.up.session.delete
   - mas.ssm.ue.an.signal
