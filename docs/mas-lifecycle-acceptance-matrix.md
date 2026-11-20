@@ -16,7 +16,7 @@
 | Compensation | r7 remains excluded; no compensation / replan / retry is authored | Pinned OES plan and static test |
 | Trigger values | Release uses numeric values 1..7 and Host-derived entryKind consistency | xact.h source pin and Predicate test |
 | Release source defect | start_inputs is empty while r2/r3 reference trigger; linking remains blocked | Pinned OES plan |
-| Owner publication | Missing trusted MAS ToolCatalog / CapabilityContracts / receipts remain fail-closed | Compiler v2.0.2 CI gate |
+| Owner publication | Missing trusted MAS ToolCatalog / CapabilityContracts / receipts remain fail-closed | Compiler v2.0.2 CI gate |\n| Synthetic contract closure | Establishment, Modify and Release each pass Check / Inspect / Build against the v0.3.0 synthetic Owner fixture | Source Hygiene CI PASS; all reports remain NOT_QUALIFIED |
 
 ## Qualification scenario matrix
 
@@ -47,6 +47,6 @@
 
 The repository regression test checks the source graph, typed profile references, trigger mapping, safe routes, optional-step exclusions, source pins and non-claims. It does not simulate Owner receipts, callback races, generation isolation or a live network.
 
-The CI workflow uses the released Compiler v2.0.2 to reject YAML / v1alpha5 grammar errors while requiring the expected missing-Owner dependency diagnostic. A successful static gate is not a linked Build and does not produce trusted artifacts.
+The CI workflow uses the released Compiler v2.0.2 to reject YAML / v1alpha5 grammar errors while requiring the expected missing-Owner dependency diagnostic. It also materializes the ca-client-tools v0.3.0 candidate into a synthetic Owner / Capability / Evidence fixture and runs Check, Inspect and Build for all three MAS Skills. This proves only static link-shape compatibility with synthetic data; it does not produce trusted Owner artifacts or qualify the real Provider.
 
 All Owner publication, Host binding, Runtime, OpenAMSM integration and live 5GC scenarios remain NOT_RUN. The two examples must remain NOT_LINKABLE / NOT_QUALIFIED until those gates close.
