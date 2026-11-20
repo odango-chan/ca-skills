@@ -1,4 +1,5 @@
-# Candidate predicates. New Release Owner schemas/guarantees are not published yet.
+# No Release Owner Evidence Guarantees are published in the current
+# ca-client-tools candidate. Do not invent guarantee IDs or proofs.
 predicates:
   release.request.supported:
     parameters:
@@ -7,22 +8,18 @@ predicates:
       type: cel
       expression: trigger >= 1 && trigger <= 7
 
+  # Owner must publish the exact released output Schema and Guarantee before link.
   release.mas.up_session_deleted:
     parameters:
       - released: string
-    evidence:
-      requires:
-        released: [mas::upn.up-session-deleted]
     evaluator:
       type: cel
       expression: released == "1"
 
+  # Owner must publish the exact lifecycle output Schema and Guarantee before link.
   release.mas.sm_context_release_committed:
     parameters:
       - lifecycle: string
-    evidence:
-      requires:
-        lifecycle: [mas::sc.context-release-committed]
     evaluator:
       type: cel
       expression: lifecycle == "RELEASING"
