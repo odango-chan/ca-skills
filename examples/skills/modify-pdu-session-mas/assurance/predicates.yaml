@@ -1,12 +1,12 @@
 # Candidate predicates. Their Schema and Evidence references are placeholders
-# until the MAS Owner publishes trusted v1alpha4 ToolCatalog contracts.
+# until the MAS Owner publishes trusted ToolCatalog contracts.
 predicates:
   modify.request.supported:
     parameters:
       - trigger: string
     evaluator:
       type: cel
-      expression: trigger in ["UE_REQUESTED", "AMF_REQUESTED", "NETWORK_TRIGGERED"]
+      expression: trigger in ["UE_REQUESTED", "PCF_INITIATED", "AF_QOS_INITIATED"]
 
   modify.mas.context_updated:
     parameters:
@@ -16,7 +16,7 @@ predicates:
         result: [mas::sc.context-updated]
     evaluator:
       type: cel
-      expression: result.lifecycle != ""
+      expression: result.lifecycle == "OPERATIONAL"
 
   modify.mas.n4_modification_prepared:
     parameters:
