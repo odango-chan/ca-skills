@@ -24,7 +24,7 @@ nodes:
       predicates:
         - predicate: release.mas.up_session_deleted
           arguments:
-            - delete-up-session.operation.output
+            - delete-up-session.operation.output.released
       routes:
         PASS: signal-ue-and-access-network-release
         FAIL: SAFE_STOPPED
@@ -66,7 +66,7 @@ nodes:
       predicates:
         - predicate: release.mas.sm_context_release_committed
           arguments:
-            - release-sm-context.operation.output
+            - release-sm-context.operation.output.lifecycle
       routes:
         PASS: record-session-release-event
         FAIL: SAFE_STOPPED
@@ -88,10 +88,10 @@ nodes:
       predicates:
         - predicate: release.mas.up_session_deleted
           arguments:
-            - delete-up-session.operation.output
+            - delete-up-session.operation.output.released
         - predicate: release.mas.sm_context_release_committed
           arguments:
-            - release-sm-context.operation.output
+            - release-sm-context.operation.output.lifecycle
       routes:
         PASS: SUCCEEDED
         FAIL: SAFE_STOPPED
