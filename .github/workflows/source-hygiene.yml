@@ -93,6 +93,7 @@ jobs:
               "DEPENDENCY_SNAPSHOT_MISSING",
               "EVIDENCE_GUARANTEE_LINK_INVALID",
               "PREDICATE_EVIDENCE_UNSATISFIABLE",
+              "PREDICATE_EVIDENCE_REQUIRED",
           }
           unexpected = codes - expected
           if unexpected:
