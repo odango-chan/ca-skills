@@ -1,11 +1,11 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: urn:connectionagent:example:mas:modification-request:v1alpha5
 title: ModificationRequest
-description: Host-classified entry variant for an already-existing PDU Session modification.
+description: Host-classified trigger for a new modification of an existing PDU Session.
 type: object
 additionalProperties: false
 required: [trigger]
 properties:
   trigger:
     type: string
-    enum: [UE_REQUESTED, AMF_REQUESTED, NETWORK_TRIGGERED]
+    enum: [UE_REQUESTED, PCF_INITIATED, AF_QOS_INITIATED]
