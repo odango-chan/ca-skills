@@ -35,6 +35,10 @@ The Request Schema uses the seven numeric `OGS_PFCP_DELETE_TRIGGER` values from 
 
 The SSM Operation is not equivalent to “send a transfer and return.” For release signaling, the Owner keeps the exact operation pending until the applicable AMF release confirmation; a transfer acknowledgement alone does not close the Operation. For AMF-originated release/update and local initiation, the source implementation intentionally skips N1/N2 signaling and the original Host/SMF transaction response is handled at the service boundary.
 
+## Owner ingress boundary
+
+The current OpenAMSM `agent_step` path rejects ordinary business Release ingress. The existence of ReleaseSMContext handling and MAS facade operations does not make this Skill callable through that path. Execution requires the separately reviewed Host / CA Client Tools / OpenAMSM Owner-private lifecycle binding. Do not weaken or bypass the external Nsmf admission gate to make this Procedure appear runnable.
+
 ## Qualification blockers
 
 1. Publish exact Owner callable identities, Effects, Schemas, outcomes and Evidence Guarantees.
