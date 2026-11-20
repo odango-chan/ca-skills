@@ -1,0 +1,108 @@
+# CA-SL v1alpha5 Modify DAG, aligned to OpenAMSM pdu-mod-v3.yaml.
+# m2 UPDATE_CHARGING is source-optional and omitted until its applicability
+# predicate is source-defined. m3 and m5 are distinct mutation occurrences.
+start: update-sm-context
+nodes:
+  update-sm-context:
+    precondition:
+      predicates:
+        - predicate: modify.request.supported
+          arguments:
+            - context.request.trigger
+      routes:
+        FAIL: FAILED
+        UNKNOWN: UNRESOLVED
+    operation:
+      tool: mas::SC.UPDATE_SM_CONTEXT
+      arguments: {}
+      routes:
+        FAILED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: UNRESOLVED
+        DENIED: FAILED
+    postcondition:
+      predicates:
+        - predicate: modify.mas.context_updated
+          arguments:
+            - update-sm-context.operation.output
+      routes:
+        PASS: modify-up-session-before-an
+        FAIL: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
+
+  modify-up-session-before-an:
+    operation:
+      tool: mas::UPN.MODIFY_UP_SESSION
+      arguments:
+        up_intent: "1"
+      routes:
+        FAILED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: UNRESOLVED
+        DENIED: FAILED
+    postcondition:
+      predicates:
+        - predicate: modify.mas.n4_modification_prepared
+          arguments:
+            - modify-up-session-before-an.operation.output
+      routes:
+        PASS: signal-ue-and-access-network
+        FAIL: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
+
+  signal-ue-and-access-network:
+    operation:
+      tool: mas::SSM.SIGNAL_UE_AN
+      arguments: {}
+      routes:
+        FAILED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: UNRESOLVED
+        DENIED: FAILED
+    postcondition:
+      predicates:
+        - predicate: modify.mas.access_network_result_available
+          arguments:
+            - signal-ue-and-access-network.operation.output
+      routes:
+        PASS: modify-up-session-after-an
+        FAIL: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
+
+  modify-up-session-after-an:
+    operation:
+      tool: mas::UPN.MODIFY_UP_SESSION
+      arguments:
+        an_tunnel_teid: signal-ue-and-access-network.operation.output.an_tunnel_teid
+        an_tunnel_ip: signal-ue-and-access-network.operation.output.an_tunnel_ip
+        n4_seid: modify-up-session-before-an.operation.output.n4_seid
+      routes:
+        FAILED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: UNRESOLVED
+        DENIED: FAILED
+    postcondition:
+      predicates:
+        - predicate: modify.mas.n3_synchronized
+          arguments:
+            - modify-up-session-after-an.operation.output
+      routes:
+        PASS: verify-pdu-session-modification
+        FAIL: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
+
+  verify-pdu-session-modification:
+    postcondition:
+      predicates:
+        - predicate: modify.mas.context_updated
+          arguments:
+            - update-sm-context.operation.output
+        - predicate: modify.mas.n4_modification_prepared
+          arguments:
+            - modify-up-session-before-an.operation.output
+        - predicate: modify.mas.access_network_result_available
+          arguments:
+            - signal-ue-and-access-network.operation.output
+        - predicate: modify.mas.n3_synchronized
+          arguments:
+            - modify-up-session-after-an.operation.output
+      routes:
+        PASS: SUCCEEDED
+        FAIL: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
