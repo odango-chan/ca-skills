@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Compile the official MAS v1alpha5 example against an explicit trusted snapshot.
+"""Compile an official MAS v1alpha5 Skill against an explicit trusted snapshot.
 
-This is a project adapter for released skillc v2.0.0, not a compiler,
+This project adapter invokes released skillc v2.0.2. It is not a compiler,
 dependency resolver, Owner publisher or qualification bypass.
 """
 
@@ -18,6 +18,11 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 SKILL = "establish-pdu-session-mas"
+SKILLS = (
+    "establish-pdu-session-mas",
+    "modify-pdu-session-mas",
+    "release-pdu-session-mas",
+)
 SOURCE = REPO / "examples" / "skills" / SKILL
 VERSION = "skillc v2.0.2"
 TARGET = "connectionagent.io/v1alpha5"
@@ -34,7 +39,7 @@ def dependency_aliases(contract: str) -> dict[str, str]:
         if in_dependencies and line.strip() and not line.startswith((" ", "\t", "#")):
             break
         if in_dependencies:
-            match = re.fullmatch(r"  ([a-zA-Z][a-zA-Z0-9_-]*):\s*(\S+)\s*(?:#.*)?", line)
+            match = re.fullmatch(r"  ([a-zA-Z][a-zA-Z0-9_-]*):\\s*(\\S+)\\s*(?:#.*)?", line)
             if match:
                 if match.group(1) in result:
                     raise ValueError(f"duplicate dependency alias: {match.group(1)}")
@@ -109,7 +114,7 @@ def validate_inputs(source: Path, trusted_root: Path, mode: str) -> tuple[dict, 
         if "urn:example:" in trusted_path.read_text(encoding="utf-8"):
             errors.append("test-only urn:example reference remains in trusted.json")
 
-    return {"dependencyAliases": aliases, "mode": mode, "skill": SKILL}, errors
+    return {"dependencyAliases": aliases, "mode": mode, "skill": source.name}, errors
 
 
 def reject_symlinks(root: Path) -> None:
@@ -120,7 +125,7 @@ def reject_symlinks(root: Path) -> None:
 def copy_project(source: Path, trusted_root: Path, destination: Path, trusted: dict) -> None:
     reject_symlinks(source)
     reject_symlinks(trusted_root)
-    shutil.copytree(source, destination / "skills" / SKILL)
+    shutil.copytree(source, destination / "skills" / source.name)
     shutil.copy2(trusted_root / "trusted.json", destination / "trusted.json")
     shutil.copytree(trusted_root / "snapshots", destination / "snapshots")
     deployment = trusted.get("deployment", {})
@@ -160,21 +165,25 @@ def execute(argv: list[str] | None = None) -> int:
         "--trusted-root", required=True, type=Path,
         help="project with trusted.json, snapshots/ and deployment bundle directories",
     )
-    parser.add_argument("--compiler", default="skillc", help="skillc v2.0.0 executable")
+    parser.add_argument("--compiler", default="skillc", help="released skillc v2.0.2 executable")
+    parser.add_argument("--skill", choices=SKILLS, default=SKILL,
+                        help="official MAS Skill to Check / Inspect / Build")
     parser.add_argument(
         "--mode", choices=("release", "fixture"), default="release",
-        help="fixture permits test-only urn:example references; never qualifies an Owner",
+        help="fixture permits test-only identities; it never qualifies an Owner",
     )
     parser.add_argument("--out", type=Path, help="artifact output directory; omit for Check/Inspect only")
     args = parser.parse_args(argv)
+    skill_name = args.skill
+    source = REPO / "examples" / "skills" / skill_name
     report: dict = {
         "compilerTarget": TARGET,
-        "source": "ca-skills/examples/skills/" + SKILL,
+        "source": "ca-skills/examples/skills/" + skill_name,
         "qualification": "NOT_QUALIFIED",
         "stages": [],
     }
     try:
-        manifest, errors = validate_inputs(SOURCE, args.trusted_root, args.mode)
+        manifest, errors = validate_inputs(source, args.trusted_root, args.mode)
         report.update(manifest)
         if errors:
             report["status"] = "INPUT_BLOCKED"
@@ -191,10 +200,10 @@ def execute(argv: list[str] | None = None) -> int:
         with tempfile.TemporaryDirectory(prefix="ca-mas-skillc-") as temporary:
             project = Path(temporary) / "project"
             project.mkdir()
-            copy_project(SOURCE, args.trusted_root, project, trusted)
+            copy_project(source, args.trusted_root, project, trusted)
             for command in ("check", "inspect"):
                 stage = invoke(args.compiler, [
-                    command, str(project), "--skill", SKILL, "--json"
+                    command, str(project), "--skill", skill_name, "--json"
                 ])
                 report["stages"].append(stage)
                 if stage["exitCode"] != 0:
@@ -202,7 +211,7 @@ def execute(argv: list[str] | None = None) -> int:
                     return finish(report, 1)
             if args.out:
                 stage = invoke(args.compiler, [
-                    "build", str(project), "--skill", SKILL,
+                    "build", str(project), "--skill", skill_name,
                     "--out", str(args.out.resolve()), "--json"
                 ])
                 report["stages"].append(stage)
