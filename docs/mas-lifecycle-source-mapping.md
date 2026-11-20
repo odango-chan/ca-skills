@@ -28,7 +28,7 @@ Relevant implementation blobs at the 594dec78 source pin:
 
 ## Existing candidate package boundary
 
-The ca-client-tools MAS v0.2.0 source map is an unpublished candidate and contains the Establishment profiles, including:
+The ca-client-tools MAS v0.2.0 source map is an unpublished candidate for the stable package ID wtlab:packages:openamsm:mas-compiler-contract. It contains the Establishment profiles, including:
 
 - SSM.SIGNAL_UE_AN for Establishment s10, with sessionKeys / ueAddrAllocated / n4Seid inputs and the AN tunnel output tuple.
 - UPN.MODIFY_UP_SESSION for Establishment s11, with AN tunnel / N4 SEID inputs and n3_synced output.
@@ -36,7 +36,8 @@ The ca-client-tools MAS v0.2.0 source map is an unpublished candidate and contai
 
 Only the m5 UPN occurrence has the same source operation, input shape and output shape as the existing v0.2.0 UPN candidate. m4 shares the s10 output shape but not its input shape. m3 has a different UPN input and output shape. Release r3 and r6 also have different input and output shapes from the Establishment candidates.
 
-Therefore:
+Therefore, m3, m4, r3 and r6 use separate typed callable profiles; they do not widen or alias the existing Establishment exports.
+
 - m5 reuses the existing UPN.MODIFY_UP_SESSION callable and its v0.2.0 input/output Schemas.
 - m4 uses a distinct SSM.SIGNAL_UE_AN_MODIFY callable and a new input Schema; it may reuse the exact v0.2.0 AN tunnel output Schema.
 - m3 uses a distinct UPN.MODIFY_UP_SESSION_INTENT callable and new input/output Schemas.
