@@ -39,7 +39,7 @@ def dependency_aliases(contract: str) -> dict[str, str]:
         if in_dependencies and line.strip() and not line.startswith((" ", "\t", "#")):
             break
         if in_dependencies:
-            match = re.fullmatch(r"  ([a-zA-Z][a-zA-Z0-9_-]*):\\s*(\\S+)\\s*(?:#.*)?", line)
+            match = re.fullmatch(r"  ([a-zA-Z][a-zA-Z0-9_-]*):\s*(\S+)\s*(?:#.*)?", line)
             if match:
                 if match.group(1) in result:
                     raise ValueError(f"duplicate dependency alias: {match.group(1)}")
