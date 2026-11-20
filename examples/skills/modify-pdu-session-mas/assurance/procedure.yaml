@@ -23,7 +23,7 @@ nodes:
       predicates:
         - predicate: modify.mas.context_updated
           arguments:
-            - update-sm-context.operation.output
+            - update-sm-context.operation.output.lifecycle
       routes:
         PASS: modify-up-session-before-an
         FAIL: SAFE_STOPPED
@@ -42,7 +42,7 @@ nodes:
       predicates:
         - predicate: modify.mas.n4_modification_prepared
           arguments:
-            - modify-up-session-before-an.operation.output
+            - modify-up-session-before-an.operation.output.n4_seid
       routes:
         PASS: signal-ue-and-access-network
         FAIL: SAFE_STOPPED
@@ -72,7 +72,7 @@ nodes:
       arguments:
         an_tunnel_teid: signal-ue-and-access-network.operation.output.an_tunnel_teid
         an_tunnel_ip: signal-ue-and-access-network.operation.output.an_tunnel_ip
-        n4_seid: modify-up-session-before-an.operation.output.n4_seid
+        n4_seid: modify-up-session-before-an.operation.output.n4_seid.n4_seid
       routes:
         FAILED: SAFE_STOPPED
         OUTCOME_UNKNOWN: UNRESOLVED
@@ -81,7 +81,7 @@ nodes:
       predicates:
         - predicate: modify.mas.n3_synchronized
           arguments:
-            - modify-up-session-after-an.operation.output
+            - modify-up-session-after-an.operation.output.n3_synced
       routes:
         PASS: verify-pdu-session-modification
         FAIL: SAFE_STOPPED
@@ -92,16 +92,16 @@ nodes:
       predicates:
         - predicate: modify.mas.context_updated
           arguments:
-            - update-sm-context.operation.output
+            - update-sm-context.operation.output.lifecycle
         - predicate: modify.mas.n4_modification_prepared
           arguments:
-            - modify-up-session-before-an.operation.output
+            - modify-up-session-before-an.operation.output.n4_seid
         - predicate: modify.mas.access_network_result_available
           arguments:
             - signal-ue-and-access-network.operation.output
         - predicate: modify.mas.n3_synchronized
           arguments:
-            - modify-up-session-after-an.operation.output
+            - modify-up-session-after-an.operation.output.n3_synced
       routes:
         PASS: SUCCEEDED
         FAIL: SAFE_STOPPED
