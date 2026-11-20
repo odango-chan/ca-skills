@@ -11,7 +11,7 @@ description: CA-SL v1alpha5 source-aligned OpenAMSM MAS PDU Session release Proc
 
 ## Scope
 
-Release an already-existing PDU Session for a Host-classified UE-, PCF-, RAN-, SMF-, local- or AMF-originated release. The Host authenticates the source, maps it to the exact versioned Open5GS delete-trigger value, selects the exact Session generation and supplies the trigger. This Procedure does not create a new Session and does not absorb a late callback belonging to a different Run or generation.
+Release an already-existing PDU Session for a Host-classified UE-, PCF-, RAN-, SMF-, local- or AMF-originated release. The Host authenticates the source, maps it to the exact versioned Open5GS delete-trigger value, selects the exact Session generation and supplies the trigger plus the 3GPP `pduSessionId`. This Procedure does not create a new Session and does not absorb a late callback belonging to a different Run or generation.
 
 ## Source plan
 
@@ -30,6 +30,9 @@ Pinned OpenAMSM plan: `tools/nw-agent/plans/release/pdu-rel-v4.yaml`, workflow `
 The OES plan's `compensate_then_replan_once` is not imported into CA-SL. Mutation UNKNOWN remains unresolved until the exact original Owner invocation is reconciled; it MUST NOT dispatch a new release mutation.
 
 ## Execution and trigger rules
+
+Each Owner callable receives `ue_identity: context.supi` and `psi: context.request.pduSessionId` as scope-only arguments. The Owner validates the pair against the Host-bound Session generation and does not forward these identity fields as OES business inputs. The Host MUST reject a pduSessionId that does not identify the selected existing Session.
+
 
 The Request Schema uses the seven numeric `OGS_PFCP_DELETE_TRIGGER` values from the pinned OpenAMSM/Open5GS header. The Host, not the caller, determines the value from authenticated ingress. In particular, `AMF_RELEASE_SM_CONTEXT` and `AMF_UPDATE_SM_CONTEXT` are distinct values and MUST NOT be collapsed into one generic AMF trigger.
 
