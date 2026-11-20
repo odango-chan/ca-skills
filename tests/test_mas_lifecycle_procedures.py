@@ -79,7 +79,7 @@ class MasLifecycleProcedureTests(unittest.TestCase):
         self.assertIn("upn-modify-intent-result", self.modify_predicates)
         self.assertIn("v0.2.0:upn-modify-up-session-result", self.modify_predicates)
         self.assertIn("v0.2.0:ssm-signal-ue-an-result", self.modify_predicates)
-        self.assertIn("distinct typed CA callable profile", self.source_mapping)
+        self.assertIn("separate typed callable profiles", self.source_mapping)
 
     def test_release_trigger_is_numeric_and_entry_kind_is_explicit(self) -> None:
         self.assertIn("enum: [1, 2, 3, 4, 5, 6, 7]", self.release_request)
