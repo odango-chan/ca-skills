@@ -68,6 +68,21 @@ The following are the exact source-derived field shapes the Owner package must p
 
 The shared SSM callable is also used by Establishment and Modify. Its published Input Schema must model these distinct call profiles (including release-specific `release` and `trigger`) without accepting ambiguous combinations. No synthetic Output fields are introduced for r3/r4/r6. The exact Schema IDs, Evidence Guarantee IDs, ownerOutcomes and mutation.reconcile binding remain Owner-owned and unpublished.
 
+## Cross-repository Owner candidate alignment
+
+Reviewed `odango-chan/ca-client-tools` PR #14, head `17c29f5b1b5751a785d0e314361da3eacc4774a5`, candidate package `mas-owner-candidate/v0.1.0`. It is Draft, NOT_QUALIFIED, NOT_DEPLOYABLE and NOT_LINKABLE; its Schema IDs are `urn:example` placeholders, not trusted snapshots. The candidate covers Establishment's 13 write bindings only; it does not publish Modify/Release callables.
+
+| This Procedure occurrence | Existing candidate mapping | Decision |
+|---|---|---|
+| r2 UPN delete | No candidate `UPN.DELETE_UP_SESSION` | New Owner callable, input `trigger`, output `released` and exact PFCP deletion receipt required. |
+| r3 SSM release signal | Candidate `SSM.SIGNAL_UE_AN` exists for Establishment, but its s10 input requires session keys, UE address and N4 SEID and its output is the AN tuple | **Not a shape match.** Release needs `release` + `trigger`, declares no OES output, and must complete the appropriate release signaling/correlation. Owner must publish a closed Release profile or separate bounded callable; do not widen the existing Tool generically. |
+| r4 PA delete policy | Candidate `PA.CREATE_SM_POLICY` / `PA.UPDATE_SM_POLICY` share a result schema; no `PA.DELETE_SM_POLICY` callable | New Owner callable and zero-field/explicit result contract required. |
+| r5 SC release context | No candidate `SC.RELEASE_SM_CONTEXT` | New Owner callable and lifecycle output contract required. |
+| r6 SE release event | Candidate `SE.EMIT_EVENTS` exists for Establishment; current s13 input requires `event=ESTABLISHED` and `sessionKeys`, output `last_event` | **Not a shape match.** Release requires `ev=RELEASED`, OES declares no output, and Session scope must be bound privately or through a separate bounded profile. |
+| r1 charging delete | No candidate `CA.DELETE_CHARGING` | Optional source step; omitted until applicability and Owner contract are published. |
+
+The existing candidate's Establishment-only schemas must not be silently reused for Release. In particular, do not bind the existing `SE.EMIT_EVENTS` schema with an invented `last_event` Output path: the Release OES plan declares no output.
+
 ## Qualification gaps
 
 1. Publish exact callable IDs, Effects, input/output Schemas, outcomes and Evidence Guarantees for r2–r6.
