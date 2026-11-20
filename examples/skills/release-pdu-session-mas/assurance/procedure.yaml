@@ -1,0 +1,98 @@
+# CA-SL v1alpha5 Release DAG, aligned to OpenAMSM pdu-rel-v4.yaml.
+# Optional r1 charging deletion is omitted pending a source-backed applicability rule.
+# r7 COMPENSATE_RELEASE is execute:skip and is not an authored Node.
+start: delete-up-session
+nodes:
+  delete-up-session:
+    precondition:
+      predicates:
+        - predicate: release.request.supported
+          arguments:
+            - context.request.trigger
+      routes:
+        FAIL: FAILED
+        UNKNOWN: UNRESOLVED
+    operation:
+      tool: mas::UPN.DELETE_UP_SESSION
+      arguments:
+        trigger: context.request.trigger
+      routes:
+        FAILED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: UNRESOLVED
+        DENIED: FAILED
+    postcondition:
+      predicates:
+        - predicate: release.mas.up_session_deleted
+          arguments:
+            - delete-up-session.operation.output
+      routes:
+        PASS: signal-ue-and-access-network-release
+        FAIL: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
+
+  signal-ue-and-access-network-release:
+    operation:
+      tool: mas::SSM.SIGNAL_UE_AN
+      arguments:
+        release: "1"
+        trigger: context.request.trigger
+      routes:
+        FAILED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: UNRESOLVED
+        DENIED: FAILED
+    # The pinned OES step declares no output fields. Its exact completion
+    # disposition must be supplied by the Owner Outcome contract; no fake
+    # result field or synthetic 3GPP delivery proof is introduced here.
+
+  delete-sm-policy-association:
+    operation:
+      tool: mas::PA.DELETE_SM_POLICY
+      arguments:
+        release: "1"
+      routes:
+        FAILED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: UNRESOLVED
+        DENIED: FAILED
+
+  release-sm-context:
+    operation:
+      tool: mas::SC.RELEASE_SM_CONTEXT
+      arguments:
+        release: "1"
+      routes:
+        FAILED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: UNRESOLVED
+        DENIED: FAILED
+    postcondition:
+      predicates:
+        - predicate: release.mas.sm_context_released
+          arguments:
+            - release-sm-context.operation.output
+      routes:
+        PASS: record-session-release-event
+        FAIL: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
+
+  record-session-release-event:
+    operation:
+      tool: mas::SE.EMIT_EVENTS
+      arguments:
+        ev: RELEASED
+      routes:
+        FAILED: SAFE_STOPPED
+        OUTCOME_UNKNOWN: UNRESOLVED
+        DENIED: FAILED
+
+  verify-pdu-session-release:
+    postcondition:
+      predicates:
+        - predicate: release.mas.up_session_deleted
+          arguments:
+            - delete-up-session.operation.output
+        - predicate: release.mas.sm_context_released
+          arguments:
+            - release-sm-context.operation.output
+      routes:
+        PASS: SUCCEEDED
+        FAIL: SAFE_STOPPED
+        UNKNOWN: UNRESOLVED
