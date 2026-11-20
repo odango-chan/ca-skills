@@ -76,7 +76,7 @@ nodes:
     operation:
       tool: mas::SE.EMIT_EVENTS
       arguments:
-        ev: RELEASED
+        ev: "RELEASED"
       routes:
         SUCCEEDED: verify-pdu-session-release
         FAILED: SAFE_STOPPED
