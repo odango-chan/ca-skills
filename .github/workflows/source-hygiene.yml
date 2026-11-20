@@ -143,9 +143,17 @@ jobs:
             "$fixture_root" --version v0.3.0
           for skill in establish-pdu-session-mas modify-pdu-session-mas release-pdu-session-mas; do
             report="$project/$skill.fixture-build.json"
+            set +e
             python3 scripts/compile_mas_v1alpha5.py \
               --trusted-root "$fixture_root" --mode fixture --skill "$skill" \
               --compiler ./skillc --out "$project/$skill-fixture-artifacts" > "$report"
+            compile_status=$?
+            set -e
+            cat "$report"
+            if [ "$compile_status" -ne 0 ]; then
+              echo "$skill: synthetic Compiler fixture failed, exit=$compile_status" >&2
+              exit "$compile_status"
+            fi
             python3 - "$report" "$skill" <<'PYCODE'
           import json
           import sys
