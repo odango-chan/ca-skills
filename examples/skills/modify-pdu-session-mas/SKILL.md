@@ -38,6 +38,10 @@ The two UPN calls are separate mutation occurrences. They MUST have independent 
 - `m2 UPDATE_CHARGING` remains an explicit optional source step, not silently treated as executed.
 - No automatic retry, compensate-then-replan, or new Session creation is authored. Mutation `OUTCOME_UNKNOWN` remains unresolved pending exact-original Owner reconciliation.
 
+## Owner ingress boundary
+
+The current OpenAMSM `agent_step` path rejects ordinary business Update ingress. The existence of the standard Nsmf Update handler and MAS facade operations does not make this Skill callable through that path. Execution requires the separately reviewed Host / CA Client Tools / OpenAMSM Owner-private lifecycle binding. Do not weaken or bypass the external Nsmf admission gate to make this Procedure appear runnable.
+
 ## Qualification blockers
 
 1. Publish exact Owner callable identities, Effects, input/output Schemas and Outcome/Evidence contracts for m0, m3, m4 and m5.
