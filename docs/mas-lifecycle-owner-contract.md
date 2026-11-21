@@ -6,7 +6,7 @@
 
 Every callable occurrence in these Procedures is a candidate MUTATION, including local state updates and the r6 in-memory event marker. The trusted ToolCatalog and deployment CapabilityContracts must publish that Effect. No Procedure may infer READ from an operation's name, an HTTP method, or a successful source return code.
 
-The required callable profiles and exact input/output Schema IDs are listed in the [source mapping](mas-lifecycle-source-mapping.md). m5 reuses the existing v0.2.0 UPN modify profile. m3, m4, r3 and r6 use separate typed callable profiles because their source input/output shapes do not match the Establishment exports. The Owner must not replace these profiles with a generic optional-field schema.
+The required callable profiles and exact input/output Schema IDs are listed in the [source mapping](mas-lifecycle-source-mapping.md). m5 uses a dedicated UPN.MODIFY_QOS_FLOWS profile with a closed QoS delta. m3, m4, r3 and r6 use separate typed callable profiles because their source input/output shapes do not match the Establishment exports. The Owner must not replace these profiles with a generic optional-field schema.
 
 ## Exact invocation and Scope binding
 
@@ -46,7 +46,7 @@ The candidate Owner contract must publish SUCCEEDED and a narrowly defined FAILE
 | m0 SC.UPDATE_SM_CONTEXT | Existing exact SM Context is updated; declared lifecycle output is OPERATIONAL. | mas::sc.context-updated |
 | m3 UPN.MODIFY_UP_SESSION_INTENT | The no-tunnel intent branch is applied to the exact session; n4_seid is returned. This is not N3 synchronization. | mas::upn.modify-intent-applied |
 | m4 SSM.SIGNAL_UE_AN_MODIFY | The exact Modify signaling occurrence has the matching AN result and returns the declared tunnel tuple. | mas::ssm.modify-an-tunnel-ready |
-| m5 UPN.MODIFY_UP_SESSION | The PFCP modification for the exact N4 SEID and AN tunnel completes; n3_synced is returned. | Existing candidate mas::upn.n3-synchronized |
+| m5 UPN.MODIFY_QOS_FLOWS | The exact QFI/5QI/GBR/MBR target is atomic. APPLIED means the PFCP Update QER was accepted and the native N1/N2 Modify was dispatched; ALREADY means the authoritative flow already equals the exact target. Neither means RAN/UE acceptance. | mas::upn.qos-delta-applied |
 | r2 UPN.DELETE_UP_SESSION | The exact PFCP Session Deletion completes; released=1 is not returned merely because the delete request was sent. | mas::upn.up-session-released |
 | r3 SSM.SIGNAL_UE_AN_RELEASE | For triggers 1, 6 and 7, prove the source-defined no-signal branch. For triggers 2, 3, 4 and 5, wait for the matching AMF release confirmation. | mas::ssm.release-signal-settled |
 | r4 PA.DELETE_SM_POLICY | The exact PCF association is deleted or its absence is verified for the same Scope. | mas::pa.policy-association-released |
@@ -60,7 +60,7 @@ The Owner receipt is a separate private contract envelope. It must bind original
 ## Pending operations, duplicate delivery and generation isolation
 
 - m4 remains pending until the matching Modify AN result is correlated to the original occurrence.
-- m5 remains pending until the matching PFCP modification completion.
+- m5 remains pending until the matching PFCP QoS response is accepted and the native N1/N2 Modify dispatch result is known.
 - r2 remains pending until the matching PFCP deletion completion.
 - r3 remains pending until either the source-defined no-signal branch is proven or the matching AMF release confirmation completes.
 - r4 remains pending until PCF deletion settles.
@@ -72,6 +72,12 @@ The Owner receipt is a separate private contract envelope. It must bind original
 - OUTCOME_UNKNOWN never triggers a blind retry, compensation or new Release sequence. Host reconciliation is allowed only after a trusted exact-original mutation.reconcile contract is published.
 
 The N2 Setup Response that completes Establishment s10 belongs to the original Establishment Owner operation and Run. It must not start Modify or Release.
+
+For D5 m5, the later N2 Modify Response is a separate native continuation. It
+may confirm RAN acceptance, but it must not re-complete the MAS invoke. The
+Skill Predicate closes at PFCP_APPLIED + N1N2_DISPATCHED; a Host that needs
+RAN_MODIFICATION_CONFIRMED or TARGET_STATE_VERIFIED must record a separate,
+independent observation and must not derive it from `APPLIED`.
 
 ## Host and source blockers
 

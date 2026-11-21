@@ -6,6 +6,7 @@ predicates:
       - supi: string
       - pduSessionId: integer
       - entryKind: string
+      - qfi: string
     evaluator:
       type: cel
       expression: >-
@@ -14,7 +15,8 @@ predicates:
         pduSessionId <= 15 &&
         (entryKind == "UE_INITIATED" ||
          entryKind == "AMF_INITIATED" ||
-         entryKind == "NETWORK_TRIGGERED")
+         entryKind == "NETWORK_TRIGGERED") &&
+        qfi != ""
 
   modify.mas.sm_context_operational:
     parameters:
@@ -49,12 +51,17 @@ predicates:
         result.an_tunnel_teid != "" &&
         result.an_tunnel_ip != ""
 
-  modify.mas.n3_synchronized:
+  modify.mas.qos_delta_applied:
     parameters:
-      - result: mas::wtlab:openamsm:mas:v0.2.0:upn-modify-up-session-result
+      - result: mas::wtlab:openamsm:mas:v0.3.0:upn-modify-qos-flows-result
     evidence:
       requires:
-        result: [mas::upn.n3-synchronized]
+        result: [mas::upn.qos-delta-applied]
     evaluator:
       type: cel
-      expression: result.n3_synced == "1"
+      expression: >-
+        (result.qos_delta_state == "APPLIED" ||
+         result.qos_delta_state == "ALREADY") &&
+        result.qfi != "" &&
+        result.gfbr_ul != "" && result.gfbr_dl != "" &&
+        result.mfbr_ul != "" && result.mfbr_dl != ""

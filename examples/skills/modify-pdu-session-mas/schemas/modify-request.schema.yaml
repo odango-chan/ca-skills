@@ -1,10 +1,10 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: urn:connectionagent:example:mas:modify-request:v1alpha5
 title: ModifyRequest
-description: Host-normalized entry classification for an already existing PDU Session.
+description: Host-normalized entry classification plus the exact QoS delta.
 type: object
 additionalProperties: false
-required: [pduSessionId, entryKind]
+required: [pduSessionId, entryKind, qosFlowsDelta]
 properties:
   pduSessionId:
     type: integer
@@ -13,3 +13,32 @@ properties:
   entryKind:
     type: string
     enum: [UE_INITIATED, AMF_INITIATED, NETWORK_TRIGGERED]
+  qosFlowsDelta:
+    type: object
+    additionalProperties: false
+    required: [qfi, fiveQi, gfbrUl, gfbrDl, mfbrUl, mfbrDl]
+    properties:
+      qfi:
+        type: string
+        minLength: 1
+        maxLength: 13
+      fiveQi:
+        type: string
+        minLength: 1
+        maxLength: 3
+      gfbrUl:
+        type: string
+        minLength: 1
+        maxLength: 13
+      gfbrDl:
+        type: string
+        minLength: 1
+        maxLength: 13
+      mfbrUl:
+        type: string
+        minLength: 1
+        maxLength: 13
+      mfbrDl:
+        type: string
+        minLength: 1
+        maxLength: 13

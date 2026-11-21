@@ -48,7 +48,7 @@ class MasLifecycleProcedureTests(unittest.TestCase):
                 "SC.UPDATE_SM_CONTEXT",
                 "UPN.MODIFY_UP_SESSION_INTENT",
                 "SSM.SIGNAL_UE_AN_MODIFY",
-                "UPN.MODIFY_UP_SESSION",
+                "UPN.MODIFY_QOS_FLOWS",
             ],
         )
         self.assertEqual(
@@ -73,11 +73,13 @@ class MasLifecycleProcedureTests(unittest.TestCase):
 
     def test_m3_m5_and_ssm_profiles_are_not_widened(self) -> None:
         self.assertIn("UPN.MODIFY_UP_SESSION_INTENT", self.modify_procedure)
-        self.assertIn("UPN.MODIFY_UP_SESSION", self.modify_procedure)
+        self.assertIn("UPN.MODIFY_QOS_FLOWS", self.modify_procedure)
+        self.assertNotIn("tool: mas::UPN.MODIFY_UP_SESSION\n", self.modify_procedure)
         self.assertIn("SSM.SIGNAL_UE_AN_MODIFY", self.modify_procedure)
         self.assertIn("SSM.SIGNAL_UE_AN_RELEASE", self.release_procedure)
         self.assertIn("upn-modify-intent-result", self.modify_predicates)
-        self.assertIn("v0.2.0:upn-modify-up-session-result", self.modify_predicates)
+        self.assertIn("v0.3.0:upn-modify-qos-flows-result", self.modify_predicates)
+        self.assertNotIn("v0.2.0:upn-modify-up-session-result", self.modify_predicates)
         self.assertIn("v0.2.0:ssm-signal-ue-an-result", self.modify_predicates)
         self.assertIn("separate typed callable profiles", self.source_mapping)
 
@@ -90,6 +92,15 @@ class MasLifecycleProcedureTests(unittest.TestCase):
                         "trigger == 5", "trigger == 6", "trigger == 7"):
             self.assertIn(trigger, self.release_predicates)
         self.assertIn("RAN_INITIATED", self.source_mapping)
+
+    def test_modify_request_carries_one_closed_qos_delta(self) -> None:
+        self.assertIn("required: [pduSessionId, entryKind, qosFlowsDelta]", self.modify_request)
+        for field in ("qfi", "fiveQi", "gfbrUl", "gfbrDl", "mfbrUl", "mfbrDl"):
+            self.assertIn(field, self.modify_request)
+            self.assertIn(field, self.modify_procedure)
+        self.assertIn("qfi != \"\"", self.modify_predicates)
+        self.assertIn("qos_delta_state == \"APPLIED\"", self.modify_predicates)
+        self.assertIn("qos_delta_state == \"ALREADY\"", self.modify_predicates)
 
     def test_request_schemas_are_closed_and_only_carry_public_fields(self) -> None:
         for source in (self.modify_request, self.release_request):

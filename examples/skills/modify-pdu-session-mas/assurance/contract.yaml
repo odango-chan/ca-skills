@@ -1,5 +1,5 @@
 # CA-SL v1alpha5. MAS exports and Evidence Guarantees are unpublished candidates.
-goal: pdu_session.modify_owner_plan_completed
+goal: pdu_session.qos_delta_applied
 precondition: validate-modify-request.precondition
 requestSchema: schemas/modify-request.schema.yaml
 contextSchema: ca-context::urn:connectionagent:ca:context:subject:v1
@@ -9,6 +9,7 @@ dependencies:
 capabilities:
   - mas.sc.context.update
   - mas.upn.up.session.modify
+  - mas.upn.up.qos.modify
   - mas.ssm.ue.an.signal
 limits:
   maxActions: 16

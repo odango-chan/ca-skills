@@ -10,8 +10,10 @@
 | Modify graph | m0 -> m3 -> m4 -> m5 -> final Postcondition | Static regression test |
 | Release graph | r2 -> r3 -> r4 -> r5 -> r6 -> final Postcondition | Static regression test |
 | Exact OES output shape | r3, r4 and r6 have empty output objects; no synthetic fields | Pinned plan and source mapping |
-| Profile reuse | Only m5 reuses the existing v0.2.0 UPN modify input/output contract | Candidate source-map comparison |
+| Profile separation | m5 uses the dedicated v0.3.0 UPN.MODIFY_QOS_FLOWS contract; it does not reuse the v0.2.0 n3_synced profile | Candidate source-map comparison |
 | Profile separation | m3, m4, r3 and r6 use distinct typed callable profiles | Static regression test |
+| QoS delta target | m5 carries one closed QFI/5QI/GBR/MBR target; APPLIED/ALREADY plus the applied target is the result | Static regression test |
+| Completion scope | APPLIED is not RAN confirmation; TARGET_STATE_VERIFIED requires an independent read | Documentation + E2E evidence |
 | Optional steps | m2 and r1 are omitted because no applicability predicate exists | Pinned OES plan |
 | Compensation | r7 remains excluded; no compensation / replan / retry is authored | Pinned OES plan and static test |
 | Trigger values | Release uses numeric values 1..7 and Host-derived entryKind consistency | xact.h source pin and Predicate test |
@@ -23,7 +25,8 @@
 
 | Scenario | Required behavior | Status |
 | --- | --- | --- |
-| Modify success | m0/m3/m4/m5 settle for the same SUPI / PSI / generation; all final Predicates and Evidence pass | Runtime NOT_RUN |
+| Modify success | m0/m3/m4/m5 settle for the same SUPI / PSI / generation; all final Predicates and Evidence pass | Development E2E PASS on the isolated D5 stack (ca-agent-demo evidence); Production NOT_RUN |
+| QoS delta target state | Independent /pdu-info equals the requested QFI/5QI/GBR/MBR and the PFCP QER carries the same bitrates | Development E2E PASS (isolated stack) |
 | UE-initiated Modify | Host authenticates a new UE UpdateSMContext business action | Host test NOT_RUN |
 | AMF-initiated Modify | Host authenticates a new AMF business action, not a continuation callback | Host test NOT_RUN |
 | Network-triggered Modify | Only a trusted internal Owner event may select this entry variant | Host test NOT_RUN |
