@@ -32,13 +32,15 @@ The ca-client-tools MAS v0.2.0 source map is an unpublished candidate for the st
 
 - SSM.SIGNAL_UE_AN for Establishment s10, with sessionKeys / ueAddrAllocated / n4Seid inputs and the AN tunnel output tuple.
 - UPN.MODIFY_UP_SESSION for Establishment s11, with AN tunnel / N4 SEID inputs and n3_synced output.
+- UPN.MODIFY_QOS_FLOWS for the D5 Modify m5 transaction, with a closed
+  QFI/5QI/GBR/MBR delta and a `qos_delta_state` / `n1n2_dispatched` result.
 - SE.EMIT_EVENTS for Establishment s13, with event / sessionKeys inputs and last_event output.
 
-Only the m5 UPN occurrence has the same source operation, input shape and output shape as the existing v0.2.0 UPN candidate. m4 shares the s10 output shape but not its input shape. m3 has a different UPN input and output shape. Release r3 and r6 also have different input and output shapes from the Establishment candidates.
+No Modify occurrence reuses the existing v0.2.0 UPN profile: m5 has a distinct typed QoS-delta input and output shape, m4 shares the s10 output shape but not its input shape, and m3 has a different UPN input and output shape. Release r3 and r6 also have different input and output shapes from the Establishment candidates.
 
 Therefore, m3, m4, r3 and r6 use separate typed callable profiles; they do not widen or alias the existing Establishment exports.
 
-- m5 reuses the existing UPN.MODIFY_UP_SESSION callable and its v0.2.0 input/output Schemas.
+- m5 uses a distinct UPN.MODIFY_QOS_FLOWS callable with v0.3.0 QoS-delta input/output Schemas (it does not reuse the v0.2.0 `n3_synced` profile).
 - m4 uses a distinct SSM.SIGNAL_UE_AN_MODIFY callable and a new input Schema; it may reuse the exact v0.2.0 AN tunnel output Schema.
 - m3 uses a distinct UPN.MODIFY_UP_SESSION_INTENT callable and new input/output Schemas.
 - r3 uses a distinct SSM.SIGNAL_UE_AN_RELEASE callable and a new input Schema plus an empty output Schema.
@@ -53,11 +55,11 @@ Do not weaken the Establishment Schemas with optional fields, do not publish a g
 | m0 | m0 SC.UPDATE_SM_CONTEXT | SC.UPDATE_SM_CONTEXT | MUTATION | wtlab:openamsm:mas:v0.3.0:sc-update-sm-context-input | wtlab:openamsm:mas:v0.3.0:sc-update-sm-context-result | OES inputs: none; outputs: lifecycle |
 | m3 | m3 UPN.MODIFY_UP_SESSION | UPN.MODIFY_UP_SESSION_INTENT | MUTATION | wtlab:openamsm:mas:v0.3.0:upn-modify-intent-input | wtlab:openamsm:mas:v0.3.0:upn-modify-intent-result | up_intent='1' -> n4_seid |
 | m4 | m4 SSM.SIGNAL_UE_AN | SSM.SIGNAL_UE_AN_MODIFY | MUTATION | wtlab:openamsm:mas:v0.3.0:ssm-signal-ue-an-modify-input | wtlab:openamsm:mas:v0.2.0:ssm-signal-ue-an-result | OES inputs: none; outputs: an_tunnel_teid, an_tunnel_ip, an_tunnel |
-| m5 | m5 UPN.MODIFY_UP_SESSION | UPN.MODIFY_UP_SESSION | MUTATION | wtlab:openamsm:mas:v0.2.0:upn-modify-up-session-input | wtlab:openamsm:mas:v0.2.0:upn-modify-up-session-result | an_tunnel_teid, an_tunnel_ip, n4_seid -> n3_synced |
+| m5 | m5 UPN.MODIFY_UP_SESSION | UPN.MODIFY_QOS_FLOWS | MUTATION | wtlab:openamsm:mas:v0.3.0:upn-modify-qos-flows-input | wtlab:openamsm:mas:v0.3.0:upn-modify-qos-flows-result | an_tunnel_teid, an_tunnel_ip, n4_seid, qos_flows_delta='1', qfi, five_qi, gfbr_ul/dl, mfbr_ul/dl -> qos_delta_state, n1n2_dispatched, applied target |
 
 The CA-facing ue_identity and psi fields are exact Owner Scope bindings populated from the admitted SUPI and pduSessionId. For m0 and m4 the OES steps declare no inputs; the Owner validates ue_identity / psi for Scope and does not forward them as invented OES inputs. For m3 and m5 the Owner additionally maps the declared CA-facing fields to the exact OES inputs.
 
-m3 and m5 are separate Mutation occurrences even though their OES operation name is the same. The pinned UPN implementation has two different branches: without an AN tunnel, it applies the intent state and returns n4_seid; with the AN tunnel tuple, it parks the PFCP modification and later returns n3_synced. The m3 n4_seid is not proof of m5 N3 synchronization.
+m3 and m5 are separate Mutation occurrences with separate callables. The pinned UPN implementation has two different branches: without an AN tunnel it applies the intent state and returns n4_seid; with the AN tunnel tuple and `qos_flows_delta=1` it validates a closed QoS target, parks the exact PFCP transaction, and completes after the PFCP response and the native N1/N2 dispatch. `APPLIED`/`ALREADY` plus the applied target are the m5 result; `n1n2_dispatched=1` is not RAN confirmation, and the m3 n4_seid is not m5 completion proof.
 
 ## Release: exact OES-to-Procedure mapping
 

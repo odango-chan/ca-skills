@@ -10,6 +10,7 @@ nodes:
             - context.supi
             - context.request.pduSessionId
             - context.request.entryKind
+            - context.request.qosFlowsDelta.qfi
       routes:
         PASS: m0
         FAIL: FAILED
@@ -82,26 +83,39 @@ nodes:
         FAIL: SAFE_STOPPED
         UNKNOWN: SAFE_STOPPED
 
-  # OES m5: UPN.MODIFY_UP_SESSION with the exact m3 N4 SEID and m4 AN tunnel.
-  # This occurrence matches the existing typed s11 candidate callable contract.
+  # OES m5: UPN.MODIFY_QOS_FLOWS applies the exact typed GBR/MBR delta on the
+  # target QFI and completes only after the PFCP/N1/N2 Owner transaction.
   m5:
     operation:
-      tool: mas::UPN.MODIFY_UP_SESSION
+      tool: mas::UPN.MODIFY_QOS_FLOWS
       arguments:
         ue_identity: context.supi
         psi: context.request.pduSessionId
         anTunnelTeid: m4.operation.output.an_tunnel_teid
         anTunnelIp: m4.operation.output.an_tunnel_ip
         n4Seid: m3.operation.output.n4_seid
+        qosFlowsDelta: "1"
+        qfi: context.request.qosFlowsDelta.qfi
+        fiveQi: context.request.qosFlowsDelta.fiveQi
+        gfbrUl: context.request.qosFlowsDelta.gfbrUl
+        gfbrDl: context.request.qosFlowsDelta.gfbrDl
+        mfbrUl: context.request.qosFlowsDelta.mfbrUl
+        mfbrDl: context.request.qosFlowsDelta.mfbrDl
       routes:
         FAILED: SAFE_STOPPED
         DENIED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
     postcondition:
       predicates:
-        - predicate: modify.mas.n3_synchronized
+        - predicate: modify.mas.qos_delta_applied
           arguments:
             - m5.operation.output
+            - context.request.qosFlowsDelta.qfi
+            - context.request.qosFlowsDelta.fiveQi
+            - context.request.qosFlowsDelta.gfbrUl
+            - context.request.qosFlowsDelta.gfbrDl
+            - context.request.qosFlowsDelta.mfbrUl
+            - context.request.qosFlowsDelta.mfbrDl
       routes:
         PASS: verify-modify-completion
         FAIL: SAFE_STOPPED
@@ -119,9 +133,15 @@ nodes:
         - predicate: modify.mas.an_tunnel_ready
           arguments:
             - m4.operation.output
-        - predicate: modify.mas.n3_synchronized
+        - predicate: modify.mas.qos_delta_applied
           arguments:
             - m5.operation.output
+            - context.request.qosFlowsDelta.qfi
+            - context.request.qosFlowsDelta.fiveQi
+            - context.request.qosFlowsDelta.gfbrUl
+            - context.request.qosFlowsDelta.gfbrDl
+            - context.request.qosFlowsDelta.mfbrUl
+            - context.request.qosFlowsDelta.mfbrDl
       routes:
         PASS: SUCCEEDED
         FAIL: SAFE_STOPPED

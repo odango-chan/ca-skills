@@ -48,7 +48,7 @@ class MasLifecycleProcedureTests(unittest.TestCase):
                 "SC.UPDATE_SM_CONTEXT",
                 "UPN.MODIFY_UP_SESSION_INTENT",
                 "SSM.SIGNAL_UE_AN_MODIFY",
-                "UPN.MODIFY_UP_SESSION",
+                "UPN.MODIFY_QOS_FLOWS",
             ],
         )
         self.assertEqual(
@@ -73,11 +73,13 @@ class MasLifecycleProcedureTests(unittest.TestCase):
 
     def test_m3_m5_and_ssm_profiles_are_not_widened(self) -> None:
         self.assertIn("UPN.MODIFY_UP_SESSION_INTENT", self.modify_procedure)
-        self.assertIn("UPN.MODIFY_UP_SESSION", self.modify_procedure)
+        self.assertIn("UPN.MODIFY_QOS_FLOWS", self.modify_procedure)
+        self.assertNotIn("tool: mas::UPN.MODIFY_UP_SESSION\n", self.modify_procedure)
         self.assertIn("SSM.SIGNAL_UE_AN_MODIFY", self.modify_procedure)
         self.assertIn("SSM.SIGNAL_UE_AN_RELEASE", self.release_procedure)
         self.assertIn("upn-modify-intent-result", self.modify_predicates)
-        self.assertIn("v0.2.0:upn-modify-up-session-result", self.modify_predicates)
+        self.assertIn("v0.3.0:upn-modify-qos-flows-result", self.modify_predicates)
+        self.assertNotIn("v0.2.0:upn-modify-up-session-result", self.modify_predicates)
         self.assertIn("v0.2.0:ssm-signal-ue-an-result", self.modify_predicates)
         self.assertIn("separate typed callable profiles", self.source_mapping)
 
@@ -90,6 +92,77 @@ class MasLifecycleProcedureTests(unittest.TestCase):
                         "trigger == 5", "trigger == 6", "trigger == 7"):
             self.assertIn(trigger, self.release_predicates)
         self.assertIn("RAN_INITIATED", self.source_mapping)
+
+    def test_modify_request_carries_one_closed_qos_delta(self) -> None:
+        self.assertIn("required: [pduSessionId, entryKind, qosFlowsDelta]", self.modify_request)
+        for field in ("qfi", "fiveQi", "gfbrUl", "gfbrDl", "mfbrUl", "mfbrDl"):
+            self.assertIn(field, self.modify_request)
+            self.assertIn(field, self.modify_procedure)
+        self.assertIn("qfi != \"\"", self.modify_predicates)
+        self.assertIn("qos_delta_state == \"APPLIED\"", self.modify_predicates)
+        self.assertIn("qos_delta_state == \"ALREADY\"", self.modify_predicates)
+
+    def test_modify_qos_postcondition_compares_the_full_target(self) -> None:
+        # The predicate must receive the result plus every requested target
+        # field, in the exact declaration order.
+        expected_parameters = (
+            "result:", "expectedQfi:", "expectedFiveQi:", "expectedGfbrUl:",
+            "expectedGfbrDl:", "expectedMfbrUl:", "expectedMfbrDl:",
+        )
+        block = self.modify_predicates.split(
+            "  modify.mas.qos_delta_applied:\n", 1
+        )[1]
+        positions = [block.index(name) for name in expected_parameters]
+        self.assertEqual(positions, sorted(positions))
+        for field in ("qfi", "five_qi", "gfbr_ul", "gfbr_dl", "mfbr_ul", "mfbr_dl"):
+            self.assertIn(f"result.{field} == expected", block)
+        self.assertIn("has(result.five_qi)", block)
+        self.assertIn("result.n1n2_dispatched == \"1\"", block)
+        self.assertIn("!has(result.n1n2_dispatched)", block)
+        self.assertIn("qos_delta_state == \"APPLIED\"", block)
+        self.assertIn("qos_delta_state == \"ALREADY\"", block)
+        # No numeric coercion or ordering is introduced for decimal strings.
+        self.assertNotIn("int(", block)
+        self.assertNotIn("double(", block)
+        self.assertNotIn("float(", block)
+
+    def test_modify_postcondition_call_sites_bind_the_full_target(self) -> None:
+        call = re.compile(
+            r"(?ms)- predicate: modify\.mas\.qos_delta_applied\n"
+            r"          arguments:\n((?:            - [^\n]*\n)+)"
+        )
+        matches = call.findall(self.modify_procedure)
+        self.assertEqual(len(matches), 2, "m5 and verify-modify-completion must both bind")
+        expected = [
+            "m5.operation.output",
+            "context.request.qosFlowsDelta.qfi",
+            "context.request.qosFlowsDelta.fiveQi",
+            "context.request.qosFlowsDelta.gfbrUl",
+            "context.request.qosFlowsDelta.gfbrDl",
+            "context.request.qosFlowsDelta.mfbrUl",
+            "context.request.qosFlowsDelta.mfbrDl",
+        ]
+        for block in matches:
+            self.assertEqual([line.strip()[2:] for line in block.splitlines()], expected)
+
+    def test_modify_request_does_not_redeclare_unsupported_patterns(self) -> None:
+        # CA-SL v1alpha5 rejects `pattern` in a Skill-owned request Schema.
+        # The Owner contract owns the canonical decimal form; a non-canonical
+        # request can only fail the exact-equality Postcondition.
+        self.assertNotIn("pattern:", self.modify_request)
+        for field in ("qfi", "fiveQi", "gfbrUl", "gfbrDl", "mfbrUl", "mfbrDl"):
+            self.assertIn(field + ":", self.modify_request)
+
+    def test_modify_goal_scope_is_documented_as_pfcp_plus_dispatch(self) -> None:
+        skill = read(MODIFY / "SKILL.md")
+        mapping = read(MODIFY / "references/openamsm-operation-mapping.md")
+        for source in (skill, mapping):
+            self.assertIn("canonical decimal", source)
+            self.assertIn("PFCP_APPLIED", source)
+            self.assertIn("N1N2_DISPATCHED", source)
+            self.assertIn("RAN_MODIFICATION_CONFIRMED", source)
+            self.assertIn("TARGET_STATE_VERIFIED", source)
+        self.assertIn("target state verified", skill)
 
     def test_request_schemas_are_closed_and_only_carry_public_fields(self) -> None:
         for source in (self.modify_request, self.release_request):
