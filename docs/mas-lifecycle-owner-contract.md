@@ -46,7 +46,7 @@ The candidate Owner contract must publish SUCCEEDED and a narrowly defined FAILE
 | m0 SC.UPDATE_SM_CONTEXT | Existing exact SM Context is updated; declared lifecycle output is OPERATIONAL. | mas::sc.context-updated |
 | m3 UPN.MODIFY_UP_SESSION_INTENT | The no-tunnel intent branch is applied to the exact session; n4_seid is returned. This is not N3 synchronization. | mas::upn.modify-intent-applied |
 | m4 SSM.SIGNAL_UE_AN_MODIFY | The exact Modify signaling occurrence has the matching AN result and returns the declared tunnel tuple. | mas::ssm.modify-an-tunnel-ready |
-| m5 UPN.MODIFY_QOS_FLOWS | The exact QFI/5QI/GBR/MBR target is atomic. APPLIED means the PFCP Update QER was accepted and the native N1/N2 Modify was dispatched; ALREADY means the authoritative flow already equals the exact target. Neither means RAN/UE acceptance. | mas::upn.qos-delta-applied |
+| m5 UPN.MODIFY_QOS_FLOWS | The exact QFI/5QI/GBR/MBR target is atomic. APPLIED means the PFCP Update QER was accepted and the native N1/N2 Modify was dispatched; ALREADY means the authoritative flow already equals the exact target. The Postcondition compares all six target fields as canonical decimal strings, not just the state string. Neither state means RAN/UE acceptance. | mas::upn.qos-delta-applied |
 | r2 UPN.DELETE_UP_SESSION | The exact PFCP Session Deletion completes; released=1 is not returned merely because the delete request was sent. | mas::upn.up-session-released |
 | r3 SSM.SIGNAL_UE_AN_RELEASE | For triggers 1, 6 and 7, prove the source-defined no-signal branch. For triggers 2, 3, 4 and 5, wait for the matching AMF release confirmation. | mas::ssm.release-signal-settled |
 | r4 PA.DELETE_SM_POLICY | The exact PCF association is deleted or its absence is verified for the same Scope. | mas::pa.policy-association-released |
@@ -78,6 +78,11 @@ may confirm RAN acceptance, but it must not re-complete the MAS invoke. The
 Skill Predicate closes at PFCP_APPLIED + N1N2_DISPATCHED; a Host that needs
 RAN_MODIFICATION_CONFIRMED or TARGET_STATE_VERIFIED must record a separate,
 independent observation and must not derive it from `APPLIED`.
+
+For D5 m5 ALREADY, the reported target is the Owner's authoritative flow state
+from its exact-occurrence comparison, not an independent post-modification
+read. The Skill claims only that comparison. A durable Owner receipt and an
+exact-original reconcile remain Production gates.
 
 ## Host and source blockers
 

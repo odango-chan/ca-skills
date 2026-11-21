@@ -110,6 +110,12 @@ nodes:
         - predicate: modify.mas.qos_delta_applied
           arguments:
             - m5.operation.output
+            - context.request.qosFlowsDelta.qfi
+            - context.request.qosFlowsDelta.fiveQi
+            - context.request.qosFlowsDelta.gfbrUl
+            - context.request.qosFlowsDelta.gfbrDl
+            - context.request.qosFlowsDelta.mfbrUl
+            - context.request.qosFlowsDelta.mfbrDl
       routes:
         PASS: verify-modify-completion
         FAIL: SAFE_STOPPED
@@ -130,6 +136,12 @@ nodes:
         - predicate: modify.mas.qos_delta_applied
           arguments:
             - m5.operation.output
+            - context.request.qosFlowsDelta.qfi
+            - context.request.qosFlowsDelta.fiveQi
+            - context.request.qosFlowsDelta.gfbrUl
+            - context.request.qosFlowsDelta.gfbrDl
+            - context.request.qosFlowsDelta.mfbrUl
+            - context.request.qosFlowsDelta.mfbrDl
       routes:
         PASS: SUCCEEDED
         FAIL: SAFE_STOPPED

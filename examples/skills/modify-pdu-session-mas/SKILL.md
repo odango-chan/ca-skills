@@ -54,12 +54,31 @@ See the [pinned operation mapping](references/openamsm-operation-mapping.md), th
 
 A successful Invocation proves that the mandatory source-declared Modify Owner steps completed for the same SUPI / PSI / generation: the SM Context is operational, the m3 intent result is available, m4 has the matching AN tunnel, and m5 reports the exact requested QoS target as `APPLIED` (PFCP QER accepted and the native N1/N2 Modify handed to the relay) or `ALREADY` (the authoritative flow already equals the exact request).
 
+The final Postcondition does not trust the state string alone. It compares the
+Owner result against the full requested delta, field by field: `qfi`, `five_qi`,
+`gfbr_ul`, `gfbr_dl`, `mfbr_ul` and `mfbr_dl`. All are canonical decimal
+strings (base-10 digits, no sign, no leading zero) under the Owner contract and
+in the Owner result Schema, so the comparison uses CEL string equality as exact
+numeric equality without implicit conversion, floating point or precision loss.
+The Skill request Schema does not redeclare `pattern` because CA-SL v1alpha5
+rejects that keyword; a non-canonical request can only fail closed. `APPLIED` additionally requires `n1n2_dispatched == "1"`; `ALREADY`
+requires that no N1/N2 dispatch was reported. A missing field, a different
+target, `PFCP_APPLIED_N1N2_FAILED` or an unknown state cannot satisfy the Goal.
+
+For `ALREADY`, the reported target is the Owner's authoritative flow state at
+the time of its exact-occurrence comparison; it is not an independent
+post-modification observation. The Skill therefore claims only the Owner's
+exact-state comparison, and the Host keeps the narrower Development declaration
+instead of fabricating an independent read.
+
 **Completion scopes are distinct.** `APPLIED` is not RAN/UE acceptance:
 `PFCP_APPLIED` and `N1N2_DISPATCHED` are Owner facts on this Operation.
 `RAN_MODIFICATION_CONFIRMED` requires the separate N2 Modify Response, and
 `TARGET_STATE_VERIFIED` requires an independent Owner read (for example the
 SMF `/pdu-info` projection). Neither is produced by this Skill's Predicate, and
 the Host must not report the business Goal as "target state verified" merely
-because the Owner returned `APPLIED`.
+because the Owner returned `APPLIED`. The business Goal
+`pdu_session.qos_delta_applied` means exactly levels 1–2 (PFCP applied plus
+N1/N2 dispatched) on the exact target; levels 3–4 remain separate evidence.
 
 This is not proof of live 5GC qualification, user-plane traffic success, a CHF reservation, Host ResourceMap mutation, or completion of an unrelated Establishment callback.

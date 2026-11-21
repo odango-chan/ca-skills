@@ -17,6 +17,13 @@ properties:
     type: object
     additionalProperties: false
     required: [qfi, fiveQi, gfbrUl, gfbrDl, mfbrUl, mfbrDl]
+    # Numeric QoS values are base-10 strings. The Owner contract owns the
+    # canonical lexical form (no sign, no leading zero, QFI 1-63, bitrate
+    # bounds). CA-SL v1alpha5 does not accept JSON Schema `pattern` in a
+    # Skill-owned request Schema, so the Skill does not redeclare that
+    # constraint here. The Postcondition compares the Owner result with the
+    # request by exact string equality: a non-canonical request can only fail
+    # closed, never create a false PASS.
     properties:
       qfi:
         type: string

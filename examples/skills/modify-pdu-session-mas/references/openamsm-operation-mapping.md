@@ -36,7 +36,16 @@ OES m2 CA.UPDATE_CHARGING is optional and has no applicability predicate in the 
 | `qos_delta_state=APPLIED` | The PFCP Update QER was accepted and the native N1/N2 Modify was dispatched. |
 | `qos_delta_state=ALREADY` | The authoritative flow already equals the exact requested target; no PFCP was sent and no N1/N2 was dispatched. |
 | `n1n2_dispatched=1` | Present only for APPLIED; the relay send was checked. |
-| `qfi`, `five_qi`, `gfbr_*`, `mfbr_*` | The applied target after the transaction. |
+| `qfi`, `five_qi`, `gfbr_*`, `mfbr_*` | The applied target after the transaction, as canonical decimal strings. |
+
+The Postcondition compares every one of those target fields with the requested
+delta. The Owner contract reports canonical decimal strings (base-10, no sign,
+no leading zero), so equality is exact numeric equality; no implicit
+conversion, floating point or precision loss is involved. CA-SL v1alpha5 does
+not accept `pattern` in a Skill-owned request Schema, so a non-canonical
+request can only fail the comparison (never a false PASS). `ALREADY` is accepted only when the same
+six fields equal the request; the values are the Owner's authoritative flow
+state from its exact-occurrence comparison, not an independent observation.
 
 `APPLIED` is deliberately **not** RAN/UE acceptance. The state ladder is:
 
@@ -62,8 +71,8 @@ The current OpenAMSM agent_step path rejects standard Nsmf Update business admis
 | UE_INITIATED | Host-authenticated new UE modification; exact SUPI / PSI / generation | Source design only |
 | AMF_INITIATED | Host-authenticated new AMF business modification | Source design only |
 | NETWORK_TRIGGERED | Trusted internal Owner event; caller cannot choose the entryKind | Source design only |
-| m3 / m5 profile split | Separate input/output Schemas and Mutation receipts; m5 reuses the existing v0.2.0 profile | Static regression only |
-| QoS delta | QFI, target 5QI and the complete GBR/MBR set are validated as one atomic target; `gbr <= mbr` | Owner unit test PASS (isolated Development build) |
+| m3 / m5 profile split | Separate input/output Schemas and Mutation receipts; m5 uses the dedicated v0.3.0 QoS-delta profile, not the v0.2.0 `n3_synced` profile | Static regression only |
+| QoS delta | QFI, target 5QI and the complete GBR/MBR set are validated as one atomic target; `gbr <= mbr`; the Postcondition must match all six target fields and the dispatch state | Owner unit test PASS (isolated Development build) + negative Predicate tests |
 | m4 pending result | Complete only on the matching AN result for the original occurrence | Host / Owner test NOT_RUN |
 | Unknown result | SAFE_STOPPED; no retry, compensation or new Run | Route design only |
 | Establishment s10 callback | Resume the original Establishment Run; do not start Modify | Host test NOT_RUN |

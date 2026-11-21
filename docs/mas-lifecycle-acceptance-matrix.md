@@ -12,8 +12,8 @@
 | Exact OES output shape | r3, r4 and r6 have empty output objects; no synthetic fields | Pinned plan and source mapping |
 | Profile separation | m5 uses the dedicated v0.3.0 UPN.MODIFY_QOS_FLOWS contract; it does not reuse the v0.2.0 n3_synced profile | Candidate source-map comparison |
 | Profile separation | m3, m4, r3 and r6 use distinct typed callable profiles | Static regression test |
-| QoS delta target | m5 carries one closed QFI/5QI/GBR/MBR target; APPLIED/ALREADY plus the applied target is the result | Static regression test |
-| Completion scope | APPLIED is not RAN confirmation; TARGET_STATE_VERIFIED requires an independent read | Documentation + E2E evidence |
+| QoS delta target | m5 carries one closed QFI/5QI/GBR/MBR target; the Postcondition compares all six result fields with the request, plus the APPLIED dispatch state | Static + Predicate positive/negative tests |
+| Completion scope | Goal = PFCP_APPLIED + N1N2_DISPATCHED on the exact target; APPLIED is not RAN confirmation; TARGET_STATE_VERIFIED requires an independent read | Documentation + E2E evidence |
 | Optional steps | m2 and r1 are omitted because no applicability predicate exists | Pinned OES plan |
 | Compensation | r7 remains excluded; no compensation / replan / retry is authored | Pinned OES plan and static test |
 | Trigger values | Release uses numeric values 1..7 and Host-derived entryKind consistency | xact.h source pin and Predicate test |
