@@ -1,6 +1,13 @@
 # OpenAMSM MAS Modify / Release source mapping
 
-**Status: SOURCE-ALIGNED DESIGN / NOT_QUALIFIED / NOT_LINKABLE.** This document records the pinned OES plans, implementation behavior and required CA-facing callable profiles. It is not a published Owner ToolCatalog, trusted DependencySnapshot, mutation receipt or runtime acceptance result.
+> **HISTORICAL — 2026-11-22.** The OES plan mapping below is pinned to
+> `env-openamsm@594dec78` and plans `pdu-mod-v3` / `pdu-rel-v4`. It is retained as
+> a historical source mapping only. It does **not** describe the current Scheme C
+> execution order or entry routing (the current release sends N1/N2 first,
+> waits for both confirmations, then runs `r-pa → r-upn → r-se → r-sc`). See
+> `docs/scheme-c-3gpp-traceability.md` for the current, clause-verified mapping.
+
+**Status: HISTORICAL / SOURCE-ALIGNED DESIGN / NOT_QUALIFIED / NOT_LINKABLE.** This document records the pinned OES plans, implementation behavior and required CA-facing callable profiles. It is not a published Owner ToolCatalog, trusted DependencySnapshot, mutation receipt or runtime acceptance result.
 
 ## Pinned source baseline
 

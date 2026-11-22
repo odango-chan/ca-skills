@@ -2,6 +2,11 @@
 
 **Current status: SOURCE_STATIC_ONLY.** The v1alpha5 Procedures and source mapping are authored. No trusted MAS Owner publication, Host / Runtime acceptance or live 5GC E2E result is claimed.
 
+> Scope note: this matrix is the CA-SL authoring/qualification view. The real
+> OpenAMSM 5GC E2E results (UE Modify/Release, PFCP reconcile, restart) live in
+> `docs/scheme-c-3gpp-traceability.md` and are a **separate** verdict layer. A
+> 5GC behaviour PASS is not a CA-SL Runtime PASS, and vice versa.
+
 ## Static source acceptance
 
 | Check | Expected result | Current evidence |
