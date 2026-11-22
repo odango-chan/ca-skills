@@ -2,6 +2,11 @@
 
 **Current status: SOURCE_STATIC_ONLY.** The v1alpha5 Procedures and source mapping are authored. No trusted MAS Owner publication, Host / Runtime acceptance or live 5GC E2E result is claimed.
 
+> Scope note: this matrix is the CA-SL authoring/qualification view. The real
+> OpenAMSM 5GC E2E results (UE Modify/Release, PFCP reconcile, restart) live in
+> `docs/scheme-c-3gpp-traceability.md` and are a **separate** verdict layer. A
+> 5GC behaviour PASS is not a CA-SL Runtime PASS, and vice versa.
+
 ## Static source acceptance
 
 | Check | Expected result | Current evidence |
@@ -25,18 +30,18 @@
 
 | Scenario | Required behavior | Status |
 | --- | --- | --- |
-| Modify success | m0/m3/m4/m5 settle for the same SUPI / PSI / generation; all final Predicates and Evidence pass | Development E2E PASS on the isolated D5 stack (ca-agent-demo evidence); Production NOT_RUN |
+| Modify success | m0/m3/m4/m5 settle for the same SUPI / PSI / generation; all final Predicates and Evidence pass | Owner-level Scheme C UE Modify PASS on the isolated `ac` stack (`env-5gc-sim` evidence `20261122-scheme-c-ue-modify/`, `20261122-scheme-c-relay-fail-closed/`); **CA-SL Runtime NOT_RUN** — the two verdict layers are not merged |
 | QoS delta target state | Independent /pdu-info equals the requested QFI/5QI/GBR/MBR and the PFCP QER carries the same bitrates | Development E2E PASS (isolated stack) |
 | UE-initiated Modify | Host authenticates a new UE UpdateSMContext business action | Host test NOT_RUN |
 | AMF-initiated Modify | Host authenticates a new AMF business action, not a continuation callback | Host test NOT_RUN |
 | Network-triggered Modify | Only a trusted internal Owner event may select this entry variant | Host test NOT_RUN |
-| Release success | r2/r3/r4/r5/r6 settle for the same SUPI / PSI / generation | Runtime NOT_RUN |
-| UE-initiated Release | trigger=2; matching release signaling completes | Owner / Host test NOT_RUN |
+| Release success | r2/r3/r4/r5/r6 settle for the same SUPI / PSI / generation | **CA-SL Runtime NOT_RUN.** Owner-level Scheme C UE Release PASS on the isolated `ac` stack (`env-5gc-sim` evidence `20261123-scheme-c-reconcile/`, `20261123-scheme-c-release-conformance/`); this is not a CA-SL Runtime verdict |
+| UE-initiated Release | trigger=2; matching release signaling completes | Owner-level Scheme C E2E PASS (`0xd1 → 0xd3 → 0xd4`, N2 REL CMD/RSP, PFCP 54/55, context removed; §5.6 conformance determination); **CA-SL Host test NOT_RUN** |
 | AMF-initiated Release | trigger=6 or 7; source-defined no-N1/N2 branch completes | Owner / Host test NOT_RUN |
 | Network-triggered Release | trigger=1, 3, 4 or 5; source-specific signaling behavior is respected | Owner / Host test NOT_RUN |
-| PFCP deletion | r2 returns released=1 only after the matching PFCP delete completion | Owner test NOT_RUN |
-| SSM Release callback | r3 completes only on no-signal proof or matching AMF release confirmation | Owner / Host test NOT_RUN |
-| PCF deletion | r4 evidence distinguishes DELETED from NOT_PRESENT | Owner test NOT_RUN |
+| PFCP deletion | r2 returns released=1 only after the matching PFCP delete completion | Owner-level PASS on the real `ac` stack (one real PFCP Session Deletion; timeout/UNKNOWN retained and reconciled); **CA-SL Owner test NOT_RUN** |
+| SSM Release callback | r3 completes only on no-signal proof or matching AMF release confirmation | Owner-level Scheme C PASS for the two-confirmation (N1 `0xd4` / N2 REL RSP) path; the no-signal trigger=6/7 path remains unimplemented (`env-openamsm#10`); **CA-SL Host test NOT_RUN** |
+| PCF deletion | r4 evidence distinguishes DELETED from NOT_PRESENT | Owner-level PASS on the real `ac` stack (real `npcf-smpolicycontrol` delete); evidence distinguishes the outstanding/absent cases; **CA-SL Owner test NOT_RUN** |
 | Release event | r6 proves only the local in-memory marker; no 3GPP Status Notify claim | Source inspection only |
 | DENIED | No Owner dispatch; first-step denial may end FAILED, later denial SAFE_STOPPED | Runtime NOT_RUN |
 | OUTCOME_UNKNOWN | SAFE_STOPPED; no blind retry, compensation or new Run | Owner / Runtime NOT_RUN |
