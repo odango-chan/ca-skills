@@ -49,7 +49,7 @@ anchors by +13 lines.
 | Evidence set | Owner build identity | Notes |
 | --- | --- | --- |
 | `PEER:artifacts/acceptance/20261122-scheme-c-release-reliability/` | base `efb5d17` + patches `0001`,`0006`–`0019`; `build_patch_identity = d17699bf3fe8198076bafb8c1c491b85b8e7e8dd00176e0912465fd93207502e` | matches HEAD `c4f2fb2` content (0015–0019 are squashed into HEAD) |
-| `PEER:artifacts/acceptance/20261123-scheme-c-reconcile/` | `build_patch_identity = 1f0b52ba9c9acc8497a06bada5d79cb3e4b228416d95de8a788963df40e50948`; patches `0001`, `0006`–`0021` (includes `0020` UPF `/session-info`, `0021` reconcile/restart) | committed evidence; `build-identity.json` + `run-manifest.json` + `SHA256SUMS` |
+| `PEER:artifacts/acceptance/20261123-scheme-c-reconcile/` | `build_patch_identity = 93fcace589c40fc589bdcca947ab2a9108220dd96a05bf5e74379a7a88f9212b`; patches `0001`, `0006`–`0021` (includes `0020` UPF `/session-info`, `0021` reconcile/restart) | committed evidence; `build-identity.json` + `run-manifest.json` + `SHA256SUMS` |
 | current `OWNER:build/openamsm-source/` | HEAD + untracked `0020`, `0021` | contains `src/upf/session-info.c` and `src/smf/mas/common/mas-reconcile-sbi.c` |
 
 **Traceability defect (reported, not fixed):** `PEER:artifacts/acceptance/20261122-scheme-c-release-reliability/build-identity.json`
