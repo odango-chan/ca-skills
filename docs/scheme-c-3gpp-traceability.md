@@ -1,10 +1,13 @@
-# Scheme C UE Modify / Release — 3GPP → CA-SL → MAS → Source Traceability (DRAFT)
+# Scheme C UE Modify / Release — 3GPP → CA-SL → MAS → Source Traceability (FINAL)
 
-**Status: SOURCE-ALIGNED DRAFT — NOT_QUALIFIED — NOT_LINKABLE.**
-This is the traceability document for the current Scheme C implementation. It
-is **not** an Owner publication, **not** a
-trusted ToolCatalog / CapabilityContract, **not** a Runtime or Host acceptance
-result, and **not** a product qualification statement.
+**Status: FINAL SOURCE-ALIGNED TRACEABILITY — NOT_QUALIFIED — NOT_LINKABLE.**
+This is the final traceability document for the Scheme C UE Modify/Release
+implementation pinned by `env-openamsm#21` and `env-5gc-sim#79`. It is **not** an
+Owner publication, **not** a trusted ToolCatalog / CapabilityContract, **not** a
+Runtime or Host acceptance result, and **not** a product qualification
+statement. §5.6 records the final TS 23.502 §4.3.4.2 conformance determination
+and the disclosed residuals; it is a protocol/behavior determination over the
+Owner+Mock-AMF slice, not a CA-SL qualification.
 
 Hard rules applied in this document:
 
@@ -30,9 +33,9 @@ Hard rules applied in this document:
 
 | Alias used below | Path | Identity observed this session |
 | --- | --- | --- |
-| `OWNER` | `env-openamsm-qdelta/` | PR #21, branch `feat/owner-qos-delta`, HEAD `c4f2fb2` (commit body enumerates patches `0015`–`0019`), plus **untracked** working patches `0020`–`0021` in `patches/openamsm/`; built tree `build/openamsm-source/` |
-| `PEER` | `.agent-tmp/runtime-consumers/ca-5gc-sim/` (= `env-5gc-sim`) | PR #79; branch observed as `feat/d5-ue-modify-peer` |
-| `CASL` | `ca-skills/` | CA-SL v1alpha5 docs + example Skill packages |
+| `OWNER` | `env-openamsm-qdelta/` | PR #21, branch `feat/owner-qos-delta`, HEAD `0ce6cf8`; patches `0001`, `0006`–`0021` are all committed in `patches/openamsm/`; generated tree `build/openamsm-source/` |
+| `PEER` | `.agent-tmp/runtime-consumers/ca-5gc-sim/` (= `env-5gc-sim`) | PR #79; branch `feat/d5-ue-modify-peer`, HEAD `2d5406c` plus the conformance evidence commit |
+| `CASL` | `ca-skills/` | CA-SL v1alpha5 docs + example Skill packages (PR #83) |
 
 Cross-repo locators are written as `OWNER:<path>`, `PEER:<path>`,
 `CASL:<path>`. `build/openamsm-source/` is a **generated** tree
@@ -48,20 +51,23 @@ anchors by +13 lines.
 
 | Evidence set | Owner build identity | Notes |
 | --- | --- | --- |
-| `PEER:artifacts/acceptance/20261122-scheme-c-release-reliability/` | base `efb5d17` + patches `0001`,`0006`–`0019`; `build_patch_identity = d17699bf3fe8198076bafb8c1c491b85b8e7e8dd00176e0912465fd93207502e` | matches HEAD `c4f2fb2` content (0015–0019 are squashed into HEAD) |
-| `PEER:artifacts/acceptance/20261123-scheme-c-reconcile/` | `build_patch_identity = 93fcace589c40fc589bdcca947ab2a9108220dd96a05bf5e74379a7a88f9212b`; patches `0001`, `0006`–`0021` (includes `0020` UPF `/session-info`, `0021` reconcile/restart) | committed evidence; `build-identity.json` + `run-manifest.json` + `SHA256SUMS` |
-| current `OWNER:build/openamsm-source/` | HEAD + untracked `0020`, `0021` | contains `src/upf/session-info.c` and `src/smf/mas/common/mas-reconcile-sbi.c` |
+| `PEER:artifacts/acceptance/20261122-scheme-c-release-reliability/` | base `efb5d17` + patches `0001`,`0006`–`0019`; `build_patch_identity = d17699bf3fe8198076bafb8c1c491b85b8e7e8dd00176e0912465fd93207502e` | superseded by the 2026-11-23 sets |
+| `PEER:artifacts/acceptance/20261123-scheme-c-reconcile/` | `build_patch_identity = 93fcace589c40fc589bdcca947ab2a9108220dd96a05bf5e74379a7a88f9212b`; patches `0001`, `0006`–`0021` | committed evidence; `build-identity.json` + `run-manifest.json` + `SHA256SUMS` |
+| `PEER:artifacts/acceptance/20261123-scheme-c-release-conformance/` | the **same** `build_patch_identity = 93fcace589c40fc589bdcca947ab2a9108220dd96a05bf5e74379a7a88f9212b` | fresh real-`ac` release/ordering E2E run for the §5.6 determination; no owner source change |
+| current `OWNER:build/openamsm-source/` | HEAD `0ce6cf8` + patches `0001`, `0006`–`0021`; rebuild reproduces `93fcace…` | contains `src/upf/session-info.c` and `src/smf/mas/common/mas-reconcile-sbi.c` |
 
-**Traceability defect (reported, not fixed):** `PEER:artifacts/acceptance/20261122-scheme-c-release-reliability/build-identity.json`
-records `source.tree_sha256 = 7dfe5a3db4d4bc920bfaa7b844b80336698f90f6c7086b060b93afa4c8556c8d`,
+**Build-identity note (resolved wording):** the earlier evidence sets record
+`source.tree_sha256 = 7dfe5a3db4d4bc920bfaa7b844b80336698f90f6c7086b060b93afa4c8556c8d`,
 which is byte-identical to the **pristine upstream import** digest documented in
-`OWNER:docs/upstream.md:14` (imported 2026-11-16, before any patch existed).
-A patched tree cannot hash to the pristine digest, so `tree_sha256` in that
-artifact does **not** identify the build under test. The only distinguishing
-field is `build_patch_identity` plus the enumerated patch list. Any consumer that
-keys on `tree_sha256` will wrongly conclude the evidence was produced on
-unpatched source. → treat `build_patch_identity` as authoritative and treat
-`tree_sha256` as `UNVERIFIED`/suspect until recomputed.
+`OWNER:docs/upstream.md` (imported before any patch existed). A patched tree
+cannot hash to the pristine digest, so `tree_sha256` in those artifacts does
+**not** identify the build under test. The authoritative identity is
+`build_patch_identity` plus the enumerated patch list; `tree_sha256` is retained
+only as the upstream-import digest, not as a patched-build digest.
+`./bin/env-openamsm build` on the final head re-printed
+`build patch identity: 93fcace…`, so the final evidence is reproducible from the
+committed patch set.
+
 
 ---
 
@@ -270,43 +276,45 @@ Note: the Establishment `SE.EMIT_EVENTS`/`UPN.MODIFY_UP_SESSION` occurrences are
 | E1 | SMF-initiated PDU Session Release (internal trigger; `repo-cited, unverified`: `OWNER:src/smf/gsm-sm.c:3365` cites "TS 23.502 Section 4.3.4.3") | r2→r6 with `entryKind=NETWORK_TRIGGERED`, `trigger=5` | would need `trigger=SMF_INITIATED` (5) | **no Scheme C entry exists**: no SBI route, no internal event hook that reaches `run_c_release_request`; `ssm_ue.c:289-290` forces trigger 2; `_release_cleanup` forces `"2"` | — (gap) | n/a | none | **NOT_RUN** (no gate; gap) | **NOT_RUN** |
 | E2 | Operator/explicit recovery as the only current substitute | — | `POST /nnwagent-admin/v1/release-recovery` | `OWNER:tools/nw-agent/server.py`, `orch_engine.py` (`recover_release`) | `CA_EXTENSION` | resumes only `r-sc`; refuses when pre-confirmation is incomplete, generation/txn mismatch, PFCP not `ACCEPTED`, or reconcile `UNRESOLVED`/`CONFIRMED_PRESENT`; `409` otherwise | `PEER:.../runs/reconcile-deleted/checks.json` (`recovery_status 200`, `status COMPLETED`) | **PASS** for the proven resume scope | **NOT_RUN** |
 
-### 4.6 Verdict roll-up (verbatim from the evidence artifact)
+### 4.6 Verdict roll-up (final evidence set)
 
-From `PEER:artifacts/acceptance/20261122-scheme-c-release-reliability/evidence.md:7-25`:
+From `PEER:artifacts/acceptance/20261123-scheme-c-reconcile/run-manifest.json`
+(final build `93fcace…`, 17 gates) plus the same-build conformance re-run in
+`PEER:artifacts/acceptance/20261123-scheme-c-release-conformance/`:
 
 | Gate | Verdict |
 | --- | --- |
+| `UE_ESTABLISH_BASELINE` | PASS |
 | `SCHEME_C_UE_MODIFY_POSITIVE` | PASS |
 | `SCHEME_C_RELAY_FAIL_CLOSED` | PASS |
-| `SCHEME_C_UE_RELEASE_POSITIVE` | PASS |
-| `SCHEME_C_UE_RELEASE_ORDERING_AND_DUPLICATES` | PASS |
-| `SCHEME_C_PFCP_DELETION_TIMEOUT` | PASS |
+| `SCHEME_C_UE_RELEASE_POSITIVE` | PASS (re-run on the same build in the conformance set) |
+| `SCHEME_C_UE_RELEASE_ORDERING_AND_DUPLICATES` | PASS (re-run on the same build in the conformance set) |
 | `SCHEME_C_RELEASE_FINALIZE_FAILURE_INJECTION` | PASS |
+| `SCHEME_C_PFCP_DELETION_TIMEOUT` | PASS |
 | `CONCURRENT_ISOLATION_DIFFERENT_SUPI_SAME_PSI` | PASS |
 | `CONCURRENT_ISOLATION_SAME_SUPI_DIFFERENT_PSI` | PASS |
 | `AGENT_RESTART_AFTER_BUILD` | PASS |
 | `AGENT_RESTART_BEFORE_CLEANUP` | PASS |
 | `AGENT_RESTART_DURING_PFCP_DELETE` | PASS |
 | `AGENT_RESTART_BEFORE_SC_FINALIZE` | PASS |
-| `CONCURRENT_RELEASE_VS_PFCP_TIMEOUT` | NOT_RUN (single-UPF lab limitation) |
-| `PFCP_UNKNOWN_EXPLICIT_RECONCILE` | **PASS** (2026-11-23, real ac E2E; §8.4) |
-| `PFCP_UNKNOWN_RECONCILE_CONFIRMED_PRESENT` | **PASS** (context retained, no finalize) |
-| `CONCURRENT_RELEASE_VS_PFCP_TIMEOUT` | **PASS** |
-| `AGENT_RESTART_EXPLICIT_RECONCILE` | BLOCKED |
-| `NETWORK_REQUESTED_RELEASE_SM_CONTEXT` | BLOCKED (`env-openamsm#10`) |
-| `CA_AGENT_PROVIDER_SKILL_E2E` | NOT_RUN |
+| `PFCP_UNKNOWN_EXPLICIT_RECONCILE` | PASS (real ac E2E; §8.4) |
+| `PFCP_UNKNOWN_RECONCILE_CONFIRMED_PRESENT` | PASS (context retained, no finalize) |
+| `AGENT_RESTART_EXPLICIT_RECOVERY` | PASS |
+| `CONCURRENT_RELEASE_VS_PFCP_TIMEOUT` | PASS |
+| `NETWORK_REQUESTED_RELEASE_SM_CONTEXT` | BLOCKED (`env-openamsm#10`, out of scope) |
+| `CA_AGENT_PROVIDER_SKILL_E2E` | NOT_RUN (out of scope) |
 
 **Every row above is a 5GC/Owner-behaviour verdict. None of them is a CA-SL
 Skill, Procedure, Runtime or Host verdict.** The CA-SL layer has no execution
 evidence at all.
 
-Also note the contradiction that must be resolved before promotion:
-`CASL:docs/mas-lifecycle-acceptance-matrix.md:33` still states
-"Release success … Runtime NOT_RUN" and `:28` claims a *development* E2E PASS
-for Modify "on the isolated D5 stack (ca-agent-demo evidence)" — a different
-stack from the one evidencing `SCHEME_C_UE_MODIFY_POSITIVE`. The CA-SL matrix is
-therefore **stale** relative to `PEER` evidence, and the two must not be merged
-into one verdict.
+**Acceptance-matrix alignment (resolved).** `CASL:docs/mas-lifecycle-acceptance-matrix.md`
+is the CA-SL authoring/qualification view. Its Owner/Host rows remain `NOT_RUN`
+for the CA-SL layer, but the Modify row no longer claims a development E2E PASS
+from a different stack; it now points at the Owner-level Scheme C evidence as
+**Owner-level only, not a CA-SL Runtime verdict**. The two verdict layers stay
+separate and are not merged into one PASS.
+
 
 ---
 
@@ -357,25 +365,29 @@ Authoritative source: `OWNER:build/openamsm-source/tools/nw-agent/orch_engine.py
 only from `run_c_release_confirm` (`orch_engine.py:1116`) once
 `release_ready == "1"`.
 
-**Standard-order deviation (explicit, not silent).** TS 23.502 §4.3.4.2 runs
-the N4 Session Release (steps 2a/2b) **before** the N1 Release Command / N2
-Resource Release (steps 3–5): the SMF releases the user plane and then asks the
-UE/RAN to release the session. Scheme C sends the N1/N2 command first, waits
-for **both** confirmations (`0xD4` and `PDU_RES_REL_RSP`), and only then runs
-`r-pa → r-upn → r-se → r-sc`. This is a deliberate `CA_EXTENSION` ordering
-deviation, adopted so that an unconfirmed UE/RAN release never destroys the
-user plane prematurely and so that the single PFCP deletion is bound to a
-confirmed generation/transaction.
+**Standard-order deviation (explicit, not silent).** TS 23.502 §4.3.4.2 places
+the N4 Session Release (steps 2a/2b) before the N1 Release Command / N2 Resource
+Release (steps 3–5) in the figure and step numbering: the SMF releases the user
+plane and then asks the UE/RAN to release the session. Scheme C sends the N1/N2
+command first, waits for **both** confirmations (`0xD4` and `PDU_RES_REL_RSP`),
+and only then runs `r-pa → r-upn → r-se → r-sc`. This is a deliberate ordering
+choice, adopted so that an unconfirmed UE/RAN release never destroys the user
+plane prematurely and so that the single PFCP deletion is bound to a confirmed
+generation/transaction.
 
 Consequences, stated for review:
 
 - The user-plane resources remain allocated until the UE/RAN confirm (longer
-  than the normative order). The target PFCP session is still deleted exactly
+  than the reference sequence). The target PFCP session is still deleted exactly
   once, and only after both confirmations.
 - The deviation does **not** authorize a retry, a second deletion, or a
   finalize without proof; the PFCP gate is unchanged.
-- Product acceptance of this deviation is required before claiming normative
-  step-order conformance. It is not an unexplained gap.
+- §5.6 classifies the relative order of steps 2, 3 and 12 as a reference
+  sequence without a relative-order "shall", records the observable
+  consequences (including that a PCF failure precedes and can block the N4
+  release), and concludes that no code change is warranted for the formal order.
+  "Normative step-order conformance" is **not** claimed; the completion
+  requirements are claimed only for the exercised configuration.
 
 ### 5.3 Divergence table
 
@@ -424,7 +436,117 @@ fault-injection run (`PEER:.../runs/finalize-failure/checks.json` /
 
 ---
 
-## 6. SKILL entry-semantics table
+## 5.6 TS 23.502 §4.3.4.2 conformance determination (final)
+
+**Scope of this determination.** The **UE-requested** release sub-case
+(step 1a), non-roaming / LBO, **User Plane connection active**, **dynamic PCC
+applied**, one PDU Session of one UE — exactly the configuration exercised by
+the `ac` E2E. Clause text below is read from TS 23.502 V19.9.0 (2026-09)
+§4.3.4.1 and §4.3.4.2 (see §2.3). This determination is a protocol/behavior
+verdict over the Owner+Mock-AMF slice; it is not a CA-SL qualification.
+
+### 5.6.1 Relation classification
+
+| ID | Relation | Class | Normative basis |
+| --- | --- | --- | --- |
+| R1 | The SMF releases the IP address/prefix and the user-plane resources: an N4 Session Release Request to the UPF(s), its response (2a/2b), exactly once per UPF. | **mandatory occurrence** | §4.3.4.2 step 2; §4.3.4.1 |
+| R2 | For a 1a/1b/1d/1e trigger the SMF creates the N1 PDU Session Release Command. | **mandatory occurrence** | step 3 |
+| R3 | The N2 SM Resource Release request is included **iff** the UP connection is activated. "If the User Plane connection of the PDU Session is activated, the message sent by the SMF to the AMF **shall** include N2 SM Resource Release request. If … not activated, … **shall not** include …" (UE-initiated: included when active). | **mandatory conditional** | step 3, step 3a |
+| R4 | The N1 Release Complete exchange (steps 8–10) and the N2 Resource Release Ack exchange (steps 6–7) are **not ordered** against each other. | **explicitly concurrent** | step 10 note: "Steps 8-10 may happen before steps 6-7." |
+| R5 | The SMF waits for the replies to the N1 and N2 information "as needed", then invokes `Nsmf_PDUSession_SMContextStatusNotify`; the AMF releases the association. | **completion gate** | step 11 |
+| R6 | If dynamic PCC applies, the SMF invokes the SM Policy Association Termination (clause 4.16.6). | **conditional occurrence** | step 12 |
+| R7 | If it is the last PDU Session for the associated (DNN, S-NSSAI), the SMF unsubscribes from UDM Session Management Subscription data notifications. | **conditional occurrence** | step 14 |
+| R8 | The SMF invokes `Nudm_UECM_Deregistration` including the DNN and PDU Session ID. | **mandatory occurrence** | step 15 |
+| R9 | All resources associated with the PDU Session (IP/prefix, UPF N3/N9/N19, access resources) are released; the SMF notifies the PCF and the DN. | **completion** | §4.3.4.1 |
+| O1 | The figure and step numbering place the N4 release (2) before the N1/N2 command (3), and PCF termination (12) after the N1/N2 replies (11). | **reference sequence; no relative-order "shall"** | Figure 4.3.4.2-1 and step numbering. The step text contains no "shall" ordering 2 vs 3 or 2 vs 12. |
+
+Why O1 is classified as reference sequence rather than a mandatory precedence:
+§4.3.4.2 uses "shall" for the *inclusion condition* of N2 (R3) and for the
+obligations in steps 11–15; it does not state that the SMF shall send the N4
+Session Release Request before the N1 Release Command, nor that policy
+termination shall not precede the N4 release. The one explicit concurrency
+statement (R4) shows the clause calls out ordering when it intends to constrain
+it. The determination therefore evaluates the implementation against R1–R9 and
+records the O1 difference as a sequencing choice with its observable
+consequences, instead of treating the figure's row order as a separate failure.
+
+### 5.6.2 Actual Scheme C order (runtime trace)
+
+The final build executes (`PEER:…/20261123-scheme-c-release-conformance/runs/normal/mas-trace.ndjson`):
+
+```
+SSM parse 0xD1  -> SSM build N1 0xD3 + N2 PDU_RES_REL_CMD   (steps 3/3a)
+N1 Release Complete 0xD4 / N2 PDU_RES_REL_RSP, either order  (steps 6-10)
+both accepted -> PA.DELETE_SM_POLICY                          (step 12)
+              -> UPN.DELETE_UP_SESSION (real PFCP 54/55)      (step 2)
+              -> SE.EMIT_EVENTS
+              -> SC.RELEASE_SM_CONTEXT (UDM SDM unsub, UDM UECM dereg, clear) (steps 14/15 + context removal)
+```
+
+The status notification of step 11 is skipped because the Scheme C Agent has no
+outbound AMF client (`smf_status_notify_skipped=true` in the same run's
+`run-manifest.json`).
+
+### 5.6.3 Verdict per relation
+
+| ID | Verdict in the exercised configuration | Evidence |
+| --- | --- | --- |
+| R1 | **PASS** — one real PFCP Session Deletion transaction (54/55), UPF session count 0, `/pdu-info` empty; no second deletion on duplicates | `runs/normal/` (`pfcp.pcap`, `mas-trace.ndjson`, `upf-metrics-after.txt`), `runs/negative/` |
+| R2 | **PASS** — Owner-built N1 `0xD3` returned in the UpdateSMContext multipart response | `runs/normal/mas-trace.ndjson` (`release_command_built`) |
+| R3 | **PASS for the active-UP sub-case / NOT_IMPLEMENTED for the inactive-UP branch** — the Owner builds and returns the N2 Resource Release Command unconditionally; a deactivated-UP release (N2 must be omitted) is not an implemented/exercised Scheme C branch | `OWNER:src/smf/mas/ssm/ssm_ue.c` `ssm_release_build_command`; disclosed residual §5.6.5 |
+| R4 | **PASS** — N1-first and N2-first are both accepted; early/duplicate confirmations are rejected without mutating | `runs/negative/checks.json` |
+| R5 | **PARTIAL** — the Agent waits for both confirmations (stricter than "as needed"), so the gate itself is satisfied; the `SMContextStatusNotify` of step 11 is not sent (no AMF client in the Scheme C topology) and is not claimed | `runs/normal/run-manifest.json` (`smf_status_notify_skipped=true`); disclosed residual §5.6.5 |
+| R6 | **PASS** — real `npcf-smpolicycontrol` association delete | `runs/normal/mas-trace.ndjson` (`npcf_smpolicy_delete`), SMF log |
+| R7 | **PARTIAL** — the implementation gates SDM unsubscribe on `UDM_SDM_SUBSCRIBED(sess)`, not on an explicit "last PDU Session for (DNN, S-NSSAI)" predicate; in the single-session `ac` scenario the two are equivalent, in a multi-session UE they may differ | `OWNER:src/smf/mas/sc/session_context.c` `mas_session_context_unsubscribe_sm_data`; disclosed residual §5.6.5 |
+| R8 | **PASS** — `Nudm_UECM_Deregistration` invoked before finalize | `runs/normal/mas-trace.ndjson` (`nudm_uecm_dereg`) |
+| R9 | **PASS for IP/UPF/access; DN notification NOT_MODELED** — SMF session removed, UPF session 0, `/pdu-info` empty; there is no DN entity in the `ac` topology, so the DN notification half of R9 is not exercised | `runs/normal/run-manifest.json`, `upf-metrics-after.txt`; disclosed residual §5.6.5 |
+| O1 | **DEVIATION (disclosed)** — signalling is sent before the N4 release, and PCF termination runs before the N4 release. Consequences: (i) the user plane is retained until both confirmations; (ii) a PCF termination failure stops cleanup before the N4 release, so a policy failure can block the user-plane release (the release is reported `FAILED`/`UNKNOWN`, never success, and the context is retained); (iii) there is no "N1 not transferred" completion path, so a UE/RAN that never confirms leaves the release pending | `runs/normal/mas-trace.ndjson`, `runs/negative/`, `OWNER:tools/nw-agent/orch_engine.py` `_release_cleanup` |
+
+### 5.6.4 Conclusion
+
+In the exercised configuration (UE-requested, active UP, dynamic PCC, one
+session), **no mandatory relation R1–R9 is missing or violated**: the N4
+release, the N1/N2 command and its confirmations, PCF termination, UDM SDM/UECM
+cleanup and the SM-context removal all occur, exactly once where required, and
+the explicit concurrency allowance R4 is honoured. The remaining items are
+**conditional-branch / topology gaps** (`R3` inactive-UP branch, `R5` status
+notify, `R7` last-session predicate, `R9` DN notification), which are disclosed
+and not claimed, plus the **sequencing deviation O1**, which is not backed by an
+explicit relative-order "shall".
+
+**No code change is warranted for the formal step order, and none was made.**
+The final build stays at `93fcace…`; the Scheme C `SSM → PA → UPN → SE → SC`
+chain is retained. Reordering the N4 release ahead of the signalling would
+change the converged P3 release state machine (generation/transaction binding,
+PFCP `UNKNOWN` reconcile, finalize gate, restart recovery) for no mandatory
+clause, which is exactly the kind of formal reordering this review must not
+force.
+
+### 5.6.5 Disclosed residuals (not claimed as conformant)
+
+1. **Inactive-UP branch (R3).** `ssm_release_build_command` does not test UP
+   activation; the N2 Resource Release Command is always built. Only the
+   active-UP path is exercised. A deactivated-UP release would currently include
+   N2 where the clause says it shall not.
+2. **Step 11 status notification (R5).** `smf_sbi_send_sm_context_status_notify`
+   is skipped when Scheme C has no AMF client. The AMF-side association release
+   is not claimed; the `ac` Mock AMF does not receive the notification.
+3. **Last-session predicate (R7).** The SDM unsubscribe is gated on the
+   subscription state, not on a per-(DNN, S-NSSAI) last-session computation.
+4. **DN notification (R9).** No DN entity exists in the `ac` topology.
+5. **Failure ordering (O1).** PCF termination precedes the N4 release, so a PCF
+   failure prevents the N4 release; the path fails closed and never reports a
+   completed release. There is no normative PCF-failure behaviour in §4.3.4.2.
+6. **No N1-not-transferred completion path.** The Agent requires both
+   confirmations; the step 3b "N1 SM Message Not Transferred" path that lets the
+   procedure complete without steps 4–10 is not modelled through the Scheme C
+   facade.
+
+These residuals bound the claim. They do not change the §5.6.4 conclusion for
+the exercised configuration, and they are not presented as PASS.
+
+---
+
 
 Entry semantics must stay distinct. In particular **UE Release is not an
 "UpdateSMContext release operation"**: the standard entry operation is
@@ -518,17 +640,14 @@ only reject or stay silent.
    `CONFIRMED_DELETED`. `after_build` / `before_cleanup` stay `BLOCKED`.
 6. **PFCP `UNKNOWN` explicit reconcile is implemented and proven on the real
    ac stack** (§8.4). `CONFIRMED_PRESENT` and `UNRESOLVED` keep every block.
-7. **State retention is bounded, but the evidence narrative contradicts the
-   code.** `PEER:…/20261122-…/evidence.md:237-239` states "the Agent never
-   terminates a completed assoc (unbounded memory growth)". The current tree
-   does the opposite: `run_c_release_confirm` calls
+7. **State retention is bounded.** `run_c_release_confirm` calls
    `terminate_assoc(..., outcome="COMPLETED")`
-   (`orch_engine.py:1135`), which moves the entry to a **bounded** tombstone
-   (`ASSOC_TOMBSTONE_MAX = 512`, `ASSOC_MAX_ACTIVE = 4096`,
-   `orch_engine.py:33-34, 563-565`), and `sweep_assocs()` runs on every business
-   entry (`server.py:1004`). Treat the evidence sentence as **stale** and
-   re-verify before quoting either version. Remaining true limitation: the
-   Owner idempotency cache is process-local.
+   (`OWNER:tools/nw-agent/orch_engine.py`), which moves the entry to a **bounded**
+   tombstone (`ASSOC_TOMBSTONE_MAX = 512`, `ASSOC_MAX_ACTIVE = 4096`), and
+   `sweep_assocs()` runs on every business entry (`server.py`). The earlier
+   evidence sentence "the Agent never terminates a completed assoc (unbounded
+   memory growth)" was **stale** and is superseded by this reading. Remaining
+   true limitation: the Owner idempotency cache is process-local.
 
 ### 8.3 Semantics that must not be over-read
 
@@ -578,22 +697,23 @@ request is real and the SMF reaches its real timeout path):
 Reconcile never sends PFCP and never removes a context. A second destructive
 operation stays impossible: the retry predicate still sees `UNKNOWN`.
 
-### 8.5 Traceability defects to fix before promotion
+### 8.5 Traceability defects found earlier — disposition
 
 12. `build-identity.json` `source.tree_sha256` equals the pristine import digest
-    (§0.2) — cannot identify the patched build.
+    (§0.2) — **resolved by wording**: the field is documented as the upstream
+    import digest; `build_patch_identity` is authoritative.
 13. The 2026-11-23 reconcile evidence set is committed with `build-identity.json`,
     `run-manifest.json` and `SHA256SUMS`; cite its `build_patch_identity`, not
-    the pristine `source.tree_sha256`.
-14. `CASL:docs/mas-lifecycle-acceptance-matrix.md` is stale versus `PEER`
-    evidence (§4.6) and mixes two different stacks' PASS claims.
+    the pristine `source.tree_sha256`. **Done** in §0.2 and §9.
+14. `CASL:docs/mas-lifecycle-acceptance-matrix.md` was stale versus `PEER`
+    evidence and mixed two stacks' PASS claims — **fixed** in the same change
+    set (§4.6 note).
 15. The historical mapping's "source-plan defect" (`start_inputs: {}` while
     r2/r3 reference `trigger`) no longer blocks anything in Scheme C, because
-    Scheme C does not use that plan for UE-requested release. Keep it as a
-    historical note; do not present it as a live blocker for §4.3.
-16. `PEER:…/evidence.md` "Remaining limitations" still describes unbounded
-    association retention, which the current tree contradicts (§8.2 item 7).
-    Re-check and correct before quoting.
+    Scheme C does not use that plan for UE-requested release. Kept as a
+    historical note; not a live blocker for §4.3.
+16. The stale "unbounded association retention" sentence in the 2026-11-22
+    evidence narrative is superseded by §8.2 item 7 (bounded tombstones).
 
 ---
 
@@ -601,51 +721,56 @@ operation stays impossible: the retry predicate still sees `UNKNOWN`.
 
 | Purpose | Locator |
 | --- | --- |
-| Gate verdict table, build identity, topology | `PEER:artifacts/acceptance/20261122-scheme-c-release-reliability/evidence.md` |
-| Build identity JSON | `PEER:…/20261122-…/build-identity.json` |
-| Patch snapshots used by that run | `PEER:…/20261122-…/patches/0015…0019` + `SHA256SUMS` |
-| Release positive (real N1/N2/PFCP) | `PEER:…/20261122-…/runs/normal/` (`mas-trace.ndjson`, `mock-amf.log`, `pfcp.pcap`, `run-manifest.json`) |
-| Ordering / duplicate negatives | `PEER:…/20261122-…/runs/negative/` |
-| PFCP deletion timeout | `PEER:…/20261122-…/runs/timeout/` |
-| Finalize failure (real UDM UECM failure) | `PEER:…/20261122-…/runs/finalize-failure/` (`checks.json`, `mas-trace.ndjson`) |
-| Restart points (4) | `PEER:…/20261122-…/runs/restart-{after_build,before_cleanup,during_cleanup_pfcp,before_sc_finalize}/checks.json` |
-| Concurrency isolation | `PEER:…/20261122-…/runs/concurrent-a/`, `…/concurrent-b/` |
-| Modify relay accept/reject/hang | `PEER:…/20261122-…/runs/relay-{accept,reject,hang}/` |
-| Unit suites | `PEER:…/20261122-…/unit-tests/{python-unit-tests.log,c-unit-suites.log}` |
-| Reconcile attempt (**FAIL**) | `PEER:artifacts/acceptance/20261123-scheme-c-reconcile/runs/reconcile-deleted/{checks.json,reconcile-request.json}` |
+| Final gate verdict table, build identity, topology | `PEER:artifacts/acceptance/20261123-scheme-c-reconcile/evidence.md` |
+| Final build identity JSON | `PEER:artifacts/acceptance/20261123-scheme-c-reconcile/build-identity.json` |
+| §5.6 conformance re-run (release positive + ordering, same build) | `PEER:artifacts/acceptance/20261123-scheme-c-release-conformance/` (`evidence.md`, `runs/normal/`, `runs/negative/`, `SHA256SUMS`) |
+| Release positive (real N1/N2/PFCP) | `PEER:…/20261123-scheme-c-reconcile/runs/normal/` and the conformance re-run `runs/normal/` (`mas-trace.ndjson`, `mock-amf.log`, `pfcp.pcap`, `run-manifest.json`) |
+| Ordering / duplicate negatives | `PEER:…/20261123-scheme-c-reconcile/runs/negative/checks.json` and the conformance re-run `runs/negative/checks.json` |
+| PFCP deletion timeout | `PEER:…/20261123-scheme-c-reconcile/runs/timeout/` |
+| Finalize failure (real UDM UECM failure) | `PEER:…/20261123-scheme-c-reconcile/runs/finalize-failure/` (`checks.json`, `mas-trace.ndjson`) |
+| Restart points (4) | `PEER:…/20261123-scheme-c-reconcile/runs/restart-{after_build,before_cleanup,during_cleanup_pfcp,before_sc_finalize}/checks.json` |
+| Concurrency isolation | `PEER:…/20261123-scheme-c-reconcile/runs/concurrent-a/`, `…/concurrent-b/` |
+| Modify relay accept/reject/hang | `PEER:…/20261123-scheme-c-reconcile/runs/relay-{accept,reject,hang}/` |
+| Unit suites | `PEER:…/20261123-scheme-c-reconcile/unit-tests/` |
+| PFCP reconcile (final) | `PEER:artifacts/acceptance/20261123-scheme-c-reconcile/runs/reconcile-deleted/{checks.json,reconcile-request.json}` and `runs/reconcile-present/checks.json` |
 | Historical CA-SL mapping (HISTORICAL) | `CASL:docs/mas-lifecycle-source-mapping.md` |
 | Owner outcome contract | `CASL:docs/mas-lifecycle-owner-contract.md` |
-| CA-SL acceptance matrix (STALE) | `CASL:docs/mas-lifecycle-acceptance-matrix.md` |
+| CA-SL acceptance matrix (CA-SL view; Owner-level evidence kept separate) | `CASL:docs/mas-lifecycle-acceptance-matrix.md` |
 | Release Skill | `CASL:examples/skills/release-pdu-session-mas/` (`SKILL.md`, `assurance/procedure.yaml`, `references/openamsm-operation-mapping.md`) |
 | Modify Skill | `CASL:examples/skills/modify-pdu-session-mas/` |
 | Establishment Skill | `CASL:examples/skills/establish-pdu-session-mas/`, `CASL:skills/establish-pdu-session-mas/` |
-| Owner release orchestration | `OWNER:build/openamsm-source/tools/nw-agent/orch_engine.py:940-1136` |
-| Owner entry routing | `OWNER:build/openamsm-source/tools/nw-agent/server.py:532-600`, `:744-960`, `:1050-1075` |
+| Owner release orchestration | `OWNER:build/openamsm-source/tools/nw-agent/orch_engine.py` (`_release_cleanup`, `run_c_release_request`, `run_c_release_confirm`) |
+| Owner entry routing | `OWNER:build/openamsm-source/tools/nw-agent/server.py` (Scheme C facade, `/release`, admin recovery) |
 | Owner MAS sources | `OWNER:build/openamsm-source/src/smf/mas/{ssm,upn,pa,sc,se,common}/` |
-| Owner patches (canonical diff) | `OWNER:patches/openamsm/0011…0021` |
+| Owner patches (canonical diff) | `OWNER:patches/openamsm/0001,0006…0021` |
 
 ---
 
-## 10. Open items for the reviewer
+## 10. Final disposition
 
-1. Fill every `§clause` field in §4 from spec text, or accept the document as
-   code-anchored only (recommended until a spec-text pipeline exists).
-2. Decide whether the vertical slice is described as
-   "UE-requested Release via UpdateSMContext + `0xD1`" (correct) or left as
-   "Nsmf Release" (incorrect).
-3. Fix or withdraw `build-identity.json:source.tree_sha256` before any consumer
-   keys on it.
-4. Re-run the reconcile scenario with the required body fields
-   (`masStepId`, `masCorrId`, `n4Seid`, `upfId`, `sessionGeneration`) on a build
-   with a recorded identity; only then can §8.4 move off FAIL.
-5. Refresh `CASL:docs/mas-lifecycle-acceptance-matrix.md` so it stops claiming a
-   different stack's PASS and stops reporting Release as NOT_RUN when Owner-level
-   evidence exists — while keeping the Skill-level verdict NOT_RUN.
-6. Decide whether the `trigger` hardcoding (`orch_engine.py:948`,
-   `ssm_ue.c:289-290`) is an accepted Scheme C restriction or a defect to fix
-   before AMF/SMF entries are added.
+1. **Clause fields.** The §4 rows cite the clause/step numbers verified in §2.3;
+   specs not content-read remain `UNVERIFIED` (§2.3). The document is
+   code-anchored plus clause-verified for TS 23.502/24.501/29.502/29.518/29.244.
+2. **Entry semantics.** UE Release is described as "UE-requested Release via
+   `Nsmf_PDUSession_UpdateSMContext` + NAS `0xD1`"; it is not called a
+   `Nsmf_PDUSession_ReleaseSMContext` operation (§6).
+3. **Build identity.** `build_patch_identity` is authoritative; `tree_sha256` is
+   the upstream-import digest (§0.2).
+4. **Reconcile.** The reconcile scenario ran on the final build with the
+   required binding fields and evidence; §8.4 records PASS, not FAIL.
+5. **Acceptance matrix.** Refreshed to stop claiming a different stack's PASS;
+   CA-SL Runtime rows remain `NOT_RUN`.
+6. **Trigger hardcoding.** `trigger=2` in `_release_cleanup` and the forced
+   `UE_REQUESTED` in the release build are an **accepted restriction of the
+   current UE-requested Scheme C slice**. AMF-requested `ReleaseSMContext` and
+   SMF-initiated release remain unimplemented (§8.1) and are not claimed.
+7. **§5.6 conformance.** No mandatory relation is missing in the exercised
+   configuration; the O1 sequencing difference and the §5.6.5 residuals are
+   disclosed. The code was not changed for formal step order.
 
 ---
 
-*End of draft. Nothing in this document asserts qualification, runtime
-acceptance, or a merged release.*
+*End of final traceability. Nothing in this document asserts qualification,
+runtime acceptance, or a merged release; the merge/verification record lives in
+the PRs and the owner repos.*
+
