@@ -16,7 +16,7 @@ predicates:
 
   release.mas.release_parsed:
     parameters:
-      - result: mas::wtlab:openamsm:mas:v0.4.0:ssm-parse-n1-release-result
+      - result: mas::urn:openamsm:mas:v1alpha4:ssm-parse_n1_release-output
     evidence:
       requires:
         result: [mas::ssm.n1-release-parsed]
@@ -29,7 +29,7 @@ predicates:
 
   release.mas.command_built:
     parameters:
-      - result: mas::wtlab:openamsm:mas:v0.4.0:ssm-build-release-command-result
+      - result: mas::urn:openamsm:mas:v1alpha4:ssm-build_release_command-output
     evidence:
       requires:
         result: [mas::ssm.release-command-built]
@@ -45,7 +45,7 @@ predicates:
 
   release.mas.n1_confirmed:
     parameters:
-      - result: mas::wtlab:openamsm:mas:v0.4.0:ssm-release-confirm-n1-result
+      - result: mas::urn:openamsm:mas:v1alpha4:ssm-release_confirm_n1-output
     evidence:
       requires:
         result: [mas::ssm.release-n1-confirmed]
@@ -57,7 +57,7 @@ predicates:
   # and the N2 Release Response were accepted for the exact generation.
   release.mas.release_ready:
     parameters:
-      - result: mas::wtlab:openamsm:mas:v0.4.0:ssm-release-confirm-n2-result
+      - result: mas::urn:openamsm:mas:v1alpha4:ssm-release_confirm_n2-output
     evidence:
       requires:
         result: [mas::ssm.release-n2-confirmed]
@@ -69,7 +69,7 @@ predicates:
 
   release.mas.policy_association_released:
     parameters:
-      - result: mas::wtlab:openamsm:mas:v0.4.0:pa-delete-sm-policy-result
+      - result: mas::urn:openamsm:mas:v1alpha4:pa-delete_sm_policy_c-output
     evidence:
       requires:
         result: [mas::pa.policy-association-released]
@@ -79,7 +79,7 @@ predicates:
 
   release.mas.up_session_deleted:
     parameters:
-      - result: mas::wtlab:openamsm:mas:v0.3.0:upn-delete-up-session-result
+      - result: mas::urn:openamsm:mas:v1alpha4:upn-delete_up_session-output
     evidence:
       requires:
         result: [mas::upn.up-session-released]
@@ -91,7 +91,7 @@ predicates:
   # durable external delivery.
   release.mas.release_event_recorded:
     parameters:
-      - result: mas::wtlab:openamsm:mas:v0.4.0:se-emit-release-event-result
+      - result: mas::urn:openamsm:mas:v1alpha4:se-emit_release_event_c-output
     evidence:
       requires:
         result: [mas::se.release-event-marker-written]
@@ -101,7 +101,7 @@ predicates:
 
   release.mas.sm_context_release_progressed:
     parameters:
-      - result: mas::wtlab:openamsm:mas:v0.4.0:sc-release-sm-context-result
+      - result: mas::urn:openamsm:mas:v1alpha4:sc-release_sm_context_c-output
     evidence:
       requires:
         result: [mas::sc.context-release-committed]

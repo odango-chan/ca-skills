@@ -193,8 +193,16 @@ class MasLifecycleProcedureTests(unittest.TestCase):
     def test_only_final_postcondition_can_publish_succeeded(self) -> None:
         for source in (self.modify_procedure, self.release_procedure):
             self.assertEqual(source.count("PASS: SUCCEEDED"), 1)
-            self.assertNotIn("NOT_COMMITTED:", source)
-            self.assertNotIn("COMMITTED:", source)
+            self.assertNotRegex(source, r"(?m)^\s*COMMITTED:")
+        # The Owner publishes authoritative NOT_COMMITTED for mutations, so
+        # every mutation node must route it; the READ parse nodes must not.
+        for node_id in (
+            "build-command", "confirm-n1", "confirm-n2", "delete-policy",
+            "delete-user-plane", "emit-release-event", "release-sm-context",
+        ):
+            self.assertIn("NOT_COMMITTED:", node_block(self.release_procedure, node_id))
+        self.assertNotIn("NOT_COMMITTED:", node_block(self.modify_procedure, "parse-n1"))
+        self.assertNotIn("NOT_COMMITTED:", node_block(self.release_procedure, "parse-n1"))
         self.assertIn(
             "PASS: SUCCEEDED", node_block(self.modify_procedure, "verify-modify-completion")
         )
@@ -205,8 +213,7 @@ class MasLifecycleProcedureTests(unittest.TestCase):
     def test_no_wait_retry_compensation_or_replan_is_authored(self) -> None:
         for source in (self.modify_procedure, self.release_procedure):
             self.assertNotRegex(source, r"(?m)^\s*wait\s*:")
-            self.assertNotIn("NOT_COMMITTED:", source)
-            self.assertNotIn("COMMITTED:", source)
+            self.assertNotRegex(source, r"(?m)^\s*COMMITTED:")
             lowered = source.lower()
             for forbidden in ("retry", "replan", "compensat"):
                 self.assertNotIn(forbidden, lowered)
@@ -240,7 +247,8 @@ class MasLifecycleProcedureTests(unittest.TestCase):
 
     def test_release_entry_variant_and_numeric_trigger_are_public(self) -> None:
         self.assertIn("enum: [UE_INITIATED]", self.release_request)
-        self.assertIn("enum: [1, 2, 3, 4, 5, 6, 7]", self.release_request)
+        self.assertIn("minimum: 1", self.release_request)
+        self.assertIn("maximum: 7", self.release_request)
         admitted = predicate_block(self.release_predicates, "release.request.admitted")
         self.assertIn('entryKind == "UE_INITIATED"', admitted)
         for node_id in ("build-command", "delete-policy", "release-sm-context"):
@@ -325,8 +333,8 @@ class MasLifecycleProcedureTests(unittest.TestCase):
 
     def test_release_predicates_use_only_declared_owner_output_fields(self) -> None:
         allowed = {
-            "ssm-parse-n1-release-result": {"release_intent", "psi", "pti", "cause"},
-            "ssm-build-release-command-result": {
+            "ssm-parse_n1_release-output": {"release_intent", "psi", "pti", "cause"},
+            "ssm-build_release_command-output": {
                 "release_phase",
                 "n1_sm_hex",
                 "n2_sm_hex",
@@ -334,12 +342,12 @@ class MasLifecycleProcedureTests(unittest.TestCase):
                 "release_txn",
                 "release_generation",
             },
-            "ssm-release-confirm-n1-result": {"n1_released"},
-            "ssm-release-confirm-n2-result": {"n2_released", "release_ready"},
-            "pa-delete-sm-policy-result": {"terminated"},
-            "upn-delete-up-session-result": {"released"},
-            "se-emit-release-event-result": {"last_event"},
-            "sc-release-sm-context-result": {"lifecycle"},
+            "ssm-release_confirm_n1-output": {"n1_released"},
+            "ssm-release_confirm_n2-output": {"n2_released", "release_ready"},
+            "pa-delete_sm_policy_c-output": {"terminated"},
+            "upn-delete_up_session-output": {"released"},
+            "se-emit_release_event_c-output": {"last_event"},
+            "sc-release_sm_context_c-output": {"lifecycle"},
         }
         predicates = re.findall(r"(?m)^  (release\.[a-z0-9_.]+):$", self.release_predicates)
         self.assertGreaterEqual(len(predicates), 8)

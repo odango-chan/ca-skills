@@ -1,4 +1,5 @@
-# CA-SL v1alpha5. MAS exports and Evidence Guarantees are unpublished candidates.
+# CA-SL v1alpha5. The MAS dependency is the published OpenAMSM Owner contract
+# package (env-openamsm contracts/mas/v1alpha4).
 #
 # Goal scope: the Owner parsed the exact retained N1 (0xd1), built the N1/N2
 # release command for this Run's transaction, accepted the N1 Release Complete
@@ -12,7 +13,7 @@ requestSchema: schemas/release-request.schema.yaml
 contextSchema: ca-context::urn:connectionagent:ca:context:subject:v1
 dependencies:
   ca-context: urn:connectionagent:ca:host-context
-  mas: wtlab:packages:openamsm:mas-compiler-contract
+  mas: urn:openamsm:mas:tool-contracts
 capabilities:
   - mas.ssm.n1.release.parse
   - mas.ssm.n1.release.build

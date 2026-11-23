@@ -60,6 +60,7 @@ nodes:
         mfbr_ul: parse-n1.operation.output.mfbr_ul
         mfbr_dl: parse-n1.operation.output.mfbr_dl
       routes:
+        NOT_COMMITTED: FAILED
         FAILED: FAILED
         DENIED: FAILED
         OUTCOME_UNKNOWN: SAFE_STOPPED
