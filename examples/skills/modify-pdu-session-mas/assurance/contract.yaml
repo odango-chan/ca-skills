@@ -1,4 +1,5 @@
-# CA-SL v1alpha5. MAS exports and Evidence Guarantees are unpublished candidates.
+# CA-SL v1alpha5. The MAS dependency is the published OpenAMSM Owner contract
+# package (env-openamsm contracts/mas/v1alpha4).
 #
 # Goal scope: pdu_session.qos_delta_applied means the Owner decoded the exact
 # retained N1, accepted the PFCP Update QER for that exact QFI/5QI/GBR/MBR
@@ -12,7 +13,7 @@ requestSchema: schemas/modify-request.schema.yaml
 contextSchema: ca-context::urn:connectionagent:ca:context:subject:v1
 dependencies:
   ca-context: urn:connectionagent:ca:host-context
-  mas: wtlab:packages:openamsm:mas-compiler-contract
+  mas: urn:openamsm:mas:tool-contracts
 capabilities:
   - mas.ssm.n1.modify.parse
   - mas.upn.up.qos.delta

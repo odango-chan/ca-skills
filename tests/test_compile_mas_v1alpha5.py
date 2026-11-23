@@ -121,8 +121,8 @@ class CompilerProjectGateTest(unittest.TestCase):
         self.assertTrue(any("unsafe deployment bundle" in e for e in errors), errors)
 
 
-    def test_official_mas_skills_share_the_stable_wtlab_package_identity(self) -> None:
-        expected = "wtlab:packages:openamsm:mas-compiler-contract"
+    def test_official_mas_skills_share_the_published_owner_package_identity(self) -> None:
+        expected = "urn:openamsm:mas:tool-contracts"
         for skill_name in MODULE.SKILLS:
             contract = (
                 MODULE.REPO / "examples" / "skills" / skill_name

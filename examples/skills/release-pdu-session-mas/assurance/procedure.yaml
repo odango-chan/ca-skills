@@ -55,6 +55,7 @@ nodes:
         trigger: context.request.trigger
         pti: parse-n1.operation.output.pti
       routes:
+        NOT_COMMITTED: SAFE_STOPPED
         FAILED: SAFE_STOPPED
         DENIED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
@@ -80,6 +81,7 @@ nodes:
         release_txn: build-command.operation.output.release_txn
         release_generation: build-command.operation.output.release_generation
       routes:
+        NOT_COMMITTED: SAFE_STOPPED
         FAILED: SAFE_STOPPED
         DENIED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
@@ -106,6 +108,7 @@ nodes:
         release_txn: build-command.operation.output.release_txn
         release_generation: build-command.operation.output.release_generation
       routes:
+        NOT_COMMITTED: SAFE_STOPPED
         FAILED: SAFE_STOPPED
         DENIED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
@@ -129,6 +132,7 @@ nodes:
         release: "1"
         trigger: context.request.trigger
       routes:
+        NOT_COMMITTED: SAFE_STOPPED
         FAILED: SAFE_STOPPED
         DENIED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
@@ -150,6 +154,7 @@ nodes:
         psi: context.request.pduSessionId
         trigger: context.request.trigger
       routes:
+        NOT_COMMITTED: SAFE_STOPPED
         FAILED: SAFE_STOPPED
         DENIED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
@@ -171,6 +176,7 @@ nodes:
         psi: context.request.pduSessionId
         ev: "RELEASED"
       routes:
+        NOT_COMMITTED: SAFE_STOPPED
         FAILED: SAFE_STOPPED
         DENIED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED
@@ -194,6 +200,7 @@ nodes:
         finalize: "1"
         trigger: context.request.trigger
       routes:
+        NOT_COMMITTED: SAFE_STOPPED
         FAILED: SAFE_STOPPED
         DENIED: SAFE_STOPPED
         OUTCOME_UNKNOWN: SAFE_STOPPED

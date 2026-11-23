@@ -21,7 +21,7 @@ predicates:
   # mutated with an unrequested bitrate.
   modify.mas.n1_parsed:
     parameters:
-      - result: mas::wtlab:openamsm:mas:v0.4.0:ssm-parse-n1-modify-result
+      - result: mas::urn:openamsm:mas:v1alpha4:ssm-parse_n1_modify-output
     evidence:
       requires:
         result: [mas::ssm.n1-modify-parsed]
@@ -48,8 +48,8 @@ predicates:
   # outputs with their own declared Evidence guarantees.
   modify.mas.qos_delta_applied:
     parameters:
-      - result: mas::wtlab:openamsm:mas:v0.4.0:upn-modify-qos-delta-result
-      - parsed: mas::wtlab:openamsm:mas:v0.4.0:ssm-parse-n1-modify-result
+      - result: mas::urn:openamsm:mas:v1alpha4:upn-modify_qos_delta-output
+      - parsed: mas::urn:openamsm:mas:v1alpha4:ssm-parse_n1_modify-output
     evidence:
       requires:
         result: [mas::upn.qos-delta-applied]
