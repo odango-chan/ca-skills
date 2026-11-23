@@ -133,8 +133,9 @@ jobs:
           done
           echo "MAS_MODIFY_RELEASE_V1ALPHA5_SOURCE_GRAMMAR_FAIL_CLOSED_PASS"
           
-          # Cross-repository static Build fixture. This is synthetic Compiler
-          # input only; it does not publish WTLab or qualify the MAS Owner.
+          # The Scheme C Skills depend on the published OpenAMSM Owner package
+          # (urn:openamsm:mas:tool-contracts). A synthetic candidate fixture
+          # must never be accepted in its place: verify fail-closed instead.
           client_tools_dir="$project/ca-client-tools"
           git init "$client_tools_dir"
           git -C "$client_tools_dir" remote add origin https://github.com/odango-chan/ca-client-tools.git
@@ -144,7 +145,7 @@ jobs:
           python3 "$client_tools_dir/contracts/mas-owner-candidate/fixtures/build_fixture.py" \
             "$fixture_root" --version v0.3.0 --with-scheme-c
           for skill in establish-pdu-session-mas modify-pdu-session-mas release-pdu-session-mas; do
-            report="$project/$skill.fixture-build.json"
+            report="$project/$skill.fixture-reject.json"
             set +e
             python3 scripts/compile_mas_v1alpha5.py \
               --trusted-root "$fixture_root" --mode fixture --skill "$skill" \
@@ -152,25 +153,20 @@ jobs:
             compile_status=$?
             set -e
             cat "$report"
-            if [ "$compile_status" -ne 0 ]; then
-              echo "$skill: synthetic Compiler fixture failed, exit=$compile_status" >&2
-              exit "$compile_status"
-            fi
-            python3 - "$report" "$skill" <<'PYCODE'
+            python3 - "$report" "$skill" "$compile_status" <<'PYCODE'
           import json
           import sys
           with open(sys.argv[1], encoding="utf-8") as stream:
               report = json.load(stream)
-          if report.get("status") != "FIXTURE_STATIC_BUILD_PASS":
-              raise SystemExit(f"{sys.argv[2]}: synthetic Compiler Build did not pass: {report}")
+          if report.get("status") not in {"INPUT_BLOCKED", "COMPILER_DIAGNOSTICS"}:
+              raise SystemExit(
+                  f"{sys.argv[2]}: synthetic fixture was accepted for the formal Owner dependency"
+              )
           if report.get("qualification") != "NOT_QUALIFIED":
-              raise SystemExit(f"{sys.argv[2]}: fixture incorrectly claims qualification")
-          stages = report.get("stages", [])
-          if [stage.get("command") for stage in stages] != ["check", "inspect", "build"]:
-              raise SystemExit(f"{sys.argv[2]}: incomplete Compiler stage sequence")
-          if any(stage.get("exitCode") != 0 for stage in stages):
-              raise SystemExit(f"{sys.argv[2]}: a Compiler stage failed")
-          print(f"{sys.argv[2]}_SYNTHETIC_OWNER_FIXTURE_BUILD_PASS_NOT_QUALIFIED")
+              raise SystemExit(f"{sys.argv[2]}: rejected fixture incorrectly claims qualification")
+          if sys.argv[3] == "0":
+              raise SystemExit(f"{sys.argv[2]}: rejected fixture returned exit 0")
+          print(f"{sys.argv[2]}_FORMAL_OWNER_FIXTURE_REJECTED_NOT_QUALIFIED")
           PYCODE
           done
-          echo "MAS_V0_3_0_THREE_SKILL_SYNTHETIC_COMPILER_BUILD_PASS_NOT_QUALIFIED"
+          echo "MAS_FORMAL_OWNER_DEPENDENCY_FIXTURE_REJECTED_PASS"
