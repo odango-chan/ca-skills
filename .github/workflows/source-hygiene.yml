@@ -138,11 +138,11 @@ jobs:
           client_tools_dir="$project/ca-client-tools"
           git init "$client_tools_dir"
           git -C "$client_tools_dir" remote add origin https://github.com/odango-chan/ca-client-tools.git
-          git -C "$client_tools_dir" fetch --depth 1 origin 71fbc2c767785f5885b5840fa2ce94fe1dc622fd
+          git -C "$client_tools_dir" fetch --depth 1 origin 6712ef4b32e8d158e0d24f74b191aee46ad282f8
           git -C "$client_tools_dir" checkout --detach FETCH_HEAD
           fixture_root="$project/mas-v0.3.0-fixture"
           python3 "$client_tools_dir/contracts/mas-owner-candidate/fixtures/build_fixture.py" \
-            "$fixture_root" --version v0.3.0
+            "$fixture_root" --version v0.3.0 --with-scheme-c
           for skill in establish-pdu-session-mas modify-pdu-session-mas release-pdu-session-mas; do
             report="$project/$skill.fixture-build.json"
             set +e
