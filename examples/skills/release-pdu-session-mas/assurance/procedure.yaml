@@ -241,4 +241,3 @@ nodes:
         PASS: SUCCEEDED
         FAIL: SAFE_STOPPED
         UNKNOWN: SAFE_STOPPED
-
