@@ -95,13 +95,13 @@ predicates:
   # durable external delivery.
   release.mas.release_event_recorded:
     parameters:
-      - result: mas::wtlab:openamsm:mas:v0.3.0:se-emit-release-event-result
+      - result: mas::wtlab:openamsm:mas:v0.4.0:se-emit-release-event-result
     evidence:
       requires:
         result: [mas::se.release-event-marker-written]
     evaluator:
       type: cel
-      expression: size(result) == 0
+      expression: result.last_event == "1"
 
   release.mas.sm_context_release_progressed:
     parameters:

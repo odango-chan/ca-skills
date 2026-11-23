@@ -168,7 +168,7 @@ nodes:
 
   emit-release-event:
     operation:
-      tool: mas::SE.EMIT_RELEASE_EVENT
+      tool: mas::SE.EMIT_RELEASE_EVENT_C
       arguments:
         ue_identity: context.supi
         psi: context.request.pduSessionId
@@ -241,3 +241,4 @@ nodes:
         PASS: SUCCEEDED
         FAIL: SAFE_STOPPED
         UNKNOWN: SAFE_STOPPED
+
