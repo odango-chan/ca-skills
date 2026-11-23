@@ -18,8 +18,11 @@ explicit development closure can build and execute it.
 This Skill models a UE-requested release of an existing PDU Session. It does not
 create a session and does not cover AMF-initiated ReleaseSMContext or
 SMF/network-initiated release. The Host authenticates and classifies the ingress,
-retains the exact original 5GSM PDU Session Release Request (0xd1), and binds the
-exact SUPI / PSI / current generation and a Host-private release transaction.
+retains the exact original 5GSM PDU Session Release Request (0xd1) in its private
+artifact binding, and binds the exact SUPI / PSI / current generation and a
+Host-private release transaction. Neither the raw N1 nor the transaction id is a
+Skill-authored request field; the typed Provider resolves them from that trusted
+private context at dispatch time.
 
 The Skill does not parse NAS, build NGAP, delete PFCP state itself, or expose
 Host ResourceMap keys, Owner session references, invocation IDs, generation IDs
@@ -32,16 +35,19 @@ Procedure. AMF-initiated ReleaseSMContext and network-initiated release are
 out of scope for this version and must be reported as NOT_RUN / BLOCKED by the
 Host rather than coerced into this Skill.
 
-`request.releaseTxn` is Host-private transaction identity for this Run. It is
-never taken from the AMF JSON body.
+The release transaction identity is Host-private state for this Run. It is never
+taken from the AMF JSON body and never becomes a Procedure argument.
 
 ## Source progression (merged Owner)
 
 1. `r-parse` - `SSM.PARSE_N1_RELEASE` with `parse_n1=1` and the exact retained
    N1. Read-only: validates EPD / PSI / PTI / message type and returns `psi`,
-   `pti`, optional `cause` and `release_intent=ue_requested`.
+   `pti`, optional `cause` and `release_intent=ue_requested`. The parse is
+   strictly read-only: it must not bind the PTI to the session.
 2. `r-build` - `SSM.BUILD_RELEASE_COMMAND` with `release=1`, `mode=build`,
-   `trigger` and `release_txn`. The Owner builds the N1 Release Command (0xd3)
+   `trigger` and the parsed `pti`. Build is the transaction-controlled PTI
+   binding, and the typed Provider supplies the Host-private `release_txn`.
+   The Owner builds the N1 Release Command (0xd3)
    and the N2 PDU Session Resource Release Command, records the release
    generation and returns their exact bytes as hex. The Host sends them to the
    AMF in the UpdateSMContext answer.

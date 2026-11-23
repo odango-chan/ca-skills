@@ -6,17 +6,13 @@ predicates:
       - supi: string
       - pduSessionId: integer
       - entryKind: string
-      - n1Sm: string
-      - releaseTxn: string
     evaluator:
       type: cel
       expression: >-
         supi != "" &&
         pduSessionId >= 1 &&
         pduSessionId <= 15 &&
-        entryKind == "UE_INITIATED" &&
-        n1Sm != "" &&
-        releaseTxn != ""
+        entryKind == "UE_INITIATED"
 
   release.mas.release_parsed:
     parameters:

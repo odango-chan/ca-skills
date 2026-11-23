@@ -48,8 +48,9 @@ Skill. It resumes the original Run for the same SUPI / PSI / generation.
 
 The Procedure contains exactly two Owner occurrences:
 
-1. `c-parse` - `SSM.PARSE_N1_MODIFY` with `parse_n1=1` and the exact retained
-   N1 (`n1_sm`). Read-only: the Owner decodes exactly one requested QoS flow
+1. `c-parse` - `SSM.PARSE_N1_MODIFY` with `parse_n1=1`; the typed Provider
+   supplies the exact retained N1 from trusted private context. Read-only: the
+   Owner decodes exactly one requested QoS flow
    description and returns `qfi`, `five_qi`, `gfbr_ul`, `gfbr_dl`, `mfbr_ul`,
    `mfbr_dl` and `requested_kind=qos_flow_descriptions`. Any decode failure,
    non-0xc9, missing or multiple flow descriptions fails closed.

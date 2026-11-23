@@ -1,10 +1,10 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: urn:connectionagent:example:mas:release-request:v1alpha5
 title: ReleaseRequest
-description: Host-normalized UE release entry, the exact retained N1 and the Host-private release transaction id.
+description: Host-normalized UE release entry. The raw N1 and the Host-private transaction identity stay in the Host's private execution context and are never Skill-authored request fields.
 type: object
 additionalProperties: false
-required: [pduSessionId, entryKind, trigger, n1Sm, releaseTxn]
+required: [pduSessionId, entryKind, trigger]
 properties:
   pduSessionId:
     type: integer
@@ -16,14 +16,3 @@ properties:
   trigger:
     type: integer
     enum: [1, 2, 3, 4, 5, 6, 7]
-  # The exact 5GSM PDU Session Release Request (0xd1) as lowercase hex.
-  n1Sm:
-    type: string
-    minLength: 8
-    maxLength: 1024
-  # Host-private transaction identity for this Release Run. It is never taken
-  # from the AMF JSON body.
-  releaseTxn:
-    type: string
-    minLength: 1
-    maxLength: 127

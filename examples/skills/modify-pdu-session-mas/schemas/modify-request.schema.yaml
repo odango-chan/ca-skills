@@ -1,10 +1,10 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: urn:connectionagent:example:mas:modify-request:v1alpha5
 title: ModifyRequest
-description: Host-normalized entry classification plus the exact retained N1. The Owner, not the Host, decodes the requested QoS target.
+description: Host-normalized entry classification. The raw N1 stays in the Host's private execution context and is never a Skill-authored request field; the Owner, not the Host, decodes the requested QoS target.
 type: object
 additionalProperties: false
-required: [pduSessionId, entryKind, n1Sm]
+required: [pduSessionId, entryKind]
 properties:
   pduSessionId:
     type: integer
@@ -13,12 +13,3 @@ properties:
   entryKind:
     type: string
     enum: [UE_INITIATED, AMF_INITIATED, NETWORK_TRIGGERED]
-  # The exact 5GSM PDU Session Modification Request (0xc9) as lowercase hex.
-  # The Host retains these bytes; it never derives or fabricates a QoS target.
-  # CA-SL v1alpha5 does not accept JSON Schema `pattern` here, so the canonical
-  # lowercase/even-length form is enforced by the Host and re-checked by the
-  # Provider and the Owner.
-  n1Sm:
-    type: string
-    minLength: 8
-    maxLength: 1024

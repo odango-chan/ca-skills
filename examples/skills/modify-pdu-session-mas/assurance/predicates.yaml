@@ -6,7 +6,6 @@ predicates:
       - supi: string
       - pduSessionId: integer
       - entryKind: string
-      - n1Sm: string
     evaluator:
       type: cel
       expression: >-
@@ -15,8 +14,7 @@ predicates:
         pduSessionId <= 15 &&
         (entryKind == "UE_INITIATED" ||
          entryKind == "AMF_INITIATED" ||
-         entryKind == "NETWORK_TRIGGERED") &&
-        n1Sm != ""
+         entryKind == "NETWORK_TRIGGERED")
 
   # The Owner decoded the exact original N1 and returned one GBR QoS flow
   # description. A non-GBR or multi-flow request fails here rather than being

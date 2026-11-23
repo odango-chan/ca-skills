@@ -15,8 +15,6 @@ nodes:
             - context.supi
             - context.request.pduSessionId
             - context.request.entryKind
-            - context.request.n1Sm
-            - context.request.releaseTxn
       routes:
         PASS: parse-n1
         FAIL: FAILED
@@ -30,7 +28,6 @@ nodes:
         ue_identity: context.supi
         psi: context.request.pduSessionId
         parse_n1: "1"
-        n1_sm: context.request.n1Sm
       routes:
         FAILED: FAILED
         DENIED: FAILED
@@ -56,7 +53,7 @@ nodes:
         release: "1"
         mode: "build"
         trigger: context.request.trigger
-        release_txn: context.request.releaseTxn
+        pti: parse-n1.operation.output.pti
       routes:
         FAILED: SAFE_STOPPED
         DENIED: SAFE_STOPPED

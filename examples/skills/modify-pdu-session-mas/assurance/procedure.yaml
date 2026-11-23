@@ -15,7 +15,6 @@ nodes:
             - context.supi
             - context.request.pduSessionId
             - context.request.entryKind
-            - context.request.n1Sm
       routes:
         PASS: parse-n1
         FAIL: FAILED
@@ -30,7 +29,6 @@ nodes:
         ue_identity: context.supi
         psi: context.request.pduSessionId
         parse_n1: "1"
-        n1_sm: context.request.n1Sm
       routes:
         FAILED: FAILED
         DENIED: FAILED
