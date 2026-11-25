@@ -59,11 +59,11 @@ v1alpha4 的作者源码语法、静态语义、运行语义及附录 F/G/H 已 
 | 可声明的范围 | 所需精确边界与已存在的验收门槛 | 不得推导的结论 |
 |---|---|---|
 | **语言规范评审/冻结状态** | `connectionagent.io/v1alpha5` 已按 §45.3 冻结并发布；发布身份为 `docs/releases/ca-sl-v1alpha5.md` 所固定的不可变规范提交 | 不能由此推定任何产品已获 PASS |
-| **Compiler 静态符合性** | §45.2 第 2/3/4/8 项中适用于静态链接的受信输入、E 变体和 H 的 `C_STATIC/C_WARNING` 诊断；Native/WASM 使用同一冻结源与原始结果 | 不表示 Runtime/Owner、Root Routing 或完整部署已验收 |
+| **Compiler 静态符合性** | §45.2 第 2/3/4/8 项中适用于静态链接的受信输入、E/SA 变体和 H 的 `C_STATIC/C_WARNING` 诊断；Native/WASM 使用同一冻结源与原始结果 | 不表示 Host Skill Resolver、Runtime/Owner 或完整部署已验收 |
 | **Studio/LSP 静态一致性** | 相同源码与依赖快照下与 Compiler 的诊断/语言行为一致；§45.2 第 4/8 项，注明该产品实现版本 | 不表示 Studio 实现了 Runtime 或取得真实 Owner 证据 |
-| **Host/Runtime 执行符合性** | §45.2 第 1/2/5/7/8 项及适用动态用例，要求经版本化的 Artifact/Trace、隔离、Scope、责任和真实回包/模拟证据 | 不包含未交付的 Owner 物理协议或完整 Root Routing 自动选中能力 |
+| **Host/Runtime 执行符合性** | §45.2 第 1/2/5/7/8 项及适用动态用例，包括 Appendix M 的 Skill selection/import 行为；要求 Artifact/Trace、隔离、Scope、责任和真实回包/模拟证据 | 不代表未实际测试的 Owner 物理协议或真实 5GC 已通过 |
 | **Owner/Deployment 互操作符合性** | 版本化的可信 Owner 发布物、身份输入标注、Capability、Evidence 域/共同事实、Reconcile 专用关联及真实原始字节/摘要/授权；§45.2 第 1/2/8 项 | 无发布物时不能凭 F/G 的逻辑模型宣称互操作通过 |
-| **Root Routing 产品符合性** | 独立版本化的 Eligibility / `Applicability` 选择协议及 Host 歧义拒绝验收，须写明对应版本和范围 | §12.8 仅冻结拒绝歧义原则，不提供完整选择算法 |
+| **Skill Selection 产品符合性** | §11.3、§12.8 与 Appendix M 的 contract.when CEL 检查、候选分层、语义选择和 fail-closed 行为；Host/Resolver 必须以实际实现证据验收 | 规范定义选择语义不代表当前 Host/Resolver 已实现或通过测试 |
 | **集成/真实 5GC E2E 符合性** | 上述实际适用层已获可信证据，§45.2 第 6 项真实 5GC 36 Case 与相关 Owner 验证；记录失败和遗漏 | 单独编译通过、规范文本冻结、未执行的 E/DFX 不构成 E2E PASS |
 
 **声明规则：** 在报告中按实际执行层分别注明 `claimScope`、规范提交、所用外部协议版本、确切 Fixture/测试套件版本、已执行变体、失败/未覆盖、原始结果与发布者授权；未覆盖的层写 `NOT_TESTED` 或 `NOT_QUALIFIED`。其中 `claimScope` 等名称只描述附录 K 的**资料性报告视图**，不是本语言新增的线协议字段。E01–E114 的**用例编号**从旧版继承，其中涉及恢复/路由/成功优先级的预期已按本次 v1alpha4 **明确 C 类复审**更新，不再声称与 v1alpha3 的旧语义相同；E115–E120 是本版新增预期。完整 E 列表和 H 的诊断集合均**不意味着已存在可执行套件**；套件的具体版本、覆盖率与执行证据须单独登记（§45.2、K.4）。
@@ -2501,7 +2501,7 @@ v1alpha4 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 Observatio
 | 恢复业务结果的可信性 | 已确认 COMMITTED 但无承诺普通输出，原 Mutation 为 COMMITTED、无 `operation.output`；完整可赋值且保证可认证的恢复才可归并原 Mutation SUCCEEDED，保留真实 READ Producer/Evidence 身份 | §12.7、§13.3、§17、§20、G.2、E10/E17/E108 |
 | 受控 Retry 次数与 LLM 共用下限 | 不声明 `retryOf` 不重试；显式授权在证明 NOT_COMMITTED + 无残留副作用后最多一次新业务派发，不能 retry-of-retry；同一原调用家族凭证原子消费，所有 Action 计预算 | §11.6、§20.2、E82/E85/E92、DFX-039 |
 
-**重新冻结边界。** CA-SL 只冻结本文抽象的作者语法、静态/运行安全语义、E01–E120 的**本版**明确预期、F/G 互操作抽象以及 H 的诊断身份/类别。外部 Host/Tool API 的物理 Retry 意图字段、ToolCatalog / CapabilityContracts 具体独立协议版本、Root Routing 全量选择协议和 Artifact/Trace framing **不属于本次语言发布**；缺少这些材料时实际产品只能 fail-closed，不能把规范性安全条件当作产品实现证明。
+**重新冻结边界（v1alpha4 历史基线）。** CA-SL v1alpha4 冻结其作者语法、静态/运行安全语义、E01–E120 预期、F/G 互操作抽象以及 H 诊断身份/类别。该历史版本没有完整 Skill Selection / Applicability 作者语法；v1alpha5 刷新修订由 Appendix M 补充 contract.when 选择语义。外部 Host/Tool API 的物理 Retry 意图字段、ToolCatalog / CapabilityContracts 具体独立协议版本和 Artifact/Trace framing 仍由各自契约定义。
 
 **文本复核与产品边界。** 本轮仅进行规范文本/示例/诊断索引的结构、引用与预期一致性审查；E01–E120、DFX-001–041、LEX-001 的实际 Compiler Native/WASM、Studio/LSP、Host/Runtime、Owner/5GC 机器执行均不能仅据本次文档检查记为 PASS。附录 K 保留 `NOT_IMPLEMENTED` / `NOT_TESTED`，§45.2 八项产品门槛未因文本冻结而完成。
 
@@ -2579,7 +2579,7 @@ v1alpha4 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 Observatio
 |---|---|---|
 | 身份输入路径的可信 Owner 标注 | §13.3/F.1 定义最低逻辑属性，不定义 `identityInputs` 物理发布字段 | 实际使用此类 callable 时无法满足来源认证，Compiler/Host 不得以未认证值放行；Owner 互操作门槛未通过 |
 | 跨快照 / 跨发布物 Reconcile 专用 callable 关联 | G.2 在同快照检查所有 Mutation 引用；跨快照禁止凭 README/名称/独立 READ Grant 推测专用身份 | 缺少认证关联时不能把可疑 READ 当普通调用绕开调和保护，也不能声称跨快照调用符合性；需要另行版本化契约 |
-| Skill Eligibility / Root Routing | §0/§12.8 冻结拒绝歧义原则，但完整 `Applicability` 和匹配算法属于独立 Host 协议 | 不能声称完整 Root Routing 已符合；仅限已有精确准入前提的测试必须明确声明范围 |
+| Skill Selection | v1alpha4 历史基线未定义完整选择字段；v1alpha5 刷新修订由 Appendix M 定义 contract.when 与语义候选集 | 仅在 SA 用例及 Host Resolver 实际测试通过后，才可声明对应范围符合 |
 | `IndependentDomains` 与跨 Owner `factIdentity` | §34.0.2/F.4/G.3.1 规定受信独立域、共同事实、Scope 映射等逻辑属性 | 使用该类保证而无相应可信装配或发布者授权时拒绝链接；E102/E106 的预期不构成通过证明 |
 | BuildRequest / Compiler Artifact / Runtime Trace | §34、§45.2 第 7 项；物理 framing、摘要算法、字段和版本兼容由各自独立契约拥有 | 只验证 CA-SL 语义不代表已通过 Artifact/Trace 线格式及跨产品互操作验收 |
 
@@ -4291,7 +4291,7 @@ flowchart TD
 | Runtime Scope/Correlation 错误分类 | §24.2、H：派发前授权交集为空才可能按 DENIED；已派发回包 Scope/Correlation 失配必须隔离并走 UNKNOWN/安全停止，Mutation 依证明与责任裁决 | Runtime 回包故障模拟与 Trace |
 | Schema、CEL、TypedDict 与注解 | F.5/F.6/G.4：有限白名单；不支持 `anyOf/oneOf/pattern/format`、任意 Python typing 或隐式强制转换 | Owner 版本化投影、实现分析器版本、E110/E111 Fixture |
 | 匿名请求字段和身份实参标注 | §13.3、F.1 定义最低逻辑属性；v1alpha4 未增 `identityInputs` 或 `reconcileOnly` 物理字段 | 单独版本化 Owner 互操作发布格式，否则无法声称 §45.2 通过 |
-| `Applicability` / Root Routing | §0、§12.8：完整作者语法和匹配优先级不属于 v1alpha4；无法唯一选定 Skill 时 fail-closed | 独立 Root Routing 协议 |
+| Skill Selection / contract.when | v1alpha4 继承基线没有完整选择语法；v1alpha5 刷新修订由 §11.3、§12.8、Appendix M 定义唯一作者字段 contract.when 及选择语义，不存在独立 Applicability Package | Compiler/Host 产品实现按 SA-001–SA-011 独立验收 |
 | 同名诊断与 E 用例错配 | §24、附录 H：`(Code,Phase)` 唯一；`EFFECT_MISMATCH` 可有 C_STATIC 和 R_RUNTIME 两个事件；原 v1alpha3 不包含 E115/E116，本 v1alpha4 新提 E115–E120 则用于多 Predicate 聚合 | 附录 K 的待运行诊断 Fixture 与全量 CI |
 | 正常结果与最终终态 | §12.8、§20、G.8：SUCCEEDED 阶段成功不自动等于 Invocation SUCCEEDED；已有 PENDING 责任时 SAFE_STOPPED 优先 | 资源责任 Owner 证明和真实 5GC 36 Cases |
 | 产品符合性状态 | §45.2：语言 FROZEN 不代表任一 Compiler、Studio、Host、Runtime、Owner 已 READY | 8 项门槛与原始不可变 CI 记录，全项未获统一完成证明 |
@@ -4572,7 +4572,7 @@ nodes:
 
 下述 YAML 只是填写结构的**资料性建议报告格式**；内部的 `same-document` 引用用于定位本文件附录，不是新的正式 URI 或 BuildRequest 字段。为了避免把附录 H 的“规范用例已定义”误报为“运行通过”，建议每一个精确 `(Code,Phase)` / E 用例**执行变体**分别填报 `specExpected`、`fixtureExists`、`executed`、`passed`、`rawResultRef`。只有真实 Fixture 存在、确实运行、符合预期且能查到不可变原始结果时，才有资格计入已通过的实现覆盖；不满足的列应保留 false / null，不能以规范预期替代实际执行。此类列名是附录 K 的报告模板建议，不是擅自冻结 Runtime Trace / BuildRequest 的传输字段。
 
-**不得**在缺少原始、不可变 CI / Owner/部署证据时把 `NOT_TESTED` 改成 `PASS`。跨快照 Reconcile、Owner 身份输入、Root Routing 和共同事实受信装配的实际覆盖范围应逐项注明；不覆盖的功能不得被写成完整产品符合性。若所用 BuildRequest 版本没有整个请求的聚合摘要，§34.0.2 仍要求可信原始输入字节、各自 `snapshotDigest`、身份/授权关联进入**可验证的不可变输入闭包**；缺少顶层聚合摘要本身不授权绕过闭包验证，也不为 v1alpha4 擅自发明一个必须存在的 `buildRequestDigest` 字段。
+**不得**在缺少原始、不可变 CI / Owner/部署证据时把 `NOT_TESTED` 改成 `PASS`。跨快照 Reconcile、Owner 身份输入、Skill Selection / Resolver 和共同事实受信装配的实际覆盖范围应逐项注明；不覆盖的功能不得被写成完整产品符合性。若所用 BuildRequest 版本没有整个请求的聚合摘要，§34.0.2 仍要求可信原始输入字节、各自 `snapshotDigest`、身份/授权关联进入**可验证的不可变输入闭包**；缺少顶层聚合摘要本身不授权绕过闭包验证，也不为 v1alpha4 擅自发明一个必须存在的 `buildRequestDigest` 字段。
 
 ```yaml
 # Informative reporting template; this is NOT an executable CA-SL fixture.
@@ -5563,12 +5563,12 @@ The following semantic cases are REQUIRED for v1alpha5 language/Host/Runtime/Int
 
 上述产品资格工作可在语言发布后继续独立推进；在完成前不得将 `SPECIFICATION_ONLY` 写成测试 PASS，不得把 `SAFE_STOPPED` 写成资源清理已完成，也不得声称真实 Owner 或 5GC 互操作已通过。
 
-This release makes `connectionagent.io/v1alpha5` the current published authoring contract. The immutable v1alpha4 specification remains available only as a historical, explicitly selected language target. No implementation or product-conformance claim follows from language publication.
+This was the 2026-11-17 first publication of `connectionagent.io/v1alpha5`. The immutable v1alpha4 specification remains available only as a historical, explicitly selected language target. The 2026-11-25 refresh proposal is defined in Appendix M and becomes current only after its review/merge and release-record update. No implementation or product-conformance claim follows from language publication.
 
 
 # 附录 M：Optional Assurance 与 Skill Selection Contract.when
 
-**效力：Normative。** 本附录是 CA-SL v1alpha5 2026-11-25 刷新修订的规范性组成部分。它补充 §6.1、§10、§11.3、§11.4、§12.8 与 §24.1。它不增加第五种业务阶段，不改变 v1alpha4 继承的 Procedure 执行语义，也不定义独立 Domain Contract Package。
+**效力：Normative（刷新提案）。** 本附录是 CA-SL v1alpha5 2026-11-25 刷新修订提案的规范性组成部分。评审合并后，它补充 §6.1、§10、§11.3、§11.4、§12.8 与 §24.1，并覆盖 v1alpha4 继承文本中关于完整 Skill Eligibility / Applicability 选择协议未定义的旧说明。不增加第五种业务阶段，不改变 v1alpha4 继承的 Procedure 执行语义，也不定义独立 Domain Contract Package。
 
 ## M.1 Skill Package 形状与执行模式
 
