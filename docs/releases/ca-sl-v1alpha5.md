@@ -32,9 +32,9 @@ This commit remains historical and reproducible. The refresh proposal does not s
 4. Add optional top-level assurance/contract.yaml.when as a pure CEL Skill-selection expression over event.type and typed input.
 5. Keep contract.when separate from execution-time predicates.yaml.
 6. Define formal true-match selection, semantic selection of unguarded SKILL.md candidates, and fail-closed behavior.
-7. Define SKILL.md-only import, Assurance source compilation, and compiled Artifact Inspect/Verify/Admission without rebuild.
+7. Define SKILL.md-only import, Assurance source compilation, and external artifact Inspect/Verify and Agent consumption of published Bundles without Compiler or Skill Admission.
 8. Distinguish LLM Action proposals (Runtime Action Boundary; no Compiler) from LLM-created/edited Assurance source (normal Compiler import path).
-9. Add SA-001–SA-011 normative selection/import expectations.
+9. Add SA-001–SA-012 normative selection/import expectations.
 
 The refresh does not add a Domain Contract Package, TaskContract Package, supportedModes, a second LLM Contract, package signatures, Trust Registry or legacy compatibility.
 

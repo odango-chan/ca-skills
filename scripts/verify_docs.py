@@ -216,7 +216,7 @@ def check_v1alpha5(text: str, errors: list[str]) -> None:
             "v1alpha5 refresh must contain exactly one normative Appendix M", errors)
     for heading in ("## L.0 效力与兼容性", "## L.13 规范发布与产品资格门槛", "### 45.3 CA-SL v1alpha5 刷新修订提案"):
         require(heading in text, "missing v1alpha5 publication/refresh section: " + heading, errors)
-    require("SA-001" in text and "SA-011" in text,
+    require("SA-001" in text and "SA-012" in text,
             "v1alpha5 refresh must define the Skill selection/import obligation cases", errors)
 
     def rows_after(header: str) -> list[str]:

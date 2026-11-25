@@ -16,7 +16,7 @@
 
 **v1alpha5 首次发布增补摘要（2026-11-17）。** 本版在不增加第五种业务阶段、不引入 Wait-only Node 的前提下增加 Node-entry Event Wait；其事件选择器由可信、包级 Ingress Operation 导出解析，wait.output 是受路径支配约束的普通类型化输入，TIMEOUT 是独立控制结果，配对响应通过 Integration 声明的 Producer 边界提交。EVENT_ACCEPTED 的 occurrence 隔离、重复/迟到投递、同一 Run 持久化续接和逻辑响应 Deadline 已纳入跨契约设计。36 个 EW 用例是本版规范符合性义务，尚不等于 Compiler/Host/Runtime/Integration 已执行通过。
 
-**v1alpha5 刷新修订摘要（2026-11-25）。** 本次不改变语言标识，明确 Skill 包必须具有 SKILL.md，assurance/ 为可选确定性执行资产；在 Assurance 的 contract.yaml 中新增可选顶层 when，以纯 CEL 表达 Skill 选择条件。when 与执行期 Predicate 严格分离。无 Assurance 的 Skill 不属于 CA-SL 可执行源码，不调用 Compiler，使用 SKILL.md 进行 LLM-guided 选择与执行；有效 Assurance 同时支持 Deterministic 与 LLM-guided；无效 Assurance 必须拒绝导入，不得降级。新增 SA-001–SA-011 规范预期。Compiler / Host 产品实现仍须独立验收。
+**v1alpha5 刷新修订摘要（2026-11-25）。** 本次不改变语言标识，明确 Skill 包必须具有 SKILL.md，assurance/ 为可选确定性执行资产；在 Assurance 的 contract.yaml 中新增可选顶层 when，以纯 CEL 表达 Skill 选择条件。when 与执行期 Predicate 严格分离。无 Assurance 的 Skill 不属于 CA-SL 可执行源码，不调用 Compiler，使用 SKILL.md 进行 LLM-guided 选择与执行；有效 Assurance 同时支持 Deterministic 与 LLM-guided；无效 Assurance 必须拒绝导入，不得降级。新增 SA-001–SA-012 规范预期。Compiler / Host 产品实现仍须独立验收。
 
 **评审导航：** §0 确定效力与范围；§6、§10–§14 检查 Skill 包、可选 Assurance、Contract、DAG、SourcePath 和数据绑定；§17–§24 检查 Evidence、Reconcile、路由与诊断；§32–§45 检查 Script、可信依赖及产品门槛；附录 E + G.9 定义继承的 E01–E120 预期，F/G 为继承的规范性互操作和 Schema/CEL 规则，H 为 v1alpha5 统一诊断索引（含版本化 Ingress 诊断注册表组合），L 为 Node-entry Event Wait 与 Ingress/Host/Runtime 规范性增补，M 为 Skill selection / optional Assurance 规范性增补；I/J/K 为资料性材料。完整内容均在当前文件中。
 
@@ -1028,7 +1028,7 @@ Skill Selection 的确定性声明属于 Assurance Contract。contract.when 是�
 1. 先解析精确 continuation；continuation 使用原 Run 绑定，不重新选择 Skill。
 2. 对已导入且有效的 Assurance Skill，先校验 Event payload 是否满足其 requestSchema（若声明），再求值可选 when。true 为显式匹配；false 排除该 Skill；运行期求值错误按 fail-closed 排除并记录 Host 诊断。静态无效表达式在 Compiler 阶段报 CEL_INVALID。
 3. 恰有一个显式匹配时直接选择；多个显式匹配时，LLM 只能在该精确候选集合内消歧。
-4. 没有显式匹配时，未声明 when 的 Skill 构成语义候选集合。该集合包括 SKILL.md-only Skill 和未声明 when 的有效 Assurance Skill；Host/Agent 根据其 SKILL.md 做语义选择。候选为空时停止或请求输入。
+4. 没有显式匹配时，未声明 when 的 Skill 构成语义候选集合。该集合包括 SKILL.md-only Skill 和未声明 when 且通过本次 Event Request Schema 校验的有效 Assurance Skill（未声明 Request Schema 时无需该项校验）；Host/Agent 根据其 SKILL.md 做语义选择。候选为空时停止或请求输入。
 5. when 为 false 或运行期求值错误的 Skill 不得重新加入未声明 when 的语义候选集合。LLM 返回候选集合外的 Skill 身份必须拒绝。
 
 无 Assurance 的 Skill 不存在 Contract，也不能声明 CEL when；它只通过 SKILL.md 参与语义选择。不得在 SKILL.md 引入第二套 CEL 语法。不得使用部署级 Event→Skill 表、独立 Domain Contract Package 或 applicability.when 兼容字段。完整包准入与执行模式派生见附录 M。
@@ -4291,7 +4291,7 @@ flowchart TD
 | Runtime Scope/Correlation 错误分类 | §24.2、H：派发前授权交集为空才可能按 DENIED；已派发回包 Scope/Correlation 失配必须隔离并走 UNKNOWN/安全停止，Mutation 依证明与责任裁决 | Runtime 回包故障模拟与 Trace |
 | Schema、CEL、TypedDict 与注解 | F.5/F.6/G.4：有限白名单；不支持 `anyOf/oneOf/pattern/format`、任意 Python typing 或隐式强制转换 | Owner 版本化投影、实现分析器版本、E110/E111 Fixture |
 | 匿名请求字段和身份实参标注 | §13.3、F.1 定义最低逻辑属性；v1alpha4 未增 `identityInputs` 或 `reconcileOnly` 物理字段 | 单独版本化 Owner 互操作发布格式，否则无法声称 §45.2 通过 |
-| Skill Selection / contract.when | v1alpha4 继承基线没有完整选择语法；v1alpha5 刷新修订由 §11.3、§12.8、Appendix M 定义唯一作者字段 contract.when 及选择语义，不存在独立 Applicability Package | Compiler/Host 产品实现按 SA-001–SA-011 独立验收 |
+| Skill Selection / contract.when | v1alpha4 继承基线没有完整选择语法；v1alpha5 刷新修订由 §11.3、§12.8、Appendix M 定义唯一作者字段 contract.when 及选择语义，不存在独立 Applicability Package | Compiler/Host 产品实现按 SA-001–SA-012 独立验收 |
 | 同名诊断与 E 用例错配 | §24、附录 H：`(Code,Phase)` 唯一；`EFFECT_MISMATCH` 可有 C_STATIC 和 R_RUNTIME 两个事件；原 v1alpha3 不包含 E115/E116，本 v1alpha4 新提 E115–E120 则用于多 Predicate 聚合 | 附录 K 的待运行诊断 Fixture 与全量 CI |
 | 正常结果与最终终态 | §12.8、§20、G.8：SUCCEEDED 阶段成功不自动等于 Invocation SUCCEEDED；已有 PENDING 责任时 SAFE_STOPPED 优先 | 资源责任 Owner 证明和真实 5GC 36 Cases |
 | 产品符合性状态 | §45.2：语言 FROZEN 不代表任一 Compiler、Studio、Host、Runtime、Owner 已 READY | 8 项门槛与原始不可变 CI 记录，全项未获统一完成证明 |
@@ -5639,7 +5639,7 @@ CEL 输入环境：
 2. 先解析精确 continuation；续接使用原 Run 的 Skill/Artifact/Capability 绑定，不重新执行 when。
 3. 对已导入的 Assurance Skill，按候选 Skill 的 requestSchema 验证同一 normalized input（若声明），再求值 when。
 4. when=true 的 Skill 构成显式匹配集合。恰有一个时直接选择；多个时只允许 LLM 在该集合内消歧。
-5. 没有显式 true 匹配时，未声明 when 的 Skills 构成语义候选集合。该集合包含 SKILL.md-only Skills 和 Assurance 存在但未声明 when 的 Skills。Host/Agent 使用 SKILL.md 进行语义选择。
+5. 没有显式 true 匹配时，未声明 when 的 Skills 构成语义候选集合。该集合包含 SKILL.md-only Skills 和未声明 when 且通过本次 Event Request Schema 校验的有效 Assurance Skills（未声明 Request Schema 时无需该项校验）。Request Schema 校验失败时，Host MUST 排除该 Skill 并记录关联 Skill 与失败原因的输入校验诊断；此时不求值 when。Host/Agent 使用 SKILL.md 进行语义选择。
 6. when=false 的 Skill 不属于当前 Event 的候选。when 运行期求值错误同样 fail closed、排除该 Skill 并记录 Host 诊断；不得把它当作未声明 when 的 Skill。
 7. 若语义候选集合为空，Host MUST 停止或请求必要输入，不得凭空创造 Skill。
 8. 模型返回不属于当前候选集合的 Skill identity MUST 被拒绝。
@@ -5648,23 +5648,21 @@ CEL 输入环境：
 
 ## M.4 Skill Import 与编译边界
 
-Skill Importer MUST 区分以下输入：
+作者侧工具链和 Agent 运行时导入分别处理以下输入：
 
-| 输入 | 必须行为 |
+| 输入 | 责任方和必须行为 |
 |---|---|
-| SKILL.md-only source | 直接导入 Agent guidance，不调用 CA-SL Compiler |
-| Source package with assurance/ | 自动调用 Compiler Check/Build；成功后 Inspect/Verify 并执行 Host Admission |
-| Already compiled Skill Artifact | Inspect/Verify 并执行 Host Admission；不得重新 Build |
-| Assurance source invalid or unsupported | 拒绝导入，不得降级为 SKILL.md-only |
+| SKILL.md-only Skill | Agent 导入指导内容，仅启用 LLM-guided；不调用 Compiler |
+| 含 assurance/ 的作者源 | 外部作者与发布工具链在发布前调用 Compiler Check/Build，使用 Inspect/Verify 检查编译结果及产物，再组装 SKILL.md 和受支持的已发布运行时 Artifact |
+| 含已发布运行时 Artifact 的 Bundle | Agent 校验支持的格式与版本、Manifest、必需文件、路径、引用、类型数据和本地 Tool/Capability 依赖。校验失败拒绝导入；校验成功后可支持两种运行模式 |
+| 未发布、无效或不受支持的 Assurance | Agent 拒绝导入，不降级为 SKILL.md-only；作者侧工具链拒绝发布无效 Assurance |
 
-Additional rules:
+Agent 导入已发布 Bundle 时不得调用 Compiler Check/Build/Inspect/Verify 或触发重新编译。该消费路径不要求独立 Skill Admission。部署授权、Owner 信任与资格判定由适用的外部部署流程负责。Agent 仍须实施运行时 Callable Scope 和动作校验。
 
-- 修改 SKILL.md 本身只更新 Agent-facing guidance；若 Assurance source 未变化，不要求重新编译。
-- 修改 contract.yaml、procedure.yaml、predicates.yaml 或其他 Assurance 编译输入时，必须重新编译并重新准入。
-- LLM 创建或修改 Skill source 时，使用与用户导入相同的 Importer 路径。
-- 单个 LLM Action proposal 不是 Skill source，不调用 Compiler；它由 Host/Runtime 的共同 Action Boundary 校验和执行。
-- LLM 创建/修改 Procedure 或其他 Assurance source 时，必须经 Compiler 与 Admission 后才能作为 Deterministic Procedure 执行。
-- Artifact Inspect/Verify 不等于 Build；已编译 Artifact 导入不得为了刷新而自动重新编译。
+- 仅修改 SKILL.md 不要求重新编译未改动的 Assurance。
+- 修改 contract.yaml、procedure.yaml、predicates.yaml 或其他 Assurance 编译输入时，外部工具链 MUST 重新编译、复验并发布后，Agent 才能消费新的 Bundle。此规则同样适用于 LLM 创建或修改的作者源。
+- 单个 LLM Action proposal 由 Host/Runtime 的共同 Action Boundary 校验和执行，无需 Compiler。
+- Agent 可独立声明已发布 Bundle 导入及 Skill Selection 范围的符合性。作者源编译和发布的符合性由外部工具链分别举证。
 
 ## M.5 Normative selection/import cases
 
@@ -5673,16 +5671,17 @@ Additional rules:
 | Case | Input / condition | Required result |
 |---|---|---|
 | SA-001 | Skill package contains only SKILL.md | Import without Compiler; LLM-guided only |
-| SA-002 | Skill package contains valid assurance/contract.yaml, procedure.yaml and predicates.yaml | Compiler validates/builds; after Admission the Skill supports both modes |
+| SA-002 | Skill package contains valid assurance/contract.yaml, procedure.yaml and predicates.yaml | The external toolchain validates, builds, verifies and publishes the Bundle; Agent imports the valid published Bundle and supports both modes |
 | SA-003 | assurance/ exists but any of contract.yaml, procedure.yaml or predicates.yaml is missing/invalid | Import fails; never downgrade to SKILL.md-only |
 | SA-004 | Contract.when is valid, references event.type and declared input fields, returns bool | Compiler accepts; Host evaluates for fresh Event selection |
 | SA-005 | Contract.when has unknown input field, missing requestSchema for input access, invalid CEL or non-bool result | Compiler reports CEL_INVALID; Assurance Artifact is not admitted |
 | SA-006 | when evaluates false or errors at selection time | Skill is excluded; it is not reintroduced as an unguarded semantic candidate |
 | SA-007 | One or multiple when=true candidates | One selects directly; multiple are disambiguated only within the exact true set |
 | SA-008 | No when=true candidate; unguarded Skills exist | Semantic selection uses only their SKILL.md descriptions; an empty set stops/asks |
-| SA-009 | Already compiled Artifact is imported | Inspect/Verify and Admission; no Build/recompile |
+| SA-009 | Already compiled Artifact is imported | Agent validates the published Bundle and local dependencies, rejects invalid input, and imports a valid Bundle without invoking Compiler or Skill Admission |
 | SA-010 | LLM proposes one Action | Runtime Action Boundary validates it; no Compiler invocation |
-| SA-011 | LLM creates/edits Assurance source | Normal source import path invokes Compiler before Deterministic execution |
+| SA-011 | LLM creates/edits Assurance source | The external toolchain compiles, verifies and republishes before Agent consumes the changed Assurance |
+| SA-012 | 没有显式匹配。Assurance Skill A 未声明 when，其 Request Schema 要求 requestType 为整数；normalized payload 为 {"requestType":"create"} 且已通过 Plugin Event Schema 校验。另有 SKILL.md-only Skill B | 语义候选集仅含 B；Host 记录 A 的输入校验诊断；A 不求值 when |
 
 Product implementations MUST execute the applicable cases before claiming Compiler, Host or Runtime conformance. A written normative expectation is not a PASS claim.
 
