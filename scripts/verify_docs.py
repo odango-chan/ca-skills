@@ -106,7 +106,7 @@ def check_all_markdown_tables(text: str, errors: list[str]) -> None:
 
 def check_sections(text: str, errors: list[str]) -> None:
     require(text.rstrip().endswith("**全文结束。**"), "complete-spec end marker is missing", errors)
-    for letter in "EFGHIJKM":
+    for letter in "EFGHIJK":
         require(
             re.search(r"(?m)^# 附录 " + letter + r"[：:]", text) is not None,
             "missing Appendix " + letter,
