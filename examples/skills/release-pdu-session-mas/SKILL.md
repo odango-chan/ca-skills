@@ -7,11 +7,7 @@ description: CA-SL v1alpha5 UE-requested Release Procedure for the merged OpenAM
 
 **Source language:** CA-SL v1alpha5.
 
-**Adoption state: NOT_QUALIFIED / NOT_LINKABLE.** This package targets the
-merged OpenAMSM Scheme C Owner contract. The required MAS ToolCatalog exports,
-Scheme C input/output Schemas, mutation receipts, Evidence Guarantees, Owner
-identity and deployment CapabilityContracts are **not published**. Only an
-explicit development closure can build and execute it.
+**Adoption state: OWNER_LINKED / DEVELOPMENT_STATIC_BUILD_PASS / PRODUCTION_NOT_QUALIFIED.** The `mas` dependency resolves to the published Owner package `urn:openamsm:mas:tool-contracts` v1alpha4. Its ToolCatalog, Scheme C callable input/output Schemas, mutation receipt and commit-proof Schemas, Evidence Guarantees, Owner identity and deployment CapabilityContracts are published. `ca-skills` PR #85 verified this Skill with released `skillc v2.0.2` in release mode against the Owner v1alpha4 publication, without a fixture Owner identity. This is static Compiler evidence only: it is not Production Admission, and the 2026-11-23 live Development E2E used the pre-PR #85 source revision. Re-run the live E2E against this exact Owner-linked revision before claiming current-source E2E.
 
 ## Scope
 
