@@ -19,8 +19,8 @@ This commit remains historical and reproducible. The refresh proposal does not s
 ## 2. Proposed same-version refresh
 
 - **Proposal branch:** refresh-ca-sl-v1alpha5-skill-selection-when
-- **Candidate normative source:** [docs/skill-language-spec.v1alpha5.zh-CN.md at candidate commit](https://github.com/odango-chan/ca-skills/blob/baaec88d2949213d7fe5d7ed436d4bd892cc2f24/docs/skill-language-spec.v1alpha5.zh-CN.md)
-- **Candidate commit:** be0ba11270037eda76137f535ec4ba65bcb0da8f
+- **Candidate normative source:** [docs/skill-language-spec.v1alpha5.zh-CN.md at candidate commit](https://github.com/odango-chan/ca-skills/blob/697246a967067cdeddb01c2f43b11a3e56afa480/docs/skill-language-spec.v1alpha5.zh-CN.md)
+- **Candidate commit:** 697246a967067cdeddb01c2f43b11a3e56afa480
 - **Language identifier:** remains connectionagent.io/v1alpha5; no v1alpha6 is introduced.
 - **Publication status:** pending review and merge. On approval, this candidate supersedes the 2026-11-17 normative text under the same language identifier.
 
@@ -52,7 +52,7 @@ The refresh does not change the IngressCatalog or its diagnostic registry.
 ## 4. Validation status
 
 - The 2026-11-17 release verification remains evidence for the original published baseline only.
-- The refreshed normative document has not yet passed the repository's documentation/source-hygiene checks in this proposal branch.
+- The `source-hygiene` check passed for candidate `697246a967067cdeddb01c2f43b11a3e56afa480`. Review the checks on the exact PR head before publication.
 - Compiler, Studio/LSP, Host, Runtime, Skill Importer, Integration Adapter, Owner and live 5GC qualification are not established by this documentation change.
 - The Compiler must explicitly support the refreshed contract.when field and the Assurance-free Skill import boundary before those behaviors can be claimed as implemented.
 
