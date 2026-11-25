@@ -1,51 +1,67 @@
 # CA-SL v1alpha5 Release Record
 
-**Status:** FROZEN / RELEASED  
-**Release date:** 2026-11-17  
-**Language target:** `connectionagent.io/v1alpha5`
+**Status:** REFRESH PROPOSAL — not yet released
+**Current published release date:** 2026-11-17
+**Proposed refresh date:** 2026-11-25
+**Language target:** connectionagent.io/v1alpha5
 
-## Normative identity
+## 1. Current published normative baseline
 
-- **Complete normative source:** [`docs/skill-language-spec.v1alpha5.zh-CN.md`](https://github.com/odango-chan/ca-skills/blob/0abfd0e1ab99f481a4ae01f3f47efc54783dd5e5/docs/skill-language-spec.v1alpha5.zh-CN.md)
-- **Immutable normative commit:** `0abfd0e1ab99f481a4ae01f3f47efc54783dd5e5`
+Until the refresh proposal is reviewed and merged, the current published v1alpha5 baseline remains:
+
+- **Complete normative source:** [docs/skill-language-spec.v1alpha5.zh-CN.md at the published baseline](https://github.com/odango-chan/ca-skills/blob/0abfd0e1ab99f481a4ae01f3f47efc54783dd5e5/docs/skill-language-spec.v1alpha5.zh-CN.md)
+- **Published normative commit:** 0abfd0e1ab99f481a4ae01f3f47efc54783dd5e5
 - **Publication PR:** [ca-skills #66](https://github.com/odango-chan/ca-skills/pull/66)
-- **Merge commit:** `0abfd0e1ab99f481a4ae01f3f47efc54783dd5e5`
+- **Merge commit:** 0abfd0e1ab99f481a4ae01f3f47efc54783dd5
 
-The normative source is the complete single file at the commit above, including the inherited v1alpha4 normative baseline, the v1alpha5 diagnostic index in Appendix H, and the Node-entry Event Wait amendment in Appendix L. This release record is stored separately because a specification file cannot embed its own commit SHA without changing that SHA.
+This commit remains historical and reproducible. The refresh proposal does not silently rewrite the already published baseline.
 
-## Companion Ingress contract
+## 2. Proposed same-version refresh
 
-- **IngressCatalog:** `connectionagent.io/ingresscatalog/v1alpha1`
-- **Diagnostic registry:** `connectionagent.io/ingress-diagnostics/v1alpha1`
-- **Companion contract:** [`docs/design/integration-ingress-operation-contract-vnext.zh-CN.md`](https://github.com/odango-chan/ca-skills/blob/9412be9894ef36acf846c757a5870dc0c48b33ac/docs/design/integration-ingress-operation-contract-vnext.zh-CN.md)
-- **Diagnostic registry:** `docs/design/ingress-diagnostic-registry-v1alpha1.md` and `docs/design/ingress-diagnostic-registry-v1alpha1.json`
-- **Immutable companion release commit:** `9412be9894ef36acf846c757a5870dc0c48b33ac`
+- **Proposal branch:** refresh-ca-sl-v1alpha5-skill-selection-when
+- **Candidate normative source:** [docs/skill-language-spec.v1alpha5.zh-CN.md at candidate commit](https://github.com/odango-chan/ca-skills/blob/8e5882d12262d6978a3868c5ec71ef13bd749152/docs/skill-language-spec.v1alpha5.zh-CN.md)
+- **Candidate commit:** 8e5882d12262d6978a3868c5ec71ef13bd749152
+- **Language identifier:** remains connectionagent.io/v1alpha5; no v1alpha6 is introduced.
+- **Publication status:** pending review and merge. On approval, this candidate supersedes the 2026-11-17 normative text under the same language identifier.
+
+### Normative changes proposed
+
+1. Every Skill package has SKILL.md; assurance/ is optional.
+2. contract.yaml remains inside assurance/ and is not required for SKILL.md-only Skills.
+3. Valid Assurance enables both Deterministic and LLM-guided modes; no Assurance means LLM-guided only; invalid present Assurance fails import and cannot silently downgrade.
+4. Add optional top-level assurance/contract.yaml.when as a pure CEL Skill-selection expression over event.type and typed input.
+5. Keep contract.when separate from execution-time predicates.yaml.
+6. Define formal true-match selection, semantic selection of unguarded SKILL.md candidates, and fail-closed behavior.
+7. Define SKILL.md-only import, Assurance source compilation, and compiled Artifact Inspect/Verify/Admission without rebuild.
+8. Distinguish LLM Action proposals (Runtime Action Boundary; no Compiler) from LLM-created/edited Assurance source (normal Compiler import path).
+9. Add SA-001–SA-011 normative selection/import expectations.
+
+The refresh does not add a Domain Contract Package, TaskContract Package, supportedModes, a second LLM Contract, package signatures, Trust Registry or legacy compatibility.
+
+## 3. Companion Ingress contract
+
+- **IngressCatalog:** connectionagent.io/ingresscatalog/v1alpha1
+- **Diagnostic registry:** connectionagent.io/ingress-diagnostics/v1alpha1
+- **Companion contract:** [integration-ingress-operation-contract-vnext.zh-CN.md](https://github.com/odango-chan/ca-skills/blob/9412be9894ef36acf846c757a5870dc0c48b33ac/docs/design/integration-ingress-operation-contract-vnext.zh-CN.md)
+- **Diagnostic registry:** docs/design/ingress-diagnostic-registry-v1alpha1.md and docs/design/ingress-diagnostic-registry-v1alpha1.json
+- **Companion release commit:** 9412be9894ef36acf846c757a5870dc0c48b33ac
 - **Publication PR:** [ca-skills #62](https://github.com/odango-chan/ca-skills/pull/62)
 
-Appendix H.1 composes the ten Ingress diagnostic identities into the CA-SL v1alpha5 Compiler diagnostic index while preserving the versioned Ingress registry as their owner.
+The refresh does not change the IngressCatalog or its diagnostic registry.
 
-## Release verification
+## 4. Validation status
 
-- **CA-SL v1alpha5 Source Hygiene:** PASS — [GitHub Actions run 44104997656](https://github.com/odango-chan/ca-skills/actions/runs/44104997656)
-- **Documentation structure:** PASS — includes the v1alpha4 inherited baseline, v1alpha5 release status, Appendix L and exact H/H.1 diagnostic counts.
-- **Wait obligation register:** PASS — 36 normative obligations; product execution remains NOT_RUN.
-- **Ingress diagnostic registry:** PASS — 10 exact identities; product execution remains NOT_RUN.
-- **Documentation regression tests:** PASS — 7 tests.
-- **IngressCatalog Schema / artifact lock:** PASS — [run 44103361389](https://github.com/odango-chan/ca-skills/actions/runs/44103361389)
-- **Ingress Source Hygiene:** PASS — [run 44103361387](https://github.com/odango-chan/ca-skills/actions/runs/44103361387)
+- The 2026-11-17 release verification remains evidence for the original published baseline only.
+- The refreshed normative document has not yet passed the repository's documentation/source-hygiene checks in this proposal branch.
+- Compiler, Studio/LSP, Host, Runtime, Skill Importer, Integration Adapter, Owner and live 5GC qualification are not established by this documentation change.
+- The Compiler must explicitly support the refreshed contract.when field and the Assurance-free Skill import boundary before those behaviors can be claimed as implemented.
 
-The repository checks validate source hygiene, normative document structure and registry integrity. They are not Compiler, Studio/LSP, Host, Runtime, Integration Adapter, Owner or live 5GC product-conformance tests.
+Do not treat normative text, a passing documentation validator or a merged specification as proof of product conformance.
 
-## Editorial erratum
-
-In the §L.2.4 authoring example, the `prepare-step17-response` Observation's `OUTCOME_UNKNOWN: UNRESOLVED` route should read `UNKNOWN: UNRESOLVED`. Section 22.1 defines `UNKNOWN` for READ Operations and Observations and reserves `OUTCOME_UNKNOWN` for Mutation Operations. The published specification is identified by the same immutable commit above.
-
-## Compatibility and qualification
+## 5. Compatibility and qualification
 
 - CA-SL v1alpha4 remains an immutable historical language target.
-- v1alpha5 is the current authoring target.
-- The Compiler must select one exact language target; no fallback or silent reinterpretation is permitted.
-- EW-001–EW-036 remain normative test obligations and are not claimed as executed product tests.
-- Compiler, Studio/LSP, Host, Runtime, Integration Adapter, real Owner publication, deployment binding and 5GC E2E remain **NOT_QUALIFIED** until separately verified with real implementation and deployment evidence.
-
-Language freeze and release do not imply product qualification.
+- The current published v1alpha5 baseline remains the 2026-11-17 release until this proposal is merged.
+- The proposed refresh keeps the v1alpha5 language identifier and supersedes the previous v1alpha5 text only after review/merge.
+- No old-format compatibility mapping is introduced.
+- Compiler, Studio/LSP, Host, Runtime, Importer, Owner publication, deployment binding and 5GC E2E remain NOT_QUALIFIED until separately verified with real implementation and deployment evidence.
