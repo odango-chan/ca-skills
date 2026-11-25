@@ -55,6 +55,27 @@ The selected Ingress Operation must come from the exact trusted IngressCatalog d
 
 Dependencies and Capability Grants are different: dependencies make Owner contracts available for linking; grants express the Skill's authorization request. A dependency does not grant permission, and a grant does not provide the ToolCatalog / Schema contract needed to compile a reference.
 
+### Skill applicability (proposed extension)
+
+The optional top-level `when` field in the existing `contract.yaml` is a CEL
+string that must evaluate to a Boolean. For a new Run, the Host evaluates it
+against the validated, normalized event (`event`) and its normalized input
+(`input`) during Skill selection. `SKILL.md` remains the generic Skill
+description. See the [illustrated Contract excerpt](../examples/README.md#skill-applicability-design-example).
+
+A true result makes the Skill applicable. A false result excludes it from
+selection. A missing `when` leaves the Skill available for semantic fallback.
+A continuation resumes the original Run and skips Skill selection.
+
+A Skill may declare `when` in its Contract with or without Assurances. Presence
+of Assurances determines the execution mode. During execution, the predicates
+in `predicates.yaml` still evaluate business conditions for the Procedure.
+Applicability grants no Capability, satisfies no Precondition, and requires no
+Assurance or Evidence.
+
+This proposal extends the author format in a future revision. The published
+v1alpha5 grammar and buildable examples retain their current syntax.
+
 ## 4. Skill Studio creation flow
 
 Studio should guide authors through selection rather than requiring manual entry of Owner IDs:

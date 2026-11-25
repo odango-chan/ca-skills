@@ -55,6 +55,23 @@ Wait 必须选择可信 IngressCatalog 依赖中的精确 Ingress Operation。�
 
 依赖身份与 Capability Grants 不是一回事：依赖让 Studio / Compiler 获得并链接 Owner 契约；Grant 才是授权请求。依赖存在不等于有权执行，Grant 也不能替代 ToolCatalog / Schema 依赖。
 
+### Skill 适用条件（拟议扩展）
+
+在现有 `contract.yaml` 顶层可选声明 `when`。它是一个返回布尔值的 CEL
+表达式字符串。新 Run 选择 Skill 时，Host 使用已校验的归一化事件（`event`）
+及其归一化输入（`input`）计算该表达式。`SKILL.md` 保持通用 Skill 说明。
+参见 [Contract 示例片段](../examples/README.md#skill-applicability-design-example)。
+
+结果为 true 时，Skill 适用。结果为 false 时，排除该 Skill。省略 `when` 的
+Skill 可参与语义回退选择。Continuation 恢复原 Run，跳过 Skill 选择。
+
+有无 Assurances 的 Skill 均可在现有 Contract 中声明 `when`。是否声明
+Assurances 决定执行模式。`predicates.yaml` 中的 Predicate 在 Procedure
+执行期判断业务条件。适用条件不授予 Capability、不满足前置条件，也不要求
+Assurance 或 Evidence。
+
+这是后续版本的作者格式扩展。已发布的 v1alpha5 语法及可构建示例继续使用现有格式。
+
 ## 4. Skill Studio 创建流程
 
 创建 Skill 时，Studio 应提供引导式选择，而不是让作者手工填写一堆 Owner ID：
