@@ -185,7 +185,7 @@ skills/<skill-name>/
 ├── assurance/                # Optional; enables Deterministic execution
 │   ├── contract.yaml         # Required when assurance/ exists
 │   ├── procedure.yaml        # Required when assurance/ exists
-│   └── predicates.yaml       # Required when Predicate definitions are used
+│   └── predicates.yaml       # Required; empty PredicateSet when unused
 ├── cases/<case-name>/case.yaml
 ├── schemas/                  # Skill-owned Schemas
 ├── scripts/                  # Skill-owned deterministic Python
@@ -4787,7 +4787,7 @@ gates:
 
 **执行证据分离：** 附录 E/H 的规范预期状态仅代表文本已定义。附录 K.4 的 `specExpected` 不能转化为 `passed`；`fixtureExists`、`executed`、`passed` 和 `rawResultRef` 应逐变体记录并由原始报告核验。真实实现不能仅凭“规范用例已定义”或空白报告模板声称符合。
 
-**实现真实性：** 本次单文件整合与 Source Hygiene 检查最多说明文档结构及基本校验完成；只有实际 Owner 发布物、受信部署输入、Native/WASM/Studio 的机器 Fixture、Runtime Trace、真实 5GC Case 结果及 §45.2 的逐项报告经独立核验后才能改变相应产品状态。本文件的发布裁决为 **CA-SL v1alpha5 语言 FROZEN / RELEASED；产品 NOT_QUALIFIED**；v1alpha3 和 v1alpha4 原版仍分别保持其独立 FROZEN 状态。
+**实现真实性：** 本次单文件整合与 Source Hygiene 检查最多说明文档结构及基本校验完成；只有实际 Owner 发布物、受信部署输入、Native/WASM/Studio 的机器 Fixture、Runtime Trace、真实 5GC Case 结果及 §45.2 的逐项报告经独立核验后才能改变相应产品状态。本文件记录的 **2026-11-17 首次发布裁决为 CA-SL v1alpha5 FROZEN / RELEASED；产品 NOT_QUALIFIED**。2026-11-25 同版本刷新目前仍是 Appendix M 所述提案，须在评审合并后更新发布记录；v1alpha3 和 v1alpha4 原版仍分别保持其独立 FROZEN 状态。
 
 ---
 
@@ -5547,7 +5547,7 @@ The following semantic cases are REQUIRED for v1alpha5 language/Host/Runtime/Int
 2. 已完成对 package-scoped Integration Ingress Operation 逻辑导出契约、Schema、诊断注册表及 response-result binding 的交叉复核；其独立版本 `connectionagent.io/ingresscatalog/v1alpha1` 与诊断注册表 `connectionagent.io/ingress-diagnostics/v1alpha1` 已明确冻结；
 3. EW-001–EW-036 每项均已具有明确输入条件、精确预期诊断/控制结果、分支和恢复语义；机器义务清单保持 `SPECIFICATION_ONLY`，仅表示产品 Fixture 尚未执行，不影响规范义务已定义；
 4. 已完成 CA-SL 内部与 Wait 语义（#60/#64）、Ingress 逻辑契约的交叉一致性审查；本节定义的 Host/Runtime/Integration 抽象职责可独立理解，不以某个产品实现的物理 DTO 或持久化格式为前提；
-5. 已对语言标识 `connectionagent.io/v1alpha5` 作出明确 FROZEN / RELEASED 裁决；唯一规范提交由发布记录固定。
+5. 2026-11-17 首次发布已对 `connectionagent.io/v1alpha5` 作出 FROZEN / RELEASED 裁决；本次 2026-11-25 刷新仍为提案，合并发布后由 release record 更新当前规范提交。
 
 以上语言发布门槛均已满足。它们不要求 Compiler、Host、Runtime 或 Integration Adapter 已经执行通过产品测试，也不要求真实 Owner 已发布生产包。
 
