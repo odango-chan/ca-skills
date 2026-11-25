@@ -19,7 +19,7 @@ This commit remains historical and reproducible. The refresh proposal does not s
 ## 2. Proposed same-version refresh
 
 - **Proposal branch:** refresh-ca-sl-v1alpha5-skill-selection-when
-- **Candidate normative source:** [docs/skill-language-spec.v1alpha5.zh-CN.md at candidate commit](https://github.com/odango-chan/ca-skills/blob/54bc037c366f0c39e8da0b011d83e575c86fcd61/docs/skill-language-spec.v1alpha5.zh-CN.md)
+- **Candidate normative source:** [docs/skill-language-spec.v1alpha5.zh-CN.md at candidate commit](https://github.com/odango-chan/ca-skills/blob/baaec88d2949213d7fe5d7ed436d4bd892cc2f24/docs/skill-language-spec.v1alpha5.zh-CN.md)
 - **Candidate commit:** be0ba11270037eda76137f535ec4ba65bcb0da8f
 - **Language identifier:** remains connectionagent.io/v1alpha5; no v1alpha6 is introduced.
 - **Publication status:** pending review and merge. On approval, this candidate supersedes the 2026-11-17 normative text under the same language identifier.
