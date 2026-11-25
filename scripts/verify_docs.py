@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Structural lint for the immutable v1alpha4 baseline and released v1alpha5 specification.
+"""Structural lint for the immutable v1alpha4 baseline and v1alpha5 release/refresh candidate.
 
 Checks Markdown structure, diagnostic-index composition and publication routing.
 This is NOT a Compiler/Studio/Runtime/Owner/5GC conformance or fixture runner.
@@ -106,7 +106,7 @@ def check_all_markdown_tables(text: str, errors: list[str]) -> None:
 
 def check_sections(text: str, errors: list[str]) -> None:
     require(text.rstrip().endswith("**全文结束。**"), "complete-spec end marker is missing", errors)
-    for letter in "EFGHIJK":
+    for letter in "EFGHIJKM":
         require(
             re.search(r"(?m)^# 附录 " + letter + r"[：:]", text) is not None,
             "missing Appendix " + letter,
@@ -201,8 +201,8 @@ def check_counts(text: str, errors: list[str]) -> None:
 def check_v1alpha5(text: str, errors: list[str]) -> None:
     """Check the released v1alpha5 publication boundary and H.1 projection."""
     require(
-        "`connectionagent.io/v1alpha5`" in text and re.search(r"(?m)^\*\*状态：\*\*.*FROZEN / RELEASED", text) is not None,
-        "v1alpha5 must identify the released frozen language target",
+        "`connectionagent.io/v1alpha5`" in text and re.search(r"(?m)^\*\*状态：\*\*.*(?:FROZEN / RELEASED|PROPOSED REFRESH)", text) is not None,
+        "v1alpha5 must identify the published target or an explicit same-version refresh candidate",
         errors,
     )
     require(
@@ -212,8 +212,12 @@ def check_v1alpha5(text: str, errors: list[str]) -> None:
     )
     require(text.count("# 附录 L：v1alpha5 Node-entry Event Wait 规范性增补") == 1,
             "v1alpha5 must contain exactly one normative Appendix L", errors)
-    for heading in ("## L.0 效力与兼容性", "## L.13 规范发布与产品资格门槛", "### 45.3 CA-SL v1alpha5 语言冻结与发布裁决"):
-        require(heading in text, "missing v1alpha5 publication section: " + heading, errors)
+    require(text.count("# 附录 M：Optional Assurance 与 Skill Selection Contract.when") == 1,
+            "v1alpha5 refresh must contain exactly one normative Appendix M", errors)
+    for heading in ("## L.0 效力与兼容性", "## L.13 规范发布与产品资格门槛", "### 45.3 CA-SL v1alpha5 刷新修订提案"):
+        require(heading in text, "missing v1alpha5 publication/refresh section: " + heading, errors)
+    require("SA-001" in text and "SA-011" in text,
+            "v1alpha5 refresh must define the Skill selection/import obligation cases", errors)
 
     def rows_after(header: str) -> list[str]:
         if text.count(header) != 1:
