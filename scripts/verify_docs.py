@@ -286,7 +286,10 @@ def main() -> None:
     check_sections(text, errors)
     check_all_markdown_tables(text, errors)
     check_counts(text, errors)
-    check_v1alpha5(SPEC_V1A5.read_text(encoding="utf-8"), errors)
+    text_v1a5 = SPEC_V1A5.read_text(encoding="utf-8")
+    check_fences(text_v1a5.splitlines(), errors)
+    check_all_markdown_tables(text_v1a5, errors)
+    check_v1alpha5(text_v1a5, errors)
     if errors:
         raise SystemExit("DOC_STRUCTURE_FAIL\n" + "\n".join(errors))
     print("DOC_STRUCTURE_PASS (v1alpha4 baseline + v1alpha5 release / H.1 / tables / manifest routing)")
