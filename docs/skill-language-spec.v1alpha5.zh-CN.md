@@ -520,7 +520,7 @@ Runtime 在派发时对可信部署契约重新执行同一 Effect 与授权检�
 
 ## 10. 版本和文件
 
-v1alpha5 Skill 包必须包含根目录的 SKILL.md；确定性执行资产位于可选的 assurance/ 目录。存在 assurance/ 时，作者源码使用 contract.yaml、procedure.yaml，以及被 Procedure 引用的 predicates.yaml。没有 assurance/ 的 Skill 是 Agent-only Skill，不构成 CA-SL 可执行源码。文件路径与所在目录决定源文件类型；这些 YAML 文件不需要重复声明 apiVersion、kind 或 metadata 包装。
+v1alpha5 Skill 包必须包含根目录的 SKILL.md；确定性执行资产位于可选的 assurance/ 目录。存在 assurance/ 时，作者源码必须包含 contract.yaml、procedure.yaml 和 predicates.yaml 三个文件；没有 Predicate 定义时，predicates.yaml 仍须存在并使用空 PredicateSet。没有 assurance/ 的 Skill 是 Agent-only Skill，不构成 CA-SL 可执行源码。文件路径与所在目录决定源文件类型；这些 YAML 文件不需要重复声明 apiVersion、kind 或 metadata 包装。
 
 语言版本由 BuildRequest / Compiler Target 明确指定，而不是由每个 YAML 文件重复声明。Compiler 必须严格按指定版本解析；不支持的版本必须失败，不得猜测或兼容映射。编译产物记录实际采用的语言/API 版本、Skill Package 身份和生成器版本。
 
@@ -532,7 +532,7 @@ ca-skills 中已有 v1alpha5 的 Establish、Modify、Release Skill 源码示例
 
 CA-SL 使用 YAML 1.2 表达作者源码。YAML 是序列化格式，不是完整语言语义。Compiler MUST 使用安全解析器，并拒绝重复 Key、未知语义字段、非预期根类型、自定义 Tag、循环 Alias 和无法确定解释的标量。
 
-v1alpha5 的可选 Assurance 源码由三个独立角色组成：**Skill Contract**（`assurance/contract.yaml`）、**Procedure 图**（`assurance/procedure.yaml`）和 **PredicateSet**（`assurance/predicates.yaml`）；各自承担 Skill 选择/公共需求、确定性执行控制流及执行期纯判断定义，互不替代。PredicateSet 文件仅在该 Skill 定义或引用 Predicate 时需要：
+v1alpha5 的可选 Assurance 源码由三个独立角色组成：**Skill Contract**（`assurance/contract.yaml`）、**Procedure 图**（`assurance/procedure.yaml`）和 **PredicateSet**（`assurance/predicates.yaml`）；各自承担 Skill 选择/公共需求、确定性执行控制流及执行期纯判断定义，互不替代。PredicateSet 文件在 Assurance 中始终存在；没有 Predicate 定义时使用空 PredicateSet：
 
 ~~~yaml
 # assurance/contract.yaml
@@ -5580,7 +5580,7 @@ skills/<skill-name>/
 ├── assurance/                 # Optional
 │   ├── contract.yaml          # Required when assurance/ exists
 │   ├── procedure.yaml        # Required when assurance/ exists
-│   └── predicates.yaml       # Required when the Procedure uses Predicate definitions
+│   └── predicates.yaml       # Required; empty PredicateSet is allowed when unused
 ├── schemas/
 ├── scripts/
 └── references/
@@ -5590,8 +5590,8 @@ skills/<skill-name>/
 
 1. SKILL.md 是所有 Skill 必需的 Agent-facing 描述与使用指导。它不是 CA-SL Procedure，也不声明 CEL 选择表达式。
 2. 不存在 assurance/ 时，该 Skill 是 Agent-only Skill，只支持 LLM-guided 执行，不具有 Deterministic 执行能力，也不调用 CA-SL Compiler。
-3. 存在有效 assurance/ 时，该 Skill 同时支持 Deterministic 和 LLM-guided 两种执行模式。执行模式在精确 Skill 选择与绑定之后决定。
-4. assurance/ 存在但 contract.yaml、procedure.yaml、所需 PredicateSet、Schema、依赖或静态语义无效时，Skill Import MUST fail。不得把该 Skill 降级为仅 SKILL.md 的普通 Skill。
+3. 存在有效 assurance/（contract.yaml、procedure.yaml 和 predicates.yaml 均有效）时，该 Skill 同时支持 Deterministic 和 LLM-guided 两种执行模式。执行模式在精确 Skill 选择与绑定之后决定。
+4. assurance/ 存在但 contract.yaml、procedure.yaml、predicates.yaml、Schema、依赖或静态语义无效时，Skill Import MUST fail。不得把该 Skill 降级为仅 SKILL.md 的普通 Skill。
 5. 不定义 supportedModes 字段，不定义第二份 LLM Contract，不定义独立 Skill descriptor、activation.yaml、constraint.yaml、applicability.yaml 或 Domain Contract Package。
 6. predicates.yaml 仅定义执行期 Predicate。它不参与 Skill 身份选择，也不能代替 Contract.when。
 
