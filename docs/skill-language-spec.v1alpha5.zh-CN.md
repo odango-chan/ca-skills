@@ -146,11 +146,12 @@ CA-SL 的适用范围限于已发布 Owner 契约之上的确定性业务编排�
 
 ## 5. 源码与执行分层
 
-1. **Skill 契约层：** 业务目标、全局前置条件、公共 Request Schema、Context 要求、公共依赖和显式 Capability Grants，由 contract.yaml 声明；Skill 身份由 Package 路径确定。
-2. **Procedure 层：** 单一确定性执行图，包含入口 Precondition、Operation / Observation、局部判断、最终 Postcondition、分支和终态。
-3. **Predicate 层：** 可复用的纯判断定义；CEL 或受约束的 Python evaluator。
-4. **Tool / Capability 层：** Owner 发布的 callable 契约、Schema、Effect，以及部署侧精确授权关系。
-5. **Host / Runtime 层：** 执行隔离、Admission、Evidence、Correlation、Freshness、Deadline、Cancellation 和最终状态。
+1. **Skill 描述层：** 每个 Skill 都有 SKILL.md，提供 Agent-facing 描述与自然语言使用指导。
+2. **可选 Assurance 契约层：** 只有需要确定性执行的 Skill 才有 assurance/contract.yaml；它声明 Goal、when、Request、Context、Dependencies 和 Capability Grants。
+3. **可选 Procedure 层：** Assurance Skill 的确定性执行图，包含 Precondition、Operation / Observation、Postcondition、分支和终态。
+4. **Predicate 层：** Assurance Procedure 使用的执行期纯判断定义；CEL 或受约束的 Python evaluator。
+5. **Tool / Capability 层：** Owner 发布的 callable 契约、Schema、Effect，以及部署侧精确授权关系。
+6. **Host / Runtime 层：** Skill 选择、执行隔离、Admission、Evidence、Correlation、Freshness、Deadline、Cancellation 和最终状态。
 
 ~~~text
 Skill Package
@@ -170,51 +171,52 @@ Host / Runtime ── admission, execution, correlation, Evidence
 
 ## 6. 术语
 
-**Host** 负责准入、Root Routing、上下文物化、Evidence 保管及责任记录持久化。**Runtime** 负责执行已链接 Procedure、推进阶段、选择路由、派发准入及预算和 Deadline。二者可以共进程；分离部署的传输由 Runtime Artifact Contract 定义。
+**Host** 负责 Skill Import、Skill Selection、上下文物化、Artifact / Capability Admission、Evidence 保管及责任记录持久化。**Runtime** 负责执行已链接 Assurance Procedure、推进阶段、选择路由、Action 准入及预算和 Deadline。Agent-only Skill 的 LLM-guided 执行不要求 CA-SL Procedure。二者可以共进程；分离部署的传输由 Runtime Artifact Contract 定义。
 
 ### 6.1 Skill / Skill Package
 
-Skill 是具有明确业务目标、输入契约、授权范围和执行入口的可复用业务能力包。Skill 不是 Tool；一个 Skill 可以调用多个 Tool，也可以被 Agent Router 选择。
+Skill 是可复用的 Agent 能力包。每个 Skill 必须有 SKILL.md；Skill 不等同于 Tool，一个 Skill 可以调用多个 Tool，也可以被 Agent Resolver 选择。确定性执行能力是可选的，由有效的 Assurance 决定。
 
-v1alpha4 作者维护的 Package：
+v1alpha5 Skill Package：
 
 ~~~text
 skills/<skill-name>/
-├── SKILL.md
-├── assurance/
-│   ├── contract.yaml
-│   ├── procedure.yaml
-│   └── predicates.yaml
+├── SKILL.md                  # Required for every Skill
+├── assurance/                # Optional; enables Deterministic execution
+│   ├── contract.yaml         # Required when assurance/ exists
+│   ├── procedure.yaml        # Required when assurance/ exists
+│   └── predicates.yaml       # Required when Predicate definitions are used
 ├── cases/<case-name>/case.yaml
-├── schemas/       # 仅 Skill 自有 Schema，例如公共 Request Schema
-├── scripts/       # Skill 自有确定性 Python
-└── references/    # 可选知识资料
+├── schemas/                  # Skill-owned Schemas
+├── scripts/                  # Skill-owned deterministic Python
+└── references/               # Optional knowledge material
 ~~~
 
 | 资产 | 职责 |
 |---|---|
-| SKILL.md | 面向 Agent 的业务指导，不是第二份执行图 |
-| contract.yaml | Skill 公共契约：Goal、全局前置条件、Request Schema、Context 要求、公共依赖和 Capability Grants |
-| procedure.yaml | 唯一 Procedure 执行图：start、节点、路由和最终 Postcondition |
-| predicates.yaml | 可复用 Predicate 定义及其参数签名 |
+| SKILL.md | 所有 Skill 必需的 Agent-facing 描述、使用指导和自然语言适用条件；不是第二份执行图，也不声明 CEL |
+| assurance/contract.yaml | 可选确定性执行契约：Goal、when、全局前置条件、Request Schema、Context、Dependencies 和 Capability Grants |
+| assurance/procedure.yaml | Assurance Skill 的唯一确定性 Procedure 执行图：start、节点、路由和最终 Postcondition |
+| assurance/predicates.yaml | Assurance Procedure 使用的可复用执行期 Predicate 定义及参数签名 |
 | cases/ | 业务场景和预期语义义务 |
-| schemas/ | 仅存放 Skill 自有的 Schema |
+| schemas/ | 仅存放 Skill 自有 Schema |
 | scripts/ | Skill 自有确定性 Python；可作为 Procedure 的本地 Script Operation，也可实现 Predicate |
 | references/ | 可选知识资料，不是执行契约或 Evidence |
 
-v1alpha4 保留作者维护的 assurance/contract.yaml，但不再使用重复的 apiVersion、kind、metadata 等机器对象包装。Contract 声明 Skill 的公共业务契约、依赖需求和 Capability Grants；Skill 身份从 Package 根目录确定。语言版本由 BuildRequest / Compiler Target 决定。外部依赖的具体内容由 Studio / 调用方通过 DependencySnapshot 提供，不复制到 Skill Package 的 lib/。
+没有 assurance/ 的 Skill 只使用 SKILL.md，支持 LLM-guided，不具有 CA-SL Deterministic 执行能力，也不调用 CA-SL Compiler。有效 assurance/ 同时支持 Deterministic 与 LLM-guided。assurance/ 存在但无效时必须拒绝导入，不得静默降级。Contract 只存在于 assurance/ 内；不为普通 Skill 增加第二份 Contract。Skill 身份由 Package 根目录确定。语言版本由 BuildRequest / Compiler Target 决定。外部依赖的具体内容由 Studio / 调用方通过 DependencySnapshot 提供，不复制到 Skill Package 的 lib/。
 
 ### 6.2 Goal、Request、Invocation 与编译契约
 
-- **Goal：** Skill 希望达成的业务目标，由 contract.yaml 声明。`GoalId` 是大小写敏感的标识，由一个或多个 §13.2 的 ASCII Identifier 以点号连接。每段以 ASCII 字母开头，后续可含 ASCII 字母、数字、下划线或连字符。最终目标由每条成功分支的 Postcondition 聚合 `PASS: SUCCEEDED` 直接证明；Procedure 不重复写 GoalId。
-- **全局 Precondition：** Contract 可选的单数 `precondition` 指向 Procedure 中唯一必须整体 PASS 的前置阶段，约束业务 Mutation 和成功终态；多个前置事实写在其 `predicates` 列表中。
-- **Request：** 调用方为本次执行提供的业务请求，由 contract.yaml 的 requestSchema 指向 Skill 自有 Schema；Request 本身不证明网络状态。
-- **Context Schema：** Skill 通过 `contextSchema` 选择 Host Owner 发布的 Invocation Context Schema。Compiler 以该 Schema 校验 Host 字段路径。
-- **Dependencies：** Skill 声明所需的公共 Owner 契约身份（例如 ToolCatalog、Host Context、Observation、共享 Schema）。声明依赖身份，不携带下载地址、版本锁或依赖内容。
-- **Capability Grants：** Skill 在 contract.yaml 中显式声明所需 Capability 身份。Compiler 逐一验证每个外部 callable 都属于已 Grant 的 Capability；不得从“源码调用了某个 Tool”自动推导授权。
-- **Skill Identity：** 取 G.7 所规定的逻辑根 `skills/<skill-name>`，而非由宿主文件系统自行将绝对路径规范化后再计算；包名/路径的大小写、分隔符、Windows/Unix 差异、符号链接与尾随斜线均以 G.7 的规范化与安全检查为准。作者不在 YAML 重复填写 metadata.name。
-- **Compiled Skill Contract：** Compiler 将 contract.yaml、Procedure 和 Predicate 定义归一化为 Runtime 所需的契约投影。它是派生产物，不是第二份作者源码；若 Runtime 不需要独立 Contract 文件，也不必单独输出。
-- **Invocation：** 一次 Skill 独立执行实例。每次 Invocation MUST 有独立运行身份和隔离上下文。不得因为 UE 相同而共享未声明的可变状态。
+- **Goal：** 仅 Assurance Skill 声明的业务目标，由 assurance/contract.yaml 声明。GoalId 是大小写敏感标识。最终目标由每条成功分支的 Postcondition 聚合 PASS→SUCCEEDED 直接证明；Procedure 不重复写 GoalId。
+- **when：** Assurance Contract 的可选 Skill 选择条件。它在新 Event 的 Skill 选择期求值，不属于 Procedure Predicate，也不证明业务事实；详见 §11.3、§12.8 和 Appendix M。
+- **全局 Precondition：** Assurance Contract 可选的单数 precondition 指向 Procedure 中唯一必须整体 PASS 的前置阶段，约束业务 Mutation 和成功终态；多个前置事实写在其 predicates 列表中。
+- **Request：** Assurance Skill 调用方提供的业务请求，由 Contract.requestSchema 指向 Skill 自有 Schema；Request 本身不证明网络状态。
+- **Context Schema：** Assurance Skill 通过 contextSchema 选择 Host Owner 发布的 Invocation Context Schema。Compiler 以该 Schema 校验 Host 字段路径。
+- **Dependencies：** Assurance Skill 声明所需的公共 Owner 契约身份（例如 ToolCatalog、Host Context、Observation、共享 Schema）。声明依赖身份，不携带下载地址、版本锁或依赖内容。
+- **Capability Grants：** Assurance Skill 在 Contract 中显式声明所需 Capability 身份。Compiler 逐一验证每个外部 callable 都属于已 Grant 的 Capability；不得从源码调用某个 Tool 自动推导授权。
+- **Skill Identity：** 取 G.7 所规定的逻辑根 skills/<skill-name>，而非由宿主文件系统自行将绝对路径规范化后再计算；作者不在 YAML 重复填写 metadata.name。
+- **Compiled Skill Contract：** Compiler 将 Assurance contract.yaml、Procedure 和 Predicate 定义归一化为 Runtime 所需的契约投影。它是派生产物，不是第二份作者源码。
+- **Invocation：** CA-SL Invocation 是一次 Assurance Skill 的确定性执行实例。LLM-guided Agent-only Skill 的 Host Run 由 Host/Runtime 契约定义，不因缺少 CA-SL Invocation 而需要伪造 Contract。
 
 ### 6.3 Invocation Context
 
@@ -522,9 +524,9 @@ v1alpha5 Skill 包必须包含根目录的 SKILL.md；确定性执行资产位�
 
 语言版本由 BuildRequest / Compiler Target 明确指定，而不是由每个 YAML 文件重复声明。Compiler 必须严格按指定版本解析；不支持的版本必须失败，不得猜测或兼容映射。编译产物记录实际采用的语言/API 版本、Skill Package 身份和生成器版本。
 
-v1alpha4 是破坏性语言版本。Compiler MUST NOT 静默把 v0.2 字段、旧路径或旧隐式输入模型转换为 v1alpha4 语义。
+v1alpha4 是破坏性语言版本。Compiler MUST NOT 静默把 v0.2 字段、旧路径或旧隐式输入模型转换为 v1alpha4 语义。v1alpha5 继续采用显式语言目标；本次刷新不引入旧格式兼容。
 
-当前仓库中的可执行 5GC Skill 仍有 v0.2 形态。本文示例说明目标语言，不代表旧文件已迁移或当前 Compiler 已支持。
+ca-skills 中已有 v1alpha5 的 Establish、Modify、Release Skill 源码示例。它们的存在不代表刷新后的 when 已由 Compiler 实现，也不代表任何 Owner / Host / 真实 5GC 产品资格已通过。
 
 ### 10.1 YAML 语法子集与结构文法
 
@@ -582,12 +584,14 @@ nodes:
 
 ~~~ebnf
 Contract          = map(goal: GoalId,
+                        when?: CelExpression,
                         precondition?: PreconditionRef,
                         requestSchema?: LocalSchemaPath,
                         contextSchema?: QualifiedSchemaId,
                         dependencies?: map<Alias, StablePackageId>,
                         capabilities?: list<CapabilityId>,
                         limits?: map(maxActions: PositiveInteger))
+CelExpression     = NonEmptyString (CEL subset in §G.4; result type bool)
 GoalId            = Identifier { "." Identifier }
 PreconditionRef   = NodeId "." "precondition"
 Procedure         = map(start: NodeId, nodes: map<NodeId, Node>)
@@ -736,7 +740,7 @@ nodes:
 - `apiVersion`、`kind`：Skill 的 assurance/contract.yaml、assurance/procedure.yaml、assurance/predicates.yaml 省略这些包装。ToolCatalog 和 CapabilityContracts 是独立发布的资源，按各自契约声明版本。语言版本由 BuildRequest / Compiler Target 决定；文件路径和内容结构决定源文件类型。
 - when（仅 Contract）：可选顶层 CEL 表达式，用于新 Event 的 Skill 选择；它不属于 Procedure、PredicateSet、运行期业务 Precondition 或 Postcondition。它只能引用 event.type 和 input。input 的静态类型来自 requestSchema；引用 input 成员而未声明 requestSchema 报 CEL_INVALID。它不能访问 Observation、Tool、Runtime Context、时间、环境变量或任何有副作用的函数。旧 applicability.when 不是别名，按 UNKNOWN_FIELD 拒绝。
 - `metadata.name`：由 Skill Package 根目录确定，不重复维护。
-- `skillType`：v1alpha4 Skill 都使用统一执行模型；除非未来出现有实质语义差异的 Skill 类型，否则不作为必填字段。
+- `skillType`：不定义此字段。是否具有 Deterministic 能力由 assurance/ 是否存在且有效派生；不使用 supportedModes。
 - `entryProcedure`：每个 Skill 只有一张入口 Procedure 图，入口由唯一 `procedure.yaml` 确定。
 - `precondition`（**仅 Contract**）是可省略的**单一**全局门禁阶段引用，必须是精确 `<node-id>.precondition` 字符串；不存在“空列表”等价语义，省略表示没有全局前置阶段，空值、数组、对象与不存在的阶段均按 `ENTRY_PRECONDITION_REF_INVALID` 拒绝。此字段不能引用内部某个 Predicate，也不允许把多个独立前置阶段写成列表。若业务要组合多个全局前置事实，请放进该 Node 的 `precondition.predicates` 非空列表。Procedure 其他 Node 仍可拥有局部 Precondition。Contract 不声明 `postcondition` 或 `postconditions`，最终成功只由 Procedure 的最终 Postcondition 聚合 PASS 直达 `SUCCEEDED` 证明。
 - 最终目标由 Contract 的唯一 `goal` 指定；Procedure 的**最终** Postcondition 阶段以聚合 PASS 直接请求 SUCCEEDED 证明该目标，并记录每个 Predicate 的 arguments、执行位置、Evidence lineage 和三态结果；不允许在该阶段重复配置 `goal`。
