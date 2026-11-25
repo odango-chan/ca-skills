@@ -1,30 +1,28 @@
 # CA-SL v1alpha5 Release Record
 
-**Status:** REFRESH PROPOSAL — not yet released
-**Current published release date:** 2026-11-17
-**Proposed refresh date:** 2026-11-25
+**Status:** FROZEN / RELEASED
+**Refresh date:** 2026-11-25
 **Language target:** connectionagent.io/v1alpha5
 
-## 1. Current published normative baseline
+## 1. Original published baseline (historical)
 
-Until the refresh proposal is reviewed and merged, the current published v1alpha5 baseline remains:
+The 2026-11-17 v1alpha5 release remains available at its immutable source:
 
 - **Complete normative source:** [docs/skill-language-spec.v1alpha5.zh-CN.md at the published baseline](https://github.com/odango-chan/ca-skills/blob/0abfd0e1ab99f481a4ae01f3f47efc54783dd5e5/docs/skill-language-spec.v1alpha5.zh-CN.md)
 - **Published normative commit:** 0abfd0e1ab99f481a4ae01f3f47efc54783dd5e5
 - **Publication PR:** [ca-skills #66](https://github.com/odango-chan/ca-skills/pull/66)
 - **Merge commit:** 0abfd0e1ab99f481a4ae01f3f47efc54783dd5
 
-This commit remains historical and reproducible. The refresh proposal does not silently rewrite the already published baseline.
+This commit remains historical and reproducible.
 
-## 2. Proposed same-version refresh
+## 2. Published same-version refresh
 
-- **Proposal branch:** refresh-ca-sl-v1alpha5-skill-selection-when
-- **Candidate normative source:** [docs/skill-language-spec.v1alpha5.zh-CN.md at candidate commit](https://github.com/odango-chan/ca-skills/blob/697246a967067cdeddb01c2f43b11a3e56afa480/docs/skill-language-spec.v1alpha5.zh-CN.md)
-- **Candidate commit:** 697246a967067cdeddb01c2f43b11a3e56afa480
-- **Language identifier:** remains connectionagent.io/v1alpha5; no v1alpha6 is introduced.
-- **Publication status:** pending review and merge. On approval, this candidate supersedes the 2026-11-17 normative text under the same language identifier.
+- **Complete normative source:** [CA-SL v1alpha5 specification at the merged refresh](https://github.com/odango-chan/ca-skills/blob/18d8184367982ccbc835756136c4a53f9096c3a0/docs/skill-language-spec.v1alpha5.zh-CN.md)
+- **Immutable normative commit:** `18d8184367982ccbc835756136c4a53f9096c3a0`
+- **Publication source PR:** [ca-skills #88](https://github.com/odango-chan/ca-skills/pull/88)
+- **Language identifier:** remains connectionagent.io/v1alpha5.
 
-### Normative changes proposed
+### Normative changes
 
 1. Every Skill package has SKILL.md; assurance/ is optional.
 2. contract.yaml remains inside assurance/ and is not required for SKILL.md-only Skills.
@@ -52,7 +50,7 @@ The refresh does not change the IngressCatalog or its diagnostic registry.
 ## 4. Validation status
 
 - The 2026-11-17 release verification remains evidence for the original published baseline only.
-- The `source-hygiene` check passed for candidate `697246a967067cdeddb01c2f43b11a3e56afa480`. Review the checks on the exact PR head before publication.
+- The `source-hygiene` check passed on PR #88 head `144d27dfee0d329f702dfc780078fc005466ac3b` before squash merge.
 - Compiler, Studio/LSP, Host, Runtime, Skill Importer, Integration Adapter, Owner and live 5GC qualification are not established by this documentation change.
 - The Compiler must explicitly support the refreshed contract.when field and the Assurance-free Skill import boundary before those behaviors can be claimed as implemented.
 
@@ -61,7 +59,7 @@ Do not treat normative text, a passing documentation validator or a merged speci
 ## 5. Compatibility and qualification
 
 - CA-SL v1alpha4 remains an immutable historical language target.
-- The current published v1alpha5 baseline remains the 2026-11-17 release until this proposal is merged.
-- The proposed refresh keeps the v1alpha5 language identifier and supersedes the previous v1alpha5 text only after review/merge.
+- The refresh identified in §2 is the current normative baseline.
+- The refresh supersedes the 2026-11-17 normative text under the same v1alpha5 language identifier.
 - No old-format compatibility mapping is introduced.
 - Compiler, Studio/LSP, Host, Runtime, Importer, Owner publication, deployment binding and 5GC E2E remain NOT_QUALIFIED until separately verified with real implementation and deployment evidence.
