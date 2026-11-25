@@ -1,4 +1,4 @@
-"""Regression tests for v1alpha4 baseline and v1alpha5 release documentation gates."""
+"""Regression tests for v1alpha4 baseline and v1alpha5 release/refresh documentation gates."""
 
 from __future__ import annotations
 

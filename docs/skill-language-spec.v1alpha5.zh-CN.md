@@ -3,20 +3,22 @@
 **中文名称：** ConnectionAgent Skill 语言规范  
 **简称：** CA-SL  
 **目标版本：** `connectionagent.io/v1alpha5`（简称 v1alpha5；v1alpha4 为不可变继承基线）  
-**状态：** FROZEN / RELEASED — NORMATIVE LANGUAGE SPECIFICATION（2026-11-17；产品与真实 Owner 资格独立，仍为 NOT_QUALIFIED）  
+**状态：** PROPOSED REFRESH — NORMATIVE CANDIDATE（2026-11-25；待评审与发布；产品与真实 Owner 资格仍为 NOT_QUALIFIED）  
 **规范所有者：** odango-chan/ca-skills  
 **适用对象：** Skill 作者、Skill Studio、Compiler、Agent Host / Runtime、Tool Owner、Schema Owner、语言服务及符合性评审机构  
-**更新日期：** 2026-11-17
+**更新日期：** 2026-11-25
 
-**文件效力。** 本文件是 CA-SL v1alpha5 的完整、唯一规范性单文件，以已发布并保持不可变的 v1alpha4 规范为继承基线。除本文件附录 L 明确增补或替代的条款外，v1alpha4 的规范性条款继续适用于 v1alpha5。附录 L 是 v1alpha5 的规范性组成部分；当其明确修订某一 v1alpha4 条款时，以附录 L 对 v1alpha5 的规定为准。v1alpha4 原文件不作修改。`connectionagent.io/v1alpha5` 已于 2026-11-17 作出 FROZEN / RELEASED 裁决；本文件的不可变提交身份记录于 `docs/releases/ca-sl-v1alpha5.md`。该语言发布不代表任何产品已获资格。
+**文件效力。** 本文件是 CA-SL v1alpha5 的完整、唯一规范性单文件，以已发布并保持不可变的 v1alpha4 规范为继承基线。除本文件明确列出的 v1alpha5 增补与替代条款外，v1alpha4 的规范性条款继续适用于 v1alpha5。附录 L 规定 Node-entry Event Wait；本次刷新新增的附录 M 规定可选 Assurance、Skill selection 的 contract.when 及 Skill 导入边界。v1alpha4 原文件不作修改。本次 2026-11-25 刷新修订提案继续使用 connectionagent.io/v1alpha5；在评审通过并发布后，将取代 2026-11-17 的 v1alpha5 首次发布文本成为当前规范性版本。不引入 v1alpha6，也不对旧格式作兼容映射。当前规范修订的精确提交身份记录于 docs/releases/ca-sl-v1alpha5.md。语言发布不代表任何产品已获资格。
 
 **规范性用语。** MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT、MAY、OPTIONAL 按 RFC 2119 和 RFC 8174 解释。相应中文规范性措辞包括“必须”“不得”“应当”“不建议”“可以”。
 
 **v1alpha4 继承基线摘要（2026-11-15）。** v1alpha4 在 v1alpha3 独立冻结基线之上，以单数 `precondition` / `postcondition` 阶段和阶段内非空有序 `predicates` 列表统一多 Predicate；Contract 仍以单个 `goal` 和可选单数 `precondition: <node>.precondition` 表达目标与全局门禁；最终成功只接受 Postcondition 聚合 PASS 直达 SUCCEEDED。**复审另外关闭 G.1 标量词法、单路径 DAG 执行、E11/E18 错误优先级和 DUPLICATE_ID 内部不变量四个阻塞项**，并作出显式 C 类架构裁决：**不再暴露作者级 `operation.reconcile` / `resolve`**，Owner 仍发布 `mutation.reconcile`，Host 公共 Tool 安全边界统一处理 LLM/确定性执行的结果确认；业务重试显式 `retryOf`，默认 0、每原始 Mutation 家族最多 1 次新派发。E01–E120 为更新后 v1alpha4 规范预期，机器 Fixture/产品符合性仍 NOT_QUALIFIED；规范发布身份按 §45.1.5 的不可变提交沿革逐版核对；不能用 #45 的早期冻结文本代替经过 #47 C 类版本统一与后续勘误的现行文本。
 
-**v1alpha5 增补摘要（2026-11-17）。** v1alpha5 在不增加第五种业务阶段、不引入 Wait-only Node 的前提下，增加 Node-entry Event Wait；其事件选择器由可信、包级 Ingress Operation 导出解析，`wait.output` 是受路径支配约束的普通类型化输入，TIMEOUT 是独立控制结果，配对响应通过 Integration 声明的 Producer 边界提交。EVENT_ACCEPTED 的 occurrence 隔离、重复/迟到投递、同一 Run 持久化续接和逻辑响应 Deadline 已纳入跨契约设计。36 个 EW 用例是本版规范符合性义务，尚不等于 Compiler/Host/Runtime/Integration 已执行通过。
+**v1alpha5 首次发布增补摘要（2026-11-17）。** 本版在不增加第五种业务阶段、不引入 Wait-only Node 的前提下增加 Node-entry Event Wait；其事件选择器由可信、包级 Ingress Operation 导出解析，wait.output 是受路径支配约束的普通类型化输入，TIMEOUT 是独立控制结果，配对响应通过 Integration 声明的 Producer 边界提交。EVENT_ACCEPTED 的 occurrence 隔离、重复/迟到投递、同一 Run 持久化续接和逻辑响应 Deadline 已纳入跨契约设计。36 个 EW 用例是本版规范符合性义务，尚不等于 Compiler/Host/Runtime/Integration 已执行通过。
 
-**评审导航：** §0 确定效力与范围；§9–§14 检查 Owner 契约、DAG、SourcePath 和数据绑定；§17–§24 检查 Evidence、Reconcile、路由与诊断；§32–§45 检查 Script、可信依赖及产品门槛；**附录 E + G.9** 定义继承的 E01–E120 预期，**F/G** 为继承的规范性互操作和 Schema/CEL 规则，**H** 为 v1alpha5 统一诊断索引（含版本化 Ingress 诊断注册表组合），**L** 为 Node-entry Event Wait 与 Ingress/Host/Runtime 规范性增补；**I/J/K** 为资料性材料。完整内容均在当前文件中。
+**v1alpha5 刷新修订摘要（2026-11-25）。** 本次不改变语言标识，明确 Skill 包必须具有 SKILL.md，assurance/ 为可选确定性执行资产；在 Assurance 的 contract.yaml 中新增可选顶层 when，以纯 CEL 表达 Skill 选择条件。when 与执行期 Predicate 严格分离。无 Assurance 的 Skill 不属于 CA-SL 可执行源码，不调用 Compiler，使用 SKILL.md 进行 LLM-guided 选择与执行；有效 Assurance 同时支持 Deterministic 与 LLM-guided；无效 Assurance 必须拒绝导入，不得降级。新增 SA-001–SA-012 规范预期。Compiler / Host 产品实现仍须独立验收。
+
+**评审导航：** §0 确定效力与范围；§6、§10–§14 检查 Skill 包、可选 Assurance、Contract、DAG、SourcePath 和数据绑定；§17–§24 检查 Evidence、Reconcile、路由与诊断；§32–§45 检查 Script、可信依赖及产品门槛；附录 E + G.9 定义继承的 E01–E120 预期，F/G 为继承的规范性互操作和 Schema/CEL 规则，H 为 v1alpha5 统一诊断索引（含版本化 Ingress 诊断注册表组合），L 为 Node-entry Event Wait 与 Ingress/Host/Runtime 规范性增补，M 为 Skill selection / optional Assurance 规范性增补；I/J/K 为资料性材料。完整内容均在当前文件中。
 
 ---
 
@@ -26,16 +28,16 @@
 
 ## 0. 规范状态与适用范围
 
-v1alpha4 的作者源码语法、静态语义、运行语义及附录 F/G/H 已 FROZEN 并发布。本 v1alpha5 规范继承这些规范内容，并由附录 L 明确增加 Node-entry Event Wait 及其 Ingress/Host/Runtime 互操作边界。v1alpha5 不改变 v1alpha4 原文件，不构成任何产品符合性承诺。
+v1alpha4 的作者源码语法、静态语义、运行语义及附录 F/G/H 已 FROZEN 并发布。本 v1alpha5 规范继承这些规范内容，并由附录 L 增加 Node-entry Event Wait、由附录 M 增加 Skill selection / optional Assurance 语义。v1alpha5 不改变 v1alpha4 原文件，不构成任何产品符合性承诺。
 
 | 术语或状态 | 含义 | 效力 |
 |---|---|---|
 | `vNext` | 本规范对应的演进版语言系列名称，不独立指定机器可解析版本 | 资料性别名 |
 | `connectionagent.io/v1alpha4` | v1alpha4 继承基线的精确语言标识；构建时仍由 BuildRequest 明确指定 | 已发布规范性目标 |
-| `connectionagent.io/v1alpha5` | 本文件的精确语言标识；完整规范及附录 L 已冻结并发布，构建时仍由 BuildRequest 明确指定 | 当前已发布规范性目标 |
+| `connectionagent.io/v1alpha5` | 本文件的精确语言标识；本刷新提案包含附录 L 与 M，当前已发布基线仍以 release record 为准，构建时由 BuildRequest 明确指定 | 当前规范性目标的候选修订 |
 | `API v1alpha4` | v1alpha4 继承基线的抽象互操作语言版本 | 规范性语义边界 |
 | `API v1alpha5` | 本版作者语言与 Node-entry Wait 语义目标；ToolCatalog、CapabilityContracts、IngressCatalog、BuildRequest 和 Artifact 仍按各自独立的精确版本契约解析，不因语言目标升级而自动改写 | 已发布规范性语义边界 |
-| `FROZEN` | v1alpha3、v1alpha4 和 v1alpha5 各自按对应不可变规范文件独立冻结；v1alpha5 的冻结范围包括本文件及附录 L | 语言规范状态 |
+| `FROZEN` | v1alpha3、v1alpha4 保持历史不可变；v1alpha5 当前发布基线仍为 2026-11-17 版本，本刷新提案待评审/发布后替代它 | 语言规范状态 |
 | `语言冻结 ≠ 产品符合` | §45.1 语言语义裁决与 §45.2 产品/Owner 验收属于独立层次 | 状态边界 |
 | `NOT QUALIFIED` | §45.2 的独立产品符合性门槛尚未完成，不得推断 Compiler、Studio、Host、Tool Owner 或真实 5GC 已通过验收 | 产品状态 |
 
@@ -49,19 +51,19 @@ v1alpha4 的作者源码语法、静态语义、运行语义及附录 F/G/H 已 
 | ToolCatalog、CapabilityContracts、Evidence Descriptor 等已声明的抽象互操作逻辑属性 | **Normative、FROZEN**；附录 F/G 与 §9/§17/§34 共同规定；实际 Owner 发布与可信传输格式按独立版本契约和 §45.2 验收 |
 | 附录 E 的测试示例及组装数据 | **Informative 示例数据**；其明确写出的预期诊断和结果 **Normative**，不得因示例使用教学 Owner 身份而推断真实发布物已存在 |
 | §28–§31 的 5GC 教学 Procedure、Schema、CEL 片段及 §9 的示意 Owner ID | **Informative 教学数据**；引用的通用语义仍依对应 Normative 条款，示例的 Host/Owner 假设须在真实发布前独立验证 |
-| Skill Eligibility / Root Routing 的选中算法和完整 `Applicability` YAML 作者语法 | **未在 v1alpha4 作者源码语法中定义或冻结**；属于独立 Host/Root Routing 契约。§12.8 已冻结的“不能唯一匹配则拒绝准入”安全要求仍有效，但不得把此条件误认作完整选择协议已发布；不得默许旧 `applicability.when` |
+| Skill Selection 与 contract.when | **Normative**；assurance/contract.yaml.when 的字段、CEL 类型环境和选择语义见 §11.3、§11.4、§12.8 与附录 M。它不是独立 Applicability Package，也不是 PredicateSet。旧 applicability.when 不兼容，按未知字段拒绝 |
 | Compiler Artifact、Runtime Trace、BuildRequest 的物理 framing/运输及真实 Tool Owner 的发布物 | **由各自版本契约拥有**；不得从 CA-SL FROZEN 推断其序列化格式或产品符合性已通过 |
 
-**符合性声明类型矩阵（Informative）。** 本矩阵继承 v1alpha3 的产品分层原则，**v1alpha5 语言已经 FROZEN / RELEASED**；任何产品仍须完成适用的 §45.2 / §L.13.2 机器/Owner 验收并提交原始证据，才能宣称对应产品通过。
+**符合性声明类型矩阵（Informative）。** 本矩阵继承 v1alpha3 的产品分层原则；本分支包含 v1alpha5 刷新修订提案，当前已发布基线及其发布身份仍见 release record。任何产品仍须完成适用的 §45.2 / §L.13.2 / Appendix M 机器/Host 验收并提交原始证据，才能宣称对应产品通过。
 
 | 可声明的范围 | 所需精确边界与已存在的验收门槛 | 不得推导的结论 |
 |---|---|---|
 | **语言规范评审/冻结状态** | `connectionagent.io/v1alpha5` 已按 §45.3 冻结并发布；发布身份为 `docs/releases/ca-sl-v1alpha5.md` 所固定的不可变规范提交 | 不能由此推定任何产品已获 PASS |
-| **Compiler 静态符合性** | §45.2 第 2/3/4/8 项中适用于静态链接的受信输入、E 变体和 H 的 `C_STATIC/C_WARNING` 诊断；Native/WASM 使用同一冻结源与原始结果 | 不表示 Runtime/Owner、Root Routing 或完整部署已验收 |
+| **Compiler 静态符合性** | §45.2 第 2/3/4/8 项中适用于静态链接的受信输入、E/SA 变体和 H 的 `C_STATIC/C_WARNING` 诊断；Native/WASM 使用同一冻结源与原始结果 | 不表示 Host Skill Resolver、Runtime/Owner 或完整部署已验收 |
 | **Studio/LSP 静态一致性** | 相同源码与依赖快照下与 Compiler 的诊断/语言行为一致；§45.2 第 4/8 项，注明该产品实现版本 | 不表示 Studio 实现了 Runtime 或取得真实 Owner 证据 |
-| **Host/Runtime 执行符合性** | §45.2 第 1/2/5/7/8 项及适用动态用例，要求经版本化的 Artifact/Trace、隔离、Scope、责任和真实回包/模拟证据 | 不包含未交付的 Owner 物理协议或完整 Root Routing 自动选中能力 |
+| **Host/Runtime 执行符合性** | §45.2 第 1/2/5/7/8 项及适用动态用例，包括 Appendix M 的 Skill selection/import 行为；要求 Artifact/Trace、隔离、Scope、责任和真实回包/模拟证据 | 不代表未实际测试的 Owner 物理协议或真实 5GC 已通过 |
 | **Owner/Deployment 互操作符合性** | 版本化的可信 Owner 发布物、身份输入标注、Capability、Evidence 域/共同事实、Reconcile 专用关联及真实原始字节/摘要/授权；§45.2 第 1/2/8 项 | 无发布物时不能凭 F/G 的逻辑模型宣称互操作通过 |
-| **Root Routing 产品符合性** | 独立版本化的 Eligibility / `Applicability` 选择协议及 Host 歧义拒绝验收，须写明对应版本和范围 | §12.8 仅冻结拒绝歧义原则，不提供完整选择算法 |
+| **Skill Selection 产品符合性** | §11.3、§12.8 与 Appendix M 的 contract.when CEL 检查、候选分层、语义选择和 fail-closed 行为；Host/Resolver 必须以实际实现证据验收 | 规范定义选择语义不代表当前 Host/Resolver 已实现或通过测试 |
 | **集成/真实 5GC E2E 符合性** | 上述实际适用层已获可信证据，§45.2 第 6 项真实 5GC 36 Case 与相关 Owner 验证；记录失败和遗漏 | 单独编译通过、规范文本冻结、未执行的 E/DFX 不构成 E2E PASS |
 
 **声明规则：** 在报告中按实际执行层分别注明 `claimScope`、规范提交、所用外部协议版本、确切 Fixture/测试套件版本、已执行变体、失败/未覆盖、原始结果与发布者授权；未覆盖的层写 `NOT_TESTED` 或 `NOT_QUALIFIED`。其中 `claimScope` 等名称只描述附录 K 的**资料性报告视图**，不是本语言新增的线协议字段。E01–E114 的**用例编号**从旧版继承，其中涉及恢复/路由/成功优先级的预期已按本次 v1alpha4 **明确 C 类复审**更新，不再声称与 v1alpha3 的旧语义相同；E115–E120 是本版新增预期。完整 E 列表和 H 的诊断集合均**不意味着已存在可执行套件**；套件的具体版本、覆盖率与执行证据须单独登记（§45.2、K.4）。
@@ -144,11 +146,12 @@ CA-SL 的适用范围限于已发布 Owner 契约之上的确定性业务编排�
 
 ## 5. 源码与执行分层
 
-1. **Skill 契约层：** 业务目标、全局前置条件、公共 Request Schema、Context 要求、公共依赖和显式 Capability Grants，由 contract.yaml 声明；Skill 身份由 Package 路径确定。
-2. **Procedure 层：** 单一确定性执行图，包含入口 Precondition、Operation / Observation、局部判断、最终 Postcondition、分支和终态。
-3. **Predicate 层：** 可复用的纯判断定义；CEL 或受约束的 Python evaluator。
-4. **Tool / Capability 层：** Owner 发布的 callable 契约、Schema、Effect，以及部署侧精确授权关系。
-5. **Host / Runtime 层：** 执行隔离、Admission、Evidence、Correlation、Freshness、Deadline、Cancellation 和最终状态。
+1. **Skill 描述层：** 每个 Skill 都有 SKILL.md，提供 Agent-facing 描述与自然语言使用指导。
+2. **可选 Assurance 契约层：** 只有需要确定性执行的 Skill 才有 assurance/contract.yaml；它声明 Goal、when、Request、Context、Dependencies 和 Capability Grants。
+3. **可选 Procedure 层：** Assurance Skill 的确定性执行图，包含 Precondition、Operation / Observation、Postcondition、分支和终态。
+4. **Predicate 层：** Assurance Procedure 使用的执行期纯判断定义；CEL 或受约束的 Python evaluator。
+5. **Tool / Capability 层：** Owner 发布的 callable 契约、Schema、Effect，以及部署侧精确授权关系。
+6. **Host / Runtime 层：** Skill 选择、执行隔离、Admission、Evidence、Correlation、Freshness、Deadline、Cancellation 和最终状态。
 
 ~~~text
 Skill Package
@@ -168,51 +171,52 @@ Host / Runtime ── admission, execution, correlation, Evidence
 
 ## 6. 术语
 
-**Host** 负责准入、Root Routing、上下文物化、Evidence 保管及责任记录持久化。**Runtime** 负责执行已链接 Procedure、推进阶段、选择路由、派发准入及预算和 Deadline。二者可以共进程；分离部署的传输由 Runtime Artifact Contract 定义。
+**Host** 负责 Skill Import、Skill Selection、上下文物化、Artifact / Capability Admission、Evidence 保管及责任记录持久化。**Runtime** 负责执行已链接 Assurance Procedure、推进阶段、选择路由、Action 准入及预算和 Deadline。Agent-only Skill 的 LLM-guided 执行不要求 CA-SL Procedure。二者可以共进程；分离部署的传输由 Runtime Artifact Contract 定义。
 
 ### 6.1 Skill / Skill Package
 
-Skill 是具有明确业务目标、输入契约、授权范围和执行入口的可复用业务能力包。Skill 不是 Tool；一个 Skill 可以调用多个 Tool，也可以被 Agent Router 选择。
+Skill 是可复用的 Agent 能力包。每个 Skill 必须有 SKILL.md；Skill 不等同于 Tool，一个 Skill 可以调用多个 Tool，也可以被 Agent Resolver 选择。确定性执行能力是可选的，由有效的 Assurance 决定。
 
-v1alpha4 作者维护的 Package：
+v1alpha5 Skill Package：
 
 ~~~text
 skills/<skill-name>/
-├── SKILL.md
-├── assurance/
-│   ├── contract.yaml
-│   ├── procedure.yaml
-│   └── predicates.yaml
+├── SKILL.md                  # Required for every Skill
+├── assurance/                # Optional; enables Deterministic execution
+│   ├── contract.yaml         # Required when assurance/ exists
+│   ├── procedure.yaml        # Required when assurance/ exists
+│   └── predicates.yaml       # Required; empty PredicateSet when unused
 ├── cases/<case-name>/case.yaml
-├── schemas/       # 仅 Skill 自有 Schema，例如公共 Request Schema
-├── scripts/       # Skill 自有确定性 Python
-└── references/    # 可选知识资料
+├── schemas/                  # Skill-owned Schemas
+├── scripts/                  # Skill-owned deterministic Python
+└── references/               # Optional knowledge material
 ~~~
 
 | 资产 | 职责 |
 |---|---|
-| SKILL.md | 面向 Agent 的业务指导，不是第二份执行图 |
-| contract.yaml | Skill 公共契约：Goal、全局前置条件、Request Schema、Context 要求、公共依赖和 Capability Grants |
-| procedure.yaml | 唯一 Procedure 执行图：start、节点、路由和最终 Postcondition |
-| predicates.yaml | 可复用 Predicate 定义及其参数签名 |
+| SKILL.md | 所有 Skill 必需的 Agent-facing 描述、使用指导和自然语言适用条件；不是第二份执行图，也不声明 CEL |
+| assurance/contract.yaml | 可选确定性执行契约：Goal、when、全局前置条件、Request Schema、Context、Dependencies 和 Capability Grants |
+| assurance/procedure.yaml | Assurance Skill 的唯一确定性 Procedure 执行图：start、节点、路由和最终 Postcondition |
+| assurance/predicates.yaml | Assurance Procedure 使用的可复用执行期 Predicate 定义及参数签名 |
 | cases/ | 业务场景和预期语义义务 |
-| schemas/ | 仅存放 Skill 自有的 Schema |
+| schemas/ | 仅存放 Skill 自有 Schema |
 | scripts/ | Skill 自有确定性 Python；可作为 Procedure 的本地 Script Operation，也可实现 Predicate |
 | references/ | 可选知识资料，不是执行契约或 Evidence |
 
-v1alpha4 保留作者维护的 assurance/contract.yaml，但不再使用重复的 apiVersion、kind、metadata 等机器对象包装。Contract 声明 Skill 的公共业务契约、依赖需求和 Capability Grants；Skill 身份从 Package 根目录确定。语言版本由 BuildRequest / Compiler Target 决定。外部依赖的具体内容由 Studio / 调用方通过 DependencySnapshot 提供，不复制到 Skill Package 的 lib/。
+没有 assurance/ 的 Skill 只使用 SKILL.md，支持 LLM-guided，不具有 CA-SL Deterministic 执行能力，也不调用 CA-SL Compiler。有效 assurance/ 同时支持 Deterministic 与 LLM-guided。assurance/ 存在但无效时必须拒绝导入，不得静默降级。Contract 只存在于 assurance/ 内；不为普通 Skill 增加第二份 Contract。Skill 身份由 Package 根目录确定。语言版本由 BuildRequest / Compiler Target 决定。外部依赖的具体内容由 Studio / 调用方通过 DependencySnapshot 提供，不复制到 Skill Package 的 lib/。
 
 ### 6.2 Goal、Request、Invocation 与编译契约
 
-- **Goal：** Skill 希望达成的业务目标，由 contract.yaml 声明。`GoalId` 是大小写敏感的标识，由一个或多个 §13.2 的 ASCII Identifier 以点号连接。每段以 ASCII 字母开头，后续可含 ASCII 字母、数字、下划线或连字符。最终目标由每条成功分支的 Postcondition 聚合 `PASS: SUCCEEDED` 直接证明；Procedure 不重复写 GoalId。
-- **全局 Precondition：** Contract 可选的单数 `precondition` 指向 Procedure 中唯一必须整体 PASS 的前置阶段，约束业务 Mutation 和成功终态；多个前置事实写在其 `predicates` 列表中。
-- **Request：** 调用方为本次执行提供的业务请求，由 contract.yaml 的 requestSchema 指向 Skill 自有 Schema；Request 本身不证明网络状态。
-- **Context Schema：** Skill 通过 `contextSchema` 选择 Host Owner 发布的 Invocation Context Schema。Compiler 以该 Schema 校验 Host 字段路径。
-- **Dependencies：** Skill 声明所需的公共 Owner 契约身份（例如 ToolCatalog、Host Context、Observation、共享 Schema）。声明依赖身份，不携带下载地址、版本锁或依赖内容。
-- **Capability Grants：** Skill 在 contract.yaml 中显式声明所需 Capability 身份。Compiler 逐一验证每个外部 callable 都属于已 Grant 的 Capability；不得从“源码调用了某个 Tool”自动推导授权。
-- **Skill Identity：** 取 G.7 所规定的逻辑根 `skills/<skill-name>`，而非由宿主文件系统自行将绝对路径规范化后再计算；包名/路径的大小写、分隔符、Windows/Unix 差异、符号链接与尾随斜线均以 G.7 的规范化与安全检查为准。作者不在 YAML 重复填写 metadata.name。
-- **Compiled Skill Contract：** Compiler 将 contract.yaml、Procedure 和 Predicate 定义归一化为 Runtime 所需的契约投影。它是派生产物，不是第二份作者源码；若 Runtime 不需要独立 Contract 文件，也不必单独输出。
-- **Invocation：** 一次 Skill 独立执行实例。每次 Invocation MUST 有独立运行身份和隔离上下文。不得因为 UE 相同而共享未声明的可变状态。
+- **Goal：** 仅 Assurance Skill 声明的业务目标，由 assurance/contract.yaml 声明。GoalId 是大小写敏感标识。最终目标由每条成功分支的 Postcondition 聚合 PASS→SUCCEEDED 直接证明；Procedure 不重复写 GoalId。
+- **when：** Assurance Contract 的可选 Skill 选择条件。它在新 Event 的 Skill 选择期求值，不属于 Procedure Predicate，也不证明业务事实；详见 §11.3、§12.8 和 Appendix M。
+- **全局 Precondition：** Assurance Contract 可选的单数 precondition 指向 Procedure 中唯一必须整体 PASS 的前置阶段，约束业务 Mutation 和成功终态；多个前置事实写在其 predicates 列表中。
+- **Request：** Assurance Skill 调用方提供的业务请求，由 Contract.requestSchema 指向 Skill 自有 Schema；Request 本身不证明网络状态。
+- **Context Schema：** Assurance Skill 通过 contextSchema 选择 Host Owner 发布的 Invocation Context Schema。Compiler 以该 Schema 校验 Host 字段路径。
+- **Dependencies：** Assurance Skill 声明所需的公共 Owner 契约身份（例如 ToolCatalog、Host Context、Observation、共享 Schema）。声明依赖身份，不携带下载地址、版本锁或依赖内容。
+- **Capability Grants：** Assurance Skill 在 Contract 中显式声明所需 Capability 身份。Compiler 逐一验证每个外部 callable 都属于已 Grant 的 Capability；不得从源码调用某个 Tool 自动推导授权。
+- **Skill Identity：** 取 G.7 所规定的逻辑根 skills/<skill-name>，而非由宿主文件系统自行将绝对路径规范化后再计算；作者不在 YAML 重复填写 metadata.name。
+- **Compiled Skill Contract：** Compiler 将 Assurance contract.yaml、Procedure 和 Predicate 定义归一化为 Runtime 所需的契约投影。它是派生产物，不是第二份作者源码。
+- **Invocation：** CA-SL Invocation 是一次 Assurance Skill 的确定性执行实例。LLM-guided Agent-only Skill 的 Host Run 由 Host/Runtime 契约定义，不因缺少 CA-SL Invocation 而需要伪造 Contract。
 
 ### 6.3 Invocation Context
 
@@ -516,19 +520,19 @@ Runtime 在派发时对可信部署契约重新执行同一 Effect 与授权检�
 
 ## 10. 版本和文件
 
-v1alpha4 作者源码保留 contract.yaml、procedure.yaml 和 predicates.yaml 三个语义明确的入口文件。文件路径与所在目录决定源文件类型；这些文件不需要重复声明 apiVersion、kind 或 metadata 包装。
+v1alpha5 Skill 包必须包含根目录的 SKILL.md；确定性执行资产位于可选的 assurance/ 目录。存在 assurance/ 时，作者源码必须包含 contract.yaml、procedure.yaml 和 predicates.yaml 三个文件；没有 Predicate 定义时，predicates.yaml 仍须存在并使用空 PredicateSet。没有 assurance/ 的 Skill 是 Agent-only Skill，不构成 CA-SL 可执行源码。文件路径与所在目录决定源文件类型；这些 YAML 文件不需要重复声明 apiVersion、kind 或 metadata 包装。
 
 语言版本由 BuildRequest / Compiler Target 明确指定，而不是由每个 YAML 文件重复声明。Compiler 必须严格按指定版本解析；不支持的版本必须失败，不得猜测或兼容映射。编译产物记录实际采用的语言/API 版本、Skill Package 身份和生成器版本。
 
-v1alpha4 是破坏性语言版本。Compiler MUST NOT 静默把 v0.2 字段、旧路径或旧隐式输入模型转换为 v1alpha4 语义。
+v1alpha4 是破坏性语言版本。Compiler MUST NOT 静默把 v0.2 字段、旧路径或旧隐式输入模型转换为 v1alpha4 语义。v1alpha5 继续采用显式语言目标；本次刷新不引入旧格式兼容。
 
-当前仓库中的可执行 5GC Skill 仍有 v0.2 形态。本文示例说明目标语言，不代表旧文件已迁移或当前 Compiler 已支持。
+ca-skills 中已有 v1alpha5 的 Establish、Modify、Release Skill 源码示例。它们的存在不代表刷新后的 when 已由 Compiler 实现，也不代表任何 Owner / Host / 真实 5GC 产品资格已通过。
 
 ### 10.1 YAML 语法子集与结构文法
 
 CA-SL 使用 YAML 1.2 表达作者源码。YAML 是序列化格式，不是完整语言语义。Compiler MUST 使用安全解析器，并拒绝重复 Key、未知语义字段、非预期根类型、自定义 Tag、循环 Alias 和无法确定解释的标量。
 
-v1alpha4 的作者 assurance 源码由三个独立角色组成：**Skill Contract**（`contract.yaml`）、**Procedure 图**（`procedure.yaml`）和 **PredicateSet**（`predicates.yaml`）；各自承担公共需求、执行控制流及纯判断定义，互不替代：
+v1alpha5 的可选 Assurance 源码由三个独立角色组成：**Skill Contract**（`assurance/contract.yaml`）、**Procedure 图**（`assurance/procedure.yaml`）和 **PredicateSet**（`assurance/predicates.yaml`）；各自承担 Skill 选择/公共需求、确定性执行控制流及执行期纯判断定义，互不替代。PredicateSet 文件在 Assurance 中始终存在；没有 Predicate 定义时使用空 PredicateSet：
 
 ~~~yaml
 # assurance/contract.yaml
@@ -580,12 +584,14 @@ nodes:
 
 ~~~ebnf
 Contract          = map(goal: GoalId,
+                        when?: CelExpression,
                         precondition?: PreconditionRef,
                         requestSchema?: LocalSchemaPath,
                         contextSchema?: QualifiedSchemaId,
                         dependencies?: map<Alias, StablePackageId>,
                         capabilities?: list<CapabilityId>,
                         limits?: map(maxActions: PositiveInteger))
+CelExpression     = NonEmptyString (CEL subset in §G.4; result type bool)
 GoalId            = Identifier { "." Identifier }
 PreconditionRef   = NodeId "." "precondition"
 Procedure         = map(start: NodeId, nodes: map<NodeId, Node>)
@@ -720,19 +726,21 @@ nodes:
 
 | 字段 | 语义 | 约束 |
 |---|---|---|
-| goal | Skill 的业务目标及全局成功验收目标 | 必须声明。每条成功路径均须证明该 Goal |
+| goal | Skill 的业务目标及全局成功验收目标 | Assurance Contract 必须声明。每条成功路径均须证明该 Goal |
 | precondition | 唯一的全局 Precondition 阶段引用 | 可省略；若声明，只接受精确 `<node-id>.precondition` 标量，不接受数组或对象；所引用阶段的全部 `predicates` 均 PASS 才成立，必须在所有业务 Mutation 与成功终态之前通过 |
 | requestSchema | 公共 Request Schema | 有调用方 Request 时声明；指向 Skill 自有 `schemas/` 文件 |
 | contextSchema | Host 提供的 Invocation Context | 引用已声明依赖别名的精确 Owner Schema ID；使用 Host Context 字段时必须声明 |
 | dependencies | 公共依赖声明 | Alias → 精确稳定 Package ID，必须与可信调用方提供的快照身份绑定核对；不声明 URL、digest 或获取方式 |
 | capabilities | Skill 请求的授权上界 | 只列 Capability ID；Compiler 对每个外部 callable 做精确 membership / Effect 校验 |
 | limits.maxActions | 可选的 Skill 业务动作预算上界 | 正整数；Host 的实际预算只可进一步收紧，不能被该字段放宽 |
+| when | Skill 选择期适用条件 | 可省略的 CEL 字符串；返回 bool；仅使用 event.type 与由 requestSchema 定型的 input；静态规则见 §G.4 与附录 M |
 
 ### 11.4 字段归属与省略规则
 
-- `apiVersion`、`kind`：Skill 的 `contract.yaml`、`procedure.yaml`、`predicates.yaml` 省略这些包装。ToolCatalog 和 CapabilityContracts 是独立发布的资源，按各自契约声明版本。语言版本由 BuildRequest / Compiler Target 决定；文件路径和内容结构决定源文件类型。
+- `apiVersion`、`kind`：Skill 的 assurance/contract.yaml、assurance/procedure.yaml、assurance/predicates.yaml 省略这些包装。ToolCatalog 和 CapabilityContracts 是独立发布的资源，按各自契约声明版本。语言版本由 BuildRequest / Compiler Target 决定；文件路径和内容结构决定源文件类型。
+- when（仅 Contract）：可选顶层 CEL 表达式，用于新 Event 的 Skill 选择；它不属于 Procedure、PredicateSet、运行期业务 Precondition 或 Postcondition。它只能引用 event.type 和 input。input 的静态类型来自 requestSchema；引用 input 成员而未声明 requestSchema 报 CEL_INVALID。它不能访问 Observation、Tool、Runtime Context、时间、环境变量或任何有副作用的函数。旧 applicability.when 不是别名，按 UNKNOWN_FIELD 拒绝。
 - `metadata.name`：由 Skill Package 根目录确定，不重复维护。
-- `skillType`：v1alpha4 Skill 都使用统一执行模型；除非未来出现有实质语义差异的 Skill 类型，否则不作为必填字段。
+- `skillType`：不定义此字段。是否具有 Deterministic 能力由 assurance/ 是否存在且有效派生；不使用 supportedModes。
 - `entryProcedure`：每个 Skill 只有一张入口 Procedure 图，入口由唯一 `procedure.yaml` 确定。
 - `precondition`（**仅 Contract**）是可省略的**单一**全局门禁阶段引用，必须是精确 `<node-id>.precondition` 字符串；不存在“空列表”等价语义，省略表示没有全局前置阶段，空值、数组、对象与不存在的阶段均按 `ENTRY_PRECONDITION_REF_INVALID` 拒绝。此字段不能引用内部某个 Predicate，也不允许把多个独立前置阶段写成列表。若业务要组合多个全局前置事实，请放进该 Node 的 `precondition.predicates` 非空列表。Procedure 其他 Node 仍可拥有局部 Precondition。Contract 不声明 `postcondition` 或 `postconditions`，最终成功只由 Procedure 的最终 Postcondition 聚合 PASS 直达 `SUCCEEDED` 证明。
 - 最终目标由 Contract 的唯一 `goal` 指定；Procedure 的**最终** Postcondition 阶段以聚合 PASS 直接请求 SUCCEEDED 证明该目标，并记录每个 Predicate 的 arguments、执行位置、Evidence lineage 和三态结果；不允许在该阶段重复配置 `goal`。
@@ -1015,7 +1023,15 @@ Host 在派发 Mutation 前记录原调用身份和负责处理结果的 Owner /
 
 **停止/恢复 Trace 的最低语义投影（Normative 抽象义务，不冻结线格式）：** 一次实际停止或终态发布必须使审计者可按**同一次 Invocation**关联以下信息：①实际选中的 `(NodeId,Stage,Outcome,routeTarget)`；若在选择路由前被强制停止，应明确记为“未选择”，不得伪造 Route；②**实际发布的 Invocation 终态**及其与所请求终态不一致时的 `(Diagnostic Code,Phase)`；③所有已派发 Mutation 的**不可变原调用 ID/Owner/Scope/Correlation** 和已验证或未决的提交状态；④若存在受控 Reconcile READ，附其**独立调用 ID、实际 Owner Outcome、受信证明引用、归并后的原 Mutation Stage Outcome**，未发起则记录未发起原因而不伪造 READ ID；⑤**确认/未决资源与责任引用、状态和持久化句柄**（若确有），以及迟到结果责任归属；⑥**停止原因**及与之有关的原诊断 `(Code,Phase)`，包括 Deadline/Cancel/预算/授权拒绝。缺少相关动作时对应维度应明确为“不适用/未执行”，而非伪造记录。Host 必须能通过这些语义维度还原原始路由请求、实际终态、安全确认及保全责任；不能把提交证明、Reconcile READ 的 Outcome、最终业务 Goal PASS 混为一个状态。**物理字段名、序列化、版本化和传输**仍属于独立 Runtime Artifact/Trace Contract，须按 §45.2 第 7/8 项实际验收；本条不授予新的作者字段或 Tool 权限。
 
-Skill Eligibility 属于 Root Routing / Host 准入。无法唯一匹配时必须拒绝准入，不得采用随机选择或隐式默认目标。Procedure Predicate 仅判定业务条件，不负责 Skill 身份选择。**本版没有 `Applicability` 作者级 YAML 字段、Root Routing 选择算法或匹配优先级的完整规范，不能凭本版源码构造出这些字段。** 它们应在独立版本化的 Root Routing 契约中冻结；其发布之前 Host 必须采用本版已定义的拒绝歧义安全条件，而不得从缺失的选择协议推断某 Skill 默认适用。历史 `applicability.when` 不作为隐式兼容语法（§0、§10.1、§45.1）。
+Skill Selection 的确定性声明属于 Assurance Contract。contract.when 是唯一的作者级 CEL 选择字段；它与 Procedure Predicate 不同，后者只判定执行期业务事实。Host 对新 Event 按以下顺序选择：
+
+1. 先解析精确 continuation；continuation 使用原 Run 绑定，不重新选择 Skill。
+2. 对已导入且有效的 Assurance Skill，先校验 Event payload 是否满足其 requestSchema（若声明），再求值可选 when。true 为显式匹配；false 排除该 Skill；运行期求值错误按 fail-closed 排除并记录 Host 诊断。静态无效表达式在 Compiler 阶段报 CEL_INVALID。
+3. 恰有一个显式匹配时直接选择；多个显式匹配时，LLM 只能在该精确候选集合内消歧。
+4. 没有显式匹配时，未声明 when 的 Skill 构成语义候选集合。该集合包括 SKILL.md-only Skill 和未声明 when 且通过本次 Event Request Schema 校验的有效 Assurance Skill（未声明 Request Schema 时无需该项校验）；Host/Agent 根据其 SKILL.md 做语义选择。候选为空时停止或请求输入。
+5. when 为 false 或运行期求值错误的 Skill 不得重新加入未声明 when 的语义候选集合。LLM 返回候选集合外的 Skill 身份必须拒绝。
+
+无 Assurance 的 Skill 不存在 Contract，也不能声明 CEL when；它只通过 SKILL.md 参与语义选择。不得在 SKILL.md 引入第二套 CEL 语法。不得使用部署级 Event→Skill 表、独立 Domain Contract Package 或 applicability.when 兼容字段。完整包准入与执行模式派生见附录 M。
 
 ### 12.9 单一全局前置阶段、最终验收与控制流
 
@@ -1608,7 +1624,7 @@ Environment
 | CAPABILITY_MEMBERSHIP_DUPLICATE | 同一 Capability 内重复声明同一 callable 成员 | 阻止构建 |
 | EFFECT_MISMATCH | Tool 与任一匹配的 Capability 成员 Effect 不一致 | 阻止构建 |
 | SCRIPT_CONTRACT_INVALID | Script 入口 / TypedDict 不合规 | 阻止构建 |
-| CEL_INVALID | CEL 使用未允许的结构、类型或缺失字段守卫（G.4） | 阻止构建 |
+| CEL_INVALID | Predicate CEL 或 Contract.when 使用未允许的结构、类型、未声明字段或缺失字段守卫（G.4、附录 M） | 阻止构建 |
 | PACKAGE_PATH_INVALID | Skill 逻辑根或任意输入文件路径不满足 G.7 | 阻止构建 |
 | UNSUPPORTED_WAIT | 仅在 BuildRequest 目标为 v1alpha4 时出现旧式 Wait / Await；v1alpha5 合法 Node.wait 不触发 | 阻止构建 |
 | UNSUPPORTED_V02_SYNTAX | 使用旧版隐式语法 | 阻止构建 |
@@ -2485,7 +2501,7 @@ v1alpha4 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 Observatio
 | 恢复业务结果的可信性 | 已确认 COMMITTED 但无承诺普通输出，原 Mutation 为 COMMITTED、无 `operation.output`；完整可赋值且保证可认证的恢复才可归并原 Mutation SUCCEEDED，保留真实 READ Producer/Evidence 身份 | §12.7、§13.3、§17、§20、G.2、E10/E17/E108 |
 | 受控 Retry 次数与 LLM 共用下限 | 不声明 `retryOf` 不重试；显式授权在证明 NOT_COMMITTED + 无残留副作用后最多一次新业务派发，不能 retry-of-retry；同一原调用家族凭证原子消费，所有 Action 计预算 | §11.6、§20.2、E82/E85/E92、DFX-039 |
 
-**重新冻结边界。** CA-SL 只冻结本文抽象的作者语法、静态/运行安全语义、E01–E120 的**本版**明确预期、F/G 互操作抽象以及 H 的诊断身份/类别。外部 Host/Tool API 的物理 Retry 意图字段、ToolCatalog / CapabilityContracts 具体独立协议版本、Root Routing 全量选择协议和 Artifact/Trace framing **不属于本次语言发布**；缺少这些材料时实际产品只能 fail-closed，不能把规范性安全条件当作产品实现证明。
+**重新冻结边界（v1alpha4 历史基线）。** CA-SL v1alpha4 冻结其作者语法、静态/运行安全语义、E01–E120 预期、F/G 互操作抽象以及 H 诊断身份/类别。该历史版本没有完整 Skill Selection / Applicability 作者语法；v1alpha5 刷新修订由 Appendix M 补充 contract.when 选择语义。外部 Host/Tool API 的物理 Retry 意图字段、ToolCatalog / CapabilityContracts 具体独立协议版本和 Artifact/Trace framing 仍由各自契约定义。
 
 **文本复核与产品边界。** 本轮仅进行规范文本/示例/诊断索引的结构、引用与预期一致性审查；E01–E120、DFX-001–041、LEX-001 的实际 Compiler Native/WASM、Studio/LSP、Host/Runtime、Owner/5GC 机器执行均不能仅据本次文档检查记为 PASS。附录 K 保留 `NOT_IMPLEMENTED` / `NOT_TESTED`，§45.2 八项产品门槛未因文本冻结而完成。
 
@@ -2563,7 +2579,7 @@ v1alpha4 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 Observatio
 |---|---|---|
 | 身份输入路径的可信 Owner 标注 | §13.3/F.1 定义最低逻辑属性，不定义 `identityInputs` 物理发布字段 | 实际使用此类 callable 时无法满足来源认证，Compiler/Host 不得以未认证值放行；Owner 互操作门槛未通过 |
 | 跨快照 / 跨发布物 Reconcile 专用 callable 关联 | G.2 在同快照检查所有 Mutation 引用；跨快照禁止凭 README/名称/独立 READ Grant 推测专用身份 | 缺少认证关联时不能把可疑 READ 当普通调用绕开调和保护，也不能声称跨快照调用符合性；需要另行版本化契约 |
-| Skill Eligibility / Root Routing | §0/§12.8 冻结拒绝歧义原则，但完整 `Applicability` 和匹配算法属于独立 Host 协议 | 不能声称完整 Root Routing 已符合；仅限已有精确准入前提的测试必须明确声明范围 |
+| Skill Selection | v1alpha4 历史基线未定义完整选择字段；v1alpha5 刷新修订由 Appendix M 定义 contract.when 与语义候选集 | 仅在 SA 用例及 Host Resolver 实际测试通过后，才可声明对应范围符合 |
 | `IndependentDomains` 与跨 Owner `factIdentity` | §34.0.2/F.4/G.3.1 规定受信独立域、共同事实、Scope 映射等逻辑属性 | 使用该类保证而无相应可信装配或发布者授权时拒绝链接；E102/E106 的预期不构成通过证明 |
 | BuildRequest / Compiler Artifact / Runtime Trace | §34、§45.2 第 7 项；物理 framing、摘要算法、字段和版本兼容由各自独立契约拥有 | 只验证 CA-SL 语义不代表已通过 Artifact/Trace 线格式及跨产品互操作验收 |
 
@@ -2597,17 +2613,17 @@ v1alpha4 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 Observatio
 
 
 
-### 45.3 CA-SL v1alpha5 语言冻结与发布裁决（2026-11-17）
+### 45.3 CA-SL v1alpha5 刷新修订提案（2026-11-25）
 
-**正式裁决：** `connectionagent.io/v1alpha5` **FROZEN / RELEASED**。本裁决发布完整单文件规范 `docs/skill-language-spec.v1alpha5.zh-CN.md`，其规范效力包括继承的 v1alpha4 Normative 条款、按 v1alpha5 更新的 Appendix H，以及新增的 Normative Appendix L。
+**提案裁决：** connectionagent.io/v1alpha5 保持现有语言标识。本文件提出对 2026-11-17 首次发布文本进行同版本刷新；在本提案评审通过、合并并更新 release record 后，新修订将成为唯一现行规范文本。此次更新不引入 v1alpha6，不修改 v1alpha4 历史规范，也不提供旧格式兼容映射。
 
-**冻结范围：** Contract / Procedure / PredicateSet 语法与语义、四种业务阶段、SourcePath、Evidence、Capability、Dependency Linking、诊断索引、Node-entry Event Wait、Ingress 逻辑导出引用、同一 Run 续接、事件 occurrence 隔离、超时路由、配对协议响应边界及 Host / Runtime / Integration 责任边界。v1alpha4 原文件不修改；v1alpha4 与 v1alpha5 是显式选择的独立语言目标，不允许自动回退或静默重解释。
+**本次规范性增补：** 保留既有 Contract / Procedure / PredicateSet、四种业务阶段、SourcePath、Evidence、Capability、Dependency Linking、Node-entry Event Wait、Ingress / Host / Runtime 边界；新增 Skill 包必须包含 SKILL.md、Assurance 可选、Assurance Contract 可选顶层 when 及其 CEL 类型/选择语义。完整规则见 §6.1、§10、§11.3–§11.4、§12.8、§24.1 与 Appendix M。
 
-**跨契约版本：** IngressCatalog 为 `connectionagent.io/ingresscatalog/v1alpha1`，其诊断注册表为 `connectionagent.io/ingress-diagnostics/v1alpha1`；两者独立版本化，并由本版 Appendix H.1 组合进 Compiler 诊断索引。
+**执行模式边界：** 无 Assurance 的 Skill 仅为 LLM-guided；有效 Assurance 同时支持 Deterministic 与 LLM-guided；存在但无效的 Assurance 必须拒绝导入，不得静默降级。when 仅负责 Skill 选择；Predicate 仅负责执行期业务判断。
 
-**发布身份：** 规范文件不能在自身内容中嵌入自身 Git commit SHA。精确不可变规范提交由 `docs/releases/ca-sl-v1alpha5.md` 记录；不得以浮动 `main` 或候选分支代替。
+**发布身份：** 规范文件不能在自身内容中嵌入自身 Git commit SHA。本提案候选提交由 docs/releases/ca-sl-v1alpha5.md 的提案记录指向；在合并前，2026-11-17 首次发布提交仍是已发布的 v1alpha5 基线。
 
-**资格边界：** 语言冻结不表示 Compiler、Studio/LSP、Host、Runtime、Integration Adapter、Owner 或真实 5GC 已通过产品符合性验收。上述状态继续按 §45.2 与 §L.13.2 分别保持 `NOT_QUALIFIED`，直至真实执行证据经独立核验。
+**资格边界：** 规范发布不表示 Compiler、Studio/LSP、Host、Runtime、Skill Importer、Integration Adapter、Owner 或真实 5GC 已通过产品符合性验收。上述状态继续按 §45.2、§L.13.2 与 Appendix M 分别保持 NOT_QUALIFIED，直至真实执行证据经独立核验。
 
 # 第十一部分：设计依据与技术说明
 
@@ -4046,7 +4062,7 @@ G.1–G.9 的继承用例与新增 E115–E120 共同组成 v1alpha4 已冻结�
 | SCRIPT_CONTRACT_INVALID | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §14、§F.6、§G.4、§24.1 | E67/E75 | 规范用例已定义 |
 | UNSUPPORTED_WAIT | C_STATIC | Compiler ERROR | 是 | Parse / source（仅选定目标为 v1alpha4 时） | v1alpha4 不启动 Invocation；v1alpha5 合法 Node.wait 不触发此码 | §10.1、§24.1、附录 L.0 | v1alpha4 负例 | 规范用例已定义，机器 Fixture 待执行 |
 | UNSUPPORTED_V02_SYNTAX | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | 待补独立 Fixture | 待 Fixture |
-| CEL_INVALID | C_STATIC | Compiler ERROR | 是 | Schema / expression | 不启动 Invocation | §14、§F.6、§G.4、§24.1 | E111 | 规范用例已定义 |
+| CEL_INVALID | C_STATIC | Compiler ERROR | 是 | Schema / expression / Skill selection | 不启动 Invocation | §14、§F.6、§G.4、§11.3、附录 M | E111、SA-004–SA-006 | 规范用例已定义；SA Fixture 待执行 |
 | PACKAGE_PATH_INVALID | C_STATIC | Compiler ERROR | 是 | Parse / source | 不启动 Invocation | §10.1、§24.1 | E114 | 规范用例已定义 |
 | UNUSED_DEPENDENCY | C_WARNING | Compiler WARNING | 否（并发错误仍阻断） | Link / unused | 不改变 Runtime 终态 | §34.0、§24.1 | 待补独立 Fixture | 待 Fixture |
 | UNREACHABLE_NODE | C_WARNING | Compiler WARNING | 否（并发错误仍阻断） | Graph / unreachable | 不改变 Runtime 终态 | §12.9、§24.1 | E44/E65 | 规范用例已定义 |
@@ -4275,7 +4291,7 @@ flowchart TD
 | Runtime Scope/Correlation 错误分类 | §24.2、H：派发前授权交集为空才可能按 DENIED；已派发回包 Scope/Correlation 失配必须隔离并走 UNKNOWN/安全停止，Mutation 依证明与责任裁决 | Runtime 回包故障模拟与 Trace |
 | Schema、CEL、TypedDict 与注解 | F.5/F.6/G.4：有限白名单；不支持 `anyOf/oneOf/pattern/format`、任意 Python typing 或隐式强制转换 | Owner 版本化投影、实现分析器版本、E110/E111 Fixture |
 | 匿名请求字段和身份实参标注 | §13.3、F.1 定义最低逻辑属性；v1alpha4 未增 `identityInputs` 或 `reconcileOnly` 物理字段 | 单独版本化 Owner 互操作发布格式，否则无法声称 §45.2 通过 |
-| `Applicability` / Root Routing | §0、§12.8：完整作者语法和匹配优先级不属于 v1alpha4；无法唯一选定 Skill 时 fail-closed | 独立 Root Routing 协议 |
+| Skill Selection / contract.when | v1alpha4 继承基线没有完整选择语法；v1alpha5 刷新修订由 §11.3、§12.8、Appendix M 定义唯一作者字段 contract.when 及选择语义，不存在独立 Applicability Package | Compiler/Host 产品实现按 SA-001–SA-012 独立验收 |
 | 同名诊断与 E 用例错配 | §24、附录 H：`(Code,Phase)` 唯一；`EFFECT_MISMATCH` 可有 C_STATIC 和 R_RUNTIME 两个事件；原 v1alpha3 不包含 E115/E116，本 v1alpha4 新提 E115–E120 则用于多 Predicate 聚合 | 附录 K 的待运行诊断 Fixture 与全量 CI |
 | 正常结果与最终终态 | §12.8、§20、G.8：SUCCEEDED 阶段成功不自动等于 Invocation SUCCEEDED；已有 PENDING 责任时 SAFE_STOPPED 优先 | 资源责任 Owner 证明和真实 5GC 36 Cases |
 | 产品符合性状态 | §45.2：语言 FROZEN 不代表任一 Compiler、Studio、Host、Runtime、Owner 已 READY | 8 项门槛与原始不可变 CI 记录，全项未获统一完成证明 |
@@ -4556,7 +4572,7 @@ nodes:
 
 下述 YAML 只是填写结构的**资料性建议报告格式**；内部的 `same-document` 引用用于定位本文件附录，不是新的正式 URI 或 BuildRequest 字段。为了避免把附录 H 的“规范用例已定义”误报为“运行通过”，建议每一个精确 `(Code,Phase)` / E 用例**执行变体**分别填报 `specExpected`、`fixtureExists`、`executed`、`passed`、`rawResultRef`。只有真实 Fixture 存在、确实运行、符合预期且能查到不可变原始结果时，才有资格计入已通过的实现覆盖；不满足的列应保留 false / null，不能以规范预期替代实际执行。此类列名是附录 K 的报告模板建议，不是擅自冻结 Runtime Trace / BuildRequest 的传输字段。
 
-**不得**在缺少原始、不可变 CI / Owner/部署证据时把 `NOT_TESTED` 改成 `PASS`。跨快照 Reconcile、Owner 身份输入、Root Routing 和共同事实受信装配的实际覆盖范围应逐项注明；不覆盖的功能不得被写成完整产品符合性。若所用 BuildRequest 版本没有整个请求的聚合摘要，§34.0.2 仍要求可信原始输入字节、各自 `snapshotDigest`、身份/授权关联进入**可验证的不可变输入闭包**；缺少顶层聚合摘要本身不授权绕过闭包验证，也不为 v1alpha4 擅自发明一个必须存在的 `buildRequestDigest` 字段。
+**不得**在缺少原始、不可变 CI / Owner/部署证据时把 `NOT_TESTED` 改成 `PASS`。跨快照 Reconcile、Owner 身份输入、Skill Selection / Resolver 和共同事实受信装配的实际覆盖范围应逐项注明；不覆盖的功能不得被写成完整产品符合性。若所用 BuildRequest 版本没有整个请求的聚合摘要，§34.0.2 仍要求可信原始输入字节、各自 `snapshotDigest`、身份/授权关联进入**可验证的不可变输入闭包**；缺少顶层聚合摘要本身不授权绕过闭包验证，也不为 v1alpha4 擅自发明一个必须存在的 `buildRequestDigest` 字段。
 
 ```yaml
 # Informative reporting template; this is NOT an executable CA-SL fixture.
@@ -4771,7 +4787,7 @@ gates:
 
 **执行证据分离：** 附录 E/H 的规范预期状态仅代表文本已定义。附录 K.4 的 `specExpected` 不能转化为 `passed`；`fixtureExists`、`executed`、`passed` 和 `rawResultRef` 应逐变体记录并由原始报告核验。真实实现不能仅凭“规范用例已定义”或空白报告模板声称符合。
 
-**实现真实性：** 本次单文件整合与 Source Hygiene 检查最多说明文档结构及基本校验完成；只有实际 Owner 发布物、受信部署输入、Native/WASM/Studio 的机器 Fixture、Runtime Trace、真实 5GC Case 结果及 §45.2 的逐项报告经独立核验后才能改变相应产品状态。本文件的发布裁决为 **CA-SL v1alpha5 语言 FROZEN / RELEASED；产品 NOT_QUALIFIED**；v1alpha3 和 v1alpha4 原版仍分别保持其独立 FROZEN 状态。
+**实现真实性：** 本次单文件整合与 Source Hygiene 检查最多说明文档结构及基本校验完成；只有实际 Owner 发布物、受信部署输入、Native/WASM/Studio 的机器 Fixture、Runtime Trace、真实 5GC Case 结果及 §45.2 的逐项报告经独立核验后才能改变相应产品状态。本文件记录的 **2026-11-17 首次发布裁决为 CA-SL v1alpha5 FROZEN / RELEASED；产品 NOT_QUALIFIED**。2026-11-25 同版本刷新目前仍是 Appendix M 所述提案，须在评审合并后更新发布记录；v1alpha3 和 v1alpha4 原版仍分别保持其独立 FROZEN 状态。
 
 ---
 
@@ -5531,7 +5547,7 @@ The following semantic cases are REQUIRED for v1alpha5 language/Host/Runtime/Int
 2. 已完成对 package-scoped Integration Ingress Operation 逻辑导出契约、Schema、诊断注册表及 response-result binding 的交叉复核；其独立版本 `connectionagent.io/ingresscatalog/v1alpha1` 与诊断注册表 `connectionagent.io/ingress-diagnostics/v1alpha1` 已明确冻结；
 3. EW-001–EW-036 每项均已具有明确输入条件、精确预期诊断/控制结果、分支和恢复语义；机器义务清单保持 `SPECIFICATION_ONLY`，仅表示产品 Fixture 尚未执行，不影响规范义务已定义；
 4. 已完成 CA-SL 内部与 Wait 语义（#60/#64）、Ingress 逻辑契约的交叉一致性审查；本节定义的 Host/Runtime/Integration 抽象职责可独立理解，不以某个产品实现的物理 DTO 或持久化格式为前提；
-5. 已对语言标识 `connectionagent.io/v1alpha5` 作出明确 FROZEN / RELEASED 裁决；唯一规范提交由发布记录固定。
+5. 2026-11-17 首次发布已对 `connectionagent.io/v1alpha5` 作出 FROZEN / RELEASED 裁决；本次 2026-11-25 刷新仍为提案，合并发布后由 release record 更新当前规范提交。
 
 以上语言发布门槛均已满足。它们不要求 Compiler、Host、Runtime 或 Integration Adapter 已经执行通过产品测试，也不要求真实 Owner 已发布生产包。
 
@@ -5547,7 +5563,127 @@ The following semantic cases are REQUIRED for v1alpha5 language/Host/Runtime/Int
 
 上述产品资格工作可在语言发布后继续独立推进；在完成前不得将 `SPECIFICATION_ONLY` 写成测试 PASS，不得把 `SAFE_STOPPED` 写成资源清理已完成，也不得声称真实 Owner 或 5GC 互操作已通过。
 
-This release makes `connectionagent.io/v1alpha5` the current published authoring contract. The immutable v1alpha4 specification remains available only as a historical, explicitly selected language target. No implementation or product-conformance claim follows from language publication.
+This was the 2026-11-17 first publication of `connectionagent.io/v1alpha5`. The immutable v1alpha4 specification remains available only as a historical, explicitly selected language target. The 2026-11-25 refresh proposal is defined in Appendix M and becomes current only after its review/merge and release-record update. No implementation or product-conformance claim follows from language publication.
+
+
+# 附录 M：Optional Assurance 与 Skill Selection Contract.when
+
+**效力：Normative（刷新提案）。** 本附录是 CA-SL v1alpha5 2026-11-25 刷新修订提案的规范性组成部分。评审合并后，它补充 §6.1、§10、§11.3、§11.4、§12.8 与 §24.1，并覆盖 v1alpha4 继承文本中关于完整 Skill Eligibility / Applicability 选择协议未定义的旧说明。不增加第五种业务阶段，不改变 v1alpha4 继承的 Procedure 执行语义，也不定义独立 Domain Contract Package。
+
+## M.1 Skill Package 形状与执行模式
+
+一个 Skill Package MUST 包含根目录的 SKILL.md。CA-SL Assurance 是可选的：
+
+~~~text
+skills/<skill-name>/
+├── SKILL.md
+├── assurance/                 # Optional
+│   ├── contract.yaml          # Required when assurance/ exists
+│   ├── procedure.yaml        # Required when assurance/ exists
+│   └── predicates.yaml       # Required; empty PredicateSet is allowed when unused
+├── schemas/
+├── scripts/
+└── references/
+~~~
+
+规范性规则：
+
+1. SKILL.md 是所有 Skill 必需的 Agent-facing 描述与使用指导。它不是 CA-SL Procedure，也不声明 CEL 选择表达式。
+2. 不存在 assurance/ 时，该 Skill 是 Agent-only Skill，只支持 LLM-guided 执行，不具有 Deterministic 执行能力，也不调用 CA-SL Compiler。
+3. 存在有效 assurance/（contract.yaml、procedure.yaml 和 predicates.yaml 均有效）时，该 Skill 同时支持 Deterministic 和 LLM-guided 两种执行模式。执行模式在精确 Skill 选择与绑定之后决定。
+4. assurance/ 存在但 contract.yaml、procedure.yaml、predicates.yaml、Schema、依赖或静态语义无效时，Skill Import MUST fail。不得把该 Skill 降级为仅 SKILL.md 的普通 Skill。
+5. 不定义 supportedModes 字段，不定义第二份 LLM Contract，不定义独立 Skill descriptor、activation.yaml、constraint.yaml、applicability.yaml 或 Domain Contract Package。
+6. predicates.yaml 仅定义执行期 Predicate。它不参与 Skill 身份选择，也不能代替 Contract.when。
+
+## M.2 Contract.when 作者语法
+
+assurance/contract.yaml MAY 声明一个顶层可选字段 when：
+
+~~~yaml
+# assurance/contract.yaml
+when: 'event.type == "nsmf.create-sm-context" && input.requestType == 1'
+~~~
+
+when MUST 是非空 YAML 字符串，内容为 §G.4 所允许的 CEL 表达式，静态结果类型 MUST 为 bool。
+
+CEL 输入环境：
+
+| 变量 | 类型与含义 |
+|---|---|
+| event.type | Host 已验证的规范化 Event 类型字符串 |
+| input | 当前规范化 Event payload；其静态对象类型来自 Contract.requestSchema |
+
+约束：
+
+- event.type 是唯一由本附录固定的 Event metadata 字段。其他 Event metadata 不得在没有独立规范定义的情况下假定存在。
+- input 表示 Plugin Event Schema 验证后的规范化 payload。若 Contract 声明 requestSchema，Host MUST 另外验证该 payload 是否满足该 Request Schema，再求值 when。
+- 若 when 引用 input 的成员，Contract MUST 声明 requestSchema，使 Compiler 能够静态解析字段和类型；否则报 CEL_INVALID。
+- when 仅可使用 event.type 与 input 的已声明字段。不得读取 Runtime Context、Observation、Tool Result、Evidence、环境变量、时钟或其他可变 Host 状态。
+- when MUST 是纯表达式，不得发起查询、调用 Tool、改变状态或具有其他副作用。
+- when 不属于 Procedure 阶段，不属于 predicates.yaml，也不证明任何业务事实或 Goal。
+- 旧 applicability.when 不是别名或兼容字段；解析到该字段时按 UNKNOWN_FIELD 拒绝。
+
+## M.3 Compiler 与 Host 的职责
+
+**Compiler：**
+
+1. 识别 when 为 Contract 的合法顶层可选字段。
+2. 按 §G.4 的 CEL 子集解析并静态检查表达式。
+3. 检查变量、字段路径、可空性守卫与最终 bool 类型。
+4. 将其作为已编译 Skill Contract 的选择元数据保留；Artifact 的物理表示由独立 Compiler Artifact Contract 定义。
+5. malformed CEL、非 bool 结果、未知字段、未声明 input 字段或不允许的结构均报 CEL_INVALID，阻止 Assurance Build。
+
+**Host / Skill Resolver：**
+
+1. 对 Plugin Event 完成基本 envelope 与 Event Schema 校验后，处理新 Skill 选择。
+2. 先解析精确 continuation；续接使用原 Run 的 Skill/Artifact/Capability 绑定，不重新执行 when。
+3. 对已导入的 Assurance Skill，按候选 Skill 的 requestSchema 验证同一 normalized input（若声明），再求值 when。
+4. when=true 的 Skill 构成显式匹配集合。恰有一个时直接选择；多个时只允许 LLM 在该集合内消歧。
+5. 没有显式 true 匹配时，未声明 when 的 Skills 构成语义候选集合。该集合包含 SKILL.md-only Skills 和未声明 when 且通过本次 Event Request Schema 校验的有效 Assurance Skills（未声明 Request Schema 时无需该项校验）。Request Schema 校验失败时，Host MUST 排除该 Skill 并记录关联 Skill 与失败原因的输入校验诊断；此时不求值 when。Host/Agent 使用 SKILL.md 进行语义选择。
+6. when=false 的 Skill 不属于当前 Event 的候选。when 运行期求值错误同样 fail closed、排除该 Skill 并记录 Host 诊断；不得把它当作未声明 when 的 Skill。
+7. 若语义候选集合为空，Host MUST 停止或请求必要输入，不得凭空创造 Skill。
+8. 模型返回不属于当前候选集合的 Skill identity MUST 被拒绝。
+
+用户直接发起、没有 normalized Event 的任务可以使用未声明 when 的 SKILL.md 语义候选。声明 when 的 Skill 在没有 event.type 的输入下不构成显式匹配。
+
+## M.4 Skill Import 与编译边界
+
+作者侧工具链和 Agent 运行时导入分别处理以下输入：
+
+| 输入 | 责任方和必须行为 |
+|---|---|
+| SKILL.md-only Skill | Agent 导入指导内容，仅启用 LLM-guided；不调用 Compiler |
+| 含 assurance/ 的作者源 | 外部作者与发布工具链在发布前调用 Compiler Check/Build，使用 Inspect/Verify 检查编译结果及产物，再组装 SKILL.md 和受支持的已发布运行时 Artifact |
+| 含已发布运行时 Artifact 的 Bundle | Agent 校验支持的格式与版本、Manifest、必需文件、路径、引用、类型数据和本地 Tool/Capability 依赖。校验失败拒绝导入；校验成功后可支持两种运行模式 |
+| 未发布、无效或不受支持的 Assurance | Agent 拒绝导入，不降级为 SKILL.md-only；作者侧工具链拒绝发布无效 Assurance |
+
+Agent 导入已发布 Bundle 时不得调用 Compiler Check/Build/Inspect/Verify 或触发重新编译。该消费路径不要求独立 Skill Admission。部署授权、Owner 信任与资格判定由适用的外部部署流程负责。Agent 仍须实施运行时 Callable Scope 和动作校验。
+
+- 仅修改 SKILL.md 不要求重新编译未改动的 Assurance。
+- 修改 contract.yaml、procedure.yaml、predicates.yaml 或其他 Assurance 编译输入时，外部工具链 MUST 重新编译、复验并发布后，Agent 才能消费新的 Bundle。此规则同样适用于 LLM 创建或修改的作者源。
+- 单个 LLM Action proposal 由 Host/Runtime 的共同 Action Boundary 校验和执行，无需 Compiler。
+- Agent 可独立声明已发布 Bundle 导入及 Skill Selection 范围的符合性。作者源编译和发布的符合性由外部工具链分别举证。
+
+## M.5 Normative selection/import cases
+
+以下是 v1alpha5 刷新修订新增的规范预期。它们不是已执行的 Compiler/Host 产品测试。
+
+| Case | Input / condition | Required result |
+|---|---|---|
+| SA-001 | Skill package contains only SKILL.md | Import without Compiler; LLM-guided only |
+| SA-002 | Skill package contains valid assurance/contract.yaml, procedure.yaml and predicates.yaml | The external toolchain validates, builds, verifies and publishes the Bundle; Agent imports the valid published Bundle and supports both modes |
+| SA-003 | assurance/ exists but any of contract.yaml, procedure.yaml or predicates.yaml is missing/invalid | Import fails; never downgrade to SKILL.md-only |
+| SA-004 | Contract.when is valid, references event.type and declared input fields, returns bool | Compiler accepts; Host evaluates for fresh Event selection |
+| SA-005 | Contract.when has unknown input field, missing requestSchema for input access, invalid CEL or non-bool result | Compiler reports CEL_INVALID; Assurance Artifact is not admitted |
+| SA-006 | when evaluates false or errors at selection time | Skill is excluded; it is not reintroduced as an unguarded semantic candidate |
+| SA-007 | One or multiple when=true candidates | One selects directly; multiple are disambiguated only within the exact true set |
+| SA-008 | No when=true candidate; unguarded Skills exist | Semantic selection uses only their SKILL.md descriptions; an empty set stops/asks |
+| SA-009 | Already compiled Artifact is imported | Agent validates the published Bundle and local dependencies, rejects invalid input, and imports a valid Bundle without invoking Compiler or Skill Admission |
+| SA-010 | LLM proposes one Action | Runtime Action Boundary validates it; no Compiler invocation |
+| SA-011 | LLM creates/edits Assurance source | The external toolchain compiles, verifies and republishes before Agent consumes the changed Assurance |
+| SA-012 | 没有显式匹配。Assurance Skill A 未声明 when，其 Request Schema 要求 requestType 为整数；normalized payload 为 {"requestType":"create"} 且已通过 Plugin Event Schema 校验。另有 SKILL.md-only Skill B | 语义候选集仅含 B；Host 记录 A 的输入校验诊断；A 不求值 when |
+
+Product implementations MUST execute the applicable cases before claiming Compiler, Host or Runtime conformance. A written normative expectation is not a PASS claim.
 
 ---
 

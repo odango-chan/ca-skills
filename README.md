@@ -6,7 +6,7 @@ ConnectionAgent Skill Language (CA-SL) describes how a Skill declares its inputs
 
 ## Current release
 
-**CA-SL v1alpha5** (connectionagent.io/v1alpha5) is the current frozen language. The [release record](docs/releases/ca-sl-v1alpha5.md) links to the exact specification and companion IngressCatalog contract, and records editorial corrections.
+**CA-SL v1alpha5** (connectionagent.io/v1alpha5) is the current language identifier. The 2026-11-17 release remains the published baseline; a 2026-11-25 same-version refresh proposal adds optional Assurance and contract.when. The [release record](docs/releases/ca-sl-v1alpha5.md) distinguishes the published baseline from the proposed revision.
 
 - Read the [language specification](docs/skill-language-spec.md) for syntax and semantics.
 - Use the [authoring guide](docs/authoring.md) to write a Skill.
