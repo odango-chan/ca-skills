@@ -5673,8 +5673,8 @@ Additional rules:
 | Case | Input / condition | Required result |
 |---|---|---|
 | SA-001 | Skill package contains only SKILL.md | Import without Compiler; LLM-guided only |
-| SA-002 | Skill package contains valid assurance/contract.yaml and procedure.yaml | Compiler validates/builds; after Admission the Skill supports both modes |
-| SA-003 | assurance/ exists but contract.yaml or procedure.yaml is missing/invalid | Import fails; never downgrade to SKILL.md-only |
+| SA-002 | Skill package contains valid assurance/contract.yaml, procedure.yaml and predicates.yaml | Compiler validates/builds; after Admission the Skill supports both modes |
+| SA-003 | assurance/ exists but any of contract.yaml, procedure.yaml or predicates.yaml is missing/invalid | Import fails; never downgrade to SKILL.md-only |
 | SA-004 | Contract.when is valid, references event.type and declared input fields, returns bool | Compiler accepts; Host evaluates for fresh Event selection |
 | SA-005 | Contract.when has unknown input field, missing requestSchema for input access, invalid CEL or non-bool result | Compiler reports CEL_INVALID; Assurance Artifact is not admitted |
 | SA-006 | when evaluates false or errors at selection time | Skill is excluded; it is not reintroduced as an unguarded semantic candidate |
