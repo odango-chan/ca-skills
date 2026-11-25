@@ -3,12 +3,12 @@
 **中文名称：** ConnectionAgent Skill 语言规范  
 **简称：** CA-SL  
 **目标版本：** `connectionagent.io/v1alpha5`（简称 v1alpha5；v1alpha4 为不可变继承基线）  
-**状态：** FROZEN / RELEASED — NORMATIVE LANGUAGE SPECIFICATION（v1alpha5 刷新修订，2026-11-25；产品与真实 Owner 资格独立，仍为 NOT_QUALIFIED）  
+**状态：** PROPOSED REFRESH — NORMATIVE CANDIDATE（2026-11-25；待评审与发布；产品与真实 Owner 资格仍为 NOT_QUALIFIED）  
 **规范所有者：** odango-chan/ca-skills  
 **适用对象：** Skill 作者、Skill Studio、Compiler、Agent Host / Runtime、Tool Owner、Schema Owner、语言服务及符合性评审机构  
 **更新日期：** 2026-11-25
 
-**文件效力。** 本文件是 CA-SL v1alpha5 的完整、唯一规范性单文件，以已发布并保持不可变的 v1alpha4 规范为继承基线。除本文件明确列出的 v1alpha5 增补与替代条款外，v1alpha4 的规范性条款继续适用于 v1alpha5。附录 L 规定 Node-entry Event Wait；本次刷新新增的附录 M 规定可选 Assurance、Skill selection 的 contract.when 及 Skill 导入边界。v1alpha4 原文件不作修改。本次 2026-11-25 刷新修订继续使用 connectionagent.io/v1alpha5，并取代 2026-11-17 的 v1alpha5 首次发布文本作为当前规范性版本；不引入 v1alpha6，也不对旧格式作兼容映射。当前规范修订的精确提交身份记录于 docs/releases/ca-sl-v1alpha5.md。语言发布不代表任何产品已获资格。
+**文件效力。** 本文件是 CA-SL v1alpha5 的完整、唯一规范性单文件，以已发布并保持不可变的 v1alpha4 规范为继承基线。除本文件明确列出的 v1alpha5 增补与替代条款外，v1alpha4 的规范性条款继续适用于 v1alpha5。附录 L 规定 Node-entry Event Wait；本次刷新新增的附录 M 规定可选 Assurance、Skill selection 的 contract.when 及 Skill 导入边界。v1alpha4 原文件不作修改。本次 2026-11-25 刷新修订提案继续使用 connectionagent.io/v1alpha5；在评审通过并发布后，将取代 2026-11-17 的 v1alpha5 首次发布文本成为当前规范性版本。不引入 v1alpha6，也不对旧格式作兼容映射。当前规范修订的精确提交身份记录于 docs/releases/ca-sl-v1alpha5.md。语言发布不代表任何产品已获资格。
 
 **规范性用语。** MUST、MUST NOT、REQUIRED、SHOULD、SHOULD NOT、MAY、OPTIONAL 按 RFC 2119 和 RFC 8174 解释。相应中文规范性措辞包括“必须”“不得”“应当”“不建议”“可以”。
 
@@ -34,10 +34,10 @@ v1alpha4 的作者源码语法、静态语义、运行语义及附录 F/G/H 已 
 |---|---|---|
 | `vNext` | 本规范对应的演进版语言系列名称，不独立指定机器可解析版本 | 资料性别名 |
 | `connectionagent.io/v1alpha4` | v1alpha4 继承基线的精确语言标识；构建时仍由 BuildRequest 明确指定 | 已发布规范性目标 |
-| `connectionagent.io/v1alpha5` | 本文件的精确语言标识；当前规范修订包含附录 L 与 M，构建时仍由 BuildRequest 明确指定 | 当前规范性目标 |
+| `connectionagent.io/v1alpha5` | 本文件的精确语言标识；本刷新提案包含附录 L 与 M，当前已发布基线仍以 release record 为准，构建时由 BuildRequest 明确指定 | 当前规范性目标的候选修订 |
 | `API v1alpha4` | v1alpha4 继承基线的抽象互操作语言版本 | 规范性语义边界 |
 | `API v1alpha5` | 本版作者语言与 Node-entry Wait 语义目标；ToolCatalog、CapabilityContracts、IngressCatalog、BuildRequest 和 Artifact 仍按各自独立的精确版本契约解析，不因语言目标升级而自动改写 | 已发布规范性语义边界 |
-| `FROZEN` | v1alpha3、v1alpha4 保持历史不可变；v1alpha5 以当前发布记录指向的刷新修订为唯一现行规范文本，冻结范围包括本文件及附录 L/M | 语言规范状态 |
+| `FROZEN` | v1alpha3、v1alpha4 保持历史不可变；v1alpha5 当前发布基线仍为 2026-11-17 版本，本刷新提案待评审/发布后替代它 | 语言规范状态 |
 | `语言冻结 ≠ 产品符合` | §45.1 语言语义裁决与 §45.2 产品/Owner 验收属于独立层次 | 状态边界 |
 | `NOT QUALIFIED` | §45.2 的独立产品符合性门槛尚未完成，不得推断 Compiler、Studio、Host、Tool Owner 或真实 5GC 已通过验收 | 产品状态 |
 
@@ -54,7 +54,7 @@ v1alpha4 的作者源码语法、静态语义、运行语义及附录 F/G/H 已 
 | Skill Selection 与 contract.when | **Normative**；assurance/contract.yaml.when 的字段、CEL 类型环境和选择语义见 §11.3、§11.4、§12.8 与附录 M。它不是独立 Applicability Package，也不是 PredicateSet。旧 applicability.when 不兼容，按未知字段拒绝 |
 | Compiler Artifact、Runtime Trace、BuildRequest 的物理 framing/运输及真实 Tool Owner 的发布物 | **由各自版本契约拥有**；不得从 CA-SL FROZEN 推断其序列化格式或产品符合性已通过 |
 
-**符合性声明类型矩阵（Informative）。** 本矩阵继承 v1alpha3 的产品分层原则，**v1alpha5 当前刷新修订已发布**；任何产品仍须完成适用的 §45.2 / §L.13.2 / Appendix M 机器/Host 验收并提交原始证据，才能宣称对应产品通过。
+**符合性声明类型矩阵（Informative）。** 本矩阵继承 v1alpha3 的产品分层原则；本分支包含 v1alpha5 刷新修订提案，当前已发布基线及其发布身份仍见 release record。任何产品仍须完成适用的 §45.2 / §L.13.2 / Appendix M 机器/Host 验收并提交原始证据，才能宣称对应产品通过。
 
 | 可声明的范围 | 所需精确边界与已存在的验收门槛 | 不得推导的结论 |
 |---|---|---|
@@ -2609,15 +2609,15 @@ v1alpha4 是破坏性收敛，不要求保留 v0.2 隐式输入、旧 Observatio
 
 
 
-### 45.3 CA-SL v1alpha5 刷新修订与发布裁决（2026-11-25）
+### 45.3 CA-SL v1alpha5 刷新修订提案（2026-11-25）
 
-**正式裁决：** connectionagent.io/v1alpha5 保持现有语言标识，本文件的 2026-11-25 刷新修订为当前唯一规范性文本，并取代 2026-11-17 首次发布文本。此次更新不引入 v1alpha6，不修改 v1alpha4 历史规范，也不提供旧格式兼容映射。
+**提案裁决：** connectionagent.io/v1alpha5 保持现有语言标识。本文件提出对 2026-11-17 首次发布文本进行同版本刷新；在本提案评审通过、合并并更新 release record 后，新修订将成为唯一现行规范文本。此次更新不引入 v1alpha6，不修改 v1alpha4 历史规范，也不提供旧格式兼容映射。
 
 **本次规范性增补：** 保留既有 Contract / Procedure / PredicateSet、四种业务阶段、SourcePath、Evidence、Capability、Dependency Linking、Node-entry Event Wait、Ingress / Host / Runtime 边界；新增 Skill 包必须包含 SKILL.md、Assurance 可选、Assurance Contract 可选顶层 when 及其 CEL 类型/选择语义。完整规则见 §6.1、§10、§11.3–§11.4、§12.8、§24.1 与 Appendix M。
 
 **执行模式边界：** 无 Assurance 的 Skill 仅为 LLM-guided；有效 Assurance 同时支持 Deterministic 与 LLM-guided；存在但无效的 Assurance 必须拒绝导入，不得静默降级。when 仅负责 Skill 选择；Predicate 仅负责执行期业务判断。
 
-**发布身份：** 规范文件不能在自身内容中嵌入自身 Git commit SHA。当前规范修订的精确提交由 docs/releases/ca-sl-v1alpha5.md 记录。2026-11-17 首次发布提交仅保留为历史版本，不再作为当前 v1alpha5 规范引用。
+**发布身份：** 规范文件不能在自身内容中嵌入自身 Git commit SHA。本提案候选提交由 docs/releases/ca-sl-v1alpha5.md 的提案记录指向；在合并前，2026-11-17 首次发布提交仍是已发布的 v1alpha5 基线。
 
 **资格边界：** 规范发布不表示 Compiler、Studio/LSP、Host、Runtime、Skill Importer、Integration Adapter、Owner 或真实 5GC 已通过产品符合性验收。上述状态继续按 §45.2、§L.13.2 与 Appendix M 分别保持 NOT_QUALIFIED，直至真实执行证据经独立核验。
 
